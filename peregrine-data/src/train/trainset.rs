@@ -61,6 +61,12 @@ impl TrainSet {
         }
     }
 
+    fn each_current_train_mut<X,F>(&mut self, state: &mut X, cb: &F) where F: Fn(&mut X,&mut Train) {
+        if let Some(wanted) = &mut self.wanted { cb(state,wanted); }
+        if let Some(future) = &mut self.future { cb(state,future); }
+        if let Some(current) = &mut self.current { cb(state,current); }
+    }
+
     fn each_current_train<X,F>(&self, state: &mut X, cb: &F) where F: Fn(&mut X,&Train) {
         if let Some(wanted) = &self.wanted { cb(state,wanted); }
         if let Some(future) = &self.future { cb(state,future); }
@@ -89,7 +95,7 @@ impl TrainSet {
             if let Some(mut wanted) = self.wanted.take() {
                 let speed = self.current.as_ref().map(|x| x.speed_limit(&wanted)).unwrap_or(CarriageSpeed::Quick);
                 wanted.set_active(events,carriage_loader,speed);
-                let viewport = wanted.viewport();
+                let viewport = wanted.viewport().clone();
                 self.future = Some(wanted);
                 self.dependents.carriages_loaded(self.quiescent_target(),&self.all_current_drawing_carriages(),events);
                 self.draw_notify_viewport(events);
@@ -136,7 +142,7 @@ impl TrainSet {
         let best_scale = Scale::new_bp_per_screen(viewport.bp_per_screen()?);
         let extent = TrainExtent::new(viewport.layout()?,&best_scale,viewport.pixel_size()?);
         if let Some(quiescent) = self.quiescent_target() {
-            if quiescent.extent() == extent && !target_has_bad_validity_counter {
+            if *quiescent.extent() == extent && !target_has_bad_validity_counter {
                 return Ok(()); //no need for a target, we're heading to the right place
             }
         }
@@ -171,7 +177,7 @@ impl TrainSet {
         if let Some(mut wanted) = self.wanted.take() {
             wanted.discard(events);
         }
-        if let Some(quiescent) = self.quiescent_target().as_ref().map(|t| t.extent()) {
+        if let Some(quiescent) = self.quiescent_target().as_ref().map(|t| t.extent().clone()) {
             /* if we are now heading exactly for the target, drop it for future calls */
             if &extent == target && target_validity_matches_quiescent {
                 self.target.take();
@@ -214,7 +220,7 @@ impl TrainSet {
         /* All the trains get the new position */
         let min_quiescent_validity = self.min_quiescent_validity();
         let viewport_stick = viewport.layout()?.stick();
-        self.each_current_train(events,&|events,train| {
+        self.each_current_train_mut(events,&|events,train| {
             if viewport_stick == train.extent().layout().stick() && train.validity_counter() >= min_quiescent_validity {
                 train.set_position(&mut events.clone(),carriage_loader,viewport); // XXX error handling
             }
