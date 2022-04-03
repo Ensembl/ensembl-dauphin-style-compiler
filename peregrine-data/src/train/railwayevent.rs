@@ -2,11 +2,9 @@ use std::sync::{ Arc, Mutex };
 use peregrine_toolkit::lock;
 use peregrine_toolkit::sync::needed::Needed;
 
-use crate::shapeload::carriageprocess::CarriageProcess;
-use crate::{PlayingField, TrainExtent, PeregrineCoreBase, ShapeStore, StickStore};
+use crate::{PlayingField, TrainExtent, PeregrineCoreBase};
 use crate::allotment::core::allotmentmetadata::AllotmentMetadataReport;
-use crate::api::{ CarriageSpeed, PeregrineCore, ApiMessage };
-use crate::train::train::Train;
+use crate::api::{ CarriageSpeed, ApiMessage };
 use crate::core::Viewport;
 
 use super::railwaydatatasks::RailwayDataTasks;
@@ -14,8 +12,6 @@ use super::drawingcarriage::{DrawingCarriage};
 
 enum RailwayEvent {
     DrawSendAllotmentMetadata(AllotmentMetadataReport),
-    LoadTrainData(Train),
-    LoadCarriageData(CarriageProcess),
     DrawSetCarriages(TrainExtent,Vec<DrawingCarriage>),
     DrawStartTransition(TrainExtent,u64,CarriageSpeed),
     DrawNotifyViewport(Viewport,bool),
@@ -36,18 +32,11 @@ impl RailwayEvents {
 
     pub fn lifecycle(&self) -> &Needed { &self.1 }
 
+    #[allow(unused)]
     pub fn len(&self) -> usize { lock!(self.0).len() }
-
-    pub(super) fn load_train_data(&mut self, train: &Train) {
-        self.0.lock().unwrap().push(RailwayEvent::LoadTrainData(train.clone()));
-    }
 
     pub(super) fn draw_send_allotment_metadata(&mut self, metadata: &AllotmentMetadataReport) {
         self.0.lock().unwrap().push(RailwayEvent::DrawSendAllotmentMetadata(metadata.clone()));
-    }
-
-    pub(super) fn load_carriage_data(&mut self, carriage: &CarriageProcess) {
-        self.0.lock().unwrap().push(RailwayEvent::LoadCarriageData(carriage.clone()));
     }
 
     pub(super) fn draw_set_carriages(&mut self, train: &TrainExtent, carriages: &[DrawingCarriage]) {
@@ -82,7 +71,7 @@ impl RailwayEvents {
         self.0.lock().unwrap().push(RailwayEvent::DrawDropCarriage(carriage.clone()));
     }
 
-    pub(super) fn run_events(&mut self, base: &mut PeregrineCoreBase, carriage_loader: &RailwayDataTasks) {
+    pub(super) fn run_events(&mut self, base: &mut PeregrineCoreBase) {
         let events : Vec<RailwayEvent> = self.0.lock().unwrap().drain(..).collect();
         let mut errors = vec![];
         let mut transition = None; /* delay till after corresponding set also eat multiples */
@@ -98,12 +87,6 @@ impl RailwayEvents {
                 },
                 RailwayEvent::DrawStartTransition(index,max,speed) => {
                     transition = Some((index,max,speed));
-                },
-                RailwayEvent::LoadCarriageData(carriage) => {
-                    carriage_loader.add_carriage(&carriage);
-                },
-                RailwayEvent::LoadTrainData(train) => {
-                    carriage_loader.add_stick(&train.extent(),&train.stick_data_holder());
                 },
                 RailwayEvent::DrawNotifyViewport(viewport, future) => {
                     notifications.push((viewport,future));

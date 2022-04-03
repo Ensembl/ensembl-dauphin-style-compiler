@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
-use peregrine_toolkit::{lock, sync::{blocker::Blocker, needed::Needed}, log};
-use crate::{DataMessage, ShapeStore, PeregrineCore, PeregrineCoreBase, PgCommanderTaskSpec, Viewport, add_task, api::MessageSender, async_complete_task, shapeload::{loadshapes::LoadMode, carriageprocess::CarriageProcess}, StickStore};
+use peregrine_toolkit::{lock, sync::{blocker::Blocker, needed::Needed}};
+use crate::{DataMessage, ShapeStore, PeregrineCoreBase, Viewport, StickStore};
 use super::{railwayevent::RailwayEvents, trainset::TrainSet, railwaydatatasks::RailwayDataTasks};
 
 #[derive(Clone)]
@@ -12,22 +12,19 @@ pub struct Railway {
 
 impl Railway {
     pub fn new(base: &PeregrineCoreBase, result_store: &ShapeStore, stick_store: &StickStore, visual_blocker: &Blocker) -> Railway {
-        log!("A");
         let try_lifecycle = Needed::new();
         let mut carriage_loader = RailwayDataTasks::new(base,result_store,&stick_store,&try_lifecycle);
-        log!("new()");
         let railway = Railway {
             try_lifecycle: try_lifecycle.clone(),
             train_set: Arc::new(Mutex::new(TrainSet::new(base,result_store,visual_blocker,&try_lifecycle))),
             carriage_loader: carriage_loader.clone(),
         };
-        log!("set railway");
         carriage_loader.set_railway(&railway);
         railway
     }
 
     fn run_events(&self, mut events: RailwayEvents, base: &mut PeregrineCoreBase) {
-        events.run_events(base,&self.carriage_loader);
+        events.run_events(base);
         self.carriage_loader.load();
         lock!(self.train_set).update_dependents();
     }

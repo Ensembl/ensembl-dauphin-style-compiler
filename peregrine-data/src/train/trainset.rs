@@ -171,13 +171,13 @@ impl TrainSet {
         if let Some(mut wanted) = self.wanted.take() {
             wanted.discard(events);
         }
-        if let Some(quiescent) = self.quiescent_target().cloned() {
+        if let Some(quiescent) = self.quiescent_target().as_ref().map(|t| t.extent()) {
             /* if we are now heading exactly for the target, drop it for future calls */
             if &extent == target && target_validity_matches_quiescent {
                 self.target.take();
             }
             /* is this where we were heading anyway? */
-            if quiescent.extent() == extent && target_validity_matches_quiescent {
+            if quiescent == extent && target_validity_matches_quiescent {
                 return Ok(());
             }    
         }

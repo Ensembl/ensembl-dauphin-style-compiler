@@ -45,13 +45,13 @@ struct CarriageProcessSet(HashMap<u64,CarriageProcess>);
 impl CarriageProcessSet {
     fn new() -> CarriageProcessSet { CarriageProcessSet(HashMap::new()) }
 
-    fn try_add(&mut self, index: u64, constant: &CarriageSetConstant, railway_events: &mut RailwayEvents, carriage_loader: &RailwayDataTasks) -> CarriageProcess {
+    fn try_add(&mut self, index: u64, constant: &CarriageSetConstant, railway_data_tasks: &RailwayDataTasks) -> CarriageProcess {
         if let Some(carriage) = self.0.get(&index) {
             return carriage.clone();
         }
         let new_carriage = constant.new_unloaded_carriage(index);
         self.0.insert(index,new_carriage.clone());
-        railway_events.load_carriage_data(&new_carriage);
+        railway_data_tasks.add_carriage(&new_carriage);
         new_carriage
     }
 
@@ -135,7 +135,7 @@ impl CarriageSet {
         let mut new_set = CarriageLifecycleSet::new();
         for index in self.wanted_carriage_indexes(&self.constant.extent,self.index.unwrap()) {
             if !self.drawing_carriages.try_transfer(&mut new_set,index) {
-                let process = self.carriage_processes.try_add(index,&self.constant,railway_events,carriage_loader);
+                let process = self.carriage_processes.try_add(index,&self.constant,carriage_loader);
                 new_set.add_process(index,process);
             }
         }

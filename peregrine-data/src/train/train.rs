@@ -10,9 +10,8 @@ use super::railwaydatatasks::RailwayDataTasks;
 use super::carriageset::{CarriageSet};
 use super::railwayevent::RailwayEvents;
 use super::trainextent::TrainExtent;
-use crate::run::{ add_task, async_complete_task };
 use crate::util::message::DataMessage;
-use crate::{PgCommanderTaskSpec, DrawingCarriage, PeregrineCoreBase, StickStore};
+use crate::{ DrawingCarriage, StickStore};
 use crate::switch::trackconfiglist::TrainTrackConfigList;
 use crate::core::Viewport;
 
@@ -132,7 +131,7 @@ impl Train {
             data: Arc::new(Mutex::new(TrainData::new(extent,try_lifecycle,carriage_event,carriage_loader,viewport,&messages,validity_counter)?)),
             extent: extent.clone()
         };
-        carriage_event.load_train_data(&out);
+        carriage_loader.add_stick(&out.extent(),&out.stick_data_holder());
         Ok(out)
     }
 
