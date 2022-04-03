@@ -212,6 +212,7 @@ mod train {
     mod carriagelifecycle;
     mod railwayevent;
     mod carriageextent;
+    mod railwaydatatasks;
     mod carriageset;
     mod railway;
     mod railwaydependents;

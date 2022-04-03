@@ -5,50 +5,64 @@ use peregrine_toolkit::{lock, log};
 use peregrine_toolkit::sync::needed::Needed;
 use crate::allotment::core::allotmentmetadata::AllotmentMetadataReport;
 use crate::allotment::core::trainstate::TrainState;
-use crate::api::{CarriageSpeed, MessageSender, PeregrineCore };
+use crate::api::{CarriageSpeed, MessageSender };
+use super::railwaydatatasks::RailwayDataTasks;
 use super::carriageset::{CarriageSet};
 use super::railwayevent::RailwayEvents;
 use super::trainextent::TrainExtent;
 use crate::run::{ add_task, async_complete_task };
 use crate::util::message::DataMessage;
-use crate::{PgCommanderTaskSpec, DrawingCarriage};
+use crate::{PgCommanderTaskSpec, DrawingCarriage, PeregrineCoreBase, StickStore};
 use crate::switch::trackconfiglist::TrainTrackConfigList;
 use crate::core::Viewport;
 
+pub(super) enum StickData {
+    Pending,
+    Ready(u64),
+    Unavailable
+}
+
+impl StickData {
+    fn is_broken(&self) -> bool { match self { StickData::Unavailable => true, _ => false } }
+    fn is_ready(&self) -> bool { match self { StickData::Ready(_) => true, _ => false } }
+}
+
 struct TrainData {
     extent: TrainExtent,
-    broken: bool,
     active: bool,
     viewport: Viewport,
-    max: Option<u64>,
+    max: Arc<Mutex<StickData>>,
     carriages: CarriageSet,
     train_state: TrainState,
     validity_counter: u64
 }
 
 impl TrainData {
-    fn new(extent: &TrainExtent, try_lifecycle: &Needed, carriage_event: &mut RailwayEvents, viewport: &Viewport, messages: &MessageSender, validity_counter: u64) -> Result<TrainData,DataMessage> {
+    fn new(extent: &TrainExtent, try_lifecycle: &Needed, carriage_event: &mut RailwayEvents, carriage_loader: &RailwayDataTasks, viewport: &Viewport, messages: &MessageSender, validity_counter: u64) -> Result<TrainData,DataMessage> {
         let train_track_config_list = TrainTrackConfigList::new(&extent.layout(),&extent.scale());
         let mut out = TrainData {
             extent: extent.clone(),
-            broken: false,
             active: false,
             viewport: viewport.clone(),
             carriages: CarriageSet::new(&try_lifecycle, extent,&train_track_config_list,messages),
-            max: None,
+            max: Arc::new(Mutex::new(StickData::Pending)),
             train_state: TrainState::independent(),
             validity_counter
         };
-        out.set_position(carriage_event,viewport)?;
+        out.set_position(carriage_event,carriage_loader,viewport)?;
         Ok(out)
     }
 
     fn validity_counter(&self) -> u64 { self.validity_counter }
 
-    fn set_active(&mut self, carriage_event: &mut RailwayEvents, speed: CarriageSpeed) {
+    fn set_active(&mut self, carriage_event: &mut RailwayEvents, carriage_loader: &RailwayDataTasks, speed: CarriageSpeed) {
+        let max = match &*lock!(self.max) {
+            StickData::Ready(max) => *max,
+            _ => { panic!("set_active() called on non-ready train") }
+        };
         self.active = true;
-        self.set_drawing_carriages(carriage_event);
-        carriage_event.draw_start_transition(&self.extent,self.max.unwrap(),speed);
+        self.set_drawing_carriages(carriage_event,carriage_loader);
+        carriage_event.draw_start_transition(&self.extent,max,speed);
     }
 
     pub(super) fn discard(&mut self, railway_events: &mut RailwayEvents) {
@@ -58,7 +72,9 @@ impl TrainData {
 
     fn is_active(&self) -> bool { self.active }
     fn viewport(&self) -> &Viewport { &self.viewport }
-    fn is_broken(&self) -> bool { self.broken }
+    fn is_broken(&self) -> bool {
+        lock!(self.max).is_broken()
+    }
 
     fn allotter_metadata(&self) -> Option<AllotmentMetadataReport> {
         self.carriages.central_drawing_carriage().map(|c| c.solution().metadata())
@@ -68,19 +84,9 @@ impl TrainData {
         self.carriages.each_current_drawing_carriage(state,cb);
     }
 
-    fn set_max(&mut self, messages: &MessageSender, max: Result<u64,DataMessage>) {
-        match max {
-            Ok(max) => { self.max = Some(max); },
-            Err(e) => {
-                messages.send(e.clone());
-                self.broken = true;
-            }
-        }
-    }
-
-    fn set_position(&mut self, railway_events: &mut RailwayEvents, viewport: &Viewport) -> Result<(),DataMessage> {
+    fn set_position(&mut self, railway_events: &mut RailwayEvents, carriage_loader: &RailwayDataTasks, viewport: &Viewport) -> Result<(),DataMessage> {
         let centre_carriage_index = self.extent.scale().carriage(viewport.position()?);
-        self.carriages.update_centre(centre_carriage_index,railway_events);
+        self.carriages.update_centre(centre_carriage_index,railway_events,carriage_loader);
         self.viewport = viewport.clone();
         Ok(())
     }
@@ -90,7 +96,7 @@ impl TrainData {
     }
 
     fn train_half_ready(&self) -> bool {
-        self.carriages.central_drawing_carriage().is_some() && self.max.is_some()
+        self.carriages.central_drawing_carriage().is_some() && lock!(self.max).is_ready()
     }
 
     fn manage_train_state(&mut self) {
@@ -103,10 +109,10 @@ impl TrainData {
         }
     }
 
-    fn set_drawing_carriages(&mut self,events: &mut RailwayEvents) {
+    fn set_drawing_carriages(&mut self, events: &mut RailwayEvents, carriage_loader: &RailwayDataTasks) {
         self.carriages.check_for_carriages_with_shapes(events);
         self.manage_train_state();
-        self.carriages.update_train_state(&self.train_state, events);
+        self.carriages.update_train_state(&self.train_state, events,carriage_loader);
         if self.active {
             self.carriages.draw_set_carriages(&self.extent,events);
         }
@@ -121,9 +127,9 @@ pub(super) struct Train {
 }
 
 impl Train {
-    pub(super) fn new(try_lifecycle: &Needed, extent: &TrainExtent, carriage_event: &mut RailwayEvents, viewport: &Viewport, messages: &MessageSender, validity_counter: u64) -> Result<Train,DataMessage> {
+    pub(super) fn new(try_lifecycle: &Needed, extent: &TrainExtent, carriage_event: &mut RailwayEvents, carriage_loader: &RailwayDataTasks, viewport: &Viewport, messages: &MessageSender, validity_counter: u64) -> Result<Train,DataMessage> {
         let out = Train {
-            data: Arc::new(Mutex::new(TrainData::new(extent,try_lifecycle,carriage_event,viewport,&messages,validity_counter)?)),
+            data: Arc::new(Mutex::new(TrainData::new(extent,try_lifecycle,carriage_event,carriage_loader,viewport,&messages,validity_counter)?)),
             extent: extent.clone()
         };
         carriage_event.load_train_data(&out);
@@ -151,8 +157,8 @@ impl Train {
     pub(super) fn train_broken(&self) -> bool { self.data.lock().unwrap().is_broken() }
     pub(super) fn allotter_metadata(&self) -> Option<AllotmentMetadataReport> { self.data.lock().unwrap().allotter_metadata() }
 
-    pub(super) fn set_active(&mut self, carriage_event: &mut RailwayEvents, speed: CarriageSpeed) {
-        lock!(self.data).set_active(carriage_event,speed);
+    pub(super) fn set_active(&mut self, carriage_event: &mut RailwayEvents, carriage_loader: &RailwayDataTasks, speed: CarriageSpeed) {
+        lock!(self.data).set_active(carriage_event,carriage_loader,speed);
     }
 
     pub(super) fn discard(&mut self, events: &mut RailwayEvents) {
@@ -160,42 +166,20 @@ impl Train {
         events.draw_drop_train(&self.extent());
     }
 
-    pub(super) fn set_position(&self, carriage_event: &mut RailwayEvents, viewport: &Viewport) -> Result<(),DataMessage> {
-        lock!(self.data).set_position(carriage_event,viewport)?;
+    pub(super) fn set_position(&self, carriage_event: &mut RailwayEvents, carriage_loader: &RailwayDataTasks, viewport: &Viewport) -> Result<(),DataMessage> {
+        lock!(self.data).set_position(carriage_event,carriage_loader,viewport)?;
         Ok(())
     }
 
-    async fn find_max(&self, data: &mut PeregrineCore) -> Result<u64,DataMessage> {
-        Ok(data.agent_store.stick_store.get(&self.extent().layout().stick()).await?.size())
-    }
-
-    fn set_max(&self, messages: &MessageSender, max: Result<u64,DataMessage>) {
-        self.data.lock().unwrap().set_max(messages,max);
+    async fn find_max(&self, stick_store: &StickStore) -> Result<u64,DataMessage> {
+        Ok(stick_store.get(&self.extent().layout().stick()).await?.size())
     }
     
-    pub(super) fn run_find_max(&self, objects: &mut PeregrineCore) {
-        let self2 = self.clone();
-        let mut objects2 = objects.clone();
-        let handle = add_task(&objects.base.commander,PgCommanderTaskSpec {
-            name: format!("max finder"),
-            prio: 1,
-            slot: None,
-            timeout: None,
-            task: Box::pin(async move {
-                let max = self2.find_max(&mut objects2).await;
-                if let Err(e) = &max { 
-                    objects2.base.messages.send(e.clone());
-                }
-                self2.set_max(&objects2.base.messages,max);
-                objects2.train_set.clone().move_and_lifecycle_trains(&mut objects2);
-                Ok(())
-            }),
-            stats: false
-        });
-        async_complete_task(&objects.base.commander,&objects.base.messages,handle, |e| (e,false));
+    pub(super) fn set_drawing_carriages(&mut self, events: &mut RailwayEvents, carriage_loader: &RailwayDataTasks) {
+        self.data.lock().unwrap().set_drawing_carriages(events,carriage_loader);
     }
 
-    pub(super) fn set_drawing_carriages(&mut self, events: &mut RailwayEvents) {
-        self.data.lock().unwrap().set_drawing_carriages(events);
+    pub(super) fn stick_data_holder(&self) -> Arc<Mutex<StickData>> {
+        lock!(self.data).max.clone()        
     }
 }

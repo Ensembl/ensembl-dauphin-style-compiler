@@ -86,7 +86,7 @@ impl PeregrineCore {
             version
         };
         let agent_store = AgentStore::new(&base);
-        let train_set = Railway::new(&base,&agent_store.lane_store,visual_blocker);
+        let train_set = Railway::new(&base,&agent_store.lane_store,&agent_store.stick_store,visual_blocker);
         Ok(PeregrineCore {
             base,
             agent_store,

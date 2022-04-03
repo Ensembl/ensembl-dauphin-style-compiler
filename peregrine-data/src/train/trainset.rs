@@ -3,6 +3,7 @@ use peregrine_toolkit::sync::needed::Needed;
 use crate::{CarriageExtent, CarriageSpeed, ShapeStore, PeregrineCoreBase, DrawingCarriage};
 use crate::api::MessageSender;
 use crate::core::{Layout, Scale, Viewport};
+use super::railwaydatatasks::RailwayDataTasks;
 use super::railwaydependents::RailwayDependents;
 use super::train::{ Train };
 use super::railwayevent::RailwayEvents;
@@ -78,7 +79,7 @@ impl TrainSet {
         out
     }
 
-    fn try_advance_wanted_to_future(&mut self, events: &mut RailwayEvents) {
+    fn try_advance_wanted_to_future(&mut self, events: &mut RailwayEvents, carriage_loader: &RailwayDataTasks) {
         let desperate = self.future.is_none() && self.current.is_none();
         let train_good_enough = self.wanted.as_ref().map(|x| {
             let train_ready_enough = x.train_ready() || (desperate && x.train_half_ready());
@@ -87,12 +88,12 @@ impl TrainSet {
         if train_good_enough && self.future.is_none() {
             if let Some(mut wanted) = self.wanted.take() {
                 let speed = self.current.as_ref().map(|x| x.speed_limit(&wanted)).unwrap_or(CarriageSpeed::Quick);
-                wanted.set_active(events,speed);
+                wanted.set_active(events,carriage_loader,speed);
                 let viewport = wanted.viewport();
                 self.future = Some(wanted);
                 self.dependents.carriages_loaded(self.quiescent_target(),&self.all_current_drawing_carriages(),events);
                 self.draw_notify_viewport(events);
-                self.try_new_wanted(events,&viewport);
+                self.try_new_wanted(events,carriage_loader,&viewport);
             }
         }
     }
@@ -148,7 +149,7 @@ impl TrainSet {
     /* Never discard a milestone (with our layout). If discarding anything, convert to relevant milestone.
      * Prevents thrashing of scales when busy.
      */
-    fn try_new_wanted(&mut self, events: &mut RailwayEvents, viewport: &Viewport) -> Result<(),DataMessage> {
+    fn try_new_wanted(&mut self, events: &mut RailwayEvents, carriage_loader: &RailwayDataTasks, viewport: &Viewport) -> Result<(),DataMessage> {
         if self.target.is_none() { return Ok(()); }
         let target = self.target.as_ref().unwrap();
         let target_validity_matches_quiescent = if let Some(quiescent) = self.quiescent_target().as_ref() {
@@ -182,7 +183,7 @@ impl TrainSet {
         }
         /* do it */
         self.next_train_serial +=1;
-        let wanted = Train::new(&self.try_lifecycle,&extent,events,viewport,&self.messages,self.target_validity_counter)?;
+        let wanted = Train::new(&self.try_lifecycle,&extent,events,carriage_loader,viewport,&self.messages,self.target_validity_counter)?;
         events.draw_create_train(&extent);
         self.wanted = Some(wanted);
         Ok(())
@@ -198,12 +199,12 @@ impl TrainSet {
         }
     }
 
-    pub(super) fn set_position(&mut self, events: &mut RailwayEvents, viewport: &Viewport) -> Result<(),DataMessage> {
+    pub(super) fn set_position(&mut self, events: &mut RailwayEvents, carriage_loader: &RailwayDataTasks, viewport: &Viewport) -> Result<(),DataMessage> {
         if !viewport.ready() { return Ok(()); }
         self.viewport = Some(viewport.clone());
         /* maybe we need to change the wanted train? */
         self.try_set_target(viewport)?;
-        self.try_new_wanted(events,viewport)?;
+        self.try_new_wanted(events,carriage_loader,viewport)?;
         /* dependents need to know we moved */
         if let Some(train) = self.quiescent_target() {
             let central_index = train.extent().scale().carriage(viewport.position()?);
@@ -215,22 +216,22 @@ impl TrainSet {
         let viewport_stick = viewport.layout()?.stick();
         self.each_current_train(events,&|events,train| {
             if viewport_stick == train.extent().layout().stick() && train.validity_counter() >= min_quiescent_validity {
-                train.set_position(&mut events.clone(),viewport); // XXX error handling
+                train.set_position(&mut events.clone(),carriage_loader,viewport); // XXX error handling
             }
         });
         /* check if any progress can be made */
-        self.try_advance_wanted_to_future(events);
+        self.try_advance_wanted_to_future(events,carriage_loader);
         /* tell dependents */
         self.draw_notify_viewport(events);
         Ok(())
     }
 
-    fn reset_position(&mut self, events: &mut RailwayEvents) -> Result<(),DataMessage> {
+    fn reset_position(&mut self, events: &mut RailwayEvents, carriage_loader: &RailwayDataTasks) -> Result<(),DataMessage> {
         if !self.viewport.is_some() { return Ok(()); }
-        self.set_position(events,&self.viewport.as_ref().cloned().unwrap())
+        self.set_position(events,carriage_loader,&self.viewport.as_ref().cloned().unwrap())
     }
 
-    pub(super) fn transition_complete(&mut self, events: &mut RailwayEvents) {
+    pub(super) fn transition_complete(&mut self, events: &mut RailwayEvents, carriage_loader: &RailwayDataTasks) {
         /* retire current and make future current */
         if let Some(mut current) = self.current.take() {
             current.discard(events);
@@ -238,25 +239,25 @@ impl TrainSet {
         }
         self.current = self.future.take();
         /* now future is free, maybe wanted can go there? */
-        self.try_advance_wanted_to_future(events);
+        self.try_advance_wanted_to_future(events,carriage_loader);
         /* stuff may have happened above, tell dependents */
         self.dependents.carriages_loaded(self.quiescent_target(),&self.all_current_drawing_carriages(),events);
     }
 
-    pub(super) fn move_and_lifecycle_trains(&mut self) -> RailwayEvents {
+    pub(super) fn move_and_lifecycle_trains(&mut self, carriage_loader: &RailwayDataTasks) -> RailwayEvents {
         let mut events = RailwayEvents::new(&self.try_lifecycle);
         if let Some(train) = &mut self.wanted {
             /* wanted may be ready now */
-            train.set_drawing_carriages(&mut events);
-            self.try_advance_wanted_to_future(&mut events);
+            train.set_drawing_carriages(&mut events,carriage_loader);
+            self.try_advance_wanted_to_future(&mut events,carriage_loader);
         }
         if let Some(train) = &mut self.future {
             /* future may have moved */
-            train.set_drawing_carriages(&mut events);
+            train.set_drawing_carriages(&mut events,carriage_loader);
         }
         if let Some(train) = &mut self.current {
             /* current may have moved */
-            train.set_drawing_carriages(&mut events);
+            train.set_drawing_carriages(&mut events,carriage_loader);
         }
         /* stuff may have happened above, tell dependents */
         self.dependents.carriages_loaded(self.quiescent_target(),&self.all_current_drawing_carriages(),&mut events);
@@ -267,20 +268,20 @@ impl TrainSet {
         self.dependents.busy(!(self.future.is_none() && self.wanted.is_none()));
     }
 
-    pub(super) fn set_sketchy(&mut self, yn: bool) -> Result<RailwayEvents,DataMessage> {
+    pub(super) fn set_sketchy(&mut self, carriage_loader: &RailwayDataTasks, yn: bool) -> Result<RailwayEvents,DataMessage> {
         let mut events = RailwayEvents::new(&self.try_lifecycle);
         self.sketchy = yn;
         if !yn {
-            self.reset_position(&mut events)?;
+            self.reset_position(&mut events,carriage_loader)?;
         }
         Ok(events)
     }
 
-    pub(super) fn invalidate(&mut self) -> Result<RailwayEvents,DataMessage> {
+    pub(super) fn invalidate(&mut self, carriage_loader: &RailwayDataTasks) -> Result<RailwayEvents,DataMessage> {
         let mut events = RailwayEvents::new(&self.try_lifecycle);
         self.validity_counter += 1;
         /* create events */
-        self.reset_position(&mut events)?;
+        self.reset_position(&mut events,carriage_loader)?;
         Ok(events)
     }
 }

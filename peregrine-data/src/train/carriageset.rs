@@ -5,6 +5,7 @@ use std::ops::Range;
 use peregrine_toolkit::sync::needed::Needed;
 
 use super::carriagelifecycle::CarriageLifecycleSet;
+use super::railwaydatatasks::RailwayDataTasks;
 use super::railwayevent::RailwayEvents;
 use super::trainextent::TrainExtent;
 use crate::allotment::core::heighttracker::HeightTrackerMerger;
@@ -44,7 +45,7 @@ struct CarriageProcessSet(HashMap<u64,CarriageProcess>);
 impl CarriageProcessSet {
     fn new() -> CarriageProcessSet { CarriageProcessSet(HashMap::new()) }
 
-    fn try_add(&mut self, index: u64, constant: &CarriageSetConstant, railway_events: &mut RailwayEvents) -> CarriageProcess {
+    fn try_add(&mut self, index: u64, constant: &CarriageSetConstant, railway_events: &mut RailwayEvents, carriage_loader: &RailwayDataTasks) -> CarriageProcess {
         if let Some(carriage) = self.0.get(&index) {
             return carriage.clone();
         }
@@ -97,7 +98,7 @@ impl CarriageSet {
         start..(start+flank*2+1)
     }
 
-    pub(super) fn update_centre(&mut self, centre: u64, railway_events: &mut RailwayEvents) {
+    pub(super) fn update_centre(&mut self, centre: u64, railway_events: &mut RailwayEvents, carriage_loader: &RailwayDataTasks) {
         /* check and update state */
         if let Some(old_centre)= &self.index {
             if *old_centre == centre {
@@ -106,10 +107,10 @@ impl CarriageSet {
             }
         }
         self.index = Some(centre);
-        self.update_carriages(railway_events);
+        self.update_carriages(railway_events,carriage_loader);
     }
 
-    pub(super) fn update_train_state(&mut self, train_state: &TrainState, railway_events: &mut RailwayEvents) {
+    pub(super) fn update_train_state(&mut self, train_state: &TrainState, railway_events: &mut RailwayEvents, carriage_loader: &RailwayDataTasks) {
         /* check and update state */
         if let Some(old_state)= &self.train_state {
             if old_state == train_state {
@@ -122,10 +123,10 @@ impl CarriageSet {
             }
         }
         self.train_state = Some(train_state.clone());
-        self.update_carriages(railway_events);
+        self.update_carriages(railway_events,carriage_loader);
     }
 
-    fn update_carriages(&mut self, railway_events: &mut RailwayEvents) {
+    fn update_carriages(&mut self, railway_events: &mut RailwayEvents, carriage_loader: &RailwayDataTasks) {
         if self.index.is_none() { return; }
         /* Update list of carriages. We populate a new carriage list by draining from the current list where available
          * or by scheduling creation of a new one. Anything left in the list is then discarded. We then replace the old
@@ -134,7 +135,7 @@ impl CarriageSet {
         let mut new_set = CarriageLifecycleSet::new();
         for index in self.wanted_carriage_indexes(&self.constant.extent,self.index.unwrap()) {
             if !self.drawing_carriages.try_transfer(&mut new_set,index) {
-                let process = self.carriage_processes.try_add(index,&self.constant,railway_events);
+                let process = self.carriage_processes.try_add(index,&self.constant,railway_events,carriage_loader);
                 new_set.add_process(index,process);
             }
         }

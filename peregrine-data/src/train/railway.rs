@@ -1,125 +1,86 @@
 use std::sync::{Arc, Mutex};
-use peregrine_toolkit::{lock, sync::{blocker::Blocker, needed::Needed}};
-use crate::{DataMessage, ShapeStore, PeregrineCore, PeregrineCoreBase, PgCommanderTaskSpec, Viewport, add_task, api::MessageSender, async_complete_task, shapeload::{loadshapes::LoadMode, carriageprocess::CarriageProcess}};
-use super::{railwayevent::RailwayEvents, trainset::TrainSet};
+use peregrine_toolkit::{lock, sync::{blocker::Blocker, needed::Needed}, log};
+use crate::{DataMessage, ShapeStore, PeregrineCore, PeregrineCoreBase, PgCommanderTaskSpec, Viewport, add_task, api::MessageSender, async_complete_task, shapeload::{loadshapes::LoadMode, carriageprocess::CarriageProcess}, StickStore};
+use super::{railwayevent::RailwayEvents, trainset::TrainSet, railwaydatatasks::RailwayDataTasks};
 
 #[derive(Clone)]
 pub struct Railway {
     try_lifecycle: Needed,
     train_set: Arc<Mutex<TrainSet>>,
-    messages: MessageSender
+    carriage_loader: RailwayDataTasks
 }
 
 impl Railway {
-    pub fn new(base: &PeregrineCoreBase,result_store: &ShapeStore, visual_blocker: &Blocker) -> Railway {
+    pub fn new(base: &PeregrineCoreBase, result_store: &ShapeStore, stick_store: &StickStore, visual_blocker: &Blocker) -> Railway {
+        log!("A");
         let try_lifecycle = Needed::new();
-        Railway {
+        let mut carriage_loader = RailwayDataTasks::new(base,result_store,&stick_store,&try_lifecycle);
+        log!("new()");
+        let railway = Railway {
             try_lifecycle: try_lifecycle.clone(),
             train_set: Arc::new(Mutex::new(TrainSet::new(base,result_store,visual_blocker,&try_lifecycle))),
-            messages: base.messages.clone()
-        }
+            carriage_loader: carriage_loader.clone(),
+        };
+        log!("set railway");
+        carriage_loader.set_railway(&railway);
+        railway
     }
 
-    async fn load_carriages(&self, objects: &mut PeregrineCore, mut carriages: Vec<CarriageProcess>) {
-        let mut loads = vec![];
-        let commander= objects.base.commander.clone();
-        for carriage in carriages.drain(..) {
-            let objects2 = objects.clone();
-            let try_lifecycle = self.try_lifecycle.clone();
-            let handle = add_task(&commander,PgCommanderTaskSpec {
-                    name: format!("single carriage loader"),
-                    prio: 1,
-                    slot: None,
-                    timeout: None,
-                    task: Box::pin(async move {
-                        let mut carriage = carriage;
-                        let r = carriage.load(&objects2.base,&objects2.agent_store.lane_store,LoadMode::RealTime).await;
-                        try_lifecycle.set();
-                        Ok(r)
-                    }),
-                    stats: false
-                });
-            loads.push(handle);
-        }
-        for future in loads {
-            future.finish_future().await;
-            let r = future.take_result().unwrap();
-            if let Err(e) = r {
-                self.messages.send(e.clone());
-            }
-        }
-    }
-
-    fn run_events(&self, mut events: RailwayEvents, objects: &mut PeregrineCore) {
-        let loads = events.run_events(objects);
-        if loads.len() > 0 {
-           self.run_load_carriages(objects,loads);
-        }
+    fn run_events(&self, mut events: RailwayEvents, base: &mut PeregrineCoreBase) {
+        events.run_events(base,&self.carriage_loader);
+        self.carriage_loader.load();
         lock!(self.train_set).update_dependents();
     }
 
-    pub(super) fn move_and_lifecycle_trains(&mut self, objects: &mut PeregrineCore) {
-        let events = lock!(self.train_set).move_and_lifecycle_trains();
-        self.run_events(events,objects);
+    pub(super) fn move_and_lifecycle_trains(&self, base: &mut PeregrineCoreBase) {
+        let events = lock!(self.train_set).move_and_lifecycle_trains(&self.carriage_loader);
+        self.run_events(events,base);
+        self.carriage_loader.load();
     }
 
-    fn run_load_carriages(&self, objects: &mut PeregrineCore, loads: Vec<CarriageProcess>) {
-        let mut self2 = self.clone();
-        let mut objects2 = objects.clone();
-        let loads = loads.clone();
-        let handle = add_task(&objects.base.commander,PgCommanderTaskSpec {
-            name: format!("carriage loader"),
-            prio: 1,
-            slot: None,
-            timeout: None,
-            task: Box::pin(async move {
-                self2.load_carriages(&mut objects2,loads).await;
-                self2.move_and_lifecycle_trains(&mut objects2);
-                Ok(())
-            }),
-            stats: false
-        });
-        async_complete_task(&objects.base.commander, &objects.base.messages,handle,|e| (e,false));
-    }
-
-    pub fn set(&self, objects: &mut PeregrineCore, viewport: &Viewport) -> Result<(),DataMessage> {
+    pub fn set(&self, base: &mut PeregrineCoreBase, viewport: &Viewport) -> Result<(),DataMessage> {
         let mut events = RailwayEvents::new(&self.try_lifecycle);
         if viewport.ready() {
-            lock!(self.train_set).set_position(&mut events,viewport)?;
+            lock!(self.train_set).set_position(&mut events,&self.carriage_loader,viewport)?;
         }
         events.draw_notify_viewport(viewport,true);
-        self.run_events(events,objects);
+        self.run_events(events,base);
+        self.carriage_loader.load();
         Ok(())
     }
 
-    pub fn transition_complete(&self, objects: &mut PeregrineCore) {
+    pub fn transition_complete(&self, base: &mut PeregrineCoreBase) {
         let mut events = RailwayEvents::new(&self.try_lifecycle);
-        lock!(self.train_set).transition_complete(&mut events);
-        self.run_events(events,objects);
+        lock!(self.train_set).transition_complete(&mut events,&self.carriage_loader);
+        self.run_events(events,base);
+        self.carriage_loader.load();
     }
 
-    pub fn try_lifecycle_trains(&self, objects: &mut PeregrineCore) {
+    pub fn try_lifecycle_trains(&self, base: &mut PeregrineCoreBase) {
         if self.try_lifecycle.is_needed() {
             let mut train_set = lock!(self.train_set);
-            let events = train_set.move_and_lifecycle_trains();
+            let events = train_set.move_and_lifecycle_trains(&self.carriage_loader);
             drop(train_set);
-            self.run_events(events,objects);
+            self.run_events(events,base);
+            self.carriage_loader.load();
         }
     }
 
-    pub fn set_sketchy(&self, objects: &mut PeregrineCore, yn: bool) -> Result<(),DataMessage> {
+    pub fn set_sketchy(&self, base: &mut PeregrineCoreBase, yn: bool) -> Result<(),DataMessage> {
         let mut train_set = lock!(self.train_set);
-        let events = train_set.set_sketchy(yn)?;
+        let events = train_set.set_sketchy(&self.carriage_loader,yn)?;
         drop(train_set);
-        self.run_events(events,objects);
+        self.run_events(events,base);
+        self.carriage_loader.load();
         Ok(())
     }
 
-    pub fn invalidate(&self, objects: &mut PeregrineCore) -> Result<(),DataMessage> {
+    pub fn invalidate(&self, base: &mut PeregrineCoreBase) -> Result<(),DataMessage> {
         let mut train_set = lock!(self.train_set);
-        let events = train_set.invalidate()?;
+        let events = train_set.invalidate(&self.carriage_loader)?;
         drop(train_set);
-        self.run_events(events,objects);
+        self.run_events(events,base);
+        self.carriage_loader.load();
         Ok(())
     }
 }

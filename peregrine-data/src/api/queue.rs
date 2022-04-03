@@ -51,7 +51,7 @@ impl ApiQueueCampaign {
             },
             ApiMessage::TransitionComplete => {
                 let train_set = data.train_set.clone();
-                train_set.transition_complete(data);
+                train_set.transition_complete(&mut data.base);
             },
             ApiMessage::SetPosition(pos) =>{
                 self.viewport = self.viewport.set_position(pos);
@@ -104,15 +104,15 @@ impl ApiQueueCampaign {
             },
             ApiMessage::TryLifecycleTrains => {
                 let train_set = data.train_set.clone();
-                train_set.try_lifecycle_trains(data);
+                train_set.try_lifecycle_trains(&mut data.base);
             },
             ApiMessage::Sketchy(yn) => {
                 let train_set = data.train_set.clone();
-                train_set.set_sketchy(data,yn);
+                train_set.set_sketchy(&mut data.base,yn);
             },
             ApiMessage::Invalidate => {
                 let train_set = data.train_set.clone();
-                train_set.invalidate(data);
+                train_set.invalidate(&mut data.base);
             }
         }
     }
@@ -137,7 +137,7 @@ impl PeregrineApiQueue {
     fn update_train_set(&mut self, objects: &mut PeregrineCore) {
         let viewport = objects.viewport.clone();
         let train_set = objects.train_set.clone();
-        train_set.set(objects,&viewport);
+        train_set.set(&mut objects.base,&viewport);
     }
 
     fn update_viewport(&mut self, data: &mut PeregrineCore, new_viewport: Viewport) {

@@ -3,12 +3,13 @@ use peregrine_toolkit::lock;
 use peregrine_toolkit::sync::needed::Needed;
 
 use crate::shapeload::carriageprocess::CarriageProcess;
-use crate::{PlayingField, TrainExtent};
+use crate::{PlayingField, TrainExtent, PeregrineCoreBase, ShapeStore, StickStore};
 use crate::allotment::core::allotmentmetadata::AllotmentMetadataReport;
-use crate::api::{ CarriageSpeed, PeregrineCore };
+use crate::api::{ CarriageSpeed, PeregrineCore, ApiMessage };
 use crate::train::train::Train;
 use crate::core::Viewport;
 
+use super::railwaydatatasks::RailwayDataTasks;
 use super::drawingcarriage::{DrawingCarriage};
 
 enum RailwayEvent {
@@ -81,64 +82,62 @@ impl RailwayEvents {
         self.0.lock().unwrap().push(RailwayEvent::DrawDropCarriage(carriage.clone()));
     }
 
-    pub(super) fn run_events(&mut self, objects: &mut PeregrineCore) -> Vec<CarriageProcess> {
+    pub(super) fn run_events(&mut self, base: &mut PeregrineCoreBase, carriage_loader: &RailwayDataTasks) {
         let events : Vec<RailwayEvent> = self.0.lock().unwrap().drain(..).collect();
         let mut errors = vec![];
-        let mut loads = vec![];
         let mut transition = None; /* delay till after corresponding set also eat multiples */
         let mut notifications = vec![];
         for e in events {
             match e {
                 RailwayEvent::DrawSendAllotmentMetadata(metadata) => {
-                    objects.base.integration.lock().unwrap().notify_allotment_metadata(&metadata);
+                    base.integration.lock().unwrap().notify_allotment_metadata(&metadata);
                 },
                 RailwayEvent::DrawSetCarriages(train,carriages) => {
-                    let r = lock!(objects.base.integration).set_carriages(&train,&carriages);
+                    let r = lock!(base.integration).set_carriages(&train,&carriages);
                     if let Err(r) = r { errors.push(r); }
                 },
                 RailwayEvent::DrawStartTransition(index,max,speed) => {
                     transition = Some((index,max,speed));
                 },
                 RailwayEvent::LoadCarriageData(carriage) => {
-                    loads.push(carriage);
+                    carriage_loader.add_carriage(&carriage);
                 },
                 RailwayEvent::LoadTrainData(train) => {
-                    train.run_find_max(objects);
+                    carriage_loader.add_stick(&train.extent(),&train.stick_data_holder());
                 },
                 RailwayEvent::DrawNotifyViewport(viewport, future) => {
                     notifications.push((viewport,future));
                 },
                 RailwayEvent::DrawNotifyPlayingField(height) => {
-                    lock!(objects.base.integration).set_playing_field(height);
+                    lock!(base.integration).set_playing_field(height);
                 },
                 RailwayEvent::DrawCreateTrain(train) => {
-                    lock!(objects.base.integration).create_train(&train);
+                    lock!(base.integration).create_train(&train);
                 },
                 RailwayEvent::DrawDropTrain(train) => {
-                    lock!(objects.base.integration).drop_train(&train);
+                    lock!(base.integration).drop_train(&train);
                 },
                 RailwayEvent::DrawCreateCarriage(carriage) => {
-                    lock!(objects.base.integration).create_carriage(&carriage);
+                    lock!(base.integration).create_carriage(&carriage);
                 }
                 RailwayEvent::DrawDropCarriage(carriage) => {
-                    lock!(objects.base.integration).drop_carriage(&carriage);
+                    lock!(base.integration).drop_carriage(&carriage);
                 }
             }
         }
         if let Some((train,max,speed)) = transition {
-            let r = objects.base.integration.lock().unwrap().start_transition(&train,max,speed);
+            let r = base.integration.lock().unwrap().start_transition(&train,max,speed);
             if let Err(r) = r {
                 errors.push(r);
-                objects.transition_complete();
+                base.queue.push(ApiMessage::TransitionComplete);
             }
         }
-        let mut integration =  objects.base.integration.lock().unwrap();
+        let mut integration =  base.integration.lock().unwrap();
         for (viewport,future) in notifications.drain(..) {
             integration.notify_viewport(&viewport,future);
         }
         for error in errors.drain(..) {
-            objects.base.messages.send(error);
+            base.messages.send(error);
         }
-        loads
     }
 }
