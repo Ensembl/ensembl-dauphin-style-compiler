@@ -1,6 +1,6 @@
 use std::{sync::Arc, collections::HashMap};
 
-use peregrine_data::{Colour, DirectColour, DrawnType, Patina, SpaceBase, SpaceBaseArea, PartialSpaceBase, reactive::{Reactive, Observable}, EachOrEvery, CarriageShapeListBuilder, LeafRequest, LeafCommonStyle, Pen};
+use peregrine_data::{Colour, DirectColour, DrawnType, Patina, SpaceBase, SpaceBaseArea, PartialSpaceBase, reactive::{Reactive, Observable}, EachOrEvery, ProgramShapesBuilder, LeafRequest, LeafCommonStyle, Pen};
 use crate::{Message, run::{PgConfigKey, PgPeregrineConfig}, shape::util::iterators::eoe_throw};
 use peregrine_data::reactive;
 use super::spectremanager::SpectreConfigKey;
@@ -49,7 +49,7 @@ impl MarchingAnts {
         })
     }
 
-    pub(crate) fn draw(&self, shapes: &mut CarriageShapeListBuilder) -> Result<(),Message> {
+    pub(crate) fn draw(&self, shapes: &mut ProgramShapesBuilder) -> Result<(),Message> {
         let leaf = shapes.use_allotment("window/origin/ants").clone();
         let mut props = HashMap::new();
         props.insert("depth".to_string(),"101".to_string());
@@ -135,7 +135,7 @@ impl Stain {
         })
     }
     
-    pub(crate) fn draw(&self, shapes: &mut CarriageShapeListBuilder) -> Result<(),Message> {
+    pub(crate) fn draw(&self, shapes: &mut ProgramShapesBuilder) -> Result<(),Message> {
         let leaf = shapes.use_allotment("window/origin/stain").clone();
         let mut props = HashMap::new();
         props.insert("depth".to_string(),"101".to_string());
@@ -179,7 +179,7 @@ pub(crate) enum Spectre {
 }
 
 impl Spectre {
-    pub(crate) fn draw(&self, shapes: &mut CarriageShapeListBuilder) -> Result<(),Message> {
+    pub(crate) fn draw(&self, shapes: &mut ProgramShapesBuilder) -> Result<(),Message> {
         match self {
             Spectre::MarchingAnts(a) => a.draw(shapes)?,
             Spectre::Stain(a) => a.draw(shapes)?,

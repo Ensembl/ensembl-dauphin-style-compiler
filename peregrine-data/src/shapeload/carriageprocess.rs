@@ -2,7 +2,7 @@ use std::sync::{Mutex, Arc};
 
 use peregrine_toolkit::{sync::needed::Needed, lock};
 
-use crate::{CarriageExtent, switch::trackconfiglist::TrainTrackConfigList, api::MessageSender, allotment::core::carriageuniverse::CarriageShapes, ShapeRequestGroup, PeregrineCoreBase, ShapeStore, DataMessage};
+use crate::{CarriageExtent, switch::trackconfiglist::TrainTrackConfigList, api::MessageSender, ShapeRequestGroup, PeregrineCoreBase, ShapeStore, DataMessage, allotment::core::drawingcarriagedata::DrawingCarriageDataStore};
 
 use super::loadshapes::{LoadMode, load_carriage_shape_list};
 
@@ -12,7 +12,7 @@ pub(crate) struct CarriageProcess {
     extent: CarriageExtent,
     config: TrainTrackConfigList,
     messages: Option<MessageSender>,
-    shapes: Arc<Mutex<Option<CarriageShapes>>>,
+    shapes: Arc<Mutex<Option<DrawingCarriageDataStore>>>,
     warm: bool
 }
 
@@ -29,7 +29,7 @@ impl CarriageProcess {
     }
 
     pub fn extent(&self) -> &CarriageExtent { &self.extent }
-    pub fn get_shapes(&self) -> Option<CarriageShapes> { lock!(self.shapes).clone() }
+    pub fn get_shapes(&self) -> Option<DrawingCarriageDataStore> { lock!(self.shapes).clone() }
 
     fn make_shape_requests(&self) -> ShapeRequestGroup {
         let track_config_list = self.extent.train().layout().track_config_list();
@@ -55,7 +55,7 @@ impl CarriageProcess {
             LoadMode::Network => { return Ok(()); },
             _ => {}
         }
-        *lock!(self.shapes) = Some(CarriageShapes::new(&shapes));
+        *lock!(self.shapes) = Some(DrawingCarriageDataStore::new(&shapes));
         if let Some(lifecycle) = &self.try_lifecycle {
             lifecycle.set();
         }

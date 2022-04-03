@@ -1,6 +1,6 @@
 use peregrine_toolkit::{puzzle::{PuzzleValueHolder, CommutingSequence}};
 
-use crate::{allotment::{core::{ aligner::Aligner, carriageuniverse::CarriageUniversePrep}, style::{style::{ContainerAllotmentStyle}, allotmentname::{AllotmentNamePart, AllotmentName}}, boxes::boxtraits::Stackable}, CoordinateSystem};
+use crate::{allotment::{core::{ aligner::Aligner, carriageoutput::CarriageUniversePrep}, style::{style::{ContainerAllotmentStyle}, allotmentname::{AllotmentNamePart, AllotmentName}}, boxes::boxtraits::Stackable}, CoordinateSystem};
 
 use super::{container::{Container}, boxtraits::{Coordinated, BuildSize, ContainerSpecifics }};
 

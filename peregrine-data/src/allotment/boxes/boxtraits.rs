@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
-use peregrine_toolkit::puzzle::{PuzzleValueHolder, PuzzleBuilder, PuzzleValue, ClonablePuzzleValue, PuzzleSolution};
+use peregrine_toolkit::puzzle::{PuzzleValueHolder, PuzzleSolution};
 
-use crate::{allotment::{transformers::transformers::{Transformer}, style::{style::{LeafCommonStyle}, allotmentname::{AllotmentNamePart, AllotmentName}}, util::rangeused::RangeUsed, core::carriageuniverse::CarriageUniversePrep}, CoordinateSystem};
+use crate::{allotment::{transformers::transformers::{Transformer}, style::{style::{LeafCommonStyle}, allotmentname::{AllotmentName}}, util::rangeused::RangeUsed, core::carriageoutput::CarriageUniversePrep}, CoordinateSystem};
 
 pub trait Coordinated {
     fn coordinate_system(&self) -> &CoordinateSystem;

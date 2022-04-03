@@ -4,6 +4,7 @@ use std::sync::{ Arc, Mutex };
 use peregrine_toolkit::{lock, log};
 use peregrine_toolkit::sync::needed::Needed;
 
+use crate::allotment::collision::bumpprocess::BumpProcess;
 use crate::allotment::collision::concretebump::ConcreteBump;
 use crate::allotment::core::allotmentmetadata::AllotmentMetadataReport;
 use crate::allotment::core::trainstate::TrainState;
@@ -24,7 +25,7 @@ struct TrainData {
     max: Option<u64>,
     carriages: CarriageSet,
     messages: MessageSender,
-    bump_story: ConcreteBump,
+    bump_process: BumpProcess,
     train_state: TrainState,
     validity_counter: u64
 }
@@ -40,7 +41,7 @@ impl TrainData {
             max: None,
             messages: messages.clone(),
             train_state: TrainState::independent(),
-            bump_story: ConcreteBump::new(extent.scale().bp_in_carriage()),
+            bump_process: BumpProcess::new(extent.scale().bp_in_carriage()),
             validity_counter
         };
         out.set_position(extent,carriage_event,viewport)?;
@@ -84,8 +85,8 @@ impl TrainData {
     }
 
     fn set_position(&mut self, extent: &TrainExtent, railway_events: &mut RailwayEvents, viewport: &Viewport) -> Result<(),DataMessage> {
-        let carriage = extent.scale().carriage(viewport.position()?);
-        self.carriages.update_centre(carriage, railway_events);
+        let centre_carriage_index = extent.scale().carriage(viewport.position()?);
+        self.carriages.update_centre(centre_carriage_index,railway_events);
         self.viewport = viewport.clone();
         Ok(())
     }

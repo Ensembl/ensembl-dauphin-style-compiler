@@ -2,7 +2,7 @@ use std::{sync::{Arc, Mutex}};
 
 use peregrine_toolkit::{puzzle::{ConstantPuzzlePiece, PuzzleValueHolder, PuzzleBuilder, PuzzleSolution}, lock };
 
-use crate::{ allotment::core::{playingfield::{PlayingFieldHolder, PlayingFieldPieces, PlayingField}, carriageuniverse::CarriageUniversePrep}};
+use crate::{ allotment::core::{playingfield::{PlayingFieldHolder, PlayingFieldPieces, PlayingField}, carriageoutput::CarriageUniversePrep}};
 
 use super::boxtraits::Stackable;
 

@@ -4,22 +4,22 @@ use peregrine_toolkit::lock;
 
 use crate::{allotment::{transformers::drawinginfo::DrawingInfo, boxes::boxtraits::{Transformable}, stylespec::stylegroup::AllotmentStyleGroup, style::allotmentname::{AllotmentName, BuildPassThroughHasher, new_efficient_allotmentname_hashmap}}, LeafCommonStyle};
 
-pub struct LeafRequestMap {
+pub struct LeafTransformableMap {
     transformables: HashMap<AllotmentName,Arc<dyn Transformable>,BuildPassThroughHasher>
 }
 
-impl LeafRequestMap {
-    pub fn new() -> LeafRequestMap {
-        LeafRequestMap {
+impl LeafTransformableMap {
+    pub fn new() -> LeafTransformableMap {
+        LeafTransformableMap {
             transformables: new_efficient_allotmentname_hashmap()
         }
     }
 
-    fn set_transformable(&mut self, name: &AllotmentName, transformable: &Arc<dyn Transformable>) {
+    pub(crate) fn set_transformable(&mut self, name: &AllotmentName, transformable: &Arc<dyn Transformable>) {
         self.transformables.insert(name.clone(),transformable.clone());
     }
 
-    fn transformable(&self, name: &AllotmentName) -> &Arc<dyn Transformable> {
+    pub(crate) fn transformable(&self, name: &AllotmentName) -> &Arc<dyn Transformable> {
         self.transformables.get(name).unwrap()
     }
 }
@@ -50,15 +50,6 @@ impl LeafRequest {
     pub(crate) fn set_style(&self, style: &AllotmentStyleGroup) {
         let leaf = style.get_common_leaf(&self);
         *lock!(self.style) = Some((Arc::new(style.clone()),Arc::new(leaf)));
-    }
-
-    pub(crate) fn set_transformable(&self, plm: &mut LeafRequestMap, xformable: Arc<dyn Transformable>) {
-        plm.set_transformable(&self.name,&xformable);
-    }
-
-    /* only call after set_transformable has been called! (via make_transformable) */
-    pub fn transformable(&self, plm: &LeafRequestMap) -> Arc<dyn Transformable> { 
-        plm.transformable(&self.name).clone()
     }
 
     pub fn leaf_style(&self) -> Arc<LeafCommonStyle> { lock!(self.style).as_ref().unwrap().1.clone() }

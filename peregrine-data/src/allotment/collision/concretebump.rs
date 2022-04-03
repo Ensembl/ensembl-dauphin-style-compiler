@@ -168,26 +168,43 @@ impl ConcreteBump {
         }
     }
 
-    pub(super) fn make_carriage_bumps(&self, index: usize) -> ConcreteRequests {
+    pub(super) fn new_requests(&self, index: usize) -> ConcreteRequests {
         ConcreteRequests::new(self.bp_per_carriage,index)
     }
 
     pub(super) fn add(&mut self, store: ConcreteRequests) -> bool {
+        /* check infinite size is compatible */
         if let Some(infinite) = self.max_infinite {
             if infinite < store.max_infinite { return false; }
         } else {
             self.max_infinite = Some(store.max_infinite);
         }
-        self.sliding.set_lock(store.carriage_index,true);
+        /* check if we already have it */
+        if self.sliding.get(store.carriage_index).is_some() {
+            self.sliding.set_lock(store.carriage_index,true);
+            return true
+        }
+        /* add */
+        let carriage_index = store.carriage_index;
         if let Some(maximum) = self.sliding.add(ConcreteOutcome::new(store,self.max_infinite.unwrap())) {
             self.maximum = self.maximum.max(maximum);
+            self.sliding.set_lock(carriage_index,true);
             true
         } else {
             false
         }
     }
 
-    pub(super) fn unlock(&mut self, carriage_index: usize) {
+    pub(super) fn try_lock(&mut self, carriage_index: usize) -> bool {
+        if self.sliding.get(carriage_index).is_some() {
+            self.sliding.set_lock(carriage_index,true);
+            true
+        } else {
+            false
+        }
+    }
+
+    pub(super) fn release(&mut self, carriage_index: usize) {
         self.sliding.set_lock(carriage_index,false);
     }
 

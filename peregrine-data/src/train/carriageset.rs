@@ -91,7 +91,7 @@ impl CarriageSet {
     }
 
     /* given our centre, which carriage points do we want? */
-    fn wanted_carriage_points(&self, extent: &TrainExtent, centre: u64) -> Range<u64> {
+    fn wanted_carriage_indexes(&self, extent: &TrainExtent, centre: u64) -> Range<u64> {
         let flank = if extent.scale().is_milestone() { MILESTONE_CARRIAGE_FLANK } else { CARRIAGE_FLANK };
         let start = max((centre as i64)-(flank as i64),0) as u64;
         start..(start+flank*2+1)
@@ -132,7 +132,7 @@ impl CarriageSet {
          * list with our new one.
          */
         let mut new_set = CarriageLifecycleSet::new();
-        for index in self.wanted_carriage_points(&self.constant.extent,self.index.unwrap()) {
+        for index in self.wanted_carriage_indexes(&self.constant.extent,self.index.unwrap()) {
             if !self.drawing_carriages.try_transfer(&mut new_set,index) {
                 let process = self.carriage_processes.try_add(index,&self.constant,railway_events);
                 new_set.add_process(index,process);

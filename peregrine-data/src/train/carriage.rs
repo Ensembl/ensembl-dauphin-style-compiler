@@ -3,7 +3,7 @@ use std::sync::{ Arc, Mutex };
 use peregrine_toolkit::lock;
 use peregrine_toolkit::sync::needed::Needed;
 
-use crate::allotment::core::carriageuniverse::{CarriageShapes, CarriageSolution};
+use crate::allotment::core::drawingcarriagedata::{DrawingCarriageDataStore, DrawingCarriageData};
 use crate::allotment::core::heighttracker::HeightTracker;
 use crate::allotment::core::trainstate::TrainState;
 use crate::{CarriageExtent };
@@ -23,7 +23,7 @@ pub struct DrawingCarriage {
     id: u64,
     try_lifecycle: Needed,
     extent: CarriageExtent,
-    shapes: CarriageShapes,
+    shapes: DrawingCarriageDataStore,
     train_state: Arc<TrainState>,
     ready: Arc<Mutex<bool>>
 }
@@ -39,7 +39,7 @@ impl Hash for DrawingCarriage {
 }
 
 impl DrawingCarriage {
-    pub(super) fn new(extent: &CarriageExtent, railway_events: &RailwayEvents, carriage_shapes: &CarriageShapes, train_state: &TrainState) -> DrawingCarriage {
+    pub(super) fn new(extent: &CarriageExtent, railway_events: &RailwayEvents, carriage_shapes: &DrawingCarriageDataStore, train_state: &TrainState) -> DrawingCarriage {
         DrawingCarriage {
             extent: extent.clone(),
             try_lifecycle: railway_events.lifecycle().clone(),
@@ -55,11 +55,11 @@ impl DrawingCarriage {
     pub(crate) fn is_ready(&self) -> bool { *lock!(self.ready) }
     pub fn set_ready(&self) { *lock!(self.ready) = true; self.try_lifecycle.set(); }
 
-    pub fn solution(&self) -> CarriageSolution {
+    pub fn solution(&self) -> DrawingCarriageData {
         self.shapes.get(&self.train_state)
     }
 
-    pub fn indepentent_solution(&self) -> CarriageSolution {
+    pub fn indepentent_solution(&self) -> DrawingCarriageData {
         self.shapes.get(&TrainState::independent())
     }
 

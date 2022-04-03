@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use peregrine_toolkit::{puzzle::{PuzzleValueHolder, PuzzleBuilder, CommutingSequence, DelayedPuzzleValue, compose2, build_puzzle_vec, DerivedPuzzlePiece}};
 
-use crate::{allotment::{style::{style::{ContainerAllotmentStyle}, allotmentname::{AllotmentNamePart, AllotmentName}}, boxes::boxtraits::Stackable, core::{aligner::Aligner, carriageuniverse::CarriageUniversePrep}}, CoordinateSystem};
+use crate::{allotment::{style::{style::{ContainerAllotmentStyle}, allotmentname::{AllotmentNamePart, AllotmentName}}, boxes::boxtraits::Stackable, core::{aligner::Aligner, carriageoutput::CarriageUniversePrep}}, CoordinateSystem};
 
 use super::{container::{Container}, boxtraits::{Coordinated, BuildSize, ContainerSpecifics}};
 

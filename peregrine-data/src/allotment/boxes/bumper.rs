@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use peregrine_toolkit::{puzzle::{PuzzleValueHolder, PuzzleValue, ClonablePuzzleValue, PuzzleBuilder, DerivedPuzzlePiece, DelayedPuzzleValue, compose2}};
 
-use crate::{allotment::{core::{aligner::Aligner, carriageuniverse::CarriageUniversePrep}, style::{style::{ContainerAllotmentStyle}, allotmentname::{AllotmentNamePart, AllotmentName}}, boxes::{boxtraits::Stackable}, util::{rangeused::RangeUsed}, collision::collisionalgorithm::CollisionAlgorithm}, CoordinateSystem};
+use crate::{allotment::{core::{aligner::Aligner, carriageoutput::CarriageUniversePrep}, style::{style::{ContainerAllotmentStyle}, allotmentname::{AllotmentNamePart, AllotmentName}}, boxes::{boxtraits::Stackable}, util::{rangeused::RangeUsed}, collision::{collisionalgorithm::CollisionAlgorithm}}, CoordinateSystem};
 
 use super::{container::{Container}, boxtraits::{Coordinated, BuildSize, ContainerSpecifics}};
 
@@ -66,6 +66,7 @@ impl ContainerSpecifics for UnpaddedBumper {
                 range: size.range.clone(),
                 height: size.height.clone()
             });
+            prep.bump_requests.add(&size.name,&size.range,&size.height);
             dependencies.push(size.range.dependency());
             dependencies.push(size.height.dependency());
         }

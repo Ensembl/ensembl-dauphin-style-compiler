@@ -12,7 +12,7 @@ mod allotment {
     pub(crate) mod collision {
         mod bumppart;
         pub(crate) mod bumperfactory;
-        mod bumpprocess;
+        pub(crate) mod bumpprocess;
         mod castle;
         pub(crate) mod collisionalgorithm;
         pub(crate) mod concretebump;
@@ -30,8 +30,10 @@ mod allotment {
         pub(crate) mod aligner;
         pub(crate) mod allotmentmetadata;
         pub(crate) mod coordsystem;
-        pub(crate) mod carriageuniverse;
+        pub(crate) mod carriageoutput;
+        pub(crate) mod drawingcarriagedata;
         pub(crate) mod heighttracker;
+        pub(crate) mod leaflist;
         pub(crate) mod leafrequest;
         pub mod playingfield;
         pub(crate) mod trainstate;
@@ -167,12 +169,13 @@ mod run {
 }
 
 mod shape {
+    mod carriageshapes;
     mod core;
     mod imageshape;
     pub mod rectangleshape;
     mod textshape;
     pub(crate) mod shape;
-    mod carriageshapelist;
+    mod programshapes;
     mod zmenu;
     mod zmenufixed;
     mod wiggleshape;
@@ -182,7 +185,8 @@ mod shape {
     };
     pub use self::shape::{ ShapeDemerge, Shape };
     pub use self::zmenu::ZMenu;
-    pub use self::carriageshapelist::{ CarriageShapeListBuilder, CarriageShapeListRaw };
+    pub use self::carriageshapes::CarriageShapesBuilder;
+    pub use self::programshapes::ProgramShapesBuilder;
     pub use self::zmenufixed::{ ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator, ZMenuProxy, zmenu_fixed_vec_to_json, zmenu_to_json };
 }
 
@@ -251,7 +255,7 @@ pub use self::shape::{
     Patina, Colour, DirectColour, DrawnType, Shape,
     ZMenu, Pen, Plotter, ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator,
     ZMenuProxy, zmenu_fixed_vec_to_json, ShapeDemerge, zmenu_to_json,
-    CarriageShapeListBuilder, CarriageShapeListRaw
+    ProgramShapesBuilder, CarriageShapesBuilder
 };
 pub use self::allotment::core::coordsystem::{ CoordinateSystem, CoordinateSystemVariety };
 pub use self::allotment::core::playingfield::PlayingField;

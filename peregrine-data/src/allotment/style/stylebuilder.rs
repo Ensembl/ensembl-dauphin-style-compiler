@@ -1,6 +1,6 @@
 use std::{sync::{Arc}, collections::HashMap};
 
-use crate::{allotment::{core::{aligner::Aligner, carriageuniverse::CarriageUniversePrep}, boxes::{ stacker::Stacker, overlay::Overlay, bumper::Bumper }, boxes::{leaf::{FloatingLeaf}}, transformers::drawinginfo::DrawingInfo, stylespec::stylegroup::AllotmentStyleGroup, util::bppxconverter::BpPxConverter}, DataMessage, LeafRequest};
+use crate::{allotment::{core::{aligner::Aligner, carriageoutput::CarriageUniversePrep}, boxes::{ stacker::Stacker, overlay::Overlay, bumper::Bumper }, boxes::{leaf::{FloatingLeaf}}, transformers::drawinginfo::DrawingInfo, stylespec::stylegroup::AllotmentStyleGroup, util::bppxconverter::BpPxConverter}, DataMessage, LeafRequest};
 
 use super::{holder::{ContainerHolder, LeafHolder}, allotmentname::{AllotmentNamePart, AllotmentName}, style::{ContainerAllotmentStyle, ContainerAllotmentType, LeafCommonStyle}};
 
@@ -92,12 +92,14 @@ pub(crate) fn make_transformable(prep: &mut CarriageUniversePrep, converter: &Ar
         prep
     };
     for pending in pendings {
+        /* Use boxes to create xformable */
         let parts = AllotmentNamePart::new(pending.name().clone());
         let info = pending.drawing_info_clone();
         let styles = pending.style();
         let leaf_style = pending.leaf_style();
         let xformable = styler.try_new_leaf(&parts,&info,&styles,&leaf_style)?.into_tranfsormable();
-        pending.set_transformable(&mut styler.prep.plm,xformable);
+        /* Store xformable mapping */
+        styler.prep.plm.set_transformable(&pending.name(),&xformable);
     }
     prep.root.clone().build(prep);
     prep.height_tracker.build();
@@ -110,7 +112,7 @@ mod test {
 
     use peregrine_toolkit::puzzle::{PuzzleBuilder, Puzzle, PuzzleSolution};
 
-    use crate::{allotment::{core::{allotmentmetadata::{AllotmentMetadata}, carriageuniverse::CarriageUniversePrep}, style::{allotmentname::AllotmentName, holder::ContainerHolder, stylebuilder::make_transformable}, stylespec::{stylegroup::AllotmentStyleGroup, styletreebuilder::StyleTreeBuilder, styletree::StyleTree}, util::{bppxconverter::BpPxConverter, rangeused::RangeUsed}}, LeafRequest};
+    use crate::{allotment::{core::{allotmentmetadata::{AllotmentMetadata}, carriageoutput::CarriageUniversePrep}, style::{allotmentname::AllotmentName, holder::ContainerHolder, stylebuilder::make_transformable}, stylespec::{stylegroup::AllotmentStyleGroup, styletreebuilder::StyleTreeBuilder, styletree::StyleTree}, util::{bppxconverter::BpPxConverter, rangeused::RangeUsed}}, LeafRequest};
 
     fn make_pendings(names: &[&str], heights: &[f64], pixel_range: &[RangeUsed<f64>], style: &AllotmentStyleGroup) -> Vec<LeafRequest> {
         let heights = if heights.len() > 0 {
@@ -157,12 +159,12 @@ mod test {
         add_style(&mut tree, "z/a/1", &[("depth","10"),("coordinate-system","window")]);
         let style_group = AllotmentStyleGroup::new(StyleTree::new(tree));
         let pending = make_pendings(&["z/a/1","z/a/2","z/a/3","z/b/1","z/b/2","z/b/3"],&[1.,2.,3.],&[],&style_group);
-        let mut prep = CarriageUniversePrep::new(&mut builder);
+        let mut prep = CarriageUniversePrep::new(&mut builder,None);
         assert!(make_transformable(&mut prep,&Arc::new(BpPxConverter::new(None)),&mut pending.iter()).ok().is_some());
         let puzzle = Puzzle::new(builder);
         let mut solution = PuzzleSolution::new(&puzzle);
         assert!(solution.solve());
-        let transformers = pending.iter().map(|x| x.transformable(&prep.plm).make(&solution)).collect::<Vec<_>>();
+        let transformers = pending.iter().map(|x| prep.plm.transformable(x.name()).make(&solution)).collect::<Vec<_>>();
         let descs = transformers.iter().map(|x| x.describe()).collect::<Vec<_>>();
         println!("{:?}",descs);
         assert_eq!(6,descs.len());
@@ -189,12 +191,12 @@ mod test {
         add_style(&mut tree, "z/a/1", &[("depth","10"),("coordinate-system","window")]);
         let style_group = AllotmentStyleGroup::new(StyleTree::new(tree));
         let pending = make_pendings(&["z/a/1","z/a/2","z/a/3","z/b/1","z/b/2","z/b/3"],&[1.,2.,3.],&[],&style_group);
-        let mut prep = CarriageUniversePrep::new(&mut builder);
+        let mut prep = CarriageUniversePrep::new(&mut builder,None);
         assert!(make_transformable(&mut prep,&Arc::new(BpPxConverter::new(None)),&mut pending.iter()).ok().is_some());
         let puzzle = Puzzle::new(builder);
         let mut solution = PuzzleSolution::new(&puzzle);
         assert!(solution.solve());
-        let transformers = pending.iter().map(|x| x.transformable(&prep.plm).make(&solution)).collect::<Vec<_>>();
+        let transformers = pending.iter().map(|x| prep.plm.transformable(x.name()).make(&solution)).collect::<Vec<_>>();
         let descs = transformers.iter().map(|x| x.describe()).collect::<Vec<_>>();
         assert_eq!(6,descs.len());
         assert!(descs[0].contains("coord_system: CoordinateSystem(Window, false)"));
@@ -230,13 +232,13 @@ mod test {
         add_style(&mut tree, "**", &[("system","tracking")]);
         let style_group = AllotmentStyleGroup::new(StyleTree::new(tree));
         let pending = make_pendings(&["z/a/1","z/a/2","z/a/3","z/b/1","z/b/2","z/b/3"],&[1.,2.,3.],&ranges,&style_group);
-        let mut prep = CarriageUniversePrep::new(&mut builder);
+        let mut prep = CarriageUniversePrep::new(&mut builder,None);
         assert!(make_transformable(&mut prep,&Arc::new(BpPxConverter::new_test()),&mut pending.iter()).ok().is_some());
         let metadata = AllotmentMetadata::new(&prep.metadata);
         let puzzle = Puzzle::new(builder);
         let mut solution = PuzzleSolution::new(&puzzle);
         assert!(solution.solve());
-        let transformers = pending.iter().map(|x| x.transformable(&prep.plm).make(&solution)).collect::<Vec<_>>();
+        let transformers = pending.iter().map(|x| prep.plm.transformable(x.name()).make(&solution)).collect::<Vec<_>>();
         let descs = transformers.iter().map(|x| x.describe()).collect::<Vec<_>>();
         assert_eq!(6,descs.len());
         println!("{:?}",descs);

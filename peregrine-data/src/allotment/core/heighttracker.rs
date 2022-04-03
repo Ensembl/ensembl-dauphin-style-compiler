@@ -1,6 +1,6 @@
 use std::{collections::{HashMap, hash_map::{DefaultHasher}}, sync::Arc, fmt, hash::{Hash, Hasher}};
 
-use peregrine_toolkit::{puzzle::{PuzzleValueHolder, PuzzleBuilder, FoldValue, PuzzleSolution, ClonablePuzzleValue, PuzzlePiece}, error, log};
+use peregrine_toolkit::{puzzle::{PuzzleValueHolder, PuzzleBuilder, FoldValue, PuzzleSolution, ClonablePuzzleValue, PuzzlePiece}, error};
 
 use crate::allotment::{style::allotmentname::AllotmentName};
 
