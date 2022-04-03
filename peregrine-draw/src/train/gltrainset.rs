@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::{ Arc, Mutex };
-use peregrine_data::{Assets, CarriageSpeed, PeregrineCore, Scale, Train, ZMenuProxy, DrawingCarriage, TrainExtent};
+use peregrine_data::{Assets, CarriageSpeed, PeregrineCore, Scale, ZMenuProxy, DrawingCarriage, TrainExtent};
 use peregrine_toolkit::lock;
 use peregrine_toolkit::sync::needed::{Needed, NeededLock};
 use super::glcarriage::GLCarriage;
@@ -53,12 +53,12 @@ impl GlRailwayData {
         self.trains.get_mut(extent).unwrap()
     }
 
-    fn create_train(&mut self, train: &Train) {
-        self.trains.insert(train.extent(),GLTrain::new(&self.redraw_needed));
+    fn create_train(&mut self, extent: &TrainExtent) {
+        self.trains.insert(extent.clone(),GLTrain::new(&self.redraw_needed));
     }
 
-    fn drop_train(&mut self, train: &Train) {
-        self.trains.remove(&train.extent());
+    fn drop_train(&mut self, extent: &TrainExtent) {
+        self.trains.remove(extent);
     }
 
     fn create_carriage(&mut self, carriage: &DrawingCarriage, gl: &Arc<Mutex<WebGlGlobal>>, assets: &Assets) -> Result<(),Message> {
@@ -72,10 +72,10 @@ impl GlRailwayData {
         self.carriages.remove(carriage);
     }
 
-    fn set_carriages(&mut self, train: &Train, new_carriages: &[DrawingCarriage]) -> Result<(),Message> {
+    fn set_carriages(&mut self, extent: &TrainExtent, new_carriages: &[DrawingCarriage]) -> Result<(),Message> {
         match new_carriages.iter().map(|c| self.carriages.get(c).cloned()).collect::<Option<Vec<_>>>() {
             Some(carriages) => {
-                self.get_our_train(&train.extent()).set_carriages(carriages)
+                self.get_our_train(&extent).set_carriages(carriages)
             },
             None => {
                 Err(Message::CodeInvariantFailed(format!("missing carriages")))
@@ -87,14 +87,14 @@ impl GlRailwayData {
         self.get_our_train(extent).set_max(len);
     }
 
-    fn start_fade(&mut self, train: &Train, speed: CarriageSpeed) -> Result<(),Message> {
+    fn start_fade(&mut self, train: &TrainExtent, speed: CarriageSpeed) -> Result<(),Message> {
         let from = match &self.fade_state {            
             FadeState::Constant(x) => x,
             FadeState::Fading(_,_,_,_,_) => {
                 return Err(Message::CodeInvariantFailed("overlapping fades sent to UI".to_string()));
             }
         };
-        self.fade_state = FadeState::Fading(from.clone(),train.extent(),speed,None,Arc::new(self.redraw_needed.clone().lock()));
+        self.fade_state = FadeState::Fading(from.clone(),train.clone(),speed,None,Arc::new(self.redraw_needed.clone().lock()));
         Ok(())
     }
 
@@ -223,8 +223,8 @@ impl GlRailway {
         })
     }
 
-    pub fn create_train(&mut self, train: &Train) { lock!(self.data).create_train(train) }
-    pub fn drop_train(&mut self, train: &Train) { lock!(self.data).drop_train(train) }
+    pub fn create_train(&mut self, train: &TrainExtent) { lock!(self.data).create_train(train) }
+    pub fn drop_train(&mut self, train: &TrainExtent) { lock!(self.data).drop_train(train) }
 
     pub(crate) fn create_carriage(&mut self, carriage: &DrawingCarriage, gl: &Arc<Mutex<WebGlGlobal>>, assets: &Assets) -> Result<(),Message> {
         lock!(self.data).create_carriage(carriage,gl,assets)
@@ -249,14 +249,14 @@ impl GlRailway {
         Ok(())
     }
 
-    pub fn set_carriages(&mut self, train: &Train, new_carriages: &[DrawingCarriage]) -> Result<(),Message> {
+    pub fn set_carriages(&mut self, train: &TrainExtent, new_carriages: &[DrawingCarriage]) -> Result<(),Message> {
         lock!(self.data).set_carriages(train,new_carriages)?;
         Ok(())
     }
 
-    pub fn start_fade(&mut self, train: &Train, max: u64, speed: CarriageSpeed) -> Result<(),Message> {
+    pub fn start_fade(&mut self, train: &TrainExtent, max: u64, speed: CarriageSpeed) -> Result<(),Message> {
         self.data.lock().unwrap().start_fade(train,speed)?;
-        self.data.lock().unwrap().set_max(&train.extent(),max);
+        self.data.lock().unwrap().set_max(&train,max);
         Ok(())
     }
 

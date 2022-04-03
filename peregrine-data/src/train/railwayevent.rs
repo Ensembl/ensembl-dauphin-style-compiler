@@ -3,24 +3,24 @@ use peregrine_toolkit::lock;
 use peregrine_toolkit::sync::needed::Needed;
 
 use crate::shapeload::carriageprocess::CarriageProcess;
-use crate::{PlayingField};
+use crate::{PlayingField, TrainExtent};
 use crate::allotment::core::allotmentmetadata::AllotmentMetadataReport;
 use crate::api::{ CarriageSpeed, PeregrineCore };
 use crate::train::train::Train;
 use crate::core::Viewport;
 
-use super::carriage::{DrawingCarriage};
+use super::drawingcarriage::{DrawingCarriage};
 
 enum RailwayEvent {
     DrawSendAllotmentMetadata(AllotmentMetadataReport),
     LoadTrainData(Train),
     LoadCarriageData(CarriageProcess),
-    DrawSetCarriages(Train,Vec<DrawingCarriage>),
-    DrawStartTransition(Train,u64,CarriageSpeed),
+    DrawSetCarriages(TrainExtent,Vec<DrawingCarriage>),
+    DrawStartTransition(TrainExtent,u64,CarriageSpeed),
     DrawNotifyViewport(Viewport,bool),
     DrawNotifyPlayingField(PlayingField),
-    DrawCreateTrain(Train),
-    DrawDropTrain(Train),
+    DrawCreateTrain(TrainExtent),
+    DrawDropTrain(TrainExtent),
     DrawCreateCarriage(DrawingCarriage),
     DrawDropCarriage(DrawingCarriage)
 }
@@ -49,11 +49,11 @@ impl RailwayEvents {
         self.0.lock().unwrap().push(RailwayEvent::LoadCarriageData(carriage.clone()));
     }
 
-    pub(super) fn draw_set_carriages(&mut self, train: &Train, carriages: &[DrawingCarriage]) {
+    pub(super) fn draw_set_carriages(&mut self, train: &TrainExtent, carriages: &[DrawingCarriage]) {
         self.0.lock().unwrap().push(RailwayEvent::DrawSetCarriages(train.clone(),carriages.iter().cloned().collect()));
     }
 
-    pub(super) fn draw_start_transition(&mut self, train: &Train, max: u64, speed: CarriageSpeed) {
+    pub(super) fn draw_start_transition(&mut self, train: &TrainExtent, max: u64, speed: CarriageSpeed) {
         self.0.lock().unwrap().push(RailwayEvent::DrawStartTransition(train.clone(),max,speed));
     }
 
@@ -65,11 +65,11 @@ impl RailwayEvents {
         self.0.lock().unwrap().push(RailwayEvent::DrawNotifyPlayingField(playing_field));
     }
 
-    pub(super) fn draw_create_train(&mut self, train: &Train) {
+    pub(super) fn draw_create_train(&mut self, train: &TrainExtent) {
         self.0.lock().unwrap().push(RailwayEvent::DrawCreateTrain(train.clone()));
     }
 
-    pub(super) fn draw_drop_train(&mut self, train: &Train) {
+    pub(super) fn draw_drop_train(&mut self, train: &TrainExtent) {
         self.0.lock().unwrap().push(RailwayEvent::DrawDropTrain(train.clone()));
     }
 

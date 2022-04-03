@@ -1,7 +1,7 @@
 use std::sync::{ Arc, Mutex };
 use peregrine_data::{
     Assets, CarriageSpeed, ChannelIntegration, PeregrineIntegration, 
-    Viewport, AllotmentMetadataReport, PlayingField, DrawingCarriage
+    Viewport, AllotmentMetadataReport, PlayingField, DrawingCarriage, TrainExtent
 };
 use peregrine_toolkit::lock;
 use super::pgchannel::PgChannel;
@@ -9,7 +9,7 @@ use crate::{PeregrineDom};
 use crate::input::Input;
 use crate::run::report::Report;
 use crate::train::GlRailway;
-use peregrine_data::{ DataMessage, Train };
+use peregrine_data::{ DataMessage };
 use crate::webgl::global::WebGlGlobal;
 use crate::stage::stage::Stage;
 pub struct PgIntegration {
@@ -28,11 +28,11 @@ impl PeregrineIntegration for PgIntegration {
         self.assets.add(&mut assets);
     }
 
-    fn create_train(&mut self, train: &Train) {
+    fn create_train(&mut self, train: &TrainExtent) {
         self.trainset.create_train(train);
     }
 
-    fn drop_train(&mut self, train: &Train) {
+    fn drop_train(&mut self, train: &TrainExtent) {
         self.trainset.drop_train(train);
     }
 
@@ -44,7 +44,7 @@ impl PeregrineIntegration for PgIntegration {
         self.trainset.drop_carriage(carriage);
     }
 
-    fn set_carriages(&mut self, train: &Train, carriages: &[DrawingCarriage]) -> Result<(),DataMessage> {
+    fn set_carriages(&mut self, train: &TrainExtent, carriages: &[DrawingCarriage]) -> Result<(),DataMessage> {
         self.trainset.set_carriages(train,carriages);
         Ok(())
     }
@@ -57,9 +57,9 @@ impl PeregrineIntegration for PgIntegration {
         Box::new(self.channel.clone())
     }
 
-    fn start_transition(&mut self, train: &Train, max: u64, speed: CarriageSpeed) ->Result<(),DataMessage> {
+    fn start_transition(&mut self, extent: &TrainExtent, max: u64, speed: CarriageSpeed) ->Result<(),DataMessage> {
         self.input.set_limit(max as f64);
-        self.trainset.start_fade(train,max,speed)
+        self.trainset.start_fade(extent,max,speed)
             .map_err(|e| DataMessage::TunnelError(Arc::new(Mutex::new(e))))?;
         Ok(())
     }

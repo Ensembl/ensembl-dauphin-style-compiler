@@ -3,9 +3,6 @@ use std::hash::{Hasher, Hash};
 use std::sync::{ Arc, Mutex };
 use peregrine_toolkit::{lock, log};
 use peregrine_toolkit::sync::needed::Needed;
-
-use crate::allotment::collision::bumpprocess::BumpProcess;
-use crate::allotment::collision::concretebump::ConcreteBump;
 use crate::allotment::core::allotmentmetadata::AllotmentMetadataReport;
 use crate::allotment::core::trainstate::TrainState;
 use crate::api::{CarriageSpeed, MessageSender, PeregrineCore };
@@ -19,13 +16,12 @@ use crate::switch::trackconfiglist::TrainTrackConfigList;
 use crate::core::Viewport;
 
 struct TrainData {
+    extent: TrainExtent,
     broken: bool,
     active: bool,
     viewport: Viewport,
     max: Option<u64>,
     carriages: CarriageSet,
-    messages: MessageSender,
-    bump_process: BumpProcess,
     train_state: TrainState,
     validity_counter: u64
 }
@@ -34,26 +30,25 @@ impl TrainData {
     fn new(extent: &TrainExtent, try_lifecycle: &Needed, carriage_event: &mut RailwayEvents, viewport: &Viewport, messages: &MessageSender, validity_counter: u64) -> Result<TrainData,DataMessage> {
         let train_track_config_list = TrainTrackConfigList::new(&extent.layout(),&extent.scale());
         let mut out = TrainData {
+            extent: extent.clone(),
             broken: false,
             active: false,
             viewport: viewport.clone(),
             carriages: CarriageSet::new(&try_lifecycle, extent,&train_track_config_list,messages),
             max: None,
-            messages: messages.clone(),
             train_state: TrainState::independent(),
-            bump_process: BumpProcess::new(extent.scale().bp_in_carriage()),
             validity_counter
         };
-        out.set_position(extent,carriage_event,viewport)?;
+        out.set_position(carriage_event,viewport)?;
         Ok(out)
     }
 
     fn validity_counter(&self) -> u64 { self.validity_counter }
 
-    fn set_active(&mut self, train: &Train, carriage_event: &mut RailwayEvents, speed: CarriageSpeed) {
+    fn set_active(&mut self, carriage_event: &mut RailwayEvents, speed: CarriageSpeed) {
         self.active = true;
-        self.set_drawing_carriages(train,carriage_event);
-        carriage_event.draw_start_transition(train,self.max.unwrap(),speed);
+        self.set_drawing_carriages(carriage_event);
+        carriage_event.draw_start_transition(&self.extent,self.max.unwrap(),speed);
     }
 
     pub(super) fn discard(&mut self, railway_events: &mut RailwayEvents) {
@@ -61,7 +56,6 @@ impl TrainData {
         self.active = false;
     }
 
-    fn state(&self) -> &TrainState { &self.train_state }
     fn is_active(&self) -> bool { self.active }
     fn viewport(&self) -> &Viewport { &self.viewport }
     fn is_broken(&self) -> bool { self.broken }
@@ -74,18 +68,18 @@ impl TrainData {
         self.carriages.each_current_drawing_carriage(state,cb);
     }
 
-    fn set_max(&mut self, max: Result<u64,DataMessage>) {
+    fn set_max(&mut self, messages: &MessageSender, max: Result<u64,DataMessage>) {
         match max {
             Ok(max) => { self.max = Some(max); },
             Err(e) => {
-                self.messages.send(e.clone());
+                messages.send(e.clone());
                 self.broken = true;
             }
         }
     }
 
-    fn set_position(&mut self, extent: &TrainExtent, railway_events: &mut RailwayEvents, viewport: &Viewport) -> Result<(),DataMessage> {
-        let centre_carriage_index = extent.scale().carriage(viewport.position()?);
+    fn set_position(&mut self, railway_events: &mut RailwayEvents, viewport: &Viewport) -> Result<(),DataMessage> {
+        let centre_carriage_index = self.extent.scale().carriage(viewport.position()?);
         self.carriages.update_centre(centre_carriage_index,railway_events);
         self.viewport = viewport.clone();
         Ok(())
@@ -109,19 +103,19 @@ impl TrainData {
         }
     }
 
-    fn set_drawing_carriages(&mut self, train: &Train, events: &mut RailwayEvents) {
+    fn set_drawing_carriages(&mut self,events: &mut RailwayEvents) {
         self.carriages.check_for_carriages_with_shapes(events);
         self.manage_train_state();
         self.carriages.update_train_state(&self.train_state, events);
         if self.active {
-            self.carriages.draw_set_carriages(train,events);
+            self.carriages.draw_set_carriages(&self.extent,events);
         }
     }
 }
 
 // XXX circular chroms
 #[derive(Clone)]
-pub struct Train {
+pub(super) struct Train {
     extent: TrainExtent,
     data: Arc<Mutex<TrainData>>
 }
@@ -148,10 +142,9 @@ impl Train {
         }
     }
 
-    pub fn state(&self) -> TrainState { lock!(self.data).state().clone() }
-    pub fn extent(&self) -> TrainExtent { self.extent.clone() }
-    pub fn viewport(&self) -> Viewport { self.data.lock().unwrap().viewport().clone() }
-    pub fn is_active(&self) -> bool { self.data.lock().unwrap().is_active() }
+    pub(super) fn extent(&self) -> TrainExtent { self.extent.clone() }
+    pub(super) fn viewport(&self) -> Viewport { self.data.lock().unwrap().viewport().clone() }
+    pub(super) fn is_active(&self) -> bool { self.data.lock().unwrap().is_active() }
     pub(super) fn validity_counter(&self) -> u64 { self.data.lock().unwrap().validity_counter() }
     pub(super) fn train_ready(&self) -> bool { self.data.lock().unwrap().train_ready() }
     pub(super) fn train_half_ready(&self) -> bool { self.data.lock().unwrap().train_half_ready() }
@@ -159,16 +152,16 @@ impl Train {
     pub(super) fn allotter_metadata(&self) -> Option<AllotmentMetadataReport> { self.data.lock().unwrap().allotter_metadata() }
 
     pub(super) fn set_active(&mut self, carriage_event: &mut RailwayEvents, speed: CarriageSpeed) {
-        lock!(self.data).set_active(&self.clone(),carriage_event,speed);
+        lock!(self.data).set_active(carriage_event,speed);
     }
 
     pub(super) fn discard(&mut self, events: &mut RailwayEvents) {
         lock!(self.data).discard(events);
-        events.draw_drop_train(self);
+        events.draw_drop_train(&self.extent());
     }
 
     pub(super) fn set_position(&self, carriage_event: &mut RailwayEvents, viewport: &Viewport) -> Result<(),DataMessage> {
-        lock!(self.data).set_position(&self.extent,carriage_event,viewport)?;
+        lock!(self.data).set_position(carriage_event,viewport)?;
         Ok(())
     }
 
@@ -176,8 +169,8 @@ impl Train {
         Ok(data.agent_store.stick_store.get(&self.extent().layout().stick()).await?.size())
     }
 
-    fn set_max(&self, max: Result<u64,DataMessage>) {
-        self.data.lock().unwrap().set_max(max);
+    fn set_max(&self, messages: &MessageSender, max: Result<u64,DataMessage>) {
+        self.data.lock().unwrap().set_max(messages,max);
     }
     
     pub(super) fn run_find_max(&self, objects: &mut PeregrineCore) {
@@ -193,7 +186,7 @@ impl Train {
                 if let Err(e) = &max { 
                     objects2.base.messages.send(e.clone());
                 }
-                self2.set_max(max);
+                self2.set_max(&objects2.base.messages,max);
                 objects2.train_set.clone().move_and_lifecycle_trains(&mut objects2);
                 Ok(())
             }),
@@ -203,6 +196,6 @@ impl Train {
     }
 
     pub(super) fn set_drawing_carriages(&mut self, events: &mut RailwayEvents) {
-        self.data.lock().unwrap().set_drawing_carriages(&self.clone(),events);
+        self.data.lock().unwrap().set_drawing_carriages(events);
     }
 }

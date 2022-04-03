@@ -208,7 +208,7 @@ pub(crate) mod switch {
 
 mod train {
     mod anticipate;
-    pub(crate) mod carriage;
+    pub(crate) mod drawingcarriage;
     mod carriagelifecycle;
     mod railwayevent;
     mod carriageextent;
@@ -220,9 +220,8 @@ mod train {
     mod trainset;
 
     pub use carriageextent::CarriageExtent;
-    pub use carriage::{ DrawingCarriage };
+    pub use drawingcarriage::{ DrawingCarriage };
     pub use trainextent::TrainExtent;
-    pub use train::{ Train };
     pub use railway::Railway;
 }
 
@@ -265,7 +264,7 @@ pub use self::allotment::core::allotmentmetadata::{
 pub use self::allotment::core::trainstate::TrainState;
 pub use self::switch::switch::{ Switches };
 pub use self::switch::track::Track;
-pub use self::train::{ CarriageExtent, DrawingCarriage, Train, TrainExtent };
+pub use self::train::{ CarriageExtent, DrawingCarriage, TrainExtent };
 pub use self::util::{ CountingPromise, DataMessage, Builder };
 pub use self::util::vecutils::expand_by_repeating;
 pub use self::util::eachorevery::{ EachOrEvery, EachOrEveryFilterBuilder };

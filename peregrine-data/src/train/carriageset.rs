@@ -9,7 +9,7 @@ use super::railwayevent::RailwayEvents;
 use super::trainextent::TrainExtent;
 use crate::allotment::core::heighttracker::HeightTrackerMerger;
 use crate::shapeload::carriageprocess::CarriageProcess;
-use crate::{CarriageExtent, DrawingCarriage, TrainState, Train};
+use crate::{CarriageExtent, DrawingCarriage, TrainState};
 use crate::api::MessageSender;
 use crate::switch::trackconfiglist::TrainTrackConfigList;
 
@@ -183,7 +183,7 @@ impl CarriageSet {
         TrainState::new(merger.to_height_tracker())
     }
 
-    pub(super) fn draw_set_carriages(&mut self, train: &Train, railway_events: &mut RailwayEvents) {
+    pub(super) fn draw_set_carriages(&mut self, train: &TrainExtent, railway_events: &mut RailwayEvents) {
         if !self.changes_pending { return; }
         if let Some(carriages) = self.all_ready() {
             railway_events.draw_set_carriages(train,&carriages);    

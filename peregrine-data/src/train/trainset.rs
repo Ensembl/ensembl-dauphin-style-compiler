@@ -151,7 +151,7 @@ impl TrainSet {
     fn try_new_wanted(&mut self, events: &mut RailwayEvents, viewport: &Viewport) -> Result<(),DataMessage> {
         if self.target.is_none() { return Ok(()); }
         let target = self.target.as_ref().unwrap();
-        let target_validity_matches_quiescent = if let Some(quiescent) = self.quiescent_target().cloned() {
+        let target_validity_matches_quiescent = if let Some(quiescent) = self.quiescent_target().as_ref() {
             /* if we are now heading exactly for the target, drop it for future calls */
             quiescent.validity_counter() == self.target_validity_counter
         } else {
@@ -183,7 +183,7 @@ impl TrainSet {
         /* do it */
         self.next_train_serial +=1;
         let wanted = Train::new(&self.try_lifecycle,&extent,events,viewport,&self.messages,self.target_validity_counter)?;
-        events.draw_create_train(&wanted);
+        events.draw_create_train(&extent);
         self.wanted = Some(wanted);
         Ok(())
     }
@@ -234,7 +234,7 @@ impl TrainSet {
         /* retire current and make future current */
         if let Some(mut current) = self.current.take() {
             current.discard(events);
-            events.draw_drop_train(&current);
+            events.draw_drop_train(&current.extent());
         }
         self.current = self.future.take();
         /* now future is free, maybe wanted can go there? */
