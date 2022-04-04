@@ -101,7 +101,7 @@ pub(crate) fn make_transformable(prep: &mut BoxPositionContext, pendings: &mut d
     }
     /* Wire box tree */
     prep.root.clone().build(prep);
-    prep.height_tracker.build();
+    prep.height_tracker.build(&mut prep.puzzle);
     Ok(())
 }
 

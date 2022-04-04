@@ -1,6 +1,6 @@
 use std::{collections::{HashMap, hash_map::{DefaultHasher}}, sync::Arc, fmt, hash::{Hash, Hasher}};
 
-use peregrine_toolkit::{puzzle::{PuzzleValueHolder, PuzzleBuilder, FoldValue, PuzzleSolution, ClonablePuzzleValue, PuzzlePiece}, error};
+use peregrine_toolkit::{puzzle::{PuzzleValueHolder, PuzzleBuilder, FoldValue, PuzzleSolution, ClonablePuzzleValue, PuzzlePiece, DelayedPuzzleValue}, error};
 
 use crate::allotment::{style::allotmentname::AllotmentName};
 
@@ -14,8 +14,8 @@ impl HeightTrackerEntry {
         self.used.add(height);
     }
 
-    fn build(&mut self) {
-        self.used.build();
+    fn build(&mut self, builder: &mut PuzzleBuilder) {
+        self.used.build(builder,0.);
     }
 
     fn get_used(&self, solution: &PuzzleSolution) -> f64 {
@@ -50,11 +50,9 @@ impl HeightTrackerPieces {
     }
 
     fn ensure_entry(&mut self, name: &AllotmentName) -> &mut HeightTrackerEntry {
-        let puzzle = self.puzzle.clone();
+        let mut puzzle = self.puzzle.clone();
         self.heights.entry(name.clone()).or_insert_with( || {
-            let mut output = puzzle.new_piece();
-            #[cfg(debug_assertions)]
-            output.set_name("height tracker in");
+            let output = DelayedPuzzleValue::new(&mut puzzle);
             let mut extra = puzzle.new_piece_default(0.); // XXX no default
             #[cfg(debug_assertions)]
             extra.set_name("height tracker out");
@@ -69,11 +67,11 @@ impl HeightTrackerPieces {
         self.ensure_entry(name).add(height);
     }
 
-    pub(crate) fn build(&mut self) {
+    pub(crate) fn build(&mut self, builder: &mut PuzzleBuilder) {
         #[cfg(debug_assertions)]
         { self.built = true; }
         for values in self.heights.values_mut() {
-            values.build();
+            values.build(builder);
         }
     }
 

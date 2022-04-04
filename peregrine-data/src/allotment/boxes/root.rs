@@ -16,7 +16,8 @@ impl Root {
     pub fn new(puzzle: &mut PuzzleBuilder) -> Root { 
         let playing_field = Arc::new(Mutex::new(PlayingFieldHolder::new(puzzle)));
         let playing_field2 = playing_field.clone();
-        puzzle.add_ready(move |_| { lock!(playing_field2).ready(); });
+        let mut puzzle2 = puzzle.clone();
+        puzzle.add_ready(move |_| { lock!(playing_field2).ready(&mut puzzle2); });
         Root { playing_field, children: Arc::new(Mutex::new(vec![])) }
     }
 

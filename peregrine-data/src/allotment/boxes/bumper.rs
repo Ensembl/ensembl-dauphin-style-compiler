@@ -76,16 +76,13 @@ impl ContainerSpecifics for UnpaddedBumper {
         dependencies.push(algorithm.dependency());
         /* Create a piece which can bump everything in all_items each time and yield a CollisionAlgorithm */
         let all_items2 = all_items.clone();
-        let mut solved = prep.puzzle.new_piece();
-        #[cfg(debug_assertions)]
-        solved.set_name("bumper/solved");
-        solved.add_solver(&dependencies, move |solution| {
+        let mut solved = prep.puzzle.new_combination(&dependencies, move |solution| {
             let algorithm = algorithm.get_clone(solution);
             for item in all_items2.iter() {
                 algorithm.add_entry(&item.name,&item.range.get_clone(solution),item.height.get_clone(solution));
             }
             algorithm.bump();
-            Some(algorithm)
+            algorithm
         });
         self.algorithm.set(&prep.puzzle,PuzzleValueHolder::new(solved.clone()));
         /* Cause algorithm to report how high we are per solution */

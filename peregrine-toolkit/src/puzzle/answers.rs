@@ -45,7 +45,7 @@ impl<T> Answers<T> {
         lock!(self.values)[index.0].clone()
     }
 
-    pub(super) fn set(&self, value: T, id: u64) -> AnswerIndex {
+    pub(super) fn set(&self, value: T) -> AnswerIndex {
         let mut values = lock!(self.values);
         let mut index = None;
         for (i,v) in values.iter_mut().enumerate() {
@@ -90,8 +90,8 @@ mod test {
     #[test]
     fn answer_smoke() {
         let ans = Answers::new(0);   
-        let a1 = ans.set(1,0);
-        let a2 = ans.set(2,0);
+        let a1 = ans.set(1);
+        let a2 = ans.set(2);
         assert_eq!(Some(1),to_value(ans.get(&a1)));
         assert_eq!(Some(2),to_value(ans.get(&a2)));
         assert_eq!(2,ans.len());
@@ -101,9 +101,9 @@ mod test {
         assert_eq!(2,ans.len());
         ans.finish(&a2);
         assert_eq!(0,ans.len());
-        let a3 = ans.set(3,0);
-        let a4 = ans.set(4,0);
-        let a5 = ans.set(5,0);
+        let a3 = ans.set(3);
+        let a4 = ans.set(4);
+        let a5 = ans.set(5);
         assert_eq!(Some(3),to_value(ans.get(&a3)));
         assert_eq!(Some(4),to_value(ans.get(&a4)));
         assert_eq!(Some(5),to_value(ans.get(&a5)));
@@ -112,7 +112,7 @@ mod test {
         assert_eq!(Some(3),to_value(ans.get(&a3)));
         assert_eq!(Some(4),to_value(ans.get(&a4)));
         assert_eq!(2,ans.len());
-        let a6 = ans.set(6,0);
+        let a6 = ans.set(6);
         assert_eq!(Some(6),to_value(ans.get(&a6)));
         assert_eq!(3,ans.len());
         assert_eq!(Some(3),to_value(ans.get(&a3)));

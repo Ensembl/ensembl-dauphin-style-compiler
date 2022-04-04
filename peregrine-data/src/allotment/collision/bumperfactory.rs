@@ -19,9 +19,8 @@ impl BumperFactory {
 
     pub fn get(&mut self, puzzle: &PuzzleBuilder, name: &AllotmentName) -> &PuzzleValueHolder<CollisionAlgorithm> {
         self.colliders.entry(name.clone()).or_insert_with(|| {
-            let piece = puzzle.new_piece();
-            piece.add_solver(&[],|_| {
-                Some(CollisionAlgorithm::new())
+            let piece = puzzle.new_combination(&[],|_| {
+                CollisionAlgorithm::new()
             });
             PuzzleValueHolder::new(piece)
         })

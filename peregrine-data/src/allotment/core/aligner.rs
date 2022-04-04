@@ -1,25 +1,23 @@
 use std::{collections::HashMap, sync::{Arc, Mutex}};
 
-use peregrine_toolkit::{puzzle::{PuzzleValueHolder, ConstantPuzzlePiece, PuzzlePiece, PuzzleBuilder, PuzzleValue}, lock};
+use peregrine_toolkit::{puzzle::{PuzzleValueHolder, ConstantPuzzlePiece, PuzzlePiece, PuzzleBuilder, PuzzleValue, DelayedPuzzleValue, DerivedPuzzlePiece}, lock};
 
 use crate::{allotment::{boxes::root::{Root}, style::style::Indent}};
 
 use super::playingfield::PlayingFieldPieces;
 
 struct Datum {
-    piece: PuzzlePiece<f64>
+    piece: DelayedPuzzleValue<f64>
 }
 
 impl Datum {
     fn new(puzzle: &PuzzleBuilder) -> Datum {
-        Datum { piece: puzzle.new_piece_default(0.) }
+        Datum { piece: DelayedPuzzleValue::new(puzzle) }
     }
 
-    fn set(&mut self, value: &PuzzleValueHolder<f64>) {
+    fn set(&mut self, builder: &PuzzleBuilder, value: &PuzzleValueHolder<f64>) {
         let value = value.clone();
-        self.piece.add_solver(&[value.dependency()], move |solution| {
-            Some(*value.get(solution))
-        });
+        self.piece.set(builder,value);
     }
 
     fn get(&self) -> PuzzleValueHolder<f64> {
@@ -63,7 +61,7 @@ impl Aligner {
     }
     
     pub(crate) fn set_datum(&self, puzzle: &PuzzleBuilder, datum: &str, value: &PuzzleValueHolder<f64>) {
-        lock!(self.datums).entry(datum.to_string()).or_insert_with(|| Datum::new(puzzle)).set(value);
+        lock!(self.datums).entry(datum.to_string()).or_insert_with(move || Datum::new(puzzle)).set(puzzle,value);
     }
 
     pub(crate) fn get_datum(&self,  puzzle: &PuzzleBuilder, datum: &str) -> PuzzleValueHolder<f64> {

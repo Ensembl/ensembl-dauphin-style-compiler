@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use crate::lock;
 
-use super::{piece::{PuzzleValue, ClonablePuzzleValue}, puzzle::{PuzzleDependency, PuzzleSolution, DelaySlot}, PuzzleBuilder, PuzzleValueHolder};
+use super::{piece::{PuzzleValue, ClonablePuzzleValue}, puzzle::{PuzzleDependency, DelaySlot}, PuzzleBuilder, PuzzleValueHolder, PuzzleSolution};
 
 #[derive(Clone)]
 pub struct DerivedPuzzlePiece<T,U> {
@@ -123,10 +123,9 @@ mod test {
         let builder = PuzzleBuilder::new();
         let p1 = builder.new_piece();
         let p2 = DerivedPuzzlePiece::new(p1.clone(),|x| *x*5);
-        let p3 = builder.new_piece();
         let p2b = p2.clone();
-        p3.add_solver(&[p2.dependency()], move |solution| {
-            Some(p2b.get_clone(solution) + 2)
+        let p3 = builder.new_combination(&[p2.dependency()], move |solution| {
+            p2b.get_clone(solution) + 2
         });
         let puzzle = Puzzle::new(builder);
         let mut s1 = PuzzleSolution::new(&puzzle);
@@ -142,10 +141,9 @@ mod test {
         let builder = PuzzleBuilder::new();
         let p1 = ConstantPuzzlePiece::new(3);
         let p2 = DerivedPuzzlePiece::new(p1.clone(),|x| *x*5);
-        let p3 = builder.new_piece();
         let p2b = p2.clone();
-        p3.add_solver(&[p2.dependency()], move |solution| {
-            Some(p2b.get_clone(solution) + 2)
+        let p3 = builder.new_combination(&[p2.dependency()], move |solution| {
+            p2b.get_clone(solution) + 2
         });
         let puzzle = Puzzle::new(builder);
         let mut s1 = PuzzleSolution::new(&puzzle);

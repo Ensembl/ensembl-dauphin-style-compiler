@@ -1,17 +1,17 @@
 use std::{mem, sync::Arc};
 
-use crate::{puzzle::{DerivedPuzzlePiece}};
+use crate::{puzzle::{DerivedPuzzlePiece}, log};
 
-use super::{PuzzlePiece, PuzzleValueHolder, PuzzleValue, PuzzleBuilder, ConstantPuzzlePiece};
+use super::{PuzzlePiece, PuzzleValueHolder, PuzzleValue, PuzzleBuilder, ConstantPuzzlePiece, DelayedPuzzleValue};
 
 pub struct FoldValue<T: Clone+'static>  {
     callback: Arc<dyn Fn(T,T) -> T>,
-    output: PuzzlePiece<T>,
+    output: DelayedPuzzleValue<T>,
     inputs: Vec<PuzzleValueHolder<T>>
 }
 
 impl<T: Clone> FoldValue<T> {
-    pub fn new<F>(output: PuzzlePiece<T>, cb: F) -> FoldValue<T> where F: Fn(T,T) -> T + 'static {
+    pub fn new<F>(output: DelayedPuzzleValue<T>, cb: F) -> FoldValue<T> where F: Fn(T,T) -> T + 'static {
         FoldValue { 
             callback: Arc::new(cb),
             inputs: vec![],
@@ -27,19 +27,21 @@ impl<T: Clone> FoldValue<T> {
         self.inputs.extend(&mut other.inputs.iter().cloned());
     }
 
-    pub fn build(&mut self) {
+    pub fn build(&mut self, builder: &mut PuzzleBuilder, initial: T) {
         let dependencies = self.inputs.iter().map(|holder| holder.dependency()).collect::<Vec<_>>();
         let inputs = mem::replace(&mut self.inputs,vec![]);
         let callback = self.callback.clone();
-        self.output.add_solver(&dependencies, move |solution| {
-            let values = inputs.iter().map(|piece| piece.get(solution).as_ref().clone());
-            values.fold(None, |a: Option<T>, b| {
-                Some(if let Some(a) = a { callback(a,b) } else { b })
+        let answer = builder.new_combination(&dependencies, move |solution| {
+            let initial = initial.clone();
+            let values = inputs.iter().map(move |piece| piece.get(solution).as_ref().clone());
+            values.fold(initial, |a, b| {
+                callback(a,b)
             })
         });
+        self.output.set(builder,PuzzleValueHolder::new(answer));
     }
 
-    pub fn get(&self) -> &PuzzlePiece<T> { &self.output }
+    pub fn get(&self) -> PuzzleValueHolder<T> { PuzzleValueHolder::new(self.output.clone()) }
 }
 
 pub struct CommutingSequence<T: Clone+'static> {
@@ -90,14 +92,11 @@ impl<T: Clone+'static> CommutingSequence<T> {
         /* Build something! */
         if variable.len() > 1 {
             /* More than onevariable: a full unknown PuzzlePiece is required. Boo! */
-            let mut piece = builder.new_piece();
-            #[cfg(debug_assertions)]
-            piece.set_name("commuting var");
             let dependencies = variable.iter().map(|x| x.dependency()).collect::<Vec<_>>();
             let mut variables = mem::replace(&mut self.inputs, vec![]);
             let last = variables.pop().unwrap(); // we know len()>1, so safe
             let callback = self.callback.clone();
-            piece.add_solver(&dependencies, move |solution| {
+            let piece = builder.new_combination(&dependencies, move |solution| {
                 let mut value = last.get(solution).as_ref().clone();
                 for v in &variables {
                     /* add in each variable */
@@ -107,7 +106,7 @@ impl<T: Clone+'static> CommutingSequence<T> {
                     /* add in constant, if present */
                     value = (callback)(&value,constant);
                 }
-                Some(value)
+                value
             });
             PuzzleValueHolder::new(piece)
         } else if variable.len() == 1 {
@@ -138,13 +137,10 @@ pub fn compose2<F,T,U,V>(builder: &PuzzleBuilder, a: &PuzzleValueHolder<T>, b: &
         (Some(a),None) => PuzzleValueHolder::new(DerivedPuzzlePiece::new(b.clone(),move |b| cb(&a,b))),
         (None,Some(b)) => PuzzleValueHolder::new(DerivedPuzzlePiece::new(a.clone(),move |a| cb(a,&b))),
         (None,None) => {
-            let mut piece = builder.new_piece();
-            #[cfg(debug_assertions)]
-            piece.set_name("compose2");
             let a2 = a.clone();
             let b2 = b.clone();
-            piece.add_solver(&[a.dependency(),b.dependency()],  move |solution| {
-                Some(cb(&a2.get(solution),&b2.get(solution)))
+            let mut piece = builder.new_combination(&[a.dependency(),b.dependency()],  move |solution| {
+                cb(&a2.get(solution),&b2.get(solution))
             });
             PuzzleValueHolder::new(piece)
         }
@@ -158,13 +154,9 @@ pub fn build_puzzle_vec<T: Clone>(builder: &PuzzleBuilder, input: &[PuzzleValueH
         return PuzzleValueHolder::new(ConstantPuzzlePiece::new(constants));
     }
     let dependencies = input.iter().map(|x| x.dependency()).collect::<Vec<_>>();
-    let mut piece = builder.new_piece();
-    #[cfg(debug_assertions)]
-    piece.set_name("build_puzzle_vec");
     let input = input.iter().cloned().collect::<Vec<_>>();
-    piece.add_solver(&dependencies, move |solution| {
-        let values = input.iter().map(|x| x.get(solution)).collect::<Vec<_>>();
-        Some(values)
+    let piece = builder.new_combination(&dependencies, move |solution| {
+        input.iter().map(|x| x.get(solution)).collect::<Vec<_>>()
     });
     PuzzleValueHolder::new(piece)
 }

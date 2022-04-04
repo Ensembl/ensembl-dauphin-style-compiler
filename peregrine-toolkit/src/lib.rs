@@ -18,11 +18,15 @@ pub mod puzzle {
     mod graph;
     mod piece;
     mod puzzle;
+    mod solution;
+    mod solver;
+    mod toposort;
     mod util;
 
-    pub use puzzle::{ Puzzle, PuzzleBuilder, PuzzleSolution, PuzzleDependency };
+    pub use puzzle::{ Puzzle, PuzzleBuilder, PuzzleDependency };
     pub use derived::{ DerivedPuzzlePiece, ConstantPuzzlePiece, DelayedPuzzleValue, DelayedConstant };
     pub use piece::{ PuzzlePiece, PuzzleValue, ClonablePuzzleValue, PuzzleValueHolder };
+    pub use solution::PuzzleSolution;
     pub use util::{ FoldValue, CommutingSequence, compose2, build_puzzle_vec };
 }
 

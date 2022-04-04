@@ -59,11 +59,11 @@ impl DrawingCarriage {
         self.shapes.get(&self.train_state)
     }
 
-    pub fn indepentent_solution(&self) -> DrawingCarriageData {
+    pub fn independent_solution(&self) -> DrawingCarriageData {
         self.shapes.get(&TrainState::independent())
     }
 
     pub(super) fn intrinsic_height(&self) -> HeightTracker {
-        self.indepentent_solution().height_tracker()
+        self.independent_solution().height_tracker()
     }
 }

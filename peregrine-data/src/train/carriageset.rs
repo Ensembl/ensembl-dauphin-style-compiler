@@ -17,7 +17,6 @@ use crate::switch::trackconfiglist::TrainTrackConfigList;
 const CARRIAGE_FLANK : u64 = 1;
 const MILESTONE_CARRIAGE_FLANK : u64 = 1;
 
-#[derive(Clone)]
 struct CarriageSetConstant {
     try_lifecycle: Needed,
     extent: TrainExtent,

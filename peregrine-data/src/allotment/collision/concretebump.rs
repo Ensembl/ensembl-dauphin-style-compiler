@@ -13,7 +13,7 @@
  * that. It may contain more than that, up to the entire allocation, but there is no guarantee of that.
  */
 
-use std::{collections::{HashMap}};
+use std::{collections::{HashMap}, sync::Arc};
 
 use crate::allotment::{style::allotmentname::AllotmentName, collision::castle::Castle};
 
@@ -27,6 +27,19 @@ struct ConcreteRequest {
 }
 
 impl ConcreteRequest {
+    fn merge_current_into_companion(&self, current: Option<&ConcreteRequest>) -> Option<ConcreteRequest> {
+        if let Some(current) = current {
+            if current.height > self.height { return None; } // Can't grow
+            Some(ConcreteRequest {
+                start: current.start,
+                end: current.end,
+                height: self.height
+            })
+        } else {
+            Some(self.clone())
+        }
+    }
+
     fn try_add_to_overhang_castle(&self, results: &ConcreteResults, name: &AllotmentName, castle: &mut Castle, cut_off: u64, hanging_left: bool) {
         if hanging_left && self.start < cut_off {
             let offset = results.items.get(name).cloned().unwrap_or(0);
@@ -68,14 +81,15 @@ impl ConcreteRequests {
         self.max_infinite += height;
     }
 
-    fn bump(&mut self, companion: Option<&ConcreteOutcome>, to_left_of_companion: bool, max_infinite: i64) -> ConcreteResults {
+    fn bump(&mut self, companion: Option<&ConcreteOutcome>, to_left_of_companion: bool, max_infinite: i64) -> Option<ConcreteResults> {
         let mut items = HashMap::new();
         /* Get castle due to overhang or make our own */
-        let (mut castle,go_left) = if let Some(companion) = companion {
-            (companion.make_castle(to_left_of_companion),to_left_of_companion)
+        let (castle,go_left) = if let Some(companion) = companion {
+            (companion.make_castle(&self,to_left_of_companion),to_left_of_companion)
         } else {
-            (Castle::new(true),false)
+            (Some(Castle::new(true)),false)
         };
+        let mut castle = if let Some(castle) = castle { castle } else { return None; };
         /* In what order do we need to bump? */
         let mut order = self.finite.iter_mut().collect::<Vec<_>>();
         order.sort_by_cached_key(|(_,item)| {
@@ -91,12 +105,13 @@ impl ConcreteRequests {
         for (name,offset) in &self.infinite {
             items.insert(name.clone(),*offset);
         }
-        ConcreteResults { items, maximum: castle.maximum() }
+        Some(ConcreteResults { items: Arc::new(items), maximum: castle.maximum() })
     }
 }
 
+#[derive(Clone)]
 pub(super) struct ConcreteResults {
-    items: HashMap<AllotmentName,i64>,
+    items: Arc<HashMap<AllotmentName,i64>>,
     maximum: i64
 }
 
@@ -117,28 +132,32 @@ impl ConcreteOutcome {
         ConcreteOutcome { requests, max_infinite, results: None }
     }
 
-    fn make_castle(&self, hanging_left: bool) -> Castle {
+    /* called on companion to add */
+    fn make_castle(&self, to_add: &ConcreteRequests, hanging_left: bool) -> Option<Castle> {
         let delta = if hanging_left { 0 } else { 1 };
         let cut_off = self.requests.bp_per_carriage * ((self.requests.carriage_index+delta) as u64);
         let mut castle = Castle::new(!hanging_left);
-        for (name,item) in self.requests.finite.iter() {
+        for (name,companion_item) in self.requests.finite.iter() {
+            let item = companion_item.merge_current_into_companion(to_add.finite.get(name));
+            let item = if let Some(item) = item { item } else { return None; };
             item.try_add_to_overhang_castle(&self.results.as_ref().unwrap(),name,&mut castle,cut_off,hanging_left);
         }
-        castle
+        Some(castle)
     }
 
-    fn bump(&mut self, companion: Option<&ConcreteOutcome>, to_left_of_companion: bool) -> i64 {
+    fn bump(&mut self, companion: Option<&ConcreteOutcome>, to_left_of_companion: bool) -> Option<i64> {
         let result = self.requests.bump(companion,to_left_of_companion,self.max_infinite);
+        let result = if let Some(result) = result { result } else { return None; };
         let maximum = result.maximum + self.max_infinite;
         self.results = Some(result);
-        maximum
+        Some(maximum)
     }
 }
 
 const STORE_LENGTH : usize = 11;
 
 pub(crate) struct ConcreteBump {
-    sliding: SlidingWindow<'static,ConcreteOutcome,i64>,
+    sliding: SlidingWindow<'static,ConcreteOutcome,Option<i64>>,
     bp_per_carriage: u64,
     max_infinite: Option<i64>,
     maximum: i64
@@ -172,23 +191,29 @@ impl ConcreteBump {
         ConcreteRequests::new(self.bp_per_carriage,index)
     }
 
+    /* Note: invariants not captured in signature:
+     * 1. add is guaranteed to succeed the first time it is called.
+     * 2. self is guranateed not to change if add() retruns false.
+     */
     pub(super) fn add(&mut self, store: ConcreteRequests) -> bool {
         /* check infinite size is compatible */
         if let Some(infinite) = self.max_infinite {
             if infinite < store.max_infinite { return false; }
-        } else {
-            self.max_infinite = Some(store.max_infinite);
         }
         /* check if we already have it */
         if self.sliding.get(store.carriage_index).is_some() {
             self.sliding.set_lock(store.carriage_index,true);
-            return true
+            return true;
         }
         /* add */
         let carriage_index = store.carriage_index;
-        if let Some(maximum) = self.sliding.add(ConcreteOutcome::new(store,self.max_infinite.unwrap())) {
+        let store_max_infinite = store.max_infinite;
+        if let Some(maximum) = self.sliding.add(ConcreteOutcome::new(store,self.max_infinite.unwrap())).flatten() {
             self.maximum = self.maximum.max(maximum);
             self.sliding.set_lock(carriage_index,true);
+            if self.max_infinite.is_none() {
+                self.max_infinite = Some(store_max_infinite);
+            }
             true
         } else {
             false
@@ -211,4 +236,6 @@ impl ConcreteBump {
     pub(super) fn get_results(&self, carriage_index: usize) -> Option<&ConcreteResults> {
         self.sliding.get(carriage_index).and_then(|x| x.results.as_ref())
     }
+
+    pub(super) fn maximum(&self) -> i64 { self.maximum }
 }

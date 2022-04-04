@@ -6,8 +6,6 @@ use crate::{PlayingField, TrainExtent, PeregrineCoreBase};
 use crate::allotment::core::allotmentmetadata::AllotmentMetadataReport;
 use crate::api::{ CarriageSpeed, ApiMessage };
 use crate::core::Viewport;
-
-use super::railwaydatatasks::RailwayDataTasks;
 use super::drawingcarriage::{DrawingCarriage};
 
 enum RailwayEvent {
@@ -79,7 +77,7 @@ impl RailwayEvents {
         for e in events {
             match e {
                 RailwayEvent::DrawSendAllotmentMetadata(metadata) => {
-                    base.integration.lock().unwrap().notify_allotment_metadata(&metadata);
+                    lock!(base.integration).notify_allotment_metadata(&metadata);
                 },
                 RailwayEvent::DrawSetCarriages(train,carriages) => {
                     let r = lock!(base.integration).set_carriages(&train,&carriages);

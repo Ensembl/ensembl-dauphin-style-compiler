@@ -1,4 +1,4 @@
-use peregrine_toolkit::puzzle::{PuzzleValueHolder, PuzzleSolution, PuzzleBuilder, FoldValue, PuzzlePiece, PuzzleValue};
+use peregrine_toolkit::puzzle::{PuzzleValueHolder, PuzzleSolution, PuzzleBuilder, FoldValue, PuzzlePiece, PuzzleValue, DelayedPuzzleValue};
 
 use crate::{CoordinateSystemVariety, CoordinateSystem};
 
@@ -28,9 +28,7 @@ impl PlayingField {
 }
 
 fn new_max(puzzle: &mut PuzzleBuilder) -> FoldValue<f64> {
-    let mut piece = puzzle.new_piece_default(0.);
-    #[cfg(debug_assertions)]
-    piece.set_name("new_max");
+    let piece = DelayedPuzzleValue::new(&puzzle);
     FoldValue::new(piece,|a,b| a.max(b))
 }
 
@@ -43,10 +41,10 @@ pub struct PlayingFieldHolder {
 
 #[derive(Clone)]
 pub struct PlayingFieldPieces {
-    pub top: PuzzlePiece<f64>,
-    pub bottom: PuzzlePiece<f64>,
-    pub left: PuzzlePiece<f64>,
-    pub right: PuzzlePiece<f64>
+    pub top: PuzzleValueHolder<f64>,
+    pub bottom: PuzzleValueHolder<f64>,
+    pub left: PuzzleValueHolder<f64>,
+    pub right: PuzzleValueHolder<f64>
 }
 
 impl PlayingFieldPieces {
@@ -90,10 +88,10 @@ impl PlayingFieldHolder {
         var.add(value);
     }
 
-    pub(crate) fn ready(&mut self) {
-        self.top.build();
-        self.bottom.build();
-        self.left.build();
-        self.right.build();
+    pub(crate) fn ready(&mut self, builder: &mut PuzzleBuilder) {
+        self.top.build(builder,0.);
+        self.bottom.build(builder,0.);
+        self.left.build(builder,0.);
+        self.right.build(builder,0.);
     }
 }
