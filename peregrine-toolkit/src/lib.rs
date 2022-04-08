@@ -30,6 +30,20 @@ pub mod puzzle {
     pub use util::{ FoldValue, CommutingSequence, compose2, build_puzzle_vec };
 }
 
+
+pub mod puzzle3 {
+    mod answer;
+    mod combination;
+    mod commute;
+    mod constant;
+    mod delayed;
+    mod memoized;
+    mod short;
+    mod unknown;
+    mod solver;
+    mod store;
+}
+
 pub mod boom;
 pub mod cbor;
 pub mod console;
