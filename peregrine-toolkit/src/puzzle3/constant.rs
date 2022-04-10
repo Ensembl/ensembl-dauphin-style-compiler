@@ -51,6 +51,10 @@ pub fn use_constant<'f,'a,T: 'a>(input: Solver<'f,'a,T>) -> Solver<'f,'a,Arc<T>>
     do_use_constant(input,|x| Arc::new(x))
 }
 
+pub fn use_constant_clonable<'f:'a,'a,T: 'a+Clone>(input: Solver<'f,'a,T>) -> Solver<'f,'a,T> {
+    do_use_constant(input,|x| Arc::new(x)).dearc()
+}
+
 pub fn use_constant_arc<'f,'a,T: 'a>(input: Solver<'f,'a,Arc<T>>) -> Solver<'f,'a,Arc<T>> {
     do_use_constant(input,|x| x)
 }

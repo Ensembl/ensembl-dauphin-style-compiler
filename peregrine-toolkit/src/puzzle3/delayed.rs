@@ -26,6 +26,11 @@ pub fn delayed_solver<'f,'a: 'f,T: 'a>() -> (SolverSetter<'f,'a,T>,Solver<'f,'a,
     }))
 }
 
+pub fn promise_delayed_solver<'f,'a,'g,'b,T>() -> (SolverSetter<'f,'a,T>,Solver<'g,'b,T>) where 'f:'b, 'g:'a {
+    let (setter,solver) = delayed_solver();
+    (setter,solver.unwrap())
+}
+
 impl<'f,'a,T> SolverSetter<'f,'a,T> {
     pub fn set(&self, solver: Solver<'f,'a,T>) {
         *lock!(self.0) = Some(Arc::new(solver))

@@ -2,13 +2,7 @@ use std::sync::Arc;
 
 use super::{solver::Solver, answer::{AnswerIndex}};
 
-pub fn variable<'a,'f: 'a, T: 'a, F: 'f+'a>(f: F) -> Solver<'f,'a,T> where F: Fn(&AnswerIndex<'a>) -> T {
-    Solver::new(move |answer_index|
-       answer_index.as_ref().map(|answer_index| f(answer_index))
-    )
-}
-
-pub fn derived<'a, 'b: 'a, 'f: 'a+'b, 'g: 'f, 'h, T:'a, U:'b, F: 'f>(a: Solver<'g,'a,T>, f: F) -> Solver<'h,'b,U> where F: Fn(T) -> U {
+pub fn derived<'a: 'b+'g, 'b, 'f: 'a+'b, 'g: 'f, 'h: 'g, T:'a, U:'b, F: 'f>(a: Solver<'g,'a,T>, f: F) -> Solver<'h,'b,U> where F: Fn(T) -> U {
     Solver::new(move |answer_index| {
         a.inner(answer_index).map(|a| f(a))
     })

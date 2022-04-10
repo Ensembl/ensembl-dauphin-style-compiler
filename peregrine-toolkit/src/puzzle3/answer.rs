@@ -25,6 +25,8 @@ pub struct AnswerIndex<'a> {
     retained: Arc<Mutex<Vec<OpaqueArc<'a>>>>
 }
 
+pub type StaticAnswerIndex = AnswerIndex<'static>;
+
 impl<'a> AnswerIndex<'a> {
     pub fn index(&self) -> usize { self.index }
     pub fn serial(&self) -> u64 { self.serial }

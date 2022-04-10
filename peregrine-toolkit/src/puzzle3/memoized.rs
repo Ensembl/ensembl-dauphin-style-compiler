@@ -41,3 +41,7 @@ pub fn short_memoized<'f,'a,T: 'a>(input: Solver<'f,'a,T>) -> Solver<'f,'a,Arc<T
 pub fn short_memoized_arc<'f,'a,T: 'a>(input: Solver<'f,'a,Arc<T>>) -> Solver<'f,'a,Arc<T>> {
     memoized_arc(input,AnswerStore::new())
 }
+
+pub fn short_memoized_clonable<'f: 'a,'a,T: Clone+'a>(input: Solver<'f,'a,T>) -> Solver<'f,'a,T> {
+    memoized(input,AnswerStore::new()).dearc()
+}

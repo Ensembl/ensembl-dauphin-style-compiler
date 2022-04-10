@@ -39,18 +39,20 @@ pub mod puzzle3 {
     mod delayed;
     mod memoized;
     mod short;
-    mod unknown;
     mod solver;
     mod store;
+    mod unknown;
+    mod variable;
 
-    pub use answer::{ AnswerIndex, AnswerIndexAllocator };
-    pub use commute::{ commute, commute_arc, DelayedCommuteBuilder };
-    pub use combination::{ variable, derived, combine2, combine_slice };
-    pub use constant::{ constant_solver, use_constant, use_constant_arc };
-    pub use delayed::{ SolverSetter, delayed_solver };
-    pub use memoized::{ short_memoized, short_memoized_arc };
-    pub use solver::{ Solver };
-    pub use unknown::{ AnswerSetter, unknown, short_unknown };
+    pub use answer::{ AnswerIndex, StaticAnswerIndex, AnswerIndexAllocator };
+    pub use commute::{ commute, commute_arc, commute_clonable, DelayedCommuteBuilder };
+    pub use combination::{ derived, combine2, combine_slice };
+    pub use constant::{ constant_solver, use_constant, use_constant_arc, use_constant_clonable };
+    pub use delayed::{ SolverSetter, delayed_solver, promise_delayed_solver };
+    pub use memoized::{ short_memoized, short_memoized_arc, short_memoized_clonable };
+    pub use solver::{ Solver, StaticSolver };
+    pub use unknown::{ AnswerSetter, unknown, short_unknown, short_unknown_promise_clonable };
+    pub use variable::{ variable };
 }
 
 pub mod boom;
