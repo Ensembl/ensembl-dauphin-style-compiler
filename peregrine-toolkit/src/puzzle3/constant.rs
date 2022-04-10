@@ -31,10 +31,7 @@ impl<T> ConstantResult<T> {
 pub fn do_use_constant<'a,'f, T: 'a,U: 'a, F: 'f>(input: Solver<'f,'a,U>, arcify: F) -> Solver<'f,'a,Arc<T>>
         where F: Fn(U) -> Arc<T> + 'f {
     let constant = Arc::new(Mutex::new(ConstantResult::NotTried));
-    let constant2 = constant.clone();
-    let input2 = input.clone();
     let arcify = Arc::new(arcify);
-    let arcify2 = arcify.clone();
     Solver::new(move |answer_index| {
         let mut cache = lock!(constant);
         if let ConstantResult::NotTried = &*cache {

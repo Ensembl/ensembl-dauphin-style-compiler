@@ -1,6 +1,11 @@
 use std::{collections::BTreeSet, sync::{Arc, Mutex, Weak}};
 use crate::lock;
 
+use lazy_static::lazy_static;
+use identitynumber::identitynumber;
+
+identitynumber!(IDS);
+
 struct OpaqueArcHolder<T>(Arc<T>);
 trait OpaqueArcTrait {}
 impl<T> OpaqueArcTrait for OpaqueArcHolder<T> {}
@@ -14,16 +19,18 @@ impl<'a> OpaqueArc<'a> {
 }
 
 pub struct AnswerIndex<'a> {
+    serial: u64,
     index: usize,
     allocator: AnswerIndexAllocator,
-    retained: Vec<OpaqueArc<'a>>
+    retained: Arc<Mutex<Vec<OpaqueArc<'a>>>>
 }
 
 impl<'a> AnswerIndex<'a> {
     pub fn index(&self) -> usize { self.index }
+    pub fn serial(&self) -> u64 { self.serial }
 
-    pub fn retain<T: 'a>(&mut self, input: &Arc<T>) -> Weak<T> {
-        self.retained.push(OpaqueArc::new(input.clone()));
+    pub fn retain<T: 'a>(&self, input: &Arc<T>) -> Weak<T> {
+        lock!(self.retained).push(OpaqueArc::new(input.clone()));
         let output = Arc::downgrade(input);
         output
     }
@@ -64,18 +71,19 @@ impl AnswerIndexAllocatorData {
 }
 
 #[derive(Clone)]
-pub(super) struct AnswerIndexAllocator(Arc<Mutex<AnswerIndexAllocatorData>>);
+pub struct AnswerIndexAllocator(Arc<Mutex<AnswerIndexAllocatorData>>);
 
 impl AnswerIndexAllocator {
-    pub(super) fn new() -> AnswerIndexAllocator {
+    pub fn new() -> AnswerIndexAllocator {
         AnswerIndexAllocator(Arc::new(Mutex::new(AnswerIndexAllocatorData::new())))
     }
 
-    pub(super) fn get_answer_index<'a>(&mut self) -> AnswerIndex<'a> {
+    pub fn get_answer_index<'a>(&mut self) -> AnswerIndex<'a> {
         AnswerIndex {
+            serial: IDS.next(),
             index: lock!(self.0).get_answer_index(),
             allocator: self.clone(),
-            retained: vec![]
+            retained: Arc::new(Mutex::new(vec![]))
         }
     }
 }

@@ -42,6 +42,15 @@ pub mod puzzle3 {
     mod unknown;
     mod solver;
     mod store;
+
+    pub use answer::{ AnswerIndex, AnswerIndexAllocator };
+    pub use commute::{ commute, commute_arc, DelayedCommuteBuilder };
+    pub use combination::{ variable, derived, combine2, combine_slice };
+    pub use constant::{ constant_solver, use_constant, use_constant_arc };
+    pub use delayed::{ SolverSetter, delayed_solver };
+    pub use memoized::{ short_memoized, short_memoized_arc };
+    pub use solver::{ Solver };
+    pub use unknown::{ AnswerSetter, unknown, short_unknown };
 }
 
 pub mod boom;

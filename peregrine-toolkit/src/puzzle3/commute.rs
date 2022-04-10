@@ -1,8 +1,6 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
-use crate::lock;
-
-use super::{answer::AnswerIndex, solver::Solver};
+use super::{answer::AnswerIndex, solver::Solver, SolverSetter, delayed_solver, derived};
 
 struct Commuter<'f,'a,T> {
     initial: Arc<T>,
@@ -23,7 +21,40 @@ impl<'f,'a,T> Commuter<'f,'a,T> {
         }
     }
 
-    fn inner(&self, answer_index: &mut Option<&mut AnswerIndex<'a>>) -> Option<Arc<T>> {
+    fn inner(&self, answer_index: &Option<&AnswerIndex<'a>>) -> Option<Arc<T>> {
+        let mut out = self.initial.clone();
+        for var in &self.rest {
+            let value = var.inner(answer_index);
+            if let Some(value) = value {
+                out = Arc::new((self.compose)(&out,&value));
+            } else {
+                return None;
+            }
+        }
+        Some(out)
+    }
+}
+
+struct ArcCommuter<'f,'a,T> {
+    initial: Arc<T>,
+    compose: Arc<dyn Fn(&T,&T) -> T + 'f>,
+    rest: Vec<Solver<'f,'a,Arc<T>>>
+}
+
+impl<'f,'a,T> ArcCommuter<'f,'a,T> {
+    fn new(initial: Arc<T>, compose: Arc<dyn Fn(&T,&T) -> T + 'f>) -> ArcCommuter<'f,'a,T> {
+        ArcCommuter { initial, compose, rest: vec![] }
+    }
+
+    fn add(&mut self, solver: Solver<'f,'a,Arc<T>>) {
+        if let Some(constant) = solver.constant() {
+            self.initial = Arc::new((self.compose)(&self.initial,&constant));
+        } else {
+            self.rest.push(solver);
+        }
+    }
+
+    fn inner(&self, answer_index: &Option<&AnswerIndex<'a>>) -> Option<Arc<T>> {
         let mut out = self.initial.clone();
         for var in &self.rest {
             let value = var.inner(answer_index);
@@ -45,6 +76,43 @@ pub fn commute<'f: 'a,'a,T: 'a,F: 'f>(inputs: &[Solver<'f,'a,T>], initial: T, co
     Solver::new(move |answer_index| {
         commuter.inner(answer_index)
     })
+}
+
+pub fn commute_arc<'f: 'a,'a,T: 'a>(inputs: &[Solver<'f,'a,Arc<T>>], initial: Arc<T>, compose: Arc<dyn Fn(&T,&T) -> T + 'f>) -> Solver<'f,'a,Arc<T>> {
+    let mut commuter = ArcCommuter::new(initial,compose);
+    for input in inputs {
+        commuter.add(input.clone());
+    }
+    Solver::new(move |answer_index| {
+        commuter.inner(answer_index)
+    })
+}
+
+pub struct DelayedCommuteBuilder<'a,T: 'a> {
+    f: Arc<dyn Fn(&T,&T) -> T + 'a>,
+    solver: Solver<'a,'a,Arc<T>>,
+    setter: SolverSetter<'a,'a,Arc<T>>,
+    values: Vec<Solver<'a,'a,Arc<T>>>
+}
+
+impl<'a,T: 'a> DelayedCommuteBuilder<'a,T> {
+    pub fn new<F>(f: F) -> DelayedCommuteBuilder<'a,T> where F: Fn(&T,&T) -> T + 'a {
+        let (setter,solver) = delayed_solver();
+        let solver = derived(solver,|x| x.unwrap());
+        DelayedCommuteBuilder { setter, solver, f: Arc::new(f), values: vec![] }
+    }
+
+    pub fn solver(&self) -> &Solver<'a,'a,Arc<T>> { &self.solver }
+
+    pub fn add(&mut self, value: &Solver<'a,'a,T>) { 
+        let value = derived(value.clone(),|x| Arc::new(x));
+        self.values.push(value);
+    }
+
+    pub fn build(&mut self, initial: T) {
+        let value = commute_arc(&self.values,Arc::new(initial),self.f.clone());
+        self.setter.set(value);
+    }
 }
 
 #[cfg(test)]

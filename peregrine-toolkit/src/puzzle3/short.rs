@@ -17,7 +17,7 @@ impl<'a,T: 'a> AnswerStore<'a,T> {
 }
 
 impl<'a,T: 'a> Store<'a,T> for AnswerStore<'a,T> {
-    fn set(&mut self, answer_index: &mut AnswerIndex<'a>, value: Arc<T>) {
+    fn set(&mut self, answer_index: &AnswerIndex<'a>, value: Arc<T>) {
         let index = answer_index.index();
         if self.answers.len() <= index {
             self.answers.resize(index+1,Weak::new());

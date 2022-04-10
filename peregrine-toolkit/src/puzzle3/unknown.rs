@@ -8,7 +8,7 @@ use super::{answer::{AnswerIndex}, solver::{Solver}, store::Store, short::Answer
 pub struct AnswerSetter<'a,T: 'a>(Arc<Mutex<Box<dyn Store<'a,T> + 'a>>>,PhantomData<&'a T>);
 
 impl<'a,T> AnswerSetter<'a,T> {
-    pub(super) fn set(&mut self, index: &mut AnswerIndex<'a>, value: T) {
+    pub fn set(&mut self, index: &mut AnswerIndex<'a>, value: T) {
         lock!(self.0).set(index,Arc::new(value));
     }
 }
@@ -18,7 +18,7 @@ pub fn unknown<'f,'a,S,T: 'a>(store: S) -> (AnswerSetter<'a,T>,Solver<'f,'a,Opti
     let answers2 = answers.clone();
     let setter = AnswerSetter(answers,PhantomData);
     (setter,Solver::new(move |answer_index| {
-        answer_index.as_mut().map(|ai| lock!(answers2).get(ai))
+        answer_index.as_ref().map(|ai| lock!(answers2).get(ai))
     }))
 }
 
