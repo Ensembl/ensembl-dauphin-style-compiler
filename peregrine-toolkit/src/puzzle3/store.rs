@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
-use super::answer::AnswerIndex;
+use super::answer::Answer;
 
 pub trait Store<'a, T> {
-    fn set<'b>(&mut self, answer_index: &AnswerIndex<'a>, value: Arc<T>);
-    fn get(&self, index: &AnswerIndex<'a>) -> Option<Arc<T>>;
+    fn set<'b>(&mut self, answer_index: &Answer<'a>, value: Arc<T>);
+    fn get(&self, index: &Answer<'a>) -> Option<Arc<T>>;
 }

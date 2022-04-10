@@ -1,6 +1,6 @@
 use std::{marker::PhantomData, sync::{Weak, Arc}};
 
-use super::{answer::AnswerIndex, store::Store};
+use super::{answer::Answer, store::Store};
 
 pub(super) struct AnswerStore<'a,T: 'a> {
     answers: Vec<Weak<T>>,
@@ -17,7 +17,7 @@ impl<'a,T: 'a> AnswerStore<'a,T> {
 }
 
 impl<'a,T: 'a> Store<'a,T> for AnswerStore<'a,T> {
-    fn set(&mut self, answer_index: &AnswerIndex<'a>, value: Arc<T>) {
+    fn set(&mut self, answer_index: &Answer<'a>, value: Arc<T>) {
         let index = answer_index.index();
         if self.answers.len() <= index {
             self.answers.resize(index+1,Weak::new());
@@ -26,7 +26,7 @@ impl<'a,T: 'a> Store<'a,T> for AnswerStore<'a,T> {
         answer_index.retain(&value);
     }
 
-    fn get(&self, answer_index: &AnswerIndex) -> Option<Arc<T>> {
+    fn get(&self, answer_index: &Answer) -> Option<Arc<T>> {
         self.answers.get(answer_index.index()).map(|x| x.upgrade()).flatten()
     }
 }

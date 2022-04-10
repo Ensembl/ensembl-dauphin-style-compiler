@@ -1,11 +1,11 @@
 use std::sync::Arc;
 
-use super::{answer::AnswerIndex, solver::Solver, SolverSetter, delayed_solver, derived};
+use super::{answer::Answer, value::Value, SolverSetter, delayed, derived};
 
 struct ClonableCommuter<'f,'a,T: Clone> {
     initial: T,
     compose: Box<dyn Fn(&T,&T) -> T + 'f>,
-    rest: Vec<Solver<'f,'a,T>>
+    rest: Vec<Value<'f,'a,T>>
 }
 
 impl<'f,'a,T: Clone> ClonableCommuter<'f,'a,T> {
@@ -13,7 +13,7 @@ impl<'f,'a,T: Clone> ClonableCommuter<'f,'a,T> {
         ClonableCommuter { initial, compose: Box::new(compose), rest: vec![] }
     }
 
-    fn add(&mut self, solver: Solver<'f,'a,T>) {
+    fn add(&mut self, solver: Value<'f,'a,T>) {
         if let Some(constant) = solver.constant() {
             self.initial = (self.compose)(&self.initial,&constant);
         } else {
@@ -21,7 +21,7 @@ impl<'f,'a,T: Clone> ClonableCommuter<'f,'a,T> {
         }
     }
 
-    fn inner(&self, answer_index: &Option<&AnswerIndex<'a>>) -> Option<T> {
+    fn inner(&self, answer_index: &Option<&Answer<'a>>) -> Option<T> {
         let mut out = self.initial.clone();
         for var in &self.rest {
             let value = var.inner(answer_index);
@@ -35,7 +35,7 @@ impl<'f,'a,T: Clone> ClonableCommuter<'f,'a,T> {
     }
 }
 
-pub struct Commuter<'f,'a,T>(ClonableCommuter<'f,'a,Arc<T>>);
+struct Commuter<'f,'a,T>(ClonableCommuter<'f,'a,Arc<T>>);
 
 impl<'f:'a,'a,T> Commuter<'f,'a,T> {
     fn new<F>(initial: T, compose: F) -> Commuter<'f,'a,T> where F: Fn(&T,&T) -> T + 'f {
@@ -44,17 +44,17 @@ impl<'f:'a,'a,T> Commuter<'f,'a,T> {
         }))
     }
 
-    fn add<'g,'b>(&mut self, solver: Solver<'f,'a,T>) where 'g:'b, 'f:'a {
+    fn add<'g,'b>(&mut self, solver: Value<'f,'a,T>) where 'g:'b, 'f:'a {
         self.0.add(derived(solver,|x| Arc::new(x)))
     }
 
-    fn inner(&self, answer_index: &Option<&AnswerIndex<'a>>) -> Option<Arc<T>> {
+    fn inner(&self, answer_index: &Option<&Answer<'a>>) -> Option<Arc<T>> {
         self.0.inner(answer_index)
     }
 
 }
 
-pub struct ArcCommuter<'f,'a,T>(ClonableCommuter<'f,'a,Arc<T>>);
+struct ArcCommuter<'f,'a,T>(ClonableCommuter<'f,'a,Arc<T>>);
 
 impl<'f: 'a,'a,T> ArcCommuter<'f,'a,T> {
     fn new(initial: Arc<T>, compose: Arc<dyn Fn(&T,&T) -> T + 'f>) -> ArcCommuter<'f,'a,T> {
@@ -63,63 +63,63 @@ impl<'f: 'a,'a,T> ArcCommuter<'f,'a,T> {
         }))
     }
 
-    fn add(&mut self, solver: Solver<'f,'a,Arc<T>>) {
+    fn add(&mut self, solver: Value<'f,'a,Arc<T>>) {
         self.0.add(solver);
     }
 
-    fn inner(&self, answer_index: &Option<&AnswerIndex<'a>>) -> Option<Arc<T>> {
+    fn inner(&self, answer_index: &Option<&Answer<'a>>) -> Option<Arc<T>> {
         self.0.inner(answer_index)
     }
 }
 
 
-pub fn commute<'f: 'a,'a,T: 'a,F: 'f>(inputs: &[Solver<'f,'a,T>], initial: T, compose: F) -> Solver<'f,'a,Arc<T>> where F: Fn(&T,&T) -> T + 'f {
+pub fn commute<'f: 'a,'a,T: 'a,F: 'f>(inputs: &[Value<'f,'a,T>], initial: T, compose: F) -> Value<'f,'a,Arc<T>> where F: Fn(&T,&T) -> T + 'f {
     let mut commuter = Commuter::new(initial,compose);
     for input in inputs {
         commuter.add(input.clone());
     }
-    Solver::new(move |answer_index| {
+    Value::new(move |answer_index| {
         commuter.inner(answer_index)
     })
 }
 
-pub fn commute_clonable<'f: 'a,'a,T: 'a+Clone,F: 'f>(inputs: &[Solver<'f,'a,T>], initial: T, compose: F) -> Solver<'f,'a,T> where F: Fn(&T,&T) -> T + 'f {
+pub fn commute_clonable<'f: 'a,'a,T: 'a+Clone,F: 'f>(inputs: &[Value<'f,'a,T>], initial: T, compose: F) -> Value<'f,'a,T> where F: Fn(&T,&T) -> T + 'f {
     let mut commuter = ClonableCommuter::new(initial,compose);
     for input in inputs {
         commuter.add(input.clone());
     }
-    Solver::new(move |answer_index| {
+    Value::new(move |answer_index| {
         commuter.inner(answer_index)
     })
 }
 
-pub fn commute_arc<'f: 'a,'a,T: 'a>(inputs: &[Solver<'f,'a,Arc<T>>], initial: Arc<T>, compose: Arc<dyn Fn(&T,&T) -> T + 'f>) -> Solver<'f,'a,Arc<T>> {
+pub fn commute_arc<'f: 'a,'a,T: 'a>(inputs: &[Value<'f,'a,Arc<T>>], initial: Arc<T>, compose: Arc<dyn Fn(&T,&T) -> T + 'f>) -> Value<'f,'a,Arc<T>> {
     let mut commuter = ArcCommuter::new(initial,compose);
     for input in inputs {
         commuter.add(input.clone());
     }
-    Solver::new(move |answer_index| {
+    Value::new(move |answer_index| {
         commuter.inner(answer_index)
     })
 }
 
 pub struct DelayedCommuteBuilder<'a,T: 'a> {
     f: Arc<dyn Fn(&T,&T) -> T + 'a>,
-    solver: Solver<'a,'a,Arc<T>>,
+    solver: Value<'a,'a,Arc<T>>,
     setter: SolverSetter<'a,'a,Arc<T>>,
-    values: Vec<Solver<'a,'a,Arc<T>>>
+    values: Vec<Value<'a,'a,Arc<T>>>
 }
 
 impl<'a,T: 'a> DelayedCommuteBuilder<'a,T> {
     pub fn new<F>(f: F) -> DelayedCommuteBuilder<'a,T> where F: Fn(&T,&T) -> T + 'a {
-        let (setter,solver) = delayed_solver();
+        let (setter,solver) = delayed();
         let solver = solver.unwrap();
         DelayedCommuteBuilder { setter, solver, f: Arc::new(f), values: vec![] }
     }
 
-    pub fn solver(&self) -> &Solver<'a,'a,Arc<T>> { &self.solver }
+    pub fn solver(&self) -> &Value<'a,'a,Arc<T>> { &self.solver }
 
-    pub fn add(&mut self, value: &Solver<'a,'a,T>) { 
+    pub fn add(&mut self, value: &Value<'a,'a,T>) { 
         let value = derived(value.clone(),|x| Arc::new(x));
         self.values.push(value);
     }
@@ -134,7 +134,7 @@ impl<'a,T: 'a> DelayedCommuteBuilder<'a,T> {
 mod test {
     use std::sync::{Arc, Mutex};
 
-    use crate::{lock, puzzle3::{constant::constant_solver, unknown::short_unknown, combination::derived, answer::AnswerIndexAllocator}};
+    use crate::{lock, puzzle3::{constant::constant, unknown::short_unknown, compose::derived, answer::AnswerAllocator}};
 
     use super::commute;
 
@@ -147,7 +147,7 @@ mod test {
         let mut sets = vec![];
         for i in 0..10 {
             if i%2 == 0 {
-                let constant = constant_solver(i);
+                let constant = constant(i);
                 /* derive so that we can capture counts */
                 let value = derived(constant,|v| {
                     *lock!(count2) += 1;
@@ -168,9 +168,9 @@ mod test {
            *a+*b
         });
         /* 1: set the odds to their usual values, 2: set odds to 0 */
-        let mut aia = AnswerIndexAllocator::new();
-        let mut ai1 = aia.get_answer_index();
-        let mut ai2 = aia.get_answer_index();
+        let mut aia = AnswerAllocator::new();
+        let mut ai1 = aia.get();
+        let mut ai2 = aia.get();
         for (i,s) in sets.iter_mut().enumerate() {
             s.set(&mut ai1, (i*2+1)*(i*2+1));
             s.set(&mut ai2, 0);
