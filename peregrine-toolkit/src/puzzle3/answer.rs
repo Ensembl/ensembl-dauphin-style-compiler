@@ -10,7 +10,7 @@ struct OpaqueArcHolder<T>(Arc<T>);
 trait OpaqueArcTrait {}
 impl<T> OpaqueArcTrait for OpaqueArcHolder<T> {}
 
-pub struct OpaqueArc<'a>(Box<dyn OpaqueArcTrait + 'a>);
+struct OpaqueArc<'a>(Box<dyn OpaqueArcTrait + 'a>);
 
 impl<'a> OpaqueArc<'a> {
     fn new<T: 'a>(arc: Arc<T>) -> OpaqueArc<'a> {

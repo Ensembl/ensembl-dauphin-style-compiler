@@ -1,14 +1,14 @@
 use std::sync::Arc;
 
-use super::{answer::Answer, value::Value, SolverSetter, delayed, derived};
+use super::{answer::Answer, value::Value, DelayedSetter, delayed, derived};
 
-struct ClonableCommuter<'f,'a,T: Clone> {
+struct ClonableCommuter<'f:'a,'a,T: Clone> {
     initial: T,
     compose: Box<dyn Fn(&T,&T) -> T + 'f>,
     rest: Vec<Value<'f,'a,T>>
 }
 
-impl<'f,'a,T: Clone> ClonableCommuter<'f,'a,T> {
+impl<'f:'a,'a,T: Clone> ClonableCommuter<'f,'a,T> {
     fn new<F: 'a>(initial: T, compose: F) -> ClonableCommuter<'f,'a,T> where F: Fn(&T,&T) -> T + 'f {
         ClonableCommuter { initial, compose: Box::new(compose), rest: vec![] }
     }
@@ -106,7 +106,7 @@ pub fn commute_arc<'f: 'a,'a,T: 'a>(inputs: &[Value<'f,'a,Arc<T>>], initial: Arc
 pub struct DelayedCommuteBuilder<'a,T: 'a> {
     f: Arc<dyn Fn(&T,&T) -> T + 'a>,
     solver: Value<'a,'a,Arc<T>>,
-    setter: SolverSetter<'a,'a,Arc<T>>,
+    setter: DelayedSetter<'a,'a,Arc<T>>,
     values: Vec<Value<'a,'a,Arc<T>>>
 }
 

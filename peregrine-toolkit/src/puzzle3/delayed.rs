@@ -5,12 +5,12 @@ use crate::lock;
 use super::value::Value;
 
 #[derive(Clone)]
-pub struct SolverSetter<'f,'a: 'f,T: 'a>(Arc<Mutex<Option<Arc<Value<'f,'a,T>>>>>);
+pub struct DelayedSetter<'f, 'a:'f, T:'a>(Arc<Mutex<Option<Arc<Value<'f,'a,T>>>>>);
 
-pub fn delayed<'f,'a: 'f,T: 'a>() -> (SolverSetter<'f,'a,T>,Value<'f,'a,Option<T>>) {
+pub fn delayed<'f:'a, 'a:'f, T:'a>() -> (DelayedSetter<'f,'a,T>,Value<'f,'a,Option<T>>) {
     let value = Arc::new(Mutex::new(None));
     let value2 = value.clone();
-    (SolverSetter(value),Value::new(move |answer_index| {
+    (DelayedSetter(value),Value::new(move |answer_index| {
         if let Some(inner) = &*lock!(value2) {
             /* value has been set, return it */
             if answer_index.is_some() {
@@ -30,12 +30,12 @@ pub fn delayed<'f,'a: 'f,T: 'a>() -> (SolverSetter<'f,'a,T>,Value<'f,'a,Option<T
     }))
 }
 
-pub fn promise_delayed<'f,'a,'g,'b,T>() -> (SolverSetter<'f,'a,T>,Value<'g,'b,T>) where 'f:'b, 'g:'a {
+pub fn promise_delayed<'f:'a,'a,T>() -> (DelayedSetter<'f,'a,T>,Value<'f,'a,T>) {
     let (setter,solver) = delayed();
     (setter,solver.unwrap())
 }
 
-impl<'f,'a,T> SolverSetter<'f,'a,T> {
+impl<'f,'a,T> DelayedSetter<'f,'a,T> {
     pub fn set(&self, solver: Value<'f,'a,T>) {
         *lock!(self.0) = Some(Arc::new(solver))
     }

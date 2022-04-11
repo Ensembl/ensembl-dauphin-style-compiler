@@ -48,7 +48,7 @@ pub mod puzzle3 {
     pub use commute::{ commute, commute_arc, commute_clonable, DelayedCommuteBuilder };
     pub use compose::{ derived, compose, compose_slice };
     pub use constant::{ constant, cache_constant, cache_constant_arc, cache_constant_clonable };
-    pub use delayed::{ SolverSetter, delayed, promise_delayed };
+    pub use delayed::{ DelayedSetter, delayed, promise_delayed };
     pub use memoized::{ short_memoized, short_memoized_arc, short_memoized_clonable };
     pub use value::{ Value, StaticValue };
     pub use unknown::{ UnknownSetter, StaticUnknownSetter, unknown, short_unknown, short_unknown_promise_clonable };

@@ -4,7 +4,7 @@ use crate::lock;
 
 use super::value::{Value};
 
-pub fn constant<'f,'a,T: Clone + 'a>(value: T) -> Value<'f,'a,T> {
+pub fn constant<'f:'a,'a,T: Clone + 'a>(value: T) -> Value<'f,'a,T> {
     Value::new(move |_| Some(value.clone()))
 }
 
@@ -15,7 +15,7 @@ enum ConstantResult<T> {
 }
 
 impl<T> ConstantResult<T> {
-    fn try_constant<'f,'a,F,U>(&mut self, input: &Value<'f,'a,U>, arcify: F) -> Option<Arc<T>>  where F: Fn(U) -> Arc<T> + 'f {
+    fn try_constant<'f:'a,'a,F,U>(&mut self, input: &Value<'f,'a,U>, arcify: F) -> Option<Arc<T>>  where F: Fn(U) -> Arc<T> {
         if let Some(value) = input.constant() {
             let value = arcify(value);
             *self = ConstantResult::Available(value.clone());
@@ -28,8 +28,8 @@ impl<T> ConstantResult<T> {
     }
 }
 
-fn do_cache_constant<'a,'f, T: 'a,U: 'a, F: 'f>(input: Value<'f,'a,U>, arcify: F) -> Value<'f,'a,Arc<T>>
-        where F: Fn(U) -> Arc<T> + 'f {
+fn do_cache_constant<'a,'f:'a, T: 'a,U: 'a, F: 'f>(input: Value<'f,'a,U>, arcify: F) -> Value<'f,'a,Arc<T>>
+        where F: Fn(U) -> Arc<T> {
     let constant = Arc::new(Mutex::new(ConstantResult::NotTried));
     let arcify = Arc::new(arcify);
     Value::new(move |answer_index| {
@@ -47,7 +47,7 @@ fn do_cache_constant<'a,'f, T: 'a,U: 'a, F: 'f>(input: Value<'f,'a,U>, arcify: F
     })
 }
 
-pub fn cache_constant<'f,'a,T: 'a>(input: Value<'f,'a,T>) -> Value<'f,'a,Arc<T>> {
+pub fn cache_constant<'f:'a,'a,T: 'a>(input: Value<'f,'a,T>) -> Value<'f,'a,Arc<T>> {
     do_cache_constant(input,|x| Arc::new(x))
 }
 
@@ -55,7 +55,7 @@ pub fn cache_constant_clonable<'f:'a,'a,T: 'a+Clone>(input: Value<'f,'a,T>) -> V
     do_cache_constant(input,|x| Arc::new(x)).dearc()
 }
 
-pub fn cache_constant_arc<'f,'a,T: 'a>(input: Value<'f,'a,Arc<T>>) -> Value<'f,'a,Arc<T>> {
+pub fn cache_constant_arc<'f:'a,'a,T: 'a>(input: Value<'f,'a,Arc<T>>) -> Value<'f,'a,Arc<T>> {
     do_cache_constant(input,|x| x)
 }
 

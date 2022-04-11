@@ -1,14 +1,46 @@
 use std::sync::Arc;
 
 use super::{value::Value};
+/* Used by Value's callback:
+ *   Input type must last longer than input Value (uses it): a > g
+ *   Output type must last longer than output type: b > h
+ * Used by our derivation callback:
+ *   Input type must last longer than callback (uses it): a > f
+ *   Output type must last longer than callback (creates it): b > f
+ *   Uses input to generate output b > a
+ * Derivation callback stored in output Value: f > h
+ * Derivation callback uses input Value: f > g
+ *
+ * b -> a -> f -> {g,h}
+ * 
+ * 'a:'b, 'b, 'f:'a, 'g:'f, 'h:'f
+ */
 
-pub fn derived<'a: 'b+'g, 'b, 'f: 'a+'b, 'g: 'f, 'h: 'g, T:'a, U:'b, F: 'f>(a: Value<'g,'a,T>, f: F) -> Value<'h,'b,U> where F: Fn(T) -> U {
+pub fn derived<'a:'b, 'b, 'f:'a, 'g:'a, 'h:'f, T:'a, U:'b, F: 'f>(a: Value<'g,'a,T>, f: F) -> Value<'h,'b,U> where F: Fn(T) -> U {
     Value::new(move |answer_index| {
         a.inner(answer_index).map(|a| f(a))
     })
 }
 
-pub fn compose<'a, 'b, 'c:'a+'b, 'f:'a+'b+'c, 'g:'f, 'h:'f, 'j, T:'a, U:'b, V:'c, F:'f>(a: Value<'g,'a,T>, b: Value<'h,'b,U>, f: F) -> Value<'j,'c,V> 
+/* Used by Value's callback:
+ *   Input1 type must last longer than input Value (uses it): a > g
+ *   Input2 type must last longer than input Value (uses it): b > h
+ *   Output type must last longer than output type: c > j
+ * Used by our derivation callback:
+ *   Input1 type must last longer than callback (uses it): a > f
+ *   Input2 type must last longer than callback (uses it): b > f
+ *   Output type must last longer than callback (creates it): c > f
+ *   Uses input1 to generate output c > a
+ *   Uses input2 to generate output c > b
+ * Derivation callback stored in output Value: f > j
+ * Derivation callback uses input1 Value: f > g
+ * Derivation callback uses input2 Value: f > h
+ *
+ * c -> {a,b} -> f -> {g,h,j}
+ * 
+ * 'a:'c, 'b:'c, 'c, 'f:'a+'b, 'g:'f, 'h:'f, 'j:'f
+ */
+pub fn compose<'a:'c, 'b:'c, 'c, 'f:'a+'b, 'g:'f, 'h:'f, 'j:'f, T:'a, U:'b, V:'c, F:'f>(a: Value<'g,'a,T>, b: Value<'h,'b,U>, f: F) -> Value<'j,'c,V> 
         where F: Fn(T,U) -> V {
             Value::new(move |answer_index| {
         let (a,b) = (a.inner(answer_index),b.inner(answer_index));
@@ -17,7 +49,8 @@ pub fn compose<'a, 'b, 'c:'a+'b, 'f:'a+'b+'c, 'g:'f, 'h:'f, 'j, T:'a, U:'b, V:'c
     })
 }
 
-pub fn compose_slice<'a:'b, 'b, 'f:'a+'b, 'g:'f, T, U, F:'f>(inputs: &[Value<'g,'a,T>], f: F) -> Value<'f,'b,U> where F: Fn(&[T]) -> U {
+/* lifetime agrument same as derived */
+pub fn compose_slice<'a:'b, 'b, 'f:'a, 'g:'f, 'h:'f, T, U, F:'f>(inputs: &[Value<'g,'a,T>], f: F) -> Value<'h,'b,U> where F: Fn(&[T]) -> U {
     let inputs = Arc::new(inputs.iter().cloned().collect::<Vec<_>>());
     Value::new(move |answer_index| {
         let mut values = vec![];
