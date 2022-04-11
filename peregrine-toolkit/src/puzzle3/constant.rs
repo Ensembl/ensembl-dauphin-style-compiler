@@ -63,47 +63,37 @@ pub fn cache_constant_arc<'f,'a,T: 'a>(input: Value<'f,'a,Arc<T>>) -> Value<'f,'
 mod test {
     use std::sync::{Arc, Mutex};
 
-    use crate::{puzzle3::{compose::{compose_slice, derived}, constant::{constant, cache_constant}, answer::AnswerAllocator}, lock};
-    
+    use crate::{puzzle3::{AnswerAllocator, derived, short_unknown_promise_clonable, Value}, lock};
+
+    use super::{constant, cache_constant_clonable};
+
     #[test]
-    fn array_flattening() {
-        for do_memoize in &[false,true] {
-            let count = Arc::new(Mutex::new(0));
-            /* consts will respond to None directly ... */
-            let mut consts = vec![];
-            for i in 0..10 {
-                consts.push(constant(i));
-            }
-            /* ... but deriveds will not */
-            let mut deriveds = vec![];
-            for c in &consts {
-                let c = c.clone();
-                let count2 = count.clone();
-                deriveds.push(derived(c,move |v| {
-                    *lock!(count2) += 1;
-                    v*v
-                }));
-            }
-            /* Let's build them into a single array and memoize that */
-            let value = compose_slice(&deriveds, |v| v.to_vec());
-            let value = if *do_memoize {
-                cache_constant(value)
-            } else {
-                derived(value,|value| Arc::new(value))
-            };
-            /* Make a single sum value, for easy testing */
-            let total = derived(value,move |value| {
-                value.iter().fold(0,|a,b| a+*b)
-            });
-            /* Evaluate twice (to try to trick into calling deriveds twice: shouldn't as we have memoized) */
-            let mut aia = AnswerAllocator::new();
-            let mut ai1 = aia.get();
-            let mut ai2 = aia.get();
-            let v1 = total.call(&mut ai1);
-            let v2 = total.call(&mut ai2);
-            assert_eq!(285,v1); /* 1+4+...+64+81 */
-            assert_eq!(285,v2);
-            assert_eq!(if *do_memoize { 10 } else { 20 },*lock!(count));
-        }
+    fn constant_smoke() {
+        let mut a = AnswerAllocator::new();
+        let c = constant(45);
+        assert_eq!(Some(45),c.constant());
+        assert_eq!(45,c.call(&a.get()));
+    }
+
+    #[test]
+    fn cache_constant_smoke() {
+        let mut a = AnswerAllocator::new();
+        let count = Arc::new(Mutex::new(0));
+        let count2 = count.clone();
+        let c = constant(12);
+        let d = derived(c,|x| { *lock!(count2) += 1; x*x});
+        let uc = cache_constant_clonable(d.clone());
+        assert_eq!(144,uc.call(&mut a.get()));
+        assert_eq!(Some(144),uc.constant());
+        uc.call(&mut a.get());
+        uc.call(&mut a.get());
+        assert_eq!(1,*lock!(count));
+        d.call(&mut a.get());
+        assert_eq!(2,*lock!(count));
+        /**/
+        let(_,u) : (_,Value<i32>) = short_unknown_promise_clonable();
+        let d = derived(u,|x| x*x);
+        let uc = cache_constant_clonable(d.clone());
+        assert_eq!(None,uc.constant());
     }
 }

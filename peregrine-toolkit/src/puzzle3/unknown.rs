@@ -2,7 +2,7 @@ use std::{sync::{Arc, Mutex}};
 
 use crate::lock;
 
-use super::{answer::{Answer}, value::{Value}, store::Store, short::AnswerStore};
+use super::{answer::{Answer}, value::{Value}, store::Store, short::ShortStore};
 
 #[derive(Clone)]
 pub struct UnknownSetter<'a,T: 'a>(Arc<Mutex<Box<dyn Store<'a,T> + 'a>>>);
@@ -25,10 +25,31 @@ pub fn unknown<'f,'a,S,T: 'a>(store: S) -> (UnknownSetter<'a,T>,Value<'f,'a,Opti
 }
 
 pub fn short_unknown<'f,'a,T: 'a>() -> (UnknownSetter<'a,T>,Value<'f,'a,Option<Arc<T>>>) {
-    unknown(AnswerStore::new())
+    unknown(ShortStore::new())
 }
 
 pub fn short_unknown_promise_clonable<'f,'a,T: Clone+'a>() -> (UnknownSetter<'a,T>,Value<'f,'a,T>) {
-    let (setter,solver) = unknown(AnswerStore::new());
+    let (setter,solver) = unknown(ShortStore::new());
     (setter,solver.unwrap().dearc())
+}
+
+#[cfg(test)]
+mod test {
+    use std::sync::Arc;
+    use crate::puzzle3::AnswerAllocator;
+    use super::short_unknown;
+
+    #[test]
+    fn unknown_smoke() {
+        let mut a = AnswerAllocator::new();
+        let mut a1 = a.get();
+        let mut a2 = a.get();
+        let (mut us,u) = short_unknown();
+        assert_eq!(None,u.call(&mut a.get()));
+        us.set(&mut a1,9);
+        us.set(&mut a2,25);
+        assert_eq!(Some(Arc::new(9)),u.call(&a1)); 
+        assert_eq!(Some(Arc::new(25)),u.call(&a2));
+        assert_eq!(None,u.constant());
+    }
 }

@@ -4,7 +4,7 @@ use crate::lock;
 use lazy_static::lazy_static;
 use identitynumber::identitynumber;
 
-identitynumber!(IDS);
+identitynumber!(ANSWER_IDS);
 
 struct OpaqueArcHolder<T>(Arc<T>);
 trait OpaqueArcTrait {}
@@ -82,10 +82,77 @@ impl AnswerAllocator {
 
     pub fn get<'a>(&mut self) -> Answer<'a> {
         Answer {
-            serial: IDS.next(),
+            serial: ANSWER_IDS.next(),
             index: lock!(self.0).get(),
             allocator: self.clone(),
             retained: Arc::new(Mutex::new(vec![]))
+        }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use std::collections::HashSet;
+    use super::AnswerAllocator;
+
+    #[test]
+    fn answer_smoke() {
+        let mut allocator = AnswerAllocator::new();
+        let mut serials = HashSet::new();
+        let a0a = allocator.get();
+        assert_eq!(0,a0a.index());
+        serials.insert(a0a.serial());
+        drop(a0a);
+        let a0b = allocator.get();
+        assert_eq!(0,a0b.index());
+        serials.insert(a0b.serial());
+        let a1a = allocator.get();
+        assert_eq!(1,a1a.index());
+        serials.insert(a1a.serial());
+        drop(a0b);
+        let a0c = allocator.get();
+        assert_eq!(0,a0c.index());
+        serials.insert(a0c.serial());
+        let a2a = allocator.get();
+        assert_eq!(2,a2a.index());
+        serials.insert(a2a.serial());
+        let a3a = allocator.get();
+        assert_eq!(3,a3a.index());
+        serials.insert(a3a.serial());
+        drop(a0c);
+        drop(a2a);
+        drop(a3a);
+        let a0d = allocator.get();
+        assert_eq!(0,a0d.index());
+        serials.insert(a0d.serial());
+        let a2b = allocator.get();
+        assert_eq!(2,a2b.index());
+        serials.insert(a2b.serial());
+        let a3b = allocator.get();
+        assert_eq!(3,a3b.index());
+        serials.insert(a3b.serial());
+        let a4a = allocator.get();
+        assert_eq!(4,a4a.index());
+        serials.insert(a4a.serial());
+        drop(a0d);
+        drop(a1a);
+        drop(a2b);
+        drop(a3b);
+        drop(a4a);
+        assert_eq!(10,serials.len());
+    }
+
+    #[test]
+    fn serial_sequence() {
+        let mut a1 = AnswerAllocator::new();
+        let mut a2 = AnswerAllocator::new();
+        let mut prev_serial = 0;
+        a1.get(); // ensure at least 1
+        for i in 0..100 {
+            let ai = if i%2==0 { &mut a1 } else { &mut a2 };
+            let a = ai.get();
+            assert!(a.serial()>prev_serial);
+            prev_serial = a.serial();
         }
     }
 }

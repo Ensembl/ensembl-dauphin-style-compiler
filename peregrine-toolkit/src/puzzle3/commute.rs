@@ -134,9 +134,11 @@ impl<'a,T: 'a> DelayedCommuteBuilder<'a,T> {
 mod test {
     use std::sync::{Arc, Mutex};
 
-    use crate::{lock, puzzle3::{constant::constant, unknown::short_unknown, compose::derived, answer::AnswerAllocator}};
+    use unknown::short_unknown_promise_clonable;
 
-    use super::commute;
+    use crate::{lock, puzzle3::{constant::constant, unknown::{short_unknown, self}, compose::derived, answer::AnswerAllocator}};
+
+    use super::{commute, DelayedCommuteBuilder};
 
     #[test]
     fn commute_smoke() {
@@ -175,11 +177,40 @@ mod test {
             s.set(&mut ai1, (i*2+1)*(i*2+1));
             s.set(&mut ai2, 0);
         }
-        println!("ready!");
         let v1 = total.call(&mut ai1);
         let v2 = total.call(&mut ai2);
         assert_eq!(285,*v1); /* 1+4+...+64+81 */
         assert_eq!(120,*v2); /* 4+16+...+16+64 */
         assert_eq!(5,*lock!(count));
+    }
+
+    #[test]
+    fn builder_smoke() {
+        let mut a = AnswerAllocator::new();
+        let mut b1 = DelayedCommuteBuilder::new(|a,b| *a+*b);
+        let s1 = b1.solver().clone().dearc();
+        b1.build(42);
+        let a1 = a.get();
+        assert_eq!(42,s1.call(&a1));
+        /**/
+        let mut b2 = DelayedCommuteBuilder::new(|a,b| *a+*b);
+        let s2 = b2.solver().clone().dearc();
+        b2.add(&constant(41));
+        b2.build(42);
+        let a2 = a.get();
+        assert_eq!(83,s2.call(&a2));
+        /**/
+        let mut b3 = DelayedCommuteBuilder::new(|a,b| *a+*b);
+        let s3 = b3.solver().clone().dearc();
+        b3.add(&constant(41));
+        let (mut u1s,u1) = short_unknown_promise_clonable();
+        b3.add(&u1);
+        b3.build(42);
+        let mut a3a = a.get();
+        let mut a3b = a.get();
+        u1s.set(&mut a3a,12);
+        u1s.set(&mut a3b,6);
+        assert_eq!(95,s3.call(&a3a));
+        assert_eq!(89,s3.call(&a3b));
     }
 }

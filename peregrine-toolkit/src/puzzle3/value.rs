@@ -37,10 +37,3 @@ impl<'f,'a,T:'a> Value<'f,'a,Option<T>> {
 
 
 pub type StaticValue<T> = Value<'static,'static,T>;
-
-/*TODO:
-
-unit test
-document
-
-*/
