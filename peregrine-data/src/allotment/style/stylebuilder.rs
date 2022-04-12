@@ -1,6 +1,6 @@
 use std::{collections::HashMap};
 
-use crate::{allotment::{core::{aligner::Aligner, carriageoutput::BoxPositionContext}, boxes::{ stacker::Stacker, overlay::Overlay, bumper::Bumper }, boxes::{leaf::{FloatingLeaf}}, transformers::drawinginfo::DrawingInfo, stylespec::stylegroup::AllotmentStyleGroup, util::bppxconverter::BpPxConverter}, DataMessage, LeafRequest};
+use crate::{allotment::{core::{aligner::Aligner, carriageoutput::BoxPositionContext, trainstate::CarriageTrainStateSpec}, boxes::{ stacker::Stacker, overlay::Overlay, bumper::Bumper }, boxes::{leaf::{FloatingLeaf}}, transformers::drawinginfo::DrawingInfo, stylespec::stylegroup::AllotmentStyleGroup}, DataMessage, LeafRequest};
 
 use super::{holder::{ContainerHolder, LeafHolder}, allotmentname::{AllotmentNamePart, AllotmentName}, style::{ContainerAllotmentStyle, ContainerAllotmentType, LeafCommonStyle}};
 
@@ -21,7 +21,7 @@ impl<'a> StyleBuilder<'a> {
             root: ContainerHolder::Root(prep.root.clone()),
             leafs_made: HashMap::new(),
             containers_made: HashMap::new(),
-            dustbin: FloatingLeaf::new(&prep.puzzle,&dustbin_name,&prep.bp_px_converter,&LeafCommonStyle::dustbin(),&DrawingInfo::new(),&aligner),
+            dustbin: FloatingLeaf::new(&dustbin_name,&prep.bp_px_converter,&LeafCommonStyle::dustbin(),&DrawingInfo::new(),&aligner),
             aligner: aligner.clone(),
             prep
         }
@@ -31,13 +31,13 @@ impl<'a> StyleBuilder<'a> {
         let style = styles.get_container(name);
         let container = match &style.allot_type {
             ContainerAllotmentType::Stack => {
-                ContainerHolder::Stack(Stacker::new(&mut self.prep,name,&style,&self.aligner))
+                ContainerHolder::Stack(Stacker::new(name,&style,&self.aligner))
             },
             ContainerAllotmentType::Overlay => {
-                ContainerHolder::Overlay(Overlay::new(&mut self.prep,name,&style,&self.aligner))
+                ContainerHolder::Overlay(Overlay::new(name,&style,&self.aligner))
             },
             ContainerAllotmentType::Bumper => {
-                ContainerHolder::Bumper(Bumper::new(&mut self.prep,name,&style,&self.aligner))
+                ContainerHolder::Bumper(Bumper::new(name,&style,&self.aligner))
             }
         };
         Ok((container,style.clone()))
@@ -65,7 +65,7 @@ impl<'a> StyleBuilder<'a> {
     }
 
     fn new_floating_leaf(&self, pending: &LeafRequest, name: &AllotmentNamePart, container: &mut ContainerHolder) -> Result<FloatingLeaf,DataMessage> {
-        let child = FloatingLeaf::new(&self.prep.puzzle,name,&self.prep.bp_px_converter,&pending.leaf_style(),&pending.drawing_info_clone(),&self.aligner);
+        let child = FloatingLeaf::new(name,&self.prep.bp_px_converter,&pending.leaf_style(),&pending.drawing_info_clone(),&self.aligner);
         container.add_leaf(&LeafHolder::Leaf(child.clone()),&pending.leaf_style());
         Ok(child)
     }
@@ -92,7 +92,7 @@ impl<'a> StyleBuilder<'a> {
     }
 }
 
-pub(crate) fn make_transformable(prep: &mut BoxPositionContext, pendings: &mut dyn Iterator<Item=&LeafRequest>) -> Result<(),DataMessage> {
+pub(crate) fn make_transformable(prep: &mut BoxPositionContext, pendings: &mut dyn Iterator<Item=&LeafRequest>) -> Result<CarriageTrainStateSpec,DataMessage> {
     /* Build box tree */
     let mut styler = StyleBuilder::new(prep);
     for pending in pendings {
@@ -100,16 +100,16 @@ pub(crate) fn make_transformable(prep: &mut BoxPositionContext, pendings: &mut d
         styler.prep.plm.set_transformable(&pending.name(),&xformable);
     }
     /* Wire box tree */
-    prep.root.clone().build(prep);
-    prep.height_tracker.build(&mut prep.puzzle);
-    Ok(())
+    let state_spec = prep.root.clone().build(prep);
+    prep.height_tracker.build();
+    Ok(state_spec)
 }
 
 #[cfg(test)]
 mod test {
-    use std::{sync::Arc, collections::{HashMap}};
+    use std::{sync::{Arc, Mutex}, collections::{HashMap}};
 
-    use peregrine_toolkit::puzzle::{PuzzleBuilder, Puzzle, PuzzleSolution};
+    use peregrine_toolkit::{puzzle::{AnswerAllocator}};
 
     use crate::{allotment::{core::{allotmentmetadata::{AllotmentMetadata}, carriageoutput::BoxPositionContext}, style::{allotmentname::AllotmentName, stylebuilder::make_transformable}, stylespec::{stylegroup::AllotmentStyleGroup, styletreebuilder::StyleTreeBuilder, styletree::StyleTree}, util::{bppxconverter::BpPxConverter, rangeused::RangeUsed}}, LeafRequest};
 
@@ -152,18 +152,17 @@ mod test {
 
     #[test]
     fn allotment_smoke() {
-        let mut builder = PuzzleBuilder::new();
         let mut tree = StyleTreeBuilder::new();
         add_style(&mut tree, "z/a/", &[("padding-top","10"),("padding-bottom","5")]);
         add_style(&mut tree, "z/a/1", &[("depth","10"),("coordinate-system","window")]);
         let style_group = AllotmentStyleGroup::new(StyleTree::new(tree));
         let pending = make_pendings(&["z/a/1","z/a/2","z/a/3","z/b/1","z/b/2","z/b/3"],&[1.,2.,3.],&[],&style_group);
-        let mut prep = BoxPositionContext::new(None);
+        let mut allocator = Arc::new(Mutex::new(AnswerAllocator::new()));
+        let mut prep = BoxPositionContext::new(None,&mut allocator);
         assert!(make_transformable(&mut prep,&mut pending.iter()).ok().is_some());
-        let puzzle = Puzzle::new(builder);
-        let mut solution = PuzzleSolution::new(&puzzle);
-        assert!(solution.solve());
-        let transformers = pending.iter().map(|x| prep.plm.transformable(x.name()).make(&solution)).collect::<Vec<_>>();
+        let mut aia = AnswerAllocator::new();
+        let answer_index = aia.get();
+        let transformers = pending.iter().map(|x| prep.plm.transformable(x.name()).make(&answer_index)).collect::<Vec<_>>();
         let descs = transformers.iter().map(|x| x.describe()).collect::<Vec<_>>();
         println!("{:?}",descs);
         assert_eq!(6,descs.len());
@@ -184,18 +183,17 @@ mod test {
 
     #[test]
     fn allotment_overlay() {
-        let mut builder = PuzzleBuilder::new();
         let mut tree = StyleTreeBuilder::new();
         add_style(&mut tree, "z/a/", &[("padding-top","10"),("padding-bottom","5"),("type","overlay")]);        
         add_style(&mut tree, "z/a/1", &[("depth","10"),("coordinate-system","window")]);
         let style_group = AllotmentStyleGroup::new(StyleTree::new(tree));
         let pending = make_pendings(&["z/a/1","z/a/2","z/a/3","z/b/1","z/b/2","z/b/3"],&[1.,2.,3.],&[],&style_group);
-        let mut prep = BoxPositionContext::new(None);
+        let mut allocator = Arc::new(Mutex::new(AnswerAllocator::new()));
+        let mut prep = BoxPositionContext::new(None,&mut allocator);
         assert!(make_transformable(&mut prep,&mut pending.iter()).ok().is_some());
-        let puzzle = Puzzle::new(builder);
-        let mut solution = PuzzleSolution::new(&puzzle);
-        assert!(solution.solve());
-        let transformers = pending.iter().map(|x| prep.plm.transformable(x.name()).make(&solution)).collect::<Vec<_>>();
+        let mut aia = AnswerAllocator::new();
+        let answer_index = aia.get();
+        let transformers = pending.iter().map(|x| prep.plm.transformable(x.name()).make(&answer_index)).collect::<Vec<_>>();
         let descs = transformers.iter().map(|x| x.describe()).collect::<Vec<_>>();
         assert_eq!(6,descs.len());
         assert!(descs[0].contains("coord_system: CoordinateSystem(Window, false)"));
@@ -215,7 +213,6 @@ mod test {
 
     #[test]
     fn allotment_bumper() {
-        let mut builder = PuzzleBuilder::new();
         let ranges = [
             RangeUsed::Part(0.,3.),
             RangeUsed::Part(2.,5.),
@@ -231,14 +228,14 @@ mod test {
         add_style(&mut tree, "**", &[("system","tracking")]);
         let style_group = AllotmentStyleGroup::new(StyleTree::new(tree));
         let pending = make_pendings(&["z/a/1","z/a/2","z/a/3","z/b/1","z/b/2","z/b/3"],&[1.,2.,3.],&ranges,&style_group);
-        let mut prep = BoxPositionContext::new(None);
+        let mut allocator = Arc::new(Mutex::new(AnswerAllocator::new()));
+        let mut prep = BoxPositionContext::new(None, &mut allocator);
         prep.bp_px_converter = Arc::new(BpPxConverter::new_test());
         assert!(make_transformable(&mut prep,&mut pending.iter()).ok().is_some());
         let metadata = AllotmentMetadata::new(&prep.metadata);
-        let puzzle = Puzzle::new(builder);
-        let mut solution = PuzzleSolution::new(&puzzle);
-        assert!(solution.solve());
-        let transformers = pending.iter().map(|x| prep.plm.transformable(x.name()).make(&solution)).collect::<Vec<_>>();
+        let mut aia = AnswerAllocator::new();
+        let mut answer_index = aia.get();
+        let transformers = pending.iter().map(|x| prep.plm.transformable(x.name()).make(&answer_index)).collect::<Vec<_>>();
         let descs = transformers.iter().map(|x| x.describe()).collect::<Vec<_>>();
         assert_eq!(6,descs.len());
         println!("{:?}",descs);
@@ -255,7 +252,7 @@ mod test {
         assert!(descs[4].contains("height: 2.0"));
         assert!(descs[5].contains("top: 21.0"));
         assert!(descs[5].contains("height: 3.0"));
-        let metadata = metadata.get(&solution);
+        let metadata = metadata.get(&mut answer_index);
         let metadata = metadata.summarize();
         assert_eq!(2,metadata.len());
         let (a,b) = (&metadata[0],&metadata[1]);

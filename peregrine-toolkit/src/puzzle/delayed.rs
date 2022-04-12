@@ -45,7 +45,7 @@ impl<'f,'a,T> DelayedSetter<'f,'a,T> {
 mod test {
     use std::sync::Arc;
 
-    use crate::puzzle3::{derived, constant, AnswerAllocator, promise_delayed, short_unknown};
+    use crate::puzzle::{derived, constant, AnswerAllocator, promise_delayed, short_unknown};
 
     use super::delayed;
 

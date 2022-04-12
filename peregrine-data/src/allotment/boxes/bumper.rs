@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use peregrine_toolkit::{puzzle::{PuzzleValueHolder, PuzzleValue, ClonablePuzzleValue, PuzzleBuilder, DerivedPuzzlePiece, DelayedPuzzleValue, compose2}};
+use peregrine_toolkit::{puzzle::{variable, derived, delayed, DelayedSetter, compose, short_memoized_arc, StaticValue}};
 
 use crate::{allotment::{core::{aligner::Aligner, carriageoutput::BoxPositionContext}, style::{style::{ContainerAllotmentStyle}, allotmentname::{AllotmentNamePart, AllotmentName}}, boxes::{boxtraits::Stackable}, util::{rangeused::RangeUsed}, collision::{collisionalgorithm::CollisionAlgorithm}}, CoordinateSystem};
 
@@ -10,8 +10,8 @@ use super::{container::{Container}, boxtraits::{Coordinated, BuildSize, Containe
 pub struct Bumper(Container);
 
 impl Bumper {
-    pub(crate) fn new(prep: &mut BoxPositionContext, name: &AllotmentNamePart, style: &ContainerAllotmentStyle, aligner: &Aligner) -> Bumper {
-        Bumper(Container::new(prep,name,style,aligner,UnpaddedBumper::new(&prep.puzzle,&AllotmentName::from_part(name))))
+    pub(crate) fn new(name: &AllotmentNamePart, style: &ContainerAllotmentStyle, aligner: &Aligner) -> Bumper {
+        Bumper(Container::new(name,style,aligner,UnpaddedBumper::new(&AllotmentName::from_part(name))))
     }
 
     pub(crate) fn add_child(&mut self, child: &dyn Stackable) {
@@ -25,7 +25,7 @@ impl Coordinated for Bumper {
 
 impl Stackable for Bumper {
     fn cloned(&self) -> Box<dyn Stackable> { Box::new(self.clone()) }
-    fn locate(&mut self, prep: &mut BoxPositionContext, top: &PuzzleValueHolder<f64>) { self.0.locate(prep,top); }
+    fn locate(&mut self, prep: &mut BoxPositionContext, top: &StaticValue<f64>) { self.0.locate(prep,top); }
     fn name(&self) -> &AllotmentName { self.0.name( )}
     fn priority(&self) -> i64 { self.0.priority() }
     fn build(&mut self, prep: &mut BoxPositionContext) -> BuildSize { self.0.build(prep) }
@@ -34,20 +34,23 @@ impl Stackable for Bumper {
 #[derive(Clone)]
 struct BumpItem {
     name: AllotmentName,
-    range: PuzzleValueHolder<RangeUsed<f64>>,
-    height: PuzzleValueHolder<f64>
+    range: StaticValue<RangeUsed<f64>>,
+    height: StaticValue<f64>
 }
 
 #[derive(Clone)]
 pub struct UnpaddedBumper {
-    algorithm: DelayedPuzzleValue<CollisionAlgorithm>,
+    algorithm: StaticValue<Arc<CollisionAlgorithm>>,
+    algorithm_setter: DelayedSetter<'static,'static,Arc<CollisionAlgorithm>>,
     name: AllotmentName
 }
 
 impl UnpaddedBumper {
-    pub fn new(puzzle: &PuzzleBuilder, name: &AllotmentName) -> UnpaddedBumper {
+    pub fn new(name: &AllotmentName) -> UnpaddedBumper {
+        let (algorithm_setter,algorithm) = delayed();
+        let algorithm = derived(algorithm,|algorithm| algorithm.unwrap());
         UnpaddedBumper {
-            algorithm: DelayedPuzzleValue::new(&puzzle),
+            algorithm, algorithm_setter,
             name: name.clone()
         }
     }
@@ -56,9 +59,8 @@ impl UnpaddedBumper {
 impl ContainerSpecifics for UnpaddedBumper {
     fn cloned(&self) -> Box<dyn ContainerSpecifics> { Box::new(self.clone()) }
 
-    fn build_reduce(&mut self, prep: &mut BoxPositionContext, children: &[(&Box<dyn Stackable>,BuildSize)]) -> PuzzleValueHolder<f64> {
+    fn build_reduce(&mut self, prep: &mut BoxPositionContext, children: &[(&Box<dyn Stackable>,BuildSize)]) -> StaticValue<f64> {
         /* build all_items, a solution-invariant structure of everything we need to bump each time */
-        let mut dependencies = vec![];
         let mut items = vec![];
         for (_,size) in children {
             items.push(BumpItem {
@@ -66,38 +68,35 @@ impl ContainerSpecifics for UnpaddedBumper {
                 range: size.range.clone(),
                 height: size.height.clone()
             });
-            prep.bump_requests.add(&size.name,&size.range,&size.height);
-            dependencies.push(size.range.dependency());
-            dependencies.push(size.height.dependency());
+            //prep.bump_requests.add(&size.name,&size.range,&size.height);
         }
         let all_items = Arc::new(items);
         /* Get the bumper */
-        let algorithm = prep.bumper_factory.get(&prep.puzzle,&self.name).clone();
-        dependencies.push(algorithm.dependency());
+        let algorithm = prep.bumper_factory.get(&self.name);
         /* Create a piece which can bump everything in all_items each time and yield a CollisionAlgorithm */
         let all_items2 = all_items.clone();
-        let mut solved = prep.puzzle.new_combination(&dependencies, move |solution| {
-            let algorithm = algorithm.get_clone(solution);
+        let solved = short_memoized_arc(variable(move |answer_index| {
+            let algorithm = algorithm.call(answer_index);
             for item in all_items2.iter() {
-                algorithm.add_entry(&item.name,&item.range.get_clone(solution),item.height.get_clone(solution));
+                algorithm.add_entry(&item.name,&item.range.call(answer_index),item.height.call(answer_index));
             }
             algorithm.bump();
             algorithm
-        });
-        self.algorithm.set(&prep.puzzle,PuzzleValueHolder::new(solved.clone()));
+        }));
+        self.algorithm_setter.set(solved.clone());
         /* Cause algorithm to report how high we are per solution */
-        PuzzleValueHolder::new(DerivedPuzzlePiece::new(solved, |solved| solved.height()))
+        derived(solved,|solved| solved.height())
     }
 
-    fn set_locate(&mut self, prep: &mut BoxPositionContext, top: &PuzzleValueHolder<f64>, children: &mut [&mut Box<dyn Stackable>]) {
+    fn set_locate(&mut self, prep: &mut BoxPositionContext, top: &StaticValue<f64>, children: &mut [&mut Box<dyn Stackable>]) {
         for child in children.iter_mut() {
             /* Retrieve algorithm offset from bumper top */
             let name = child.name().clone();
-            let offset = DerivedPuzzlePiece::new(self.algorithm.clone(),move |algorithm|
+            let offset = derived(self.algorithm.clone(),move |algorithm|
                 algorithm.get(&name)
             );
             /* Add that to our reported top */
-            child.locate(prep,&compose2(&prep.puzzle,top,&PuzzleValueHolder::new(offset),|a,b| *a+*b));
+            child.locate(prep,&compose(top.clone(),offset,|a,b| a+b));
         }
     }
 }

@@ -1,4 +1,4 @@
-use peregrine_toolkit::puzzle::{PuzzleValueHolder, PuzzleSolution, PuzzleBuilder, FoldValue, PuzzlePiece, PuzzleValue, DelayedPuzzleValue};
+use peregrine_toolkit::{puzzle::{DelayedCommuteBuilder, StaticValue, StaticAnswer}};
 
 use crate::{CoordinateSystemVariety, CoordinateSystem};
 
@@ -27,55 +27,54 @@ impl PlayingField {
     pub fn squeeze(&self) -> (f64,f64) { self.squeeze }
 }
 
-fn new_max(puzzle: &mut PuzzleBuilder) -> FoldValue<f64> {
-    let piece = DelayedPuzzleValue::new(&puzzle);
-    FoldValue::new(piece,|a,b| a.max(b))
+fn new_max() -> DelayedCommuteBuilder<'static,f64> {
+    DelayedCommuteBuilder::new(|a: &f64,b| a.max(*b))
 }
 
 pub struct PlayingFieldHolder {
-    top: FoldValue<f64>,
-    bottom: FoldValue<f64>,
-    left: FoldValue<f64>,
-    right: FoldValue<f64>
+    top: DelayedCommuteBuilder<'static,f64>,
+    bottom: DelayedCommuteBuilder<'static,f64>,
+    left: DelayedCommuteBuilder<'static,f64>,
+    right: DelayedCommuteBuilder<'static,f64>
 }
 
 #[derive(Clone)]
 pub struct PlayingFieldPieces {
-    pub top: PuzzleValueHolder<f64>,
-    pub bottom: PuzzleValueHolder<f64>,
-    pub left: PuzzleValueHolder<f64>,
-    pub right: PuzzleValueHolder<f64>
+    pub top: StaticValue<f64>,
+    pub bottom: StaticValue<f64>,
+    pub left: StaticValue<f64>,
+    pub right: StaticValue<f64>
 }
 
 impl PlayingFieldPieces {
     pub(crate) fn new(holder: &PlayingFieldHolder) -> PlayingFieldPieces {
         PlayingFieldPieces {
-            top: holder.top.get().clone(),
-            bottom: holder.bottom.get().clone(),
-            left: holder.left.get().clone(),
-            right: holder.right.get().clone(),
+            top: holder.top.solver().clone().dearc(),
+            bottom:holder.bottom.solver().clone().dearc(),
+            left: holder.left.solver().clone().dearc(),
+            right: holder.right.solver().clone().dearc()
         }
     }
 }
 
 impl PlayingFieldHolder {
-    pub(crate) fn new(puzzle: &mut PuzzleBuilder) -> PlayingFieldHolder {
+    pub(crate) fn new() -> PlayingFieldHolder {
         PlayingFieldHolder {
-            top: new_max(puzzle),
-            bottom: new_max(puzzle),
-            left: new_max(puzzle),
-            right: new_max(puzzle),
+            top: new_max(),
+            bottom: new_max(),
+            left: new_max(),
+            right: new_max(),
         }
     }
 
-    pub(crate) fn get(&self, solution: &PuzzleSolution) -> PlayingField {
+    pub(crate) fn get(&self, answer_index: &mut StaticAnswer) -> PlayingField {
         PlayingField {
-            height: *self.top.get().get(solution) + *self.bottom.get().get(solution),
-            squeeze: (*self.left.get().get(solution),*self.right.get().get(solution))
+            height: *self.top.solver().call(answer_index) + *self.bottom.solver().call(answer_index),
+            squeeze: (*self.left.solver().call(answer_index),*self.right.solver().call(answer_index))
         }
     }
 
-    pub(crate) fn set(&mut self, coord_system: &CoordinateSystem, value: &PuzzleValueHolder<f64>) {
+    pub(crate) fn set(&mut self, coord_system: &CoordinateSystem, value: &StaticValue<f64>) {
         let var = match (&coord_system.0,coord_system.1) {
             (CoordinateSystemVariety::Tracking, false) => &mut self.top,
             (CoordinateSystemVariety::Tracking, true) => &mut self.bottom,
@@ -88,10 +87,10 @@ impl PlayingFieldHolder {
         var.add(value);
     }
 
-    pub(crate) fn ready(&mut self, builder: &mut PuzzleBuilder) {
-        self.top.build(builder,0.);
-        self.bottom.build(builder,0.);
-        self.left.build(builder,0.);
-        self.right.build(builder,0.);
+    pub(crate) fn ready(&mut self) {
+        self.top.build(0.);
+        self.bottom.build(0.);
+        self.left.build(0.);
+        self.right.build(0.);
     }
 }

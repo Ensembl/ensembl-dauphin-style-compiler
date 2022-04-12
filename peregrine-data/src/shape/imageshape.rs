@@ -1,5 +1,3 @@
-use peregrine_toolkit::puzzle::PuzzleSolution;
-
 use crate::{DataMessage, ShapeDemerge, Shape, util::{eachorevery::EachOrEveryFilter}, SpaceBase, allotment::{transformers::transformers::{Transformer, TransformerVariety}, style::{style::LeafCommonStyle}}, EachOrEvery, CoordinateSystem, LeafRequest};
 use std::{hash::Hash, sync::Arc};
 
@@ -66,7 +64,7 @@ impl ImageShape<Arc<dyn Transformer>> {
             x.choose_variety()
         });
         let mut out = vec![];
-        for (variety,mut filter) in demerge {
+        for (variety,filter) in demerge {
             out.push((variety,self.filter(&filter)));
         }
         out
@@ -95,7 +93,7 @@ impl ImageShape<LeafCommonStyle> {
 }
 
 impl ImageShape<Arc<dyn Transformer>> {
-    pub fn make(&self, _solution: &PuzzleSolution) -> Vec<ImageShape<LeafCommonStyle>> {
+    pub fn make(&self) -> Vec<ImageShape<LeafCommonStyle>> {
         let mut out = vec![];
         for ((variety,coord_system),images) in self.demerge_by_variety() {
             out.push(ImageShape {

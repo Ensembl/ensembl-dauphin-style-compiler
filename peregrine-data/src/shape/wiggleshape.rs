@@ -1,6 +1,4 @@
-use peregrine_toolkit::puzzle::PuzzleSolution;
-
-use crate::{DataMessage, Plotter, ShapeDemerge, Shape, util::{eachorevery::EachOrEveryFilter}, allotment::{transformers::transformers::Transformer, style::{style::LeafCommonStyle}}, EachOrEvery, CoordinateSystem, Pen, LeafRequest};
+use crate::{DataMessage, Plotter, ShapeDemerge, Shape, util::{eachorevery::EachOrEveryFilter}, allotment::{transformers::transformers::Transformer, style::{style::LeafCommonStyle}}, EachOrEvery, LeafRequest};
 use std::{cmp::{max, min}, hash::Hash, sync::Arc};
 
 const SCALE : i64 = 200; // XXX configurable
@@ -140,7 +138,7 @@ impl WiggleShape<LeafCommonStyle> {
 }
 
 impl WiggleShape<Arc<dyn Transformer>> {
-    pub fn make(&self, _solution: &PuzzleSolution) -> Vec<WiggleShape<LeafCommonStyle>> {
+    pub fn make(&self) -> Vec<WiggleShape<LeafCommonStyle>> {
         let allotment = self.allotments.get(0).unwrap();
         let (variety,coord_system) = allotment.choose_variety();
         vec![WiggleShape {

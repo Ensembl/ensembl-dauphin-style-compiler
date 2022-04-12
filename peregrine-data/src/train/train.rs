@@ -2,7 +2,7 @@ use std::sync::{ Arc, Mutex };
 use peregrine_toolkit::{lock};
 use peregrine_toolkit::sync::needed::Needed;
 use crate::allotment::core::allotmentmetadata::AllotmentMetadataReport;
-use crate::allotment::core::trainstate::TrainState;
+use crate::allotment::core::trainstate::{TrainState, TrainStateBuilder, TrainState2};
 use crate::api::{CarriageSpeed, MessageSender };
 use super::railwaydatatasks::RailwayDataTasks;
 use super::carriageset::{CarriageSet};
@@ -30,6 +30,8 @@ pub(super) struct Train {
     active: bool,
     max: Arc<Mutex<StickData>>,
     viewport: Viewport,
+    train_state_builder: TrainStateBuilder,
+    train_state2: TrainState2,
     train_state: TrainState,
     carriages: CarriageSet,
     validity_counter: u64
@@ -38,12 +40,15 @@ pub(super) struct Train {
 impl Train {
     pub(super) fn new(try_lifecycle: &Needed, extent: &TrainExtent, carriage_event: &mut RailwayEvents, carriage_loader: &RailwayDataTasks, viewport: &Viewport, messages: &MessageSender, validity_counter: u64) -> Result<Train,DataMessage> {
         let train_track_config_list = TrainTrackConfigList::new(&extent.layout(),&extent.scale());
+        let train_state_builder = TrainStateBuilder::new();
+        let train_state2 = train_state_builder.state_if_not(None).unwrap();
         let mut out = Train {
             active: false,
             max: Arc::new(Mutex::new(StickData::Pending)),
             extent: extent.clone(),
             viewport: viewport.clone(),
             train_state: TrainState::independent(),
+            train_state_builder, train_state2,
             carriages: CarriageSet::new(&try_lifecycle, extent,&train_track_config_list,messages),
             validity_counter
         };

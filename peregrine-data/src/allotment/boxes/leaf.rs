@@ -1,18 +1,18 @@
 use std::{sync::{Arc}};
 
-use peregrine_toolkit::{puzzle::{PuzzleSolution, PuzzleValueHolder, ClonablePuzzleValue, PuzzleBuilder, ConstantPuzzlePiece, DelayedPuzzleValue, DelayedConstant, DerivedPuzzlePiece}};
+use peregrine_toolkit::{puzzle::{DelayedSetter, constant, derived, StaticValue, StaticAnswer, promise_delayed, cache_constant_clonable}};
 
 use crate::{CoordinateSystem, allotment::{core::{aligner::Aligner, carriageoutput::BoxPositionContext}, transformers::{transformers::{Transformer, TransformerVariety}, simple::{SimpleTransformerHolder, SimpleTransformer}, drawinginfo::DrawingInfo}, style::{style::LeafCommonStyle, allotmentname::{AllotmentNamePart, AllotmentName}}, util::{rangeused::RangeUsed, bppxconverter::BpPxConverter}}};
 
 use super::{boxtraits::{Stackable, Transformable, Coordinated, BuildSize }};
 
 // TODO ranged bppxconverter
-fn full_range_piece(coord_system: &CoordinateSystem, base_range: &RangeUsed<f64>, pixel_range: &RangeUsed<f64>, bp_px_converter: &PuzzleValueHolder<Arc<BpPxConverter>>) -> PuzzleValueHolder<RangeUsed<f64>> {
+fn full_range_piece(coord_system: &CoordinateSystem, base_range: &RangeUsed<f64>, pixel_range: &RangeUsed<f64>, bp_px_converter: &StaticValue<Arc<BpPxConverter>>) -> StaticValue<RangeUsed<f64>> {
     let base_range = base_range.clone();
     let pixel_range = pixel_range.clone();
     let bp_px_converter = bp_px_converter.clone();
     let coord_system = coord_system.clone();
-    PuzzleValueHolder::new(DerivedPuzzlePiece::new(bp_px_converter,move |bp_px_converter| {
+    cache_constant_clonable(derived(bp_px_converter,move |bp_px_converter| {
         if coord_system.is_tracking() {
             bp_px_converter.full_pixel_range(&base_range,&pixel_range)
         } else {
@@ -23,57 +23,53 @@ fn full_range_piece(coord_system: &CoordinateSystem, base_range: &RangeUsed<f64>
 
 #[derive(Clone)]
 pub struct FloatingLeaf {
-    builder: PuzzleBuilder,
     name: AllotmentName,
     statics: Arc<LeafCommonStyle>,
-    pixel_range_piece: DelayedConstant<RangeUsed<f64>>,
-    base_range_piece: DelayedConstant<RangeUsed<f64>>,
-    converter: PuzzleValueHolder<Arc<BpPxConverter>>,
-    max_y_piece: DelayedConstant<f64>,
-    top: Option<DelayedPuzzleValue<f64>>,
-    top_value: PuzzleValueHolder<f64>,
-    indent: PuzzleValueHolder<f64>,
+//    pixel_range_piece: StaticValue<RangeUsed<f64>>,
+  //  pixel_range_piece_setter: DelayedSetter<'static,'static,RangeUsed<f64>>,
+    //base_range_piece: StaticValue<RangeUsed<f64>>,
+    //base_range_piece_setter: DelayedSetter<'static,'static,RangeUsed<f64>>,
+    max_y_piece: StaticValue<f64>,
+    max_y_piece_setter: DelayedSetter<'static,'static,f64>,
+    converter: StaticValue<Arc<BpPxConverter>>,
+    top_setter: Option<DelayedSetter<'static,'static,f64>>,
+    top: StaticValue<f64>,
+    indent: StaticValue<f64>,
     drawing_info: Arc<DrawingInfo>
 }
 
 impl FloatingLeaf {
-    pub fn new(puzzle: &PuzzleBuilder, name: &AllotmentNamePart, converter: &Arc<BpPxConverter>, statics: &LeafCommonStyle, drawing_info: &DrawingInfo, aligner: &Aligner) -> FloatingLeaf {
+    pub fn new(name: &AllotmentNamePart, converter: &Arc<BpPxConverter>, statics: &LeafCommonStyle, drawing_info: &DrawingInfo, aligner: &Aligner) -> FloatingLeaf {
         let drawing_info = Arc::new(drawing_info.clone());
-        let base_range_piece = DelayedConstant::new();
-        let pixel_range_piece = DelayedConstant::new();
-        let max_y_piece = DelayedConstant::new();
+        let (max_y_piece_setter,max_y_piece) = promise_delayed();
         if statics.coord_system.is_dustbin() {
-            base_range_piece.set(RangeUsed::None);
-            pixel_range_piece.set(RangeUsed::None);
-            max_y_piece.set(0.);
+            max_y_piece_setter.set(constant(0.));
         }
-        let (top,top_value) = if statics.coord_system.is_dustbin() {
-            (None,PuzzleValueHolder::new(ConstantPuzzlePiece::new(0.)))
+        let (top_setter,top) = if statics.coord_system.is_dustbin() {
+            (None,constant(0.))
         } else {
-            let top = DelayedPuzzleValue::new(puzzle);
-            let top_value = PuzzleValueHolder::new(top.clone());
-            (Some(top),top_value)
+            let (setter,value) = promise_delayed();
+            (Some(setter),value)
         };
-        let indent = aligner.get(puzzle,&statics.indent);
+        let indent = aligner.get(&statics.indent);
         FloatingLeaf {
             name: AllotmentName::from_part(name),
-            builder: puzzle.clone(),
             statics: Arc::new(statics.clone()),
-            converter: PuzzleValueHolder::new(ConstantPuzzlePiece::new(converter.clone())), // kept in puzzle because SHOULD be variable
-            max_y_piece,
-            indent, pixel_range_piece, base_range_piece,
-            top, top_value,
+            converter: constant(converter.clone()), // kept in puzzle because SHOULD be variable
+            max_y_piece, max_y_piece_setter,
+            indent, 
+            top_setter, top,
             drawing_info
         }
     }
 
-    fn full_range(&self, base_range: &RangeUsed<f64>, pixel_range: &RangeUsed<f64>, bp_px_converter: &PuzzleValueHolder<Arc<BpPxConverter>>) -> PuzzleValueHolder<RangeUsed<f64>> { 
+    fn full_range(&self, base_range: &RangeUsed<f64>, pixel_range: &RangeUsed<f64>, bp_px_converter: &StaticValue<Arc<BpPxConverter>>) -> StaticValue<RangeUsed<f64>> { 
         let full_range_piece = full_range_piece(
             &self.statics.coord_system,&base_range,&pixel_range,bp_px_converter);
         if self.statics.coord_system.is_tracking() && !self.statics.bump_invisible {
             full_range_piece.clone()
         } else {
-            PuzzleValueHolder::new(ConstantPuzzlePiece::new(RangeUsed::None))
+            constant(RangeUsed::None)
         }
     }
 }
@@ -84,20 +80,18 @@ impl Stackable for FloatingLeaf {
     fn name(&self) -> &AllotmentName { &self.name }
 
     fn build(&mut self, _prep: &mut BoxPositionContext) -> BuildSize {
-        self.pixel_range_piece.set(self.drawing_info.pixel_range().clone());
-        self.base_range_piece.set(self.drawing_info.base_range().clone());
-        self.max_y_piece.set(self.drawing_info.max_y());
+        self.max_y_piece_setter.set(constant(self.drawing_info.max_y()));
         BuildSize {
             name: self.name.clone(),
-            height: PuzzleValueHolder::new(self.max_y_piece.clone()),
+            height: self.max_y_piece.clone(),
             range: self.full_range(self.drawing_info.base_range(),self.drawing_info.pixel_range(),&self.converter)
         }
     }
 
-    fn locate(&mut self, _prep: &mut BoxPositionContext, value: &PuzzleValueHolder<f64>) {
+    fn locate(&mut self, _prep: &mut BoxPositionContext, value: &StaticValue<f64>) {
         let value = value.clone();
-        if let Some(top) = &self.top {
-            top.set(&self.builder,value.clone());
+        if let Some(top_setter) = &self.top_setter {
+            top_setter.set(value.clone());
         }
     }
 }
@@ -107,8 +101,8 @@ impl Transformable for FloatingLeaf {
         Arc::new(self.clone())
     }
 
-    fn make(&self, solution: &PuzzleSolution) -> Arc<dyn Transformer> {
-        Arc::new(AnchoredLeaf::new(solution,self))
+    fn make(&self, answer_index: &StaticAnswer) -> Arc<dyn Transformer> {
+        Arc::new(AnchoredLeaf::new(answer_index,self))
     }
 
     fn get_style(&self) -> &LeafCommonStyle { &self.statics }
@@ -128,12 +122,12 @@ pub struct AnchoredLeaf {
 }
 
 impl AnchoredLeaf {
-    pub fn new(solution: &PuzzleSolution, floating: &FloatingLeaf) -> AnchoredLeaf {
+    pub fn new(answer_index: &StaticAnswer, floating: &FloatingLeaf) -> AnchoredLeaf {
         AnchoredLeaf {
             statics: floating.statics.clone(),
-            top: floating.top_value.get_clone(solution),
-            height: floating.max_y_piece.get_clone(solution),
-            indent: floating.indent.get_clone(solution)
+            top: floating.top.call(answer_index),
+            height: floating.max_y_piece.call(answer_index),
+            indent: floating.indent.call(answer_index)
         }
     }
 }

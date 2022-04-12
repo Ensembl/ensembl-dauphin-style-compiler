@@ -1,27 +1,29 @@
 use std::{collections::HashMap, sync::{Arc, Mutex}};
 
-use peregrine_toolkit::{puzzle::{PuzzleValueHolder, ConstantPuzzlePiece, PuzzlePiece, PuzzleBuilder, PuzzleValue, DelayedPuzzleValue, DerivedPuzzlePiece}, lock};
+use peregrine_toolkit::{lock, puzzle::{constant, DelayedSetter,StaticValue, promise_delayed}};
 
 use crate::{allotment::{boxes::root::{Root}, style::style::Indent}};
 
 use super::playingfield::PlayingFieldPieces;
 
 struct Datum {
-    piece: DelayedPuzzleValue<f64>
+    piece: StaticValue<f64>,
+    piece_setter: DelayedSetter<'static,'static,f64>
 }
 
 impl Datum {
-    fn new(puzzle: &PuzzleBuilder) -> Datum {
-        Datum { piece: DelayedPuzzleValue::new(puzzle) }
+    fn new() -> Datum {
+        let (piece_setter,piece) = promise_delayed();
+        Datum { piece, piece_setter }
     }
 
-    fn set(&mut self, builder: &PuzzleBuilder, value: &PuzzleValueHolder<f64>) {
+    fn set(&mut self, value: &StaticValue<f64>) {
         let value = value.clone();
-        self.piece.set(builder,value);
+        self.piece_setter.set(value);
     }
 
-    fn get(&self) -> PuzzleValueHolder<f64> {
-        PuzzleValueHolder::new(self.piece.clone())
+    fn get(&self) -> StaticValue<f64> {
+        self.piece.clone()
     }
 }
 
@@ -39,7 +41,7 @@ impl Aligner {
         }
     }
 
-    pub(crate) fn get(&self, puzzle: &PuzzleBuilder, indent: &Indent) -> PuzzleValueHolder<f64> {
+    pub(crate) fn get(&self, indent: &Indent) -> StaticValue<f64> {
         match match indent {
             Indent::Top => Some(&self.playing_field.top),
             Indent::Left => Some(&self.playing_field.left),
@@ -47,24 +49,24 @@ impl Aligner {
             Indent::Right => Some(&self.playing_field.right),
             _ => None
         } {
-            Some(piece) => { return PuzzleValueHolder::new(piece.clone()) },
+            Some(piece) => { return piece.clone() },
             None => {}
         }
         match match indent {
-            Indent::Datum(datum) => Some(self.get_datum(puzzle,datum)),
+            Indent::Datum(datum) => Some(self.get_datum(datum)),
             _ => None
         } {
             Some(value) => { return value.clone() },
             None => {}
         }
-        PuzzleValueHolder::new(ConstantPuzzlePiece::new(0.))
+        constant(0.)
     }
     
-    pub(crate) fn set_datum(&self, puzzle: &PuzzleBuilder, datum: &str, value: &PuzzleValueHolder<f64>) {
-        lock!(self.datums).entry(datum.to_string()).or_insert_with(move || Datum::new(puzzle)).set(puzzle,value);
+    pub(crate) fn set_datum(&self, datum: &str, value: &StaticValue<f64>) {
+        lock!(self.datums).entry(datum.to_string()).or_insert_with(move || Datum::new()).set(value);
     }
 
-    pub(crate) fn get_datum(&self,  puzzle: &PuzzleBuilder, datum: &str) -> PuzzleValueHolder<f64> {
-        lock!(self.datums).entry(datum.to_string()).or_insert_with(|| Datum::new(puzzle)).get()
+    pub(crate) fn get_datum(&self,  datum: &str) -> StaticValue<f64> {
+        lock!(self.datums).entry(datum.to_string()).or_insert_with(|| Datum::new()).get()
     }
 }

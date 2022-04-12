@@ -9,6 +9,7 @@ use crate::train::Railway;
 use commander::PromiseFuture;
 use peregrine_dauphin_queue::{ PgDauphinQueue };
 use peregrine_message::PeregrineMessage;
+use peregrine_toolkit::puzzle::AnswerAllocator;
 use peregrine_toolkit::sync::blocker::Blocker;
 use std::sync::{ Arc, Mutex };
 use crate::{AllBackends, Assets, Commander, CountingPromise, PgCommander, PgDauphin};
@@ -34,6 +35,7 @@ impl MessageSender {
 
 #[derive(Clone)]
 pub struct PeregrineCoreBase {
+    pub answer_allocator: Arc<Mutex<AnswerAllocator>>,
     pub messages: MessageSender,
     pub metrics: MetricCollector,
     pub dauphin_queue: PgDauphinQueue,
@@ -71,6 +73,7 @@ impl PeregrineCore {
         let all_backends = AllBackends::new(&manager,&metrics,&messages);
         let booted = CountingPromise::new();
         let base = PeregrineCoreBase {
+            answer_allocator: Arc::new(Mutex::new(AnswerAllocator::new())),
             metrics,
             booted,
             commander,

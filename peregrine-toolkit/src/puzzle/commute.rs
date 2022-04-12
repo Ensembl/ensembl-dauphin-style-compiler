@@ -136,7 +136,7 @@ mod test {
 
     use unknown::short_unknown_promise_clonable;
 
-    use crate::{lock, puzzle3::{constant::constant, unknown::{short_unknown, self}, compose::derived, answer::AnswerAllocator}};
+    use crate::{lock, puzzle::{constant::constant, unknown::{short_unknown, self}, compose::derived, answer::AnswerAllocator}};
 
     use super::{commute, DelayedCommuteBuilder};
 

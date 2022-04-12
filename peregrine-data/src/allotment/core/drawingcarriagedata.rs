@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use peregrine_toolkit::{puzzle::PuzzleSolution, lock};
+use peregrine_toolkit::{lock, puzzle::{StaticAnswer}};
 
 use crate::{Shape, LeafCommonStyle, TrainState, PlayingField, AllotmentMetadataReport};
 
@@ -10,34 +10,36 @@ use super::{carriageoutput::CarriageOutput, heighttracker::HeightTracker};
 pub struct DrawingCarriageData {
     universe: CarriageOutput,
     shapes: Arc<Vec<Shape<LeafCommonStyle>>>,
-    solution: Arc<PuzzleSolution>
+    answer_index: Arc<Mutex<StaticAnswer>>
 }
 
 impl DrawingCarriageData {
     pub(crate) fn new(universe: &CarriageOutput, train_state: &TrainState) -> DrawingCarriageData {
-        let mut solution = PuzzleSolution::new(&universe.puzzle());
-        train_state.update_puzzle(&mut solution,&universe.height_tracker_pieces());
-        solution.solve();
-        let shapes = universe.get(&solution);
+        let mut answer_index = universe.make_answer_index();
+        train_state.update_puzzle(&mut answer_index,universe.height_tracker_pieces());
+        let shapes = universe.get(&mut answer_index);
         DrawingCarriageData {
             universe: universe.clone(),
             shapes: Arc::new(shapes),
-            solution: Arc::new(solution)
+            answer_index: Arc::new(Mutex::new(answer_index))
         }
     }
 
     pub fn shapes(&self) -> &Arc<Vec<Shape<LeafCommonStyle>>> { &self.shapes }
 
     pub fn height_tracker(&self) -> HeightTracker {    
-        HeightTracker::new(&self.universe.height_tracker_pieces(),&self.solution)
+        let mut answer_index = lock!(self.answer_index);
+        HeightTracker::new(&self.universe.height_tracker_pieces(),&mut answer_index)
     }
 
     pub fn playing_field(&self) -> PlayingField {
-        self.universe.playing_field(&self.solution)
+        let mut answer_index = lock!(self.answer_index);
+        self.universe.playing_field(&mut answer_index)
     }
 
     pub fn metadata(&self) -> AllotmentMetadataReport {
-        self.universe.get_metadata(&self.solution)
+        let mut answer_index = lock!(self.answer_index);
+        self.universe.get_metadata(&mut answer_index)
     }
 }
 

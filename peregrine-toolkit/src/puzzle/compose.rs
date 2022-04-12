@@ -23,26 +23,32 @@ pub fn derived<'a:'b, 'b, 'f:'a, 'g:'a, 'h:'f, T:'a, U:'b, F: 'f>(a: Value<'g,'a
 }
 
 /* Used by Value's callback:
- *   Input1 type must last longer than input Value (uses it): a > g
- *   Input2 type must last longer than input Value (uses it): b > h
- *   Output type must last longer than output type: c > j
+ *   Input1 type must last longer than input1 Value: a > g
+ *   Input2 type must last longer than input2 Value: b > h
+ *   Output type must last longer than output Value: c > j
  * Used by our derivation callback:
- *   Input1 type must last longer than callback (uses it): a > f
- *   Input2 type must last longer than callback (uses it): b > f
- *   Output type must last longer than callback (creates it): c > f
- *   Uses input1 to generate output c > a
- *   Uses input2 to generate output c > b
- * Derivation callback stored in output Value: f > j
- * Derivation callback uses input1 Value: f > g
- * Derivation callback uses input2 Value: f > h
+ *   Input1 type must last longer than callback (used): a > f
+ *   Input2 type must last longer than callback (used): b > f
+ *   Output type must last longer than callback (created): c > f
+ * Data can be treansferred from input to output:
+ *   Uses input1 to generate output: c > a
+ *   Uses input2 to generate output: c > b
+ * Derivation callback:
+ *    stored in output Value: f > j
+ *    uses input1 Value: f > g
+ *    uses input2 Value: f > h
  *
+ * so:
  * c -> {a,b} -> f -> {g,h,j}
- * 
+ *
+ * therefore:
  * 'a:'c, 'b:'c, 'c, 'f:'a+'b, 'g:'f, 'h:'f, 'j:'f
  */
-pub fn compose<'a:'c, 'b:'c, 'c, 'f:'a+'b, 'g:'f, 'h:'f, 'j:'f, T:'a, U:'b, V:'c, F:'f>(a: Value<'g,'a,T>, b: Value<'h,'b,U>, f: F) -> Value<'j,'c,V> 
-        where F: Fn(T,U) -> V {
-            Value::new(move |answer_index| {
+pub fn compose<'a:'c, 'b:'c, 'c, 
+               'f:'a+'b, 'g:'f, 'h:'f, 'j:'f,
+                T:'a, U:'b, V:'c, F:'f>(a: Value<'g,'a,T>, b: Value<'h,'b,U>, f: F) -> Value<'j,'c,V> 
+            where F: Fn(T,U) -> V {
+    Value::new(move |answer_index| {
         let (a,b) = (a.inner(answer_index),b.inner(answer_index));
         if a.is_none() || b.is_none() { return None; }
         Some(f(a.unwrap(),b.unwrap()))
@@ -69,7 +75,7 @@ pub fn compose_slice<'a:'b, 'b, 'f:'a, 'g:'f, 'h:'f, T, U, F:'f>(inputs: &[Value
 mod test {
     use compose::compose_slice;
 
-    use crate::puzzle3::{AnswerAllocator, short_unknown_promise_clonable, compose, constant, Value };
+    use crate::puzzle::{AnswerAllocator, short_unknown_promise_clonable, compose, constant, Value };
 
     use super::derived;
 

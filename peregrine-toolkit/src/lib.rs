@@ -13,25 +13,6 @@ pub mod plumbing {
 }
 
 pub mod puzzle {
-    mod answers;
-    mod derived;
-    mod graph;
-    mod piece;
-    mod puzzle;
-    mod solution;
-    mod solver;
-    mod toposort;
-    mod util;
-
-    pub use puzzle::{ Puzzle, PuzzleBuilder, PuzzleDependency };
-    pub use derived::{ DerivedPuzzlePiece, ConstantPuzzlePiece, DelayedPuzzleValue, DelayedConstant };
-    pub use piece::{ PuzzlePiece, PuzzleValue, ClonablePuzzleValue, PuzzleValueHolder };
-    pub use solution::PuzzleSolution;
-    pub use util::{ FoldValue, CommutingSequence, compose2, build_puzzle_vec };
-}
-
-
-pub mod puzzle3 {
     mod answer;
     mod compose;
     mod commute;
@@ -51,7 +32,10 @@ pub mod puzzle3 {
     pub use delayed::{ DelayedSetter, delayed, promise_delayed };
     pub use memoized::{ short_memoized, short_memoized_arc, short_memoized_clonable };
     pub use value::{ Value, StaticValue };
-    pub use unknown::{ UnknownSetter, StaticUnknownSetter, unknown, short_unknown, short_unknown_promise_clonable };
+    pub use unknown::{ 
+        UnknownSetter, StaticUnknownSetter, unknown, short_unknown, short_unknown_promise_clonable, 
+        short_unknown_function, short_unknown_function_promise
+    };
     pub use variable::{ variable };
 }
 

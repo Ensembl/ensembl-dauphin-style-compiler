@@ -35,8 +35,8 @@ impl<'a,T: 'a> Store<'a,T> for ShortStore<'a,T> {
 mod test{
     use std::sync::{Arc, Weak};
 
-    use crate::puzzle3::AnswerAllocator;
-    use crate::puzzle3::store::Store;
+    use crate::puzzle::AnswerAllocator;
+    use crate::puzzle::store::Store;
     use super::ShortStore;
 
     #[test]

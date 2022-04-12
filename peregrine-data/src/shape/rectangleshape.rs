@@ -1,6 +1,4 @@
-use peregrine_toolkit::{puzzle::PuzzleSolution, log};
-
-use crate::{DataMessage, Patina, ShapeDemerge, Shape, util::{eachorevery::EachOrEveryFilter}, SpaceBaseArea, reactive::Observable, allotment::{boxes::boxtraits::Transformable, transformers::transformers::{Transformer, TransformerVariety}, style::{allotmentname::AllotmentNamePart, style::{LeafCommonStyle, LeafAllotmentStyle}}, stylespec::stylegroup::AllotmentStyleGroup}, EachOrEvery, CoordinateSystem, LeafRequest};
+use crate::{DataMessage, Patina, ShapeDemerge, Shape, util::{eachorevery::EachOrEveryFilter}, SpaceBaseArea, reactive::Observable, allotment::{transformers::transformers::{Transformer, TransformerVariety}, style::{style::{LeafCommonStyle}}}, CoordinateSystem, LeafRequest};
 use std::{hash::Hash, sync::Arc};
 
 #[cfg_attr(debug_assertions,derive(Debug))]
@@ -77,7 +75,7 @@ impl RectangleShape<LeafCommonStyle> {
             }
         };
         let mut out = vec![];
-        for (draw_group,mut filter) in demerge {
+        for (draw_group,filter) in demerge {
             out.push((draw_group,self.filter(&filter)));
         }
         out
@@ -90,7 +88,7 @@ impl RectangleShape<Arc<dyn Transformer>> {
             x.choose_variety()
         });
         let mut out = vec![];
-        for (variety,mut filter) in demerge {
+        for (variety,filter) in demerge {
             out.push((variety,self.filter(&filter)));
         }
         out
@@ -98,7 +96,7 @@ impl RectangleShape<Arc<dyn Transformer>> {
 }
 
 impl RectangleShape<Arc<dyn Transformer>> {
-    pub fn make(&self, _solution: &PuzzleSolution) -> Vec<RectangleShape<LeafCommonStyle>> {
+    pub fn make(&self) -> Vec<RectangleShape<LeafCommonStyle>> {
         let mut out = vec![];
         for ((variety,coord_system),rectangles) in self.demerge_by_variety() {
             out.push(RectangleShape {

@@ -10,7 +10,7 @@ pub fn variable<'a,'f: 'a, T: 'a, F: 'f+'a>(f: F) -> Value<'f,'a,T> where F: Fn(
 mod test {
     use std::sync::{Arc, Mutex};
 
-    use crate::{puzzle3::{AnswerAllocator}, lock};
+    use crate::{puzzle::{AnswerAllocator}, lock};
 
     use super::variable;
 

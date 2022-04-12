@@ -1,6 +1,5 @@
 use std::hash::Hash;
 use std::sync::Arc;
-use peregrine_toolkit::puzzle::PuzzleSolution;
 
 use super::imageshape::ImageShape;
 use super::rectangleshape::RectangleShape;
@@ -11,7 +10,6 @@ use crate::Colour;
 use crate::CoordinateSystem;
 use crate::DataMessage;
 use crate::DrawnType;
-use crate::EachOrEvery;
 use crate::LeafRequest;
 use crate::allotment::style::style::LeafCommonStyle;
 use crate::allotment::transformers::transformers::Transformer;
@@ -117,12 +115,12 @@ impl Shape<LeafCommonStyle> {
 }
 
 impl Shape<Arc<dyn Transformer>> {
-    pub fn make(&self, solution: &PuzzleSolution) -> Vec<Shape<LeafCommonStyle>> {
+    pub fn make(&self) -> Vec<Shape<LeafCommonStyle>> {
         match self {
-            Shape::SpaceBaseRect(shape) => shape.make(solution).drain(..).map(|x| Shape::SpaceBaseRect(x)).collect(),
-            Shape::Text(shape) => shape.make(solution).drain(..).map(|x| Shape::Text(x)).collect(),
-            Shape::Image(shape) => shape.make(solution).drain(..).map(|x| Shape::Image(x)).collect(),
-            Shape::Wiggle(shape) => shape.make(solution).drain(..).map(|x| Shape::Wiggle(x)).collect(),
+            Shape::SpaceBaseRect(shape) => shape.make().drain(..).map(|x| Shape::SpaceBaseRect(x)).collect(),
+            Shape::Text(shape) => shape.make().drain(..).map(|x| Shape::Text(x)).collect(),
+            Shape::Image(shape) => shape.make().drain(..).map(|x| Shape::Image(x)).collect(),
+            Shape::Wiggle(shape) => shape.make().drain(..).map(|x| Shape::Wiggle(x)).collect(),
         }
     }
 }

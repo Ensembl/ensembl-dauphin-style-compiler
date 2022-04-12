@@ -12,7 +12,7 @@ pub(crate) struct CarriageProcess {
     extent: CarriageExtent,
     config: TrainTrackConfigList,
     messages: Option<MessageSender>,
-    shapes: Arc<Mutex<Option<DrawingCarriageDataStore>>>,
+    shapes: Option<DrawingCarriageDataStore>,
     warm: bool
 }
 
@@ -23,13 +23,13 @@ impl CarriageProcess {
             extent: extent.clone(),
             config: configs.clone(),
             messages: messages.cloned(),
-            shapes: Arc::new(Mutex::new(None)),
+            shapes: None,
             warm
         }
     }
 
     pub fn extent(&self) -> &CarriageExtent { &self.extent }
-    pub fn get_shapes(&self) -> Option<DrawingCarriageDataStore> { lock!(self.shapes).clone() }
+    pub fn get_shapes(&self) -> Option<&DrawingCarriageDataStore> { self.shapes.as_ref() }
 
     fn make_shape_requests(&self) -> ShapeRequestGroup {
         let track_config_list = self.extent.train().layout().track_config_list();
@@ -55,7 +55,7 @@ impl CarriageProcess {
             LoadMode::Network => { return Ok(()); },
             _ => {}
         }
-        *lock!(self.shapes) = Some(DrawingCarriageDataStore::new(&shapes));
+        self.shapes = Some(DrawingCarriageDataStore::new(&shapes));
         if let Some(lifecycle) = &self.try_lifecycle {
             lifecycle.set();
         }

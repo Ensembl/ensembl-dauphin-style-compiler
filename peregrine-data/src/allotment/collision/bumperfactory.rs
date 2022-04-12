@@ -1,13 +1,13 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
-use peregrine_toolkit::puzzle::{PuzzleValueHolder, PuzzleBuilder};
+use peregrine_toolkit::{puzzle::{short_memoized, variable, derived, StaticValue}};
 
 use crate::allotment::{style::allotmentname::AllotmentName};
 
 use super::collisionalgorithm::CollisionAlgorithm;
 
 pub struct BumperFactory {
-    colliders: HashMap<AllotmentName,PuzzleValueHolder<CollisionAlgorithm>>
+    colliders: HashMap<AllotmentName,StaticValue<Arc<CollisionAlgorithm>>>
 }
 
 impl BumperFactory {
@@ -17,12 +17,11 @@ impl BumperFactory {
         }
     }
 
-    pub fn get(&mut self, puzzle: &PuzzleBuilder, name: &AllotmentName) -> &PuzzleValueHolder<CollisionAlgorithm> {
+    pub fn get(&mut self, name: &AllotmentName) -> StaticValue<Arc<CollisionAlgorithm>> {
         self.colliders.entry(name.clone()).or_insert_with(|| {
-            let piece = puzzle.new_combination(&[],|_| {
+            short_memoized(variable(|answer_index| {
                 CollisionAlgorithm::new()
-            });
-            PuzzleValueHolder::new(piece)
-        })
+            }))
+        }).clone()
     }
 }

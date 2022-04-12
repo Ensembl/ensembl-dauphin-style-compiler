@@ -63,7 +63,7 @@ pub fn cache_constant_arc<'f:'a,'a,T: 'a>(input: Value<'f,'a,Arc<T>>) -> Value<'
 mod test {
     use std::sync::{Arc, Mutex};
 
-    use crate::{puzzle3::{AnswerAllocator, derived, short_unknown_promise_clonable, Value}, lock};
+    use crate::{puzzle::{AnswerAllocator, derived, short_unknown_promise_clonable, Value}, lock};
 
     use super::{constant, cache_constant_clonable};
 

@@ -1,6 +1,6 @@
 use std::{sync::{Arc, Mutex}, collections::HashMap};
 
-use peregrine_toolkit::{puzzle::{PuzzleValueHolder, PuzzleSolution, PuzzleValue, PuzzleDependency, PuzzlePiece}, lock};
+use peregrine_toolkit::{lock, puzzle::{Answer, StaticValue, StaticAnswer}};
 
 use crate::allotment::{util::rangeused::RangeUsed, style::allotmentname::AllotmentName};
 
@@ -12,19 +12,19 @@ use identitynumber::identitynumber;
 #[derive(Clone)]
 pub(crate) struct BumpRequest {
     name: AllotmentName,
-    range: PuzzleValueHolder<RangeUsed<f64>>,
-    height: PuzzleValueHolder<f64>
+    range: StaticValue<RangeUsed<f64>>,
+    height: StaticValue<f64>
 }
 
 impl BumpRequest {
-    fn add_to_concrete_requests(&self, solution: &PuzzleSolution, requests: &mut ConcreteRequests) {
-        match self.range.get(solution).as_ref() {
+    fn add_to_concrete_requests(&self, answer_index: &mut StaticAnswer, requests: &mut ConcreteRequests) {
+        match self.range.call(answer_index) {
             RangeUsed::None =>
                 {},
             RangeUsed::All =>
-                requests.add_infinite(&self.name,self.height.get(solution).ceil() as i64),
+                requests.add_infinite(&self.name,self.height.call(answer_index).ceil() as i64),
             RangeUsed::Part(start,end) =>
-                requests.add_finite(&self.name,start.floor().max(0.) as u64,end.ceil().max(0.) as u64,self.height.get(solution).ceil() as i64),
+                requests.add_finite(&self.name,start.floor().max(0.) as u64,end.ceil().max(0.) as u64,self.height.call(answer_index).ceil() as i64),
         }
     }
 }
@@ -43,7 +43,7 @@ impl BumpRequests {
         out
     }
 
-    pub(crate) fn add(&mut self, name: &AllotmentName, range: &PuzzleValueHolder<RangeUsed<f64>>, height: &PuzzleValueHolder<f64>) {
+    pub(crate) fn add(&mut self, name: &AllotmentName, range: &StaticValue<RangeUsed<f64>>, height: &StaticValue<f64>) {
         self.requests.push(BumpRequest {
             name: name.clone(),
             range: range.clone(),
@@ -51,16 +51,17 @@ impl BumpRequests {
         })
     }
 
-    fn add_concrete(&self, solution: &PuzzleSolution, concrete: &mut ConcreteBump) -> bool {
+    fn add_concrete(&self, answer_index: &mut StaticAnswer, concrete: &mut ConcreteBump) -> bool {
         let mut requests = concrete.new_requests(self.index);
         for request in &*self.requests {
-            request.add_to_concrete_requests(solution,&mut requests);
+            request.add_to_concrete_requests(answer_index,&mut requests);
         }
         concrete.add(requests)
     }
 
 }
 
+/*
 pub(crate) struct BumpResponses {
     piece: PuzzlePiece<ConcreteResults>,
     process: BumpProcess,
@@ -79,6 +80,7 @@ impl PuzzleValue<ConcreteResults> for BumpResponses {
     fn known_constant_value(&self) -> Option<Arc<ConcreteResults>> { None }
     fn dependency(&self) -> PuzzleDependency { self.piece.dependency() }
 }
+*/
 
 /* Each solution can have a different ConcreteBump and (more often) a different maximum height.
  * The call to ConcreteBump which alters the height and, potentially, causes it to be useless and
@@ -108,11 +110,12 @@ struct BumpSolution {
 }
 
 impl BumpSolution {
-    fn add(&self, solution: &PuzzleSolution, requests: &BumpRequests) -> bool {
-        requests.add_concrete(solution,&mut *lock!(self.concrete))
+    fn add(&self, answer_index: &mut StaticAnswer, requests: &BumpRequests) -> bool {
+        requests.add_concrete(answer_index,&mut *lock!(self.concrete))
     }
 }
 
+/*
 #[derive(Clone)]
 pub(crate) struct BumpProcess {
     bp_per_carriage: u64,
@@ -137,3 +140,4 @@ impl BumpProcess {
         todo!()
     }
 }
+*/

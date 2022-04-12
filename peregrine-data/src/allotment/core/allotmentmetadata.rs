@@ -1,22 +1,22 @@
 use std::{collections::{HashMap, hash_map::DefaultHasher}, sync::{Arc, Mutex}, hash::{Hash, Hasher}};
 
 use lru::LruCache;
-use peregrine_toolkit::{puzzle::{PuzzleValueHolder, PuzzleValue, PuzzleSolution}, lock};
+use peregrine_toolkit::{lock, puzzle::{ StaticValue, StaticAnswer}};
 
 #[derive(Clone)]
 pub struct AllotmentMetadataGroup {
-    values: HashMap<String,PuzzleValueHolder<String>>
+    values: HashMap<String,StaticValue<String>>
 }
 
 impl AllotmentMetadataGroup {
-    pub fn new(values: HashMap<String,PuzzleValueHolder<String>>) -> AllotmentMetadataGroup {
+    pub fn new(values: HashMap<String,StaticValue<String>>) -> AllotmentMetadataGroup {
         AllotmentMetadataGroup {
             values
         }
     }
 
-    pub fn get(&self, solution: &PuzzleSolution) -> HashMap<String,String> {
-        self.values.iter().map(|(k,v)| (k.clone(),v.get(solution).as_ref().clone())).collect()
+    pub fn get(&self, answer_index: &mut StaticAnswer) -> HashMap<String,String> {
+        self.values.iter().map(|(k,v)| (k.clone(),v.call(answer_index).clone())).collect()
     }
 }
 
@@ -97,17 +97,17 @@ impl AllotmentMetadata {
         }
     }
 
-    fn calculate(&self, solution: &PuzzleSolution) -> Vec<HashMap<String,String>> {
-        self.groups.iter().map(|group| group.get(solution)).collect()
+    fn calculate(&self, answer_index: &mut StaticAnswer) -> Vec<HashMap<String,String>> {
+        self.groups.iter().map(|group| group.get(answer_index)).collect()
     }
 
-    pub fn get(&self, solution: &PuzzleSolution) -> AllotmentMetadataReport {
+    pub fn get(&self, answer_index: &mut StaticAnswer) -> AllotmentMetadataReport {
         let mut cache = lock!(self.cache);
-        if let Some(cached) = cache.get(&solution.id()) {
+        if let Some(cached) = cache.get(&answer_index.serial()) {
             return cached.clone();
         }
-        let data = AllotmentMetadataReport::new(self.calculate(solution));
-        cache.put(solution.id(),data.clone());
+        let data = AllotmentMetadataReport::new(self.calculate(answer_index));
+        cache.put(answer_index.serial(),data.clone());
         data
     }
 }
