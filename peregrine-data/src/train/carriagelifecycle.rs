@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{DrawingCarriage, shapeload::carriageprocess::CarriageProcess, TrainState};
+use crate::{DrawingCarriage, shapeload::carriageprocess::CarriageProcess, TrainState, allotment::core::trainstate::TrainStateSpec};
 
 use super::railwayevent::RailwayEvents;
 
@@ -17,11 +17,12 @@ impl CarriagePrepState {
         }
     }
 
-    fn try_upgrade(&mut self, train_state: &TrainState, railway_events: &mut RailwayEvents) -> bool {
+    fn try_upgrade(&mut self, train_state: &TrainState, railway_events: &mut RailwayEvents, index: u64, spec: &mut TrainStateSpec) -> bool {
         if let CarriagePrepState::Waiting(carriage) = self {
             if let Some(shapes) = carriage.get_shapes() {
                 let drawing_carriage = DrawingCarriage::new(&carriage.extent(),&railway_events,&shapes,&train_state);
                 railway_events.draw_create_carriage(&drawing_carriage);
+                spec.add(index,shapes.spec());
                 *self = CarriagePrepState::Ready(drawing_carriage);
                 return true;
             }
@@ -53,10 +54,10 @@ impl CarriageLifecycleSet {
         }
     }
 
-    pub(super) fn try_upgrade(&mut self, train_state: &TrainState, railway_events: &mut RailwayEvents) -> bool {
+    pub(super) fn try_upgrade(&mut self, train_state: &TrainState, railway_events: &mut RailwayEvents, spec: &mut TrainStateSpec) -> bool {
         let mut any = false;
-        for p in self.0.values_mut() {
-            if p.try_upgrade(train_state,railway_events) {
+        for (id,p) in self.0.iter_mut() {
+            if p.try_upgrade(train_state,railway_events,*id,spec) {
                 any = true;
             }
         }

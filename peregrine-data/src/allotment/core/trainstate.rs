@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex};
+use std::{sync::{Arc, Mutex}, collections::HashMap};
 
 use peregrine_toolkit::{puzzle::{StaticAnswer, AnswerAllocator}, lock, log};
 
@@ -46,16 +46,73 @@ impl CarriageTrainStateRequest {
     pub fn height_tracker_mut(&mut self) -> &mut HeightTrackerPieces2 { &mut self.height_tracker }
 }
 
+#[derive(Clone)]
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub struct CarriageTrainStateSpec {
-    height_values: HeightTracker2Values
+    height_values: Arc<HeightTracker2Values>
 }
 
 impl CarriageTrainStateSpec {
     pub fn new(request: &CarriageTrainStateRequest, independent_answer: &StaticAnswer) -> CarriageTrainStateSpec {
         CarriageTrainStateSpec {
-            height_values: HeightTracker2Values::new(request.height_tracker(),independent_answer)
+            height_values: Arc::new(HeightTracker2Values::new(request.height_tracker(),independent_answer))
         }
+    }
+}
+
+#[cfg_attr(debug_assertions,derive(Debug))]
+#[derive(Clone)]
+pub struct TrainState3 {
+    height_tracker: Arc<HeightTracker2Values>
+}
+
+impl TrainState3 {
+    fn calc_heights(spec: &TrainStateSpec) -> HeightTracker2Values {
+        let mut out = HeightTracker2Values::empty();
+        for carriage_spec in spec.specs.values() {
+            out.merge(&carriage_spec.height_values);
+        }
+        out
+    }
+
+    fn new(spec: &TrainStateSpec) -> TrainState3 {
+        let height_tracker = Arc::new(Self::calc_heights(spec));
+        TrainState3 {
+            height_tracker
+        }
+    }
+}
+
+pub struct TrainStateSpec {
+    specs: HashMap<u64,CarriageTrainStateSpec>,
+    cached_train_state: Mutex<Option<TrainState3>>
+}
+
+impl TrainStateSpec {
+    pub fn new() -> TrainStateSpec {
+        TrainStateSpec {
+            specs: HashMap::new(),
+            cached_train_state: Mutex::new(None)
+        }
+    }
+
+    pub fn spec(&self) -> TrainState3 {
+        let mut state = lock!(self.cached_train_state);
+        if state.is_none() {
+            *state = Some(TrainState3::new(self));
+            log!("new state: {:?}",*state);
+        }
+        state.clone().unwrap()
+    }
+
+    pub fn add(&mut self, index: u64, spec: &CarriageTrainStateSpec) {
+        self.specs.insert(index,spec.clone());
+        *lock!(self.cached_train_state) = None;
+    }
+
+    pub fn remove(&mut self, index: u64) {
+        self.specs.remove(&index);
+        *lock!(self.cached_train_state) = None;
     }
 }
 

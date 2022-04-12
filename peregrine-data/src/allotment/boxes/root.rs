@@ -40,7 +40,6 @@ impl Root {
             child.locate(prep,&constant(0.));
         }
         let spec = CarriageTrainStateSpec::new(&prep.state_request,&prep.independent_answer);
-        log!("spec: {:?}",spec);
         lock!(self.playing_field).ready();
         spec
     }

@@ -233,9 +233,22 @@ pub struct HeightTracker2Values {
 }
 
 impl HeightTracker2Values {
+    pub fn empty() -> HeightTracker2Values {
+        HeightTracker2Values {
+            values: HashMap::new()
+        }
+    }
+
     pub fn new(pieces: &HeightTrackerPieces2, answer: &StaticAnswer) -> HeightTracker2Values {
         HeightTracker2Values {
             values: pieces.values.iter().map(|(name,value)| (name.clone(),value.get(answer))).collect()
+        }
+    }
+
+    pub fn merge(&mut self, other: &HeightTracker2Values) {
+        for (name,new_value) in &other.values {
+            let value = self.values.entry(name.clone()).or_insert(0.);
+            *value = value.max(*new_value);
         }
     }
 }

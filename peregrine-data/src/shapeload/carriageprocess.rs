@@ -2,7 +2,7 @@ use std::sync::{Mutex, Arc};
 
 use peregrine_toolkit::{sync::needed::Needed, lock};
 
-use crate::{CarriageExtent, switch::trackconfiglist::TrainTrackConfigList, api::MessageSender, ShapeRequestGroup, PeregrineCoreBase, ShapeStore, DataMessage, allotment::core::drawingcarriagedata::DrawingCarriageDataStore};
+use crate::{CarriageExtent, switch::trackconfiglist::TrainTrackConfigList, api::MessageSender, ShapeRequestGroup, PeregrineCoreBase, ShapeStore, DataMessage, allotment::core::{drawingcarriagedata::DrawingCarriageDataStore, trainstate::CarriageTrainStateSpec}};
 
 use super::loadshapes::{LoadMode, load_carriage_shape_list};
 
@@ -12,7 +12,7 @@ pub(crate) struct CarriageProcess {
     extent: CarriageExtent,
     config: TrainTrackConfigList,
     messages: Option<MessageSender>,
-    shapes: Option<DrawingCarriageDataStore>,
+    shapes: Arc<Mutex<Option<DrawingCarriageDataStore>>>,
     warm: bool
 }
 
@@ -23,13 +23,17 @@ impl CarriageProcess {
             extent: extent.clone(),
             config: configs.clone(),
             messages: messages.cloned(),
-            shapes: None,
+            shapes: Arc::new(Mutex::new(None)),
             warm
         }
     }
 
     pub fn extent(&self) -> &CarriageExtent { &self.extent }
-    pub fn get_shapes(&self) -> Option<&DrawingCarriageDataStore> { self.shapes.as_ref() }
+    pub fn get_shapes(&self) -> Option<DrawingCarriageDataStore> { lock!(self.shapes).clone() }
+
+    pub fn spec(&self) -> Option<CarriageTrainStateSpec> {
+        lock!(self.shapes).as_ref().map(|shapes| shapes.spec().clone())        
+    }
 
     fn make_shape_requests(&self) -> ShapeRequestGroup {
         let track_config_list = self.extent.train().layout().track_config_list();
@@ -55,7 +59,7 @@ impl CarriageProcess {
             LoadMode::Network => { return Ok(()); },
             _ => {}
         }
-        self.shapes = Some(DrawingCarriageDataStore::new(&shapes));
+        *lock!(self.shapes) = Some(DrawingCarriageDataStore::new(&shapes));
         if let Some(lifecycle) = &self.try_lifecycle {
             lifecycle.set();
         }

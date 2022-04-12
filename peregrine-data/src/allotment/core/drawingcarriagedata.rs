@@ -4,7 +4,7 @@ use peregrine_toolkit::{lock, puzzle::{StaticAnswer}};
 
 use crate::{Shape, LeafCommonStyle, TrainState, PlayingField, AllotmentMetadataReport};
 
-use super::{carriageoutput::CarriageOutput, heighttracker::HeightTracker};
+use super::{carriageoutput::CarriageOutput, heighttracker::HeightTracker, trainstate::{CarriageTrainStateSpec, CarriageTrainStateRequest}};
 
 #[derive(Clone)]
 pub struct DrawingCarriageData {
@@ -103,4 +103,6 @@ impl DrawingCarriageDataStore {
         lock!(self.cache).set(state,&shapes);
         shapes
     }
+
+    pub(crate) fn spec(&self) -> &CarriageTrainStateSpec { self.universe.spec() }
 }

@@ -66,6 +66,7 @@ impl CarriageOutput {
         aia.get()
     }
 
+    pub(crate) fn spec(&self) -> &CarriageTrainStateSpec { &self.spec }
     pub(super) fn height_tracker_pieces(&self) -> &HeightTrackerPieces { &self.height_tracker }
 
     pub fn playing_field(&self, answer_index: &mut StaticAnswer) -> PlayingField {
