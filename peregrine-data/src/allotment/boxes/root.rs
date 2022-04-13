@@ -39,7 +39,7 @@ impl Root {
         for child in &mut *children {
             child.locate(prep,&constant(0.));
         }
-        let spec = CarriageTrainStateSpec::new(&prep.state_request,&prep.independent_answer);
+        let spec = CarriageTrainStateSpec::new(&prep.state_request,&mut prep.independent_answer);
         lock!(self.playing_field).ready();
         spec
     }

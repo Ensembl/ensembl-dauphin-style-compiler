@@ -23,6 +23,18 @@ impl PartialEq for AllotmentName {
 
 impl Eq for AllotmentName {}
 
+impl PartialOrd for AllotmentName {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.hash.partial_cmp(&other.hash)
+    }
+}
+
+impl Ord for AllotmentName {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.hash.cmp(&other.hash)
+    }
+}
+
 impl AllotmentName {
     fn do_new(name: Vec<String>, container: bool) -> AllotmentName {
         let mut hasher = DefaultHasher::new();

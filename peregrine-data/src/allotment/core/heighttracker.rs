@@ -190,6 +190,50 @@ impl fmt::Debug for HeightTracker {
     }
 }
 
+struct HeightValue {
+    value: f64,
+    setter: Vec<UnknownSetter<'static,StaticValue<f64>>>
+}
+
+const PRECISION : f64 = 10000.;
+
+impl Hash for HeightValue {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        ((self.value*PRECISION).round() as i64).hash(state);
+    }
+}
+
+impl HeightValue {
+    fn empty() -> HeightValue {
+        HeightValue { value: 0., setter: vec![] }
+    }
+
+    fn from_tracker(value: &HeightTrackerValue, answer: &mut StaticAnswer) -> HeightValue {
+        HeightValue {
+            value: value.output.call(answer),
+            setter: vec![value.setter.clone()]
+        }
+    }
+
+    fn merge(&mut self, other: &HeightValue) {
+        self.value = self.value.max(other.value);
+        self.setter.extend(other.setter.iter().cloned());
+    }
+
+    fn set(&self, answer: &mut StaticAnswer) {
+        for setter in &self.setter {
+            setter.set(answer,constant(self.value));
+        }
+    }
+}
+
+#[cfg(debug_assertions)]
+impl fmt::Debug for HeightValue {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("HeightValue").field("value", &self.value).finish()
+    }
+}
+
 struct HeightTrackerValue {
     input: StaticValue<f64>,
     output: StaticValue<f64>,
@@ -203,8 +247,8 @@ impl HeightTrackerValue {
         HeightTrackerValue { input: input.clone(), output, setter }
     }
 
-    fn get(&self, answer: &StaticAnswer) -> f64 {
-        self.output.call(answer)
+    fn set(&mut self, answer: &mut StaticAnswer, value: f64) {
+        self.setter.set(answer,constant(value));
     }
 }
 
@@ -229,7 +273,18 @@ impl HeightTrackerPieces2 {
 
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub struct HeightTracker2Values {
-    values: HashMap<AllotmentName,f64>
+    values: HashMap<AllotmentName,HeightValue>
+}
+
+impl Hash for HeightTracker2Values {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        let mut names = self.values.keys().collect::<Vec<_>>();
+        names.sort();
+        for name in names {
+            name.hash(state);
+            self.values[name].hash(state);
+        }
+    }
 }
 
 impl HeightTracker2Values {
@@ -239,16 +294,26 @@ impl HeightTracker2Values {
         }
     }
 
-    pub fn new(pieces: &HeightTrackerPieces2, answer: &StaticAnswer) -> HeightTracker2Values {
+    pub fn new(pieces: &HeightTrackerPieces2, answer: &mut StaticAnswer) -> HeightTracker2Values {
+        let mut values = HashMap::new();
+        for (name,value) in &pieces.values {
+            values.insert(name.clone(),HeightValue::from_tracker(value,answer));
+        }
         HeightTracker2Values {
-            values: pieces.values.iter().map(|(name,value)| (name.clone(),value.get(answer))).collect()
+            values
         }
     }
 
     pub fn merge(&mut self, other: &HeightTracker2Values) {
         for (name,new_value) in &other.values {
-            let value = self.values.entry(name.clone()).or_insert(0.);
-            *value = value.max(*new_value);
+            let value = self.values.entry(name.clone()).or_insert(HeightValue::empty());
+            value.merge(new_value);
+        }
+    }
+
+    pub fn set_answer(&self, answer: &mut StaticAnswer) {
+        for value in self.values.values() {
+            value.set(answer);
         }
     }
 }

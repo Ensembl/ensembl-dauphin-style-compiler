@@ -2,7 +2,9 @@ use std::cmp::max;
 use std::collections::{HashSet, HashMap};
 use std::iter::FromIterator;
 use std::ops::Range;
+use std::sync::{Mutex, Arc};
 use peregrine_toolkit::log;
+use peregrine_toolkit::puzzle::AnswerAllocator;
 use peregrine_toolkit::sync::needed::Needed;
 
 use super::carriagelifecycle::CarriageLifecycleSet;
@@ -10,7 +12,7 @@ use super::railwaydatatasks::RailwayDataTasks;
 use super::railwayevent::RailwayEvents;
 use super::trainextent::TrainExtent;
 use crate::allotment::core::heighttracker::HeightTrackerMerger;
-use crate::allotment::core::trainstate::TrainStateSpec;
+use crate::allotment::core::trainstate::{TrainStateSpec, TrainState3};
 use crate::shapeload::carriageprocess::CarriageProcess;
 use crate::{CarriageExtent, DrawingCarriage, TrainState};
 use crate::api::MessageSender;
@@ -71,19 +73,21 @@ pub(super) struct CarriageSet {
     index: Option<u64>,
     train_state: Option<TrainState>,
     train_state_spec: TrainStateSpec,
+    train_state3: Option<TrainState3>,
     carriage_processes: CarriageProcessSet,
     drawing_carriages: CarriageLifecycleSet,
     changes_pending: bool 
 }
 
 impl CarriageSet {
-    pub(super) fn new(try_lifecycle: &Needed, extent: &TrainExtent, configs: &TrainTrackConfigList, messages: &MessageSender) -> CarriageSet {
+    pub(super) fn new(try_lifecycle: &Needed, answer_allocator: &Arc<Mutex<AnswerAllocator>>, extent: &TrainExtent, configs: &TrainTrackConfigList, messages: &MessageSender) -> CarriageSet {
         let constant = CarriageSetConstant::new(try_lifecycle,extent,configs,messages);
         CarriageSet {
             constant,
             index: None,
             train_state: None,
-            train_state_spec: TrainStateSpec::new(),
+            train_state3: None,
+            train_state_spec: TrainStateSpec::new(answer_allocator),
             carriage_processes: CarriageProcessSet::new(),
             drawing_carriages: CarriageLifecycleSet::new(),
             changes_pending: false

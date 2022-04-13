@@ -41,6 +41,7 @@ pub struct CarriageOutput {
     spec: Arc<CarriageTrainStateSpec>,
     metadata: AllotmentMetadata,
     answer_index_allocator: Arc<Mutex<AnswerAllocator>>,
+    independent_answer: Arc<StaticAnswer>,
     root: Root,
     height_tracker: Arc<HeightTrackerPieces>
 }
@@ -55,6 +56,7 @@ impl CarriageOutput {
             shapes: Arc::new(shapes),
             metadata: AllotmentMetadata::new(&prep.metadata),
             answer_index_allocator: Arc::new(Mutex::new(AnswerAllocator::new())),
+            independent_answer: Arc::new(prep.independent_answer),
             root: prep.root,
             spec: Arc::new(spec),
             height_tracker: Arc::new(prep.height_tracker)
@@ -65,6 +67,8 @@ impl CarriageOutput {
         let mut aia = lock!(self.answer_index_allocator);
         aia.get()
     }
+
+    pub(crate) fn independent_answer(&self) -> &StaticAnswer { &self.independent_answer }
 
     pub(crate) fn spec(&self) -> &CarriageTrainStateSpec { &self.spec }
     pub(super) fn height_tracker_pieces(&self) -> &HeightTrackerPieces { &self.height_tracker }

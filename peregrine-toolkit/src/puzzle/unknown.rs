@@ -10,7 +10,7 @@ pub struct UnknownSetter<'a,T: 'a>(Arc<Mutex<Box<dyn Store<'a,T> + 'a>>>);
 pub type StaticUnknownSetter<T> = UnknownSetter<'static,T>;
 
 impl<'a,T> UnknownSetter<'a,T> {
-    pub fn set(&mut self, index: &mut Answer<'a>, value: T) {
+    pub fn set(&self, index: &mut Answer<'a>, value: T) {
         lock!(self.0).set(index,Arc::new(value));
     }
 }

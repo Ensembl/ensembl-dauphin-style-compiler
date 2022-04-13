@@ -1,6 +1,6 @@
-use std::{sync::{Arc, Mutex}, collections::HashMap};
+use std::{sync::{Arc, Mutex}, collections::{HashMap, hash_map::DefaultHasher}, fmt, hash::{Hash, Hasher}};
 
-use peregrine_toolkit::{puzzle::{StaticAnswer, AnswerAllocator}, lock, log};
+use peregrine_toolkit::{puzzle::{StaticAnswer, AnswerAllocator, Answer}, lock, log};
 
 use super::heighttracker::{HeightTracker, HeightTrackerPieces, HeightTrackerMerger, HeightTrackerPieces2, HeightTracker2Values};
 
@@ -53,44 +53,71 @@ pub struct CarriageTrainStateSpec {
 }
 
 impl CarriageTrainStateSpec {
-    pub fn new(request: &CarriageTrainStateRequest, independent_answer: &StaticAnswer) -> CarriageTrainStateSpec {
+    pub fn new(request: &CarriageTrainStateRequest, independent_answer: &mut StaticAnswer) -> CarriageTrainStateSpec {
         CarriageTrainStateSpec {
             height_values: Arc::new(HeightTracker2Values::new(request.height_tracker(),independent_answer))
         }
     }
 }
 
-#[cfg_attr(debug_assertions,derive(Debug))]
 #[derive(Clone)]
 pub struct TrainState3 {
-    height_tracker: Arc<HeightTracker2Values>
+    height_tracker: Arc<HeightTracker2Values>,
+    answer: Arc<Mutex<StaticAnswer>>,
+    hash: u64
+}
+
+impl PartialEq for TrainState3 {
+    fn eq(&self, other: &Self) -> bool {
+        self.hash == other.hash
+    }
+}
+
+impl Eq for TrainState3 {}
+
+#[cfg(debug_assertions)]
+impl fmt::Debug for TrainState3 {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("TrainState3").field("height_tracker", &self.height_tracker).finish()
+    }
 }
 
 impl TrainState3 {
-    fn calc_heights(spec: &TrainStateSpec) -> HeightTracker2Values {
+    fn calc_heights(spec: &TrainStateSpec, answer: &mut StaticAnswer) -> HeightTracker2Values {
         let mut out = HeightTracker2Values::empty();
         for carriage_spec in spec.specs.values() {
             out.merge(&carriage_spec.height_values);
         }
+        out.set_answer(answer);
         out
     }
 
-    fn new(spec: &TrainStateSpec) -> TrainState3 {
-        let height_tracker = Arc::new(Self::calc_heights(spec));
-        TrainState3 {
-            height_tracker
-        }
+    fn calc_hash(&mut self) {
+        let mut hasher = DefaultHasher::new();
+        self.height_tracker.hash(&mut hasher);
+        self.hash = hasher.finish();
+    }
+
+    fn new(spec: &TrainStateSpec, mut answer: StaticAnswer) -> TrainState3 {
+        let height_tracker = Arc::new(Self::calc_heights(spec,&mut answer));
+        let mut out = TrainState3 {
+            height_tracker, answer: Arc::new(Mutex::new(answer)), hash: 0
+        };
+        out.calc_hash();
+        out
     }
 }
 
 pub struct TrainStateSpec {
+    answer_allocator: Arc<Mutex<AnswerAllocator>>,
     specs: HashMap<u64,CarriageTrainStateSpec>,
     cached_train_state: Mutex<Option<TrainState3>>
 }
 
 impl TrainStateSpec {
-    pub fn new() -> TrainStateSpec {
+    pub fn new(answer_allocator: &Arc<Mutex<AnswerAllocator>>) -> TrainStateSpec {
         TrainStateSpec {
+            answer_allocator: answer_allocator.clone(),
             specs: HashMap::new(),
             cached_train_state: Mutex::new(None)
         }
@@ -99,7 +126,8 @@ impl TrainStateSpec {
     pub fn spec(&self) -> TrainState3 {
         let mut state = lock!(self.cached_train_state);
         if state.is_none() {
-            *state = Some(TrainState3::new(self));
+            let answer = lock!(self.answer_allocator).get();
+            *state = Some(TrainState3::new(self,answer));
             log!("new state: {:?}",*state);
         }
         state.clone().unwrap()

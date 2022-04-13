@@ -1,4 +1,5 @@
 use std::sync::{ Arc, Mutex };
+use peregrine_toolkit::puzzle::AnswerAllocator;
 use peregrine_toolkit::{lock};
 use peregrine_toolkit::sync::needed::Needed;
 use crate::allotment::core::allotmentmetadata::AllotmentMetadataReport;
@@ -38,7 +39,7 @@ pub(super) struct Train {
 }
 
 impl Train {
-    pub(super) fn new(try_lifecycle: &Needed, extent: &TrainExtent, carriage_event: &mut RailwayEvents, carriage_loader: &RailwayDataTasks, viewport: &Viewport, messages: &MessageSender, validity_counter: u64) -> Result<Train,DataMessage> {
+    pub(super) fn new(try_lifecycle: &Needed, answer_allocator: &Arc<Mutex<AnswerAllocator>>, extent: &TrainExtent, carriage_event: &mut RailwayEvents, carriage_loader: &RailwayDataTasks, viewport: &Viewport, messages: &MessageSender, validity_counter: u64) -> Result<Train,DataMessage> {
         let train_track_config_list = TrainTrackConfigList::new(&extent.layout(),&extent.scale());
         let train_state_builder = TrainStateBuilder::new();
         let train_state2 = train_state_builder.state_if_not(None).unwrap();
@@ -49,7 +50,7 @@ impl Train {
             viewport: viewport.clone(),
             train_state: TrainState::independent(),
             train_state_builder, train_state2,
-            carriages: CarriageSet::new(&try_lifecycle, extent,&train_track_config_list,messages),
+            carriages: CarriageSet::new(&try_lifecycle, answer_allocator,extent,&train_track_config_list,messages),
             validity_counter
         };
         out.set_position(carriage_event,carriage_loader,viewport)?;

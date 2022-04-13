@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{DrawingCarriage, shapeload::carriageprocess::CarriageProcess, TrainState, allotment::core::trainstate::TrainStateSpec};
+use crate::{DrawingCarriage, shapeload::carriageprocess::CarriageProcess, TrainState, allotment::core::trainstate::{TrainStateSpec, TrainState3}};
 
 use super::railwayevent::RailwayEvents;
 

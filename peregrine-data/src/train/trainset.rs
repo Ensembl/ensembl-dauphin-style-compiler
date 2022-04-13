@@ -1,3 +1,5 @@
+use std::sync::{Arc, Mutex};
+use peregrine_toolkit::puzzle::AnswerAllocator;
 use peregrine_toolkit::sync::blocker::{Blocker};
 use peregrine_toolkit::sync::needed::Needed;
 use crate::{CarriageExtent, CarriageSpeed, ShapeStore, PeregrineCoreBase, DrawingCarriage};
@@ -21,6 +23,7 @@ pub struct TrainSet {
     future: Option<Train>,
     wanted: Option<Train>,
     target: Option<TrainExtent>,
+    answer_allocator: Arc<Mutex<AnswerAllocator>>,
     target_validity_counter: u64,
     next_train_serial: u64,
     messages: MessageSender,
@@ -38,6 +41,7 @@ impl TrainSet {
             future: None,
             wanted: None,
             target: None,
+            answer_allocator: base.answer_allocator.clone(),
             next_train_serial: 0,
             messages: base.messages.clone(),
             dependents: RailwayDependents::new(base,result_store,visual_blocker),
@@ -189,7 +193,7 @@ impl TrainSet {
         }
         /* do it */
         self.next_train_serial +=1;
-        let wanted = Train::new(&self.try_lifecycle,&extent,events,carriage_loader,viewport,&self.messages,self.target_validity_counter)?;
+        let wanted = Train::new(&self.try_lifecycle,&self.answer_allocator,&extent,events,carriage_loader,viewport,&self.messages,self.target_validity_counter)?;
         events.draw_create_train(&extent);
         self.wanted = Some(wanted);
         Ok(())
