@@ -1,20 +1,18 @@
 use std::cmp::max;
-use std::collections::{HashSet, HashMap};
-use std::iter::FromIterator;
-use std::ops::Range;
 use std::sync::{Mutex, Arc};
-use peregrine_toolkit::log;
+use peregrine_toolkit::{lock, log};
 use peregrine_toolkit::puzzle::AnswerAllocator;
 use peregrine_toolkit::sync::needed::Needed;
 
-use super::carriagelifecycle::CarriageLifecycleSet;
+use super::drawingcarriage::DrawingCarriage2;
+use super::graphics::Graphics;
 use super::railwaydatatasks::RailwayDataTasks;
-use super::railwayevent::RailwayEvents;
+use super::slider::{Slider, SliderActions};
 use super::trainextent::TrainExtent;
-use crate::allotment::core::heighttracker::HeightTrackerMerger;
+use crate::allotment::core::carriageoutput::CarriageOutput;
 use crate::allotment::core::trainstate::{TrainStateSpec, TrainState3};
 use crate::shapeload::carriageprocess::CarriageProcess;
-use crate::{CarriageExtent, DrawingCarriage, TrainState};
+use crate::{CarriageExtent};
 use crate::api::MessageSender;
 use crate::switch::trackconfiglist::TrainTrackConfigList;
 
@@ -22,16 +20,16 @@ const CARRIAGE_FLANK : u64 = 1;
 const MILESTONE_CARRIAGE_FLANK : u64 = 1;
 
 struct CarriageSetConstant {
-    try_lifecycle: Needed,
+    ping_needed: Needed,
     extent: TrainExtent,
     configs: TrainTrackConfigList,
     messages: MessageSender
 }
 
 impl CarriageSetConstant {
-    fn new(try_lifecycle: &Needed, extent: &TrainExtent, configs: &TrainTrackConfigList, messages: &MessageSender) -> CarriageSetConstant {
+    fn new(ping_needed: &Needed, extent: &TrainExtent, configs: &TrainTrackConfigList, messages: &MessageSender) -> CarriageSetConstant {
         CarriageSetConstant {
-            try_lifecycle: try_lifecycle.clone(),
+            ping_needed: ping_needed.clone(),
             extent: extent.clone(),
             configs: configs.clone(),
             messages: messages.clone()
@@ -39,166 +37,215 @@ impl CarriageSetConstant {
     }
 
     fn new_unloaded_carriage(&self, index: u64) -> CarriageProcess {
-        CarriageProcess::new(&CarriageExtent::new(&self.extent,index),Some(&self.try_lifecycle),&self.configs,Some(&self.messages),false)
+        CarriageProcess::new(&CarriageExtent::new(&self.extent,index),Some(&self.ping_needed),&self.configs,Some(&self.messages),false)
     }
 }
 
-struct CarriageProcessSet(HashMap<u64,CarriageProcess>);
+#[derive(Clone)]
+struct DrawingCarriageCreator {
+    index: u64,
+    ping_needed: Needed,
+    extent: CarriageExtent,
+    shapes: CarriageOutput
+}
 
-impl CarriageProcessSet {
-    fn new() -> CarriageProcessSet { CarriageProcessSet(HashMap::new()) }
+impl PartialEq for DrawingCarriageCreator {
+    fn eq(&self, other: &Self) -> bool {
+        self.index == other.index
+    }
+}
 
-    fn add(&mut self, index: u64, constant: &CarriageSetConstant, railway_data_tasks: &RailwayDataTasks) -> CarriageProcess {
-        if let Some(carriage) = self.0.get(&index) {
-            return carriage.clone();
+impl Eq for DrawingCarriageCreator {}
+
+impl std::hash::Hash for DrawingCarriageCreator {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.index.hash(state);
+    }
+}
+
+impl DrawingCarriageCreator {
+    fn create(&self, train_state: &TrainState3) -> DrawingCarriage2 {
+        DrawingCarriage2::new(&self.extent,&self.ping_needed,&self.shapes,train_state)
+    }
+}
+
+struct DrawingCarriages2 {
+    ping_needed: Needed,
+    train_extent: TrainExtent,
+    graphics: Graphics
+}
+
+impl DrawingCarriages2 {
+    fn new(ping_needed: &Needed, train_extent: &TrainExtent, graphics: &Graphics) -> DrawingCarriages2 {
+        DrawingCarriages2 {
+            ping_needed: ping_needed.clone(),
+            train_extent: train_extent.clone(),
+            graphics: graphics.clone()
         }
-        let new_carriage = constant.new_unloaded_carriage(index);
-        self.0.insert(index,new_carriage.clone());
-        railway_data_tasks.add_carriage(&new_carriage);
+    }
+}
+
+impl SliderActions<(DrawingCarriageCreator,TrainState3),DrawingCarriage2,DrawingCarriage2> for DrawingCarriages2 {
+    fn ctor(&mut self, (creator,state): &(DrawingCarriageCreator,TrainState3)) -> DrawingCarriage2 {
+        log!("create carriage {:?}",creator.index);
+        let dc = creator.create(state);
+        self.graphics.create_carriage(&dc);
+        dc
+    }
+
+    fn init(&mut self, _: &(DrawingCarriageCreator,TrainState3), item: &mut DrawingCarriage2) -> Option<DrawingCarriage2> {
+        if !item.is_ready() { return None; }
+        self.ping_needed.set(); // train can maybe be updates
+        Some(item.clone())
+    }
+
+    fn done(&mut self, items: &mut dyn Iterator<Item=(&(DrawingCarriageCreator, TrainState3), &DrawingCarriage2)>) {
+        let carriages = items.map(|x| x.1).cloned().collect::<Vec<_>>();
+        if carriages.len() > 0 {
+            self.graphics.set_carriages(&self.train_extent,&carriages);
+        }
+    }
+
+    fn dtor(&mut self, _: &(DrawingCarriageCreator,TrainState3), dc: DrawingCarriage2) {
+        self.graphics.drop_carriage(&dc);
+    }
+}
+
+struct CarriageProcessActions2 {
+    ping_needed: Needed,
+    constant: Arc<CarriageSetConstant>,
+    railway_data_tasks: RailwayDataTasks, 
+    train_state_spec: TrainStateSpec,
+    graphics: Graphics
+}
+
+impl CarriageProcessActions2 {
+    fn new(ping_needed: &Needed, constant: &Arc<CarriageSetConstant>, 
+           railway_data_tasks: &RailwayDataTasks, answer_allocator: &Arc<Mutex<AnswerAllocator>>,
+            graphics: &Graphics) -> CarriageProcessActions2 {
+        CarriageProcessActions2 {
+            ping_needed: ping_needed.clone(),
+            constant: constant.clone(),
+            graphics: graphics.clone(),
+            railway_data_tasks: railway_data_tasks.clone(),
+            train_state_spec: TrainStateSpec::new(answer_allocator)
+        }
+    }
+
+    fn state_updated(&self) {
+        self.graphics.set_playing_field(self.state().playing_field());
+        self.graphics.set_metadata(self.state().metadata());
+    }
+
+    fn state(&self) -> TrainState3 { self.train_state_spec.spec() }
+}
+
+impl SliderActions<u64,CarriageProcess,DrawingCarriageCreator> for CarriageProcessActions2 {
+    fn ctor(&mut self, index: &u64) -> CarriageProcess {
+        log!("create panel {:?}",index);
+        let new_carriage = self.constant.new_unloaded_carriage(*index);
+        self.railway_data_tasks.add_carriage(&new_carriage);
         new_carriage
     }
 
-    fn remove_unused(&mut self, used: &mut dyn Iterator<Item=&u64>, train_state: &mut TrainStateSpec) {
-        let used_indexes = used.cloned().collect::<HashSet<_>>();
-        let carriage_indexes = self.0.keys().cloned().collect::<HashSet<_>>();
-        for dead_carriage_index in  carriage_indexes.difference(&used_indexes) {
-            self.0.remove(dead_carriage_index);
-            train_state.remove(*dead_carriage_index);
-        }
+    fn dtor(&mut self, index: &u64, _item: DrawingCarriageCreator) {
+        self.train_state_spec.remove(*index);
+        self.state_updated();
+    }
+
+    fn init(&mut self, index: &u64, item: &mut CarriageProcess) -> Option<DrawingCarriageCreator> {
+        log!("init panel? {:?}",index);
+        item.get_shapes2().map(|shapes| {
+            log!("init panel! {:?}",index);
+            self.train_state_spec.add(*index,shapes.spec());
+            self.state_updated();
+            self.ping_needed.set(); /* Need to call ping in case dc are ready */
+            DrawingCarriageCreator { 
+                index: *index,
+                extent: item.extent().clone(),
+                shapes: shapes.clone(),
+                ping_needed: self.ping_needed.clone()
+            }
+        })
     }
 }
 
 pub(super) struct CarriageSet {
-    constant: CarriageSetConstant,
-    index: Option<u64>,
-    train_state: Option<TrainState>,
-    train_state_spec: TrainStateSpec,
-    train_state3: Option<TrainState3>,
-    carriage_processes: CarriageProcessSet,
-    drawing_carriages: CarriageLifecycleSet,
-    changes_pending: bool 
+    centre: Option<u64>,
+    active: bool,
+    milestone: bool,
+    drawing: Slider<(DrawingCarriageCreator,TrainState3),DrawingCarriage2,DrawingCarriage2,DrawingCarriages2>,
+    process: Slider<u64,CarriageProcess,DrawingCarriageCreator,CarriageProcessActions2>
 }
 
 impl CarriageSet {
-    pub(super) fn new(try_lifecycle: &Needed, answer_allocator: &Arc<Mutex<AnswerAllocator>>, extent: &TrainExtent, configs: &TrainTrackConfigList, messages: &MessageSender) -> CarriageSet {
-        let constant = CarriageSetConstant::new(try_lifecycle,extent,configs,messages);
+    pub(super) fn new(ping_needed: &Needed, answer_allocator: &Arc<Mutex<AnswerAllocator>>, extent: &TrainExtent, configs: &TrainTrackConfigList, railway_data_tasks: &RailwayDataTasks, graphics: &Graphics, messages: &MessageSender) -> CarriageSet {
+        let constant = Arc::new(CarriageSetConstant::new(ping_needed,extent,configs,messages));
+        let train_state_spec = Arc::new(Mutex::new(TrainStateSpec::new(answer_allocator)));
+        let carriage_actions = CarriageProcessActions2::new(ping_needed,&constant,railway_data_tasks,answer_allocator,graphics);
+        let drawing_actions = DrawingCarriages2::new(&ping_needed,extent,graphics);
+        let is_milestone = extent.scale().is_milestone();
         CarriageSet {
-            constant,
-            index: None,
-            train_state: None,
-            train_state3: None,
-            train_state_spec: TrainStateSpec::new(answer_allocator),
-            carriage_processes: CarriageProcessSet::new(),
-            drawing_carriages: CarriageLifecycleSet::new(),
-            changes_pending: false
+            centre: None,
+            drawing: Slider::new(drawing_actions),
+            process: Slider::new(carriage_actions),
+            milestone: is_milestone,
+            active: false
         }
     }
 
-    pub(super) fn discard(&mut self, railway_events: &mut RailwayEvents) {
-        self.drawing_carriages.clear(railway_events);
-        self.changes_pending = true;
+    pub(super) fn set_active(&mut self, yn: bool) {
+        self.active = yn;
+        if yn {
+            self.ping();
+        }
     }
 
-    /* given our centre, which carriage points do we want? */
-    fn wanted_carriage_indexes(&self, extent: &TrainExtent, centre: u64) -> Range<u64> {
-        let flank = if extent.scale().is_milestone() { MILESTONE_CARRIAGE_FLANK } else { CARRIAGE_FLANK };
+    pub(super) fn is_active(&self) -> bool { self.active }
+
+    pub(super) fn update_centre(&mut self, centre: u64) {
+        self.centre = Some(centre);
+        let flank = if self.milestone { MILESTONE_CARRIAGE_FLANK } else { CARRIAGE_FLANK };
         let start = max((centre as i64)-(flank as i64),0) as u64;
-        start..(start+flank*2+1)
+        let wanted = start..(start+flank*2+1);    
+        self.process.set(wanted);
     }
 
-    pub(super) fn update_centre(&mut self, centre: u64, railway_events: &mut RailwayEvents, carriage_loader: &RailwayDataTasks) {
-        /* check and update state */
-        if let Some(old_centre)= &self.index {
-            if *old_centre == centre {
-                /* Nothing at all changed */
-                return;
-            }
-        }
-        self.index = Some(centre);
-        self.update_carriages(railway_events,carriage_loader);
+    pub(super) fn central_drawing_carriage(&self) -> Option<&DrawingCarriage2> {
+        let index = if let Some(x) = self.centre { x } else { return None; };
+        let creator = if let Some(creator) = self.process.get(index) {creator } else { return None; }.clone();
+        let state = self.process.inner().state();
+        self.drawing.get((creator,state))
     }
 
-    pub(super) fn update_train_state(&mut self, train_state: &TrainState, railway_events: &mut RailwayEvents, carriage_loader: &RailwayDataTasks) {
-        /* check and update state */
-        if let Some(old_state)= &self.train_state {
-            if old_state == train_state {
-                /* Nothing at all changed */
-                return;
-            }
-            if old_state != train_state {
-                /* If train_state has changed, old DrawingCarriages are no use to us */
-                self.drawing_carriages.clear(railway_events);
-            }
+    pub(super) fn each_current_drawing_carriage<X,F>(&self, state: &mut X, mut cb: F) where F: FnMut(&mut X,&DrawingCarriage2) {
+        for (_,drawing) in self.drawing.iter() {
+            cb(state,drawing);
         }
-        self.train_state = Some(train_state.clone());
-        self.update_carriages(railway_events,carriage_loader);
     }
 
-    fn update_carriages(&mut self, railway_events: &mut RailwayEvents, carriage_loader: &RailwayDataTasks) {
-        if self.index.is_none() { return; }
-        /* Update list of carriages. We populate a new carriage list by draining from the current list where available
-         * or by scheduling creation of a new one. Anything left in the list is then discarded. We then replace the old
-         * list with our new one.
-         */
-        let mut new_set = CarriageLifecycleSet::new();
-        for index in self.wanted_carriage_indexes(&self.constant.extent,self.index.unwrap()) {
-            if !new_set.try_transfer(&mut self.drawing_carriages,index) {
-                let process = self.carriage_processes.add(index,&self.constant,carriage_loader);
-                new_set.add_process(index,process);
-            }
-        }
-        /* remove any old carriages left */
-        self.drawing_carriages.clear(railway_events);
-        /* update ourselves to new carriage set */
-        self.drawing_carriages = new_set;
-        self.carriage_processes.remove_unused(&mut self.drawing_carriages.used(),&mut self.train_state_spec);
-        self.changes_pending = true;
-        /* We probably have some already! */
-        self.check_for_carriages_with_shapes(railway_events);
-    }
-
-    /* Check if anything we are waiting for is now ready.
-     */
-    pub(super) fn check_for_carriages_with_shapes(&mut self, railway_events: &mut RailwayEvents) {
-        if let Some(train_state) = &self.train_state {
-            if self.drawing_carriages.try_upgrade(train_state,railway_events,&mut self.train_state_spec) {
-                self.changes_pending = true;
-                self.constant.try_lifecycle.set();
-            }
-        }
+    pub(super) fn all_ready(&self) -> bool {
+        /* for efficiency */
+        if !self.process.is_ready() || !self.drawing.is_ready() { return false; }
         /**/
-        let state = self.train_state_spec.spec();
-    }
-
-    pub(super) fn central_drawing_carriage(&self) -> Option<&DrawingCarriage> {
-        self.index.and_then(|centre| self.drawing_carriages.get_drawing_carriage(centre))
-    }
-
-    pub(super) fn each_current_drawing_carriage<X,F>(&self, state: &mut X, mut cb: F) where F: FnMut(&mut X,&DrawingCarriage) {
-        for dc in self.drawing_carriages.each_drawing_carriage() {
-            cb(state,dc);
+        let mut wanted = self.process.wanted().clone();
+        for got in self.drawing.iter().map(|((x,_),_)| x.index) {
+            wanted.remove(&got);
         }
+        wanted.len() == 0
     }
 
-    pub(crate) fn all_ready(&self) -> Option<Vec<DrawingCarriage>> {
-        if !self.drawing_carriages.all_ready() { return None; }
-        self.constant.try_lifecycle.set();
-        Some(Vec::from_iter(self.drawing_carriages.each_drawing_carriage().cloned()))
-    }
-
-    pub(super) fn calculate_train_state(&self) -> TrainState {
-        let mut merger = HeightTrackerMerger::new();
-        self.each_current_drawing_carriage(&mut merger, |merger,carriage| {
-            merger.merge(&carriage.intrinsic_height());
-        });
-        TrainState::new(merger.to_height_tracker())
-    }
-
-    pub(super) fn draw_set_carriages(&mut self, train: &TrainExtent, railway_events: &mut RailwayEvents) {
-        if !self.changes_pending { return; }
-        if let Some(carriages) = self.all_ready() {
-            railway_events.draw_set_carriages(train,&carriages);    
-            self.changes_pending = false;
-        }
+    // TODO "good enough" layer via trains
+    pub(super) fn ping(&mut self) {
+        log!("carriage_set/ping");
+        self.process.check();
+        /* Create any necessary DrawingCarriages */
+        let state = self.process.inner().state();
+        log!("carriage_set/ping (active)");
+        let mut wanted = self.process.iter().map(|(_,x)| (x.clone(),state.clone())).collect::<Vec<_>>();
+        log!("wanted len={}",wanted.len());
+        self.drawing.set(&mut wanted.drain(..));
+        /* Maybe we need to update the UI? */
+        self.drawing.check();
     }
 }

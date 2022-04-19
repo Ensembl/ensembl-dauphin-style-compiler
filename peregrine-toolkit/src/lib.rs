@@ -26,7 +26,7 @@ pub mod puzzle {
     mod variable;
 
     pub use answer::{ Answer, StaticAnswer, AnswerAllocator };
-    pub use commute::{ commute, commute_arc, commute_clonable, DelayedCommuteBuilder };
+    pub use commute::{ commute, commute_arc, commute_clonable, DelayedCommuteBuilder, build_commute };
     pub use compose::{ derived, compose, compose_slice };
     pub use constant::{ constant, cache_constant, cache_constant_arc, cache_constant_clonable };
     pub use delayed::{ DelayedSetter, delayed, promise_delayed };
@@ -34,9 +34,12 @@ pub mod puzzle {
     pub use value::{ Value, StaticValue };
     pub use unknown::{ 
         UnknownSetter, StaticUnknownSetter, unknown, short_unknown, short_unknown_promise_clonable, 
-        short_unknown_function, short_unknown_function_promise
+        short_unknown_function, short_unknown_function_promise, short_unknown_clonable
     };
     pub use variable::{ variable };
+
+    #[cfg(debug_assertions)]
+    pub use compose::{ derived_debug };
 }
 
 pub mod boom;

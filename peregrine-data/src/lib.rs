@@ -36,6 +36,7 @@ mod allotment {
         pub(crate) mod leaflist;
         pub(crate) mod leafrequest;
         pub mod playingfield;
+        pub(crate) mod globalvalue;
         pub(crate) mod trainstate;
     }
 
@@ -208,20 +209,23 @@ pub(crate) mod switch {
 
 mod train {
     mod anticipate;
-    pub(crate) mod drawingcarriage;
+    pub mod drawingcarriage;
     mod carriagelifecycle;
     mod railwayevent;
     mod carriageextent;
     mod railwaydatatasks;
     mod carriageset;
+    pub(crate) mod graphics;
     mod railway;
     mod railwaydependents;
+    mod slider;
+    mod switcher;
     pub(crate) mod trainextent;
     mod train;
     mod trainset;
 
     pub use carriageextent::CarriageExtent;
-    pub use drawingcarriage::{ DrawingCarriage };
+    pub use drawingcarriage::{ DrawingCarriage2 };
     pub use trainextent::TrainExtent;
     pub use railway::Railway;
 }
@@ -258,14 +262,13 @@ pub use self::shape::{
     ProgramShapesBuilder, CarriageShapesBuilder
 };
 pub use self::allotment::core::coordsystem::{ CoordinateSystem, CoordinateSystemVariety };
-pub use self::allotment::core::playingfield::PlayingField;
+pub use self::allotment::core::playingfield::{ PlayingField, GlobalPlayingField };
 pub use self::allotment::core::allotmentmetadata::{
-    AllotmentMetadataReport
+    GlobalAllotmentMetadata
 };
-pub use self::allotment::core::trainstate::TrainState;
 pub use self::switch::switch::{ Switches };
 pub use self::switch::track::Track;
-pub use self::train::{ CarriageExtent, DrawingCarriage, TrainExtent };
+pub use self::train::{ CarriageExtent, DrawingCarriage2, TrainExtent };
 pub use self::util::{ CountingPromise, DataMessage, Builder };
 pub use self::util::vecutils::expand_by_repeating;
 pub use self::util::eachorevery::{ EachOrEvery, EachOrEveryFilterBuilder };

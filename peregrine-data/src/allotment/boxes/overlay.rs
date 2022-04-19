@@ -1,13 +1,13 @@
 use peregrine_toolkit::{puzzle::{StaticValue, commute_clonable}};
-use crate::{allotment::{core::{ aligner::Aligner, carriageoutput::BoxPositionContext}, style::{style::{ContainerAllotmentStyle}, allotmentname::{AllotmentNamePart, AllotmentName}}, boxes::boxtraits::Stackable}, CoordinateSystem};
+use crate::{allotment::{core::{ carriageoutput::BoxPositionContext}, style::{style::{ContainerAllotmentStyle}, allotmentname::{AllotmentNamePart, AllotmentName}}, boxes::boxtraits::Stackable}, CoordinateSystem};
 use super::{container::{Container}, boxtraits::{Coordinated, BuildSize, ContainerSpecifics }};
 
 #[derive(Clone)]
 pub struct Overlay(Container);
 
 impl Overlay {
-    pub(crate) fn new(name: &AllotmentNamePart, style: &ContainerAllotmentStyle, aligner: &Aligner) -> Overlay {
-        Overlay(Container::new(name,style,aligner,UnpaddedOverlay::new()))
+    pub(crate) fn new(name: &AllotmentNamePart, style: &ContainerAllotmentStyle) -> Overlay {
+        Overlay(Container::new(name,style,UnpaddedOverlay::new()))
     }
 
     pub(crate) fn add_child(&mut self, child: &dyn Stackable) {

@@ -1,7 +1,7 @@
 use std::sync::{ Arc, Mutex };
 use peregrine_data::{
     Assets, CarriageSpeed, ChannelIntegration, PeregrineIntegration, 
-    Viewport, AllotmentMetadataReport, PlayingField, DrawingCarriage, TrainExtent
+    Viewport, PlayingField, TrainExtent, DrawingCarriage2, GlobalAllotmentMetadata
 };
 use peregrine_toolkit::lock;
 use super::pgchannel::PgChannel;
@@ -36,20 +36,20 @@ impl PeregrineIntegration for PgIntegration {
         self.trainset.drop_train(train);
     }
 
-    fn create_carriage(&mut self, carriage: &DrawingCarriage) {
+    fn create_carriage(&mut self, carriage: &DrawingCarriage2) {
         self.trainset.create_carriage(carriage,&self.webgl,&self.assets);
     }
 
-    fn drop_carriage(&mut self, carriage: &DrawingCarriage) {
+    fn drop_carriage(&mut self, carriage: &DrawingCarriage2) {
         self.trainset.drop_carriage(carriage);
     }
 
-    fn set_carriages(&mut self, train: &TrainExtent, carriages: &[DrawingCarriage]) -> Result<(),DataMessage> {
+    fn set_carriages(&mut self, train: &TrainExtent, carriages: &[DrawingCarriage2]) -> Result<(),DataMessage> {
         self.trainset.set_carriages(train,carriages);
         Ok(())
     }
 
-    fn notify_allotment_metadata(&mut self, metadata: &AllotmentMetadataReport) {
+    fn notify_allotment_metadata(&mut self, metadata: &GlobalAllotmentMetadata) {
         self.report.set_allotter_metadata(metadata);
     }
 
@@ -64,22 +64,20 @@ impl PeregrineIntegration for PgIntegration {
         Ok(())
     }
 
-    fn notify_viewport(&mut self, viewport: &Viewport, future: bool) {
-        if !future {
-            self.stage.lock().unwrap().notify_current(viewport);
-            if let Ok(layout) = viewport.layout() {
-                let stick = layout.stick();
-                self.report.set_stick(&stick.to_string());
-                if let (Ok(x),Ok(bp)) = (viewport.position(),viewport.bp_per_screen()) {
-                    self.report.set_x_bp(x);
-                    self.report.set_bp_per_screen(bp);
-                }
+    fn notify_viewport(&mut self, viewport: &Viewport) {
+        self.stage.lock().unwrap().notify_current(viewport);
+        if let Ok(layout) = viewport.layout() {
+            let stick = layout.stick();
+            self.report.set_stick(&stick.to_string());
+            if let (Ok(x),Ok(bp)) = (viewport.position(),viewport.bp_per_screen()) {
+                self.report.set_x_bp(x);
+                self.report.set_bp_per_screen(bp);
             }
         }
     }
 
     fn set_playing_field(&mut self, playing_field: PlayingField) {
-        self.dom.set_useful_height(playing_field.height() as u32);
+        self.dom.set_useful_height(playing_field.height as u32);
         lock!(self.stage).notify_playingfield(&playing_field);
     }
 }

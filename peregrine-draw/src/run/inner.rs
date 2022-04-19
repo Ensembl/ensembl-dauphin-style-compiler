@@ -13,6 +13,7 @@ use peregrine_message::MessageKind;
 use peregrine_toolkit::log;
 use peregrine_toolkit::plumbing::distributor::Distributor;
 use peregrine_toolkit::sync::blocker::Blocker;
+use peregrine_toolkit::sync::needed::Needed;
 use super::report::Report;
 use super::sound::Sound;
 use super::{PgPeregrineConfig, globalconfig::CreatedPeregrineConfigs};
@@ -132,7 +133,8 @@ impl PeregrineInnerAPI {
             message_sender2.add(message);
         });
         let webgl = Arc::new(Mutex::new(WebGlGlobal::new(&dom,&config.draw)?));
-        let stage = Arc::new(Mutex::new(Stage::new()));
+        let redraw_needed = Needed::new();
+        let stage = Arc::new(Mutex::new(Stage::new(&redraw_needed)));
         let trainset = GlRailway::new(&commander,&config.draw,&stage.lock().unwrap())?;
         let report = Report::new(&config.draw,&message_sender)?;
         let target_reporter = TargetReporter::new(&commander,&config.draw,&report)?;
@@ -142,9 +144,8 @@ impl PeregrineInnerAPI {
         let assets = integration.assets().clone();
         let mut core = PeregrineCore::new(integration,commander.clone(),move |e| {
             routed_message(Some(commander_id),Message::DataError(e))
-        },queue_blocker).map_err(|e| Message::DataError(e))?;
+        },queue_blocker,&redraw_needed).map_err(|e| Message::DataError(e))?;
         peregrine_dauphin(Box::new(PgDauphinIntegrationWeb()),&core);
-        let redraw_needed = stage.lock().unwrap().redraw_needed();
         report.run(&commander);
         core.application_ready();
         message_sender.add(Message::Ready);

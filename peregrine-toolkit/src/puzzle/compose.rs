@@ -22,6 +22,20 @@ pub fn derived<'a:'b, 'b, 'f:'a, 'g:'a, 'h:'f, T:'a, U:'b, F: 'f>(a: Value<'g,'a
     })
 }
 
+#[cfg(debug_assertions)]
+pub fn derived_debug<'a:'b, 'b, 'f:'a, 'g:'a, 'h:'f, T:'a, U:'b, F: 'f>(a: Value<'g,'a,T>, f: F, name: &'h str) -> Value<'h,'b,U> where F: Fn(T) -> U {
+    use crate::log;
+
+    Value::new(move |answer_index| {
+        a.inner(answer_index).map(|a| {
+            //log!("enter: {}",name);
+            let out = f(a);
+            //log!("leave: {}",name);
+            out
+        })
+    })
+}
+
 /* Used by Value's callback:
  *   Input1 type must last longer than input1 Value: a > g
  *   Input2 type must last longer than input2 Value: b > h

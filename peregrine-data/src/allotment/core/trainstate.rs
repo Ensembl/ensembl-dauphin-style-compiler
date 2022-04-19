@@ -1,79 +1,93 @@
 use std::{sync::{Arc, Mutex}, collections::{HashMap, hash_map::DefaultHasher}, fmt, hash::{Hash, Hasher}};
 
-use peregrine_toolkit::{puzzle::{StaticAnswer, AnswerAllocator, Answer}, lock, log};
+use peregrine_toolkit::{puzzle::{StaticAnswer, AnswerAllocator}, lock, log};
 
-use super::heighttracker::{HeightTracker, HeightTrackerPieces, HeightTrackerMerger, HeightTrackerPieces2, HeightTracker2Values};
+use crate::GlobalAllotmentMetadata;
 
-#[derive(Clone,PartialEq,Eq,Hash)]
-pub struct TrainState {
-    height_tracker: HeightTracker
-}
-
-impl TrainState {
-    pub fn independent() -> TrainState {
-        TrainState {
-            height_tracker: HeightTracker::empty()
-        }
-    }
-
-    pub(crate) fn new(height_tracker: HeightTracker) -> TrainState {
-        TrainState {
-            height_tracker
-        }
-    }
-
-    pub(crate) fn update_puzzle(&self, answer_index: &mut StaticAnswer, height_tracker: &HeightTrackerPieces) {
-        height_tracker.set_extra_height(answer_index,&self.height_tracker);
-    }
-}
+use super::{playingfield::{LocalPlayingFieldBuilder, LocalPlayingField, GlobalPlayingFieldBuilder, GlobalPlayingField}, globalvalue::GlobalValueBuilder, heighttracker::{LocalHeightTrackerBuilder, LocalHeightTracker, GlobalHeightTracker, GlobalHeightTrackerBuilder}, aligner::{LocalAlignerBuilder, LocalAligner, GlobalAligner, GlobalAlignerBuilder}, allotmentmetadata::{LocalAllotmentMetadataBuilder, LocalAllotmentMetadata, GlobalAllotmentMetadataBuilder}};
 
 /* Every carriage manipulates in a CarriageTrainStateRequest during creation (during build). This specifies the
  * requirements which a Carriage has of the train. 
  */
 
 pub struct CarriageTrainStateRequest {
-    height_tracker: HeightTrackerPieces2
+    height_tracker: LocalHeightTrackerBuilder,
+    playing_field: LocalPlayingFieldBuilder,
+    aligner: LocalAlignerBuilder,
+    metadata: LocalAllotmentMetadataBuilder
 }
 
 impl CarriageTrainStateRequest {
     pub fn new() -> CarriageTrainStateRequest {
         CarriageTrainStateRequest {
-            height_tracker: HeightTrackerPieces2::new()
+            height_tracker: LocalHeightTrackerBuilder::new(),
+            playing_field: LocalPlayingFieldBuilder::new(),
+            aligner: LocalAlignerBuilder::new(),
+            metadata: LocalAllotmentMetadataBuilder::new()
         }
     }
 
-    pub fn height_tracker(&self) -> &HeightTrackerPieces2 { &self.height_tracker }
-    pub fn height_tracker_mut(&mut self) -> &mut HeightTrackerPieces2 { &mut self.height_tracker }
+    pub fn playing_field(&self) -> &LocalPlayingFieldBuilder { &self.playing_field }
+    pub fn playing_field_mut(&mut self) -> &mut LocalPlayingFieldBuilder { &mut self.playing_field }
+
+    pub fn height_tracker(&self) -> &LocalHeightTrackerBuilder { &self.height_tracker }
+    pub fn height_tracker_mut(&mut self) -> &mut LocalHeightTrackerBuilder { &mut self.height_tracker }
+
+    pub fn aligner(&self) -> &LocalAlignerBuilder { &self.aligner }
+    pub fn aligner_mut(&mut self) -> &mut LocalAlignerBuilder { &mut self.aligner }
+
+    pub fn metadata(&self) -> &LocalAllotmentMetadataBuilder { &self.metadata }
+    pub fn metadata_mut(&mut self) -> &mut LocalAllotmentMetadataBuilder { &mut self.metadata }
 }
 
 #[derive(Clone)]
-#[cfg_attr(debug_assertions,derive(Debug))]
 pub struct CarriageTrainStateSpec {
-    height_values: Arc<HeightTracker2Values>
+    height_values: Arc<LocalHeightTracker>,
+    playing_field: Arc<LocalPlayingField>,
+    aligner: Arc<LocalAligner>,
+    metadata: Arc<LocalAllotmentMetadata>
 }
 
 impl CarriageTrainStateSpec {
     pub fn new(request: &CarriageTrainStateRequest, independent_answer: &mut StaticAnswer) -> CarriageTrainStateSpec {
+        log!("x A");
+        let height_tracker = LocalHeightTracker::new(request.height_tracker(),independent_answer);
+        log!("x B");
+        let playing_field = LocalPlayingField::new(request.playing_field(),independent_answer);
+        log!("x C");
+        let aligner = LocalAligner::new(request.aligner(),independent_answer);
+        log!("x D");
+        let metadata = LocalAllotmentMetadata::new(request.metadata());
         CarriageTrainStateSpec {
-            height_values: Arc::new(HeightTracker2Values::new(request.height_tracker(),independent_answer))
+            height_values: Arc::new(height_tracker),
+            playing_field: Arc::new(playing_field),
+            aligner: Arc::new(aligner),
+            metadata: Arc::new(metadata)
         }
     }
 }
 
 #[derive(Clone)]
 pub struct TrainState3 {
-    height_tracker: Arc<HeightTracker2Values>,
+    height_tracker: Arc<GlobalHeightTracker>,
+    playing_field: Arc<GlobalPlayingField>,
+    metadata: Arc<GlobalAllotmentMetadata>,
+    aligner: Arc<GlobalAligner>,
     answer: Arc<Mutex<StaticAnswer>>,
     hash: u64
 }
 
 impl PartialEq for TrainState3 {
-    fn eq(&self, other: &Self) -> bool {
-        self.hash == other.hash
-    }
+    fn eq(&self, other: &Self) -> bool { self.hash == other.hash }
 }
 
 impl Eq for TrainState3 {}
+
+impl Hash for TrainState3 {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.hash.hash(state);
+    }
+}
 
 #[cfg(debug_assertions)]
 impl fmt::Debug for TrainState3 {
@@ -83,29 +97,63 @@ impl fmt::Debug for TrainState3 {
 }
 
 impl TrainState3 {
-    fn calc_heights(spec: &TrainStateSpec, answer: &mut StaticAnswer) -> HeightTracker2Values {
-        let mut out = HeightTracker2Values::empty();
+    fn calc_heights(spec: &TrainStateSpec, answer: &mut StaticAnswer) -> GlobalHeightTracker {
+        let mut builder = GlobalHeightTrackerBuilder::new();
         for carriage_spec in spec.specs.values() {
-            out.merge(&carriage_spec.height_values);
+            carriage_spec.height_values.add(&mut builder);
         }
-        out.set_answer(answer);
-        out
+        GlobalHeightTracker::new(builder,answer)
+    }
+
+    fn calc_playing_field(spec: &TrainStateSpec, answer: &mut StaticAnswer) -> GlobalPlayingField {
+        let mut builder = GlobalPlayingFieldBuilder::new();
+        for carriage_spec in spec.specs.values() {
+            carriage_spec.playing_field.add(&mut builder);
+        }
+        GlobalPlayingField::new(builder,answer)
+    }
+
+    fn calc_aligner(spec: &TrainStateSpec, answer: &mut StaticAnswer) -> GlobalAligner {
+        let mut builder = GlobalAlignerBuilder::new();
+        for carriage_spec in spec.specs.values() {
+            carriage_spec.aligner.add(&mut builder);
+        }
+        GlobalAligner::new(builder,answer)
+    }
+
+    fn calc_metadata(spec: &TrainStateSpec, answer: &mut StaticAnswer) -> GlobalAllotmentMetadata {
+        let mut builder = GlobalAllotmentMetadataBuilder::new();
+        for carriage_spec in spec.specs.values() {
+            carriage_spec.metadata.add(&mut builder);
+        }
+        GlobalAllotmentMetadata::new(builder,answer)
     }
 
     fn calc_hash(&mut self) {
         let mut hasher = DefaultHasher::new();
         self.height_tracker.hash(&mut hasher);
+        self.playing_field.hash(&mut hasher);
+        self.aligner.hash(&mut hasher);
+        self.metadata.hash(&mut hasher);
         self.hash = hasher.finish();
     }
 
     fn new(spec: &TrainStateSpec, mut answer: StaticAnswer) -> TrainState3 {
         let height_tracker = Arc::new(Self::calc_heights(spec,&mut answer));
+        let playing_field = Arc::new(Self::calc_playing_field(spec,&mut answer));
+        let aligner = Arc::new(Self::calc_aligner(spec,&mut answer));
+        let metadata = Arc::new(Self::calc_metadata(spec,&mut answer));
         let mut out = TrainState3 {
-            height_tracker, answer: Arc::new(Mutex::new(answer)), hash: 0
+            height_tracker, playing_field, aligner, metadata,
+            answer: Arc::new(Mutex::new(answer)), hash: 0
         };
         out.calc_hash();
         out
     }
+
+    pub(crate) fn answer(&self) -> Arc<Mutex<StaticAnswer>> { self.answer.clone() }
+    pub(crate) fn playing_field(&self) -> &GlobalPlayingField { &self.playing_field }
+    pub(crate) fn metadata(&self) -> &GlobalAllotmentMetadata { &self.metadata }
 }
 
 pub struct TrainStateSpec {
@@ -141,37 +189,5 @@ impl TrainStateSpec {
     pub fn remove(&mut self, index: u64) {
         self.specs.remove(&index);
         *lock!(self.cached_train_state) = None;
-    }
-}
-
-#[derive(Clone,PartialEq,Eq,Hash)]
-pub struct TrainState2 {
-    height_tracker: HeightTracker
-}
-
-pub struct TrainStateBuilder {
-//    carriages: HashMap<>,
-    state: Arc<Mutex<TrainState2>>
-}
-
-impl TrainStateBuilder {
-    pub fn new() -> TrainStateBuilder {
-        TrainStateBuilder {
-            state: Arc::new(Mutex::new(TrainState2{
-                height_tracker: HeightTracker::empty()
-            }))
-        }
-    }
-
-    pub fn set_height_tracker(&self, height_tracker: HeightTracker) {
-        lock!(self.state).height_tracker = height_tracker;
-    }
-
-    pub fn state_if_not(&self, was: Option<&TrainState2>) -> Option<TrainState2> {
-        let state = lock!(self.state);
-        if let Some(was) = was {
-            if *state == *was { return None; }
-        }
-        Some(state.clone())
     }
 }

@@ -9,7 +9,7 @@ pub enum LeafAllotmentType {
 }
 
 #[cfg_attr(any(test,debug_assertions),derive(Debug))]
-#[derive(Clone)]
+#[derive(Clone,PartialEq,Eq,Hash)]
 pub enum Indent {
     None,
     Top,

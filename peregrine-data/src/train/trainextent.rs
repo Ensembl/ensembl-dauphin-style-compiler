@@ -1,11 +1,17 @@
 use crate::{CarriageSpeed, Scale, core::{Layout, pixelsize::PixelSize}};
 
 #[derive(Clone,Hash,PartialEq,Eq)]
-#[cfg_attr(debug_assertions,derive(Debug))]
 pub struct TrainExtent {
     layout: Layout,
     scale: Scale,
     pixel_size: PixelSize
+}
+
+#[cfg(debug_assertions)]
+impl std::fmt::Debug for TrainExtent {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f,"{}/{}...",self.layout().stick().get_id(),self.scale().get_index())
+    }
 }
 
 impl TrainExtent {

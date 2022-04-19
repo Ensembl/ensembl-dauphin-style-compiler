@@ -1,8 +1,8 @@
 use std::{sync::{Arc}};
 
-use peregrine_toolkit::{puzzle::{DelayedSetter, constant, derived, StaticValue, StaticAnswer, promise_delayed, cache_constant_clonable}};
+use peregrine_toolkit::{puzzle::{DelayedSetter, constant, derived, StaticValue, StaticAnswer, promise_delayed, cache_constant_clonable, derived_debug}};
 
-use crate::{CoordinateSystem, allotment::{core::{aligner::Aligner, carriageoutput::BoxPositionContext}, transformers::{transformers::{Transformer, TransformerVariety}, simple::{SimpleTransformerHolder, SimpleTransformer}, drawinginfo::DrawingInfo}, style::{style::LeafCommonStyle, allotmentname::{AllotmentNamePart, AllotmentName}}, util::{rangeused::RangeUsed, bppxconverter::BpPxConverter}}};
+use crate::{CoordinateSystem, allotment::{core::{carriageoutput::BoxPositionContext, playingfield::PlayingFieldEdge}, transformers::{transformers::{Transformer, TransformerVariety}, simple::{SimpleTransformerHolder, SimpleTransformer}, drawinginfo::DrawingInfo}, style::{style::{LeafCommonStyle, Indent}, allotmentname::{AllotmentNamePart, AllotmentName}}, util::{rangeused::RangeUsed, bppxconverter::BpPxConverter}}};
 
 use super::{boxtraits::{Stackable, Transformable, Coordinated, BuildSize }};
 
@@ -30,16 +30,16 @@ pub struct FloatingLeaf {
     //base_range_piece: StaticValue<RangeUsed<f64>>,
     //base_range_piece_setter: DelayedSetter<'static,'static,RangeUsed<f64>>,
     max_y_piece: StaticValue<f64>,
+    indent: StaticValue<f64>,
     max_y_piece_setter: DelayedSetter<'static,'static,f64>,
     converter: StaticValue<Arc<BpPxConverter>>,
     top_setter: Option<DelayedSetter<'static,'static,f64>>,
     top: StaticValue<f64>,
-    indent: StaticValue<f64>,
     drawing_info: Arc<DrawingInfo>
 }
 
 impl FloatingLeaf {
-    pub fn new(name: &AllotmentNamePart, converter: &Arc<BpPxConverter>, statics: &LeafCommonStyle, drawing_info: &DrawingInfo, aligner: &Aligner) -> FloatingLeaf {
+    pub fn new(name: &AllotmentNamePart, converter: &Arc<BpPxConverter>, statics: &LeafCommonStyle, drawing_info: &DrawingInfo) -> FloatingLeaf {
         let drawing_info = Arc::new(drawing_info.clone());
         let (max_y_piece_setter,max_y_piece) = promise_delayed();
         if statics.coord_system.is_dustbin() {
@@ -51,14 +51,13 @@ impl FloatingLeaf {
             let (setter,value) = promise_delayed();
             (Some(setter),value)
         };
-        let indent = aligner.get(&statics.indent);
         FloatingLeaf {
             name: AllotmentName::from_part(name),
             statics: Arc::new(statics.clone()),
             converter: constant(converter.clone()), // kept in puzzle because SHOULD be variable
             max_y_piece, max_y_piece_setter,
-            indent, 
             top_setter, top,
+            indent: constant(0.),
             drawing_info
         }
     }
@@ -88,11 +87,24 @@ impl Stackable for FloatingLeaf {
         }
     }
 
-    fn locate(&mut self, _prep: &mut BoxPositionContext, value: &StaticValue<f64>) {
+    fn locate(&mut self, prep: &mut BoxPositionContext, value: &StaticValue<f64>) {
+        let sr = &mut prep.state_request;
+        let indent = match &self.statics.indent {
+            Indent::None => None,
+            Indent::Top => Some(sr.playing_field_mut().global(&PlayingFieldEdge::Top)),
+            Indent::Left => Some(sr.playing_field_mut().global(&PlayingFieldEdge::Left)),
+            Indent::Bottom => Some(sr.playing_field_mut().global(&PlayingFieldEdge::Bottom)),
+            Indent::Right => Some(sr.playing_field_mut().global(&PlayingFieldEdge::Right)),
+            Indent::Datum(name) => Some(sr.aligner_mut().global(name))
+        };
+        if let Some(indent) = indent {
+            self.indent = indent.clone();
+        }
         let value = value.clone();
         if let Some(top_setter) = &self.top_setter {
             top_setter.set(value.clone());
         }
+        
     }
 }
 

@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
-use peregrine_toolkit::{puzzle::{cache_constant, derived, DelayedSetter, delayed, compose, compose_slice, StaticValue, commute_clonable, cache_constant_clonable}};
+use peregrine_toolkit::{puzzle::{cache_constant, derived, DelayedSetter, delayed, compose, compose_slice, StaticValue, commute_clonable, cache_constant_clonable, derived_debug}};
 
-use crate::{allotment::{style::{style::{ContainerAllotmentStyle}, allotmentname::{AllotmentNamePart, AllotmentName}}, boxes::boxtraits::Stackable, core::{aligner::Aligner, carriageoutput::BoxPositionContext}}, CoordinateSystem};
+use crate::{allotment::{style::{style::{ContainerAllotmentStyle}, allotmentname::{AllotmentNamePart, AllotmentName}}, boxes::boxtraits::Stackable, core::{carriageoutput::BoxPositionContext}}, CoordinateSystem};
 
 use super::{container::{Container}, boxtraits::{Coordinated, BuildSize, ContainerSpecifics}};
 
@@ -10,8 +10,8 @@ use super::{container::{Container}, boxtraits::{Coordinated, BuildSize, Containe
 pub struct Stacker(Container);
 
 impl Stacker {
-    pub(crate) fn new(name: &AllotmentNamePart, style: &ContainerAllotmentStyle, aligner: &Aligner) -> Stacker {
-        Stacker(Container::new(name,style,aligner,UnpaddedStacker::new()))
+    pub(crate) fn new(name: &AllotmentNamePart, style: &ContainerAllotmentStyle) -> Stacker {
+        Stacker(Container::new(name,style,UnpaddedStacker::new()))
     }
 
     pub(crate) fn add_child(&mut self, child: &dyn Stackable) {

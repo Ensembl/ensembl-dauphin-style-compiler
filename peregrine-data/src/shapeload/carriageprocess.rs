@@ -1,8 +1,8 @@
 use std::sync::{Mutex, Arc};
 
-use peregrine_toolkit::{sync::needed::Needed, lock};
+use peregrine_toolkit::{sync::needed::Needed, lock, log};
 
-use crate::{CarriageExtent, switch::trackconfiglist::TrainTrackConfigList, api::MessageSender, ShapeRequestGroup, PeregrineCoreBase, ShapeStore, DataMessage, allotment::core::{drawingcarriagedata::DrawingCarriageDataStore, trainstate::CarriageTrainStateSpec}};
+use crate::{CarriageExtent, switch::trackconfiglist::TrainTrackConfigList, api::MessageSender, ShapeRequestGroup, PeregrineCoreBase, ShapeStore, DataMessage, allotment::core::{trainstate::CarriageTrainStateSpec, carriageoutput::CarriageOutput}};
 
 use super::loadshapes::{LoadMode, load_carriage_shape_list};
 
@@ -12,7 +12,7 @@ pub(crate) struct CarriageProcess {
     extent: CarriageExtent,
     config: TrainTrackConfigList,
     messages: Option<MessageSender>,
-    shapes: Arc<Mutex<Option<DrawingCarriageDataStore>>>,
+    shapes2: Arc<Mutex<Option<CarriageOutput>>>,
     warm: bool
 }
 
@@ -23,16 +23,19 @@ impl CarriageProcess {
             extent: extent.clone(),
             config: configs.clone(),
             messages: messages.cloned(),
-            shapes: Arc::new(Mutex::new(None)),
+            shapes2: Arc::new(Mutex::new(None)),
             warm
         }
     }
 
     pub fn extent(&self) -> &CarriageExtent { &self.extent }
-    pub fn get_shapes(&self) -> Option<DrawingCarriageDataStore> { lock!(self.shapes).clone() }
+    //pub fn get_shapes(&self) -> Option<DrawingCarriageDataStore> { lock!(self.shapes).clone() }
+    pub fn get_shapes2(&self) -> Option<CarriageOutput> {
+        lock!(self.shapes2).as_ref().map(|x| x.clone())
+    }
 
     pub fn spec(&self) -> Option<CarriageTrainStateSpec> {
-        lock!(self.shapes).as_ref().map(|shapes| shapes.spec().clone())        
+        lock!(self.shapes2).as_ref().map(|shapes| shapes.spec().clone())        
     }
 
     fn make_shape_requests(&self) -> ShapeRequestGroup {
@@ -49,6 +52,7 @@ impl CarriageProcess {
     }
 
     pub(crate) async fn load(&mut self, base: &PeregrineCoreBase, result_store: &ShapeStore, mode: LoadMode) -> Result<(),DataMessage> {
+        log!("load started for {:?}",self.extent.index());
         let shape_requests = self.make_shape_requests();
         let shapes = 
             load_carriage_shape_list(base,result_store,self.messages.as_ref(),shape_requests,&mode).await
@@ -59,8 +63,10 @@ impl CarriageProcess {
             LoadMode::Network => { return Ok(()); },
             _ => {}
         }
-        *lock!(self.shapes) = Some(DrawingCarriageDataStore::new(&shapes));
+        *lock!(self.shapes2) = Some(shapes);
+        log!("load finished for {:?}",self.extent.index());
         if let Some(lifecycle) = &self.try_lifecycle {
+            log!("signal finished for {:?}",self.extent.index());
             lifecycle.set();
         }
         Ok(())

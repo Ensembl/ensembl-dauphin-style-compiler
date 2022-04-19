@@ -50,7 +50,7 @@ pub fn short_memoized_clonable<'f: 'a,'a,T: Clone+'a>(input: Value<'f,'a,T>) -> 
 mod test {
     use std::sync::{Arc, Mutex};
 
-    use crate::{lock, puzzle::{compose_slice, cache_constant, derived, constant, AnswerAllocator}};
+    use crate::{lock, puzzle::{compose_slice, cache_constant, derived, constant, AnswerAllocator, derived_debug}};
 
     #[test]
     fn memoized_smoke() {

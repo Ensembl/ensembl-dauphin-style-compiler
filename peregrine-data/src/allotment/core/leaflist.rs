@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::{Arc, Mutex}};
 
-use peregrine_toolkit::puzzle::AnswerAllocator;
+use peregrine_toolkit::{puzzle::AnswerAllocator, log};
 
 use crate::{allotment::{style::{allotmentname::{AllotmentName, BuildPassThroughHasher, new_efficient_allotmentname_hashmap}, stylebuilder::make_transformable}, util::bppxconverter::BpPxConverter}, LeafRequest, ShapeRequestGroup, DataMessage};
 

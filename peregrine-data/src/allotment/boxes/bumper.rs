@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
-use peregrine_toolkit::{puzzle::{variable, derived, delayed, DelayedSetter, compose, short_memoized_arc, StaticValue}};
+use peregrine_toolkit::{puzzle::{variable, derived, delayed, DelayedSetter, compose, short_memoized_arc, StaticValue, derived_debug}};
 
-use crate::{allotment::{core::{aligner::Aligner, carriageoutput::BoxPositionContext}, style::{style::{ContainerAllotmentStyle}, allotmentname::{AllotmentNamePart, AllotmentName}}, boxes::{boxtraits::Stackable}, util::{rangeused::RangeUsed}, collision::{collisionalgorithm::CollisionAlgorithm}}, CoordinateSystem};
+use crate::{allotment::{core::{carriageoutput::BoxPositionContext}, style::{style::{ContainerAllotmentStyle}, allotmentname::{AllotmentNamePart, AllotmentName}}, boxes::{boxtraits::Stackable}, util::{rangeused::RangeUsed}, collision::{collisionalgorithm::CollisionAlgorithm}}, CoordinateSystem};
 
 use super::{container::{Container}, boxtraits::{Coordinated, BuildSize, ContainerSpecifics}};
 
@@ -10,8 +10,8 @@ use super::{container::{Container}, boxtraits::{Coordinated, BuildSize, Containe
 pub struct Bumper(Container);
 
 impl Bumper {
-    pub(crate) fn new(name: &AllotmentNamePart, style: &ContainerAllotmentStyle, aligner: &Aligner) -> Bumper {
-        Bumper(Container::new(name,style,aligner,UnpaddedBumper::new(&AllotmentName::from_part(name))))
+    pub(crate) fn new(name: &AllotmentNamePart, style: &ContainerAllotmentStyle) -> Bumper {
+        Bumper(Container::new(name,style,UnpaddedBumper::new(&AllotmentName::from_part(name))))
     }
 
     pub(crate) fn add_child(&mut self, child: &dyn Stackable) {

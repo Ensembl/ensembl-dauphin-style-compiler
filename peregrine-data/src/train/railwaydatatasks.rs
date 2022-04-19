@@ -16,9 +16,9 @@ impl RailwayPinger {
        *lock!(self.0) = Some(railway.clone());
     }
 
-    fn ping(&self, base: &mut PeregrineCoreBase) {
+    fn ping(&self) {
         let railway = lock!(self.0).clone();
-        railway.unwrap().move_and_lifecycle_trains(base);
+        railway.unwrap().ping();
     }
 }
 
@@ -29,7 +29,7 @@ enum Task {
 
 async fn load_one_carriage(base: &mut PeregrineCoreBase, pinger: &RailwayPinger, shape_store: &ShapeStore, mut carriage: CarriageProcess) -> Result<(),DataMessage> {
     let r = carriage.load(base,&shape_store,LoadMode::RealTime).await;
-    pinger.ping(base);
+    pinger.ping();
     r
 }
 
@@ -47,7 +47,7 @@ async fn load_one_stick(base: &mut PeregrineCoreBase, pinger: &RailwayPinger, st
         }
     };
     *lock!(stick_data) = data;
-    pinger.ping(base);
+    pinger.ping();
     Ok(())
 }
 
@@ -59,14 +59,14 @@ pub(super) struct RailwayDataTasks {
     shape_store: ShapeStore,
     stick_store: StickStore,
     pinger: RailwayPinger,
-    try_lifecycle: Needed
+    ping_needed: Needed
 }
 
 impl RailwayDataTasks {
-    pub fn new(base: &PeregrineCoreBase, shape_store: &ShapeStore, stick_store: &StickStore, try_lifecycle: &Needed) -> RailwayDataTasks {
+    pub fn new(base: &PeregrineCoreBase, shape_store: &ShapeStore, stick_store: &StickStore, ping_needed: &Needed) -> RailwayDataTasks {
         RailwayDataTasks {
             base: base.clone(),
-            try_lifecycle: try_lifecycle.clone(),
+            ping_needed: ping_needed.clone(),
             shape_store: shape_store.clone(),
             stick_store: stick_store.clone(),
             pinger: RailwayPinger::new(),
@@ -133,7 +133,7 @@ impl RailwayDataTasks {
             timeout: None,
             task: Box::pin(async move {
                 self2.async_load(tasks).await;
-                self2.try_lifecycle.set();
+                self2.ping_needed.set();
                 Ok(())
             }),
             stats: false

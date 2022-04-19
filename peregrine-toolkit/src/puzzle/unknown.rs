@@ -2,7 +2,7 @@ use std::{sync::{Arc, Mutex}};
 
 use crate::lock;
 
-use super::{answer::{Answer}, value::{Value}, store::Store, short::ShortStore};
+use super::{answer::{Answer}, value::{Value}, store::Store, short::ShortStore, derived};
 
 #[derive(Clone)]
 pub struct UnknownSetter<'a,T: 'a>(Arc<Mutex<Box<dyn Store<'a,T> + 'a>>>);
@@ -37,6 +37,11 @@ pub fn unknown_function<'f,'a,S,T: 'a>(store: S) -> (UnknownSetter<'a,Value<'f,'
 
 pub fn short_unknown<'f,'a,T: 'a>() -> (UnknownSetter<'a,T>,Value<'f,'a,Option<Arc<T>>>) {
     unknown(ShortStore::new())
+}
+
+pub fn short_unknown_clonable<'f,'a,T: 'a+Clone>() -> (UnknownSetter<'a,T>,Value<'f,'a,Option<T>>) {
+    let (setter,solver) = unknown(ShortStore::new());
+    (setter,derived(solver,|x| x.map(|x| x.as_ref().clone())))
 }
 
 pub fn short_unknown_function<'f,'a,T: 'a>() -> (UnknownSetter<'a,Value<'f,'a,T>>,Value<'f,'a,Option<T>>) {

@@ -1,11 +1,12 @@
 use std::{collections::HashMap};
 
-use crate::{allotment::{core::{aligner::Aligner, carriageoutput::BoxPositionContext, trainstate::CarriageTrainStateSpec}, boxes::{ stacker::Stacker, overlay::Overlay, bumper::Bumper }, boxes::{leaf::{FloatingLeaf}}, transformers::drawinginfo::DrawingInfo, stylespec::stylegroup::AllotmentStyleGroup}, DataMessage, LeafRequest};
+use peregrine_toolkit::log;
+
+use crate::{allotment::{core::{carriageoutput::BoxPositionContext, trainstate::CarriageTrainStateSpec, aligner::LocalAlignerBuilder}, boxes::{ stacker::Stacker, overlay::Overlay, bumper::Bumper }, boxes::{leaf::{FloatingLeaf}}, transformers::drawinginfo::DrawingInfo, stylespec::stylegroup::AllotmentStyleGroup}, DataMessage, LeafRequest};
 
 use super::{holder::{ContainerHolder, LeafHolder}, allotmentname::{AllotmentNamePart, AllotmentName}, style::{ContainerAllotmentStyle, ContainerAllotmentType, LeafCommonStyle}};
 
 struct StyleBuilder<'a> {
-    aligner: Aligner,
     root: ContainerHolder,
     leafs_made: HashMap<Vec<String>,LeafHolder>,
     containers_made: HashMap<Vec<String>,ContainerHolder>,
@@ -15,14 +16,12 @@ struct StyleBuilder<'a> {
 
 impl<'a> StyleBuilder<'a> {
     fn new(prep: &'a mut BoxPositionContext) -> StyleBuilder<'a> {
-        let aligner = Aligner::new(&prep.root);
         let dustbin_name = AllotmentNamePart::new(AllotmentName::new(""));
         StyleBuilder {
             root: ContainerHolder::Root(prep.root.clone()),
             leafs_made: HashMap::new(),
             containers_made: HashMap::new(),
-            dustbin: FloatingLeaf::new(&dustbin_name,&prep.bp_px_converter,&LeafCommonStyle::dustbin(),&DrawingInfo::new(),&aligner),
-            aligner: aligner.clone(),
+            dustbin: FloatingLeaf::new(&dustbin_name,&prep.bp_px_converter,&LeafCommonStyle::dustbin(),&DrawingInfo::new()),
             prep
         }
     }
@@ -31,13 +30,13 @@ impl<'a> StyleBuilder<'a> {
         let style = styles.get_container(name);
         let container = match &style.allot_type {
             ContainerAllotmentType::Stack => {
-                ContainerHolder::Stack(Stacker::new(name,&style,&self.aligner))
+                ContainerHolder::Stack(Stacker::new(name,&style))
             },
             ContainerAllotmentType::Overlay => {
-                ContainerHolder::Overlay(Overlay::new(name,&style,&self.aligner))
+                ContainerHolder::Overlay(Overlay::new(name,&style))
             },
             ContainerAllotmentType::Bumper => {
-                ContainerHolder::Bumper(Bumper::new(name,&style,&self.aligner))
+                ContainerHolder::Bumper(Bumper::new(name,&style))
             }
         };
         Ok((container,style.clone()))
@@ -65,7 +64,7 @@ impl<'a> StyleBuilder<'a> {
     }
 
     fn new_floating_leaf(&self, pending: &LeafRequest, name: &AllotmentNamePart, container: &mut ContainerHolder) -> Result<FloatingLeaf,DataMessage> {
-        let child = FloatingLeaf::new(name,&self.prep.bp_px_converter,&pending.leaf_style(),&pending.drawing_info_clone(),&self.aligner);
+        let child = FloatingLeaf::new(name,&self.prep.bp_px_converter,&pending.leaf_style(),&pending.drawing_info_clone());
         container.add_leaf(&LeafHolder::Leaf(child.clone()),&pending.leaf_style());
         Ok(child)
     }
@@ -101,7 +100,6 @@ pub(crate) fn make_transformable(prep: &mut BoxPositionContext, pendings: &mut d
     }
     /* Wire box tree */
     let state_spec = prep.root.clone().build(prep);
-    prep.height_tracker.build();
     Ok(state_spec)
 }
 
@@ -111,7 +109,7 @@ mod test {
 
     use peregrine_toolkit::{puzzle::{AnswerAllocator}};
 
-    use crate::{allotment::{core::{allotmentmetadata::{AllotmentMetadata}, carriageoutput::BoxPositionContext}, style::{allotmentname::AllotmentName, stylebuilder::make_transformable}, stylespec::{stylegroup::AllotmentStyleGroup, styletreebuilder::StyleTreeBuilder, styletree::StyleTree}, util::{bppxconverter::BpPxConverter, rangeused::RangeUsed}}, LeafRequest};
+    use crate::{allotment::{core::{carriageoutput::BoxPositionContext, allotmentmetadata::{LocalAllotmentMetadata, GlobalAllotmentMetadataBuilder}}, style::{allotmentname::AllotmentName, stylebuilder::make_transformable}, stylespec::{stylegroup::AllotmentStyleGroup, styletreebuilder::StyleTreeBuilder, styletree::StyleTree}, util::{bppxconverter::BpPxConverter, rangeused::RangeUsed}}, LeafRequest, GlobalAllotmentMetadata};
 
     fn make_pendings(names: &[&str], heights: &[f64], pixel_range: &[RangeUsed<f64>], style: &AllotmentStyleGroup) -> Vec<LeafRequest> {
         let heights = if heights.len() > 0 {
@@ -232,7 +230,7 @@ mod test {
         let mut prep = BoxPositionContext::new(None, &mut allocator);
         prep.bp_px_converter = Arc::new(BpPxConverter::new_test());
         assert!(make_transformable(&mut prep,&mut pending.iter()).ok().is_some());
-        let metadata = AllotmentMetadata::new(&prep.metadata);
+        let metadata = prep.state_request.metadata();
         let mut aia = AnswerAllocator::new();
         let mut answer_index = aia.get();
         let transformers = pending.iter().map(|x| prep.plm.transformable(x.name()).make(&answer_index)).collect::<Vec<_>>();
@@ -252,7 +250,10 @@ mod test {
         assert!(descs[4].contains("height: 2.0"));
         assert!(descs[5].contains("top: 21.0"));
         assert!(descs[5].contains("height: 3.0"));
-        let metadata = metadata.get(&mut answer_index);
+        let metadata = LocalAllotmentMetadata::new(metadata);
+        let mut global_metadata = GlobalAllotmentMetadataBuilder::new();
+        metadata.add(&mut global_metadata);
+        let metadata = GlobalAllotmentMetadata::new(global_metadata,&mut answer_index);
         let metadata = metadata.summarize();
         assert_eq!(2,metadata.len());
         let (a,b) = (&metadata[0],&metadata[1]);

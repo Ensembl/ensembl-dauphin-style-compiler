@@ -1,72 +1,56 @@
-use std::{collections::HashMap, sync::{Arc, Mutex}};
-
-use peregrine_toolkit::{lock, puzzle::{constant, DelayedSetter,StaticValue, promise_delayed}};
+use peregrine_toolkit::{lock, puzzle::{constant, DelayedSetter,StaticValue, promise_delayed, StaticAnswer, commute}};
 
 use crate::{allotment::{boxes::root::{Root}, style::style::Indent}};
 
-use super::playingfield::PlayingFieldPieces;
+use super::globalvalue::{LocalValueBuilder, LocalValueSpec, GlobalValueBuilder, GlobalValueSpec};
 
-struct Datum {
-    piece: StaticValue<f64>,
-    piece_setter: DelayedSetter<'static,'static,f64>
-}
+pub struct LocalAlignerBuilder(LocalValueBuilder<String,f64>);
 
-impl Datum {
-    fn new() -> Datum {
-        let (piece_setter,piece) = promise_delayed();
-        Datum { piece, piece_setter }
+impl LocalAlignerBuilder {
+    pub(crate) fn new() -> LocalAlignerBuilder {
+        LocalAlignerBuilder(LocalValueBuilder::new())
     }
 
-    fn set(&mut self, value: &StaticValue<f64>) {
-        let value = value.clone();
-        self.piece_setter.set(value);
+    pub(crate) fn set(&mut self, name: &String, value: StaticValue<f64>) {
+        self.0.entry(name.clone()).add_local(value);
     }
 
-    fn get(&self) -> StaticValue<f64> {
-        self.piece.clone()
+    pub(crate) fn global(&mut self, name: &String) -> &StaticValue<f64> {
+        self.0.entry(name.clone()).get_global()
     }
 }
 
-#[derive(Clone)]
-pub struct Aligner {
-    playing_field: PlayingFieldPieces,
-    datums: Arc<Mutex<HashMap<String,Datum>>>
+pub struct LocalAligner(LocalValueSpec<String,f64>);
+
+impl LocalAligner {
+    pub(crate) fn new(builder: &LocalAlignerBuilder, independent_answer: &mut StaticAnswer) -> LocalAligner {
+        LocalAligner(LocalValueSpec::new(&builder.0,|x| {
+            commute(x,0.,|x,y| x.max(*y)).dearc()
+        },independent_answer))
+    }
+
+    pub(crate) fn add(&self, global: &mut GlobalAlignerBuilder) {
+        global.0.add(&self.0);
+    }
 }
 
-impl Aligner {
-    pub(crate) fn new(root: &Root) -> Aligner {
-        Aligner {
-            playing_field: root.playing_field_pieces(),
-            datums: Arc::new(Mutex::new(HashMap::new()))
-        }
-    }
+pub struct GlobalAlignerBuilder(GlobalValueBuilder<String,f64>);
 
-    pub(crate) fn get(&self, indent: &Indent) -> StaticValue<f64> {
-        match match indent {
-            Indent::Top => Some(&self.playing_field.top),
-            Indent::Left => Some(&self.playing_field.left),
-            Indent::Bottom => Some(&self.playing_field.bottom),
-            Indent::Right => Some(&self.playing_field.right),
-            _ => None
-        } {
-            Some(piece) => { return piece.clone() },
-            None => {}
-        }
-        match match indent {
-            Indent::Datum(datum) => Some(self.get_datum(datum)),
-            _ => None
-        } {
-            Some(value) => { return value.clone() },
-            None => {}
-        }
-        constant(0.)
+impl GlobalAlignerBuilder {
+    pub(crate) fn new() -> GlobalAlignerBuilder {
+        GlobalAlignerBuilder(GlobalValueBuilder::new())
     }
-    
-    pub(crate) fn set_datum(&self, datum: &str, value: &StaticValue<f64>) {
-        lock!(self.datums).entry(datum.to_string()).or_insert_with(move || Datum::new()).set(value);
-    }
+}
 
-    pub(crate) fn get_datum(&self,  datum: &str) -> StaticValue<f64> {
-        lock!(self.datums).entry(datum.to_string()).or_insert_with(|| Datum::new()).get()
+#[cfg_attr(debug_assertions,derive(Debug))]
+#[derive(PartialEq,Eq,Hash)]
+pub struct GlobalAligner(GlobalValueSpec<String,f64>);
+
+impl GlobalAligner {
+    pub(crate) fn new(builder: GlobalAlignerBuilder, answer: &mut StaticAnswer) -> GlobalAligner {
+        GlobalAligner(GlobalValueSpec::new(builder.0,|x| {
+            let v = x.iter().map(|x| **x).fold(f64::NEG_INFINITY,f64::max);
+            (v,(v*100000.).round() as i64)
+        },answer))
     }
 }

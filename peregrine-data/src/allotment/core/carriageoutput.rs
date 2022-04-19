@@ -1,18 +1,16 @@
 use std::{sync::{Arc, Mutex}};
-use peregrine_toolkit::{puzzle::{Answer, AnswerAllocator, StaticAnswer}, lock};
+use peregrine_toolkit::{puzzle::{Answer, AnswerAllocator, StaticAnswer}, lock, log};
 
 use crate::{allotment::{style::{style::LeafCommonStyle }, boxes::{root::{Root}, boxtraits::Transformable}, collision::{bumperfactory::BumperFactory}, util::bppxconverter::BpPxConverter}, ShapeRequestGroup, Shape, DataMessage, LeafRequest};
 
-use super::{allotmentmetadata::{AllotmentMetadataReport, AllotmentMetadata, AllotmentMetadataBuilder}, playingfield::PlayingField, leafrequest::LeafTransformableMap, heighttracker::{HeightTrackerPieces}, leaflist::LeafList, trainstate::{CarriageTrainStateRequest, CarriageTrainStateSpec}};
+use super::{leafrequest::LeafTransformableMap, leaflist::LeafList, trainstate::{CarriageTrainStateRequest, CarriageTrainStateSpec}, heighttracker::{LocalHeightTrackerBuilder, LocalHeightTracker}, aligner::LocalAlignerBuilder};
 
 pub(crate) struct BoxPositionContext {
     //pub bump_requests: BumpRequests,
     pub independent_answer: StaticAnswer,
     pub bp_px_converter: Arc<BpPxConverter>,
-    pub metadata: AllotmentMetadataBuilder,
     pub root: Root,
     pub plm: LeafTransformableMap,
-    pub height_tracker: HeightTrackerPieces,
     pub state_request: CarriageTrainStateRequest,
     pub bumper_factory: BumperFactory
 }
@@ -23,11 +21,9 @@ impl BoxPositionContext {
         let independent_answer = lock!(answer_allocator).get();
         BoxPositionContext {
             bp_px_converter: Arc::new(BpPxConverter::new(extent)),
-            metadata: AllotmentMetadataBuilder::new(),
             //bump_requests: BumpRequests::new(region.as_ref().map(|r| r.index()).unwrap_or(0) as usize),
             root: Root::new(),
             plm: LeafTransformableMap::new(),
-            height_tracker: HeightTrackerPieces::new(),
             independent_answer,
             state_request: CarriageTrainStateRequest::new(),
             bumper_factory: BumperFactory::new()
@@ -39,11 +35,10 @@ impl BoxPositionContext {
 pub struct CarriageOutput {
     shapes: Arc<Vec<Shape<Arc<dyn Transformable>>>>,
     spec: Arc<CarriageTrainStateSpec>,
-    metadata: AllotmentMetadata,
     answer_index_allocator: Arc<Mutex<AnswerAllocator>>,
     independent_answer: Arc<StaticAnswer>,
     root: Root,
-    height_tracker: Arc<HeightTrackerPieces>
+    //height_tracker: Arc<LocalHeightTracker>
 }
 
 impl CarriageOutput {
@@ -54,12 +49,11 @@ impl CarriageOutput {
         ).collect::<Vec<_>>();
         Ok(CarriageOutput {
             shapes: Arc::new(shapes),
-            metadata: AllotmentMetadata::new(&prep.metadata),
             answer_index_allocator: Arc::new(Mutex::new(AnswerAllocator::new())),
             independent_answer: Arc::new(prep.independent_answer),
             root: prep.root,
             spec: Arc::new(spec),
-            height_tracker: Arc::new(prep.height_tracker)
+            //height_tracker: Arc::new(prep.height_tracker)
         })
     }
 
@@ -71,11 +65,7 @@ impl CarriageOutput {
     pub(crate) fn independent_answer(&self) -> &StaticAnswer { &self.independent_answer }
 
     pub(crate) fn spec(&self) -> &CarriageTrainStateSpec { &self.spec }
-    pub(super) fn height_tracker_pieces(&self) -> &HeightTrackerPieces { &self.height_tracker }
-
-    pub fn playing_field(&self, answer_index: &mut StaticAnswer) -> PlayingField {
-        self.root.playing_field(answer_index)
-    }
+    //pub(super) fn height_tracker_pieces(&self) -> &HeightTrackerPieces { &self.height_tracker }
 
     pub fn get(&self, answer_index: &mut StaticAnswer) -> Vec<Shape<LeafCommonStyle>> {
         let mut out = vec![];
@@ -83,9 +73,5 @@ impl CarriageOutput {
             out.append(&mut input.map_new_allotment(|x| x.make(answer_index)).make());
         }
         out
-    }
-
-    pub fn get_metadata(&self, answer_index: &mut StaticAnswer) -> AllotmentMetadataReport {
-        self.metadata.get(answer_index)
     }
 }

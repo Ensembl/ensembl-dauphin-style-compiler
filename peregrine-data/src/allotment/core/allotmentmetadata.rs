@@ -1,113 +1,74 @@
 use std::{collections::{HashMap, hash_map::DefaultHasher}, sync::{Arc, Mutex}, hash::{Hash, Hasher}};
 
-use lru::LruCache;
-use peregrine_toolkit::{lock, puzzle::{ StaticValue, StaticAnswer}};
+use peregrine_toolkit::{lock, puzzle::{ StaticValue, StaticAnswer, Value, commute, constant}};
 
-#[derive(Clone)]
-pub struct AllotmentMetadataGroup {
-    values: HashMap<String,StaticValue<String>>
-}
+use crate::allotment::style::allotmentname::AllotmentName;
 
-impl AllotmentMetadataGroup {
-    pub fn new(values: HashMap<String,StaticValue<String>>) -> AllotmentMetadataGroup {
-        AllotmentMetadataGroup {
-            values
-        }
+pub struct LocalAllotmentMetadataBuilder(HashMap<(AllotmentName,String),StaticValue<String>>);
+
+impl LocalAllotmentMetadataBuilder {
+    pub(crate) fn new() -> LocalAllotmentMetadataBuilder {
+        LocalAllotmentMetadataBuilder(HashMap::new())
     }
 
-    pub fn get(&self, answer_index: &mut StaticAnswer) -> HashMap<String,String> {
-        self.values.iter().map(|(k,v)| (k.clone(),v.call(answer_index).clone())).collect()
+    pub(crate) fn set(&mut self, allotment: &AllotmentName, key: &str, value: StaticValue<String>) {
+        self.0.insert((allotment.clone(),key.to_string()),value);
     }
 }
 
-#[derive(Clone,Debug)]
-pub struct AllotmentMetadataReport {
-    summary: Arc<Vec<HashMap<String,String>>>,
-    hash: u64
-}
+pub struct LocalAllotmentMetadata(Arc<HashMap<(AllotmentName,String),StaticValue<String>>>);
 
-impl AllotmentMetadataReport {
-    pub fn empty() -> AllotmentMetadataReport {
-        Self::new(vec![])
+impl LocalAllotmentMetadata {
+    pub(crate) fn new(builder: &LocalAllotmentMetadataBuilder) -> LocalAllotmentMetadata {
+        LocalAllotmentMetadata(Arc::new(builder.0.clone()))
     }
 
-    fn new(summary: Vec<HashMap<String,String>>) -> AllotmentMetadataReport {
-        let mut state = DefaultHasher::new();
-        for member in &summary {
-            let mut keys = member.keys().collect::<Vec<_>>();
-            keys.sort();
-            for key in keys {
-                key.hash(&mut state);
-                member.get(key).hash(&mut state);
-            }
-        }
-        AllotmentMetadataReport {
-            hash: state.finish(),
-            summary: Arc::new(summary)
-        }
-    }
-
-    pub fn summarize(&self) -> &Vec<HashMap<String,String>> {
-        self.summary.as_ref()
+    pub(crate) fn add(&self, global: &mut GlobalAllotmentMetadataBuilder) {
+        global.0.extend(self.0.iter().map(|(x,y)| (x.clone(),y.clone())));
     }
 }
 
-impl Hash for AllotmentMetadataReport {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.hash.hash(state);
-    }
-}
+pub struct GlobalAllotmentMetadataBuilder(HashMap<(AllotmentName,String),StaticValue<String>>);
 
-impl PartialEq for AllotmentMetadataReport {
-    fn eq(&self, other: &AllotmentMetadataReport) -> bool {
-        self.hash == other.hash
-    }
-}
-
-impl Eq for AllotmentMetadataReport {}
-
-
-pub struct AllotmentMetadataBuilder {
-    groups: Vec<AllotmentMetadataGroup>
-}
-
-impl AllotmentMetadataBuilder {
-    pub fn new() -> AllotmentMetadataBuilder {
-        AllotmentMetadataBuilder {
-            groups: vec![]
-        }
-    }
-
-    pub fn add(&mut self, group: AllotmentMetadataGroup) {
-        self.groups.push(group);
+impl GlobalAllotmentMetadataBuilder {
+    pub(crate) fn new() -> GlobalAllotmentMetadataBuilder {
+        GlobalAllotmentMetadataBuilder(HashMap::new())
     }
 }
 
 #[derive(Clone)]
-pub struct AllotmentMetadata {
-    groups: Arc<Vec<AllotmentMetadataGroup>>,
-    cache: Arc<Mutex<LruCache<u64,AllotmentMetadataReport>>>
+#[cfg_attr(debug_assertions,derive(Debug))]
+pub struct GlobalAllotmentMetadata(u64,Arc<HashMap<(AllotmentName,String),String>>);
+
+impl PartialEq for GlobalAllotmentMetadata {
+    fn eq(&self, other: &Self) -> bool { self.0 == other.0 }
 }
 
-impl AllotmentMetadata {
-    pub fn new(builder: &AllotmentMetadataBuilder) -> AllotmentMetadata {
-        AllotmentMetadata {
-            groups: Arc::new(builder.groups.clone()),
-            cache: Arc::new(Mutex::new(LruCache::new(16)))
+impl Eq for GlobalAllotmentMetadata {}
+
+impl Hash for GlobalAllotmentMetadata {
+    fn hash<H: Hasher>(&self, state: &mut H) { self.0.hash(state); }
+}
+
+impl GlobalAllotmentMetadata {
+    pub(crate) fn new(builder: GlobalAllotmentMetadataBuilder, answer: &mut StaticAnswer) -> GlobalAllotmentMetadata {
+        let values = builder.0.iter().map(|(k,v)| (k.clone(),v.call(answer))).collect::<HashMap<_,_>>();
+        let mut hash = DefaultHasher::new();
+        let mut keys = values.keys().cloned().collect::<Vec<_>>();
+        keys.sort();
+        for key in keys.drain(..) {
+            key.hash(&mut hash);
+            values.get(&key).as_ref().unwrap().hash(&mut hash);
         }
+        GlobalAllotmentMetadata(hash.finish(),Arc::new(values))
     }
 
-    fn calculate(&self, answer_index: &mut StaticAnswer) -> Vec<HashMap<String,String>> {
-        self.groups.iter().map(|group| group.get(answer_index)).collect()
-    }
-
-    pub fn get(&self, answer_index: &mut StaticAnswer) -> AllotmentMetadataReport {
-        let mut cache = lock!(self.cache);
-        if let Some(cached) = cache.get(&answer_index.serial()) {
-            return cached.clone();
+    pub fn summarize(&self) -> Vec<HashMap<String,String>> {
+        let mut out = HashMap::new();
+        for ((allotment,key),value) in self.1.iter() {
+            let block = out.entry(allotment.clone()).or_insert_with(|| HashMap::new());
+            block.insert(key.clone(),value.clone());
         }
-        let data = AllotmentMetadataReport::new(self.calculate(answer_index));
-        cache.put(answer_index.serial(),data.clone());
-        data
+        out.drain().map(|x| x.1).collect::<Vec<_>>()
     }
 }

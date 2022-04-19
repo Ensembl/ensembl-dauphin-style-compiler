@@ -1,4 +1,4 @@
-use peregrine_data::{Assets, CarriageExtent, ZMenuProxy, DrawingCarriage};
+use peregrine_data::{Assets, CarriageExtent, ZMenuProxy, DrawingCarriage2};
 use peregrine_toolkit::lock;
 use peregrine_toolkit::sync::asynconce::AsyncOnce;
 use peregrine_toolkit::sync::needed::Needed;
@@ -50,7 +50,7 @@ impl Hash for GLCarriage {
 }
 
 impl GLCarriage {
-    pub fn new(redraw_needed: &Needed, commander: &PgCommanderWeb, carriage: &DrawingCarriage, gl: &Arc<Mutex<WebGlGlobal>>, assets: &Assets) -> Result<GLCarriage,Message> {
+    pub fn new(redraw_needed: &Needed, commander: &PgCommanderWeb, carriage: &DrawingCarriage2, gl: &Arc<Mutex<WebGlGlobal>>, assets: &Assets) -> Result<GLCarriage,Message> {
         let carriage2 = carriage.clone();
         let gl = gl.clone();
         let assets = assets.clone();
@@ -72,7 +72,7 @@ impl GLCarriage {
         Ok(our_carriage)
     }
 
-    pub(super) async fn preflight(&self, carriage: &DrawingCarriage) -> Result<(),Message> {
+    pub(super) async fn preflight(&self, carriage: &DrawingCarriage2) -> Result<(),Message> {
         let state = lock!(self.0);
         let drawing = state.drawing.clone();
         drop(state);
@@ -81,7 +81,7 @@ impl GLCarriage {
         Ok(())
     }
 
-    pub fn preflight_freewheel(&self, carriage: &DrawingCarriage) {
+    pub fn preflight_freewheel(&self, carriage: &DrawingCarriage2) {
         let self2 = self.clone();
         let commander = lock!(self.0).commander.clone();
         let carriage = carriage.clone();

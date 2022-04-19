@@ -1,11 +1,13 @@
+/*
 use std::collections::HashMap;
 
-use crate::{DrawingCarriage, shapeload::carriageprocess::CarriageProcess, TrainState, allotment::core::trainstate::{TrainStateSpec, TrainState3}};
+use crate::{DrawingCarriage, shapeload::carriageprocess::CarriageProcess, TrainState, allotment::core::{trainstate::{TrainStateSpec, TrainState3, CarriageTrainStateSpec}, drawingcarriagedata::DrawingCarriageDataStore}, CarriageExtent};
 
 use super::railwayevent::RailwayEvents;
 
 enum CarriagePrepState {
     Waiting(CarriageProcess),
+    //Drawable(DrawingCarriageCreator),
     Ready(DrawingCarriage)
 }
 
@@ -81,5 +83,6 @@ impl CarriageLifecycleSet {
         self.0.get(&index).and_then(|p| p.drawing_carriage())
     }
 
-    pub(super) fn used(&self) -> impl Iterator<Item=&u64> { self.0.keys() }
+    pub(super) fn used(&self) -> impl Iterator<Item=u64> + '_ { self.0.keys().cloned() }
 }
+*/

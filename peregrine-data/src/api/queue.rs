@@ -28,7 +28,7 @@ pub enum ApiMessage {
     ReportMetric(Channel,MetricReport),
     GeneralMetric(String,Vec<(String,String)>,Vec<(String,f64)>),
     SetAssets(Assets),
-    TryLifecycleTrains,
+    PingTrains,
     Sketchy(bool),
     Invalidate
 }
@@ -102,17 +102,14 @@ impl ApiQueueCampaign {
             ApiMessage::SetAssets(assets) => {
                 *data.base.assets.lock().unwrap() = assets;
             },
-            ApiMessage::TryLifecycleTrains => {
-                let train_set = data.train_set.clone();
-                train_set.try_lifecycle_trains(&mut data.base);
+            ApiMessage::PingTrains => {
+                data.train_set.ping();
             },
             ApiMessage::Sketchy(yn) => {
-                let train_set = data.train_set.clone();
-                train_set.set_sketchy(&mut data.base,yn);
+                 data.train_set.set_sketchy(yn);
             },
             ApiMessage::Invalidate => {
-                let train_set = data.train_set.clone();
-                train_set.invalidate(&mut data.base);
+                 data.train_set.invalidate();
             }
         }
     }
@@ -137,7 +134,7 @@ impl PeregrineApiQueue {
     fn update_train_set(&mut self, objects: &mut PeregrineCore) {
         let viewport = objects.viewport.clone();
         let train_set = objects.train_set.clone();
-        train_set.set(&mut objects.base,&viewport);
+        train_set.set(&viewport);
     }
 
     fn update_viewport(&mut self, data: &mut PeregrineCore, new_viewport: Viewport) {
