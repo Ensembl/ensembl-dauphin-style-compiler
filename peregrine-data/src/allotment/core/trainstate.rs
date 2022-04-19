@@ -50,13 +50,9 @@ pub struct CarriageTrainStateSpec {
 
 impl CarriageTrainStateSpec {
     pub fn new(request: &CarriageTrainStateRequest, independent_answer: &mut StaticAnswer) -> CarriageTrainStateSpec {
-        log!("x A");
         let height_tracker = LocalHeightTracker::new(request.height_tracker(),independent_answer);
-        log!("x B");
         let playing_field = LocalPlayingField::new(request.playing_field(),independent_answer);
-        log!("x C");
         let aligner = LocalAligner::new(request.aligner(),independent_answer);
-        log!("x D");
         let metadata = LocalAllotmentMetadata::new(request.metadata());
         CarriageTrainStateSpec {
             height_values: Arc::new(height_tracker),

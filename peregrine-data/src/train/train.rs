@@ -1,6 +1,6 @@
 use std::sync::{ Arc, Mutex };
 use peregrine_toolkit::puzzle::AnswerAllocator;
-use peregrine_toolkit::{lock, log};
+use peregrine_toolkit::{lock, log, debug_log};
 use peregrine_toolkit::sync::needed::Needed;
 use crate::api::{CarriageSpeed, MessageSender };
 use super::drawingcarriage::DrawingCarriage2;
@@ -85,7 +85,7 @@ impl Train {
     }
 
     pub(super) fn set_position(&mut self, viewport: &Viewport) -> Result<(),DataMessage> {
-        log!("set poisition {:?}",viewport);
+        debug_log!("set poisition {:?}",viewport);
         let centre_carriage_index = self.extent.scale().carriage(viewport.position()?);
         self.carriages.update_centre(centre_carriage_index);
         self.viewport = Some(viewport.clone());

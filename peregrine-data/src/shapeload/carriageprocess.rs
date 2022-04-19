@@ -1,6 +1,6 @@
 use std::sync::{Mutex, Arc};
 
-use peregrine_toolkit::{sync::needed::Needed, lock, log};
+use peregrine_toolkit::{sync::needed::Needed, lock, log, debug_log};
 
 use crate::{CarriageExtent, switch::trackconfiglist::TrainTrackConfigList, api::MessageSender, ShapeRequestGroup, PeregrineCoreBase, ShapeStore, DataMessage, allotment::core::{trainstate::CarriageTrainStateSpec, carriageoutput::CarriageOutput}};
 
@@ -52,7 +52,7 @@ impl CarriageProcess {
     }
 
     pub(crate) async fn load(&mut self, base: &PeregrineCoreBase, result_store: &ShapeStore, mode: LoadMode) -> Result<(),DataMessage> {
-        log!("load started for {:?}",self.extent.index());
+        debug_log!("load started for {:?}",self.extent.index());
         let shape_requests = self.make_shape_requests();
         let shapes = 
             load_carriage_shape_list(base,result_store,self.messages.as_ref(),shape_requests,&mode).await
@@ -64,9 +64,9 @@ impl CarriageProcess {
             _ => {}
         }
         *lock!(self.shapes2) = Some(shapes);
-        log!("load finished for {:?}",self.extent.index());
+        debug_log!("load finished for {:?}",self.extent.index());
         if let Some(lifecycle) = &self.try_lifecycle {
-            log!("signal finished for {:?}",self.extent.index());
+            debug_log!("signal finished for {:?}",self.extent.index());
             lifecycle.set();
         }
         Ok(())

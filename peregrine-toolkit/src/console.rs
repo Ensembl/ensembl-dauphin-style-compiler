@@ -68,73 +68,56 @@ pub fn print(verbosity: &Verbosity, severity: &Severity, message: &str) {
 }
 
 #[macro_export]
-macro_rules! log {
-    ($($arg:tt)*) => {
+macro_rules! do_log {
+    ($verb:tt,$sev:tt,$($arg:tt)*) => {
         use $crate::console::*;
-        (print(&Verbosity::Normal,&Severity::Notice,&std::format!($($arg)*)))
+        (print(&Verbosity::$verb,&Severity::$sev,&std::format!($($arg)*)))
     }
 }
 
 #[macro_export]
-macro_rules! log_important {
-    ($($arg:tt)*) => {
+macro_rules! debug_do_log {
+    ($verb:tt,$sev:tt,$($arg:tt)*) => {
         use $crate::console::*;
-        (print(&Verbosity::Quiet,&Severity::Notice,&std::format!($($arg)*)))
+        #[cfg(debug_assertions)]
+        (print(&Verbosity::$verb,&Severity::$sev,&std::format!($($arg)*)))
     }
 }
 
 #[macro_export]
-macro_rules! log_extra {
-    ($($arg:tt)*) => {
-        use $crate::console::*;
-        (print(&Verbosity::Noisy,&Severity::Notice,&std::format!($($arg)*)))
-    }
-}
+macro_rules! log { ($($arg:tt)*) => { $crate::do_log!(Normal,Notice,$($arg)*); } }
+#[macro_export]
+macro_rules! log_important { ($($arg:tt)*) => { $crate::do_log!(Quiet,Notice,$($arg)*); } }
+#[macro_export]
+macro_rules! log_extra { ($($arg:tt)*) => { $crate::do_log!(Noisy,Notice,$($arg)*); } }
+#[macro_export]
+macro_rules! warn { ($($arg:tt)*) => { $crate::do_log!(Normal,Warning,$($arg)*); } }
+#[macro_export]
+macro_rules! warn_important { ($($arg:tt)*) => { $crate::do_log!(Quiet,Warning,$($arg)*); } }
+#[macro_export]
+macro_rules! warn_extra { ($($arg:tt)*) => { $crate::do_log!(Noisy,Warning,$($arg)*); } }
+#[macro_export]
+macro_rules! error { ($($arg:tt)*) => { $crate::do_log!(Normal,Error,$($arg)*); } }
+#[macro_export]
+macro_rules! error_important { ($($arg:tt)*) => { $crate::do_log!(Quiet,Error,$($arg)*); } }
+#[macro_export]
+macro_rules! error_extra { ($($arg:tt)*) => { $crate::do_log!(Noisy,Error,$($arg)*); } }
 
 #[macro_export]
-macro_rules! warn {
-    ($($arg:tt)*) => {
-        use $crate::console::*;
-        (print(&Verbosity::Normal,&Severity::Warning,&std::format!($($arg)*)))
-    }
-}
-
+macro_rules! debug_log { ($($arg:tt)*) => { $crate::debug_do_log!(Normal,Notice,$($arg)*); } }
 #[macro_export]
-macro_rules! warn_important {
-    ($($arg:tt)*) => {
-        use $crate::console::*;
-        (print(&Verbosity::Quiet,&Severity::Warning,&std::format!($($arg)*)))
-    }
-}
-
+macro_rules! debug_log_important { ($($arg:tt)*) => { $crate::debug_do_log!(Quiet,Notice,$($arg)*); } }
 #[macro_export]
-macro_rules! warn_extra {
-    ($($arg:tt)*) => {
-        use $crate::console::*;
-        (print(&Verbosity::Noisy,&Severity::Warning,&std::format!($($arg)*)))
-    }
-}
-
+macro_rules! debug_log_extra { ($($arg:tt)*) => { $crate::debug_do_log!(Noisy,Notice,$($arg)*); } }
 #[macro_export]
-macro_rules! error {
-    ($($arg:tt)*) => {
-        use $crate::console::*;
-        (print(&Verbosity::Normal,&Severity::Error,&std::format!($($arg)*)))
-    }
-}
-
+macro_rules! debug_warn { ($($arg:tt)*) => { $crate::debug_do_log!(Normal,Warning,$($arg)*); } }
 #[macro_export]
-macro_rules! error_important {
-    ($($arg:tt)*) => {
-        use $crate::console::*;
-        (print(&Verbosity::Quiet,&Severity::Error,&std::format!($($arg)*)))
-    }
-}
-
+macro_rules! debug_warn_important { ($($arg:tt)*) => { $crate::debug_do_log!(Quiet,Warning,$($arg)*); } }
 #[macro_export]
-macro_rules! error_extra {
-    ($($arg:tt)*) => {
-        use $crate::console::*;
-        (print(&Verbosity::Noisy,&Severity::Error,&std::format!($($arg)*)))
-    }
-}
+macro_rules! debug_warn_extra { ($($arg:tt)*) => { $crate::debug_do_log!(Noisy,Warning,$($arg)*); } }
+#[macro_export]
+macro_rules! debug_error { ($($arg:tt)*) => { $crate::debug_do_log!(Normal,Error,$($arg)*); } }
+#[macro_export]
+macro_rules! debug_error_important { ($($arg:tt)*) => { $crate::debug_do_log!(Quiet,Error,$($arg)*); } }
+#[macro_export]
+macro_rules! debug_error_extra { ($($arg:tt)*) => { $crate::debug_do_log!(Noisy,Error,$($arg)*); } }

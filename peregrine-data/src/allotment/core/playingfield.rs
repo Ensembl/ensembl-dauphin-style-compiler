@@ -39,11 +39,9 @@ pub struct LocalPlayingField(LocalValueSpec<PlayingFieldEdge,f64>);
 
 impl LocalPlayingField {
     pub(crate) fn new(builder: &LocalPlayingFieldBuilder, independent_answer: &mut StaticAnswer) -> LocalPlayingField {
-        log!("y A");
         let out = LocalPlayingField(LocalValueSpec::new(&builder.0,|x| {
             commute(x,0.,|x,y| x.max(*y)).dearc()
         },independent_answer));
-        log!("y B");
         out
     }
 
@@ -60,7 +58,7 @@ impl GlobalPlayingFieldBuilder {
     }
 }
 
-#[derive(PartialEq,Eq,Hash)]
+#[derive(Clone,PartialEq,Eq,Hash)]
 pub struct GlobalPlayingField(GlobalValueSpec<PlayingFieldEdge,f64>);
 
 impl GlobalPlayingField {
@@ -72,6 +70,7 @@ impl GlobalPlayingField {
     }
 }
 
+#[cfg_attr(debug_assertions,derive(Debug))]
 #[derive(Clone)]
 pub struct PlayingField {
     pub height: f64,

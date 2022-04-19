@@ -1,5 +1,5 @@
 use std::sync::{Arc, Mutex};
-use peregrine_toolkit::log;
+use peregrine_toolkit::{log, debug_log};
 use peregrine_toolkit::puzzle::AnswerAllocator;
 use peregrine_toolkit::sync::blocker::{Blocker};
 use peregrine_toolkit::sync::needed::Needed;
@@ -37,7 +37,7 @@ impl SwitcherManager for TrainSetManager {
     type Error = DataMessage;
 
     fn create(&mut self, extent: &Self::Extent) -> Result<Self::Type,Self::Error> {
-        log!("create train: {:?}",extent.extent);
+        debug_log!("create train: {:?}",extent.extent);
         let mut train = Train::new(&self.graphics,&self.ping_needed,&self.answer_allocator,&extent.extent,&self.carriage_loader,&self.messages)?;
         if let Some(viewport) = &self.viewport {
             train.set_position(viewport);

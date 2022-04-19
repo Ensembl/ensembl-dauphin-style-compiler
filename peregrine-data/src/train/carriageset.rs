@@ -1,6 +1,6 @@
 use std::cmp::max;
 use std::sync::{Mutex, Arc};
-use peregrine_toolkit::{lock, log};
+use peregrine_toolkit::{lock, log, debug_log};
 use peregrine_toolkit::puzzle::AnswerAllocator;
 use peregrine_toolkit::sync::needed::Needed;
 
@@ -87,7 +87,7 @@ impl DrawingCarriages2 {
 
 impl SliderActions<(DrawingCarriageCreator,TrainState3),DrawingCarriage2,DrawingCarriage2> for DrawingCarriages2 {
     fn ctor(&mut self, (creator,state): &(DrawingCarriageCreator,TrainState3)) -> DrawingCarriage2 {
-        log!("create carriage {:?}",creator.index);
+        debug_log!("create carriage {:?}",creator.index);
         let dc = creator.create(state);
         self.graphics.create_carriage(&dc);
         dc
@@ -132,7 +132,7 @@ impl CarriageProcessActions2 {
         }
     }
 
-    fn state_updated(&self) {
+    fn state_updated(&mut self) {
         self.graphics.set_playing_field(self.state().playing_field());
         self.graphics.set_metadata(self.state().metadata());
     }
@@ -142,7 +142,7 @@ impl CarriageProcessActions2 {
 
 impl SliderActions<u64,CarriageProcess,DrawingCarriageCreator> for CarriageProcessActions2 {
     fn ctor(&mut self, index: &u64) -> CarriageProcess {
-        log!("create panel {:?}",index);
+        debug_log!("create panel {:?}",index);
         let new_carriage = self.constant.new_unloaded_carriage(*index);
         self.railway_data_tasks.add_carriage(&new_carriage);
         new_carriage
@@ -154,9 +154,9 @@ impl SliderActions<u64,CarriageProcess,DrawingCarriageCreator> for CarriageProce
     }
 
     fn init(&mut self, index: &u64, item: &mut CarriageProcess) -> Option<DrawingCarriageCreator> {
-        log!("init panel? {:?}",index);
+        debug_log!("init panel? {:?}",index);
         item.get_shapes2().map(|shapes| {
-            log!("init panel! {:?}",index);
+            debug_log!("init panel! {:?}",index);
             self.train_state_spec.add(*index,shapes.spec());
             self.state_updated();
             self.ping_needed.set(); /* Need to call ping in case dc are ready */
@@ -181,7 +181,6 @@ pub(super) struct CarriageSet {
 impl CarriageSet {
     pub(super) fn new(ping_needed: &Needed, answer_allocator: &Arc<Mutex<AnswerAllocator>>, extent: &TrainExtent, configs: &TrainTrackConfigList, railway_data_tasks: &RailwayDataTasks, graphics: &Graphics, messages: &MessageSender) -> CarriageSet {
         let constant = Arc::new(CarriageSetConstant::new(ping_needed,extent,configs,messages));
-        let train_state_spec = Arc::new(Mutex::new(TrainStateSpec::new(answer_allocator)));
         let carriage_actions = CarriageProcessActions2::new(ping_needed,&constant,railway_data_tasks,answer_allocator,graphics);
         let drawing_actions = DrawingCarriages2::new(&ping_needed,extent,graphics);
         let is_milestone = extent.scale().is_milestone();
@@ -237,13 +236,13 @@ impl CarriageSet {
 
     // TODO "good enough" layer via trains
     pub(super) fn ping(&mut self) {
-        log!("carriage_set/ping");
+        debug_log!("carriage_set/ping");
         self.process.check();
         /* Create any necessary DrawingCarriages */
         let state = self.process.inner().state();
-        log!("carriage_set/ping (active)");
+        debug_log!("carriage_set/ping (active)");
         let mut wanted = self.process.iter().map(|(_,x)| (x.clone(),state.clone())).collect::<Vec<_>>();
-        log!("wanted len={}",wanted.len());
+        debug_log!("wanted len={}",wanted.len());
         self.drawing.set(&mut wanted.drain(..));
         /* Maybe we need to update the UI? */
         self.drawing.check();

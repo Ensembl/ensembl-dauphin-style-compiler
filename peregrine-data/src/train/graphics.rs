@@ -1,6 +1,6 @@
 use std::{sync::{Arc, Mutex}, collections::{HashSet, HashMap}};
 
-use peregrine_toolkit::{lock, log};
+use peregrine_toolkit::{lock, log, debug_log};
 
 use crate::{PeregrineIntegration, TrainExtent, allotment::{transformers::transformertraits::GraphTransformer, core::playingfield::{GlobalPlayingField, PlayingField}}, CarriageSpeed, GlobalAllotmentMetadata, Viewport };
 
@@ -13,8 +13,12 @@ struct GraphicsDropper {
 
 #[derive(Clone)]
 pub(crate) struct Graphics {
-    trains: Arc<Mutex<HashMap<TrainExtent,i32>>>,
+    /* Main way of contacting graphics */
     integration: Arc<Mutex<Box<dyn PeregrineIntegration>>>,
+    /* API-local state */
+    trains: Arc<Mutex<HashMap<TrainExtent,i32>>>, // create&destroy trains as needed
+    playing_field: Option<GlobalPlayingField>, // don't repeat ourselves
+    metadata: Option<GlobalAllotmentMetadata>, // don't repeat ourcelves, ;-)
     #[allow(unused)]
     dropper: Arc<GraphicsDropper>
 }
@@ -25,7 +29,9 @@ impl Graphics {
         let integration = integration.clone();
         Graphics {
             dropper: Arc::new(GraphicsDropper{ trains: trains.clone(), integration: integration.clone() }),
-            trains, integration
+            trains, integration,
+            playing_field: None,
+            metadata: None
         }
     }
 
@@ -34,7 +40,7 @@ impl Graphics {
         let train = dc.extent().train();
         let value = trains.entry(train.clone()).or_insert(0);
         if *value == 0 {
-            log!("gl/create train {:?}",train);
+            debug_log!("gl/create train {:?}",train);
             lock!(self.integration).create_train(train);
         }
         *value += delta;
@@ -45,18 +51,18 @@ impl Graphics {
 
     pub(super) fn create_carriage(&mut self, dc: &DrawingCarriage2) {
         self.upate_train(dc,1);
-        log!("gl/create carriage {:?}",dc.extent().index());
+        debug_log!("gl/create carriage {:?}",dc.extent().index());
         lock!(self.integration).create_carriage(dc);
     }
 
     pub(super) fn drop_carriage(&mut self, dc: &DrawingCarriage2) {
-        log!("gl/drop carriage {:?}",dc.extent().index());
+        debug_log!("gl/drop carriage {:?}",dc.extent().index());
         lock!(self.integration).drop_carriage(dc);
         self.upate_train(dc,-1);
     }
 
     pub(super) fn set_carriages(&self, extent: &TrainExtent, carriages: &[DrawingCarriage2]) {
-        log!("gl/set carriages {:?}",carriages.iter().map(|c| { c.extent().train() }).collect::<Vec<_>>());
+        debug_log!("gl/set carriages {:?}",carriages.iter().map(|c| { c.extent().train() }).collect::<Vec<_>>());
         lock!(self.integration).set_carriages(extent,carriages);
     }
 
@@ -64,12 +70,21 @@ impl Graphics {
         lock!(self.integration).start_transition(train,max,speed);
     }
 
-    pub(super) fn set_playing_field(&self, playing_field: &GlobalPlayingField) {
+    pub(super) fn set_playing_field(&mut self, playing_field: &GlobalPlayingField) {
+        if let Some(old_playing_field) = &self.playing_field {
+            if old_playing_field == playing_field { return; }
+        }
+        self.playing_field = Some(playing_field.clone());
         let playing_field = PlayingField::new(playing_field);
+        debug_log!("playing_field {:?}",playing_field);
         lock!(self.integration).set_playing_field(playing_field.clone());
     }
 
-    pub(super) fn set_metadata(&self, metadata: &GlobalAllotmentMetadata) {
+    pub(super) fn set_metadata(&mut self, metadata: &GlobalAllotmentMetadata) {
+        if let Some(old_metadata) = &self.metadata {
+            if old_metadata == metadata { return; }
+        }
+        self.metadata = Some(metadata.clone());
         lock!(self.integration).notify_allotment_metadata(metadata);
     }
 
