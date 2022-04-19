@@ -15,6 +15,7 @@ use super::trainextent::TrainExtent;
 use crate::util::message::DataMessage;
 
 struct TrainSetManager {
+    current_epoch: u64,
     ping_needed: Needed,
     graphics: Graphics,
     answer_allocator: Arc<Mutex<AnswerAllocator>>,
@@ -31,60 +32,88 @@ impl TrainSetManager {
 }
 
 impl SwitcherManager for TrainSetManager {
-    type Type = Train;
-    type Extent = TrainExtent;
+    type Type = SwitcherTrain;
+    type Extent = SwitcherTrainExtent;
     type Error = DataMessage;
 
     fn create(&mut self, extent: &Self::Extent) -> Result<Self::Type,Self::Error> {
-        log!("create train: {:?}",extent);
-        let mut train = Train::new(&self.graphics,&self.ping_needed,&self.answer_allocator,extent,&self.carriage_loader,&self.messages)?;
+        log!("create train: {:?}",extent.extent);
+        let mut train = Train::new(&self.graphics,&self.ping_needed,&self.answer_allocator,&extent.extent,&self.carriage_loader,&self.messages)?;
         if let Some(viewport) = &self.viewport {
             train.set_position(viewport);
         }
-        Ok(train)
+        Ok(SwitcherTrain {
+            train,
+            epoch: self.current_epoch
+        })
     }
 
     fn busy(&self, yn: bool) { self.dependents.busy(yn) }
 }
 
-impl SwitcherExtent for TrainExtent {
-    type Type = Train;
-    type Extent = TrainExtent;
+#[derive(Clone,PartialEq,Eq)]
+struct SwitcherTrainExtent {
+    epoch: u64,
+    extent: TrainExtent
+}
+
+impl SwitcherExtent for SwitcherTrainExtent {
+    type Type = SwitcherTrain;
+    type Extent = SwitcherTrainExtent;
 
     fn to_milestone(&self) -> Self::Extent {
-        let scale = self.scale().clone().to_milestone();
-        TrainExtent::new(self.layout(),&scale,self.pixel_size())
+        let scale = self.extent.scale().clone().to_milestone();
+        SwitcherTrainExtent {
+            epoch: self.epoch,
+            extent: TrainExtent::new(self.extent.layout(),&scale,self.extent.pixel_size())
+        }
     }
 
     fn is_milestone_for(&self, what: &Self::Extent) -> bool {
-        self.scale().is_milestone() &&
-        self.layout() == what.layout() &&
-        self.scale() == &what.scale().to_milestone()
+        self.extent.scale().is_milestone() &&
+        self.extent.layout() == what.extent.layout() &&
+        self.extent.scale() == &what.extent.scale().to_milestone()
     }
 }
 
-impl SwitcherObject for Train {
-    type Extent = TrainExtent;
-    type Type = Train;
+struct SwitcherTrain {
+    epoch: u64,
+    train: Train
+}
+
+impl SwitcherObject for SwitcherTrain {
+    type Extent = SwitcherTrainExtent;
+    type Type = SwitcherTrain;
     type Speed = CarriageSpeed;
 
-    fn extent(&self) -> Self::Extent { self.extent().clone() }
-    fn half_ready(&self) -> bool { self.train_half_ready() }
-    fn ready(&self) -> bool { self.train_ready() }
-    fn broken(&self) -> bool { self.train_broken() }
-    fn live(&mut self, speed: &Self::Speed) { self.set_active(speed.clone()) }
-    fn dead(&mut self) { self.set_inactive() }
+    fn extent(&self) -> Self::Extent { 
+        SwitcherTrainExtent {
+            extent: self.train.extent().clone(),
+            epoch: self.epoch
+        }
+    }
+    fn half_ready(&self) -> bool { self.train.train_half_ready() }
+    fn ready(&self) -> bool { self.train.train_ready() }
+    fn broken(&self) -> bool { self.train.train_broken() }
+    fn live(&mut self, speed: &Self::Speed) { self.train.set_active(speed.clone()) }
+    fn dead(&mut self) { self.train.set_inactive() }
 
     fn speed(&self, source: Option<&Self::Type>) -> Self::Speed {
-        source.as_ref().map(|x| x.speed_limit(&self)).unwrap_or(CarriageSpeed::Quick)
+        if let Some(source) = source {
+            if source.epoch != self.epoch { return CarriageSpeed::Slow; }
+            source.train.speed_limit(&self.train)
+        } else {
+            CarriageSpeed::Quick
+        }        
     }
 }
 
-pub struct TrainSet(Switcher<TrainSetManager,TrainExtent,Train,DataMessage>);
+pub struct TrainSet(Switcher<TrainSetManager,SwitcherTrainExtent,SwitcherTrain,DataMessage>);
 
 impl TrainSet {
     pub(super) fn new(base: &PeregrineCoreBase, result_store: &ShapeStore, visual_blocker: &Blocker, ping_needed: &Needed, carriage_loader: &RailwayDataTasks) -> TrainSet {
         let manager = TrainSetManager {
+            current_epoch: 0,
             ping_needed: ping_needed.clone(),
             graphics: base.graphics.clone(),
             answer_allocator: base.answer_allocator.clone(),
@@ -100,20 +129,23 @@ impl TrainSet {
         if !viewport.ready() { return Ok(()); }
         /* calculate best train */
         let best_scale = Scale::new_bp_per_screen(viewport.bp_per_screen()?);
-        let extent = TrainExtent::new(viewport.layout()?,&best_scale,viewport.pixel_size()?);
+        let extent = SwitcherTrainExtent {
+            epoch: self.0.manager().current_epoch,
+            extent: TrainExtent::new(viewport.layout()?,&best_scale,viewport.pixel_size()?)
+        };
         /* allow change of trains */
         self.0.set_target(&extent)?;
         /* set position in anticipator */
         if let Some(train) = self.0.quiescent() {
-            let central_index = train.extent().scale().carriage(viewport.position()?);
-            let central_carriage = CarriageExtent::new(&train.extent(),central_index);
+            let central_index = train.extent().extent.scale().carriage(viewport.position()?);
+            let central_carriage = CarriageExtent::new(&train.train.extent(),central_index);
             self.0.manager().dependents.position_was_updated(&central_carriage);
         }
         /* set position in all current trains (data) */
         let viewport_stick = viewport.layout()?.stick();
         self.0.each_mut(&|train| {
-            if viewport_stick == train.extent().layout().stick() {
-                train.set_position(viewport); // XXX error handling
+            if viewport_stick == train.extent().extent.layout().stick() {
+                train.train.set_position(viewport); // XXX error handling
             }
         });
         /* set position for future trains (data) */
@@ -129,7 +161,7 @@ impl TrainSet {
 
     pub(super) fn ping(&mut self) {
         self.0.ping();
-        self.0.each_mut( &|c| { c.ping() });
+        self.0.each_mut( &|c| { c.train.ping() });
     }
 
     pub(super) fn set_sketchy(&mut self, yn: bool) -> Result<(),DataMessage> {
@@ -137,6 +169,11 @@ impl TrainSet {
     }
 
     pub(super) fn invalidate(&mut self) -> Result<(),DataMessage> {
-        self.0.force_no_match()
+        self.0.manager_mut().current_epoch += 1;
+        if let Some(mut target) = self.0.get_target().cloned() {
+            target.epoch = self.0.manager().current_epoch;
+            self.0.set_target(&target)?;
+        }
+        Ok(())
     }
 }

@@ -7,21 +7,6 @@
  * target: the train extent which would be ideal for the given coordinates
  */
 
-/* Sometimes we want force a transition even though the extents match. This little
- * struct manages that.
- */
-struct ForceNoMatch(u64,u64);
-
-impl ForceNoMatch {
-    fn new() -> ForceNoMatch { ForceNoMatch(0,0) }
-    fn invalidate(&mut self) { self.0 += 1; }
-    fn is_valid(&mut self) -> bool {
-        let out = self.0 == self.1;
-        self.1 = self.0;
-        out
-    }
-}
-
 pub(super) trait SwitcherManager {
     type Type: SwitcherObject;
     type Extent: SwitcherExtent;
@@ -60,7 +45,6 @@ pub(super) struct Switcher<M: SwitcherManager<Extent=X,Type=T,Error=E>,
                            X: SwitcherExtent<Extent=X,Type=T>+Clone,
                            T: SwitcherObject<Extent=X,Type=T>,
                            E> {
-    force_no_match: ForceNoMatch,
     sketchy: bool,
     was_busy: bool,
     manager: Box<M>,
@@ -78,8 +62,7 @@ impl<M:SwitcherManager<Extent=X,Type=T,Error=E>,
         Switcher {
             current: None, future: None, wanted: None, target: None,
             was_busy: false, sketchy: false, 
-            manager: Box::new(manager),
-            force_no_match: ForceNoMatch::new()
+            manager: Box::new(manager)
         }
     }
 
@@ -125,6 +108,7 @@ impl<M:SwitcherManager<Extent=X,Type=T,Error=E>,
         Ok(())
     }
 
+    pub(super) fn get_target(&self) -> Option<&X> { self.target.as_ref() }
     pub(super) fn set_target(&mut self, extent: &X) -> Result<(),E> {
         if self.target.is_none() || self.target.as_ref().unwrap() != extent {
             self.target = Some(extent.clone());
@@ -137,8 +121,6 @@ impl<M:SwitcherManager<Extent=X,Type=T,Error=E>,
         /* No target so say match to avoid trying further */
         if self.target.is_none() { return true; }
         let target = self.target.as_ref().unwrap();
-        /* We've been told to say "no" */
-        if !self.force_no_match.is_valid() { return false; }
         /* Perfect */
         if let Some(quiescent) = self.quiescent() {
             if &quiescent.extent() == target { return true; }
@@ -195,11 +177,6 @@ impl<M:SwitcherManager<Extent=X,Type=T,Error=E>,
 
     pub(super) fn set_sketchy(&mut self, yn: bool) -> Result<(),E> {
         self.sketchy = yn;
-        self.ping()
-    }
-
-    pub(super) fn force_no_match(&mut self) -> Result<(),E> {
-        self.force_no_match.invalidate();
         self.ping()
     }
 

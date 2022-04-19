@@ -55,11 +55,7 @@ impl Train {
     }
 
     pub(super) fn speed_limit(&self, other: &Train) -> CarriageSpeed {
-        if self.extent() == other.extent() {
-            self.extent().speed_limit(&other.extent())
-        } else {
-            CarriageSpeed::Slow
-        }
+        self.extent().speed_limit(&other.extent())
     }
 
     pub(super) fn extent(&self) -> &TrainExtent { &self.extent }
