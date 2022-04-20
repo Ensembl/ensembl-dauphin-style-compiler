@@ -113,6 +113,7 @@ impl SliderActions<(DrawingCarriageCreator,TrainState3),DrawingCarriage2,Drawing
 
 struct CarriageProcessActions2 {
     ping_needed: Needed,
+    mute: bool,
     constant: Arc<CarriageSetConstant>,
     railway_data_tasks: RailwayDataTasks, 
     train_state_spec: TrainStateSpec,
@@ -125,6 +126,7 @@ impl CarriageProcessActions2 {
             graphics: &Graphics) -> CarriageProcessActions2 {
         CarriageProcessActions2 {
             ping_needed: ping_needed.clone(),
+            mute: false,
             constant: constant.clone(),
             graphics: graphics.clone(),
             railway_data_tasks: railway_data_tasks.clone(),
@@ -133,8 +135,17 @@ impl CarriageProcessActions2 {
     }
 
     fn state_updated(&mut self) {
-        self.graphics.set_playing_field(self.state().playing_field());
-        self.graphics.set_metadata(self.state().metadata());
+        if !self.mute {
+            self.graphics.set_playing_field(self.state().playing_field());
+            self.graphics.set_metadata(self.state().metadata());
+        }
+    }
+
+    fn mute(&mut self, yn: bool) {
+        self.mute = yn;
+        if !self.mute {
+            self.state_updated()
+        }
     }
 
     fn state(&self) -> TrainState3 { self.train_state_spec.spec() }
@@ -172,7 +183,6 @@ impl SliderActions<u64,CarriageProcess,DrawingCarriageCreator> for CarriageProce
 
 pub(super) struct CarriageSet {
     centre: Option<u64>,
-    active: bool,
     milestone: bool,
     drawing: Slider<(DrawingCarriageCreator,TrainState3),DrawingCarriage2,DrawingCarriage2,DrawingCarriages2>,
     process: Slider<u64,CarriageProcess,DrawingCarriageCreator,CarriageProcessActions2>
@@ -188,19 +198,13 @@ impl CarriageSet {
             centre: None,
             drawing: Slider::new(drawing_actions),
             process: Slider::new(carriage_actions),
-            milestone: is_milestone,
-            active: false
+            milestone: is_milestone
         }
     }
 
-    pub(super) fn set_active(&mut self, yn: bool) {
-        self.active = yn;
-        if yn {
-            self.ping();
-        }
+    pub(super) fn mute(&mut self, yn: bool) {
+        self.process.inner_mut().mute(yn);
     }
-
-    pub(super) fn is_active(&self) -> bool { self.active }
 
     pub(super) fn update_centre(&mut self, centre: u64) {
         self.centre = Some(centre);
@@ -215,12 +219,6 @@ impl CarriageSet {
         let creator = if let Some(creator) = self.process.get(index) {creator } else { return None; }.clone();
         let state = self.process.inner().state();
         self.drawing.get((creator,state))
-    }
-
-    pub(super) fn each_current_drawing_carriage<X,F>(&self, state: &mut X, mut cb: F) where F: FnMut(&mut X,&DrawingCarriage2) {
-        for (_,drawing) in self.drawing.iter() {
-            cb(state,drawing);
-        }
     }
 
     pub(super) fn all_ready(&self) -> bool {
@@ -240,9 +238,7 @@ impl CarriageSet {
         self.process.check();
         /* Create any necessary DrawingCarriages */
         let state = self.process.inner().state();
-        debug_log!("carriage_set/ping (active)");
         let mut wanted = self.process.iter().map(|(_,x)| (x.clone(),state.clone())).collect::<Vec<_>>();
-        debug_log!("wanted len={}",wanted.len());
         self.drawing.set(&mut wanted.drain(..));
         /* Maybe we need to update the UI? */
         self.drawing.check();

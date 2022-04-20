@@ -118,7 +118,7 @@ impl PeregrineMessage for Message {
             Message::CurrentLocation(stick,left,right) => format!("current location: {}:{}-{}",stick,left,right),
             Message::TargetLocation(stick,left,right) => format!("target location: {}:{}-{}",stick,left,right),
             Message::Ready => format!("ready"),
-            Message::AllotmentMetadataReport(metadata) => format!("allotment metadata: {:?}",metadata),
+            Message::AllotmentMetadataReport(metadata) => format!("allotment metadata: {:?}",metadata.summarize()),
             Message::ZMenuEvent(x,y,zmenu) => format!("zmenu event: {} at ({},{})",zmenu_fixed_vec_to_json(zmenu),x,y),
             Message::HitEndstop(x) => format!("hit endstop: {:?}",x.iter().map(|y| format!("{:?}",y)).collect::<Vec<_>>().join(", ")),
         }

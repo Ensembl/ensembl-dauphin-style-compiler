@@ -1,6 +1,6 @@
 use std::{sync::{Arc, Mutex}, collections::{HashMap, hash_map::DefaultHasher}, fmt, hash::{Hash, Hasher}};
 
-use peregrine_toolkit::{puzzle::{StaticAnswer, AnswerAllocator}, lock, log};
+use peregrine_toolkit::{puzzle::{StaticAnswer, AnswerAllocator}, lock, log, debug_log};
 
 use crate::GlobalAllotmentMetadata;
 
@@ -172,7 +172,7 @@ impl TrainStateSpec {
         if state.is_none() {
             let answer = lock!(self.answer_allocator).get();
             *state = Some(TrainState3::new(self,answer));
-            log!("new state: {:?}",*state);
+            debug_log!("new state: {:?}",*state);
         }
         state.clone().unwrap()
     }

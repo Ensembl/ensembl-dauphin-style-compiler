@@ -113,7 +113,7 @@ pub(crate) struct LocalValueSpec<X: Hash+Eq+Clone, T:'static+Clone> {
     entries: HashMap<X,BuiltLocalEntry<T>>
 }
 
-impl<X: Hash+Eq+Clone+std::fmt::Debug, T:'static+Clone> LocalValueSpec<X,T> {
+impl<X: Hash+Eq+Clone, T:'static+Clone> LocalValueSpec<X,T> {
     pub(crate) fn new<F>(builder: &LocalValueBuilder<X,T>, merger: F, independent_answer: &mut StaticAnswer) -> LocalValueSpec<X,T>
             where F: Fn(&[StaticValue<T>]) -> StaticValue<T> {
         let out = LocalValueSpec {

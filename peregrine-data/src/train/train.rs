@@ -1,9 +1,8 @@
 use std::sync::{ Arc, Mutex };
 use peregrine_toolkit::puzzle::AnswerAllocator;
-use peregrine_toolkit::{lock, log, debug_log};
+use peregrine_toolkit::{lock, debug_log};
 use peregrine_toolkit::sync::needed::Needed;
 use crate::api::{CarriageSpeed, MessageSender };
-use super::drawingcarriage::DrawingCarriage2;
 use super::graphics::Graphics;
 use super::railwaydatatasks::RailwayDataTasks;
 use super::carriageset::{CarriageSet};
@@ -27,7 +26,6 @@ impl StickData {
 pub(super) struct Train {
     extent: TrainExtent,
     max: Arc<Mutex<StickData>>,
-    viewport: Option<Viewport>,
     carriages: CarriageSet,
     graphics: Graphics,
 }
@@ -39,7 +37,6 @@ impl Train {
             max: Arc::new(Mutex::new(StickData::Pending)),
             extent: extent.clone(),
             graphics: graphics.clone(),
-            viewport: None,
             carriages: CarriageSet::new(&ping_needed, answer_allocator,extent,&train_track_config_list,carriage_loader,graphics,messages),
         };
         carriage_loader.add_stick(&out.extent(),&out.stick_data_holder());
@@ -50,17 +47,11 @@ impl Train {
         self.carriages.ping();
     }
 
-    pub(super) fn each_current_drawing_carriage<X,F>(&self, state: &mut X, cb: &F) where F: Fn(&mut X,&DrawingCarriage2) {
-        self.carriages.each_current_drawing_carriage(state,cb);
-    }
-
     pub(super) fn speed_limit(&self, other: &Train) -> CarriageSpeed {
         self.extent().speed_limit(&other.extent())
     }
 
     pub(super) fn extent(&self) -> &TrainExtent { &self.extent }
-    pub(super) fn viewport(&self) -> Option<&Viewport> { self.viewport.as_ref() }
-    pub(super) fn is_active(&self) -> bool { self.carriages.is_active() }
     pub(super) fn train_ready(&self) -> bool { 
         self.train_half_ready() && self.carriages.all_ready() 
     }
@@ -76,19 +67,18 @@ impl Train {
             StickData::Ready(max) => *max,
             _ => { panic!("set_active() called on non-ready train") }
         };
-        self.carriages.set_active(true);
+        self.carriages.mute(false);
         self.graphics.start_transition(&self.extent,max,speed);
     }
 
     pub(super) fn set_inactive(&mut self) {
-        self.carriages.set_active(false);
+        self.carriages.mute(true);
     }
 
     pub(super) fn set_position(&mut self, viewport: &Viewport) -> Result<(),DataMessage> {
         debug_log!("set poisition {:?}",viewport);
         let centre_carriage_index = self.extent.scale().carriage(viewport.position()?);
         self.carriages.update_centre(centre_carriage_index);
-        self.viewport = Some(viewport.clone());
         Ok(())
     }
     

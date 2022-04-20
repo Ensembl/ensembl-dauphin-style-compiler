@@ -1,6 +1,6 @@
 use std::{sync::{Arc}};
 
-use peregrine_toolkit::{puzzle::{DelayedSetter, constant, derived, StaticValue, StaticAnswer, promise_delayed, cache_constant_clonable, derived_debug}};
+use peregrine_toolkit::{puzzle::{DelayedSetter, constant, derived, StaticValue, StaticAnswer, promise_delayed, cache_constant_clonable }};
 
 use crate::{CoordinateSystem, allotment::{core::{carriageoutput::BoxPositionContext, playingfield::PlayingFieldEdge}, transformers::{transformers::{Transformer, TransformerVariety}, simple::{SimpleTransformerHolder, SimpleTransformer}, drawinginfo::DrawingInfo}, style::{style::{LeafCommonStyle, Indent}, allotmentname::{AllotmentNamePart, AllotmentName}}, util::{rangeused::RangeUsed, bppxconverter::BpPxConverter}}};
 

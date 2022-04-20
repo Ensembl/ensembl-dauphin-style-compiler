@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use peregrine_toolkit::{puzzle::{variable, derived, delayed, DelayedSetter, compose, short_memoized_arc, StaticValue, derived_debug}};
+use peregrine_toolkit::{puzzle::{variable, derived, delayed, DelayedSetter, compose, short_memoized_arc, StaticValue }};
 
 use crate::{allotment::{core::{carriageoutput::BoxPositionContext}, style::{style::{ContainerAllotmentStyle}, allotmentname::{AllotmentNamePart, AllotmentName}}, boxes::{boxtraits::Stackable}, util::{rangeused::RangeUsed}, collision::{collisionalgorithm::CollisionAlgorithm}}, CoordinateSystem};
 

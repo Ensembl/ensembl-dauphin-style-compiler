@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use super::{answer::Answer, value::Value, DelayedSetter, delayed, derived, derived_debug};
+use super::{answer::Answer, value::Value, DelayedSetter, delayed, derived };
 
 struct ClonableBuildCommuter<'f:'a,'a,T> {
     initial: T,
