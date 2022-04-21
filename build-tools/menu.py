@@ -133,6 +133,12 @@ class ChooseOne:
             else:
                 return self.options[0]
 
+def conditions_met(conditions,values):
+    if "eq" in conditions:
+        if values.get(conditions["eq"][0],None) != conditions["eq"][1]:
+            return False
+    return True
+
 def ask(question,verifiers,default,skip_ask):
     while True:
         out = question.ask(default,skip_ask)
@@ -150,12 +156,16 @@ def ask(question,verifiers,default,skip_ask):
 def ask_all(questions):
     first = True
     while True:
-        skip_ask = ( quick and first)
+        skip_ask = (quick and first)
         first = False
         out = {}
         # Ask
         for q in questions:
-            out[q[0]] = ask(q[1],q[2],defaults.get(q[0],None),skip_ask)
+            default = defaults.get(q[0],None)
+            if conditions_met(q[3],out):
+                out[q[0]] = ask(q[1],q[2],default,skip_ask)
+            else:
+                out[q[0]] = default
 
         # Show settings for confirmation
         print(rich("\0X\0gSummary:\0-"))
@@ -184,10 +194,11 @@ with open(config_file,'r') as f:
         for verifier in prompt.get("verifiers",[]):
             if verifier["verifier"] == "number":
                 verifiers.append(VerifyNumber(verifier.get("min",None),verifier.get("max",None)))
+        conditions = prompt.get("conditions",{})
         if "options" in prompt:
-            config.append([prompt["key"],ChooseOne(prompt["question"],prompt["options"]),verifiers]),
+            config.append([prompt["key"],ChooseOne(prompt["question"],prompt["options"]),verifiers,conditions]),
         else:
-            config.append([prompt["key"],Free(prompt["question"],prompt.get("default","")),verifiers])
+            config.append([prompt["key"],Free(prompt["question"],prompt.get("default","")),verifiers,conditions])
 
 print(rich("\0X\0yConfiguration\0-\nFor default (\0ggreen\0-) hit enter. Unambiguous prefixes are fine. Defaults usually sensible.\n"))
 

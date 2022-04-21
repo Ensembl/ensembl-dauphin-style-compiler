@@ -40,35 +40,35 @@ impl Graphics {
         let train = dc.extent().train();
         let value = trains.entry(train.clone()).or_insert(0);
         if *value == 0 {
-            debug_log!("gl/create train {:?}",train);
+            #[cfg(debug_trains)] debug_log!("gl/create_train {:?}",train);
             lock!(self.integration).create_train(train);
         }
         *value += delta;
         if *value == 0 {
+            #[cfg(debug_trains)] debug_log!("gl/drop_train {:?}",train);
             lock!(self.integration).drop_train(train);
         }
     }
 
     pub(super) fn create_carriage(&mut self, dc: &DrawingCarriage2) {
         self.upate_train(dc,1);
-        debug_log!("gl/create carriage {:?}",dc.extent().index());
+        #[cfg(debug_trains)] debug_log!("gl/create carriage {:?} {:?}",dc.extent().train(),dc.extent().index());
         lock!(self.integration).create_carriage(dc);
     }
 
     pub(super) fn drop_carriage(&mut self, dc: &DrawingCarriage2) {
-        debug_log!("gl/drop carriage {:?}",dc.extent().index());
+        #[cfg(debug_trains)] debug_log!("gl/drop carriage {:?} {:?}",dc.extent().train(),dc.extent().index());
         lock!(self.integration).drop_carriage(dc);
         self.upate_train(dc,-1);
     }
 
     pub(super) fn set_carriages(&self, extent: &TrainExtent, carriages: &[DrawingCarriage2]) {
-        debug_log!("gl/set carriages {:?}",carriages.iter().map(|c| { c.extent().train() }).collect::<Vec<_>>());
-        debug_log!("gl/set carriages {:?} len={}",extent,carriages.len());
+        #[cfg(debug_trains)] debug_log!("gl/set_carriages {:?}",carriages.iter().map(|c| { c.extent().train() }).collect::<Vec<_>>());
         lock!(self.integration).set_carriages(extent,carriages);
     }
 
     pub(super) fn start_transition(&self, train: &TrainExtent, max: u64, speed: CarriageSpeed) {
-        debug_log!("gl/start transition");
+        #[cfg(debug_trains)] debug_log!("gl/start transition");
         lock!(self.integration).start_transition(train,max,speed);
     }
 
@@ -78,7 +78,6 @@ impl Graphics {
         }
         self.playing_field = Some(playing_field.clone());
         let playing_field = PlayingField::new(playing_field);
-        debug_log!("playing_field {:?}",playing_field);
         lock!(self.integration).set_playing_field(playing_field.clone());
     }
 

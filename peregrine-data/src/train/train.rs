@@ -77,7 +77,6 @@ impl Train {
     }
 
     pub(super) fn set_position(&mut self, viewport: &Viewport) -> Result<(),DataMessage> {
-        debug_log!("set poisition {:?}",viewport);
         let centre_carriage_index = self.extent.scale().carriage(viewport.position()?);
         self.carriages.update_centre(centre_carriage_index);
         Ok(())

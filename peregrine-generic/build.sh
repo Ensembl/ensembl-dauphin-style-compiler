@@ -15,8 +15,8 @@ FLAGS=""
 if [ "x$CFG_DEBUG_WEBGL" = "xyes" ] ; then
   FLAGS="$FLAGS --cfg debug_webgl"
 fi
-if [ "x$CFG_DEBUG_PUZZLE" = "xyes" ] ; then
-  FLAGS="$FLAGS --cfg warn_missing_piece"
+if [ "x$CFG_DEBUG_TRAINS" = "xyes" ] ; then
+  FLAGS="$FLAGS --cfg debug_trains"
 fi
 if [ "x$CFG_DISABLE_ANTICIPATE" = "xyes" ] ; then
   FLAGS="$FLAGS --cfg disable_anticipate"

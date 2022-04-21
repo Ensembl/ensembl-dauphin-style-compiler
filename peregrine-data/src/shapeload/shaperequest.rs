@@ -5,7 +5,8 @@ use crate::switch::trackconfig::TrackConfig;
 use crate::switch::track::Track;
 use serde_cbor::Value as CborValue;
 
-#[derive(Clone,Debug,PartialEq,Eq,Hash)]
+#[cfg_attr(debug_assertions,derive(Debug))]
+#[derive(Clone,PartialEq,Eq,Hash)]
 pub struct Region {
     stick: StickId,
     scale: Scale,

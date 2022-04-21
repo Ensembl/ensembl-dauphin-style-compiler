@@ -43,7 +43,6 @@ impl CarriageSetConstant {
 
 #[derive(Clone)]
 struct DrawingCarriageCreator {
-    index: u64,
     ping_needed: Needed,
     extent: CarriageExtent,
     shapes: CarriageOutput
@@ -52,13 +51,13 @@ struct DrawingCarriageCreator {
 #[cfg(debug_assertions)]
 impl std::fmt::Debug for DrawingCarriageCreator {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("DrawingCarriageCreator").field("index", &self.index).field("extent", &self.extent).finish()
+        f.debug_struct("DrawingCarriageCreator").field("extent", &self.extent).finish()
     }
 }
 
 impl PartialEq for DrawingCarriageCreator {
     fn eq(&self, other: &Self) -> bool {
-        self.index == other.index
+        self.extent == other.extent
     }
 }
 
@@ -66,7 +65,7 @@ impl Eq for DrawingCarriageCreator {}
 
 impl std::hash::Hash for DrawingCarriageCreator {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.index.hash(state);
+        self.extent.hash(state);
     }
 }
 
@@ -112,7 +111,7 @@ impl DrawingCarriages2 {
 
 impl SliderActions<(DrawingCarriageCreator,TrainState3),DrawingCarriage2,DrawingCarriage2> for DrawingCarriages2 {
     fn ctor(&mut self, (creator,state): &(DrawingCarriageCreator,TrainState3)) -> DrawingCarriage2 {
-        debug_log!("create carriage {:?}",creator.index);
+        #[cfg(debug_trains)] debug_log!("create dc {:?}",creator.extent);
         let dc = creator.create(state);
         self.graphics.create_carriage(&dc);
         dc
@@ -126,10 +125,12 @@ impl SliderActions<(DrawingCarriageCreator,TrainState3),DrawingCarriage2,Drawing
 
     fn done(&mut self, items: &mut dyn Iterator<Item=(&(DrawingCarriageCreator, TrainState3), &DrawingCarriage2)>) {
         self.carriages = items.map(|x| x.1).cloned().collect::<Vec<_>>();
+        #[cfg(debug_trains)] debug_log!("set dcs {:?}",self.carriages.iter().map(|x| x.extent()).collect::<Vec<_>>());
         self.send_carriages();
     }
 
-    fn dtor(&mut self, _: &(DrawingCarriageCreator,TrainState3), dc: DrawingCarriage2) {
+    fn dtor(&mut self, (dcc,_): &(DrawingCarriageCreator,TrainState3), dc: DrawingCarriage2) {
+        #[cfg(debug_trains)] debug_log!("drop dc {:?}",dcc.extent);
         self.graphics.drop_carriage(&dc);
     }
 }
@@ -176,7 +177,6 @@ impl CarriageProcessActions2 {
 
 impl SliderActions<u64,CarriageProcess,DrawingCarriageCreator> for CarriageProcessActions2 {
     fn ctor(&mut self, index: &u64) -> CarriageProcess {
-        debug_log!("create panel {:?}",index);
         let new_carriage = self.constant.new_unloaded_carriage(*index);
         self.railway_data_tasks.add_carriage(&new_carriage);
         new_carriage
@@ -189,12 +189,11 @@ impl SliderActions<u64,CarriageProcess,DrawingCarriageCreator> for CarriageProce
 
     fn init(&mut self, index: &u64, item: &mut CarriageProcess) -> Option<DrawingCarriageCreator> {
         item.get_shapes2().map(|shapes| {
-            debug_log!("init panel! {:?}",index);
             self.train_state_spec.add(*index,&shapes.spec().ok().unwrap()); // XXX errors
             self.state_updated();
             self.ping_needed.set(); /* Need to call ping in case dc are ready */
             DrawingCarriageCreator { 
-                index: *index,
+                //index: *index,
                 extent: item.extent().clone(),
                 shapes: shapes.clone(),
                 ping_needed: self.ping_needed.clone()
@@ -253,7 +252,7 @@ impl CarriageSet {
         if !self.process.is_ready() || !self.drawing.is_ready() { return false; }
         /**/
         let mut wanted = self.process.wanted().clone();
-        for got in self.drawing.iter().map(|((x,_),_)| x.index) {
+        for got in self.drawing.iter().map(|((x,_),_)| x.extent.index()) {
             wanted.remove(&got);
         }
         wanted.len() == 0

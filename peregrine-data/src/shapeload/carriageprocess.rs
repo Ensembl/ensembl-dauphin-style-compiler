@@ -48,7 +48,7 @@ impl CarriageProcess {
     }
 
     pub(crate) async fn load(&mut self, base: &PeregrineCoreBase, result_store: &ShapeStore, mode: LoadMode) -> Result<(),DataMessage> {
-        debug_log!("load started for {:?}",self.extent.index());
+        #[cfg(debug_trains)] debug_log!("carriageprocess load start {:?} {:?}",self.extent.train(),self.extent.index());
         let shape_requests = self.make_shape_requests();
         let shapes = 
             load_carriage_shape_list(base,result_store,self.messages.as_ref(),shape_requests,&mode).await
@@ -60,7 +60,7 @@ impl CarriageProcess {
             _ => {}
         }
         *lock!(self.shapes2) = Some(shapes);
-        debug_log!("load finished for {:?}",self.extent.index());
+        #[cfg(debug_trains)] debug_log!("carriageprocess finish {:?} {:?}",self.extent.train(),self.extent.index());
         if let Some(lifecycle) = &self.try_lifecycle {
             debug_log!("signal finished for {:?}",self.extent.index());
             lifecycle.set();

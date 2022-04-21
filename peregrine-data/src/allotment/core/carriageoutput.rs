@@ -1,5 +1,5 @@
 use std::{sync::{Arc, Mutex}};
-use peregrine_toolkit::{puzzle::{AnswerAllocator, StaticAnswer}, lock, log};
+use peregrine_toolkit::{puzzle::{AnswerAllocator, StaticAnswer}, lock, log, debug_log};
 
 use crate::{allotment::{style::{style::LeafCommonStyle }, boxes::{root::{Root}, boxtraits::Transformable}, collision::{bumperfactory::BumperFactory}, util::bppxconverter::BpPxConverter}, ShapeRequestGroup, Shape, DataMessage, LeafRequest};
 
@@ -40,6 +40,7 @@ struct CarriageOutputPrep {
 
 impl CarriageOutputPrep {
     fn build(&mut self) -> Result<CarriageOutputReady,DataMessage> {
+        #[cfg(debug_trains)] debug_log!("position_boxes {:?}",self.extent.as_ref().map(|x| x.region()));
         let (prep,spec) = self.builder.position_boxes(self.extent.as_ref(),&self.answer_allocator)?;
         /* update leafs to reflect container position */
         let shapes = self.shapes.iter().map(|x| 

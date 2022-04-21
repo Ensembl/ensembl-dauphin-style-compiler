@@ -172,7 +172,7 @@ impl TrainStateSpec {
         if state.is_none() {
             let answer = lock!(self.answer_allocator).get();
             *state = Some(TrainState3::new(self,answer));
-            debug_log!("new state: {:?}",*state);
+            #[cfg(debug_trains)] debug_log!("new state");
         }
         state.clone().unwrap()
     }
