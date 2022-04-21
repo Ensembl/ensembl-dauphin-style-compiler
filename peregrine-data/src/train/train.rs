@@ -68,6 +68,7 @@ impl Train {
             _ => { panic!("set_active() called on non-ready train") }
         };
         self.carriages.mute(false);
+        self.carriages.activate();
         self.graphics.start_transition(&self.extent,max,speed);
     }
 

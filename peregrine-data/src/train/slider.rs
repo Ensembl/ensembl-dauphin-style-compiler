@@ -58,8 +58,12 @@ impl<X: Eq+Hash+Clone,P,T,S: SliderActions<X,P,T>> Slider<X,P,T,S> {
     pub fn check(&mut self) {
         let mut gone = vec![];
         for (index,item) in self.pending.iter_mut() {
-            if let Some(value) = self.actions.init(index,item) {
-                self.ready.insert(index.clone(),Some(value));
+            if self.want.contains(index) {
+                if let Some(value) = self.actions.init(index,item) {
+                    self.ready.insert(index.clone(),Some(value));
+                    gone.push(index.clone());
+                }
+            } else {
                 gone.push(index.clone());
             }
         }

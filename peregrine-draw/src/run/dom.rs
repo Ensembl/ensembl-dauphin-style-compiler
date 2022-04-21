@@ -115,7 +115,7 @@ impl PeregrineDom {
     pub(crate) fn device_pixel_ratio(&self) -> f32 { self.device_pixel_ratio }
 
     pub(crate) fn set_useful_height(&self, height: u32) {
-        let frame_height = self.canvas_frame.get_bounding_client_rect().height() as u32;
+        let frame_height = self.canvas_frame.get_bounding_client_rect().height().round() as u32;
         let height = height.max(frame_height);
         self.canvas_container.style().set_property("height",&format!("{}px",height)); // XXX errors
     }

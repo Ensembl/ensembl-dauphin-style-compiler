@@ -4,7 +4,7 @@ use std::hash::{Hasher, Hash};
 use std::rc::Rc;
 use std::sync::{ Arc, Mutex };
 use peregrine_data::{Assets, CarriageSpeed, PeregrineCore, Scale, ZMenuProxy, TrainExtent, DrawingCarriage2};
-use peregrine_toolkit::{lock, log};
+use peregrine_toolkit::{lock, log, debug_log};
 use peregrine_toolkit::sync::needed::{Needed, NeededLock};
 use super::glcarriage::GLCarriage;
 use super::gltrain::GLTrain;
@@ -56,20 +56,17 @@ impl GlRailwayData {
     }
 
     fn create_train(&mut self, extent: &TrainExtent) {
-        let mut hash = DefaultHasher::new();
-        extent.hash(&mut hash);
-        log!("create train {}",hash.finish());
+        debug_log!("create train {:?}",extent);
         self.trains.insert(extent.clone(),GLTrain::new(&self.redraw_needed));
     }
 
     fn drop_train(&mut self, extent: &TrainExtent) {
-        let mut hash = DefaultHasher::new();
-        extent.hash(&mut hash);
-        log!("drop train {}",hash.finish());
+        debug_log!("drop train {:?}",extent);
         self.trains.remove(extent);
     }
 
     fn create_carriage(&mut self, carriage: &DrawingCarriage2, gl: &Arc<Mutex<WebGlGlobal>>, assets: &Assets) -> Result<(),Message> {
+        debug_log!("gl/create_carriage {:?}",carriage.extent());
         if !self.carriages.contains_key(&carriage) {
             self.carriages.insert(carriage.clone(), GLCarriage::new(&self.redraw_needed,&self.commander,carriage, gl, assets)?);
         }
@@ -77,6 +74,7 @@ impl GlRailwayData {
     }
 
     fn drop_carriage(&mut self, carriage: &DrawingCarriage2) { 
+        debug_log!("gl/drop_carriage {:?}",carriage.extent());
         self.carriages.remove(carriage);
     }
 

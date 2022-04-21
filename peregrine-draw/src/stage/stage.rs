@@ -134,7 +134,6 @@ impl Stage {
     
     pub fn redraw_needed(&self) -> Needed { self.redraw_needed.clone() }
 
-    pub fn stick(&self) -> Option<&StickId> { self.stick.as_ref() }
     pub fn x(&self) -> &StageAxis { &self.x }
     pub fn y(&self) -> &StageAxis { &self.y }
     pub fn x_mut(&mut self) -> &mut StageAxis { &mut self.x }

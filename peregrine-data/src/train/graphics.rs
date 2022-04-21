@@ -63,10 +63,12 @@ impl Graphics {
 
     pub(super) fn set_carriages(&self, extent: &TrainExtent, carriages: &[DrawingCarriage2]) {
         debug_log!("gl/set carriages {:?}",carriages.iter().map(|c| { c.extent().train() }).collect::<Vec<_>>());
+        debug_log!("gl/set carriages {:?} len={}",extent,carriages.len());
         lock!(self.integration).set_carriages(extent,carriages);
     }
 
     pub(super) fn start_transition(&self, train: &TrainExtent, max: u64, speed: CarriageSpeed) {
+        debug_log!("gl/start transition");
         lock!(self.integration).start_transition(train,max,speed);
     }
 

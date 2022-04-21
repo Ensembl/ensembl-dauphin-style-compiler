@@ -49,6 +49,13 @@ struct DrawingCarriageCreator {
     shapes: CarriageOutput
 }
 
+#[cfg(debug_assertions)]
+impl std::fmt::Debug for DrawingCarriageCreator {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DrawingCarriageCreator").field("index", &self.index).field("extent", &self.extent).finish()
+    }
+}
+
 impl PartialEq for DrawingCarriageCreator {
     fn eq(&self, other: &Self) -> bool {
         self.index == other.index
@@ -70,18 +77,35 @@ impl DrawingCarriageCreator {
 }
 
 struct DrawingCarriages2 {
+    active: bool,
     ping_needed: Needed,
     train_extent: TrainExtent,
+    carriages: Vec<DrawingCarriage2>,
     graphics: Graphics
 }
 
 impl DrawingCarriages2 {
     fn new(ping_needed: &Needed, train_extent: &TrainExtent, graphics: &Graphics) -> DrawingCarriages2 {
         DrawingCarriages2 {
+            active: false,
             ping_needed: ping_needed.clone(),
             train_extent: train_extent.clone(),
+            carriages: vec![],
             graphics: graphics.clone()
         }
+    }
+
+    fn send_carriages(&self) {
+        if self.active && self.carriages.len() > 0 {
+            self.graphics.set_carriages(&self.train_extent,&self.carriages);
+        }
+    }
+
+    fn is_active(&self) -> bool { self.active }
+
+    fn set_active(&mut self) {
+        self.active = true;
+        self.send_carriages();
     }
 }
 
@@ -100,10 +124,8 @@ impl SliderActions<(DrawingCarriageCreator,TrainState3),DrawingCarriage2,Drawing
     }
 
     fn done(&mut self, items: &mut dyn Iterator<Item=(&(DrawingCarriageCreator, TrainState3), &DrawingCarriage2)>) {
-        let carriages = items.map(|x| x.1).cloned().collect::<Vec<_>>();
-        if carriages.len() > 0 {
-            self.graphics.set_carriages(&self.train_extent,&carriages);
-        }
+        self.carriages = items.map(|x| x.1).cloned().collect::<Vec<_>>();
+        self.send_carriages();
     }
 
     fn dtor(&mut self, _: &(DrawingCarriageCreator,TrainState3), dc: DrawingCarriage2) {
@@ -206,6 +228,11 @@ impl CarriageSet {
         self.process.inner_mut().mute(yn);
     }
 
+    pub(super) fn activate(&mut self) {
+        self.drawing.inner_mut().set_active();
+        self.ping();
+    }
+
     pub(super) fn update_centre(&mut self, centre: u64) {
         self.centre = Some(centre);
         let flank = if self.milestone { MILESTONE_CARRIAGE_FLANK } else { CARRIAGE_FLANK };
@@ -232,15 +259,22 @@ impl CarriageSet {
         wanted.len() == 0
     }
 
+    /* only update drawings when not yet active when all are ready */
+    fn test_should_update_drawings(&self) -> bool {
+        self.drawing.inner().is_active() ||
+        self.process.is_ready()        
+    }
+
     // TODO "good enough" layer via trains
     pub(super) fn ping(&mut self) {
-        debug_log!("carriage_set/ping");
         self.process.check();
-        /* Create any necessary DrawingCarriages */
-        let state = self.process.inner().state();
-        let mut wanted = self.process.iter().map(|(_,x)| (x.clone(),state.clone())).collect::<Vec<_>>();
-        self.drawing.set(&mut wanted.drain(..));
-        /* Maybe we need to update the UI? */
-        self.drawing.check();
+        if self.test_should_update_drawings() {
+            /* Create any necessary DrawingCarriages */
+            let state = self.process.inner().state();
+            let mut wanted = self.process.iter().map(|(_,x)| (x.clone(),state.clone())).collect::<Vec<_>>();
+            self.drawing.set(&mut wanted.drain(..));
+            /* Maybe we need to update the UI? */
+            self.drawing.check();
+        }
     }
 }
