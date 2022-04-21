@@ -11,10 +11,10 @@ fn draw_spectres(gl: &Arc<Mutex<WebGlGlobal>>, assets: &Assets, spectres: &[Spec
     }
     let raw = CarriageShapesBuilder::from_program_shapes(shapes);
     let allocator = Arc::new(Mutex::new(AnswerAllocator::new()));
-    let list = raw.to_universe(None,&allocator).map_err(|e| Message::DataError(e))?;
+    let list = raw.to_universe(None,&allocator);
     let mut aia = AnswerAllocator::new();
     let shapes = list.get(&mut aia.get());
-    Drawing::new_sync(None,shapes,gl,0.,assets)
+    Drawing::new_sync(None,shapes.map_err(|e| Message::DataError(e))?,gl,0.,assets)
 }
 
 #[derive(Clone)]

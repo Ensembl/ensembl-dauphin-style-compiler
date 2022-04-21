@@ -58,14 +58,5 @@ pub(crate) async fn load_carriage_shape_list(base: &PeregrineCoreBase, result_st
             }
         }
     }
-    let anchored = new_shapes.to_universe(Some(&shape_requests),&base.answer_allocator);
-    let anchored = match anchored {
-        Ok(anchored) => anchored,
-        Err(e) => {
-            error!("{:?}",e);
-            errors.push(e);
-            return Err(errors);
-        }
-    };
-    Ok(anchored)
+    Ok(new_shapes.to_universe(Some(&shape_requests),&base.answer_allocator))
 }

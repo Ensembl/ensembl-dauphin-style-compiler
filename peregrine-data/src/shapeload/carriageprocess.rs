@@ -1,6 +1,6 @@
 use std::sync::{Mutex, Arc};
 
-use peregrine_toolkit::{sync::needed::Needed, lock, log, debug_log};
+use peregrine_toolkit::{sync::needed::Needed, lock, debug_log};
 
 use crate::{CarriageExtent, switch::trackconfiglist::TrainTrackConfigList, api::MessageSender, ShapeRequestGroup, PeregrineCoreBase, ShapeStore, DataMessage, allotment::core::{trainstate::CarriageTrainStateSpec, carriageoutput::CarriageOutput}};
 
@@ -29,13 +29,9 @@ impl CarriageProcess {
     }
 
     pub fn extent(&self) -> &CarriageExtent { &self.extent }
-    //pub fn get_shapes(&self) -> Option<DrawingCarriageDataStore> { lock!(self.shapes).clone() }
+
     pub fn get_shapes2(&self) -> Option<CarriageOutput> {
         lock!(self.shapes2).as_ref().map(|x| x.clone())
-    }
-
-    pub fn spec(&self) -> Option<CarriageTrainStateSpec> {
-        lock!(self.shapes2).as_ref().map(|shapes| shapes.spec().clone())        
     }
 
     fn make_shape_requests(&self) -> ShapeRequestGroup {

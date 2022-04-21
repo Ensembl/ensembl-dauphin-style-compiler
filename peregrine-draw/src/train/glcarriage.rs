@@ -62,7 +62,7 @@ impl GLCarriage {
             drawing: AsyncOnce::new(async move {
                 let carriage = carriage2;
                 let scale = carriage.extent().train().scale();
-                let shapes = carriage.solution().shapes().clone();
+                let shapes = carriage.shapes().clone();
                 let drawing = Drawing::new(Some(scale),shapes,&gl,carriage.extent().left_right().0,&assets).await;
                 redraw_needed.set();
                 drawing

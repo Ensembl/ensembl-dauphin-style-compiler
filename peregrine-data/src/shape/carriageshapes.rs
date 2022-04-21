@@ -45,7 +45,7 @@ impl CarriageShapesBuilder {
         }
     }
 
-    pub fn to_universe(&self, extent: Option<&ShapeRequestGroup>, answer_allocator: &Arc<Mutex<AnswerAllocator>>) -> Result<CarriageOutput,DataMessage> {
-        CarriageOutput::new(&self.carriage_universe,&self.shapes,extent,answer_allocator)
+    pub fn to_universe(self, extent: Option<&ShapeRequestGroup>, answer_allocator: &Arc<Mutex<AnswerAllocator>>) -> CarriageOutput {
+        CarriageOutput::new(self.carriage_universe,self.shapes,extent,answer_allocator)
     }
 }

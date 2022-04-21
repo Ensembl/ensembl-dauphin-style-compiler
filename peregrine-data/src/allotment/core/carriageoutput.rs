@@ -1,5 +1,5 @@
 use std::{sync::{Arc, Mutex}};
-use peregrine_toolkit::{puzzle::{Answer, AnswerAllocator, StaticAnswer}, lock, log};
+use peregrine_toolkit::{puzzle::{AnswerAllocator, StaticAnswer}, lock, log};
 
 use crate::{allotment::{style::{style::LeafCommonStyle }, boxes::{root::{Root}, boxtraits::Transformable}, collision::{bumperfactory::BumperFactory}, util::bppxconverter::BpPxConverter}, ShapeRequestGroup, Shape, DataMessage, LeafRequest};
 
@@ -31,47 +31,76 @@ impl BoxPositionContext {
     }
 }
 
-#[derive(Clone)]
-pub struct CarriageOutput {
-    shapes: Arc<Vec<Shape<Arc<dyn Transformable>>>>,
-    spec: Arc<CarriageTrainStateSpec>,
-    answer_index_allocator: Arc<Mutex<AnswerAllocator>>,
-    independent_answer: Arc<StaticAnswer>,
-    root: Root,
-    //height_tracker: Arc<LocalHeightTracker>
+struct CarriageOutputPrep {
+    builder: Arc<LeafList>,
+    shapes: Arc<Vec<Shape<LeafRequest>>>,
+    extent: Option<ShapeRequestGroup>,
+    answer_allocator: Arc<Mutex<AnswerAllocator>>
 }
 
-impl CarriageOutput {
-    pub fn new(builder: &LeafList, shapes: &[Shape<LeafRequest>], extent: Option<&ShapeRequestGroup>, answer_allocator: &Arc<Mutex<AnswerAllocator>>) -> Result<CarriageOutput,DataMessage> {
-        let (prep,spec) = builder.position_boxes(extent,answer_allocator)?;
-        let shapes = shapes.iter().map(|x| 
-            x.map_new_allotment(|r| prep.plm.transformable(r.name()).cloned())
-        ).collect::<Vec<_>>();
-        Ok(CarriageOutput {
+impl CarriageOutputPrep {
+    fn build(&mut self) -> Result<CarriageOutputReady,DataMessage> {
+        let (prep,spec) = self.builder.position_boxes(self.extent.as_ref(),&self.answer_allocator)?;
+        /* update leafs to reflect container position */
+        let shapes = self.shapes.iter().map(|x| 
+                x.map_new_allotment(|r| prep.plm.transformable(r.name()).cloned())
+            ).collect::<Vec<_>>();
+        Ok(CarriageOutputReady {
             shapes: Arc::new(shapes),
-            answer_index_allocator: Arc::new(Mutex::new(AnswerAllocator::new())),
-            independent_answer: Arc::new(prep.independent_answer),
-            root: prep.root,
-            spec: Arc::new(spec),
-            //height_tracker: Arc::new(prep.height_tracker)
+            spec: Arc::new(spec)
         })
     }
+}
 
-    pub fn make_answer_index<'a>(&self) -> Answer<'a> {
-        let mut aia = lock!(self.answer_index_allocator);
-        aia.get()
+#[derive(Clone)]
+struct CarriageOutputReady {
+    shapes: Arc<Vec<Shape<Arc<dyn Transformable>>>>,
+    spec: Arc<CarriageTrainStateSpec>
+}
+
+enum CarriageOutputChoice {
+    Unready(CarriageOutputPrep),
+    Ready(CarriageOutputReady)
+}
+
+impl CarriageOutputChoice {
+    fn ready(&mut self) -> Result<&mut CarriageOutputReady,DataMessage> {
+        let built = match self {
+            CarriageOutputChoice::Unready(prep) => prep.build()?,
+            CarriageOutputChoice::Ready(ready) => { return Ok(ready); }
+        };
+        *self = CarriageOutputChoice::Ready(built);
+        if let CarriageOutputChoice::Ready(ready) = self {
+            return Ok(ready);
+        } else {
+            panic!("impossible error building carriage");
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct CarriageOutput(Arc<Mutex<CarriageOutputChoice>>);
+
+impl CarriageOutput {
+    pub fn new(builder: Arc<LeafList>, shapes: Arc<Vec<Shape<LeafRequest>>>, extent: Option<&ShapeRequestGroup>, answer_allocator: &Arc<Mutex<AnswerAllocator>>) -> CarriageOutput {
+        CarriageOutput(Arc::new(Mutex::new(CarriageOutputChoice::Unready(
+            CarriageOutputPrep { 
+                builder, shapes,
+                extent: extent.cloned(),
+                answer_allocator: answer_allocator.clone()
+            }
+        ))))
     }
 
-    pub(crate) fn independent_answer(&self) -> &StaticAnswer { &self.independent_answer }
+    pub(crate) fn spec(&self) -> Result<CarriageTrainStateSpec,DataMessage> {
+        Ok(lock!(self.0).ready()?.spec.as_ref().clone())
+    }
 
-    pub(crate) fn spec(&self) -> &CarriageTrainStateSpec { &self.spec }
-    //pub(super) fn height_tracker_pieces(&self) -> &HeightTrackerPieces { &self.height_tracker }
-
-    pub fn get(&self, answer_index: &mut StaticAnswer) -> Vec<Shape<LeafCommonStyle>> {
+    pub fn get(&self, answer_index: &mut StaticAnswer) -> Result<Vec<Shape<LeafCommonStyle>>,DataMessage> {
         let mut out = vec![];
-        for input in self.shapes.iter() {
+        for input in lock!(self.0).ready()?.shapes.iter() {
             out.append(&mut input.map_new_allotment(|x| x.make(answer_index)).make());
         }
-        out
+        Ok(out)
     }
 }

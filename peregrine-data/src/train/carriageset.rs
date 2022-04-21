@@ -73,6 +73,7 @@ impl std::hash::Hash for DrawingCarriageCreator {
 impl DrawingCarriageCreator {
     fn create(&self, train_state: &TrainState3) -> DrawingCarriage2 {
         DrawingCarriage2::new(&self.extent,&self.ping_needed,&self.shapes,train_state)
+            .ok().unwrap() // XXX errors
     }
 }
 
@@ -187,10 +188,9 @@ impl SliderActions<u64,CarriageProcess,DrawingCarriageCreator> for CarriageProce
     }
 
     fn init(&mut self, index: &u64, item: &mut CarriageProcess) -> Option<DrawingCarriageCreator> {
-        debug_log!("init panel? {:?}",index);
         item.get_shapes2().map(|shapes| {
             debug_log!("init panel! {:?}",index);
-            self.train_state_spec.add(*index,shapes.spec());
+            self.train_state_spec.add(*index,&shapes.spec().ok().unwrap()); // XXX errors
             self.state_updated();
             self.ping_needed.set(); /* Need to call ping in case dc are ready */
             DrawingCarriageCreator { 
