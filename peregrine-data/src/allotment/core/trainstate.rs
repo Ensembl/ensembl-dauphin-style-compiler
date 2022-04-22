@@ -2,9 +2,7 @@ use std::{sync::{Arc, Mutex}, collections::{HashMap, hash_map::DefaultHasher}, f
 
 use peregrine_toolkit::{puzzle::{StaticAnswer, AnswerAllocator}, lock, log, debug_log};
 
-use crate::GlobalAllotmentMetadata;
-
-use super::{playingfield::{LocalPlayingFieldBuilder, LocalPlayingField, GlobalPlayingFieldBuilder, GlobalPlayingField}, globalvalue::GlobalValueBuilder, heighttracker::{LocalHeightTrackerBuilder, LocalHeightTracker, GlobalHeightTracker, GlobalHeightTrackerBuilder}, aligner::{LocalAlignerBuilder, LocalAligner, GlobalAligner, GlobalAlignerBuilder}, allotmentmetadata::{LocalAllotmentMetadataBuilder, LocalAllotmentMetadata, GlobalAllotmentMetadataBuilder}};
+use crate::allotment::globals::{heighttracker::{LocalHeightTrackerBuilder, LocalHeightTracker, GlobalHeightTracker, GlobalHeightTrackerBuilder}, playingfield::{LocalPlayingFieldBuilder, LocalPlayingField, GlobalPlayingField, GlobalPlayingFieldBuilder}, aligner::{LocalAlignerBuilder, LocalAligner, GlobalAligner, GlobalAlignerBuilder}, allotmentmetadata::{LocalAllotmentMetadataBuilder, LocalAllotmentMetadata, GlobalAllotmentMetadata, GlobalAllotmentMetadataBuilder}};
 
 /* Every carriage manipulates in a CarriageTrainStateRequest during creation (during build). This specifies the
  * requirements which a Carriage has of the train. 

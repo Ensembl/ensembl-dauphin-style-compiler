@@ -2,7 +2,7 @@ use std::{collections::HashMap, sync::{Arc, Mutex}};
 
 use peregrine_toolkit::{lock, puzzle::{DelayedSetter, derived, cache_constant, commute_arc, constant, short_memoized, compose, StaticValue, promise_delayed, short_memoized_clonable, cache_constant_clonable, cache_constant_arc }};
 
-use crate::{allotment::{core::{carriageoutput::BoxPositionContext, heighttracker, allotmentmetadata::LocalAllotmentMetadataBuilder}, style::{style::{ContainerAllotmentStyle}, allotmentname::{AllotmentName, AllotmentNamePart}}, boxes::boxtraits::Stackable, util::rangeused::RangeUsed}, CoordinateSystem};
+use crate::{allotment::{core::{carriageoutput::BoxPositionContext}, style::{style::{ContainerAllotmentStyle}, allotmentname::{AllotmentName, AllotmentNamePart}}, boxes::boxtraits::Stackable, util::rangeused::RangeUsed, globals::allotmentmetadata::LocalAllotmentMetadataBuilder}, CoordinateSystem};
 
 use super::{boxtraits::{Coordinated, BuildSize, ContainerSpecifics}};
 

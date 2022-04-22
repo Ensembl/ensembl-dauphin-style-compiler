@@ -27,17 +27,20 @@ mod allotment {
     }
 
     pub(crate) mod core {
-        pub(crate) mod aligner;
-        pub(crate) mod allotmentmetadata;
         pub(crate) mod coordsystem;
         pub(crate) mod carriageoutput;
         pub(crate) mod drawingcarriagedata;
-        pub(crate) mod heighttracker;
         pub(crate) mod leaflist;
         pub(crate) mod leafrequest;
-        pub mod playingfield;
-        pub(crate) mod globalvalue;
         pub(crate) mod trainstate;
+    }
+
+    pub(crate) mod globals {
+        pub(crate) mod globalvalue;
+        pub(crate) mod aligner;
+        pub(crate) mod allotmentmetadata;
+        pub(crate) mod heighttracker;
+        pub mod playingfield;
     }
 
     pub(crate) mod stylespec {
@@ -210,8 +213,6 @@ pub(crate) mod switch {
 mod train {
     mod anticipate;
     pub mod drawingcarriage;
-    mod carriagelifecycle;
-    mod railwayevent;
     mod carriageextent;
     mod railwaydatatasks;
     mod carriageset;
@@ -247,6 +248,7 @@ mod util {
 
 pub use self::allotment::core::leafrequest::LeafRequest;
 pub use self::allotment::style::style::LeafCommonStyle;
+pub use self::allotment::globals::{ allotmentmetadata::GlobalAllotmentMetadata, playingfield::PlayingField };
 pub use self::api::{ PeregrineCore, PeregrineCoreBase, PeregrineIntegration, PeregrineApiQueue, CarriageSpeed, AgentStore };
 pub use self::core::{ Asset, Assets, PgdPeregrineConfig, ConfigKey, Stick, StickId, StickTopology, Scale, Viewport };
 pub use self::core::channel::{ Channel, PacketPriority, ChannelLocation, ChannelIntegration };
@@ -262,10 +264,6 @@ pub use self::shape::{
     ProgramShapesBuilder, CarriageShapesBuilder
 };
 pub use self::allotment::core::coordsystem::{ CoordinateSystem, CoordinateSystemVariety };
-pub use self::allotment::core::playingfield::{ PlayingField, GlobalPlayingField };
-pub use self::allotment::core::allotmentmetadata::{
-    GlobalAllotmentMetadata
-};
 pub use self::switch::switch::{ Switches };
 pub use self::switch::track::Track;
 pub use self::train::{ CarriageExtent, DrawingCarriage2, TrainExtent };

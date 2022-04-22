@@ -3,7 +3,7 @@ use peregrine_toolkit::{puzzle::{AnswerAllocator, StaticAnswer}, lock, log, debu
 
 use crate::{allotment::{style::{style::LeafCommonStyle }, boxes::{root::{Root}, boxtraits::Transformable}, collision::{bumperfactory::BumperFactory}, util::bppxconverter::BpPxConverter}, ShapeRequestGroup, Shape, DataMessage, LeafRequest};
 
-use super::{leafrequest::LeafTransformableMap, leaflist::LeafList, trainstate::{CarriageTrainStateRequest, CarriageTrainStateSpec}, heighttracker::{LocalHeightTrackerBuilder, LocalHeightTracker}, aligner::LocalAlignerBuilder};
+use super::{leafrequest::LeafTransformableMap, leaflist::LeafList, trainstate::{CarriageTrainStateRequest, CarriageTrainStateSpec}};
 
 pub(crate) struct BoxPositionContext {
     //pub bump_requests: BumpRequests,

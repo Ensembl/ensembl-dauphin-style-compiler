@@ -1,7 +1,7 @@
 use std::sync::{ Arc, Mutex };
 use peregrine_data::{
     Assets, CarriageSpeed, ChannelIntegration, PeregrineIntegration, 
-    Viewport, PlayingField, TrainExtent, DrawingCarriage2, GlobalAllotmentMetadata
+    Viewport, TrainExtent, DrawingCarriage2, GlobalAllotmentMetadata, PlayingField
 };
 use peregrine_toolkit::{lock, log};
 use super::pgchannel::PgChannel;

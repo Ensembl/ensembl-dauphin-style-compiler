@@ -40,7 +40,7 @@
 
 use std::{collections::{HashMap, hash_map::DefaultHasher}, fmt::Debug, hash::{Hash, Hasher}, sync::Arc};
 
-use peregrine_toolkit::{puzzle::{UnknownSetter, StaticValue, StaticAnswer, short_unknown_promise_clonable, short_unknown_function_promise, Value, constant}, log};
+use peregrine_toolkit::{puzzle::{UnknownSetter, StaticValue, StaticAnswer, short_unknown_function_promise, Value, constant}, log};
 
 pub(crate) struct LocalEntry<T: 'static+Clone> {
     global_setter: UnknownSetter<'static,StaticValue<T>>,
@@ -192,9 +192,5 @@ impl<X:Hash+Eq+Clone, T:'static+Clone> GlobalValueSpec<X,T> {
 
     pub(crate) fn get(&self, key: &X) -> Option<&T> {
         self.entries.get(key)
-    }
-
-    pub(crate) fn iter(&self) -> impl Iterator<Item=(&X,&T)> {
-        self.entries.iter()
     }
 }
