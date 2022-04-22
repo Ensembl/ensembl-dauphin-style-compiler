@@ -3,7 +3,7 @@ use peregrine_data::{
     Assets, CarriageSpeed, ChannelIntegration, PeregrineIntegration, 
     Viewport, PlayingField, TrainExtent, DrawingCarriage2, GlobalAllotmentMetadata
 };
-use peregrine_toolkit::lock;
+use peregrine_toolkit::{lock, log};
 use super::pgchannel::PgChannel;
 use crate::{PeregrineDom};
 use crate::input::Input;

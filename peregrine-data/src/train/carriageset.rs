@@ -1,5 +1,6 @@
 use std::cmp::max;
 use std::sync::{Mutex, Arc};
+use peregrine_toolkit::sync::retainer::{RetainTest, Retainer, retainer};
 use peregrine_toolkit::{lock, log, debug_log};
 use peregrine_toolkit::puzzle::AnswerAllocator;
 use peregrine_toolkit::sync::needed::Needed;
@@ -70,8 +71,8 @@ impl std::hash::Hash for DrawingCarriageCreator {
 }
 
 impl DrawingCarriageCreator {
-    fn create(&self, train_state: &TrainState3) -> DrawingCarriage2 {
-        DrawingCarriage2::new(&self.extent,&self.ping_needed,&self.shapes,train_state)
+    fn create(&self, train_state: &TrainState3, retain: &RetainTest) -> DrawingCarriage2 {
+        DrawingCarriage2::new(&self.extent,&self.ping_needed,&self.shapes,train_state,retain)
             .ok().unwrap() // XXX errors
     }
 }
@@ -109,35 +110,53 @@ impl DrawingCarriages2 {
     }
 }
 
-impl SliderActions<(DrawingCarriageCreator,TrainState3),DrawingCarriage2,DrawingCarriage2> for DrawingCarriages2 {
-    fn ctor(&mut self, (creator,state): &(DrawingCarriageCreator,TrainState3)) -> DrawingCarriage2 {
+#[derive(Clone)]
+struct SliderDrawingCarriage {
+    carriage: DrawingCarriage2,
+    #[allow(unused)]
+    retain: Retainer
+}
+
+impl SliderDrawingCarriage {
+    fn new(creator: &DrawingCarriageCreator, state: &TrainState3) -> SliderDrawingCarriage {
+        let (retain,retain_test) = retainer();
+        let carriage = creator.create(state,&retain_test);
+        SliderDrawingCarriage {
+            carriage, retain
+        }
+    }
+}
+
+impl SliderActions<(DrawingCarriageCreator,TrainState3),SliderDrawingCarriage,SliderDrawingCarriage> for DrawingCarriages2 {
+    fn ctor(&mut self, (creator,state): &(DrawingCarriageCreator,TrainState3)) -> SliderDrawingCarriage {
         #[cfg(debug_trains)] debug_log!("create dc {:?}",creator.extent);
-        let dc = creator.create(state);
-        self.graphics.create_carriage(&dc);
-        dc
+        let carriage = SliderDrawingCarriage::new(creator,state);
+        self.graphics.create_carriage(&carriage.carriage);
+        carriage
     }
 
-    fn init(&mut self, _: &(DrawingCarriageCreator,TrainState3), item: &mut DrawingCarriage2) -> Option<DrawingCarriage2> {
-        if !item.is_ready() { return None; }
+    fn init(&mut self, _: &(DrawingCarriageCreator,TrainState3), item: &mut SliderDrawingCarriage) -> Option<SliderDrawingCarriage> {
+        if !item.carriage.is_ready() { return None; }
         self.ping_needed.set(); // train can maybe be updates
         Some(item.clone())
     }
 
-    fn done(&mut self, items: &mut dyn Iterator<Item=(&(DrawingCarriageCreator, TrainState3), &DrawingCarriage2)>) {
-        self.carriages = items.map(|x| x.1).cloned().collect::<Vec<_>>();
+    fn done(&mut self, items: &mut dyn Iterator<Item=(&(DrawingCarriageCreator, TrainState3), &SliderDrawingCarriage)>) {
+        self.carriages = items.map(|x| &x.1.carriage).cloned().collect::<Vec<_>>();
         #[cfg(debug_trains)] debug_log!("set dcs {:?}",self.carriages.iter().map(|x| x.extent()).collect::<Vec<_>>());
         self.send_carriages();
     }
 
-    fn dtor(&mut self, (dcc,_): &(DrawingCarriageCreator,TrainState3), dc: DrawingCarriage2) {
+    fn dtor(&mut self, (dcc,_): &(DrawingCarriageCreator,TrainState3), dc: SliderDrawingCarriage) {
         #[cfg(debug_trains)] debug_log!("drop dc {:?}",dcc.extent);
-        self.graphics.drop_carriage(&dc);
+        self.graphics.drop_carriage(&dc.carriage);
     }
 }
 
 struct CarriageProcessActions2 {
     ping_needed: Needed,
     mute: bool,
+    active: bool,
     constant: Arc<CarriageSetConstant>,
     railway_data_tasks: RailwayDataTasks, 
     train_state_spec: TrainStateSpec,
@@ -151,6 +170,7 @@ impl CarriageProcessActions2 {
         CarriageProcessActions2 {
             ping_needed: ping_needed.clone(),
             mute: false,
+            active: false,
             constant: constant.clone(),
             graphics: graphics.clone(),
             railway_data_tasks: railway_data_tasks.clone(),
@@ -159,7 +179,7 @@ impl CarriageProcessActions2 {
     }
 
     fn state_updated(&mut self) {
-        if !self.mute {
+        if !self.mute && self.active {
             self.graphics.set_playing_field(self.state().playing_field());
             self.graphics.set_metadata(self.state().metadata());
         }
@@ -170,6 +190,11 @@ impl CarriageProcessActions2 {
         if !self.mute {
             self.state_updated()
         }
+    }
+
+    fn active(&mut self) {
+        self.active = true;
+        self.state_updated();
     }
 
     fn state(&self) -> TrainState3 { self.train_state_spec.spec() }
@@ -205,7 +230,7 @@ impl SliderActions<u64,CarriageProcess,DrawingCarriageCreator> for CarriageProce
 pub(super) struct CarriageSet {
     centre: Option<u64>,
     milestone: bool,
-    drawing: Slider<(DrawingCarriageCreator,TrainState3),DrawingCarriage2,DrawingCarriage2,DrawingCarriages2>,
+    drawing: Slider<(DrawingCarriageCreator,TrainState3),SliderDrawingCarriage,SliderDrawingCarriage,DrawingCarriages2>,
     process: Slider<u64,CarriageProcess,DrawingCarriageCreator,CarriageProcessActions2>
 }
 
@@ -228,6 +253,7 @@ impl CarriageSet {
     }
 
     pub(super) fn activate(&mut self) {
+        self.process.inner_mut().active();
         self.drawing.inner_mut().set_active();
         self.ping();
     }
@@ -244,16 +270,19 @@ impl CarriageSet {
         let index = if let Some(x) = self.centre { x } else { return None; };
         let creator = if let Some(creator) = self.process.get(index) {creator } else { return None; }.clone();
         let state = self.process.inner().state();
-        self.drawing.get((creator,state))
+        self.drawing.get((creator,state)).map(|x| &x.carriage)
     }
 
     pub(super) fn all_ready(&self) -> bool {
         /* for efficiency */
         if !self.process.is_ready() || !self.drawing.is_ready() { return false; }
         /**/
+        let current_state = self.process.inner().state();
         let mut wanted = self.process.wanted().clone();
-        for got in self.drawing.iter().map(|((x,_),_)| x.extent.index()) {
+        for (got,got_state) in self.drawing.iter()
+                .map(|((dcc,c),_)| (dcc.extent.index(),c)) {
             wanted.remove(&got);
+            if got_state != &current_state { return false; }
         }
         wanted.len() == 0
     }

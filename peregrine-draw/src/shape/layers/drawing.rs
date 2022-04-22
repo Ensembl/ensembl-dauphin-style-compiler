@@ -4,6 +4,7 @@ use super::layer::Layer;
 use peregrine_data::{Assets, Scale, Shape, ZMenuProxy, /*AnchoredCarriageShapeList,*/ LeafCommonStyle };
 use peregrine_toolkit::lock;
 use peregrine_toolkit::sync::needed::Needed;
+use peregrine_toolkit::sync::retainer::RetainTest;
 use super::super::core::prepareshape::{ prepare_shape_in_layer };
 use super::super::core::drawshape::{ add_shape_to_layer, GLShape };
 use crate::shape::core::bitmap::DrawingBitmap;
@@ -135,10 +136,14 @@ impl DrawingBuilder {
         Ok(())
     }
 
-    pub(crate) async fn build(mut self, gl: &Arc<Mutex<WebGlGlobal>>) -> Result<Drawing,Message> {
+    pub(crate) async fn build(mut self, gl: &Arc<Mutex<WebGlGlobal>>, retain_test: &RetainTest) -> Result<Option<Drawing>,Message> {
         let flats = self.flats.take().unwrap().built();
-        let processes = self.main_layer.build(gl,&flats).await?;
-        Ok(Drawing::new_real(processes,flats,self.tools.zmenus.build(),self.dynamic_shapes)?)
+        let processes = self.main_layer.build(gl,&flats,retain_test).await?;
+        Ok(if let Some(processes) = processes {
+            Some(Drawing::new_real(processes,flats,self.tools.zmenus.build(),self.dynamic_shapes)?)
+        } else {
+            None
+        })
     }
 
     pub(crate) fn build_sync(mut self, gl: &Arc<Mutex<WebGlGlobal>>) -> Result<Drawing,Message> {
@@ -160,7 +165,7 @@ struct DrawingData {
 pub(crate) struct Drawing(Arc<Mutex<DrawingData>>);
 
 impl Drawing {
-    pub(crate) async fn new(scale: Option<&Scale>, shapes: Arc<Vec<Shape<LeafCommonStyle>>>, gl: &Arc<Mutex<WebGlGlobal>>, left: f64, assets: &Assets) -> Result<Drawing,Message> {
+    pub(crate) async fn new(scale: Option<&Scale>, shapes: Arc<Vec<Shape<LeafCommonStyle>>>, gl: &Arc<Mutex<WebGlGlobal>>, left: f64, assets: &Assets, retain_test: &RetainTest) -> Result<Option<Drawing>,Message> {
         /* convert core shape data model into gl shapes */
         let mut lgl = lock!(gl);
         let mut drawing = DrawingBuilder::new(scale,&mut lgl,assets,left)?;
@@ -175,7 +180,7 @@ impl Drawing {
         }
         drop(lgl);
         /* convert stuff to WebGL processes */
-        drawing.build(gl).await
+        drawing.build(gl,retain_test).await
     }
 
     pub(crate) fn new_sync(scale: Option<&Scale>, shapes: Vec<Shape<LeafCommonStyle>>, gl: &Arc<Mutex<WebGlGlobal>>, left: f64, assets: &Assets) -> Result<Drawing,Message> {

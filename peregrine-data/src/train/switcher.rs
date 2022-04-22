@@ -156,7 +156,7 @@ impl<M:SwitcherManager<Extent=X,Type=T,Error=E>,
             let ready_enough = x.ready() || (desperate && x.half_ready());
             ready_enough && !x.broken()
         }).unwrap_or(false);
-        /* bail unless we van and want to commit */
+        /* bail unless we can, and want to commit */
         if !good_enough || self.future.is_some() { return; }
         /* do it */
         let wanted = self.wanted.take().unwrap();

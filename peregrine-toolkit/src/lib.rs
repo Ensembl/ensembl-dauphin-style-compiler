@@ -6,6 +6,7 @@ pub mod sync {
     pub mod blocker;
     pub mod needed;
     pub mod pacer;
+    pub mod retainer;
 }
 pub mod plumbing {
     pub mod distributor;

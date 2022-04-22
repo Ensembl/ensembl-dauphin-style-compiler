@@ -7,7 +7,7 @@ pub struct TrainExtent {
     pixel_size: PixelSize
 }
 
-#[cfg(debug_assertions)]
+//#[cfg(debug_assertions)]
 impl std::fmt::Debug for TrainExtent {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f,"{}/{}...",self.layout().stick().get_id(),self.scale().get_index())
@@ -39,9 +39,5 @@ impl TrainExtent {
         } else {
             CarriageSpeed::Slow
         }
-    }
-
-    pub(super) fn trivially_equal_to(&self, other: &TrainExtent) -> bool {
-        self.layout == other.layout && self.scale == other.scale
     }
 }

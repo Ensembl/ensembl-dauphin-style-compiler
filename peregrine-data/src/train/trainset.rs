@@ -99,12 +99,13 @@ impl SwitcherObject for SwitcherTrain {
     fn dead(&mut self) { self.train.set_inactive() }
 
     fn speed(&self, source: Option<&Self::Type>) -> Self::Speed {
+        return CarriageSpeed::Quick;
         if let Some(source) = source {
             if source.epoch != self.epoch { return CarriageSpeed::Slow; }
             source.train.speed_limit(&self.train)
         } else {
             CarriageSpeed::Quick
-        }        
+        }
     }
 }
 

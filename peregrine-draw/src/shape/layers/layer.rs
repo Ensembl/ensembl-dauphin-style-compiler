@@ -1,6 +1,8 @@
 use std::sync::{Arc, Mutex};
 use std::{collections::HashMap};
 use commander::cdr_tick;
+use peregrine_toolkit::log_extra;
+use peregrine_toolkit::sync::retainer::RetainTest;
 
 use crate::shape::layers::patina::PatinaProcess;
 use crate::webgl::{ ProcessBuilder, Process, DrawingAllFlats };
@@ -71,7 +73,7 @@ impl Layer {
         Ok(self.store.get_mut(&character).unwrap().get_process_mut())
     }
 
-    pub(super) async fn build(mut self, gl: &Arc<Mutex<WebGlGlobal>>, canvases: &DrawingAllFlats) -> Result<Vec<Process>,Message> {
+    pub(super) async fn build(mut self, gl: &Arc<Mutex<WebGlGlobal>>, canvases: &DrawingAllFlats, retain: &RetainTest) -> Result<Option<Vec<Process>>,Message> {
         let mut processes = vec![];
         let mut characters = self.store.keys().cloned().collect::<Vec<_>>();
         characters.sort();
@@ -97,8 +99,12 @@ impl Layer {
             }
             processes.push(prog.into_process().build(gl,self.left,character).await?);
             cdr_tick(0).await;
+            if !retain.test() {
+                log_extra!("dumped discarded drawing");
+                return Ok(None);
+            }
         }
-        Ok(processes)
+        Ok(Some(processes))
     }
 
     pub(super) fn build_sync(mut self, gl: &Arc<Mutex<WebGlGlobal>>, canvases: &DrawingAllFlats) -> Result<Vec<Process>,Message> {
