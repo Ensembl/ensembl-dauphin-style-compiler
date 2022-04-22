@@ -44,8 +44,8 @@ fn split_spacebaserect(tools: &mut DrawingTools, shape: &RectangleShape<LeafComm
                 }
             }
         },
-        Patina::ZMenu(zmenu,values) => {
-            out.push(GLShape::SpaceBaseRect(shape.area().clone(),SimpleShapePatina::ZMenu(zmenu.clone(),values.clone()),depth,draw_group.clone(),None));
+        Patina::Hotspot(hotspot) => {
+            out.push(GLShape::SpaceBaseRect(shape.area().clone(),SimpleShapePatina::Hotspot(hotspot.clone()),depth,draw_group.clone(),None));
         }
     }
     Ok(out)

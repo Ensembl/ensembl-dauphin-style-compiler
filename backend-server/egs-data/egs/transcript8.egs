@@ -99,7 +99,8 @@ main/main/<id>/diagram/ <- overlay
 main/main/<id>/diagram/far-under <- central dotted line
 main/main/<id>/diagram/under <- central solid line
 main/main/<id>/diagram/far-over <- solid exon box
-main/main/<id>/text/ <- label
+main/main/<id>/text <- label
+main/main/<id>/button <- button
 
 */
 
@@ -112,6 +113,7 @@ style("tracks/track/focus/",["priority","report"][],["-900","track;switch-id=foc
 style("**/main/main/",["type"][],["bumper"][]);
 style("**/main/main/*/",["type"][],["overlay"][]);
 style("**/main/main/*/text",["bump-width"][],["none"][]);
+style("**/main/main/*/button",["priority","bump-width"][],["1000","none"][]);
 style("**/main/main/*/diagram/",["type"][],["overlay"][]);
 style("**/main/main/*/diagram/under",["depth"][],["-3"][]);
 style("**/main/main/*/diagram/far-under",["depth"][],["-2"][]);
@@ -186,6 +188,7 @@ exon_allotment_names := [append_group(base_exon_allotment_names[],["diagram"][])
 thick_exon_allotment_names := [append_group(base_thick_exon_allotment_names[],["diagram"][])];
 
 text_allotment := use_allotment(append_group(base_allotment_names[],["text"][]));
+button_allotment := use_allotment(append_group(base_allotment_names[],["button"][]));
 allotment_under := use_allotment(append_group(allotment_names[],["under"][]));
 allotment_far_under := use_allotment(append_group(allotment_names[],["far-under"][]));
 allotment_far_over := use_allotment(append_group(allotment_names[],["far-over"][]));
@@ -326,3 +329,17 @@ draw_focus_swatch(allotments_letter[@==4]);
 /* red-dotted lines */
 dots_allotment := use_allotment(["","dots/content"][(@==1)==(get_switch(["track","focus"]))]);
 red_dotted(focus_start,focus_end,dots_allotment);
+
+/* blue button */
+blue_top_left := spacebase(start,18,0);
+blue_bottom_right := spacebase(start,26,12);
+blue_colour := spot_colour(direct_colour(239,154,52,255));
+blue_patina := patina_filled(blue_colour);
+rectangle(blue_top_left,blue_bottom_right,blue_patina,button_allotment);
+
+switches := [["test","a"]][];
+
+blue_hotspot_patina := patina_switch(switches,true);
+
+rectangle(blue_top_left,blue_bottom_right,blue_hotspot_patina,button_allotment);
+

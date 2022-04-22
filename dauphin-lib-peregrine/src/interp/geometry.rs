@@ -1,7 +1,7 @@
 use anyhow::anyhow as err;
 use peregrine_toolkit::lock;
 use crate::simple_interp_command;
-use peregrine_data::{Builder, Colour, DataMessage, DirectColour, DrawnType, EachOrEvery, Patina, Pen, Plotter, ShapeRequest, ZMenu, SpaceBase, ProgramShapesBuilder};
+use peregrine_data::{Builder, Colour, DataMessage, DirectColour, DrawnType, EachOrEvery, Patina, Pen, Plotter, ShapeRequest, ZMenu, SpaceBase, ProgramShapesBuilder, Hotspot};
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
 use serde_cbor::Value as CborValue;
@@ -26,6 +26,7 @@ simple_interp_command!(BpRangeInterpCommand,BpRangeDeserializer,45,1,(0));
 simple_interp_command!(SpotColourInterpCommand,SpotColourDeserializer,46,2,(0,1));
 simple_interp_command!(PpcInterpCommand,PpcDeserializer,49,1,(0));
 simple_interp_command!(StyleInterpCommand,StyleDeserializer,50,3,(0,1,2));
+simple_interp_command!(PatinaSwitchInterpCommand,PatinaSwitchDeserializer,51,5,(0,1,2,3,4));
 
 impl InterpCommand for BpRangeInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
@@ -314,12 +315,46 @@ impl InterpCommand for PatinaZMenuInterpCommand {
         for (zmenu,(key_start,key_length)) in each {
             let keys = &key_d[*key_start..(*key_start+*key_length)];
             let values = make_values(keys,&value_d,&value_a,&value_b)?;
-            let patina = Patina::ZMenu(zmenu.as_ref().clone(),values);
+            let patina = Patina::Hotspot(Hotspot::ZMenu(zmenu.as_ref().clone(),values));
             payload.push(geometry_builder.add_patina(patina) as usize);
         }
         drop(peregrine);
         let registers = context.registers_mut();
         registers.write(&self.0,InterpValue::Indexes(payload));
+        Ok(CommandResult::SyncResult())
+    }
+}
+
+fn make_switches(value_d: &[String], value_a: &[usize], value_b: &[usize], sense: &[bool]) -> anyhow::Result<Vec<(Vec<String>,bool)>> {
+    let mut out = vec![];
+    let value_pos = value_a.iter().zip(value_b.iter().cycle());
+    let kv = sense.iter().zip(value_pos.cycle());
+    for (sense,(value_start,value_length)) in kv {
+        let values = &value_d[*value_start..(*value_start+*value_length)];
+        out.push((values.to_vec(),*sense));
+    }
+    Ok(out)
+}
+
+/* 0: out/patina  1: key/D  2: key/A  3: key/B, 4: bool */
+impl InterpCommand for PatinaSwitchInterpCommand {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+        let registers = context.registers_mut();
+        let key_d = registers.get_strings(&self.1)?.to_vec();
+        let key_a = registers.get_indexes(&self.2)?;
+        let key_b = registers.get_indexes(&self.3)?;
+        let sense = registers.get_boolean(&self.4)?;
+        drop(registers);
+        let peregrine = get_peregrine(context)?;
+        let geometry_builder = peregrine.geometry_builder();
+        let values = vec_to_eoe(make_switches(&key_d,&key_a,&key_b,&sense)?);
+        let patina = Patina::Hotspot(Hotspot::Switch(values));
+        let patina_id = geometry_builder.add_patina(patina) as usize;
+        drop(peregrine);
+        let registers = context.registers_mut();
+        registers.write(&self.0,InterpValue::Indexes(vec![
+            patina_id
+        ]));
         Ok(CommandResult::SyncResult())
     }
 }

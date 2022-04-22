@@ -4,7 +4,7 @@ use peregrine_toolkit::sync::blocker::{Blocker, Lockout};
 
 use crate::PeregrineInnerAPI;
 use crate::input::translate::targetreporter::TargetReporter;
-use crate::input::translate::translatezmenu::translate_zemnus;
+use crate::input::translate::translatehotspots::{translate_hotspots};
 use crate::run::report::Report;
 use crate::shape::core::spectre::Spectre;
 use crate::stage::stage::ReadStage;
@@ -85,7 +85,7 @@ impl Input {
         let spectres = inner_api.spectres();
         let mut low_level = LowLevelInput::new(dom,commander,spectres,config,&target_reporter)?;
         let translator = InputTranslator::new(config,&mut low_level,inner_api,commander,report,&self.queue_blocker,&target_reporter)?;
-        translate_zemnus(&mut low_level,commander,&inner_api);
+        translate_hotspots(&mut low_level,commander,&inner_api);
         debug_register(config,&mut low_level,inner_api)?;
         *self.state.lock().unwrap() = Some(InputState {
             low_level, translator,

@@ -124,36 +124,61 @@ pub enum DrawnType {
 
 #[derive(Clone)]
 #[cfg_attr(debug_assertions,derive(Debug))]
-pub enum Patina {
-    Drawn(DrawnType,EachOrEvery<Colour>),
-    ZMenu(ZMenu,Vec<(String,EachOrEvery<String>)>)
+pub enum Hotspot {
+    ZMenu(ZMenu,Vec<(String,EachOrEvery<String>)>),
+    Switch(EachOrEvery<(Vec<String>,bool)>)
 }
 
-fn filter_zmenu(h : &Vec<(String,EachOrEvery<String>)>, filter: &EachOrEveryFilter) -> Vec<(String,EachOrEvery<String>)> {
-    let mut out = Vec::with_capacity(h.len());
-    for (k,v) in h {
-        out.push((k.to_string(),v.filter(filter)));
+impl Hotspot {
+    fn filter(&self, filter: &EachOrEveryFilter) -> Hotspot {
+        match self {
+            Hotspot::ZMenu(zmenu,values) => {
+                let mut out = Vec::with_capacity(values.len());
+                for (k,v) in values {
+                    out.push((k.to_string(),v.filter(filter)));
+                }
+                Hotspot::ZMenu(zmenu.clone(),out)          
+            },
+            Hotspot::Switch(values) => {
+                Hotspot::Switch(values.filter(filter))
+            }
+        }
     }
-    out
+
+    fn compatible(&self, len: usize) -> bool {
+        match self {
+            Hotspot::ZMenu(_,values) => {
+                for (_,value) in values.iter() {
+                    if !value.compatible(len) { return false; }
+                }
+                true
+            },
+            Hotspot::Switch(value) => {
+                value.compatible(len)
+            }
+        }
+    }
+}
+
+#[derive(Clone)]
+#[cfg_attr(debug_assertions,derive(Debug))]
+pub enum Patina {
+    Drawn(DrawnType,EachOrEvery<Colour>),
+    Hotspot(Hotspot)
 }
 
 impl Patina {
     pub fn filter(&self, filter: &EachOrEveryFilter) -> Patina {
         match self {
             Patina::Drawn(drawn_type,colours) => Patina::Drawn(drawn_type.clone(),colours.filter(filter)),
-            Patina::ZMenu(z,h) => Patina::ZMenu(z.clone(),filter_zmenu(h,filter))
+            Patina::Hotspot(hotspot) => Patina::Hotspot(hotspot.filter(filter))
         }
     }
 
     pub fn compatible(&self, len: usize) -> bool {
         match self {
             Patina::Drawn(_,x) => x.compatible(len),
-            Patina::ZMenu(_,v) => {
-                for (_,x) in v {
-                    if !x.compatible(len) { return false; }
-                }
-                true
-            }
+            Patina::Hotspot(hotspot) => { hotspot.compatible(len) }
         }
     }
 }

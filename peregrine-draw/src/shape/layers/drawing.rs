@@ -14,7 +14,7 @@ use crate::webgl::canvas::flatplotallocator::FlatPositionManager;
 use crate::webgl::{CanvasWeave, DrawingAllFlats, DrawingAllFlatsBuilder, DrawingSession, FlatStore, Process};
 use super::super::core::text::DrawingText;
 use crate::webgl::global::WebGlGlobal;
-use super::drawingzmenus::{ DrawingZMenusBuilder, DrawingZMenus };
+use super::drawingzmenus::{ DrawingHotspotsBuilder, DrawingHotspots, HotspotEntryDetails };
 use crate::stage::stage::ReadStage;
 use crate::util::message::Message;
 
@@ -54,7 +54,7 @@ pub(crate) struct DrawingTools {
     text: DrawingText,
     bitmap: DrawingBitmap,
     heraldry: DrawingHeraldry,
-    zmenus: DrawingZMenusBuilder
+    zmenus: DrawingHotspotsBuilder
 }
 
 impl DrawingTools {
@@ -63,14 +63,14 @@ impl DrawingTools {
             text: DrawingText::new(bitmap_multiplier),
             bitmap: DrawingBitmap::new(assets,bitmap_multiplier),
             heraldry: DrawingHeraldry::new(bitmap_multiplier),
-            zmenus: DrawingZMenusBuilder::new(scale, left)
+            zmenus: DrawingHotspotsBuilder::new(scale, left)
         }
     }
 
     pub(crate) fn text(&mut self) -> &mut DrawingText { &mut self.text }
     pub(crate) fn bitmap(&mut self) -> &mut DrawingBitmap { &mut self.bitmap }
     pub(crate) fn heraldry(&mut self) -> &mut DrawingHeraldry { &mut self.heraldry }
-    pub(crate) fn zmenus(&mut self) -> &mut DrawingZMenusBuilder { &mut self.zmenus }
+    pub(crate) fn zmenus(&mut self) -> &mut DrawingHotspotsBuilder { &mut self.zmenus }
 
     pub(crate) fn start_preparation(&mut self, gl: &mut WebGlGlobal) -> Result<ToolPreparations,Message> {
         let mut preparations = ToolPreparations::new();
@@ -128,8 +128,8 @@ impl DrawingBuilder {
             ShapeToAdd::Dynamic(dynamic) => {
                 self.dynamic_shapes.push(dynamic);
             },
-            ShapeToAdd::ZMenu(area,zmenu,values) => {
-                self.tools.zmenus.add_rectangle(area,zmenu,values);
+            ShapeToAdd::Hotspot(area,hotspot) => {
+                self.tools.zmenus.add_rectangle(area,&hotspot);
             },
             ShapeToAdd::None => {}
         }
@@ -156,7 +156,7 @@ impl DrawingBuilder {
 struct DrawingData {
     processes: Vec<Process>,
     canvases: DrawingAllFlats,
-    zmenus: DrawingZMenus,
+    zmenus: DrawingHotspots,
     dynamic_shapes: Vec<Box<dyn DynamicShape>>,
     recompute: Needed
 }
@@ -201,7 +201,7 @@ impl Drawing {
         drawing.build_sync(gl)
     }
 
-    fn new_real(processes: Vec<Process>, canvases: DrawingAllFlats, zmenus: DrawingZMenus, dynamic_shapes: Vec<Box<dyn DynamicShape>>) -> Result<Drawing,Message> {
+    fn new_real(processes: Vec<Process>, canvases: DrawingAllFlats, zmenus: DrawingHotspots, dynamic_shapes: Vec<Box<dyn DynamicShape>>) -> Result<Drawing,Message> {
         let mut out = Drawing(Arc::new(Mutex::new(DrawingData {
             processes,
             canvases,
@@ -217,7 +217,7 @@ impl Drawing {
         lock!(self.0).zmenus.set_px_per_screen(px_per_screen);
     }
 
-    pub(crate) fn get_hotspot(&self, stage: &ReadStage, position: (f64,f64)) -> Result<Vec<Rc<ZMenuProxy>>,Message> {
+    pub(crate) fn get_hotspot(&self, stage: &ReadStage, position: (f64,f64)) -> Result<Vec<HotspotEntryDetails>,Message> {
         lock!(self.0).zmenus.get_hotspot(stage,position)
     }
 

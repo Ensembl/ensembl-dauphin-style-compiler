@@ -34,7 +34,7 @@ mod input {
         pub(crate) mod translateinput;
         pub(crate) mod debug;
         pub(crate) mod targetreporter;
-        pub(crate) mod translatezmenu;
+        pub(crate) mod translatehotspots;
 
         pub use self::translateinput::InputTranslator;
     }

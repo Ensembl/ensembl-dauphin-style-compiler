@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use peregrine_data::reactive::Observable;
-use peregrine_data::{ Colour, DirectColour, DrawnType, Patina, Plotter, ZMenu, SpaceBaseArea, HollowEdge2, SpaceBase, EachOrEvery, EachOrEveryFilterBuilder, LeafCommonStyle };
+use peregrine_data::{ Colour, DirectColour, DrawnType, Patina, Plotter, ZMenu, SpaceBaseArea, HollowEdge2, SpaceBase, EachOrEvery, EachOrEveryFilterBuilder, LeafCommonStyle, Hotspot };
 use super::directcolourdraw::DirectYielder;
 use super::spotcolourdraw::SpotColourYielder;
 use super::text::TextHandle;
@@ -28,7 +28,7 @@ pub(crate) enum SimpleShapePatina {
     Hollow(EachOrEvery<DirectColour>),
     SolidSpot(DirectColour),
     HollowSpot(DirectColour),
-    ZMenu(ZMenu,Vec<(String,EachOrEvery<String>)>)
+    Hotspot(Hotspot)
 }
 
 fn simplify_colours(colours: &EachOrEvery<Colour>) -> Result<EachOrEvery<DirectColour>,Message> {
@@ -50,7 +50,7 @@ impl SimpleShapePatina {
                     DrawnType::Fill => SimpleShapePatina::Solid(simplify_colours(colours)?),
                 }
             },
-            Patina::ZMenu(zmenu,values) => { SimpleShapePatina::ZMenu(zmenu.clone(),values.clone()) }
+            Patina::Hotspot(hotspot) => { SimpleShapePatina::Hotspot(hotspot.clone()) }
         })
     }
 
@@ -62,7 +62,7 @@ impl SimpleShapePatina {
                     DrawnType::Fill => SimpleShapePatina::SolidSpot(colour.clone()),
                 }
             },
-            Patina::ZMenu(zmenu,values) => { SimpleShapePatina::ZMenu(zmenu.clone(),values.clone()) }
+            Patina::Hotspot(hotspot) => { SimpleShapePatina::Hotspot(hotspot.clone()) }
         })
     }
 
@@ -72,7 +72,7 @@ impl SimpleShapePatina {
             SimpleShapePatina::Hollow(c) => DrawingShapePatina::Hollow(DirectYielder::new(),c.clone()),
             SimpleShapePatina::SolidSpot(c) => DrawingShapePatina::SolidSpot(SpotColourYielder::new(c)),
             SimpleShapePatina::HollowSpot(c) => DrawingShapePatina::HollowSpot(SpotColourYielder::new(c)),
-            SimpleShapePatina::ZMenu(zmenu,values) => DrawingShapePatina::ZMenu(zmenu.clone(),values.clone())
+            SimpleShapePatina::Hotspot(hotspot) => DrawingShapePatina::Hotspot(hotspot.clone())
         }
     }
 }
@@ -82,12 +82,12 @@ enum DrawingShapePatina {
     Hollow(DirectYielder,EachOrEvery<DirectColour>),
     SolidSpot(SpotColourYielder),
     HollowSpot(SpotColourYielder),
-    ZMenu(ZMenu,Vec<(String,EachOrEvery<String>)>)
+    Hotspot(Hotspot)
 }
 
 enum PatinaTarget<'a> {
     Visual(&'a mut dyn PatinaYielder),
-    HotSpot(ZMenu,Vec<(String,EachOrEvery<String>)>)
+    HotSpot(Hotspot)
 }
 
 impl DrawingShapePatina {
@@ -97,7 +97,7 @@ impl DrawingShapePatina {
             DrawingShapePatina::Hollow(dc,_) => PatinaTarget::Visual(dc),
             DrawingShapePatina::SolidSpot(dc) => PatinaTarget::Visual(dc),
             DrawingShapePatina::HollowSpot(dc) => PatinaTarget::Visual(dc),
-            DrawingShapePatina::ZMenu(zmenu,values) => PatinaTarget::HotSpot(zmenu.clone(),values.clone())
+            DrawingShapePatina::Hotspot(hotspot) => PatinaTarget::HotSpot(hotspot.clone())
         }
     }
 }
@@ -181,7 +181,7 @@ fn draw_heraldry_canvas(layer: &mut Layer, gl: &mut WebGlGlobal, tools: &mut Dra
 
 pub(crate) enum ShapeToAdd {
     Dynamic(Box<dyn DynamicShape>),
-    ZMenu(SpaceBaseArea<f64,LeafCommonStyle>,ZMenu,Vec<(String,EachOrEvery<String>)>),
+    Hotspot(SpaceBaseArea<f64,LeafCommonStyle>,Hotspot),
     None
 }
 
@@ -242,8 +242,8 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &mut WebGlGlobal, tools:
                     campaign.close()?;
                     Ok(ShapeToAdd::Dynamic(Box::new(Rectangles::new(rectangles))))
                 },
-                PatinaTarget::HotSpot(zmenu,values) => {
-                    Ok(ShapeToAdd::ZMenu(area,zmenu,values))
+                PatinaTarget::HotSpot(hotspot) => {
+                    Ok(ShapeToAdd::Hotspot(area,hotspot))
                 }
             }
         }

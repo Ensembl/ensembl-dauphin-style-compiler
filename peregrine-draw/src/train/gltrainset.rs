@@ -9,6 +9,7 @@ use peregrine_toolkit::sync::needed::{Needed, NeededLock};
 use super::glcarriage::GLCarriage;
 use super::gltrain::GLTrain;
 use crate::PgCommanderWeb;
+use crate::shape::layers::drawingzmenus::HotspotEntryDetails;
 use crate::{run::{ PgPeregrineConfig, PgConfigKey }, stage::stage::{ Stage, ReadStage } };
 use crate::webgl::DrawingSession;
 use crate::webgl::global::WebGlGlobal;
@@ -211,7 +212,7 @@ impl GlRailwayData {
         }
     }
 
-    fn get_hotspot(&mut self, stage: &ReadStage, position: (f64,f64)) -> Result<Vec<Rc<ZMenuProxy>>,Message> {
+    fn get_hotspot(&mut self, stage: &ReadStage, position: (f64,f64)) -> Result<Vec<HotspotEntryDetails>,Message> {
         match &self.fade_state {
             FadeState::Constant(x) => x.as_ref(),
             FadeState::Fading(_,x,_,_,_) => Some(x)
@@ -270,7 +271,7 @@ impl GlRailway {
         Ok(())
     }
 
-    pub(crate) fn get_hotspot(&self,stage: &ReadStage, position: (f64,f64)) -> Result<Vec<Rc<ZMenuProxy>>,Message> {
+    pub(crate) fn get_hotspot(&self,stage: &ReadStage, position: (f64,f64)) -> Result<Vec<HotspotEntryDetails>,Message> {
         lock!(self.data).get_hotspot(stage,position)
     }
 

@@ -77,6 +77,7 @@ func zmenu(string) becomes zmenutmpl;
 func patina_filled(colour) becomes patina;
 func patina_hollow(colour,number) becomes patina;
 func patina_zmenu(zmenutmpl, vec(string), vec(string)) becomes patina;
+func patina_switch(vec(string),boolean) becomes patina;
 func pen(string,number,directcolour,directcolour) becomes penspec;
 func plotter(number,directcolour) becomes plotterspec;
 
@@ -91,8 +92,7 @@ proc wiggle(number,number,plotterspec,number,boolean,allotment);
 proc draw_image(spacebaseid,string,allotment);
 
 stmt text_underneath(x,y,penspec,writing,allt) {
-    x := spacebase(x,y,0);
-    text2(x,penspec,writing,allt);
+    text2(spacebase(x,y,0),penspec,writing,allt);
 }
 
 stmt image_underneath(x,y,name,allt) {
