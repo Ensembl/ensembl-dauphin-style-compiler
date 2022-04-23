@@ -1,6 +1,6 @@
 use peregrine_data::{Assets, CarriageExtent, ZMenuProxy, DrawingCarriage2};
 use peregrine_toolkit::sync::retainer::RetainTest;
-use peregrine_toolkit::{lock, warn};
+use peregrine_toolkit::{lock, warn, log, error, debug_log};
 use peregrine_toolkit::sync::asynconce::AsyncOnce;
 use peregrine_toolkit::sync::needed::Needed;
 use crate::shape::layers::drawingzmenus::HotspotEntryDetails;
@@ -86,7 +86,14 @@ impl GLCarriage {
         let state = lock!(self.0);
         let drawing = state.drawing.clone();
         drop(state);
-        drawing.get().await.as_ref().map(|_| ()).map_err(|e| e.clone())?;
+        debug_log!("preflight started for {:?}",lock!(self.0).extent);
+        let g = drawing.get().await;
+        debug_log!("U preflight started for {:?}",lock!(self.0).extent);
+        let x = g.as_ref().map(|_| ()).map_err(|e| e.clone());
+        if let Err(e) = x {
+            error!("{}",e);
+        }
+        debug_log!("preflight done for {:?}",lock!(self.0).extent);
         lock!(self.0).preflight_done = true;
         carriage.set_ready();
         Ok(())

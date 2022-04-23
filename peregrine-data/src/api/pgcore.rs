@@ -9,7 +9,7 @@ use crate::train::Railway;
 use commander::PromiseFuture;
 use peregrine_dauphin_queue::{ PgDauphinQueue };
 use peregrine_message::PeregrineMessage;
-use peregrine_toolkit::lock;
+use peregrine_toolkit::{lock, log};
 use peregrine_toolkit::puzzle::AnswerAllocator;
 use peregrine_toolkit::sync::blocker::Blocker;
 use peregrine_toolkit::sync::needed::Needed;

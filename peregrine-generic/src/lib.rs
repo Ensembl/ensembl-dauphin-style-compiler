@@ -165,6 +165,12 @@ impl GenomeBrowser {
         self.api.set_switch(&["settings"]);
         self.api.radio_switch(&["focus"],true);
         self.api.radio_switch(&["focus","gene"],true);
+        self.api.set_switch(&["buttons"]);
+        self.api.set_switch(&["buttons","gene"]);
+        self.api.set_switch(&["buttons","gene","expand"]);
+        self.api.set_switch(&["buttons","gene","contract"]);
+
+
 
         Ok(())
     }

@@ -27,6 +27,7 @@ stmt gene_std(p) {
     track_add_switch(p,["settings"]);
     track_add_switch(p,["focus"]);
     track_add_switch(p,["track","focus"]);
+    track_add_switch(p,["buttons","gene"]);
 }
 
 /* TOP-LEVEL */

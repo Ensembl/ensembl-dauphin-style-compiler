@@ -40,6 +40,7 @@ thick_start := delta_seq(data,"thick_starts");
 thick_end := thick_start + delta_seq(data,"thick_lengths");
 exon_gene_indexes := derun(delta_seq(data,"exon_counts"));
 
+exon_gene_ids := index(exon_gene_indexes,[gene_id]);
 exon_focus_id := index(exon_gene_indexes,[focus_id]);
 /* apply solidity in thick region ... */
 /* ... find thick limits for each exon */
@@ -148,6 +149,8 @@ use_allotments(allotments_letter,enabled_tracks,[
 
 use_allotments(allotments_wallpaper,enabled_tracks,potential_tracks_wallpaper);
 
+expanded_genes := list_switch(["buttons","gene","expand"]);
+
 /*
  * Which allotment and track does data go into?
  *
@@ -155,15 +158,17 @@ use_allotments(allotments_wallpaper,enabled_tracks,potential_tracks_wallpaper);
  * and also for forward and reverse strand. As usual there is a fifth 
  * allotment for a focus-feature.
  *
- * For the data on each allotment there are currently two tracks: the
- * main data and the labels.
  */
 
 allotment_idx := len([gene_id]) (*) 0;
-allotment_idx#[strand > 0] (+=) 2;
+allotment_idx#[strand>0] (+=) 2;
 allotment_idx#[in(gene_biotype,["protein_coding"])] (+=) 1;
 focus_gene := list_switch(["focus","gene"]);
 allotment_idx#[focus_id==focus_gene] := 4;
+
+allotment_colour_idx := [allotment_idx][true];
+
+allotment_colour_idx#[in(gene_id,[expanded_genes])] := 5;
 
 /*
  * Exon allotments
@@ -173,9 +178,14 @@ exon_allotment_idx := len([exon_start]) (*) 0;
 exon_allotment_idx#[exon_strand > 0] (+=) 2;
 exon_allotment_idx#[in(exon_gene_biotype,["protein_coding"])] (+=) 1;
 exon_allotment_idx#[exon_focus_id==focus_gene] := 4;
-thick_exon_allotment_idx := exon_allotment_idx#[thick_exons];
 
-exon_gene_ids := index(exon_gene_indexes,[gene_id]);
+exon_allotment_colour_idx := len([exon_start]) (*) 0;
+exon_allotment_colour_idx#[exon_strand > 0] (+=) 2;
+exon_allotment_colour_idx#[in(exon_gene_biotype,["protein_coding"])] (+=) 1;
+exon_allotment_colour_idx#[exon_focus_id==focus_gene] := 4;
+exon_allotment_colour_idx#[in(exon_gene_ids,[expanded_genes])] := 5;
+
+thick_exon_allotment_idx := exon_allotment_idx#[thick_exons];
 thick_exon_gene_ids := exon_gene_ids#[thick_exons];
 
 use_allotment_names(root_allotment_names,enabled_tracks,potential_tracks);
@@ -195,10 +205,6 @@ allotment_far_over := use_allotment(append_group(allotment_names[],["far-over"][
 allotment_exon_blanking := use_allotment(append_group(exon_allotment_names[],["blanking"][]));
 allotment_exon_over := use_allotment(append_group(exon_allotment_names[],["far-over"][]));
 allotment_thick_exon_far_over := use_allotment(append_group(thick_exon_allotment_names[],["far-over"][]));
-
-//allotment := use_allotment(append_group(index(allotment_idx,allotment_names),gene_id));
-//allotment_under := use_allotment(append_group(index(allotment_idx,allotment_under_names),gene_id));
-//allotment_far_under := use_allotment(append_group(index(allotment_idx,allotment_far_under_names),gene_id));
 
 alienate(allotment);
 
@@ -247,17 +253,23 @@ non_pc_colour := spot_colour(base_non_pc_colour);
 pc_colour := spot_colour(base_pc_colour);
 focus_colour := spot_colour(base_focus_colour);
 
-under_patina := patina_filled(index(allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour,focus_colour]));
-under_dotted_patina := patina_hollow(index(allotment_idx,[dotted_non_pc_colour,dotted_pc_colour,dotted_non_pc_colour,dotted_pc_colour,dotted_focus_colour]),1);
-hollow_patina := patina_hollow(index(allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour,focus_colour]),1);
-//exon_patina := patina_filled(index(exon_allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour,focus_colour]));
-exon_hollow_patina := patina_hollow(index(exon_allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour,focus_colour]),1);
+special_colour := spot_colour(direct_colour(255,200,0,255));
+dotted_special_colour := barred(direct_colour(255,255,255,255),direct_colour(255,200,0,255),4,1,0.25);
+
+under_patina := patina_filled(index(allotment_colour_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour,focus_colour,special_colour]));
+
+alienate(under_patina);
+
+under_dotted_patina := patina_hollow(index(allotment_colour_idx,[dotted_non_pc_colour,dotted_pc_colour,dotted_non_pc_colour,dotted_pc_colour,dotted_focus_colour,dotted_special_colour]),1);
+hollow_patina := patina_hollow(index(allotment_colour_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour,focus_colour,special_colour]),1);
+exon_hollow_patina := patina_hollow(index(exon_allotment_colour_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour,focus_colour,special_colour]),1);
 white_patina := patina_filled(spot_colour(direct_colour(255,255,255,255)));
-thick_exon_patina := patina_filled(index(exon_allotment_idx#[thick_exons],[non_pc_colour,pc_colour,non_pc_colour,pc_colour,focus_colour]));
+thick_exon_patina := patina_filled(index(exon_allotment_colour_idx#[thick_exons],[non_pc_colour,pc_colour,non_pc_colour,pc_colour,focus_colour,special_colour]));
 text_colour := direct_colour(111,129,144,255);
 text_size := 10;
 
 textpen := pen("'Lato', sans-serif",text_size,text_colour,[][]);
+
 
 /*
  * prepare the zmenus
@@ -334,12 +346,21 @@ red_dotted(focus_start,focus_end,dots_allotment);
 blue_top_left := spacebase(start,18,0);
 blue_bottom_right := spacebase(start,26,12);
 blue_colour := spot_colour(direct_colour(239,154,52,255));
-blue_patina := patina_filled(blue_colour);
-rectangle(blue_top_left,blue_bottom_right,blue_patina,button_allotment);
+green_colour := spot_colour(direct_colour(154,239,52,255));
 
-switches := [["test","a"]][];
+button_colour := len([start]) (*) blue_colour;
+button_colour#[in(gene_id,[expanded_genes])] := green_colour;
+button_patina := patina_filled(button_colour);
 
-blue_hotspot_patina := patina_switch(switches,true);
+rectangle(blue_top_left,blue_bottom_right,button_patina,button_allotment);
+
+expand_base := len([gene_id]) (*) "buttons/gene/expand";
+expand_switches := append_group(expand_base,gene_id);
+
+sense := len([expand_switches]) (*) true;
+sense#[in(gene_id,[expanded_genes])] := false;
+
+blue_hotspot_patina := patina_switch(expand_switches,sense);
 
 rectangle(blue_top_left,blue_bottom_right,blue_hotspot_patina,button_allotment);
 

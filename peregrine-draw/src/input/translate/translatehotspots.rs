@@ -12,7 +12,14 @@ fn process_hotspot_event(api: &LockedPeregrineInnerAPI, x: f64, y: f64) -> Resul
                 zmenus.push(z.value());
             },
             HotspotEntryDetails::Switch(value) => {
+                let (path,yn) = value.value();
+                let path = path.iter().map(|x| x.as_str()).collect::<Vec<_>>();
                 log!("switch hotspot {:?}",value.value());
+                if yn {
+                    api.data_api.set_switch(&path);
+                } else {
+                    api.data_api.clear_switch(&path);
+                }
             }
         }
     }

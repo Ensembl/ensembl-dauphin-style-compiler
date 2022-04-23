@@ -1,6 +1,6 @@
 use std::{collections::HashMap, rc::Rc, sync::{Arc, Mutex}};
 use peregrine_data::{ Scale, ZMenu, ZMenuGenerator, ZMenuProxy, SpaceBaseArea, SpaceBasePointRef, EachOrEvery, LeafCommonStyle, Hotspot };
-use peregrine_toolkit::lock;
+use peregrine_toolkit::{lock, log};
 use crate::stage::{stage::{ ReadStage }, axis::UnitConverter};
 use crate::util::message::Message;
 

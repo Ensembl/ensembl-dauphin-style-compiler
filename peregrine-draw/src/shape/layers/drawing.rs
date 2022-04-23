@@ -2,7 +2,7 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use super::layer::Layer;
 use peregrine_data::{Assets, Scale, Shape, ZMenuProxy, /*AnchoredCarriageShapeList,*/ LeafCommonStyle };
-use peregrine_toolkit::lock;
+use peregrine_toolkit::{lock, log};
 use peregrine_toolkit::sync::needed::Needed;
 use peregrine_toolkit::sync::retainer::RetainTest;
 use super::super::core::prepareshape::{ prepare_shape_in_layer };
@@ -138,7 +138,9 @@ impl DrawingBuilder {
 
     pub(crate) async fn build(mut self, gl: &Arc<Mutex<WebGlGlobal>>, retain_test: &RetainTest) -> Result<Option<Drawing>,Message> {
         let flats = self.flats.take().unwrap().built();
+        log!("M");
         let processes = self.main_layer.build(gl,&flats,retain_test).await?;
+        log!("N");
         Ok(if let Some(processes) = processes {
             Some(Drawing::new_real(processes,flats,self.tools.zmenus.build(),self.dynamic_shapes)?)
         } else {
