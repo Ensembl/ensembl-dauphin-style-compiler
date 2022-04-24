@@ -1,8 +1,6 @@
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc};
 
-use peregrine_toolkit::puzzle::AnswerAllocator;
-
-use crate::{LeafRequest, Shape, allotment::{core::{carriageoutput::{CarriageOutput}, leaflist::LeafList}, stylespec::{stylegroup::AllotmentStyleGroup, styletree::StyleTree}}, ProgramShapesBuilder, DataMessage, ShapeRequestGroup};
+use crate::{LeafRequest, Shape, allotment::{core::{carriageoutput::{CarriageOutput}, leaflist::LeafList}}, ProgramShapesBuilder, ShapeRequestGroup};
 
 #[derive(Clone)]
 pub struct CarriageShapesBuilder {
@@ -45,7 +43,7 @@ impl CarriageShapesBuilder {
         }
     }
 
-    pub fn to_universe(self, extent: Option<&ShapeRequestGroup>, answer_allocator: &Arc<Mutex<AnswerAllocator>>) -> CarriageOutput {
-        CarriageOutput::new(self.carriage_universe,self.shapes,extent,answer_allocator)
+    pub fn to_universe(self, extent: Option<&ShapeRequestGroup>) -> CarriageOutput {
+        CarriageOutput::new(self.carriage_universe,self.shapes,extent)
     }
 }

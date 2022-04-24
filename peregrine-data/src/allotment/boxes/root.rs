@@ -1,6 +1,6 @@
 use std::{sync::{Arc, Mutex}};
 
-use peregrine_toolkit::{lock, puzzle::{constant, StaticAnswer}, log };
+use peregrine_toolkit::{lock, puzzle::{constant}};
 
 use crate::{ allotment::core::{carriageoutput::BoxPositionContext, trainstate::CarriageTrainStateSpec}};
 
@@ -29,6 +29,6 @@ impl Root {
         for child in &mut *children {
             child.locate(prep,&constant(0.));
         }
-        CarriageTrainStateSpec::new(&prep.state_request,&mut prep.independent_answer)
+        CarriageTrainStateSpec::new(&prep.state_request)
     }
 }

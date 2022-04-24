@@ -1,4 +1,4 @@
-use peregrine_toolkit::{puzzle::{StaticValue, StaticAnswer, commute}, log};
+use peregrine_toolkit::{puzzle::{StaticValue, StaticAnswer, commute}};
 
 use crate::{CoordinateSystemVariety, CoordinateSystem};
 
@@ -8,7 +8,7 @@ use super::globalvalue::{LocalValueBuilder, LocalValueSpec, GlobalValueBuilder, 
 #[derive(Clone,Hash,PartialEq,Eq)]
 pub enum PlayingFieldEdge { Top, Bottom, Left, Right }
 
-pub struct LocalPlayingFieldBuilder(LocalValueBuilder<PlayingFieldEdge,f64>);
+pub struct LocalPlayingFieldBuilder(LocalValueBuilder<PlayingFieldEdge,f64,f64>);
 
 impl LocalPlayingFieldBuilder {
     pub(crate) fn new() -> LocalPlayingFieldBuilder {
@@ -35,13 +35,13 @@ impl LocalPlayingFieldBuilder {
     }
 }
 
-pub struct LocalPlayingField(LocalValueSpec<PlayingFieldEdge,f64>);
+pub struct LocalPlayingField(LocalValueSpec<PlayingFieldEdge,f64,f64>);
 
 impl LocalPlayingField {
-    pub(crate) fn new(builder: &LocalPlayingFieldBuilder, independent_answer: &mut StaticAnswer) -> LocalPlayingField {
+    pub(crate) fn new(builder: &LocalPlayingFieldBuilder) -> LocalPlayingField {
         let out = LocalPlayingField(LocalValueSpec::new(&builder.0,|x| {
             commute(x,0.,|x,y| x.max(*y)).dearc()
-        },independent_answer));
+        }));
         out
     }
 
@@ -50,7 +50,7 @@ impl LocalPlayingField {
     }
 }
 
-pub struct GlobalPlayingFieldBuilder(GlobalValueBuilder<PlayingFieldEdge,f64>);
+pub struct GlobalPlayingFieldBuilder(GlobalValueBuilder<PlayingFieldEdge,f64,f64>);
 
 impl GlobalPlayingFieldBuilder {
     pub(crate) fn new() -> GlobalPlayingFieldBuilder {
@@ -63,8 +63,8 @@ pub struct GlobalPlayingField(GlobalValueSpec<PlayingFieldEdge,f64>);
 
 impl GlobalPlayingField {
     pub(crate) fn new(builder: GlobalPlayingFieldBuilder, answer: &mut StaticAnswer) -> GlobalPlayingField {
-        GlobalPlayingField(GlobalValueSpec::new(builder.0,|x| {
-            let v = x.iter().map(|x| **x).fold(0.,f64::max);
+        GlobalPlayingField(GlobalValueSpec::new(builder.0,move |x,answer| {
+            let v = x.iter().map(|x| x.call(&answer)).fold(0.,f64::max);
             (v,(v*100000.).round() as i64)
         },answer))
     }

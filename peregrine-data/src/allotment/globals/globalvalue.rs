@@ -38,18 +38,24 @@
  * from the start of the process.
  */
 
+/* Throughout this file there is a convention on type placeholders to avoid confusion:
+ * T: local type added each time
+ * U: consolidated local type
+ * V: global type
+ */
+
 use std::{collections::{HashMap, hash_map::DefaultHasher}, fmt::Debug, hash::{Hash, Hasher}, sync::Arc};
 
-use peregrine_toolkit::{puzzle::{UnknownSetter, StaticValue, StaticAnswer, short_unknown_function_promise, Value, constant}, log};
+use peregrine_toolkit::{puzzle::{UnknownSetter, StaticValue, StaticAnswer, short_unknown_function_promise, constant}};
 
-pub(crate) struct LocalEntry<T: 'static+Clone> {
-    global_setter: UnknownSetter<'static,StaticValue<T>>,
-    global: StaticValue<T>,
+pub(crate) struct LocalEntry<T:'static+Clone, V:'static> {
+    global_setter: UnknownSetter<'static,StaticValue<V>>,
+    global: StaticValue<V>,
     local: Vec<StaticValue<T>>
 }
 
-impl<T: 'static+Clone> LocalEntry<T> {
-    fn new() -> LocalEntry<T> {
+impl<T: 'static+Clone,V> LocalEntry<T,V> {
+    fn new() -> LocalEntry<T,V> {
         let (global_setter,global) = short_unknown_function_promise();
         LocalEntry {
             global_setter, global, local: vec![]
@@ -60,25 +66,25 @@ impl<T: 'static+Clone> LocalEntry<T> {
         self.local.push(local);
     }
 
-    pub(crate) fn get_global(&self) -> &StaticValue<T> { &self.global }
+    pub(crate) fn get_global(&self) -> &StaticValue<V> { &self.global }
 
-    pub(crate) fn set_global(&mut self, answer: &mut StaticAnswer, value: StaticValue<T>) {
+    pub(crate) fn set_global(&mut self, answer: &mut StaticAnswer, value: StaticValue<V>) {
         self.global_setter.set(answer,value);
     }
 }
 
-pub(crate) struct LocalValueBuilder<X: Hash+Eq+Clone, T:'static+Clone> {
-    entries: HashMap<X,LocalEntry<T>>
+pub(crate) struct LocalValueBuilder<X: Hash+Eq+Clone, T:'static+Clone, V:'static> {
+    entries: HashMap<X,LocalEntry<T,V>>
 }
 
-impl<X: Hash+Eq+Clone, T:'static+Clone> LocalValueBuilder<X,T> {
-    pub(crate) fn new() -> LocalValueBuilder<X,T> {
+impl<X: Hash+Eq+Clone, T:'static+Clone,V> LocalValueBuilder<X,T,V> {
+    pub(crate) fn new() -> LocalValueBuilder<X,T,V> {
         LocalValueBuilder {
             entries: HashMap::new()
         }
     }
 
-    pub(crate) fn entry(&mut self, key: X) -> &mut LocalEntry<T> {
+    pub(crate) fn entry(&mut self, key: X) -> &mut LocalEntry<T,V> {
         if !self.entries.contains_key(&key) {
             self.entries.insert(key.clone(),LocalEntry::new());
         }
@@ -87,21 +93,15 @@ impl<X: Hash+Eq+Clone, T:'static+Clone> LocalValueBuilder<X,T> {
 }
 
 #[derive(Clone)]
-struct BuiltLocalEntry<T: 'static+Clone> {
-    global_setter: UnknownSetter<'static,StaticValue<T>>,
-    local_value: T
+struct BuiltLocalEntry<U:'static,V:'static> {
+    global_setter: UnknownSetter<'static,StaticValue<V>>,
+    local_value: StaticValue<U>
 }
 
-impl<T: 'static+Clone+Debug> Debug for BuiltLocalEntry<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("BuiltLocalEntry").field("local_value", &self.local_value).finish()
-    }
-}
-
-impl<T: 'static+Clone> BuiltLocalEntry<T> {
-    fn new<F>(entry: &LocalEntry<T>, merger: F, independent_answer: &mut StaticAnswer) -> BuiltLocalEntry<T>
-            where F: Fn(&[StaticValue<T>]) -> StaticValue<T> {
-        let local_value = merger(&entry.local).call(&independent_answer);
+impl<U:'static, V> BuiltLocalEntry<U,V> {
+    fn new<F, T:'static+Clone>(entry: &LocalEntry<T,V>, merger: F) -> BuiltLocalEntry<U,V>
+            where F: Fn(&[StaticValue<T>]) -> StaticValue<U> {
+        let local_value = merger(&entry.local);
         BuiltLocalEntry {
             global_setter: entry.global_setter.clone(),
             local_value
@@ -109,16 +109,16 @@ impl<T: 'static+Clone> BuiltLocalEntry<T> {
     }
 }
 
-pub(crate) struct LocalValueSpec<X: Hash+Eq+Clone, T:'static+Clone> {
-    entries: HashMap<X,BuiltLocalEntry<T>>
+pub(crate) struct LocalValueSpec<X: Hash+Eq+Clone, U:'static+Clone, V:'static+Clone> {
+    entries: HashMap<X,BuiltLocalEntry<U,V>>
 }
 
-impl<X: Hash+Eq+Clone, T:'static+Clone> LocalValueSpec<X,T> {
-    pub(crate) fn new<F>(builder: &LocalValueBuilder<X,T>, merger: F, independent_answer: &mut StaticAnswer) -> LocalValueSpec<X,T>
-            where F: Fn(&[StaticValue<T>]) -> StaticValue<T> {
+impl<X: Hash+Eq+Clone, U:Clone, V:Clone> LocalValueSpec<X,U,V> {
+    pub(crate) fn new<F, T:'static+Clone>(builder: &LocalValueBuilder<X,T,V>, merger: F) -> LocalValueSpec<X,U,V>
+            where F: Fn(&[StaticValue<T>]) -> StaticValue<U> {
         let out = LocalValueSpec {
             entries: builder.entries.iter().map(move |(k,v)| {
-                let out = (k,BuiltLocalEntry::new(&v,&merger,independent_answer));
+                let out = (k,BuiltLocalEntry::new(&v,&merger));
                 out
             }).map(|(k,v)| (k.clone(),v.clone())).collect()
         };
@@ -126,18 +126,18 @@ impl<X: Hash+Eq+Clone, T:'static+Clone> LocalValueSpec<X,T> {
     }
 }
 
-pub(crate) struct GlobalValueBuilder<X:Hash+Eq+Clone, T:'static+Clone> {
-    entries: HashMap<X,Vec<BuiltLocalEntry<T>>>
+pub(crate) struct GlobalValueBuilder<X:Hash+Eq+Clone, U:'static+Clone, V:'static+Clone> {
+    entries: HashMap<X,Vec<BuiltLocalEntry<U,V>>>
 }
 
-impl<X:Hash+Eq+Clone, T:'static+Clone> GlobalValueBuilder<X,T> {
-    pub(crate) fn new() -> GlobalValueBuilder<X,T> {
+impl<X:Hash+Eq+Clone, U:'static+Clone, V:Clone> GlobalValueBuilder<X,U,V> {
+    pub(crate) fn new() -> GlobalValueBuilder<X,U,V> {
         GlobalValueBuilder {
             entries: HashMap::new()
         }
     }
 
-    pub(crate) fn add(&mut self, spec: &LocalValueSpec<X,T>) {
+    pub(crate) fn add(&mut self, spec: &LocalValueSpec<X,U,V>) {
         for (key,value) in spec.entries.iter() {
             if !self.entries.contains_key(key) {
                 self.entries.insert(key.clone(),vec![]);
@@ -148,35 +148,35 @@ impl<X:Hash+Eq+Clone, T:'static+Clone> GlobalValueBuilder<X,T> {
 }
 
 #[derive(Clone)]
-pub(crate) struct GlobalValueSpec<X:Hash+Eq+Clone, T:'static+Clone> {
+pub(crate) struct GlobalValueSpec<X:Hash+Eq+Clone, V> {
     hash: u64,
-    entries: Arc<HashMap<X,T>>
+    entries: Arc<HashMap<X,V>>
 }
 
-impl<X:Hash+Eq+Clone, T:'static+Clone> PartialEq for GlobalValueSpec<X,T> {
+impl<X:Hash+Eq+Clone, V> PartialEq for GlobalValueSpec<X,V> {
     fn eq(&self, other: &Self) -> bool { self.hash == other.hash }
 }
 
-impl<X:Hash+Eq+Clone, T:'static+Clone> Eq for GlobalValueSpec<X,T> {}
+impl<X:Hash+Eq+Clone, V> Eq for GlobalValueSpec<X,V> {}
 
-impl<X:Hash+Eq+Clone, T:'static+Clone> Hash for GlobalValueSpec<X,T> {
+impl<X:Hash+Eq+Clone, V> Hash for GlobalValueSpec<X,V> {
     fn hash<H: Hasher>(&self, state: &mut H) { self.hash.hash(state); }
 }
 
-impl<X:Hash+Eq+Clone+Debug, T:'static+Clone+Debug> std::fmt::Debug for GlobalValueSpec<X,T> {
+impl<X:Hash+Eq+Clone+Debug, V:Debug> std::fmt::Debug for GlobalValueSpec<X,V> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("GlobalValueSpec").field("entries", &self.entries).finish()
     }
 }
 
-impl<X:Hash+Eq+Clone, T:'static+Clone> GlobalValueSpec<X,T> {
-    pub(crate) fn new<F,H: Hash>(builder: GlobalValueBuilder<X,T>, merger: F, answer: &mut StaticAnswer) -> GlobalValueSpec<X,T>
-            where F: Fn(&[&T]) -> (T,H) {
+impl<X:Hash+Eq+Clone, V:Clone> GlobalValueSpec<X,V> {
+    pub(crate) fn new<F, U:'static+Clone, H:Hash>(builder: GlobalValueBuilder<X,U,V>, merger: F, answer: &mut StaticAnswer) -> GlobalValueSpec<X,V>
+            where F: Fn(&[&StaticValue<U>],&mut StaticAnswer) -> (V,H) {
         let mut hasher = DefaultHasher::new();
         let mut out = HashMap::new();
         for (key,entries) in builder.entries {
             let local_values = entries.iter().map(|x| &x.local_value).collect::<Vec<_>>();
-            let (global_value,hash_value) = merger(&local_values[..]);
+            let (global_value,hash_value) = merger(&local_values[..],answer);
             key.hash(&mut hasher);
             hash_value.hash(&mut hasher);
             for entry in &entries {
@@ -190,7 +190,7 @@ impl<X:Hash+Eq+Clone, T:'static+Clone> GlobalValueSpec<X,T> {
         }
     }
 
-    pub(crate) fn get(&self, key: &X) -> Option<&T> {
+    pub(crate) fn get(&self, key: &X) -> Option<&V> {
         self.entries.get(key)
     }
 }

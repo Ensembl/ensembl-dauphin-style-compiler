@@ -1,4 +1,3 @@
-use peregrine_toolkit::error;
 use crate::{DataMessage, ShapeStore, PeregrineCoreBase, PgCommanderTaskSpec, add_task, api::MessageSender,  shape::{CarriageShapesBuilder}, ShapeRequestGroup, allotment::core::carriageoutput::CarriageOutput };
 
 #[derive(Clone)]
@@ -58,5 +57,5 @@ pub(crate) async fn load_carriage_shape_list(base: &PeregrineCoreBase, result_st
             }
         }
     }
-    Ok(new_shapes.to_universe(Some(&shape_requests),&base.answer_allocator))
+    Ok(new_shapes.to_universe(Some(&shape_requests)))
 }

@@ -1,5 +1,5 @@
 use std::{sync::{Arc, Mutex}};
-use peregrine_toolkit::{puzzle::{AnswerAllocator, StaticAnswer}, lock, log, debug_log};
+use peregrine_toolkit::{puzzle::{StaticAnswer}, lock};
 
 use crate::{allotment::{style::{style::LeafCommonStyle }, boxes::{root::{Root}, boxtraits::Transformable}, collision::{bumperfactory::BumperFactory}, util::bppxconverter::BpPxConverter}, ShapeRequestGroup, Shape, DataMessage, LeafRequest};
 
@@ -7,7 +7,6 @@ use super::{leafrequest::LeafTransformableMap, leaflist::LeafList, trainstate::{
 
 pub(crate) struct BoxPositionContext {
     //pub bump_requests: BumpRequests,
-    pub independent_answer: StaticAnswer,
     pub bp_px_converter: Arc<BpPxConverter>,
     pub root: Root,
     pub plm: LeafTransformableMap,
@@ -16,15 +15,13 @@ pub(crate) struct BoxPositionContext {
 }
 
 impl BoxPositionContext {
-    pub(crate) fn new(extent: Option<&ShapeRequestGroup>, answer_allocator: &Arc<Mutex<AnswerAllocator>>) -> BoxPositionContext {
+    pub(crate) fn new(extent: Option<&ShapeRequestGroup>) -> BoxPositionContext {
         //let region = extent.map(|x| x.region().clone());
-        let independent_answer = lock!(answer_allocator).get();
         BoxPositionContext {
             bp_px_converter: Arc::new(BpPxConverter::new(extent)),
             //bump_requests: BumpRequests::new(region.as_ref().map(|r| r.index()).unwrap_or(0) as usize),
             root: Root::new(),
             plm: LeafTransformableMap::new(),
-            independent_answer,
             state_request: CarriageTrainStateRequest::new(),
             bumper_factory: BumperFactory::new()
         }
@@ -35,13 +32,12 @@ struct CarriageOutputPrep {
     builder: Arc<LeafList>,
     shapes: Arc<Vec<Shape<LeafRequest>>>,
     extent: Option<ShapeRequestGroup>,
-    answer_allocator: Arc<Mutex<AnswerAllocator>>
 }
 
 impl CarriageOutputPrep {
     fn build(&mut self) -> Result<CarriageOutputReady,DataMessage> {
         #[cfg(debug_trains)] debug_log!("position_boxes {:?}",self.extent.as_ref().map(|x| x.region()));
-        let (prep,spec) = self.builder.position_boxes(self.extent.as_ref(),&self.answer_allocator)?;
+        let (prep,spec) = self.builder.position_boxes(self.extent.as_ref())?;
         /* update leafs to reflect container position */
         let shapes = self.shapes.iter().map(|x| 
                 x.map_new_allotment(|r| prep.plm.transformable(r.name()).cloned())
@@ -83,12 +79,11 @@ impl CarriageOutputChoice {
 pub struct CarriageOutput(Arc<Mutex<CarriageOutputChoice>>);
 
 impl CarriageOutput {
-    pub fn new(builder: Arc<LeafList>, shapes: Arc<Vec<Shape<LeafRequest>>>, extent: Option<&ShapeRequestGroup>, answer_allocator: &Arc<Mutex<AnswerAllocator>>) -> CarriageOutput {
+    pub fn new(builder: Arc<LeafList>, shapes: Arc<Vec<Shape<LeafRequest>>>, extent: Option<&ShapeRequestGroup>) -> CarriageOutput {
         CarriageOutput(Arc::new(Mutex::new(CarriageOutputChoice::Unready(
             CarriageOutputPrep { 
                 builder, shapes,
-                extent: extent.cloned(),
-                answer_allocator: answer_allocator.clone()
+                extent: extent.cloned()
             }
         ))))
     }

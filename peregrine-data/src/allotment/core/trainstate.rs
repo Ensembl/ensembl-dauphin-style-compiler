@@ -1,6 +1,6 @@
 use std::{sync::{Arc, Mutex}, collections::{HashMap, hash_map::DefaultHasher}, fmt, hash::{Hash, Hasher}};
 
-use peregrine_toolkit::{puzzle::{StaticAnswer, AnswerAllocator}, lock, log, debug_log};
+use peregrine_toolkit::{puzzle::{StaticAnswer, AnswerAllocator}, lock};
 
 use crate::allotment::globals::{heighttracker::{LocalHeightTrackerBuilder, LocalHeightTracker, GlobalHeightTracker, GlobalHeightTrackerBuilder}, playingfield::{LocalPlayingFieldBuilder, LocalPlayingField, GlobalPlayingField, GlobalPlayingFieldBuilder}, aligner::{LocalAlignerBuilder, LocalAligner, GlobalAligner, GlobalAlignerBuilder}, allotmentmetadata::{LocalAllotmentMetadataBuilder, LocalAllotmentMetadata, GlobalAllotmentMetadata, GlobalAllotmentMetadataBuilder}};
 
@@ -47,10 +47,10 @@ pub struct CarriageTrainStateSpec {
 }
 
 impl CarriageTrainStateSpec {
-    pub fn new(request: &CarriageTrainStateRequest, independent_answer: &mut StaticAnswer) -> CarriageTrainStateSpec {
-        let height_tracker = LocalHeightTracker::new(request.height_tracker(),independent_answer);
-        let playing_field = LocalPlayingField::new(request.playing_field(),independent_answer);
-        let aligner = LocalAligner::new(request.aligner(),independent_answer);
+    pub fn new(request: &CarriageTrainStateRequest) -> CarriageTrainStateSpec {
+        let height_tracker = LocalHeightTracker::new(request.height_tracker());
+        let playing_field = LocalPlayingField::new(request.playing_field());
+        let aligner = LocalAligner::new(request.aligner());
         let metadata = LocalAllotmentMetadata::new(request.metadata());
         CarriageTrainStateSpec {
             height_values: Arc::new(height_tracker),

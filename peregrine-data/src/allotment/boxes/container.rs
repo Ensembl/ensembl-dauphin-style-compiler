@@ -1,9 +1,6 @@
 use std::{collections::HashMap, sync::{Arc, Mutex}};
-
-use peregrine_toolkit::{lock, puzzle::{DelayedSetter, derived, cache_constant, commute_arc, constant, short_memoized, compose, StaticValue, promise_delayed, short_memoized_clonable, cache_constant_clonable, cache_constant_arc }};
-
+use peregrine_toolkit::{lock, puzzle::{DelayedSetter, derived, cache_constant, commute_arc, constant, StaticValue, promise_delayed, short_memoized_clonable, cache_constant_clonable }};
 use crate::{allotment::{core::{carriageoutput::BoxPositionContext}, style::{style::{ContainerAllotmentStyle}, allotmentname::{AllotmentName, AllotmentNamePart}}, boxes::boxtraits::Stackable, util::rangeused::RangeUsed, globals::allotmentmetadata::LocalAllotmentMetadataBuilder}, CoordinateSystem};
-
 use super::{boxtraits::{Coordinated, BuildSize, ContainerSpecifics}};
 
 fn internal_height(child_height: &StaticValue<f64>, min_height: f64, padding_top: f64, padding_bottom: f64) -> StaticValue<f64> {
@@ -109,7 +106,7 @@ impl Stackable for Container {
         let internal_height = internal_height(&kids,self.style.padding.min_height,self.style.padding.padding_top,self.style.padding.padding_bottom);
         let height = if self.style.tracked_height {
             let height_tracker = prep.state_request.height_tracker_mut();
-            height_tracker.set(&self.name,internal_height,&mut prep.independent_answer);
+            height_tracker.set(&self.name,internal_height);
             height_tracker.global(&self.name).clone()
         } else {
             internal_height

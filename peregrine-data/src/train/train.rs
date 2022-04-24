@@ -1,6 +1,6 @@
 use std::sync::{ Arc, Mutex };
 use peregrine_toolkit::puzzle::AnswerAllocator;
-use peregrine_toolkit::{lock, debug_log};
+use peregrine_toolkit::{lock};
 use peregrine_toolkit::sync::needed::Needed;
 use crate::api::{CarriageSpeed, MessageSender };
 use super::graphics::Graphics;

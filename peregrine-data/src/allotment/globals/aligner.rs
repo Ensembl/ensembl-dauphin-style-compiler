@@ -1,10 +1,7 @@
-use peregrine_toolkit::{lock, puzzle::{constant, DelayedSetter,StaticValue, promise_delayed, StaticAnswer, commute}};
-
-use crate::{allotment::{boxes::root::{Root}, style::style::Indent}};
-
+use peregrine_toolkit::{puzzle::{StaticValue, StaticAnswer, commute}};
 use super::globalvalue::{LocalValueBuilder, LocalValueSpec, GlobalValueBuilder, GlobalValueSpec};
 
-pub struct LocalAlignerBuilder(LocalValueBuilder<String,f64>);
+pub struct LocalAlignerBuilder(LocalValueBuilder<String,f64,f64>);
 
 impl LocalAlignerBuilder {
     pub(crate) fn new() -> LocalAlignerBuilder {
@@ -20,13 +17,13 @@ impl LocalAlignerBuilder {
     }
 }
 
-pub struct LocalAligner(LocalValueSpec<String,f64>);
+pub struct LocalAligner(LocalValueSpec<String,f64,f64>);
 
 impl LocalAligner {
-    pub(crate) fn new(builder: &LocalAlignerBuilder, independent_answer: &mut StaticAnswer) -> LocalAligner {
+    pub(crate) fn new(builder: &LocalAlignerBuilder) -> LocalAligner {
         LocalAligner(LocalValueSpec::new(&builder.0,|x| {
             commute(x,0.,|x,y| x.max(*y)).dearc()
-        },independent_answer))
+        }))
     }
 
     pub(crate) fn add(&self, global: &mut GlobalAlignerBuilder) {
@@ -34,7 +31,7 @@ impl LocalAligner {
     }
 }
 
-pub struct GlobalAlignerBuilder(GlobalValueBuilder<String,f64>);
+pub struct GlobalAlignerBuilder(GlobalValueBuilder<String,f64,f64>);
 
 impl GlobalAlignerBuilder {
     pub(crate) fn new() -> GlobalAlignerBuilder {
@@ -48,8 +45,8 @@ pub struct GlobalAligner(GlobalValueSpec<String,f64>);
 
 impl GlobalAligner {
     pub(crate) fn new(builder: GlobalAlignerBuilder, answer: &mut StaticAnswer) -> GlobalAligner {
-        GlobalAligner(GlobalValueSpec::new(builder.0,|x| {
-            let v = x.iter().map(|x| **x).fold(f64::NEG_INFINITY,f64::max);
+        GlobalAligner(GlobalValueSpec::new(builder.0,|x,answer| {
+            let v = x.iter().map(|x| x.call(&answer)).fold(f64::NEG_INFINITY,f64::max);
             (v,(v*100000.).round() as i64)
         },answer))
     }

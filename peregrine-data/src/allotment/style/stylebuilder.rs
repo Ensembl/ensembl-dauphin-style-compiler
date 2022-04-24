@@ -1,9 +1,5 @@
 use std::{collections::HashMap};
-
-use peregrine_toolkit::log;
-
 use crate::{allotment::{core::{carriageoutput::BoxPositionContext, trainstate::CarriageTrainStateSpec}, boxes::{ stacker::Stacker, overlay::Overlay, bumper::Bumper }, boxes::{leaf::{FloatingLeaf}}, transformers::drawinginfo::DrawingInfo, stylespec::stylegroup::AllotmentStyleGroup}, DataMessage, LeafRequest};
-
 use super::{holder::{ContainerHolder, LeafHolder}, allotmentname::{AllotmentNamePart, AllotmentName}, style::{ContainerAllotmentStyle, ContainerAllotmentType, LeafCommonStyle}};
 
 struct StyleBuilder<'a> {
@@ -105,7 +101,7 @@ pub(crate) fn make_transformable(prep: &mut BoxPositionContext, pendings: &mut d
 
 #[cfg(test)]
 mod test {
-    use std::{sync::{Arc, Mutex}, collections::{HashMap}};
+    use std::{sync::{Arc}, collections::{HashMap}};
 
     use peregrine_toolkit::{puzzle::{AnswerAllocator}};
 
@@ -155,8 +151,7 @@ mod test {
         add_style(&mut tree, "z/a/1", &[("depth","10"),("coordinate-system","window")]);
         let style_group = AllotmentStyleGroup::new(StyleTree::new(tree));
         let pending = make_pendings(&["z/a/1","z/a/2","z/a/3","z/b/1","z/b/2","z/b/3"],&[1.,2.,3.],&[],&style_group);
-        let mut allocator = Arc::new(Mutex::new(AnswerAllocator::new()));
-        let mut prep = BoxPositionContext::new(None,&mut allocator);
+        let mut prep = BoxPositionContext::new(None);
         assert!(make_transformable(&mut prep,&mut pending.iter()).ok().is_some());
         let mut aia = AnswerAllocator::new();
         let answer_index = aia.get();
@@ -186,8 +181,7 @@ mod test {
         add_style(&mut tree, "z/a/1", &[("depth","10"),("coordinate-system","window")]);
         let style_group = AllotmentStyleGroup::new(StyleTree::new(tree));
         let pending = make_pendings(&["z/a/1","z/a/2","z/a/3","z/b/1","z/b/2","z/b/3"],&[1.,2.,3.],&[],&style_group);
-        let mut allocator = Arc::new(Mutex::new(AnswerAllocator::new()));
-        let mut prep = BoxPositionContext::new(None,&mut allocator);
+        let mut prep = BoxPositionContext::new(None);
         assert!(make_transformable(&mut prep,&mut pending.iter()).ok().is_some());
         let mut aia = AnswerAllocator::new();
         let answer_index = aia.get();
@@ -226,8 +220,7 @@ mod test {
         add_style(&mut tree, "**", &[("system","tracking")]);
         let style_group = AllotmentStyleGroup::new(StyleTree::new(tree));
         let pending = make_pendings(&["z/a/1","z/a/2","z/a/3","z/b/1","z/b/2","z/b/3"],&[1.,2.,3.],&ranges,&style_group);
-        let mut allocator = Arc::new(Mutex::new(AnswerAllocator::new()));
-        let mut prep = BoxPositionContext::new(None, &mut allocator);
+        let mut prep = BoxPositionContext::new(None);
         prep.bp_px_converter = Arc::new(BpPxConverter::new_test());
         assert!(make_transformable(&mut prep,&mut pending.iter()).ok().is_some());
         let metadata = prep.state_request.metadata();

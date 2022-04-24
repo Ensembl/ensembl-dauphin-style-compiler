@@ -1,5 +1,5 @@
 use std::sync::{Arc, Mutex};
-use peregrine_toolkit::{log, debug_log};
+use peregrine_toolkit::{debug_log};
 use peregrine_toolkit::puzzle::AnswerAllocator;
 use peregrine_toolkit::sync::blocker::{Blocker};
 use peregrine_toolkit::sync::needed::Needed;

@@ -1,9 +1,5 @@
-use std::{collections::HashMap, sync::{Arc, Mutex}};
-
-use peregrine_toolkit::{puzzle::AnswerAllocator, log};
-
-use crate::{allotment::{style::{allotmentname::{AllotmentName, BuildPassThroughHasher, new_efficient_allotmentname_hashmap}, stylebuilder::make_transformable}, util::bppxconverter::BpPxConverter}, LeafRequest, ShapeRequestGroup, DataMessage};
-
+use std::{collections::HashMap};
+use crate::{allotment::{style::{allotmentname::{AllotmentName, BuildPassThroughHasher, new_efficient_allotmentname_hashmap}, stylebuilder::make_transformable}}, LeafRequest, ShapeRequestGroup, DataMessage};
 use super::{carriageoutput::BoxPositionContext, trainstate::CarriageTrainStateSpec};
 
 pub struct LeafList {
@@ -33,8 +29,8 @@ impl LeafList {
         }
     }
 
-    pub(super) fn position_boxes(&self, extent: Option<&ShapeRequestGroup>, answer_allocator: &Arc<Mutex<AnswerAllocator>>) -> Result<(BoxPositionContext,CarriageTrainStateSpec),DataMessage> {
-        let mut prep = BoxPositionContext::new(extent,answer_allocator);
+    pub(super) fn position_boxes(&self, extent: Option<&ShapeRequestGroup>) -> Result<(BoxPositionContext,CarriageTrainStateSpec),DataMessage> {
+        let mut prep = BoxPositionContext::new(extent);
         let spec = make_transformable(&mut prep,&mut self.leafs.values())?;
         Ok((prep,spec))
     }
