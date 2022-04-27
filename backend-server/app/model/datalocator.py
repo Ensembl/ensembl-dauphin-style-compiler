@@ -7,45 +7,78 @@ from core.exceptions import RequestException
 import requests
 from ncd import NCDFileAccessor, NCDHttpAccessor
 
-AccessItem = namedtuple('AccessItem',['variety','genome','chromosome'])
+AccessItem = namedtuple('AccessItem', ['variety', 'genome', 'chromosome'])
+
 
 class AccessItem(object):
-    def __init__(self, variety, genome = None, chromosome = None):
-        self.variety = variety
-        self.genome = genome
-        self.chromosome = chromosome
+    """
+    Args:
+            variety (str):
+            genome (str):
+            chromosome (str):
+    """
+
+    def __init__(self, variety: str, genome: str = None, chromosome: str = None):
+
+        self.variety: str = variety
+        self.genome: str = genome
+        self.chromosome: str = chromosome
 
     def item_suffix(self) -> str:
-            if self.variety == "contigs":
-                return "/".join(["contigs",self.genome,"contigs.bb"])
-            elif self.variety == "transcripts":
-                return "/".join(["genes_and_transcripts",self.genome,"transcripts.bb"])
-            elif self.variety == "gc":
-                return "/".join(["gc",self.genome,"gc.bw"])
-            elif self.variety == "variant-summary":
-                return "/".join(["variants",self.genome,"variant-summary.bw"])
-            elif self.variety == "jump":
-                return "/".join(["jump.ncd"])
-            elif self.variety == "seqs":
-                return "/".join(["seqs",self.genome,self.chromosome])
-            elif self.variety == "chrom-hashes":
-                return "/".join(["common_files",self.genome,"chrom.hashes.ncd"])
-            elif self.variety == "chrom-sizes":
-                return "/".join(["common_files",self.genome,"chrom.sizes.ncd"])
-            elif self.variety == "species-list":
-                return "/".join(["species.txt"])
-            else:
-                raise RequestException("unknown variety '{}'".format(self.variety))
+        """
+
+        Returns:
+            variety string.
+
+        """
+        if self.variety == "contigs":
+            return "/".join(["contigs", self.genome, "contigs.bb"])
+        elif self.variety == "transcripts":
+            return "/".join(["genes_and_transcripts", self.genome, "transcripts.bb"])
+        elif self.variety == "gc":
+            return "/".join(["gc", self.genome, "gc.bw"])
+        elif self.variety == "variant-summary":
+            return "/".join(["variants", self.genome, "variant-summary.bw"])
+        elif self.variety == "jump":
+            return "/".join(["jump.ncd"])
+        elif self.variety == "seqs":
+            return "/".join(["seqs", self.genome, self.chromosome])
+        elif self.variety == "chrom-hashes":
+            return "/".join(["common_files", self.genome, "chrom.hashes.ncd"])
+        elif self.variety == "chrom-sizes":
+            return "/".join(["common_files", self.genome, "chrom.sizes.ncd"])
+        elif self.variety == "species-list":
+            return "/".join(["species.txt"])
+        else:
+            raise RequestException("unknown variety '{}'".format(self.variety))
 
     def stick(self) -> str:
-        return ":".join([self.genome,self.chromosome]).replace('.','_')
+        """
+
+        Returns:
+            str:
+        """
+        return ":".join([self.genome, self.chromosome]).replace('.', '_')
+
 
 class AccessMethod:
+    """
+
+    """
+
     def __init__(self):
         self.url = None
         self.file = None
 
+
 class UrlAccessMethod(AccessMethod):
+    """
+
+    Args:
+        base_url (str):
+        item (AccessItem):
+    """
+
     def __init__(self, base_url: str, item: AccessItem):
         super().__init__()
         if not base_url.endswith("/"):
@@ -53,18 +86,39 @@ class UrlAccessMethod(AccessMethod):
         self.url = base_url + item.item_suffix()
 
     def get(self, offset: Optional[int] = None, size: Optional[int] = None):
+        """
+
+        Args:
+            offset (:obj:'int', optional):
+            size (:obj:'int', optional):
+
+        Returns:
+            Content of the response, in bytes.
+        """
         headers = {}
-        if offset != None:
-            headers["Range"] = "bytes={0}-{1}".format(offset,offset+size)
-        r = requests.get(self.url, headers=headers)
-        if r.status_code > 299:
+        if offset is not None:
+            headers["Range"] = "bytes={0}-{1}".format(offset, offset + size)
+        response = requests.get(self.url, headers=headers)
+        if response.status_code > 299:
             raise RequestException("bad data")
-        return r.content
+        return response.content
 
     def ncd(self):
+        """
+        Returns:
+             bytearray:
+        """
         return NCDHttpAccessor(self.url)
 
+
 class FileAccessMethod(AccessMethod):
+    """
+
+    Args:
+        base_path (str):
+        item (:obj:'AccessItem'):
+    """
+
     def __init__(self, base_path, item: AccessItem):
         super().__init__()
         if not base_path.endswith("/"):
@@ -73,13 +127,22 @@ class FileAccessMethod(AccessMethod):
         self.file = base_path + item.item_suffix()
 
     def get(self, offset: Optional[int] = None, size: Optional[int] = None):
+        """
+
+        Args:
+            offset ():
+            size ():
+
+        Returns:
+            bytearray
+        """
         out = bytearray()
         try:
-            with open(self.file,"rb") as f:
-                if offset != None:
-                    f.seek(offset,0)
-                    while size-len(out) > 0:
-                        more = f.read(size-len(out))
+            with open(self.file, "rb") as f:
+                if offset is not None:
+                    f.seek(offset, 0)
+                    while size - len(out) > 0:
+                        more = f.read(size - len(out))
                         if len(more) == 0:
                             raise RequestException("premature EOF")
                         out += more
@@ -91,43 +154,94 @@ class FileAccessMethod(AccessMethod):
                         out += more
                 return out
         except Exception as e:
-            raise RequestException("Error accessing {0} (base={1}): {2}".format(self.file,self.base,e))
+            raise RequestException("Error accessing {0} (base={1}): {2}".format(self.file, self.base, e))
 
     def ncd(self):
+        """
+
+        Returns:
+
+        """
         return NCDFileAccessor(self.file)
 
+
 class S3DataSource(object):
-    def __init__(self,data):
-        self.url = data.get("url",None)
-        if self.url == None:
+    def __init__(self, data):
+        """
+
+        Args:
+            data ():
+        """
+        self.url = data.get("url", None)
+        if self.url is None:
             logging.critical("S3 driver config missing url")
 
     def resolve(self, item: AccessItem) -> Optional[AccessMethod]:
-        method = UrlAccessMethod(self.url,item)
+        method = UrlAccessMethod(self.url, item)
         return method
 
+
 class FileDataSource(object):
-    def __init__(self,data):
-        self.root = data.get("root",None)
-        if self.root == None:
+    """
+    Args:
+        data ():
+    """
+
+    def __init__(self, data):
+        self.root = data.get("root", None)
+        if self.root is None:
             logging.critical("File driver config missing root")
 
     def resolve(self, item: AccessItem) -> Optional[AccessMethod]:
-        method = FileAccessMethod(self.root,item)
+        """
+
+        Args:
+            item ():
+
+        Returns:
+
+        """
+        method = FileAccessMethod(self.root, item)
         return method
 
+
 class NoneDataSource(object):
-    def resolve(self, _item: AccessItem) -> Optional[AccessMethod]:
+
+    @staticmethod
+    def resolve(_item: AccessItem) -> Optional[AccessMethod]:
+        """
+
+        Args:
+            _item (AccessItem):
+
+        Returns:
+            None
+        """
         return None
 
+
 class DataSourceResolver:
+    """
+
+    """
+
     def __init__(self):
         self._paths = {}
         self._redirect = {}
         self._blacklist = set()
         self._load(SOURCES_TOML)
 
-    def _add_here(self,path,data):
+    def _add_here(self, path, data):
+        """
+
+        Args:
+            path ():
+            data (dict):
+
+        Returns:
+            None
+
+        """
         driver = data["driver"]
         if driver == "s3":
             self._paths[tuple(path)] = S3DataSource(data)
@@ -138,31 +252,65 @@ class DataSourceResolver:
         else:
             logging.critical("No such driver '{}'".format(driver))
 
-    def _add(self,path,data):
-        if "driver" in data and data["driver"] and not (type(data["driver"]) is dict):
-            self._add_here(path,data)
-        for (more_path,new_data) in data.items():
-            if type(new_data) is dict:
-                self._add(path+[more_path],new_data)
+    def _add(self, path, data):
+        """
 
-    def _add_redirect(self,path,data):
+        Args:
+            path ():
+            data ():
+
+        Returns:
+            None
+        """
+        if "driver" in data and data["driver"] and not (type(data["driver"]) is dict):
+            self._add_here(path, data)
+        for (more_path, new_data) in data.items():
+            if type(new_data) is dict:
+                self._add(path + [more_path], new_data)
+
+    def _add_redirect(self, path, data):
+        """
+
+        Args:
+            path ():
+            data ():
+
+        Returns:
+            None
+        """
         if "upstream" in data and not (type(data["upstream"]) is dict):
             self._redirect[tuple(path)] = data["upstream"]
-        for (more_path,new_data) in data.items():
+        for (more_path, new_data) in data.items():
             if type(new_data) is dict:
-                self._add_redirect(path+[more_path],new_data)
+                self._add_redirect(path + [more_path], new_data)
 
-    def _load(self,source):
+    def _load(self, source):
+        """
+
+        Args:
+            source ():
+
+        Returns:
+
+        """
         toml_data = toml.load(source)
-        self._add([],toml_data.get('source',{}))
-        self._add_redirect([],toml_data.get('redirect',{}))
+        self._add([], toml_data.get('source', {}))
+        self._add_redirect([], toml_data.get('redirect', {}))
 
     def get(self, item: AccessItem) -> Optional[AccessMethod]:
-        pattern = tuple([item.variety,item.genome,item.chromosome])
+        """
+
+        Args:
+            item (AccessItem):
+
+        Returns:
+
+        """
+        pattern = tuple([item.variety, item.genome, item.chromosome])
         if pattern in self._paths:
             return self._paths[pattern].resolve(item)
 
-        pattern = tuple([item.variety,item.genome])
+        pattern = tuple([item.variety, item.genome])
         if pattern in self._paths:
             return self._paths[pattern].resolve(item)
 
@@ -176,8 +324,16 @@ class DataSourceResolver:
         return None
 
     def find_override(self, prefix):
-        for end in reversed(range(0,len(prefix)+1)):
-            v = self._redirect.get(tuple(prefix[0:end]),None)
-            if v != None:
+        """
+
+        Args:
+            prefix ():
+
+        Returns:
+            if v exists return v else return None.
+        """
+        for end in reversed(range(0, len(prefix) + 1)):
+            v = self._redirect.get(tuple(prefix[0:end]), None)
+            if v is not None:
                 return v if v else None
         return None
