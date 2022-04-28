@@ -24,7 +24,6 @@ impl<X: Eq+Hash+Clone,P,T,S: SliderActions<X,P,T>> Slider<X,P,T,S> {
         }
     }
 
-
     fn make_it_so(&mut self) {
         let present = self.ready.keys().cloned().collect::<HashSet<_>>();
         /* calculate differences */

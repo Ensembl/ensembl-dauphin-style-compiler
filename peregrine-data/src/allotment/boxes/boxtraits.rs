@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use peregrine_toolkit::{puzzle::{StaticValue, StaticAnswer}};
+use peregrine_toolkit::{puzzle::{StaticValue, StaticAnswer, compose}};
 
 use crate::{allotment::{transformers::transformers::{Transformer}, style::{style::{LeafCommonStyle}, allotmentname::{AllotmentName}}, util::rangeused::RangeUsed, core::carriageoutput::BoxPositionContext}, CoordinateSystem};
 
@@ -18,6 +18,15 @@ pub(crate) struct BuildSize {
     pub name: AllotmentName,
     pub height: StaticValue<f64>,
     pub range: StaticValue<RangeUsed<f64>>
+}
+
+impl BuildSize {
+    pub(super) fn to_value(&self) -> StaticValue<(AllotmentName,f64,RangeUsed<f64>)> {
+        let name = self.name.clone();
+        compose(self.height.clone(),self.range.clone(),move |h,r| {
+            (name.clone(),h,r)
+        })
+    }
 }
 
 pub(crate) trait Stackable : Coordinated {

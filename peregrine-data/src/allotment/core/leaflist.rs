@@ -1,4 +1,6 @@
 use std::{collections::HashMap};
+use peregrine_toolkit::log;
+
 use crate::{allotment::{style::{allotmentname::{AllotmentName, BuildPassThroughHasher, new_efficient_allotmentname_hashmap}, stylebuilder::make_transformable}}, LeafRequest, ShapeRequestGroup, DataMessage};
 use super::{carriageoutput::BoxPositionContext, trainstate::CarriageTrainStateSpec};
 

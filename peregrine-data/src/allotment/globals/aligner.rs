@@ -1,4 +1,4 @@
-use peregrine_toolkit::{puzzle::{StaticValue, StaticAnswer, commute}};
+use peregrine_toolkit::{puzzle::{StaticValue, StaticAnswer, commute}, log};
 use super::globalvalue::{LocalValueBuilder, LocalValueSpec, GlobalValueBuilder, GlobalValueSpec};
 
 pub struct LocalAlignerBuilder(LocalValueBuilder<String,f64,f64>);
@@ -45,7 +45,7 @@ pub struct GlobalAligner(GlobalValueSpec<String,f64>);
 
 impl GlobalAligner {
     pub(crate) fn new(builder: GlobalAlignerBuilder, answer: &mut StaticAnswer) -> GlobalAligner {
-        GlobalAligner(GlobalValueSpec::new(builder.0,|x,answer| {
+        GlobalAligner(GlobalValueSpec::new(builder.0,|_,x,answer| {
             let v = x.iter().map(|x| x.call(&answer)).fold(f64::NEG_INFINITY,f64::max);
             (v,(v*100000.).round() as i64)
         },answer))

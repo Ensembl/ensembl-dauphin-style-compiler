@@ -1,4 +1,4 @@
-use std::ops::{Add, Mul};
+use std::ops::{Add, Mul, Div};
 
 fn partial_ord<T: PartialOrd>(a: T, b: T) -> (T,T) {
     if a < b { (a,b) } else { (b,a) }
@@ -17,7 +17,7 @@ pub enum RangeUsed<T> {
 }
 
 // XXX could this be merged with native ranges?
-impl<T: Clone+PartialOrd+Add<Output=T>+Mul<Output=T>> RangeUsed<T> {
+impl<T: Clone+PartialOrd+Add<Output=T>+Mul<Output=T>+Div<Output=T>> RangeUsed<T> {
     pub fn merge(&self, other: &RangeUsed<T>) -> RangeUsed<T> {
         match (self,other) {
             (RangeUsed::All,_) => RangeUsed::All,
@@ -58,8 +58,22 @@ impl<T: Clone+PartialOrd+Add<Output=T>+Mul<Output=T>> RangeUsed<T> {
         }
     }
 
+    pub fn scale_recip(&self, div: T) -> RangeUsed<T> {
+        match self {
+            RangeUsed::Part(a,b) => RangeUsed::Part(a.clone()/div.clone(),b.clone()/div),
+            x => x.clone()
+        }
+    }
+
     pub fn pixel_range(&self, pixel: &RangeUsed<T>, max_px_per_bp: T) -> RangeUsed<T> {
         pixel.plus(&self.scale(max_px_per_bp))
+    }
+
+    pub fn carriage_range(&self, pixel: &RangeUsed<T>, min_px_per_carriage: T, bp_per_carriage: T) -> RangeUsed<T> {
+        //let max_carriage_for_pixel = pixel.scale_recip(min_px_per_carriage);
+        let carriage_for_bp = self.scale_recip(bp_per_carriage);
+        //max_carriage_for_pixel.plus(&carriage_for_bp)
+        carriage_for_bp
     }
 
     pub fn into<F,U>(&self, cb: F) -> RangeUsed<U> where F: Fn(&T) -> U {

@@ -1,5 +1,5 @@
 use std::hash::Hash;
-use peregrine_toolkit::{puzzle::{StaticValue, StaticAnswer, commute}};
+use peregrine_toolkit::{puzzle::{StaticValue, StaticAnswer, commute}, log};
 use crate::allotment::{style::allotmentname::AllotmentName};
 use super::globalvalue::{LocalValueBuilder, LocalValueSpec, GlobalValueBuilder, GlobalValueSpec};
 
@@ -48,7 +48,7 @@ pub struct GlobalHeightTracker(GlobalValueSpec<AllotmentName,f64>);
 
 impl GlobalHeightTracker {
     pub(crate) fn new(builder: GlobalHeightTrackerBuilder, answer: &mut StaticAnswer) -> GlobalHeightTracker {
-        GlobalHeightTracker(GlobalValueSpec::new(builder.0,|x,answer| {
+        GlobalHeightTracker(GlobalValueSpec::new(builder.0,|_,x,answer| {
             let v = x.iter().map(|x| x.call(&answer)).fold(0.,f64::max);
             (v,(v*100000.).round() as i64)
         },answer))

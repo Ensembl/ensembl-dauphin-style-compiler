@@ -36,6 +36,8 @@
 
 use std::collections::BinaryHeap;
 
+use peregrine_toolkit::log;
+
 pub struct CastleCursor {
     contents: Vec<(i64,i64)>
 }
@@ -98,6 +100,7 @@ impl CastleCursor {
      * in the worst case, have to split
      */
     fn free(&mut self, offset: i64, height: i64) {
+        log!("freeing offset={} height={}: {:?}",offset,height,self.contents);
         let mut maybe_merge = None;
         let mut insert = None;
         for (i,(item_offset,item_height)) in self.contents.iter_mut().enumerate() {
@@ -109,7 +112,7 @@ impl CastleCursor {
                 break;
             }
             if offset+height == *item_offset+*item_height {
-                /* ends at the end of theregion, but doesn't start at the start */
+                /* ends at the end of the region, but doesn't start at the start */
                 *item_height -= height;
                 return;
             }
@@ -125,17 +128,22 @@ impl CastleCursor {
         } else if let Some((index,old_end)) = insert {
             self.contents.insert(index,(offset+height,old_end-(offset+height)));
         }
+        log!("after: {:?}",self.contents);
     }
 
     fn find(&self, min_height: i64) -> i64 {
         let mut attempt = 0;
         for (index_offset,index_height) in self.contents.iter() {
-            if index_offset - attempt <= min_height {
-                return *index_offset - attempt;
+            log!("trying attempt={} offset={} height={} for {}",attempt,index_offset,index_height,min_height);
+            if attempt + min_height <= *index_offset {
+                /* fits under this one */
+                log!("got it!");
+                return attempt;
             } else {
                 attempt = index_offset + index_height;
             }
         }
+        log!("attempt for {:?} -> {:?}",min_height,attempt);
         attempt
     }
 }
@@ -160,10 +168,17 @@ impl Castle {
         }
     }
 
+    pub(super) fn xxx_dump(&self) -> String {
+        format!("regions: {:?}",self.regions)
+    }
+
     pub(super) fn advance_to(&mut self, position: u64) {
+        log!("advancing to {}",position);
         while let Some((stored_end,offset,height)) = self.regions.peek().cloned() {
             let end = if self.increasing { -stored_end } else { stored_end };
+            log!("checking {}",end);
             if end > position as i64 { break; }
+            log!("removing");
             self.regions.pop();
             self.cursor.free(offset,height);
         }

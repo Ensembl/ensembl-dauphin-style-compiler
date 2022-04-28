@@ -1,5 +1,8 @@
 use std::collections::{VecDeque, HashSet};
 
+use peregrine_toolkit::log;
+
+
 pub(super) enum SlidingWindowContext<'a,T> {
     Fresh(&'a mut T),
     Left(&'a mut T,&'a T),
@@ -64,16 +67,21 @@ impl<'a,T,U> SlidingWindow<'a,T,U> {
     }
 
     pub(super) fn add(&mut self, store: T) -> Option<U> {
+        log!("add");
         let index = (self.index)(&store);
         if let Some(left) = self.left {
             if index == left-1 {
+                log!("left");
                 Some(self.add_left(store))
             } else if index == left + self.stores.len() {
+                log!("right");
                 Some(self.add_right(store))
             } else {
+                log!("FAIL D");
                 None
             }
         } else {
+            log!("first");
             Some(self.add_first(index,store))
         }
     }

@@ -1,4 +1,4 @@
-use peregrine_toolkit::{puzzle::{StaticValue, StaticAnswer, commute}};
+use peregrine_toolkit::{puzzle::{StaticValue, StaticAnswer, commute}, log};
 
 use crate::{CoordinateSystemVariety, CoordinateSystem};
 
@@ -63,7 +63,7 @@ pub struct GlobalPlayingField(GlobalValueSpec<PlayingFieldEdge,f64>);
 
 impl GlobalPlayingField {
     pub(crate) fn new(builder: GlobalPlayingFieldBuilder, answer: &mut StaticAnswer) -> GlobalPlayingField {
-        GlobalPlayingField(GlobalValueSpec::new(builder.0,move |x,answer| {
+        GlobalPlayingField(GlobalValueSpec::new(builder.0,move |_,x,answer| {
             let v = x.iter().map(|x| x.call(&answer)).fold(0.,f64::max);
             (v,(v*100000.).round() as i64)
         },answer))

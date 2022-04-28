@@ -1,7 +1,10 @@
+use std::collections::HashMap;
 use std::sync::{ Arc, Mutex };
 use peregrine_toolkit::puzzle::AnswerAllocator;
 use peregrine_toolkit::{lock};
 use peregrine_toolkit::sync::needed::Needed;
+use crate::allotment::collision::bumpprocess::BumpPersistent;
+use crate::allotment::style::allotmentname::AllotmentName;
 use crate::api::{CarriageSpeed, MessageSender };
 use super::graphics::Graphics;
 use super::railwaydatatasks::RailwayDataTasks;

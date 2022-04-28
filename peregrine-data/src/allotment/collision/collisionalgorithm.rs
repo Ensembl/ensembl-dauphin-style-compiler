@@ -1,10 +1,7 @@
 use std::{sync::{Arc, Mutex}, collections::HashMap};
 use peregrine_toolkit::lock;
-
 use peregrine_toolkit::skyline::Skyline;
-
 use crate::allotment::{style::allotmentname::AllotmentName, util::rangeused::RangeUsed};
-
 use super::bumppart::Part;
 
 struct CollisionAlgorithmData {

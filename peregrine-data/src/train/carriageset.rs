@@ -12,6 +12,7 @@ use super::slider::{Slider, SliderActions};
 use super::trainextent::TrainExtent;
 use crate::allotment::core::carriageoutput::CarriageOutput;
 use crate::allotment::core::trainstate::{TrainStateSpec, TrainState3};
+use crate::allotment::globals::trainpersistent::TrainPersistent;
 use crate::shapeload::carriageprocess::CarriageProcess;
 use crate::{CarriageExtent};
 use crate::api::MessageSender;
@@ -82,17 +83,19 @@ struct DrawingCarriages2 {
     ping_needed: Needed,
     train_extent: TrainExtent,
     carriages: Vec<DrawingCarriage2>,
-    graphics: Graphics
+    graphics: Graphics,
+    train_persistent: TrainPersistent
 }
 
 impl DrawingCarriages2 {
-    fn new(ping_needed: &Needed, train_extent: &TrainExtent, graphics: &Graphics) -> DrawingCarriages2 {
+    fn new(constant: &CarriageSetConstant, ping_needed: &Needed, train_extent: &TrainExtent, graphics: &Graphics) -> DrawingCarriages2 {
         DrawingCarriages2 {
             active: false,
             ping_needed: ping_needed.clone(),
             train_extent: train_extent.clone(),
             carriages: vec![],
-            graphics: graphics.clone()
+            graphics: graphics.clone(),
+            train_persistent: TrainPersistent::new(constant.extent.scale().bp_in_carriage())
         }
     }
 
@@ -160,13 +163,13 @@ struct CarriageProcessActions2 {
     constant: Arc<CarriageSetConstant>,
     railway_data_tasks: RailwayDataTasks, 
     train_state_spec: TrainStateSpec,
-    graphics: Graphics
+    graphics: Graphics,
 }
 
 impl CarriageProcessActions2 {
     fn new(ping_needed: &Needed, constant: &Arc<CarriageSetConstant>, 
            railway_data_tasks: &RailwayDataTasks, answer_allocator: &Arc<Mutex<AnswerAllocator>>,
-            graphics: &Graphics) -> CarriageProcessActions2 {
+            graphics: &Graphics, bp_per_carriage: u64) -> CarriageProcessActions2 {
         CarriageProcessActions2 {
             ping_needed: ping_needed.clone(),
             mute: false,
@@ -174,7 +177,7 @@ impl CarriageProcessActions2 {
             constant: constant.clone(),
             graphics: graphics.clone(),
             railway_data_tasks: railway_data_tasks.clone(),
-            train_state_spec: TrainStateSpec::new(answer_allocator)
+            train_state_spec: TrainStateSpec::new(answer_allocator,bp_per_carriage)
         }
     }
 
@@ -237,8 +240,8 @@ pub(super) struct CarriageSet {
 impl CarriageSet {
     pub(super) fn new(ping_needed: &Needed, answer_allocator: &Arc<Mutex<AnswerAllocator>>, extent: &TrainExtent, configs: &TrainTrackConfigList, railway_data_tasks: &RailwayDataTasks, graphics: &Graphics, messages: &MessageSender) -> CarriageSet {
         let constant = Arc::new(CarriageSetConstant::new(ping_needed,extent,configs,messages));
-        let carriage_actions = CarriageProcessActions2::new(ping_needed,&constant,railway_data_tasks,answer_allocator,graphics);
-        let drawing_actions = DrawingCarriages2::new(&ping_needed,extent,graphics);
+        let carriage_actions = CarriageProcessActions2::new(ping_needed,&constant,railway_data_tasks,answer_allocator,graphics,extent.scale().bp_in_carriage());
+        let drawing_actions = DrawingCarriages2::new(&constant,&ping_needed,extent,graphics);
         let is_milestone = extent.scale().is_milestone();
         CarriageSet {
             centre: None,

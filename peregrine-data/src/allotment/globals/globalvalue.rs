@@ -46,7 +46,7 @@
 
 use std::{collections::{HashMap, hash_map::DefaultHasher}, fmt::Debug, hash::{Hash, Hasher}, sync::Arc};
 
-use peregrine_toolkit::{puzzle::{UnknownSetter, StaticValue, StaticAnswer, short_unknown_function_promise, constant}};
+use peregrine_toolkit::{puzzle::{UnknownSetter, StaticValue, StaticAnswer, short_unknown_function_promise, constant}, log};
 
 pub(crate) struct LocalEntry<T:'static+Clone, V:'static> {
     global_setter: UnknownSetter<'static,StaticValue<V>>,
@@ -67,10 +67,6 @@ impl<T: 'static+Clone,V> LocalEntry<T,V> {
     }
 
     pub(crate) fn get_global(&self) -> &StaticValue<V> { &self.global }
-
-    pub(crate) fn set_global(&mut self, answer: &mut StaticAnswer, value: StaticValue<V>) {
-        self.global_setter.set(answer,value);
-    }
 }
 
 pub(crate) struct LocalValueBuilder<X: Hash+Eq+Clone, T:'static+Clone, V:'static> {
@@ -171,12 +167,12 @@ impl<X:Hash+Eq+Clone+Debug, V:Debug> std::fmt::Debug for GlobalValueSpec<X,V> {
 
 impl<X:Hash+Eq+Clone, V:Clone> GlobalValueSpec<X,V> {
     pub(crate) fn new<F, U:'static+Clone, H:Hash>(builder: GlobalValueBuilder<X,U,V>, merger: F, answer: &mut StaticAnswer) -> GlobalValueSpec<X,V>
-            where F: Fn(&[&StaticValue<U>],&mut StaticAnswer) -> (V,H) {
+            where F: Fn(&X,&[&StaticValue<U>],&mut StaticAnswer) -> (V,H) {
         let mut hasher = DefaultHasher::new();
         let mut out = HashMap::new();
         for (key,entries) in builder.entries {
             let local_values = entries.iter().map(|x| &x.local_value).collect::<Vec<_>>();
-            let (global_value,hash_value) = merger(&local_values[..],answer);
+            let (global_value,hash_value) = merger(&key,&local_values[..],answer);
             key.hash(&mut hasher);
             hash_value.hash(&mut hasher);
             for entry in &entries {

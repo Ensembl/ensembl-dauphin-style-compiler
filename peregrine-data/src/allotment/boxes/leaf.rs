@@ -14,7 +14,7 @@ fn full_range_piece(coord_system: &CoordinateSystem, base_range: &RangeUsed<f64>
     let coord_system = coord_system.clone();
     cache_constant_clonable(derived(bp_px_converter,move |bp_px_converter| {
         if coord_system.is_tracking() {
-            bp_px_converter.full_pixel_range(&base_range,&pixel_range)
+            bp_px_converter.full_carriage_range(&base_range,&pixel_range)
         } else {
             pixel_range.clone()
         }

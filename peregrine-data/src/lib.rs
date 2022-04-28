@@ -10,11 +10,13 @@ mod allotment {
     }
 
     pub(crate) mod collision {
+        mod bump2;
         mod bumppart;
         pub(crate) mod bumperfactory;
         pub(crate) mod bumpprocess;
         mod castle;
         pub(crate) mod collisionalgorithm;
+        pub(crate) mod collisionalgorithm2;
         pub(crate) mod concretebump;
         mod slidingwindow;
     }
@@ -29,7 +31,6 @@ mod allotment {
     pub(crate) mod core {
         pub(crate) mod coordsystem;
         pub(crate) mod carriageoutput;
-        pub(crate) mod drawingcarriagedata;
         pub(crate) mod leaflist;
         pub(crate) mod leafrequest;
         pub(crate) mod trainstate;
@@ -40,6 +41,8 @@ mod allotment {
         pub(crate) mod aligner;
         pub(crate) mod allotmentmetadata;
         pub(crate) mod heighttracker;
+        pub(crate) mod bumping;
+        pub(crate) mod trainpersistent;
         pub mod playingfield;
     }
 
@@ -219,10 +222,10 @@ mod train {
     pub(crate) mod graphics;
     mod railway;
     mod railwaydependents;
-    mod slider;
+    pub(crate) mod slider;
     mod switcher;
     pub(crate) mod trainextent;
-    mod train;
+    pub(crate) mod train;
     mod trainset;
 
     pub use carriageextent::CarriageExtent;

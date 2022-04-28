@@ -1,8 +1,6 @@
 use std::{sync::{Arc, Mutex}, collections::{HashMap, hash_map::DefaultHasher}, fmt, hash::{Hash, Hasher}};
-
 use peregrine_toolkit::{puzzle::{StaticAnswer, AnswerAllocator}, lock};
-
-use crate::allotment::globals::{heighttracker::{LocalHeightTrackerBuilder, LocalHeightTracker, GlobalHeightTracker, GlobalHeightTrackerBuilder}, playingfield::{LocalPlayingFieldBuilder, LocalPlayingField, GlobalPlayingField, GlobalPlayingFieldBuilder}, aligner::{LocalAlignerBuilder, LocalAligner, GlobalAligner, GlobalAlignerBuilder}, allotmentmetadata::{LocalAllotmentMetadataBuilder, LocalAllotmentMetadata, GlobalAllotmentMetadata, GlobalAllotmentMetadataBuilder}};
+use crate::{allotment::{globals::{heighttracker::{LocalHeightTrackerBuilder, LocalHeightTracker, GlobalHeightTracker, GlobalHeightTrackerBuilder}, playingfield::{LocalPlayingFieldBuilder, LocalPlayingField, GlobalPlayingField, GlobalPlayingFieldBuilder}, aligner::{LocalAlignerBuilder, LocalAligner, GlobalAligner, GlobalAlignerBuilder}, allotmentmetadata::{LocalAllotmentMetadataBuilder, LocalAllotmentMetadata, GlobalAllotmentMetadata, GlobalAllotmentMetadataBuilder}, bumping::{LocalBumpBuilder, GlobalBump, GlobalBumpBuilder, LocalBump}, trainpersistent::TrainPersistent}}};
 
 /* Every carriage manipulates in a CarriageTrainStateRequest during creation (during build). This specifies the
  * requirements which a Carriage has of the train. 
@@ -12,7 +10,8 @@ pub struct CarriageTrainStateRequest {
     height_tracker: LocalHeightTrackerBuilder,
     playing_field: LocalPlayingFieldBuilder,
     aligner: LocalAlignerBuilder,
-    metadata: LocalAllotmentMetadataBuilder
+    metadata: LocalAllotmentMetadataBuilder,
+    bumper: LocalBumpBuilder
 }
 
 impl CarriageTrainStateRequest {
@@ -21,7 +20,8 @@ impl CarriageTrainStateRequest {
             height_tracker: LocalHeightTrackerBuilder::new(),
             playing_field: LocalPlayingFieldBuilder::new(),
             aligner: LocalAlignerBuilder::new(),
-            metadata: LocalAllotmentMetadataBuilder::new()
+            metadata: LocalAllotmentMetadataBuilder::new(),
+            bumper: LocalBumpBuilder::new()
         }
     }
 
@@ -36,6 +36,9 @@ impl CarriageTrainStateRequest {
 
     pub fn metadata(&self) -> &LocalAllotmentMetadataBuilder { &self.metadata }
     pub fn metadata_mut(&mut self) -> &mut LocalAllotmentMetadataBuilder { &mut self.metadata }
+
+    pub fn bump(&self) -> &LocalBumpBuilder { &self.bumper }
+    pub fn bump_mut(&mut self) -> &mut LocalBumpBuilder { &mut self.bumper }
 }
 
 #[derive(Clone)]
@@ -43,7 +46,8 @@ pub struct CarriageTrainStateSpec {
     height_values: Arc<LocalHeightTracker>,
     playing_field: Arc<LocalPlayingField>,
     aligner: Arc<LocalAligner>,
-    metadata: Arc<LocalAllotmentMetadata>
+    metadata: Arc<LocalAllotmentMetadata>,
+    bump: Arc<LocalBump>
 }
 
 impl CarriageTrainStateSpec {
@@ -52,11 +56,13 @@ impl CarriageTrainStateSpec {
         let playing_field = LocalPlayingField::new(request.playing_field());
         let aligner = LocalAligner::new(request.aligner());
         let metadata = LocalAllotmentMetadata::new(request.metadata());
+        let bump = LocalBump::new(request.bump());
         CarriageTrainStateSpec {
             height_values: Arc::new(height_tracker),
             playing_field: Arc::new(playing_field),
             aligner: Arc::new(aligner),
-            metadata: Arc::new(metadata)
+            metadata: Arc::new(metadata),
+            bump: Arc::new(bump)
         }
     }
 }
@@ -67,6 +73,7 @@ pub struct TrainState3 {
     playing_field: Arc<GlobalPlayingField>,
     metadata: Arc<GlobalAllotmentMetadata>,
     aligner: Arc<GlobalAligner>,
+    bump: Arc<GlobalBump>,
     answer: Arc<Mutex<StaticAnswer>>,
     hash: u64
 }
@@ -123,22 +130,36 @@ impl TrainState3 {
         GlobalAllotmentMetadata::new(builder,answer)
     }
 
+    fn calc_bump(spec: &TrainStateSpec, answer: &mut StaticAnswer, persistent: &Arc<Mutex<TrainPersistent>>) -> GlobalBump {
+        let mut builder = GlobalBumpBuilder::new();
+        for carriage_spec in spec.specs.values() {
+            carriage_spec.bump.add(&mut builder);
+        }        
+        GlobalBump::new(builder,answer,persistent)
+    }
+
     fn calc_hash(&mut self) {
         let mut hasher = DefaultHasher::new();
         self.height_tracker.hash(&mut hasher);
         self.playing_field.hash(&mut hasher);
         self.aligner.hash(&mut hasher);
         self.metadata.hash(&mut hasher);
+        self.bump.hash(&mut hasher);
         self.hash = hasher.finish();
     }
 
-    fn new(spec: &TrainStateSpec, mut answer: StaticAnswer) -> TrainState3 {
+    fn new(spec: &TrainStateSpec, mut answer: StaticAnswer, persistent: &Arc<Mutex<TrainPersistent>>) -> TrainState3 {
+        /* The order of these are important. Their funcs can only depend on preceding funcs.
+         * eg. heights depend on bumps, so bumps must be first. Everything else depends on
+         * heights, so these two must be before the others.
+         */
+        let bump = Arc::new(Self::calc_bump(spec,&mut answer,persistent));
         let height_tracker = Arc::new(Self::calc_heights(spec,&mut answer));
         let playing_field = Arc::new(Self::calc_playing_field(spec,&mut answer));
         let aligner = Arc::new(Self::calc_aligner(spec,&mut answer));
         let metadata = Arc::new(Self::calc_metadata(spec,&mut answer));
         let mut out = TrainState3 {
-            height_tracker, playing_field, aligner, metadata,
+            height_tracker, playing_field, aligner, metadata, bump,
             answer: Arc::new(Mutex::new(answer)), hash: 0
         };
         out.calc_hash();
@@ -153,15 +174,17 @@ impl TrainState3 {
 pub struct TrainStateSpec {
     answer_allocator: Arc<Mutex<AnswerAllocator>>,
     specs: HashMap<u64,CarriageTrainStateSpec>,
-    cached_train_state: Mutex<Option<TrainState3>>
+    cached_train_state: Mutex<Option<TrainState3>>,
+    persistent: Arc<Mutex<TrainPersistent>>
 }
 
 impl TrainStateSpec {
-    pub fn new(answer_allocator: &Arc<Mutex<AnswerAllocator>>) -> TrainStateSpec {
+    pub fn new(answer_allocator: &Arc<Mutex<AnswerAllocator>>, bp_per_carriage: u64) -> TrainStateSpec {
         TrainStateSpec {
             answer_allocator: answer_allocator.clone(),
             specs: HashMap::new(),
-            cached_train_state: Mutex::new(None)
+            cached_train_state: Mutex::new(None),
+            persistent: Arc::new(Mutex::new(TrainPersistent::new(bp_per_carriage)))
         }
     }
 
@@ -169,7 +192,7 @@ impl TrainStateSpec {
         let mut state = lock!(self.cached_train_state);
         if state.is_none() {
             let answer = lock!(self.answer_allocator).get();
-            *state = Some(TrainState3::new(self,answer));
+            *state = Some(TrainState3::new(self,answer,&self.persistent));
             #[cfg(debug_trains)] debug_log!("new state");
         }
         state.clone().unwrap()

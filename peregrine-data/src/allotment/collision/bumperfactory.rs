@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 
-use peregrine_toolkit::{puzzle::{short_memoized, variable, derived, StaticValue}};
+use peregrine_toolkit::{puzzle::{short_memoized, variable, StaticValue}};
 
 use crate::allotment::{style::allotmentname::AllotmentName};
 

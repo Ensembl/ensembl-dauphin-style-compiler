@@ -1,8 +1,8 @@
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
-use peregrine_toolkit::{puzzle::{variable, derived, delayed, DelayedSetter, compose, short_memoized_arc, StaticValue }};
+use peregrine_toolkit::{puzzle::{variable, derived, delayed, DelayedSetter, compose, short_memoized_arc, StaticValue, commute, compose_slice, cache_constant_arc, promise_delayed }, lock, log};
 
-use crate::{allotment::{core::{carriageoutput::BoxPositionContext}, style::{style::{ContainerAllotmentStyle}, allotmentname::{AllotmentNamePart, AllotmentName}}, boxes::{boxtraits::Stackable}, util::{rangeused::RangeUsed}, collision::{collisionalgorithm::CollisionAlgorithm}}, CoordinateSystem};
+use crate::{allotment::{core::{carriageoutput::BoxPositionContext}, style::{style::{ContainerAllotmentStyle}, allotmentname::{AllotmentNamePart, AllotmentName}}, boxes::{boxtraits::Stackable}, util::{rangeused::RangeUsed}, collision::{collisionalgorithm::CollisionAlgorithm, concretebump::{ConcreteRequests, ConcreteResults}, collisionalgorithm2::{BumpRequestSet, BumpRequest, BumpRequestSetBuilder, BumpResponses}}, globals::{globalvalue::LocalValueBuilder, bumping::LocalBumpBuilder}}, CoordinateSystem};
 
 use super::{container::{Container}, boxtraits::{Coordinated, BuildSize, ContainerSpecifics}};
 
@@ -32,26 +32,18 @@ impl Stackable for Bumper {
 }
 
 #[derive(Clone)]
-struct BumpItem {
-    name: AllotmentName,
-    range: StaticValue<RangeUsed<f64>>,
-    height: StaticValue<f64>
-}
-
-#[derive(Clone)]
 pub struct UnpaddedBumper {
-    algorithm: StaticValue<Arc<CollisionAlgorithm>>,
-    algorithm_setter: DelayedSetter<'static,'static,Arc<CollisionAlgorithm>>,
-    name: AllotmentName
+    name: AllotmentName,
+    results: StaticValue<BumpResponses>,
+    results_setter: DelayedSetter<'static,'static,BumpResponses>
 }
 
 impl UnpaddedBumper {
     pub fn new(name: &AllotmentName) -> UnpaddedBumper {
-        let (algorithm_setter,algorithm) = delayed();
-        let algorithm = derived(algorithm,|algorithm| algorithm.unwrap());
+        let (results_setter,results) = promise_delayed();
         UnpaddedBumper {
-            algorithm, algorithm_setter,
-            name: name.clone()
+            name: name.clone(),
+            results, results_setter
         }
     }
 }
@@ -63,37 +55,32 @@ impl ContainerSpecifics for UnpaddedBumper {
         /* build all_items, a solution-invariant structure of everything we need to bump each time */
         let mut items = vec![];
         for (_,size) in children {
-            items.push(BumpItem {
-                name: size.name.clone(),
-                range: size.range.clone(),
-                height: size.height.clone()
-            });
-            //prep.bump_requests.add(&size.name,&size.range,&size.height);
+            items.push(size.to_value());
         }
-        let all_items = Arc::new(items);
-        /* Get the bumper */
-        let algorithm = prep.bumper_factory.get(&self.name);
-        /* Create a piece which can bump everything in all_items each time and yield a CollisionAlgorithm */
-        let all_items2 = all_items.clone();
-        let solved = short_memoized_arc(variable(move |answer_index| {
-            let algorithm = algorithm.call(answer_index);
-            for item in all_items2.iter() {
-                algorithm.add_entry(&item.name,&item.range.call(answer_index),item.height.call(answer_index));
+        let items = compose_slice(&items,|x| x.to_vec());
+        /* build the ConcreteRequests for this container */
+        let factory = prep.bumper_factory.clone();
+        let self_name = self.name.sequence().to_vec();
+        let concrete_req = derived(items,move |items| {
+            let mut builder = factory.builder();
+            for (name,height,range) in &items {
+                //log!("{:?} has child of size {:?} called {:?}",self_name,range,name.sequence());
+                builder.add(BumpRequest::new(name,range,*height));
             }
-            algorithm.bump();
-            algorithm
-        }));
-        self.algorithm_setter.set(solved.clone());
-        /* Cause algorithm to report how high we are per solution */
-        derived(solved,|solved| solved.height())
+            Arc::new(BumpRequestSet::new(builder))
+        });
+        //let concrete_req = cache_constant_arc(short_memoized_arc(concrete_req));
+        prep.state_request.bump_mut().set(&self.name,&concrete_req);
+        self.results_setter.set(prep.state_request.bump_mut().global(&self.name).clone());
+        derived(self.results.clone(),|c| c.height() as f64)
     }
 
     fn set_locate(&mut self, prep: &mut BoxPositionContext, top: &StaticValue<f64>, children: &mut [&mut Box<dyn Stackable>]) {
         for child in children.iter_mut() {
             /* Retrieve algorithm offset from bumper top */
             let name = child.name().clone();
-            let offset = derived(self.algorithm.clone(),move |algorithm|
-                algorithm.get(&name)
+            let offset = derived(self.results.clone(),move |algorithm|
+                algorithm.get(&name) as f64
             );
             /* Add that to our reported top */
             child.locate(prep,&compose(top.clone(),offset,|a,b| a+b));
