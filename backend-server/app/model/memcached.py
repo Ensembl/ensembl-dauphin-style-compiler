@@ -27,12 +27,12 @@ REGULAR_INTERVAL = 300
 
 
 class Memcached(object):
-    def __init__(self, prefix):
-        """
+    """
 
-        Args:
-            prefix ():
-        """
+    Args:
+        prefix ():
+    """
+    def __init__(self, prefix):
         self._start_time = time.time()
         self._last_check = 0
         self._last_bump_check = None
@@ -51,7 +51,7 @@ class Memcached(object):
         """
 
         Returns:
-
+            boolean:
         """
         if self._available:
             return True
@@ -70,7 +70,7 @@ class Memcached(object):
         """
 
         Returns:
-
+            boolean
         """
         if self._available:
             return True

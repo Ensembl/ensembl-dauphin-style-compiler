@@ -6,7 +6,10 @@ from core.config import SOURCES_TOML
 from core.exceptions import RequestException
 import requests
 from ncd import NCDFileAccessor, NCDHttpAccessor
-
+"""
+Attributes:
+    AccessItem (namedtuple):
+"""
 AccessItem = namedtuple('AccessItem', ['variety', 'genome', 'chromosome'])
 
 
@@ -166,12 +169,14 @@ class FileAccessMethod(AccessMethod):
 
 
 class S3DataSource(object):
-    def __init__(self, data):
-        """
 
-        Args:
-            data ():
-        """
+    """
+
+    Args:
+        data ():
+    """
+    def __init__(self, data):
+
         self.url = data.get("url", None)
         if self.url is None:
             logging.critical("S3 driver config missing url")

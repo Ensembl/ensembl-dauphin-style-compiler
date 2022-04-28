@@ -3,6 +3,7 @@ import pyBigWig
 from model.datalocator import AccessItem
 from command.datasources import DataAccessor
 from core.exceptions import RequestException
+
 """
 Attributes:
     _bigbeds (dict)

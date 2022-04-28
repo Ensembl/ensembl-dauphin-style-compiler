@@ -8,13 +8,11 @@ from core.exceptions import RequestException
 class Species(object):
     """
 
+    Args:
+        genome_id ():
     """
-    def __init__(self, genome_id):
-        """
 
-        Args:
-            genome_id ():
-        """
+    def __init__(self, genome_id):
 
         self.genome_id = genome_id
         self.genome_path = self.genome_id
