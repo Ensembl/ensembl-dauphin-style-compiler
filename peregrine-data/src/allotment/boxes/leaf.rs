@@ -1,6 +1,6 @@
 use std::{sync::{Arc}};
 
-use peregrine_toolkit::{puzzle::{DelayedSetter, constant, derived, StaticValue, StaticAnswer, promise_delayed, cache_constant_clonable }};
+use peregrine_toolkit::{puzzle::{DelayedSetter, constant, derived, StaticValue, StaticAnswer, promise_delayed, cache_constant_clonable, delayed }};
 
 use crate::{CoordinateSystem, allotment::{core::{carriageoutput::BoxPositionContext}, transformers::{transformers::{Transformer, TransformerVariety}, simple::{SimpleTransformerHolder, SimpleTransformer}, drawinginfo::DrawingInfo}, style::{style::{LeafCommonStyle, Indent}, allotmentname::{AllotmentNamePart, AllotmentName}}, util::{rangeused::RangeUsed, bppxconverter::BpPxConverter}, globals::playingfield::PlayingFieldEdge}};
 
@@ -25,12 +25,9 @@ fn full_range_piece(coord_system: &CoordinateSystem, base_range: &RangeUsed<f64>
 pub struct FloatingLeaf {
     name: AllotmentName,
     statics: Arc<LeafCommonStyle>,
-//    pixel_range_piece: StaticValue<RangeUsed<f64>>,
-  //  pixel_range_piece_setter: DelayedSetter<'static,'static,RangeUsed<f64>>,
-    //base_range_piece: StaticValue<RangeUsed<f64>>,
-    //base_range_piece_setter: DelayedSetter<'static,'static,RangeUsed<f64>>,
     max_y_piece: StaticValue<f64>,
-    indent: StaticValue<f64>,
+    indent: StaticValue<Option<f64>>,
+    indent_setter: DelayedSetter<'static,'static,f64>,
     max_y_piece_setter: DelayedSetter<'static,'static,f64>,
     converter: StaticValue<Arc<BpPxConverter>>,
     top_setter: Option<DelayedSetter<'static,'static,f64>>,
@@ -51,13 +48,15 @@ impl FloatingLeaf {
             let (setter,value) = promise_delayed();
             (Some(setter),value)
         };
+        let (indent_setter,indent) = delayed();
         FloatingLeaf {
             name: AllotmentName::from_part(name),
             statics: Arc::new(statics.clone()),
             converter: constant(converter.clone()), // kept in puzzle because SHOULD be variable
             max_y_piece, max_y_piece_setter,
             top_setter, top,
-            indent: constant(0.),
+            indent,
+            indent_setter,
             drawing_info
         }
     }
@@ -98,7 +97,7 @@ impl Stackable for FloatingLeaf {
             Indent::Datum(name) => Some(sr.aligner_mut().global(name))
         };
         if let Some(indent) = indent {
-            self.indent = indent.clone();
+            self.indent_setter.set(indent.clone());
         }
         let value = value.clone();
         if let Some(top_setter) = &self.top_setter {
@@ -139,7 +138,7 @@ impl AnchoredLeaf {
             statics: floating.statics.clone(),
             top: floating.top.call(answer_index),
             height: floating.max_y_piece.call(answer_index),
-            indent: floating.indent.call(answer_index)
+            indent: floating.indent.call(answer_index).unwrap_or(0.)
         }
     }
 }

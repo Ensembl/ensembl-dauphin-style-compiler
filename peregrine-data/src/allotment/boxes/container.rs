@@ -83,11 +83,11 @@ impl Stackable for Container {
         let mut kids = children.iter_mut().collect::<Vec<_>>();
         let padding_top = self.style.padding.padding_top;
         let draw_top = cache_constant(derived(value.clone(),move |top| top+padding_top)).dearc();
-        self.specifics.set_locate(prep,&draw_top,&mut kids);
         self.top_setter.set(value.clone());
         if let Some(datum) = &self.style.set_align {
             prep.state_request.aligner_mut().set(datum,value);
         }
+        self.specifics.set_locate(prep,&draw_top,&mut kids);
     }
 
     fn name(&self) -> &AllotmentName { &self.name }

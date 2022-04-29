@@ -146,7 +146,6 @@ impl AlgorithmBuilder {
                 request_data.insert(request.name.clone(),request.clone());
             }
         }
-        log!("end real add for {:?}",requests.index);
     }
 
     pub(crate) fn add(&mut self, requests: &BumpRequestSet) {
@@ -312,7 +311,6 @@ impl Algorithm {
     }
 
     pub(crate) fn build(&self) -> BumpResponses {
-        //log!("built: {:?}",self.value);
         BumpResponses {
             offset: self.substrate as f64,
             total_height: self.substrate as f64 + self.skyline.max_height(),
