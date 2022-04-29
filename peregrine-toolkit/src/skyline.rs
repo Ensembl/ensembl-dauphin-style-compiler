@@ -181,10 +181,10 @@ impl<'a> SkylineRequest<'a> {
     }
 
     /* The only method other than the constructor called externally! */
-    fn add(&mut self) -> f64 {
+    fn add<F>(&mut self, new_height: F) -> f64 where F: FnOnce(f64,f64) -> f64 {
         self.investigate_pre_start();
         self.remove_to_end();
-        let new_height = self.max_existing_height + self.own_height;
+        let new_height = new_height(self.max_existing_height,self.own_height);
         self.update_map_start(new_height);
         self.update_map_end(new_height);
         self.max_existing_height
@@ -214,9 +214,17 @@ impl Skyline {
 
     pub fn add(&mut self, start: i64, end: i64, height: f64) -> f64 {
         let mut req = SkylineRequest::new(self,start,end,height);
-        let offset = req.add();
+        let offset = req.add(|old,more| old+more);
         drop(req);
         self.max_height = self.max_height.max(offset+height);
+        offset
+    }
+
+    pub fn set_min(&mut self, start: i64, end: i64, height: f64) -> f64 {
+        let mut req = SkylineRequest::new(self,start,end,height);
+        let offset = req.add(|old,more| old.max(more));
+        drop(req);
+        self.max_height = self.max_height.max(height);
         offset
     }
 

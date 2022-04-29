@@ -34,14 +34,14 @@ impl CollisionAlgorithmData {
             },
             RangeUsed::Part(a,b) => {
                 let interval = (*a as i64)..(*b as i64);
-                self.parts.push(Part::new(name,&interval,height,self.parts.len()));
+                self.parts.push(Part::new(name,&interval,height));
             }
         }
     }
 
     fn bump(&mut self) {
         /* sort parts into decreasing size order */
-        self.parts.sort();
+//        self.parts.sort();
         self.parts.reverse();
         let mut watermark = Skyline::new();
         for part in &mut self.parts {

@@ -1,4 +1,4 @@
-use std::{sync::{Arc, Mutex}, collections::{HashMap, btree_map::Range}, f32::consts::PI};
+use std::{sync::{Arc, Mutex}, collections::{HashMap, HashSet}, f32::consts::PI, ops::Range, mem};
 use peregrine_toolkit::{lock, log};
 use peregrine_toolkit::skyline::Skyline;
 use crate::allotment::{style::allotmentname::AllotmentName, util::rangeused::RangeUsed};
@@ -63,22 +63,22 @@ impl BumpRequestSetFactory {
     }
 
     pub(crate) fn builder(&self) -> BumpRequestSetBuilder {
-        BumpRequestSetBuilder::new(self.index as f64)
+        BumpRequestSetBuilder::new(self.index)
     }
 }
 
 pub struct BumpRequestSetBuilder {
     members: Vec<BumpRequest>,
-    delta: f64
+    index: usize
 }
 
 impl BumpRequestSetBuilder {
-    fn new(delta: f64) -> BumpRequestSetBuilder {
-        BumpRequestSetBuilder { members: vec![], delta }
+    fn new(index: usize) -> BumpRequestSetBuilder {
+        BumpRequestSetBuilder { members: vec![], index }
     }
 
     pub(crate) fn add(&mut self, mut req: BumpRequest) {
-        if req.add_delta(self.delta) {
+        if req.add_delta(self.index as f64) {
             self.members.push(req);
         }
     }
@@ -86,31 +86,34 @@ impl BumpRequestSetBuilder {
 
 #[derive(Clone)]
 pub struct BumpRequestSet {
-    values: Arc<BumpRequestSetBuilder>,
+    values: Arc<Vec<BumpRequest>>,
+    index: usize,
     identity: u64
 }
 
 impl BumpRequestSet {
-    pub(crate) fn new(builder: BumpRequestSetBuilder) -> BumpRequestSet {
+    pub(crate) fn new(mut builder: BumpRequestSetBuilder) -> BumpRequestSet {
+        builder.members.sort_by(|b,a| a.range.partial_cmp(&b.range).unwrap());
         BumpRequestSet {
-            values: Arc::new(builder),
-            identity: IDS.next()
+            values: Arc::new(builder.members),
+            identity: IDS.next(),
+            index: builder.index
         }
     }
 
-    pub(crate) fn identity(&self) -> u64 { self.identity }
+    pub(crate) fn index(&self) -> usize { self.index }
 }
 
 #[derive(Clone)]
 pub struct BumpResponses {
     offset: f64,
     total_height: f64,
-    value: Arc<HashMap<AllotmentName,f64>>
+    value: Arc<Mutex<HashMap<AllotmentName,f64>>>
 }
 
 impl BumpResponses {
     pub(crate) fn get(&self, name: &AllotmentName) -> f64 {
-        self.value.get(name).copied().map(|x| x+self.offset).unwrap_or(0.)
+        lock!(self.value).get(name).copied().map(|x| x+self.offset).unwrap_or(0.)
     }
 
     pub(crate) fn height(&self) -> f64 {
@@ -118,82 +121,202 @@ impl BumpResponses {
     }
 }
 
-struct CollisionAlgorithm2 {
-    requests: Vec<AllotmentName>,
-    request_data: HashMap<AllotmentName,BumpRequest>,
-    tiebreak: usize,
-    skyline: Skyline,
-    value: HashMap<AllotmentName,f64>,
-    substrate: u64
+pub(crate) struct AlgorithmBuilder {
+    indexes: HashSet<usize>,
+    requests: Vec<BumpRequestSet>,
 }
 
-impl CollisionAlgorithm2 {
-    fn new() -> CollisionAlgorithm2 {
-        CollisionAlgorithm2 {
+impl AlgorithmBuilder {
+    pub(crate) fn new() -> AlgorithmBuilder {
+        AlgorithmBuilder {
+            indexes: HashSet::new(),
             requests: vec![],
-            request_data: HashMap::new(),
-            tiebreak: 0,
-            skyline: Skyline::new(),
-            value: HashMap::new(),
-            substrate: 0
         }
     }
 
-    fn add(&mut self, requests: &BumpRequestSet) {
-        for request in &requests.values.members {
-            if let Some(old) = self.request_data.get(&request.name) {
+    fn real_add(&self, requests: &BumpRequestSet, request_data: &mut HashMap<AllotmentName,BumpRequest>, request_order: &mut Vec<AllotmentName>) {
+        for request in requests.values.iter() {
+            if let Some(old) = request_data.get(&request.name) {
                 let new_range = request.range.merge(&old.range);
                 let new_height = request.height.max(old.height);
                 let new_request = BumpRequest::new(&request.name,&new_range,new_height);
-                self.request_data.insert(request.name.clone(),new_request);
+                request_data.insert(request.name.clone(),new_request);
             } else {
-                self.requests.push(request.name.clone());
-                self.request_data.insert(request.name.clone(),request.clone());
+                request_order.push(request.name.clone());
+                request_data.insert(request.name.clone(),request.clone());
+            }
+        }
+        log!("end real add for {:?}",requests.index);
+    }
+
+    pub(crate) fn add(&mut self, requests: &BumpRequestSet) {
+        self.indexes.insert(requests.index);
+        self.requests.push(requests.clone());
+    }
+
+    pub(crate) fn make(mut self) -> Algorithm {
+        let mut request_order = vec![];
+        let mut request_data = HashMap::new();
+        let mut requests = mem::replace(&mut self.requests,vec![]);
+        requests.sort_by_key(|r| r.index);
+        for request in requests {
+            self.real_add(&request,&mut request_data,&mut request_order);
+        }
+        Algorithm::new(request_data,request_order,self.indexes)
+    }
+}
+
+pub(crate) struct Algorithm {
+    indexes: Option<Range<usize>>,
+    requests: HashMap<AllotmentName,BumpRequest>,
+    value: Arc<Mutex<HashMap<AllotmentName,f64>>>,
+    skyline: Skyline,
+    substrate: u64
+}
+
+impl Algorithm {
+    fn to_range(indexes: HashSet<usize>) -> Option<Range<usize>> {
+        let mut indexes = indexes.iter().cloned().collect::<Vec<_>>();
+        indexes.sort();
+        if indexes.len() == 0 { return None; }
+        let mut prev = None;
+        for index in &indexes {
+            if let Some(prev) = prev {
+                if prev != *index - 1 { return None; }
+            }
+            prev = Some(*index);
+        }
+        let start = indexes[0];
+        Some(start..start+indexes.len())
+    }
+
+    fn new(requests: HashMap<AllotmentName,BumpRequest>, request_order: Vec<AllotmentName>, indexes: HashSet<usize>) -> Algorithm {
+        let mut out = Algorithm {
+            requests: HashMap::new(),
+            indexes: Self::to_range(indexes),
+            skyline: Skyline::new(),
+            value: Arc::new(Mutex::new(HashMap::new())),
+            substrate: 0
+        };
+        for name in &request_order {
+            let request = requests.get(name).unwrap();
+            out.requests.insert(name.clone(),request.clone());
+            out.bump_one(request);
+        }
+        out
+    }
+
+    fn bump_one(&mut self, request: &BumpRequest) {
+        let mut value = lock!(self.value);
+        match &request.range {
+            RangeUsed::None => {
+                value.insert(request.name.clone(),0.);
+            },
+            RangeUsed::All => {
+                value.insert(request.name.clone(),self.substrate as f64);
+                self.substrate += request.height.round() as u64;
+            },
+            RangeUsed::Part(a,b) => {
+                let interval = (*a as i64)..(*b as i64);
+                let part = Part::new(&request.name,&interval,request.height);
+                let height = part.watermark_add(&mut self.skyline);
+                value.insert(part.name().clone(),height);
             }
         }
     }
 
-    fn bump(&mut self) {
-        for request_name in &self.requests {
-            let request = self.request_data.get(request_name).unwrap();
-            match &request.range {
-                RangeUsed::None => {
-                    self.value.insert(request.name.clone(),0.);
-                },
-                RangeUsed::All => {
-                    self.value.insert(request.name.clone(),self.substrate as f64);
-                    self.substrate += request.height.round() as u64;
-                },
-                RangeUsed::Part(a,b) => {
-                    log!("Part({},{})",a,b);
-                    let interval = (*a as i64)..(*b as i64);
-                    let part = Part::new(&request.name,&interval,request.height,self.tiebreak);
-                    self.tiebreak += 1;
-                    let height = part.watermark_add(&mut self.skyline);
-                    log!("{:?}: Part({},{}) -> {}",part.name().sequence(),a,b,height);
-                    self.value.insert(part.name().clone(),height);
-                }
+    /* With care we can often extend an existing Algorithm with a new carriage. This is of
+     * practical significance because it prevents a TrainState change which means that an
+     * awful lot of layout and rendering code need not be rerun in these cases.
+     * 
+     * 1. We cannot add in a bridging fashion, bail.
+     * 2. For everything with pre-existing value:
+     *    a. if height is increased, bail;
+     *    b. if finite/infinite mismatch, bail;
+     *    c. adjust skyline to at least reach point.
+     * 3. For everything else 
+     *    a. if any new infinite, bail;
+     *    b. proceed adding as normal.
+     *
+     */
+    fn separate_preexisting(&self, requests: &BumpRequestSet) -> (Vec<(BumpRequest,BumpRequest,f64)>,Vec<BumpRequest>) {
+        let values = lock!(self.value);
+        let (mut old,mut new) = (vec![],vec![]);
+        for request in requests.values.iter() {
+            if let Some(existing) = self.requests.get(&request.name) {
+                let value = values.get(&request.name).copied().unwrap_or(0.);
+                old.push((existing.clone(),request.clone(),value));
+            } else {
+                new.push(request.clone());
             }
         }
+        (old,new)
     }
 
-    fn build(self) -> BumpResponses {
+    fn update_range(&mut self, index: usize) -> bool {
+        if let Some(range) = &mut self.indexes {
+            if range.start == index+1 {
+                range.start -= 1;
+            } else if range.end == index {
+                range.end += 1;
+            } else {
+                return false;
+            }
+        } else {
+            return false;
+        }
+        true
+    }
+
+    fn add_old(&mut self, old: &[(BumpRequest,BumpRequest,f64)]) -> bool {
+        for (existing_req,incoming_req,offset) in old {
+            /* 2a. if height is increased, bail */
+            if incoming_req.height > existing_req.height { return false; }
+            /* 2b. if finite/infinite mismatch, bail */
+            match (&incoming_req.range,&existing_req.range) {
+                (RangeUsed::All,RangeUsed::All) => {},
+                (RangeUsed::All,_) => { return false; },
+                (_,RangeUsed::All) => { return false; },
+                (_,_) => {}
+            }
+            /* 2c. adjust skyline to at least reach point */
+            if let RangeUsed::Part(start,end) = incoming_req.range {
+                self.skyline.set_min(start as i64,end as i64,*offset+existing_req.height);
+            }
+        }
+        true
+    }
+
+    fn add_new(&mut self, new: &[BumpRequest]) -> bool {
+        for req in new {
+            /* 3a. if any new infinite, bail */
+            match req.range {
+                RangeUsed::All => { return false; },
+                _ => {}
+            }
+            /* 3b. proceed adding as normal */
+            self.bump_one(req);
+        }
+        true
+    }
+
+    pub(crate) fn add(&mut self, requests: &BumpRequestSet) -> bool {
+        /* 1. We cannot add in a bridging fashion, bail.*/
+        if !self.update_range(requests.index) { return false; }
+        /* 2. For everything with pre-existing value */
+        let (old,new) = self.separate_preexisting(requests);
+        if !self.add_old(&old) { return false; }
+        /* 3. For everything else */
+        if !self.add_new(&new) { return false; }
+        true
+    }
+
+    pub(crate) fn build(&self) -> BumpResponses {
         //log!("built: {:?}",self.value);
         BumpResponses {
             offset: self.substrate as f64,
             total_height: self.substrate as f64 + self.skyline.max_height(),
-            value: Arc::new(self.value)
+            value: self.value.clone()
         }
     }
-}
-
-pub(crate) fn bump(input: &[&BumpRequestSet]) -> BumpResponses {
-    let mut input = input.iter().cloned().collect::<Vec<_>>();
-    let mut bumper = CollisionAlgorithm2::new();
-    input.sort();
-    for set in input {
-        bumper.add(&set);
-    }
-    bumper.bump();
-    bumper.build()
 }

@@ -1,14 +1,11 @@
-use std::{sync::{Arc}, collections::HashSet};
+use std::{sync::{Arc}, collections::HashSet, mem};
 use peregrine_toolkit::log;
-
-use crate::allotment::collision::collisionalgorithm2::bump;
-
-use super::{concretebump::{ConcreteRequests, ConcreteResults, ConcreteBump}, collisionalgorithm2::{BumpRequestSet, BumpResponses}};
+use super::{concretebump::{ConcreteRequests, ConcreteResults, ConcreteBump}, collisionalgorithm2::{BumpRequestSet, BumpResponses, AlgorithmBuilder, Algorithm}};
 
 pub(crate) struct BumpPersistent {
-    wanted: HashSet<u64>,
+    wanted: HashSet<usize>,
     bp_per_carriage: u64,
-    responses: Option<BumpResponses>,
+    algorithm: Option<Algorithm>,
     bumper_number: u64
 }
 
@@ -17,21 +14,45 @@ impl BumpPersistent {
         BumpPersistent {
             wanted: HashSet::new(),
             bp_per_carriage,
-            responses: None,
+            algorithm: None,
             bumper_number: 0
         }
     }
 
+    fn try_only_new(&mut self, new: &[Arc<BumpRequestSet>]) -> bool {
+        let algorithm = self.algorithm.as_mut().unwrap();
+        for new in new {
+            if !algorithm.add(new) { return false; }
+        }
+        true
+    }
+
     pub(crate) fn make(&mut self, input: &[Arc<BumpRequestSet>]) -> (BumpResponses,u64) {
-        if let Some(bumper) = &self.responses {
-            let new_wanted = input.iter().map(|x| x.identity()).collect::<HashSet<_>>();
-            if new_wanted == self.wanted {
-//                return (bumper.clone(),self.bumper_number);
+        let new_all_wanted = input.iter().map(|x| x.index()).collect::<HashSet<_>>();
+        /* Perfect match? */
+        if let Some(bumper) = &self.algorithm {
+            if new_all_wanted == self.wanted {
+                return (bumper.build(),self.bumper_number);
             }
         }
+        let old_wanted = mem::replace(&mut self.wanted, new_all_wanted);
+        if self.algorithm.is_some() {
+            /* Try incremental */
+            let new_new_wanted = self.wanted.difference(&old_wanted).cloned().collect::<Vec<_>>();
+            let newly_wanted = input.iter().filter(|x| new_new_wanted.contains(&x.index())).cloned().collect::<Vec<_>>();
+            if self.try_only_new(&newly_wanted) {
+                return (self.algorithm.as_ref().unwrap().build(),self.bumper_number);
+            }
+        }
+        /* Rebuild completely */
         self.bumper_number += 1;
         let inputs = input.iter().map(|x| x.as_ref()).collect::<Vec<_>>();
-        self.responses = Some(bump(&inputs));
-        (self.responses.as_ref().unwrap().clone(),self.bumper_number)
+        let mut builder = AlgorithmBuilder::new();
+        for set in &inputs {
+            builder.add(&set);
+        }
+        let bumper = builder.make();
+        self.algorithm = Some(bumper);
+        (self.algorithm.as_ref().unwrap().build(),self.bumper_number)
     }
 }
