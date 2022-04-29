@@ -1,4 +1,4 @@
-use peregrine_toolkit::{puzzle::{StaticValue, StaticAnswer, commute}, log};
+use peregrine_toolkit::{puzzle::{StaticValue, StaticAnswer, commute}};
 
 use crate::{CoordinateSystemVariety, CoordinateSystem};
 

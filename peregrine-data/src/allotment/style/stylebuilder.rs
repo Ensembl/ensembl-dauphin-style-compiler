@@ -1,6 +1,6 @@
 use std::{collections::HashMap};
 use crate::{allotment::{core::{carriageoutput::BoxPositionContext, trainstate::CarriageTrainStateSpec}, boxes::{ stacker::Stacker, overlay::Overlay, bumper::Bumper }, boxes::{leaf::{FloatingLeaf}}, transformers::drawinginfo::DrawingInfo, stylespec::stylegroup::AllotmentStyleGroup}, DataMessage, LeafRequest};
-use super::{holder::{ContainerHolder, LeafHolder}, allotmentname::{AllotmentNamePart, AllotmentName}, style::{ContainerAllotmentStyle, ContainerAllotmentType, LeafCommonStyle}};
+use super::{holder::{ContainerHolder, LeafHolder}, allotmentname::{AllotmentNamePart, AllotmentName}, style::{ContainerAllotmentType, LeafCommonStyle}};
 
 struct StyleBuilder<'a> {
     root: ContainerHolder,
@@ -22,7 +22,7 @@ impl<'a> StyleBuilder<'a> {
         }
     }
 
-    fn new_container(&mut self, name: &AllotmentNamePart, styles: &AllotmentStyleGroup) -> Result<(ContainerHolder,ContainerAllotmentStyle),DataMessage> {
+    fn new_container(&mut self, name: &AllotmentNamePart, styles: &AllotmentStyleGroup) -> Result<ContainerHolder,DataMessage> {
         let style = styles.get_container(name);
         let container = match &style.allot_type {
             ContainerAllotmentType::Stack => {
@@ -35,7 +35,7 @@ impl<'a> StyleBuilder<'a> {
                 ContainerHolder::Bumper(Bumper::new(name,&style))
             }
         };
-        Ok((container,style.clone()))
+        Ok(container)
     }
 
     fn try_new_container(&mut self, name: &AllotmentNamePart, styles: &AllotmentStyleGroup) -> Result<ContainerHolder,DataMessage> {
@@ -52,8 +52,8 @@ impl<'a> StyleBuilder<'a> {
             } else {
                 self.root.clone()
             };
-            let (new_container,self_conrtainer_style) = self.new_container(name,styles)?;
-            parent_container.add_container(&new_container,&self_conrtainer_style)?;
+            let new_container = self.new_container(name,styles)?;
+            parent_container.add_container(&new_container)?;
             self.containers_made.insert(sequence,new_container.clone());
             Ok(new_container)
         }
@@ -61,7 +61,7 @@ impl<'a> StyleBuilder<'a> {
 
     fn new_floating_leaf(&self, pending: &LeafRequest, name: &AllotmentNamePart, container: &mut ContainerHolder) -> Result<FloatingLeaf,DataMessage> {
         let child = FloatingLeaf::new(name,&self.prep.bp_px_converter,&pending.leaf_style(),&pending.drawing_info_clone());
-        container.add_leaf(&LeafHolder::Leaf(child.clone()),&pending.leaf_style());
+        container.add_leaf(&LeafHolder::Leaf(child.clone()));
         Ok(child)
     }
 

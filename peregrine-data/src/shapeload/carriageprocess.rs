@@ -2,7 +2,7 @@ use std::sync::{Mutex, Arc};
 
 use peregrine_toolkit::{sync::needed::Needed, lock, debug_log};
 
-use crate::{CarriageExtent, switch::trackconfiglist::TrainTrackConfigList, api::MessageSender, ShapeRequestGroup, PeregrineCoreBase, ShapeStore, DataMessage, allotment::core::{trainstate::CarriageTrainStateSpec, carriageoutput::CarriageOutput}};
+use crate::{CarriageExtent, switch::trackconfiglist::TrainTrackConfigList, api::MessageSender, ShapeRequestGroup, PeregrineCoreBase, ShapeStore, DataMessage, allotment::core::{carriageoutput::CarriageOutput}};
 
 use super::loadshapes::{LoadMode, load_carriage_shape_list};
 

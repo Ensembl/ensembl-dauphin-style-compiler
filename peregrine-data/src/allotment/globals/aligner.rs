@@ -1,4 +1,4 @@
-use peregrine_toolkit::{puzzle::{StaticValue, StaticAnswer, commute}, log};
+use peregrine_toolkit::{puzzle::{StaticValue, StaticAnswer, commute}};
 use super::globalvalue::{LocalValueBuilder, LocalValueSpec, GlobalValueBuilder, GlobalValueSpec};
 
 pub struct LocalAlignerBuilder(LocalValueBuilder<String,f64,f64>);

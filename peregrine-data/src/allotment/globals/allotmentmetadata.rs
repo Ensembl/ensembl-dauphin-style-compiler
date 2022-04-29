@@ -1,6 +1,6 @@
-use std::{collections::{HashMap, hash_map::DefaultHasher}, sync::{Arc, Mutex}, hash::{Hash, Hasher}};
+use std::{collections::{HashMap, hash_map::DefaultHasher}, sync::Arc, hash::{Hash, Hasher}};
 
-use peregrine_toolkit::{lock, puzzle::{ StaticValue, StaticAnswer, Value, commute, constant}};
+use peregrine_toolkit::{puzzle::{ StaticValue, StaticAnswer }};
 
 use crate::allotment::style::allotmentname::AllotmentName;
 

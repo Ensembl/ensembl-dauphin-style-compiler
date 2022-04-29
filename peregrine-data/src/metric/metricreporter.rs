@@ -12,7 +12,6 @@ use crate::request::core::request::BackendRequest;
 use crate::request::messages::metricreq::MetricReport;
 use commander::cdr_timer;
 use peregrine_toolkit::lock;
-use std::ops::Add;
 use std::sync::Mutex;
 use std::sync::Arc;
 use crate::{PgCommander, PgCommanderTaskSpec, add_task };

@@ -1,5 +1,5 @@
 use std::hash::Hash;
-use peregrine_toolkit::{puzzle::{StaticValue, StaticAnswer, commute}, log};
+use peregrine_toolkit::{puzzle::{StaticValue, StaticAnswer, commute}};
 use crate::allotment::{style::allotmentname::AllotmentName};
 use super::globalvalue::{LocalValueBuilder, LocalValueSpec, GlobalValueBuilder, GlobalValueSpec};
 

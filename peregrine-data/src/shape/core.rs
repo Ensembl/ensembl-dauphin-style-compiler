@@ -1,4 +1,4 @@
-use std::{collections::{HashMap, hash_map::DefaultHasher}, hash::{Hash, Hasher}, sync::Arc};
+use std::{collections::{hash_map::DefaultHasher}, hash::{Hash, Hasher}, sync::Arc};
 use super::zmenu::ZMenu;
 use crate::{ util::{eachorevery::EachOrEveryFilter}, EachOrEvery};
 

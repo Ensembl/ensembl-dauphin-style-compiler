@@ -45,14 +45,6 @@ impl BpPxConverter {
         }
     }
 
-    pub fn full_pixel_range(&self, base_range: &RangeUsed<f64>, pixel_range: &RangeUsed<f64>) -> RangeUsed<f64> {
-        if let Some(max_px_per_bp) = self.max_px_per_bp {
-            base_range.plus_scalar(-self.bp_start).pixel_range(pixel_range,max_px_per_bp)
-        } else {
-            pixel_range.clone()
-        }
-    }
-
     pub fn full_carriage_range(&self, base_range: &RangeUsed<f64>, pixel_range: &RangeUsed<f64>) -> RangeUsed<f64> {
         base_range.plus_scalar(-self.bp_start).carriage_range(pixel_range,self.min_px_per_carriage,self.bp_per_carriage)
     }

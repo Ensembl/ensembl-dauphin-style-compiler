@@ -1,8 +1,5 @@
 use std::sync::Arc;
-
-use crate::{allotment::{boxes::{stacker::Stacker, overlay::Overlay, bumper::Bumper}, boxes::{boxtraits::{Stackable, Transformable }, leaf::FloatingLeaf, root::{Root}}}, LeafCommonStyle, DataMessage};
-
-use super::style::{ContainerAllotmentStyle};
+use crate::{allotment::{boxes::{stacker::Stacker, overlay::Overlay, bumper::Bumper}, boxes::{boxtraits::{Stackable, Transformable }, leaf::FloatingLeaf, root::{Root}}}, DataMessage};
 
 #[derive(Clone)]
 pub enum ContainerHolder {
@@ -13,7 +10,7 @@ pub enum ContainerHolder {
 }
 
 impl ContainerHolder {
-    pub(super) fn add_leaf(&mut self, child: &LeafHolder, style: &LeafCommonStyle) {
+    pub(super) fn add_leaf(&mut self, child: &LeafHolder) {
         match (self,child) {
             (ContainerHolder::Root(root),LeafHolder::Leaf(leaf)) => {
                 root.add_child(leaf);
@@ -39,7 +36,7 @@ impl ContainerHolder {
         })
     }
 
-    pub(super) fn add_container(&mut self, container: &ContainerHolder, style: &ContainerAllotmentStyle) -> Result<(),DataMessage> {
+    pub(super) fn add_container(&mut self, container: &ContainerHolder) -> Result<(),DataMessage> {
         match self {
             ContainerHolder::Bumper(parent) => {
                 parent.add_child(container.stackable()?);

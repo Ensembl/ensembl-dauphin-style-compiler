@@ -1,4 +1,4 @@
-use std::{ops::{Add, Mul, Div, Sub}, cmp::Ordering, collections::btree_map::Range};
+use std::{ops::{Add, Mul, Div, Sub}, cmp::Ordering};
 
 fn partial_ord<T: PartialOrd>(a: T, b: T) -> (T,T) {
     if a < b { (a,b) } else { (b,a) }
@@ -6,7 +6,6 @@ fn partial_ord<T: PartialOrd>(a: T, b: T) -> (T,T) {
 
 fn partial_min<T: PartialOrd>(a: T, b: T) -> T { partial_ord(a,b).0 }
 fn partial_max<T: PartialOrd>(a: T, b: T) -> T { partial_ord(a,b).1 }
-
 
 #[cfg_attr(debug_assertions,derive(Debug))]
 #[derive(Clone)]
@@ -123,10 +122,9 @@ impl<T: Clone+PartialOrd+Add<Output=T>+Mul<Output=T>+Div<Output=T>> RangeUsed<T>
     }
 
     pub fn carriage_range(&self, pixel: &RangeUsed<T>, min_px_per_carriage: T, bp_per_carriage: T) -> RangeUsed<T> {
-        //let max_carriage_for_pixel = pixel.scale_recip(min_px_per_carriage);
+        let max_carriage_for_pixel = pixel.scale_recip(min_px_per_carriage);
         let carriage_for_bp = self.scale_recip(bp_per_carriage);
-        //max_carriage_for_pixel.plus(&carriage_for_bp)
-        carriage_for_bp
+        max_carriage_for_pixel.plus(&carriage_for_bp)
     }
 
     pub fn into<F,U>(&self, cb: F) -> RangeUsed<U> where F: Fn(&T) -> U {

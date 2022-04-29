@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, ops::Range};
+use std::{ops::Range};
 
 use peregrine_toolkit::skyline::Skyline;
 

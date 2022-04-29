@@ -46,7 +46,7 @@
 
 use std::{collections::{HashMap, hash_map::DefaultHasher}, fmt::Debug, hash::{Hash, Hasher}, sync::Arc};
 
-use peregrine_toolkit::{puzzle::{UnknownSetter, StaticValue, StaticAnswer, short_unknown_function_promise, constant}, log};
+use peregrine_toolkit::{puzzle::{UnknownSetter, StaticValue, StaticAnswer, short_unknown_function_promise, constant}};
 
 pub(crate) struct LocalEntry<T:'static+Clone, V:'static> {
     global_setter: UnknownSetter<'static,StaticValue<V>>,

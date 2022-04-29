@@ -1,8 +1,8 @@
-use std::{sync::{Arc, Mutex}, collections::{HashSet, HashMap}};
+use std::{sync::{Arc, Mutex}, collections::{HashMap}};
 
-use peregrine_toolkit::{lock, log, debug_log};
+use peregrine_toolkit::{lock};
 
-use crate::{PeregrineIntegration, TrainExtent, allotment::{transformers::transformertraits::GraphTransformer, globals::{playingfield::{GlobalPlayingField, PlayingField}, allotmentmetadata::GlobalAllotmentMetadata} }, CarriageSpeed, Viewport };
+use crate::{PeregrineIntegration, TrainExtent, allotment::{globals::{playingfield::{GlobalPlayingField, PlayingField}, allotmentmetadata::GlobalAllotmentMetadata} }, CarriageSpeed, Viewport };
 
 use super::drawingcarriage::DrawingCarriage2;
 

@@ -1,6 +1,6 @@
 use std::{sync::{Arc, Mutex}};
 
-use peregrine_toolkit::{lock, puzzle::{constant}, log};
+use peregrine_toolkit::{lock, puzzle::{constant}};
 
 use crate::{ allotment::core::{carriageoutput::BoxPositionContext, trainstate::CarriageTrainStateSpec}};
 
