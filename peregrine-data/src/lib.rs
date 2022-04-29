@@ -210,6 +210,8 @@ pub(crate) mod switch {
 mod train {
     mod anticipate;
     pub mod drawingcarriage;
+    pub(crate) mod carriageprocessmanager;
+    pub(crate) mod drawingcarriagemanager;
     pub(crate) mod carriageextent;
     mod railwaydatatasks;
     mod carriageset;
