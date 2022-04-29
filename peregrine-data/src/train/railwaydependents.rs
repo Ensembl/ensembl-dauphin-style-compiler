@@ -1,7 +1,7 @@
 use std::sync::Mutex;
 use peregrine_toolkit::{lock, sync::{blocker::{Blocker, Lockout}}};
-use crate::{CarriageExtent, ShapeStore, PeregrineCoreBase};
-use super::{anticipate::Anticipate};
+use crate::{ShapeStore, PeregrineCoreBase};
+use super::{anticipate::Anticipate, carriageextent::CarriageExtent};
 
 pub struct RailwayDependents {
     anticipate: Anticipate,

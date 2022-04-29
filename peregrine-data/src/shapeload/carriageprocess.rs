@@ -2,7 +2,7 @@ use std::sync::{Mutex, Arc};
 
 use peregrine_toolkit::{sync::needed::Needed, lock, debug_log};
 
-use crate::{CarriageExtent, switch::trackconfiglist::TrainTrackConfigList, api::MessageSender, ShapeRequestGroup, PeregrineCoreBase, ShapeStore, DataMessage, allotment::core::{carriageoutput::CarriageOutput}};
+use crate::{switch::trackconfiglist::TrainTrackConfigList, api::MessageSender, ShapeRequestGroup, PeregrineCoreBase, ShapeStore, DataMessage, allotment::core::{carriageoutput::CarriageOutput}, train::carriageextent::CarriageExtent};
 
 use super::loadshapes::{LoadMode, load_carriage_shape_list};
 
@@ -53,7 +53,7 @@ impl CarriageProcess {
         let shapes = 
             load_carriage_shape_list(base,result_store,self.messages.as_ref(),shape_requests,&mode).await
             .map_err(|errors| {
-               DataMessage::CarriageUnavailable(self.extent.clone(),errors)
+               DataMessage::CarriageUnavailable(self.extent.train().clone(),self.extent.index() as usize,errors)
             })?;
         match mode {
             LoadMode::Network => { return Ok(()); },

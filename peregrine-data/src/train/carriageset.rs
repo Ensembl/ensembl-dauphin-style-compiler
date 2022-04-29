@@ -3,17 +3,15 @@ use std::sync::{Mutex, Arc};
 use peregrine_toolkit::sync::retainer::{RetainTest, Retainer, retainer};
 use peregrine_toolkit::puzzle::AnswerAllocator;
 use peregrine_toolkit::sync::needed::Needed;
-
-use super::drawingcarriage::DrawingCarriage2;
+use super::carriageextent::CarriageExtent;
+use super::drawingcarriage::DrawingCarriage;
 use super::graphics::Graphics;
 use super::railwaydatatasks::RailwayDataTasks;
 use super::slider::{Slider, SliderActions};
 use super::trainextent::TrainExtent;
 use crate::allotment::core::carriageoutput::CarriageOutput;
 use crate::allotment::core::trainstate::{TrainStateSpec, TrainState3};
-use crate::allotment::globals::trainpersistent::TrainPersistent;
 use crate::shapeload::carriageprocess::CarriageProcess;
-use crate::{CarriageExtent};
 use crate::api::MessageSender;
 use crate::switch::trackconfiglist::TrainTrackConfigList;
 
@@ -71,8 +69,8 @@ impl std::hash::Hash for DrawingCarriageCreator {
 }
 
 impl DrawingCarriageCreator {
-    fn create(&self, train_state: &TrainState3, retain: &RetainTest) -> DrawingCarriage2 {
-        DrawingCarriage2::new(&self.extent,&self.ping_needed,&self.shapes,train_state,retain)
+    fn create(&self, train_state: &TrainState3, retain: &RetainTest) -> DrawingCarriage {
+        DrawingCarriage::new(&self.extent,&self.ping_needed,&self.shapes,train_state,retain)
             .ok().unwrap() // XXX errors
     }
 }
@@ -81,20 +79,18 @@ struct DrawingCarriages2 {
     active: bool,
     ping_needed: Needed,
     train_extent: TrainExtent,
-    carriages: Vec<DrawingCarriage2>,
-    graphics: Graphics,
-    train_persistent: TrainPersistent
+    carriages: Vec<DrawingCarriage>,
+    graphics: Graphics
 }
 
 impl DrawingCarriages2 {
-    fn new(constant: &CarriageSetConstant, ping_needed: &Needed, train_extent: &TrainExtent, graphics: &Graphics) -> DrawingCarriages2 {
+    fn new(ping_needed: &Needed, train_extent: &TrainExtent, graphics: &Graphics) -> DrawingCarriages2 {
         DrawingCarriages2 {
             active: false,
             ping_needed: ping_needed.clone(),
             train_extent: train_extent.clone(),
             carriages: vec![],
-            graphics: graphics.clone(),
-            train_persistent: TrainPersistent::new()
+            graphics: graphics.clone()
         }
     }
 
@@ -114,7 +110,7 @@ impl DrawingCarriages2 {
 
 #[derive(Clone)]
 struct SliderDrawingCarriage {
-    carriage: DrawingCarriage2,
+    carriage: DrawingCarriage,
     #[allow(unused)]
     retain: Retainer
 }
@@ -240,7 +236,7 @@ impl CarriageSet {
     pub(super) fn new(ping_needed: &Needed, answer_allocator: &Arc<Mutex<AnswerAllocator>>, extent: &TrainExtent, configs: &TrainTrackConfigList, railway_data_tasks: &RailwayDataTasks, graphics: &Graphics, messages: &MessageSender) -> CarriageSet {
         let constant = Arc::new(CarriageSetConstant::new(ping_needed,extent,configs,messages));
         let carriage_actions = CarriageProcessActions2::new(ping_needed,&constant,railway_data_tasks,answer_allocator,graphics);
-        let drawing_actions = DrawingCarriages2::new(&constant,&ping_needed,extent,graphics);
+        let drawing_actions = DrawingCarriages2::new(&ping_needed,extent,graphics);
         let is_milestone = extent.scale().is_milestone();
         CarriageSet {
             centre: None,
@@ -268,7 +264,7 @@ impl CarriageSet {
         self.process.set(wanted);
     }
 
-    pub(super) fn central_drawing_carriage(&self) -> Option<&DrawingCarriage2> {
+    pub(super) fn central_drawing_carriage(&self) -> Option<&DrawingCarriage> {
         let index = if let Some(x) = self.centre { x } else { return None; };
         let creator = if let Some(creator) = self.process.get(index) {creator } else { return None; }.clone();
         let state = self.process.inner().state();

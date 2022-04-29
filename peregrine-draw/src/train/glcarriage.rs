@@ -1,4 +1,4 @@
-use peregrine_data::{Assets, CarriageExtent, ZMenuProxy, DrawingCarriage2};
+use peregrine_data::{Assets, ZMenuProxy, DrawingCarriage, DrawingCarriageExtent};
 use peregrine_toolkit::sync::retainer::RetainTest;
 use peregrine_toolkit::{lock, warn, log, error, debug_log};
 use peregrine_toolkit::sync::asynconce::AsyncOnce;
@@ -16,7 +16,7 @@ use crate::util::message::Message;
 
 struct GLCarriageData {
     commander: PgCommanderWeb,
-    extent: CarriageExtent,
+    extent: DrawingCarriageExtent,
     opacity: Mutex<f64>,
     drawing: AsyncOnce<Result<Option<Drawing>,Message>>,
     preflight_done: bool
@@ -59,7 +59,7 @@ impl Hash for GLCarriage {
 }
 
 impl GLCarriage {
-    pub fn new(redraw_needed: &Needed, commander: &PgCommanderWeb, carriage: &DrawingCarriage2, gl: &Arc<Mutex<WebGlGlobal>>, assets: &Assets) -> Result<GLCarriage,Message> {
+    pub fn new(redraw_needed: &Needed, commander: &PgCommanderWeb, carriage: &DrawingCarriage, gl: &Arc<Mutex<WebGlGlobal>>, assets: &Assets) -> Result<GLCarriage,Message> {
         let carriage2 = carriage.clone();
         let gl = gl.clone();
         let assets = assets.clone();
@@ -82,7 +82,7 @@ impl GLCarriage {
         Ok(our_carriage)
     }
 
-    pub(super) async fn preflight(&self, carriage: &DrawingCarriage2) -> Result<(),Message> {
+    pub(super) async fn preflight(&self, carriage: &DrawingCarriage) -> Result<(),Message> {
         let state = lock!(self.0);
         let drawing = state.drawing.clone();
         drop(state);
@@ -99,7 +99,7 @@ impl GLCarriage {
         Ok(())
     }
 
-    pub fn preflight_freewheel(&self, carriage: &DrawingCarriage2) {
+    pub fn preflight_freewheel(&self, carriage: &DrawingCarriage) {
         let self2 = self.clone();
         let commander = lock!(self.0).commander.clone();
         let carriage = carriage.clone();
@@ -108,7 +108,7 @@ impl GLCarriage {
         }));
     }
 
-    pub fn extent(&self) -> CarriageExtent { lock!(self.0).extent.clone() }
+    pub fn extent(&self) -> DrawingCarriageExtent { lock!(self.0).extent.clone() }
 
     pub(super) fn set_opacity(&self, amount: f64) {
         *lock!(self.0).opacity.lock().unwrap() = amount;

@@ -1,5 +1,5 @@
 use std::{sync::{Arc}, collections::HashSet, mem};
-use super::{collisionalgorithm2::{BumpRequestSet, BumpResponses, AlgorithmBuilder, Algorithm}};
+use super::{collisionalgorithm::{BumpRequestSet, BumpResponses, AlgorithmBuilder, Algorithm}};
 
 pub(crate) struct BumpPersistent {
     wanted: HashSet<usize>,

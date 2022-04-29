@@ -3,7 +3,7 @@ use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hasher, Hash};
 use std::rc::Rc;
 use std::sync::{ Arc, Mutex };
-use peregrine_data::{Assets, CarriageSpeed, PeregrineCore, Scale, ZMenuProxy, TrainExtent, DrawingCarriage2};
+use peregrine_data::{Assets, CarriageSpeed, PeregrineCore, Scale, ZMenuProxy, TrainExtent, DrawingCarriage};
 use peregrine_toolkit::{lock, log, debug_log};
 use peregrine_toolkit::sync::needed::{Needed, NeededLock};
 use super::glcarriage::GLCarriage;
@@ -30,7 +30,7 @@ struct GlRailwayData {
     fast_fade_overlap_prop: f64,
     commander: PgCommanderWeb,
     trains: HashMap<TrainExtent,GLTrain>,
-    carriages: HashMap<DrawingCarriage2,GLCarriage>,
+    carriages: HashMap<DrawingCarriage,GLCarriage>,
     fade_state: FadeState,
     redraw_needed: Needed
 }
@@ -66,7 +66,7 @@ impl GlRailwayData {
         self.trains.remove(extent);
     }
 
-    fn create_carriage(&mut self, carriage: &DrawingCarriage2, gl: &Arc<Mutex<WebGlGlobal>>, assets: &Assets) -> Result<(),Message> {
+    fn create_carriage(&mut self, carriage: &DrawingCarriage, gl: &Arc<Mutex<WebGlGlobal>>, assets: &Assets) -> Result<(),Message> {
         debug_log!("gl/create_carriage {:?}",carriage.extent());
         if !self.carriages.contains_key(&carriage) {
             self.carriages.insert(carriage.clone(), GLCarriage::new(&self.redraw_needed,&self.commander,carriage, gl, assets)?);
@@ -74,12 +74,12 @@ impl GlRailwayData {
         Ok(())
     }
 
-    fn drop_carriage(&mut self, carriage: &DrawingCarriage2) { 
+    fn drop_carriage(&mut self, carriage: &DrawingCarriage) { 
         debug_log!("gl/drop_carriage {:?}",carriage.extent());
         self.carriages.remove(carriage);
     }
 
-    fn set_carriages(&mut self, extent: &TrainExtent, new_carriages: &[DrawingCarriage2]) -> Result<(),Message> {
+    fn set_carriages(&mut self, extent: &TrainExtent, new_carriages: &[DrawingCarriage]) -> Result<(),Message> {
         log!("set_carriages: {:?} len={}",extent,new_carriages.len());
         match new_carriages.iter().map(|c| self.carriages.get(c).cloned()).collect::<Option<Vec<_>>>() {
             Some(carriages) => {
@@ -237,11 +237,11 @@ impl GlRailway {
     pub fn create_train(&mut self, train: &TrainExtent) { lock!(self.data).create_train(train) }
     pub fn drop_train(&mut self, train: &TrainExtent) { lock!(self.data).drop_train(train) }
 
-    pub(crate) fn create_carriage(&mut self, carriage: &DrawingCarriage2, gl: &Arc<Mutex<WebGlGlobal>>, assets: &Assets) -> Result<(),Message> {
+    pub(crate) fn create_carriage(&mut self, carriage: &DrawingCarriage, gl: &Arc<Mutex<WebGlGlobal>>, assets: &Assets) -> Result<(),Message> {
         lock!(self.data).create_carriage(carriage,gl,assets)
     }
 
-    pub(crate) fn drop_carriage(&mut self, carriage: &DrawingCarriage2) { lock!(self.data).drop_carriage(carriage); }
+    pub(crate) fn drop_carriage(&mut self, carriage: &DrawingCarriage) { lock!(self.data).drop_carriage(carriage); }
 
     pub fn transition_animate_tick(&mut self, api: &PeregrineCore, gl: &mut WebGlGlobal, newly_elapsed: f64) -> Result<(),Message> {
         if lock!(self.data).transition_animate_tick(gl,newly_elapsed)? {
@@ -260,7 +260,7 @@ impl GlRailway {
         Ok(())
     }
 
-    pub fn set_carriages(&mut self, train: &TrainExtent, new_carriages: &[DrawingCarriage2]) -> Result<(),Message> {
+    pub fn set_carriages(&mut self, train: &TrainExtent, new_carriages: &[DrawingCarriage]) -> Result<(),Message> {
         lock!(self.data).set_carriages(train,new_carriages)?;
         Ok(())
     }

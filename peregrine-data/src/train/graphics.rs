@@ -4,7 +4,7 @@ use peregrine_toolkit::{lock};
 
 use crate::{PeregrineIntegration, TrainExtent, allotment::{globals::{playingfield::{GlobalPlayingField, PlayingField}, allotmentmetadata::GlobalAllotmentMetadata} }, CarriageSpeed, Viewport };
 
-use super::drawingcarriage::DrawingCarriage2;
+use super::drawingcarriage::DrawingCarriage;
 
 struct GraphicsDropper {
     state: Arc<Mutex<GraphicsState>>,
@@ -42,9 +42,9 @@ impl Graphics {
         }
     }
 
-    fn upate_train(&mut self, dc: &DrawingCarriage2, delta: i32) {
+    fn upate_train(&mut self, dc: &DrawingCarriage, delta: i32) {
         let mut state = lock!(self.state);
-        let train = dc.extent().train();
+        let train = dc.train();
         let value = state.trains.entry(train.clone()).or_insert(0);
         if *value == 0 {
             #[cfg(debug_trains)] debug_log!("gl/create_train {:?}",train);
@@ -57,19 +57,19 @@ impl Graphics {
         }
     }
 
-    pub(super) fn create_carriage(&mut self, dc: &DrawingCarriage2) {
+    pub(super) fn create_carriage(&mut self, dc: &DrawingCarriage) {
         self.upate_train(dc,1);
         #[cfg(debug_trains)] debug_log!("gl/create carriage {:?} {:?}",dc.extent().train(),dc.extent().index());
         lock!(self.integration).create_carriage(dc);
     }
 
-    pub(super) fn drop_carriage(&mut self, dc: &DrawingCarriage2) {
+    pub(super) fn drop_carriage(&mut self, dc: &DrawingCarriage) {
         #[cfg(debug_trains)] debug_log!("gl/drop carriage {:?} {:?}",dc.extent().train(),dc.extent().index());
         lock!(self.integration).drop_carriage(dc);
         self.upate_train(dc,-1);
     }
 
-    pub(super) fn set_carriages(&self, extent: &TrainExtent, carriages: &[DrawingCarriage2]) {
+    pub(super) fn set_carriages(&self, extent: &TrainExtent, carriages: &[DrawingCarriage]) {
         #[cfg(debug_trains)] debug_log!("gl/set_carriages {:?}",carriages.iter().map(|c| { c.extent().train() }).collect::<Vec<_>>());
         lock!(self.integration).set_carriages(extent,carriages);
     }

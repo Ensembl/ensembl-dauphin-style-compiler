@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 use peregrine_toolkit::{puzzle::{StaticValue, StaticAnswer}, lock};
-use crate::{allotment::{style::allotmentname::AllotmentName, collision::{collisionalgorithm2::{BumpRequestSet, BumpResponses}}}};
+use crate::{allotment::{style::allotmentname::AllotmentName, collision::{collisionalgorithm::{BumpRequestSet, BumpResponses}}}};
 use super::{globalvalue::{LocalValueBuilder, LocalValueSpec, GlobalValueBuilder, GlobalValueSpec}, trainpersistent::TrainPersistent};
 
 pub struct LocalBumpBuilder {

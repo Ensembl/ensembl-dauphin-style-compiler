@@ -12,7 +12,7 @@ mod allotment {
     pub(crate) mod collision {
         mod bumppart;
         pub(crate) mod bumpprocess;
-        pub(crate) mod collisionalgorithm2;
+        pub(crate) mod collisionalgorithm;
     }
 
     pub(crate) mod style {
@@ -210,7 +210,7 @@ pub(crate) mod switch {
 mod train {
     mod anticipate;
     pub mod drawingcarriage;
-    mod carriageextent;
+    pub(crate) mod carriageextent;
     mod railwaydatatasks;
     mod carriageset;
     pub(crate) mod graphics;
@@ -222,8 +222,8 @@ mod train {
     pub(crate) mod train;
     mod trainset;
 
-    pub use carriageextent::CarriageExtent;
-    pub use drawingcarriage::{ DrawingCarriage2 };
+    pub use carriageextent::{ DrawingCarriageExtent };
+    pub use drawingcarriage::{ DrawingCarriage };
     pub use trainextent::TrainExtent;
     pub use railway::Railway;
 }
@@ -263,7 +263,7 @@ pub use self::shape::{
 pub use self::allotment::core::coordsystem::{ CoordinateSystem, CoordinateSystemVariety };
 pub use self::switch::switch::{ Switches };
 pub use self::switch::track::Track;
-pub use self::train::{ CarriageExtent, DrawingCarriage2, TrainExtent };
+pub use self::train::{ DrawingCarriage, DrawingCarriageExtent, TrainExtent };
 pub use self::util::{ CountingPromise, DataMessage, Builder };
 pub use self::util::vecutils::expand_by_repeating;
 pub use self::util::eachorevery::{ EachOrEvery, EachOrEveryFilterBuilder };
