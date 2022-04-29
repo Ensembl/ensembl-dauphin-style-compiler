@@ -1,12 +1,11 @@
 use std::{sync::{Arc, Mutex}};
-use peregrine_toolkit::{puzzle::{StaticAnswer}, lock, log};
+use peregrine_toolkit::{puzzle::{StaticAnswer}, lock};
 
-use crate::{allotment::{style::{style::LeafCommonStyle }, boxes::{root::{Root}, boxtraits::Transformable}, collision::{bumperfactory::BumperFactory, concretebump::ConcreteRequestsFactory, collisionalgorithm2::BumpRequestSetFactory}, util::bppxconverter::BpPxConverter}, ShapeRequestGroup, Shape, DataMessage, LeafRequest};
+use crate::{allotment::{style::{style::LeafCommonStyle }, boxes::{root::{Root}, boxtraits::Transformable}, collision::{collisionalgorithm2::BumpRequestSetFactory}, util::bppxconverter::BpPxConverter}, ShapeRequestGroup, Shape, DataMessage, LeafRequest};
 
 use super::{leafrequest::LeafTransformableMap, leaflist::LeafList, trainstate::{CarriageTrainStateRequest, CarriageTrainStateSpec}};
 
 pub(crate) struct BoxPositionContext {
-    //pub bump_requests: BumpRequests,
     pub bp_px_converter: Arc<BpPxConverter>,
     pub root: Root,
     pub plm: LeafTransformableMap,
@@ -16,15 +15,10 @@ pub(crate) struct BoxPositionContext {
 
 impl BoxPositionContext {
     pub(crate) fn new(extent: Option<&ShapeRequestGroup>) -> BoxPositionContext {
-        let (bp_per_carriage,index) = if let Some(extent) = extent {
-            (extent.region().scale().bp_in_carriage(),extent.region().index())
-        } else {
-            (1,0)
-        };
+        let index = extent.map(|x| x.region().index()).unwrap_or(0);
         let bumper_factory = BumpRequestSetFactory::new(index as usize);
         BoxPositionContext {
             bp_px_converter: Arc::new(BpPxConverter::new(extent)),
-            //bump_requests: BumpRequests::new(region.as_ref().map(|r| r.index()).unwrap_or(0) as usize),
             root: Root::new(),
             plm: LeafTransformableMap::new(),
             state_request: CarriageTrainStateRequest::new(),

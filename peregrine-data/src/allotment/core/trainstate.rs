@@ -179,12 +179,12 @@ pub struct TrainStateSpec {
 }
 
 impl TrainStateSpec {
-    pub fn new(answer_allocator: &Arc<Mutex<AnswerAllocator>>, bp_per_carriage: u64) -> TrainStateSpec {
+    pub fn new(answer_allocator: &Arc<Mutex<AnswerAllocator>>) -> TrainStateSpec {
         TrainStateSpec {
             answer_allocator: answer_allocator.clone(),
             specs: HashMap::new(),
             cached_train_state: Mutex::new(None),
-            persistent: Arc::new(Mutex::new(TrainPersistent::new(bp_per_carriage)))
+            persistent: Arc::new(Mutex::new(TrainPersistent::new()))
         }
     }
 

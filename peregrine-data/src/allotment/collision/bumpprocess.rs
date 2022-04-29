@@ -1,19 +1,16 @@
 use std::{sync::{Arc}, collections::HashSet, mem};
-use peregrine_toolkit::log;
-use super::{concretebump::{ConcreteRequests, ConcreteResults, ConcreteBump}, collisionalgorithm2::{BumpRequestSet, BumpResponses, AlgorithmBuilder, Algorithm}};
+use super::{collisionalgorithm2::{BumpRequestSet, BumpResponses, AlgorithmBuilder, Algorithm}};
 
 pub(crate) struct BumpPersistent {
     wanted: HashSet<usize>,
-    bp_per_carriage: u64,
     algorithm: Option<Algorithm>,
     bumper_number: u64
 }
 
 impl BumpPersistent {
-    pub(crate) fn new(bp_per_carriage: u64) -> BumpPersistent {
+    pub(crate) fn new() -> BumpPersistent {
         BumpPersistent {
             wanted: HashSet::new(),
-            bp_per_carriage,
             algorithm: None,
             bumper_number: 0
         }

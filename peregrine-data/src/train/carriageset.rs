@@ -1,7 +1,6 @@
 use std::cmp::max;
 use std::sync::{Mutex, Arc};
 use peregrine_toolkit::sync::retainer::{RetainTest, Retainer, retainer};
-use peregrine_toolkit::{lock, log, debug_log};
 use peregrine_toolkit::puzzle::AnswerAllocator;
 use peregrine_toolkit::sync::needed::Needed;
 
@@ -95,7 +94,7 @@ impl DrawingCarriages2 {
             train_extent: train_extent.clone(),
             carriages: vec![],
             graphics: graphics.clone(),
-            train_persistent: TrainPersistent::new(constant.extent.scale().bp_in_carriage())
+            train_persistent: TrainPersistent::new()
         }
     }
 
@@ -169,7 +168,7 @@ struct CarriageProcessActions2 {
 impl CarriageProcessActions2 {
     fn new(ping_needed: &Needed, constant: &Arc<CarriageSetConstant>, 
            railway_data_tasks: &RailwayDataTasks, answer_allocator: &Arc<Mutex<AnswerAllocator>>,
-            graphics: &Graphics, bp_per_carriage: u64) -> CarriageProcessActions2 {
+            graphics: &Graphics) -> CarriageProcessActions2 {
         CarriageProcessActions2 {
             ping_needed: ping_needed.clone(),
             mute: false,
@@ -177,7 +176,7 @@ impl CarriageProcessActions2 {
             constant: constant.clone(),
             graphics: graphics.clone(),
             railway_data_tasks: railway_data_tasks.clone(),
-            train_state_spec: TrainStateSpec::new(answer_allocator,bp_per_carriage)
+            train_state_spec: TrainStateSpec::new(answer_allocator)
         }
     }
 
@@ -240,7 +239,7 @@ pub(super) struct CarriageSet {
 impl CarriageSet {
     pub(super) fn new(ping_needed: &Needed, answer_allocator: &Arc<Mutex<AnswerAllocator>>, extent: &TrainExtent, configs: &TrainTrackConfigList, railway_data_tasks: &RailwayDataTasks, graphics: &Graphics, messages: &MessageSender) -> CarriageSet {
         let constant = Arc::new(CarriageSetConstant::new(ping_needed,extent,configs,messages));
-        let carriage_actions = CarriageProcessActions2::new(ping_needed,&constant,railway_data_tasks,answer_allocator,graphics,extent.scale().bp_in_carriage());
+        let carriage_actions = CarriageProcessActions2::new(ping_needed,&constant,railway_data_tasks,answer_allocator,graphics);
         let drawing_actions = DrawingCarriages2::new(&constant,&ping_needed,extent,graphics);
         let is_milestone = extent.scale().is_milestone();
         CarriageSet {

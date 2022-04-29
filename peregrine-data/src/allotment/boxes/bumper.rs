@@ -1,8 +1,8 @@
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc};
 
-use peregrine_toolkit::{puzzle::{variable, derived, delayed, DelayedSetter, compose, short_memoized_arc, StaticValue, commute, compose_slice, cache_constant_arc, promise_delayed }, lock, log};
+use peregrine_toolkit::{puzzle::{derived, DelayedSetter, compose, StaticValue, compose_slice, promise_delayed }};
 
-use crate::{allotment::{core::{carriageoutput::BoxPositionContext}, style::{style::{ContainerAllotmentStyle}, allotmentname::{AllotmentNamePart, AllotmentName}}, boxes::{boxtraits::Stackable}, util::{rangeused::RangeUsed}, collision::{collisionalgorithm::CollisionAlgorithm, concretebump::{ConcreteRequests, ConcreteResults}, collisionalgorithm2::{BumpRequestSet, BumpRequest, BumpRequestSetBuilder, BumpResponses}}, globals::{globalvalue::LocalValueBuilder, bumping::LocalBumpBuilder}}, CoordinateSystem};
+use crate::{allotment::{core::{carriageoutput::BoxPositionContext}, style::{style::{ContainerAllotmentStyle}, allotmentname::{AllotmentNamePart, AllotmentName}}, boxes::{boxtraits::Stackable}, collision::{collisionalgorithm2::{BumpRequestSet, BumpRequest, BumpResponses}}}, CoordinateSystem};
 
 use super::{container::{Container}, boxtraits::{Coordinated, BuildSize, ContainerSpecifics}};
 
@@ -60,7 +60,6 @@ impl ContainerSpecifics for UnpaddedBumper {
         let items = compose_slice(&items,|x| x.to_vec());
         /* build the ConcreteRequests for this container */
         let factory = prep.bumper_factory.clone();
-        let self_name = self.name.sequence().to_vec();
         let concrete_req = derived(items,move |items| {
             let mut builder = factory.builder();
             for (name,height,range) in &items {
