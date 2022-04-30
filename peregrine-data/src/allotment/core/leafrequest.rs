@@ -2,16 +2,18 @@ use std::{sync::{Arc, Mutex}, borrow::BorrowMut, collections::HashMap};
 
 use peregrine_toolkit::lock;
 
-use crate::{allotment::{transformers::drawinginfo::DrawingInfo, boxes::boxtraits::{Transformable}, stylespec::stylegroup::AllotmentStyleGroup, style::allotmentname::{AllotmentName, BuildPassThroughHasher, new_efficient_allotmentname_hashmap}}, LeafCommonStyle};
+use crate::{allotment::{transformers::drawinginfo::DrawingInfo, boxes::boxtraits::{Transformable}, stylespec::stylegroup::AllotmentStyleGroup}, LeafCommonStyle};
+
+use super::allotmentname::{allotmentname_hashmap, AllotmentName, AllotmentNameHashMap};
 
 pub struct LeafTransformableMap {
-    transformables: HashMap<AllotmentName,Arc<dyn Transformable>,BuildPassThroughHasher>
+    transformables: AllotmentNameHashMap<Arc<dyn Transformable>>
 }
 
 impl LeafTransformableMap {
     pub fn new() -> LeafTransformableMap {
         LeafTransformableMap {
-            transformables: new_efficient_allotmentname_hashmap()
+            transformables: allotmentname_hashmap()
         }
     }
 

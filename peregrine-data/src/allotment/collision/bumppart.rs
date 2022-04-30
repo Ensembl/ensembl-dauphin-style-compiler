@@ -2,7 +2,7 @@ use std::{ops::Range};
 
 use peregrine_toolkit::skyline::Skyline;
 
-use crate::allotment::style::allotmentname::AllotmentName;
+use crate::allotment::core::allotmentname::AllotmentName;
 
 pub(super) struct Part {
     name: AllotmentName,

@@ -1,15 +1,14 @@
-use std::{collections::HashMap};
-use crate::{allotment::{style::{allotmentname::{AllotmentName, BuildPassThroughHasher, new_efficient_allotmentname_hashmap}, stylebuilder::make_transformable}}, LeafRequest, ShapeRequestGroup, DataMessage};
-use super::{carriageoutput::BoxPositionContext, trainstate::CarriageTrainStateSpec};
+use crate::{allotment::style::{stylebuilder::make_transformable}, LeafRequest, ShapeRequestGroup, DataMessage};
+use super::{carriageoutput::BoxPositionContext, trainstate::CarriageTrainStateSpec, allotmentname::{allotmentname_hashmap, AllotmentName, AllotmentNameHashMap}};
 
 pub struct LeafList {
-    leafs: HashMap<AllotmentName,LeafRequest,BuildPassThroughHasher>
+    leafs: AllotmentNameHashMap<LeafRequest>
 }
 
 impl LeafList {
     pub fn new() -> LeafList {
         LeafList {
-            leafs: new_efficient_allotmentname_hashmap()
+            leafs: allotmentname_hashmap()
         }
     }
 

@@ -13,7 +13,7 @@ pub(super) struct CarriageProcessManager {
     constant: Arc<CarriageSetConstant>,
     railway_data_tasks: RailwayDataTasks, 
     train_state_spec: TrainStateSpec,
-    graphics: Graphics,
+    graphics: Graphics
 }
 
 impl CarriageProcessManager {

@@ -16,13 +16,13 @@ mod allotment {
     }
 
     pub(crate) mod style {
-        pub(crate) mod allotmentname;
         pub(crate) mod holder;
         pub(crate) mod style;
         pub(crate) mod stylebuilder;
     }
 
     pub(crate) mod core {
+        pub(crate) mod allotmentname;
         pub(crate) mod coordsystem;
         pub(crate) mod carriageoutput;
         pub(crate) mod leaflist;

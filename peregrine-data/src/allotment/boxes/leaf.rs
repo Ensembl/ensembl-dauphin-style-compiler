@@ -1,9 +1,6 @@
 use std::{sync::{Arc}};
-
 use peregrine_toolkit::{puzzle::{DelayedSetter, constant, derived, StaticValue, StaticAnswer, promise_delayed, cache_constant_clonable, delayed }};
-
-use crate::{CoordinateSystem, allotment::{core::{carriageoutput::BoxPositionContext}, transformers::{transformers::{Transformer, TransformerVariety}, simple::{SimpleTransformerHolder, SimpleTransformer}, drawinginfo::DrawingInfo}, style::{style::{LeafCommonStyle, Indent}, allotmentname::{AllotmentNamePart, AllotmentName}}, util::{rangeused::RangeUsed, bppxconverter::BpPxConverter}, globals::playingfield::PlayingFieldEdge}};
-
+use crate::{CoordinateSystem, allotment::{core::{carriageoutput::BoxPositionContext, allotmentname::{AllotmentName, AllotmentNamePart}}, transformers::{transformers::{Transformer, TransformerVariety}, simple::{SimpleTransformerHolder, SimpleTransformer}, drawinginfo::DrawingInfo}, style::{style::{LeafCommonStyle, Indent}}, util::{rangeused::RangeUsed, bppxconverter::BpPxConverter}, globals::playingfield::PlayingFieldEdge}};
 use super::{boxtraits::{Stackable, Transformable, Coordinated, BuildSize }};
 
 // TODO ranged bppxconverter

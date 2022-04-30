@@ -1,6 +1,6 @@
 use std::{sync::{Arc}};
 
-use crate::{allotment::{style::{allotmentname::{AllotmentNamePart}, style::{ContainerAllotmentStyle, LeafAllotmentStyle, LeafInheritStyle}}}, LeafCommonStyle, LeafRequest};
+use crate::{allotment::{style::{style::{ContainerAllotmentStyle, LeafAllotmentStyle, LeafInheritStyle}}, core::allotmentname::AllotmentNamePart}, LeafCommonStyle, LeafRequest};
 
 use super::styletree::StyleTree;
 

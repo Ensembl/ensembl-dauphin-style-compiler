@@ -1,6 +1,6 @@
 use std::{collections::HashMap};
 
-use crate::allotment::style::{style::{ContainerAllotmentStyle, LeafAllotmentStyle}, allotmentname::AllotmentNamePart};
+use crate::allotment::{style::{style::{ContainerAllotmentStyle, LeafAllotmentStyle}}, core::allotmentname::AllotmentNamePart};
 
 use super::styletreebuilder::StyleTreeBuilder;
 

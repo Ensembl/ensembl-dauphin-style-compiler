@@ -1,6 +1,7 @@
 use std::hash::Hash;
 use peregrine_toolkit::{puzzle::{StaticValue, StaticAnswer, commute}};
-use crate::allotment::{style::allotmentname::AllotmentName};
+use crate::allotment::core::allotmentname::AllotmentName;
+
 use super::globalvalue::{LocalValueBuilder, LocalValueSpec, GlobalValueBuilder, GlobalValueSpec};
 
 pub struct LocalHeightTrackerBuilder(LocalValueBuilder<AllotmentName,f64,f64>);

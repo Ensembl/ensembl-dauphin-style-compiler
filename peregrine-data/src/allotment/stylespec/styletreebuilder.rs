@@ -1,6 +1,6 @@
 use std::{collections::HashMap};
 
-use crate::allotment::style::{allotmentname::{AllotmentName, AllotmentNamePart}, style::{LeafAllotmentStyle, ContainerAllotmentStyle}};
+use crate::allotment::{style::{style::{LeafAllotmentStyle, ContainerAllotmentStyle}}, core::allotmentname::{AllotmentNamePart, AllotmentName}};
 
 use super::styletree::{StyleTree, StyleTreeNode};
 
@@ -145,8 +145,6 @@ impl StyleTreeBuilder {
 
 #[cfg(test)]
 mod test {
-    use crate::allotment::{style::allotmentname::AllotmentName };
-
     use super::*;
 
     fn add(builder: &mut StyleTreeBuilder, spec: &str, props: &[(&str,&str)]) {

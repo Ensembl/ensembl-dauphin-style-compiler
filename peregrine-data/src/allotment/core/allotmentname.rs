@@ -96,7 +96,9 @@ impl BuildHasher for BuildPassThroughHasher {
     }
 }
 
-pub fn new_efficient_allotmentname_hashmap<T>() -> HashMap<AllotmentName,T,BuildPassThroughHasher> {
+pub type AllotmentNameHashMap<T> = HashMap<AllotmentName,T,BuildPassThroughHasher>;
+
+pub fn allotmentname_hashmap<T>() -> AllotmentNameHashMap<T> {
     HashMap::<_,_,BuildPassThroughHasher>::with_hasher(BuildPassThroughHasher)
 }
 

@@ -1,6 +1,6 @@
 use std::{collections::HashMap};
 
-use crate::allotment::{style::allotmentname::AllotmentName, collision::bumpprocess::BumpPersistent};
+use crate::allotment::{collision::bumpprocess::BumpPersistent, core::allotmentname::AllotmentName};
 
 pub(crate) struct TrainPersistent {
     bump: HashMap<AllotmentName,BumpPersistent>
