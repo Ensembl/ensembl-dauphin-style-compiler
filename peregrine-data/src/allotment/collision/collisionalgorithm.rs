@@ -1,5 +1,5 @@
 use std::{sync::{Arc, Mutex}, collections::{HashMap, HashSet}, ops::Range, mem};
-use peregrine_toolkit::{lock};
+use peregrine_toolkit::{lock, log};
 use peregrine_toolkit::skyline::Skyline;
 use crate::allotment::{util::rangeused::RangeUsed, core::allotmentname::AllotmentName};
 use super::bumppart::Part;
@@ -294,6 +294,7 @@ impl Algorithm {
                 _ => {}
             }
             /* 3b. proceed adding as normal */
+            self.requests.insert(req.name.clone(),req.clone());
             self.bump_one(req);
         }
         true
