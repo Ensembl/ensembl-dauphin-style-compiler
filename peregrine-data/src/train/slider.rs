@@ -2,8 +2,10 @@ use std::{hash::Hash, collections::{HashMap, HashSet}, mem, iter::FromIterator};
 
 pub trait SliderActions<X,P,T> {
     fn ctor(&mut self, index: &X) -> P;
-    fn init(&mut self, index: &X, item: &mut P) -> Option<T>;
     fn dtor(&mut self, index: &X, item: T);
+    fn steady(&mut self) {}
+
+    fn init(&mut self, index: &X, item: &mut P) -> Option<T>;
     fn done(&mut self, _items: &mut dyn Iterator<Item=(&X,&T)>) {} 
 }
 
@@ -25,6 +27,7 @@ impl<X: Eq+Hash+Clone,P,T,S: SliderActions<X,P,T>> Slider<X,P,T,S> {
     }
 
     fn make_it_so(&mut self) {
+        let mut changed = false;
         let present = self.ready.keys().cloned().collect::<HashSet<_>>();
         /* calculate differences */
         let missings = self.want.difference(&present);
@@ -32,6 +35,7 @@ impl<X: Eq+Hash+Clone,P,T,S: SliderActions<X,P,T>> Slider<X,P,T,S> {
         /* Add what is missing */
         for missing in missings {
             let new = self.actions.ctor(missing);
+            changed = true;
             self.pending.insert(missing.clone(),new);
             self.ready.insert(missing.clone(),None);
         }
@@ -39,7 +43,12 @@ impl<X: Eq+Hash+Clone,P,T,S: SliderActions<X,P,T>> Slider<X,P,T,S> {
         for unneeded in unneededs {
             if let Some(old) = self.ready.remove(unneeded).unwrap() {
                 self.actions.dtor(unneeded,old);
+                changed = true;
             }
+        }
+        /* Call steady if changed */
+        if changed {
+            self.actions.steady();
         }
     }
 

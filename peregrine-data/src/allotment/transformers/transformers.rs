@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{CoordinateSystem, SpaceBase, SpaceBaseArea, allotment::style::style::{LeafCommonStyle}};
+use crate::{CoordinateSystem, SpaceBase, SpaceBaseArea, allotment::style::style::{LeafStyle}};
 
 use super::{transformertraits::{SpaceBaseTransformer, GraphTransformer}, simple::SimpleTransformerHolder};
 
@@ -15,30 +15,30 @@ pub enum TransformerVariety {
 pub trait Transformer {
     fn choose_variety(&self) -> (TransformerVariety,CoordinateSystem);
     fn into_simple_transformer(&self) -> Option<SimpleTransformerHolder> { None }
-    fn get_style(&self) -> &LeafCommonStyle;
+    fn get_style(&self) -> &LeafStyle;
 
     #[cfg(any(debug_assertions,test))]
     fn describe(&self) -> String;
 }
 
 impl TransformerVariety {
-    pub fn spacebase_transform(&self, coord_system: &CoordinateSystem, spacebase: &SpaceBase<f64,Arc<dyn Transformer>>) -> SpaceBase<f64,LeafCommonStyle> {
+    pub fn spacebase_transform(&self, coord_system: &CoordinateSystem, spacebase: &SpaceBase<f64,Arc<dyn Transformer>>) -> SpaceBase<f64,LeafStyle> {
         match self {
             TransformerVariety::SimpleTransformer => {
                 let items = spacebase.map_allotments(|a| a.into_simple_transformer());
                 SimpleTransformerHolder::transform_spacebase(coord_system,&items)
             },
-            TransformerVariety::DustbinTransformer => { spacebase.map_allotments(|_| LeafCommonStyle::dustbin()) }
+            TransformerVariety::DustbinTransformer => { spacebase.map_allotments(|_| LeafStyle::dustbin()) }
         }
     }
 
-    pub fn spacebasearea_transform(&self, coord_system: &CoordinateSystem, spacebase: &SpaceBaseArea<f64,Arc<dyn Transformer>>) -> SpaceBaseArea<f64,LeafCommonStyle> {
+    pub fn spacebasearea_transform(&self, coord_system: &CoordinateSystem, spacebase: &SpaceBaseArea<f64,Arc<dyn Transformer>>) -> SpaceBaseArea<f64,LeafStyle> {
         match self {
             TransformerVariety::SimpleTransformer => {
                 let items = spacebase.map_allotments(|a| a.into_simple_transformer());
                 SimpleTransformerHolder::transform_spacebasearea(coord_system,&items)
             },
-            TransformerVariety::DustbinTransformer => { spacebase.map_allotments(|_| LeafCommonStyle::dustbin()) }
+            TransformerVariety::DustbinTransformer => { spacebase.map_allotments(|_| LeafStyle::dustbin()) }
         }
     }
 

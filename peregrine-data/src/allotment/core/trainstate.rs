@@ -1,6 +1,12 @@
 use std::{sync::{Arc, Mutex}, collections::{HashMap, hash_map::DefaultHasher}, fmt, hash::{Hash, Hasher}};
-use peregrine_toolkit::{puzzle::{StaticAnswer, AnswerAllocator}, lock};
+use peregrine_toolkit::{puzzle::{StaticAnswer, AnswerAllocator}, lock, log, debug_log };
 use crate::{allotment::{globals::{heighttracker::{LocalHeightTrackerBuilder, LocalHeightTracker, GlobalHeightTracker, GlobalHeightTrackerBuilder}, playingfield::{LocalPlayingFieldBuilder, LocalPlayingField, GlobalPlayingField, GlobalPlayingFieldBuilder}, aligner::{LocalAlignerBuilder, LocalAligner, GlobalAligner, GlobalAlignerBuilder}, allotmentmetadata::{LocalAllotmentMetadataBuilder, LocalAllotmentMetadata, GlobalAllotmentMetadata, GlobalAllotmentMetadataBuilder}, bumping::{LocalBumpBuilder, GlobalBump, GlobalBumpBuilder, LocalBump}, trainpersistent::TrainPersistent}}};
+
+use lazy_static::lazy_static;
+use identitynumber::identitynumber;
+
+#[cfg(debug_trains)]
+use peregrine_toolkit::{debug_log};
 
 /* Every carriage manipulates in a CarriageTrainStateRequest during creation (during build). This specifies the
  * requirements which a Carriage has of the train. 
@@ -67,6 +73,8 @@ impl CarriageTrainStateSpec {
     }
 }
 
+identitynumber!(IDS);
+
 #[derive(Clone)]
 pub struct TrainState3 {
     height_tracker: Arc<GlobalHeightTracker>,
@@ -75,7 +83,8 @@ pub struct TrainState3 {
     aligner: Arc<GlobalAligner>,
     bump: Arc<GlobalBump>,
     answer: Arc<Mutex<StaticAnswer>>,
-    hash: u64
+    hash: u64,
+    serial: u64
 }
 
 impl PartialEq for TrainState3 {
@@ -93,7 +102,7 @@ impl Hash for TrainState3 {
 #[cfg(debug_assertions)]
 impl fmt::Debug for TrainState3 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("TrainState3").field("height_tracker", &self.height_tracker).finish()
+        write!(f,"state({})",self.serial)
     }
 }
 
@@ -160,7 +169,8 @@ impl TrainState3 {
         let metadata = Arc::new(Self::calc_metadata(spec,&mut answer));
         let mut out = TrainState3 {
             height_tracker, playing_field, aligner, metadata, bump,
-            answer: Arc::new(Mutex::new(answer)), hash: 0
+            answer: Arc::new(Mutex::new(answer)), hash: 0,
+            serial: IDS.next()
         };
         out.calc_hash();
         out
@@ -193,18 +203,20 @@ impl TrainStateSpec {
         if state.is_none() {
             let answer = lock!(self.answer_allocator).get();
             *state = Some(TrainState3::new(self,answer,&self.persistent));
-            #[cfg(debug_trains)] debug_log!("new state");
+            #[cfg(debug_trains)] debug_log!("new state: {:?}",*state);
         }
         state.clone().unwrap()
     }
 
-    pub fn add(&mut self, index: u64, spec: &CarriageTrainStateSpec) {
+    pub(crate) fn add(&mut self, index: u64, spec: &CarriageTrainStateSpec) {
         self.specs.insert(index,spec.clone());
+        log!("state {:?}",self.specs.keys());
         *lock!(self.cached_train_state) = None;
     }
 
-    pub fn remove(&mut self, index: u64) {
+    pub(crate) fn remove(&mut self, index: u64) {
         self.specs.remove(&index);
+        log!("state {:?}",self.specs.keys());
         *lock!(self.cached_train_state) = None;
     }
 }

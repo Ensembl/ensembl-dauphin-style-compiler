@@ -1,9 +1,9 @@
 use std::{sync::{Arc, Mutex}};
 use peregrine_toolkit::{puzzle::{StaticAnswer}, lock};
 
-use crate::{allotment::{style::{style::LeafCommonStyle }, boxes::{root::{Root}, boxtraits::Transformable}, collision::{collisionalgorithm::BumpRequestSetFactory}, util::bppxconverter::BpPxConverter}, ShapeRequestGroup, Shape, DataMessage, LeafRequest};
+use crate::{allotment::{boxes::{root::{Root}}, collision::{collisionalgorithm::BumpRequestSetFactory}, util::bppxconverter::BpPxConverter}, ShapeRequestGroup, Shape, DataMessage, LeafRequest, LeafStyle};
 
-use super::{leafrequest::LeafTransformableMap, leaflist::LeafList, trainstate::{CarriageTrainStateRequest, CarriageTrainStateSpec}};
+use super::{leafrequest::LeafTransformableMap, leaflist::LeafList, trainstate::{CarriageTrainStateRequest, CarriageTrainStateSpec}, boxtraits::Transformable};
 
 pub(crate) struct BoxPositionContext {
     pub bp_px_converter: Arc<BpPxConverter>,
@@ -91,7 +91,7 @@ impl CarriageOutput {
         Ok(lock!(self.0).ready()?.spec.as_ref().clone())
     }
 
-    pub fn get(&self, answer_index: &mut StaticAnswer) -> Result<Vec<Shape<LeafCommonStyle>>,DataMessage> {
+    pub fn make(&self, answer_index: &mut StaticAnswer) -> Result<Vec<Shape<LeafStyle>>,DataMessage> {
         let mut out = vec![];
         for input in lock!(self.0).ready()?.shapes.iter() {
             out.append(&mut input.map_new_allotment(|x| x.make(answer_index)).make());

@@ -1,5 +1,5 @@
 use std::{collections::HashMap, rc::Rc, sync::{Arc, Mutex}};
-use peregrine_data::{ Scale, ZMenu, ZMenuGenerator, ZMenuProxy, SpaceBaseArea, SpaceBasePointRef, EachOrEvery, LeafCommonStyle, Hotspot };
+use peregrine_data::{ Scale, ZMenu, ZMenuGenerator, ZMenuProxy, SpaceBaseArea, SpaceBasePointRef, EachOrEvery, LeafStyle, Hotspot };
 use peregrine_toolkit::{lock, log};
 use crate::stage::{stage::{ ReadStage }, axis::UnitConverter};
 use crate::util::message::Message;
@@ -52,11 +52,11 @@ enum HotspotUnscaledEntryDetails {
 
 struct HotspotUnscaledEntry {
     details: HotspotUnscaledEntryDetails,
-    area: SpaceBaseArea<f64,LeafCommonStyle>
+    area: SpaceBaseArea<f64,LeafStyle>
 }
 
 impl HotspotUnscaledEntry {
-    fn new(area: SpaceBaseArea<f64,LeafCommonStyle>, hotspot: &Hotspot) -> HotspotUnscaledEntry {
+    fn new(area: SpaceBaseArea<f64,LeafStyle>, hotspot: &Hotspot) -> HotspotUnscaledEntry {
         match hotspot {
             Hotspot::ZMenu(zmenu,values) => {
                 let mut map_values = HashMap::new();
@@ -99,7 +99,7 @@ impl DrawingHotspotsBuilder {
         }
     }
 
-    pub(crate) fn add_rectangle(&mut self, area: SpaceBaseArea<f64,LeafCommonStyle>, hotspot: &Hotspot) {
+    pub(crate) fn add_rectangle(&mut self, area: SpaceBaseArea<f64,LeafStyle>, hotspot: &Hotspot) {
         self.entries.push(HotspotUnscaledEntry::new(area,hotspot));
     }
 
@@ -129,7 +129,7 @@ impl HotspotEntryDetails {
 
 #[derive(Clone)]
 struct HotspotEntry {
-    area: SpaceBaseArea<f64,LeafCommonStyle>,
+    area: SpaceBaseArea<f64,LeafStyle>,
     index: usize,
     order: usize,
     details: HotspotEntryDetails
@@ -181,7 +181,7 @@ impl ScaledHotspots {
         out
     }
 
-    fn maximum_footprint(&self, top_left: &SpaceBasePointRef<f64,LeafCommonStyle>, bottom_right: &SpaceBasePointRef<f64,LeafCommonStyle>) -> ((f64,u64),(f64,u64)) {
+    fn maximum_footprint(&self, top_left: &SpaceBasePointRef<f64,LeafStyle>, bottom_right: &SpaceBasePointRef<f64,LeafStyle>) -> ((f64,u64),(f64,u64)) {
         /* y-coordinate */
         let (top_px,bottom_px) = order(*top_left.normal,*bottom_right.normal);
         /* x-coordinate */
@@ -194,7 +194,7 @@ impl ScaledHotspots {
     }
 
     // TODO no-bp zmenus
-    fn get_zones(&self, top_left: &SpaceBasePointRef<f64,LeafCommonStyle>, bottom_right: &SpaceBasePointRef<f64,LeafCommonStyle>) -> Vec<u64> {
+    fn get_zones(&self, top_left: &SpaceBasePointRef<f64,LeafStyle>, bottom_right: &SpaceBasePointRef<f64,LeafStyle>) -> Vec<u64> {
         let ((left_scr,top_px),(right_scr,bottom_px)) = self.maximum_footprint(top_left,bottom_right);
         let mut out = vec![];
         for v_zone in (top_px/VERT_ZONE_HEIGHT)..((bottom_px/VERT_ZONE_HEIGHT)+1) {

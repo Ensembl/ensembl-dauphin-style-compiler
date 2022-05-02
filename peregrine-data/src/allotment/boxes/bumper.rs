@@ -2,9 +2,9 @@ use std::sync::{Arc};
 
 use peregrine_toolkit::{puzzle::{derived, DelayedSetter, compose, StaticValue, compose_slice, promise_delayed }};
 
-use crate::{allotment::{core::{carriageoutput::BoxPositionContext, allotmentname::{AllotmentNamePart, AllotmentName}}, style::{style::{ContainerAllotmentStyle}}, boxes::{boxtraits::Stackable}, collision::{collisionalgorithm::{BumpRequestSet, BumpRequest, BumpResponses}}}, CoordinateSystem};
+use crate::{allotment::{core::{carriageoutput::BoxPositionContext, allotmentname::{AllotmentNamePart, AllotmentName}, boxtraits::{Stackable, BuildSize, ContainerSpecifics, Coordinated}}, style::{style::{ContainerAllotmentStyle}}, collision::{collisionalgorithm::{BumpRequestSet, BumpRequest, BumpResponses}}}, CoordinateSystem};
 
-use super::{container::{Container}, boxtraits::{Coordinated, BuildSize, ContainerSpecifics}};
+use super::{container::{Container}};
 
 #[derive(Clone)]
 pub struct Bumper(Container);

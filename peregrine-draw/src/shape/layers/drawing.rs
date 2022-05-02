@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 use super::layer::Layer;
-use peregrine_data::{Assets, Scale, Shape, LeafCommonStyle };
+use peregrine_data::{Assets, Scale, Shape, LeafStyle };
 use peregrine_toolkit::{lock};
 use peregrine_toolkit::sync::needed::Needed;
 use peregrine_toolkit::sync::retainer::RetainTest;
@@ -57,11 +57,11 @@ pub(crate) struct DrawingTools {
 }
 
 impl DrawingTools {
-    fn new(assets: &Assets, scale: Option<&Scale>, left: f64, bitmap_multiplier: f32) -> DrawingTools {
+    fn new(assets: &Assets, scale: Option<&Scale>, left: f64) -> DrawingTools {
         DrawingTools {
-            text: DrawingText::new(bitmap_multiplier),
-            bitmap: DrawingBitmap::new(assets,bitmap_multiplier),
-            heraldry: DrawingHeraldry::new(bitmap_multiplier),
+            text: DrawingText::new(),
+            bitmap: DrawingBitmap::new(assets),
+            heraldry: DrawingHeraldry::new(),
             zmenus: DrawingHotspotsBuilder::new(scale, left)
         }
     }
@@ -99,13 +99,13 @@ impl DrawingBuilder {
         let gl_ref = gl.refs();
         Ok(DrawingBuilder {
             main_layer: Layer::new(gl_ref.program_store,left)?,
-            tools: DrawingTools::new(assets,scale,left,gl_ref.flat_store.bitmap_multiplier()),
+            tools: DrawingTools::new(assets,scale,left),
             flats: None,
             dynamic_shapes: vec![]
         })
     }
 
-    pub(crate) fn prepare_shape(&mut self, shape: &Shape<LeafCommonStyle>) -> Result<Vec<GLShape>,Message> {
+    pub(crate) fn prepare_shape(&mut self, shape: &Shape<LeafStyle>) -> Result<Vec<GLShape>,Message> {
         let shape = shape.clone(); // XXX don't clone
         let (layer, tools) = (&mut self.main_layer,&mut self.tools);
         prepare_shape_in_layer(layer,tools,shape)
@@ -164,7 +164,7 @@ struct DrawingData {
 pub(crate) struct Drawing(Arc<Mutex<DrawingData>>);
 
 impl Drawing {
-    pub(crate) async fn new(scale: Option<&Scale>, shapes: Arc<Vec<Shape<LeafCommonStyle>>>, gl: &Arc<Mutex<WebGlGlobal>>, left: f64, assets: &Assets, retain_test: &RetainTest) -> Result<Option<Drawing>,Message> {
+    pub(crate) async fn new(scale: Option<&Scale>, shapes: Arc<Vec<Shape<LeafStyle>>>, gl: &Arc<Mutex<WebGlGlobal>>, left: f64, assets: &Assets, retain_test: &RetainTest) -> Result<Option<Drawing>,Message> {
         /* convert core shape data model into gl shapes */
         let mut lgl = lock!(gl);
         let mut drawing = DrawingBuilder::new(scale,&mut lgl,assets,left)?;
@@ -182,7 +182,7 @@ impl Drawing {
         drawing.build(gl,retain_test).await
     }
 
-    pub(crate) fn new_sync(scale: Option<&Scale>, shapes: Vec<Shape<LeafCommonStyle>>, gl: &Arc<Mutex<WebGlGlobal>>, left: f64, assets: &Assets) -> Result<Drawing,Message> {
+    pub(crate) fn new_sync(scale: Option<&Scale>, shapes: Vec<Shape<LeafStyle>>, gl: &Arc<Mutex<WebGlGlobal>>, left: f64, assets: &Assets) -> Result<Drawing,Message> {
         let mut lgl = lock!(gl);
         /* convert core shape data model into gl shapes */
         let mut drawing = DrawingBuilder::new(scale,&mut lgl,assets,left)?;

@@ -67,7 +67,6 @@ impl GlRailwayData {
     }
 
     fn create_carriage(&mut self, carriage: &DrawingCarriage, gl: &Arc<Mutex<WebGlGlobal>>, assets: &Assets) -> Result<(),Message> {
-        debug_log!("gl/create_carriage {:?}",carriage.extent());
         if !self.carriages.contains_key(&carriage) {
             self.carriages.insert(carriage.clone(), GLCarriage::new(&self.redraw_needed,&self.commander,carriage, gl, assets)?);
         }
@@ -75,7 +74,6 @@ impl GlRailwayData {
     }
 
     fn drop_carriage(&mut self, carriage: &DrawingCarriage) { 
-        debug_log!("gl/drop_carriage {:?}",carriage.extent());
         self.carriages.remove(carriage);
     }
 

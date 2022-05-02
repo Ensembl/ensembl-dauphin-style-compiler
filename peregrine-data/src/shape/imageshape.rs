@@ -1,4 +1,4 @@
-use crate::{DataMessage, ShapeDemerge, Shape, util::{eachorevery::EachOrEveryFilter}, SpaceBase, allotment::{transformers::transformers::{Transformer, TransformerVariety}, style::{style::LeafCommonStyle}}, EachOrEvery, CoordinateSystem, LeafRequest};
+use crate::{DataMessage, ShapeDemerge, Shape, util::{eachorevery::EachOrEveryFilter}, SpaceBase, allotment::{transformers::transformers::{Transformer, TransformerVariety}, style::{style::LeafStyle}}, EachOrEvery, CoordinateSystem, LeafRequest};
 use std::{hash::Hash, sync::Arc};
 
 #[cfg_attr(debug_assertions,derive(Debug))]
@@ -79,8 +79,8 @@ impl ImageShape<LeafRequest> {
     }
 }
 
-impl ImageShape<LeafCommonStyle> {
-    pub fn demerge<T: Hash + PartialEq + Eq,D>(self, cat: &D) -> Vec<(T,ImageShape<LeafCommonStyle>)> where D: ShapeDemerge<X=T> {
+impl ImageShape<LeafStyle> {
+    pub fn demerge<T: Hash + PartialEq + Eq,D>(self, cat: &D) -> Vec<(T,ImageShape<LeafStyle>)> where D: ShapeDemerge<X=T> {
         let demerge = self.position.allotments().demerge(self.position.len(),|x| {
             cat.categorise(&x.coord_system)
         });
@@ -93,7 +93,7 @@ impl ImageShape<LeafCommonStyle> {
 }
 
 impl ImageShape<Arc<dyn Transformer>> {
-    pub fn make(&self) -> Vec<ImageShape<LeafCommonStyle>> {
+    pub fn make(&self) -> Vec<ImageShape<LeafStyle>> {
         let mut out = vec![];
         for ((variety,coord_system),images) in self.demerge_by_variety() {
             out.push(ImageShape {

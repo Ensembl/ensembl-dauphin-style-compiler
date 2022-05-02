@@ -1,4 +1,4 @@
-use crate::{DataMessage, Plotter, ShapeDemerge, Shape, util::{eachorevery::EachOrEveryFilter}, allotment::{transformers::transformers::Transformer, style::{style::LeafCommonStyle}}, EachOrEvery, LeafRequest};
+use crate::{DataMessage, Plotter, ShapeDemerge, Shape, util::{eachorevery::EachOrEveryFilter}, allotment::{transformers::transformers::Transformer, style::{style::LeafStyle}}, EachOrEvery, LeafRequest};
 use std::{cmp::{max, min}, hash::Hash, sync::Arc};
 
 const SCALE : i64 = 200; // XXX configurable
@@ -98,8 +98,8 @@ impl WiggleShape<LeafRequest> {
     }
 }
 
-impl WiggleShape<LeafCommonStyle> {
-    pub fn get_style(&self) -> &LeafCommonStyle { &self.allotments.get(0).unwrap() }
+impl WiggleShape<LeafStyle> {
+    pub fn get_style(&self) -> &LeafStyle { &self.allotments.get(0).unwrap() }
 }
 
 impl<A: Clone> WiggleShape<A> {
@@ -125,8 +125,8 @@ impl<A: Clone> WiggleShape<A> {
     }
 }
 
-impl WiggleShape<LeafCommonStyle> {
-    pub fn demerge<T: Hash + PartialEq + Eq,D>(self, cat: &D) -> Vec<(T,WiggleShape<LeafCommonStyle>)> where D: ShapeDemerge<X=T> {
+impl WiggleShape<LeafStyle> {
+    pub fn demerge<T: Hash + PartialEq + Eq,D>(self, cat: &D) -> Vec<(T,WiggleShape<LeafStyle>)> where D: ShapeDemerge<X=T> {
         let demerge = self.allotments.demerge(1,|a| cat.categorise(&a.coord_system));
         let mut out = vec![];
         for (draw_group,mut filter) in demerge {
@@ -138,7 +138,7 @@ impl WiggleShape<LeafCommonStyle> {
 }
 
 impl WiggleShape<Arc<dyn Transformer>> {
-    pub fn make(&self) -> Vec<WiggleShape<LeafCommonStyle>> {
+    pub fn make(&self) -> Vec<WiggleShape<LeafStyle>> {
         let allotment = self.allotments.get(0).unwrap();
         let (variety,coord_system) = allotment.choose_variety();
         vec![WiggleShape {

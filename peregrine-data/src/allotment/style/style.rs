@@ -1,12 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 
-use crate::{CoordinateSystem, CoordinateSystemVariety};
-
-#[cfg_attr(any(test,debug_assertions),derive(Debug))]
-#[derive(Clone)]
-pub enum LeafAllotmentType {
-    Leaf
-}
+use crate::{CoordinateSystem, CoordinateSystemVariety, allotment::stylespec::specifiedstyle::InheritableStyle};
 
 #[cfg_attr(any(test,debug_assertions),derive(Debug))]
 #[derive(Clone,PartialEq,Eq,Hash)]
@@ -28,7 +22,7 @@ fn remove_bracketed(input: &str, prefix: &str, suffix: &str) -> Option<String> {
 }
 
 impl Indent {
-    fn build(spec: &HashMap<String,String>) -> Option<Indent> {
+    pub(crate) fn build(spec: &HashMap<String,String>) -> Option<Indent> {
         let spec = spec.get("indent").map(|x| x.as_str());
         if let Some(spec) = spec {
             if let Some(datum) = remove_bracketed(spec,"datum(",")") {
@@ -43,6 +37,18 @@ impl Indent {
             Some("none") => Some(Indent::None),
             _ => None
         }
+    }
+}
+
+#[cfg_attr(any(test,debug_assertions),derive(Debug))]
+#[derive(Clone)]
+pub enum LeafAllotmentType {
+    Leaf
+}
+
+impl LeafAllotmentType {
+    pub(crate) fn build(_spec: &HashMap<String,String>) -> LeafAllotmentType {
+        LeafAllotmentType::Leaf
     }
 }
 
@@ -62,12 +68,6 @@ impl ContainerAllotmentType {
             Some("bumper") => ContainerAllotmentType::Bumper,
             _ => ContainerAllotmentType::Stack
         }    
-    }
-}
-
-impl LeafAllotmentType {
-    fn build(_spec: &HashMap<String,String>) -> LeafAllotmentType {
-        LeafAllotmentType::Leaf
     }
 }
 
@@ -119,70 +119,7 @@ impl Padding {
 
 #[cfg_attr(any(test,debug_assertions),derive(Debug))]
 #[derive(Clone)]
-pub struct LeafInheritStyle {
-    coord_system: Option<CoordinateSystemVariety>,
-    bump_invisible: Option<bool>,
-    reverse: Option<bool>,
-    depth: Option<i8>,
-    indent: Option<Indent>
-}
-
-impl LeafInheritStyle {
-    pub(crate) fn empty() -> LeafInheritStyle {
-        LeafInheritStyle {
-            coord_system: None,
-            bump_invisible: None,
-            reverse: None,
-            depth: None,
-            indent: None
-        }
-    }
-
-    fn new(spec: &HashMap<String,String>) -> LeafInheritStyle {
-        let depth = spec.get("depth").map(|x| x.as_str());
-        let depth = depth.map(|x| x.parse::<i8>().ok()).flatten();
-        let (coord_system,reverse) = CoordinateSystem::build(spec);
-        let indent = Indent::build(spec);
-        let bump_invisible = spec.get("bump-width").map(|x| x.as_str() == "none");
-        LeafInheritStyle {
-            depth, coord_system, reverse, indent, bump_invisible
-        }
-    }
-
-    pub(crate) fn override_style(&mut self, other: &LeafInheritStyle) {
-        if other.depth.is_some() {
-            self.depth = other.depth.clone();
-        }
-        if other.coord_system.is_some() {
-            self.coord_system = other.coord_system.clone();
-        }
-        if other.reverse.is_some() {
-            self.reverse = other.reverse.clone();
-        }
-        if other.indent.is_some() {
-            self.indent = other.indent.clone();
-        }
-        if other.bump_invisible.is_some() {
-            self.bump_invisible = other.bump_invisible.clone();
-        }
-    }
-
-    pub(crate) fn make(&self, style: &LeafAllotmentStyle) -> LeafCommonStyle {
-        let variety = self.coord_system.as_ref().unwrap_or(&CoordinateSystemVariety::Window).clone();
-        let reverse = self.reverse.unwrap_or(false);
-        LeafCommonStyle {
-            depth: self.depth.unwrap_or(0),
-            coord_system: CoordinateSystem(variety,reverse),
-            priority: style.priority,
-            indent: self.indent.as_ref().unwrap_or(&Indent::None).clone(),
-            bump_invisible: self.bump_invisible.unwrap_or(false)
-        }
-    }
-}
-
-#[cfg_attr(any(test,debug_assertions),derive(Debug))]
-#[derive(Clone)]
-pub struct LeafCommonStyle {
+pub struct LeafStyle {
     pub coord_system: CoordinateSystem,
     pub depth: i8,
     pub priority: i64,
@@ -190,9 +127,9 @@ pub struct LeafCommonStyle {
     pub bump_invisible: bool
 }
 
-impl LeafCommonStyle {
-    pub fn dustbin() -> LeafCommonStyle {
-        LeafCommonStyle {
+impl LeafStyle {
+    pub fn dustbin() -> LeafStyle {
+        LeafStyle {
             coord_system: CoordinateSystem(CoordinateSystemVariety::Dustbin,false),
             depth: 0,
             priority: 0,
@@ -201,8 +138,8 @@ impl LeafCommonStyle {
         }
     }
 
-    pub fn default() -> LeafCommonStyle {
-        LeafCommonStyle {
+    pub fn default() -> LeafStyle {
+        LeafStyle {
             coord_system: CoordinateSystem(CoordinateSystemVariety::Window,false),
             depth: 0,
             priority: 0,
@@ -212,38 +149,12 @@ impl LeafCommonStyle {
     }
 }
 
-#[cfg_attr(any(test,debug_assertions),derive(Debug))]
-#[derive(Clone)]
-pub struct LeafAllotmentStyle {
-    pub allot_type: LeafAllotmentType,
-    pub leaf: LeafInheritStyle,
-    pub priority: i64
-}
-
-impl LeafAllotmentStyle {
-    pub(crate) fn empty() -> LeafAllotmentStyle {
-        LeafAllotmentStyle {
-            allot_type: LeafAllotmentType::Leaf,
-            leaf: LeafInheritStyle::empty(),
-            priority: 0
-        }
-    }
-
-    pub(crate) fn build(spec: &HashMap<String,String>) -> LeafAllotmentStyle {
-        let allot_type = LeafAllotmentType::build(spec);
-        let leaf = LeafInheritStyle::new(spec);
-        let priority = spec.get("priority").map(|x| x.as_str());
-        let priority = priority.map(|x| x.parse::<i64>().ok()).flatten().unwrap_or(0);
-        LeafAllotmentStyle { allot_type, leaf, priority }
-    }
-}
-
 #[cfg_attr(debug_assertions,derive(Debug))]
 #[derive(Clone)]
 pub struct ContainerAllotmentStyle {
     pub allot_type: ContainerAllotmentType,
     pub coord_system: CoordinateSystem,
-    pub leaf: LeafInheritStyle,
+    pub leaf: InheritableStyle,
     pub padding: Padding,
     pub priority: i64,
     pub ranged: bool,
@@ -256,7 +167,7 @@ impl ContainerAllotmentStyle {
         ContainerAllotmentStyle {
             allot_type: ContainerAllotmentType::Stack,
             coord_system: CoordinateSystem(CoordinateSystemVariety::Tracking,false),
-            leaf: LeafInheritStyle::empty(),
+            leaf: InheritableStyle::empty(),
             padding: Padding::empty(),
             priority: 0,
             ranged: false,
@@ -277,7 +188,7 @@ impl ContainerAllotmentStyle {
             allot_type,
             padding: Padding::build(spec),
             coord_system: CoordinateSystem::from_build(coord_system,reverse),
-            leaf: LeafInheritStyle::new(spec),
+            leaf: InheritableStyle::new(spec),
             priority,
             ranged,
             set_align,

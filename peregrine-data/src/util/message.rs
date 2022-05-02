@@ -2,7 +2,7 @@ use std::sync::{ Arc, Mutex };
 use std::{ hash::{ Hash, Hasher }, fmt };
 use std::collections::hash_map::{ DefaultHasher };
 use std::error::Error;
-use crate::{DrawingCarriageExtent, TrainExtent};
+use crate::{CarriageExtent, TrainExtent};
 use crate::core::channel::Channel;
 use crate::shapeload::programname::ProgramName;
 use crate::core::stick::StickId;
@@ -192,8 +192,8 @@ impl PeregrineMessage for DataMessage {
             DataMessage::AuthorityUnavailable(source) => format!("stick authority unavailable due to earlier: {}",source),
             DataMessage::NoSuchStick(stick) => format!("no such stick: {}",stick),
             DataMessage::NoSuchJump(location) => format!("no such jump: {}",location),
-            DataMessage::CarriageUnavailable(id,causes) =>
-                format!("carriage unavilable. causes = [{}]",causes.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(", ")),
+            DataMessage::CarriageUnavailable(train,index,causes) =>
+                format!("carriage {:?}/{} unavilable. causes = [{}]",train,index,causes.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(", ")),
             DataMessage::DauphinProgramDidNotLoad(name) => format!("dauphin program '{}' did not load",name),
             DataMessage::DauphinIntegrationError(message) => format!("dauphin integration error: {}",message),
             DataMessage::DauphinRunError(program,message) => format!("error running dauphin program '{}': {}",program,message),

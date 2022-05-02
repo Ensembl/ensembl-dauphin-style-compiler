@@ -11,7 +11,7 @@ use crate::CoordinateSystem;
 use crate::DataMessage;
 use crate::DrawnType;
 use crate::LeafRequest;
-use crate::allotment::style::style::LeafCommonStyle;
+use crate::allotment::style::style::LeafStyle;
 use crate::allotment::transformers::transformers::Transformer;
 use crate::allotment::util::rangeused::RangeUsed;
 use crate::util::eachorevery::EachOrEveryFilter;
@@ -87,8 +87,8 @@ impl Shape<LeafRequest> {
     }
 }
 
-impl Shape<LeafCommonStyle> {
-    pub fn demerge<T: Hash + PartialEq + Eq,D>(self, cat: &D) -> Vec<(T,Shape<LeafCommonStyle>)> where D: ShapeDemerge<X=T> {
+impl Shape<LeafStyle> {
+    pub fn demerge<T: Hash + PartialEq + Eq,D>(self, cat: &D) -> Vec<(T,Shape<LeafStyle>)> where D: ShapeDemerge<X=T> {
         match self {
             Shape::Wiggle(shape) => {
                 return shape.demerge(cat).drain(..).map(|(x,details)| 
@@ -115,7 +115,7 @@ impl Shape<LeafCommonStyle> {
 }
 
 impl Shape<Arc<dyn Transformer>> {
-    pub fn make(&self) -> Vec<Shape<LeafCommonStyle>> {
+    pub fn make(&self) -> Vec<Shape<LeafStyle>> {
         match self {
             Shape::SpaceBaseRect(shape) => shape.make().drain(..).map(|x| Shape::SpaceBaseRect(x)).collect(),
             Shape::Text(shape) => shape.make().drain(..).map(|x| Shape::Text(x)).collect(),

@@ -1,6 +1,6 @@
 use std::{sync::{Arc, Mutex}, collections::{HashMap}};
 
-use peregrine_toolkit::{lock};
+use peregrine_toolkit::{lock, debug_log};
 
 use crate::{PeregrineIntegration, TrainExtent, allotment::{globals::{playingfield::{GlobalPlayingField, PlayingField}, allotmentmetadata::GlobalAllotmentMetadata} }, CarriageSpeed, Viewport };
 

@@ -76,9 +76,9 @@ pub struct DrawingBitmap {
 }
 
 impl DrawingBitmap {
-    pub fn new(assets: &Assets, bitmap_multiplier: f32) -> DrawingBitmap {
+    pub fn new(assets: &Assets) -> DrawingBitmap {
         DrawingBitmap {
-            manager: FlatDrawingManager::new(bitmap_multiplier),
+            manager: FlatDrawingManager::new(),
             assets: assets.clone()
         }
     }

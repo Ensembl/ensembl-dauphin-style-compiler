@@ -1,21 +1,19 @@
-use std::{sync::Arc, collections::HashMap};
+use std::collections::HashMap;
 
-use peregrine_data::{Colour, DirectColour, DrawnType, Patina, SpaceBase, SpaceBaseArea, PartialSpaceBase, reactive::{Reactive, Observable}, EachOrEvery, ProgramShapesBuilder, LeafRequest, LeafCommonStyle, Pen};
+use peregrine_data::{Colour, DirectColour, DrawnType, Patina, SpaceBase, SpaceBaseArea, PartialSpaceBase, reactive::{Reactive, Observable}, EachOrEvery, ProgramShapesBuilder, LeafRequest};
 use crate::{Message, run::{PgConfigKey, PgPeregrineConfig}, shape::util::iterators::eoe_throw};
 use peregrine_data::reactive;
 use super::spectremanager::SpectreConfigKey;
 
 #[derive(Clone)]
 pub(crate) struct AreaVariables2<'a> {
-    tlbr: (reactive::Variable<'a,f64>,reactive::Variable<'a,f64>,reactive::Variable<'a,f64>,reactive::Variable<'a,f64>),
-    reactive: Reactive<'a>
+    tlbr: (reactive::Variable<'a,f64>,reactive::Variable<'a,f64>,reactive::Variable<'a,f64>,reactive::Variable<'a,f64>)
 }
 
 impl<'a> AreaVariables2<'a> {
     pub(crate) fn new(reactive: &Reactive<'a>) -> AreaVariables2<'a> {
         AreaVariables2 {
             tlbr: (reactive.variable(0.),reactive.variable(0.),reactive.variable(0.),reactive.variable(0.)),
-            reactive: reactive.clone()
         }
     }
 

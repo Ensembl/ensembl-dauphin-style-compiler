@@ -1,4 +1,6 @@
 use std::{sync::{Arc}, collections::HashSet, mem};
+use peregrine_toolkit::log;
+
 use super::{collisionalgorithm::{BumpRequestSet, BumpResponses, AlgorithmBuilder, Algorithm}};
 
 pub(crate) struct BumpPersistent {
@@ -42,6 +44,7 @@ impl BumpPersistent {
             }
         }
         /* Rebuild completely */
+        log!("remake!");
         self.bumper_number += 1;
         let inputs = input.iter().map(|x| x.as_ref()).collect::<Vec<_>>();
         let mut builder = AlgorithmBuilder::new();

@@ -11,7 +11,7 @@ pub(crate) trait FlatDrawingItem {
     fn compute_hash(&self) -> Option<u64> { None }
     fn group_hash(&self) -> Option<u64> { None }
     fn calc_size(&mut self, gl: &mut WebGlGlobal) -> Result<(u32,u32),Message>;
-    fn padding(&mut self, gl: &mut WebGlGlobal) -> Result<(u32,u32),Message> { Ok((0,0)) }
+    fn padding(&mut self, _gl: &mut WebGlGlobal) -> Result<(u32,u32),Message> { Ok((0,0)) }
     fn build(&mut self, canvas: &mut Flat, text_origin: (u32,u32), mask_origin: (u32,u32), size: (u32,u32)) -> Result<(),Message>;
 }
 
@@ -69,7 +69,6 @@ fn unpack<T: Clone>(data: &Option<T>) -> Result<T,Message> {
 }
 
 pub(crate) struct FlatDrawingManager<H: KeyedHandle,T: FlatDrawingItem> {
-    bitmap_multiplier: f32,
     hashed_items: HashMap<u64,H>,
     texts: KeyedData<H,(T,FlatBoundary)>,
     request: Option<FlatPositionCampaignHandle>,
@@ -78,9 +77,8 @@ pub(crate) struct FlatDrawingManager<H: KeyedHandle,T: FlatDrawingItem> {
 }
 
 impl<H: KeyedHandle+Clone,T: FlatDrawingItem> FlatDrawingManager<H,T> {
-    pub fn new(bitmap_multiplier: f32) -> FlatDrawingManager<H,T> {
+    pub fn new() -> FlatDrawingManager<H,T> {
         FlatDrawingManager {
-            bitmap_multiplier,
             hashed_items: HashMap::new(),
             texts: KeyedData::new(),
             groups: HashMap::new(),

@@ -1,4 +1,4 @@
-use crate::{allotment::style::{stylebuilder::make_transformable}, LeafRequest, ShapeRequestGroup, DataMessage};
+use crate::{LeafRequest, ShapeRequestGroup, DataMessage, allotment::builder::stylebuilder::make_transformable};
 use super::{carriageoutput::BoxPositionContext, trainstate::CarriageTrainStateSpec, allotmentname::{allotmentname_hashmap, AllotmentName, AllotmentNameHashMap}};
 
 pub struct LeafList {

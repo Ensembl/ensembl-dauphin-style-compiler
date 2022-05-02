@@ -1,4 +1,4 @@
-use peregrine_toolkit::sync::{needed::Needed, retainer::{Retainer, RetainTest, retainer}};
+use peregrine_toolkit::{sync::{needed::Needed, retainer::{Retainer, RetainTest, retainer}}, debug_log};
 use crate::{TrainExtent, DrawingCarriage, allotment::core::{trainstate::TrainState3, carriageoutput::CarriageOutput}};
 use super::{graphics::Graphics, carriageextent::CarriageExtent, slider::SliderActions};
 
@@ -97,7 +97,7 @@ impl SliderDrawingCarriage {
 
 impl SliderActions<(DrawingCarriageCreator,TrainState3),SliderDrawingCarriage,SliderDrawingCarriage> for DrawingCarriageManager {
     fn ctor(&mut self, (creator,state): &(DrawingCarriageCreator,TrainState3)) -> SliderDrawingCarriage {
-        #[cfg(debug_trains)] debug_log!("create dc {:?}",creator.extent);
+        #[cfg(debug_trains)] debug_log!("create dc {:?} {:?}",creator.extent,state);
         let carriage = SliderDrawingCarriage::new(creator,state);
         self.graphics.create_carriage(&carriage.carriage);
         carriage
@@ -115,8 +115,8 @@ impl SliderActions<(DrawingCarriageCreator,TrainState3),SliderDrawingCarriage,Sl
         self.send_carriages();
     }
 
-    fn dtor(&mut self, (dcc,_): &(DrawingCarriageCreator,TrainState3), dc: SliderDrawingCarriage) {
-        #[cfg(debug_trains)] debug_log!("drop dc {:?}",dcc.extent);
+    fn dtor(&mut self, (dcc,state): &(DrawingCarriageCreator,TrainState3), dc: SliderDrawingCarriage) {
+        #[cfg(debug_trains)] debug_log!("drop dc {:?} {:?}",dcc.extent,state);
         self.graphics.drop_carriage(&dc.carriage);
     }
 }

@@ -1,4 +1,4 @@
-use peregrine_data::{Assets, ZMenuProxy, DrawingCarriage, DrawingCarriageExtent};
+use peregrine_data::{Assets, ZMenuProxy, DrawingCarriage, CarriageExtent};
 use peregrine_toolkit::sync::retainer::RetainTest;
 use peregrine_toolkit::{lock, warn, log, error, debug_log};
 use peregrine_toolkit::sync::asynconce::AsyncOnce;
@@ -16,7 +16,7 @@ use crate::util::message::Message;
 
 struct GLCarriageData {
     commander: PgCommanderWeb,
-    extent: DrawingCarriageExtent,
+    extent: CarriageExtent,
     opacity: Mutex<f64>,
     drawing: AsyncOnce<Result<Option<Drawing>,Message>>,
     preflight_done: bool
@@ -108,7 +108,7 @@ impl GLCarriage {
         }));
     }
 
-    pub fn extent(&self) -> DrawingCarriageExtent { lock!(self.0).extent.clone() }
+    pub fn extent(&self) -> CarriageExtent { lock!(self.0).extent.clone() }
 
     pub(super) fn set_opacity(&self, amount: f64) {
         *lock!(self.0).opacity.lock().unwrap() = amount;

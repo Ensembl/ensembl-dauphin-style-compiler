@@ -1,8 +1,8 @@
 use std::{collections::HashMap};
 
-use crate::allotment::{style::{style::{ContainerAllotmentStyle, LeafAllotmentStyle}}, core::allotmentname::AllotmentNamePart};
+use crate::allotment::{style::{style::{ContainerAllotmentStyle}}, core::allotmentname::AllotmentNamePart};
 
-use super::styletreebuilder::StyleTreeBuilder;
+use super::{styletreebuilder::StyleTreeBuilder, specifiedstyle::SpecifiedStyle};
 
 /* These trees go leaf-to-root!, to make ** possible. It's best to think of these trees as enumerating all paths which
  * have distinct answers to questions of style, as far as they need to go to distinguish between them. Also, think of
@@ -22,7 +22,7 @@ use super::styletreebuilder::StyleTreeBuilder;
 #[cfg_attr(debug_assertions,derive(Debug))]
 struct Styles {
     container: ContainerAllotmentStyle,
-    leaf: LeafAllotmentStyle,
+    leaf: SpecifiedStyle,
 }
 
 #[cfg_attr(debug_assertions,derive(Debug))]
@@ -35,13 +35,13 @@ pub(super) struct StyleTreeNode {
 impl StyleTreeNode {
     fn empty() -> StyleTreeNode {
         StyleTreeNode {
-            here: Styles { container: ContainerAllotmentStyle::empty(), leaf: LeafAllotmentStyle::empty() },
+            here: Styles { container: ContainerAllotmentStyle::empty(), leaf: SpecifiedStyle::empty() },
             all: false,
             children: HashMap::new()
         }
     }
 
-    pub(super) fn new(container: ContainerAllotmentStyle, leaf: LeafAllotmentStyle, all: bool) -> StyleTreeNode {
+    pub(super) fn new(container: ContainerAllotmentStyle, leaf: SpecifiedStyle, all: bool) -> StyleTreeNode {
         StyleTreeNode {
             here: Styles { container, leaf },
             children: HashMap::new(),
@@ -72,7 +72,7 @@ impl StyleTreeNode {
         self.get(name).map(|x| &x.here.container)
     }
 
-    fn get_leaf(&self, name: &AllotmentNamePart) -> Option<&LeafAllotmentStyle> {
+    fn get_leaf(&self, name: &AllotmentNamePart) -> Option<&SpecifiedStyle> {
         self.get(name).map(|x| &x.here.leaf)
     }
 }
@@ -81,7 +81,7 @@ impl StyleTreeNode {
 pub struct StyleTree {
     root: StyleTreeNode,
     empty_container: ContainerAllotmentStyle,
-    empty_leaf: LeafAllotmentStyle
+    empty_leaf: SpecifiedStyle
 }
 
 impl StyleTree {
@@ -95,7 +95,7 @@ impl StyleTree {
         self.root.get_container(name).unwrap_or(&self.empty_container)
     }
 
-    pub fn get_leaf(&self, name: &AllotmentNamePart) -> &LeafAllotmentStyle {
+    pub fn get_leaf(&self, name: &AllotmentNamePart) -> &SpecifiedStyle {
         self.root.get_leaf(name).unwrap_or(&self.empty_leaf)
     }
 
@@ -104,7 +104,7 @@ impl StyleTree {
         StyleTree {
             root,
             empty_container: ContainerAllotmentStyle::empty(),
-            empty_leaf: LeafAllotmentStyle::empty()
+            empty_leaf: SpecifiedStyle::empty()
         }
     }
 }

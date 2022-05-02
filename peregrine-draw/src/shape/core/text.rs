@@ -70,7 +70,7 @@ impl FlatDrawingItem for Text {
 pub struct DrawingText(FlatDrawingManager<TextHandle,Text>);
 
 impl DrawingText {
-    pub fn new(bitmap_multiplier: f32) -> DrawingText { DrawingText(FlatDrawingManager::new(bitmap_multiplier)) }
+    pub fn new() -> DrawingText { DrawingText(FlatDrawingManager::new()) }
 
     pub fn add_text(&mut self, pen: &Pen, text: &str, colour: &DirectColour, background: &Option<DirectColour>) -> TextHandle {
         self.0.add(Text::new(pen,text,colour,background))

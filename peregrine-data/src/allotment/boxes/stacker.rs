@@ -2,9 +2,9 @@ use std::sync::Arc;
 
 use peregrine_toolkit::{puzzle::{cache_constant, derived, DelayedSetter, delayed, compose, compose_slice, StaticValue, commute_clonable, cache_constant_clonable }};
 
-use crate::{allotment::{style::{style::{ContainerAllotmentStyle}}, boxes::boxtraits::Stackable, core::{carriageoutput::BoxPositionContext, allotmentname::{AllotmentNamePart, AllotmentName}}}, CoordinateSystem};
+use crate::{allotment::{style::{style::{ContainerAllotmentStyle}}, core::{carriageoutput::BoxPositionContext, allotmentname::{AllotmentNamePart, AllotmentName}, boxtraits::{Stackable, BuildSize, ContainerSpecifics, Coordinated}}}, CoordinateSystem};
 
-use super::{container::{Container}, boxtraits::{Coordinated, BuildSize, ContainerSpecifics}};
+use super::{container::{Container}};
 
 #[derive(Clone)]
 pub struct Stacker(Container);

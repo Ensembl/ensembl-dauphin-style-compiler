@@ -1,6 +1,7 @@
 use std::{collections::HashMap};
-use crate::{allotment::{core::{carriageoutput::BoxPositionContext, trainstate::CarriageTrainStateSpec, allotmentname::{AllotmentNamePart, AllotmentName}}, boxes::{ stacker::Stacker, overlay::Overlay, bumper::Bumper }, boxes::{leaf::{FloatingLeaf}}, transformers::drawinginfo::DrawingInfo, stylespec::stylegroup::AllotmentStyleGroup}, DataMessage, LeafRequest};
-use super::{holder::{ContainerHolder, LeafHolder}, style::{ContainerAllotmentType, LeafCommonStyle}};
+use crate::{allotment::{core::{carriageoutput::BoxPositionContext, trainstate::CarriageTrainStateSpec, allotmentname::{AllotmentNamePart, AllotmentName}}, boxes::{ stacker::Stacker, overlay::Overlay, bumper::Bumper }, boxes::{leaf::{FloatingLeaf}}, transformers::drawinginfo::DrawingInfo, stylespec::stylegroup::AllotmentStyleGroup, style::style::ContainerAllotmentType}, DataMessage, LeafRequest, LeafStyle};
+
+use super::holder::{ContainerHolder, LeafHolder};
 
 struct StyleBuilder<'a> {
     root: ContainerHolder,
@@ -17,7 +18,7 @@ impl<'a> StyleBuilder<'a> {
             root: ContainerHolder::Root(prep.root.clone()),
             leafs_made: HashMap::new(),
             containers_made: HashMap::new(),
-            dustbin: FloatingLeaf::new(&dustbin_name,&prep.bp_px_converter,&LeafCommonStyle::dustbin(),&DrawingInfo::new()),
+            dustbin: FloatingLeaf::new(&dustbin_name,&prep.bp_px_converter,&LeafStyle::dustbin(),&DrawingInfo::new()),
             prep
         }
     }
@@ -105,7 +106,7 @@ mod test {
 
     use peregrine_toolkit::{puzzle::{AnswerAllocator}};
 
-    use crate::{allotment::{core::{carriageoutput::BoxPositionContext, allotmentname::AllotmentName}, style::{stylebuilder::make_transformable}, stylespec::{stylegroup::AllotmentStyleGroup, styletreebuilder::StyleTreeBuilder, styletree::StyleTree}, util::{bppxconverter::BpPxConverter, rangeused::RangeUsed}, globals::allotmentmetadata::{LocalAllotmentMetadata, GlobalAllotmentMetadataBuilder, GlobalAllotmentMetadata}}, LeafRequest};
+    use crate::{allotment::{core::{carriageoutput::BoxPositionContext, allotmentname::AllotmentName}, stylespec::{stylegroup::AllotmentStyleGroup, styletreebuilder::StyleTreeBuilder, styletree::StyleTree}, util::{bppxconverter::BpPxConverter, rangeused::RangeUsed}, globals::allotmentmetadata::{LocalAllotmentMetadata, GlobalAllotmentMetadataBuilder, GlobalAllotmentMetadata}, builder::stylebuilder::make_transformable}, LeafRequest};
 
     fn make_pendings(names: &[&str], heights: &[f64], pixel_range: &[RangeUsed<f64>], style: &AllotmentStyleGroup) -> Vec<LeafRequest> {
         let heights = if heights.len() > 0 {

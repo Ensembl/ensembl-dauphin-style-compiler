@@ -12,7 +12,7 @@ fn draw_spectres(gl: &Arc<Mutex<WebGlGlobal>>, assets: &Assets, spectres: &[Spec
     let raw = CarriageShapesBuilder::from_program_shapes(shapes);
     let list = raw.to_universe(None);
     let mut aia = AnswerAllocator::new();
-    let shapes = list.get(&mut aia.get());
+    let shapes = list.make(&mut aia.get());
     Drawing::new_sync(None,shapes.map_err(|e| Message::DataError(e))?,gl,0.,assets)
 }
 

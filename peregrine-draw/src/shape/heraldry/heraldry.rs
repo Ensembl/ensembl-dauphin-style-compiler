@@ -181,11 +181,11 @@ pub struct DrawingHeraldry {
 }
 
 impl DrawingHeraldry {
-    pub fn new(bitmap_multiplier: f32) -> DrawingHeraldry { 
+    pub fn new() -> DrawingHeraldry { 
         DrawingHeraldry {
-            horiz: FlatDrawingManager::new(bitmap_multiplier),
-            vert: FlatDrawingManager::new(bitmap_multiplier),
-            crisp: FlatDrawingManager::new(bitmap_multiplier)
+            horiz: FlatDrawingManager::new(),
+            vert: FlatDrawingManager::new(),
+            crisp: FlatDrawingManager::new()
         }
     }
 

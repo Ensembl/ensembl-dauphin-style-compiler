@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use crate::{allotment::{boxes::{stacker::Stacker, overlay::Overlay, bumper::Bumper}, boxes::{boxtraits::{Stackable, Transformable }, leaf::FloatingLeaf, root::{Root}}}, DataMessage};
+use crate::{allotment::{boxes::{stacker::Stacker, overlay::Overlay, bumper::Bumper}, boxes::{leaf::FloatingLeaf, root::{Root}}, core::boxtraits::{Stackable, Transformable}}, DataMessage};
 
 #[derive(Clone)]
 pub enum ContainerHolder {
@@ -10,7 +10,7 @@ pub enum ContainerHolder {
 }
 
 impl ContainerHolder {
-    pub(super) fn add_leaf(&mut self, child: &LeafHolder) {
+    pub(crate) fn add_leaf(&mut self, child: &LeafHolder) {
         match (self,child) {
             (ContainerHolder::Root(root),LeafHolder::Leaf(leaf)) => {
                 root.add_child(leaf);
@@ -36,7 +36,7 @@ impl ContainerHolder {
         })
     }
 
-    pub(super) fn add_container(&mut self, container: &ContainerHolder) -> Result<(),DataMessage> {
+    pub(crate) fn add_container(&mut self, container: &ContainerHolder) -> Result<(),DataMessage> {
         match self {
             ContainerHolder::Bumper(parent) => {
                 parent.add_child(container.stackable()?);
@@ -61,7 +61,7 @@ pub enum LeafHolder {
 }
 
 impl LeafHolder {
-    pub(super) fn into_tranfsormable(self) -> Arc<dyn Transformable> {
+    pub(crate) fn into_tranfsormable(self) -> Arc<dyn Transformable> {
         match self {
             LeafHolder::Leaf(leaf) => Arc::new(leaf)
         }

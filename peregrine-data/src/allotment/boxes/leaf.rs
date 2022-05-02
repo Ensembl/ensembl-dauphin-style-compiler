@@ -1,7 +1,6 @@
 use std::{sync::{Arc}};
 use peregrine_toolkit::{puzzle::{DelayedSetter, constant, derived, StaticValue, StaticAnswer, promise_delayed, cache_constant_clonable, delayed }};
-use crate::{CoordinateSystem, allotment::{core::{carriageoutput::BoxPositionContext, allotmentname::{AllotmentName, AllotmentNamePart}}, transformers::{transformers::{Transformer, TransformerVariety}, simple::{SimpleTransformerHolder, SimpleTransformer}, drawinginfo::DrawingInfo}, style::{style::{LeafCommonStyle, Indent}}, util::{rangeused::RangeUsed, bppxconverter::BpPxConverter}, globals::playingfield::PlayingFieldEdge}};
-use super::{boxtraits::{Stackable, Transformable, Coordinated, BuildSize }};
+use crate::{CoordinateSystem, allotment::{core::{carriageoutput::BoxPositionContext, allotmentname::{AllotmentName, AllotmentNamePart}, boxtraits::{Stackable, BuildSize, Transformable, Coordinated}}, transformers::{transformers::{Transformer, TransformerVariety}, simple::{SimpleTransformerHolder, SimpleTransformer}, drawinginfo::DrawingInfo}, style::{style::{LeafStyle, Indent}}, util::{rangeused::RangeUsed, bppxconverter::BpPxConverter}, globals::playingfield::PlayingFieldEdge}};
 
 // TODO ranged bppxconverter
 fn full_range_piece(coord_system: &CoordinateSystem, base_range: &RangeUsed<f64>, pixel_range: &RangeUsed<f64>, bp_px_converter: &StaticValue<Arc<BpPxConverter>>) -> StaticValue<RangeUsed<f64>> {
@@ -21,7 +20,7 @@ fn full_range_piece(coord_system: &CoordinateSystem, base_range: &RangeUsed<f64>
 #[derive(Clone)]
 pub struct FloatingLeaf {
     name: AllotmentName,
-    statics: Arc<LeafCommonStyle>,
+    statics: Arc<LeafStyle>,
     max_y_piece: StaticValue<f64>,
     indent: StaticValue<Option<f64>>,
     indent_setter: DelayedSetter<'static,'static,f64>,
@@ -33,7 +32,7 @@ pub struct FloatingLeaf {
 }
 
 impl FloatingLeaf {
-    pub fn new(name: &AllotmentNamePart, converter: &Arc<BpPxConverter>, statics: &LeafCommonStyle, drawing_info: &DrawingInfo) -> FloatingLeaf {
+    pub fn new(name: &AllotmentNamePart, converter: &Arc<BpPxConverter>, statics: &LeafStyle, drawing_info: &DrawingInfo) -> FloatingLeaf {
         let drawing_info = Arc::new(drawing_info.clone());
         let (max_y_piece_setter,max_y_piece) = promise_delayed();
         if statics.coord_system.is_dustbin() {
@@ -113,7 +112,7 @@ impl Transformable for FloatingLeaf {
         Arc::new(AnchoredLeaf::new(answer_index,self))
     }
 
-    fn get_style(&self) -> &LeafCommonStyle { &self.statics }
+    fn get_style(&self) -> &LeafStyle { &self.statics }
 }
 
 impl Coordinated for FloatingLeaf {
@@ -123,7 +122,7 @@ impl Coordinated for FloatingLeaf {
 #[cfg_attr(any(test,debug_assertions),derive(Debug))]
 #[derive(Clone)]
 pub struct AnchoredLeaf {
-    statics: Arc<LeafCommonStyle>,
+    statics: Arc<LeafStyle>,
     top: f64,
     height: f64,
     indent: f64
@@ -143,7 +142,7 @@ impl AnchoredLeaf {
 impl Transformer for AnchoredLeaf {
     fn choose_variety(&self) -> (TransformerVariety,CoordinateSystem) { (TransformerVariety::SimpleTransformer,self.statics.coord_system.clone()) }
     fn into_simple_transformer(&self) -> Option<SimpleTransformerHolder> { Some(SimpleTransformerHolder(Arc::new(self.clone()))) }
-    fn get_style(&self) -> &LeafCommonStyle { &self.statics }
+    fn get_style(&self) -> &LeafStyle { &self.statics }
 
     #[cfg(any(debug_assertions,test))]
     fn describe(&self) -> String {
@@ -156,5 +155,5 @@ impl SimpleTransformer for AnchoredLeaf {
     fn bottom(&self) -> f64 { self.top + self.height }
     fn indent(&self) -> f64 { self.indent }
     fn as_simple_transformer(&self) -> &dyn SimpleTransformer { self }
-    fn get_style(&self) -> &LeafCommonStyle { &self.statics }
+    fn get_style(&self) -> &LeafStyle { &self.statics }
 }

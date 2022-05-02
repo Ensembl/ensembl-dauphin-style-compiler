@@ -1,4 +1,4 @@
-use crate::{DataMessage, Pen, ShapeDemerge, Shape, util::{eachorevery::EachOrEveryFilter}, SpaceBase, allotment::{transformers::transformers::{Transformer, TransformerVariety}, style::{style::LeafCommonStyle}}, EachOrEvery, CoordinateSystem, LeafRequest};
+use crate::{DataMessage, Pen, ShapeDemerge, Shape, util::{eachorevery::EachOrEveryFilter}, SpaceBase, allotment::{transformers::transformers::{Transformer, TransformerVariety}, style::{style::LeafStyle}}, EachOrEvery, CoordinateSystem, LeafRequest};
 use std::{hash::Hash, sync::Arc};
 
 #[cfg_attr(debug_assertions,derive(Debug))]
@@ -62,8 +62,8 @@ impl TextShape<LeafRequest> {
     }
 }
 
-impl TextShape<LeafCommonStyle> {
-    pub fn demerge<T: Hash + PartialEq + Eq,D>(self,  cat: &D) -> Vec<(T,TextShape<LeafCommonStyle>)> where D: ShapeDemerge<X=T> {
+impl TextShape<LeafStyle> {
+    pub fn demerge<T: Hash + PartialEq + Eq,D>(self,  cat: &D) -> Vec<(T,TextShape<LeafStyle>)> where D: ShapeDemerge<X=T> {
         let demerge = self.position.allotments().demerge(self.position.len(),|a| cat.categorise(&a.coord_system));
         let mut out = vec![];
         for (draw_group,mut filter) in demerge {
@@ -85,7 +85,7 @@ impl TextShape<Arc<dyn Transformer>> {
         out
     }
 
-    pub fn make(&self) -> Vec<TextShape<LeafCommonStyle>> {
+    pub fn make(&self) -> Vec<TextShape<LeafStyle>> {
         let mut out = vec![];
         for ((variety,coord_system),texts) in self.demerge_by_variety() {
             out.push(TextShape {

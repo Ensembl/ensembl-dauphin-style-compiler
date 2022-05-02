@@ -1,6 +1,6 @@
 use peregrine_toolkit::{puzzle::{StaticValue, commute_clonable}};
-use crate::{allotment::{core::{ carriageoutput::BoxPositionContext, allotmentname::{AllotmentNamePart, AllotmentName}}, style::{style::{ContainerAllotmentStyle}}, boxes::boxtraits::Stackable}, CoordinateSystem};
-use super::{container::{Container}, boxtraits::{Coordinated, BuildSize, ContainerSpecifics }};
+use crate::{allotment::{core::{ carriageoutput::BoxPositionContext, allotmentname::{AllotmentNamePart, AllotmentName}, boxtraits::{ContainerSpecifics, BuildSize, Stackable, Coordinated}}, style::{style::{ContainerAllotmentStyle}}}, CoordinateSystem};
+use super::{container::{Container}};
 
 #[derive(Clone)]
 pub struct Overlay(Container);

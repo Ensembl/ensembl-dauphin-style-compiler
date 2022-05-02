@@ -1,8 +1,8 @@
 use std::{collections::HashMap};
 
-use crate::allotment::{style::{style::{LeafAllotmentStyle, ContainerAllotmentStyle}}, core::allotmentname::{AllotmentNamePart, AllotmentName}};
+use crate::allotment::{style::{style::{ContainerAllotmentStyle}}, core::allotmentname::{AllotmentNamePart, AllotmentName}};
 
-use super::styletree::{StyleTree, StyleTreeNode};
+use super::{styletree::{StyleTree, StyleTreeNode}, specifiedstyle::SpecifiedStyle};
 
 const TOKEN_ANY : &str = "*";
 
@@ -97,7 +97,7 @@ impl BuilderNode {
 
     fn build(&self) -> StyleTreeNode {
         let container = ContainerAllotmentStyle::build(&self.container);
-        let leaf = LeafAllotmentStyle::build(&self.leaf);
+        let leaf = SpecifiedStyle::build(&self.leaf);
         let mut node = StyleTreeNode::new(container,leaf,self.all);
         for (name,child) in &self.children {
             node.add(name.as_ref(),child.build());

@@ -1,4 +1,4 @@
-use crate::{DataMessage, Patina, ShapeDemerge, Shape, util::{eachorevery::EachOrEveryFilter}, SpaceBaseArea, reactive::Observable, allotment::{transformers::transformers::{Transformer, TransformerVariety}, style::{style::{LeafCommonStyle}}}, CoordinateSystem, LeafRequest};
+use crate::{DataMessage, Patina, ShapeDemerge, Shape, util::{eachorevery::EachOrEveryFilter}, SpaceBaseArea, reactive::Observable, allotment::{transformers::transformers::{Transformer, TransformerVariety}, style::{style::{LeafStyle}}}, CoordinateSystem, LeafRequest};
 use std::{hash::Hash, sync::Arc};
 
 #[cfg_attr(debug_assertions,derive(Debug))]
@@ -61,8 +61,8 @@ impl<A: Clone> RectangleShape<A> {
     pub fn wobble(&self) -> &Option<SpaceBaseArea<Observable<'static,f64>,()>> { &self.wobble }
 }
 
-impl RectangleShape<LeafCommonStyle> {
-    pub fn demerge<T: Hash + PartialEq + Eq,D>(self, cat: &D) -> Vec<(T,RectangleShape<LeafCommonStyle>)> where D: ShapeDemerge<X=T> {
+impl RectangleShape<LeafStyle> {
+    pub fn demerge<T: Hash + PartialEq + Eq,D>(self, cat: &D) -> Vec<(T,RectangleShape<LeafStyle>)> where D: ShapeDemerge<X=T> {
         let demerge = match &self.patina {
             Patina::Drawn(drawn_type,colours) => {
                 let allotments_and_colours = self.area.top_left().allotments().zip(&colours,|x,y| (x.clone(),y.clone()));
@@ -96,7 +96,7 @@ impl RectangleShape<Arc<dyn Transformer>> {
 }
 
 impl RectangleShape<Arc<dyn Transformer>> {
-    pub fn make(&self) -> Vec<RectangleShape<LeafCommonStyle>> {
+    pub fn make(&self) -> Vec<RectangleShape<LeafStyle>> {
         let mut out = vec![];
         for ((variety,coord_system),rectangles) in self.demerge_by_variety() {
             out.push(RectangleShape {

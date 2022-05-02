@@ -1,12 +1,16 @@
 mod allotment {
     pub(crate) mod boxes {
-        pub(crate) mod boxtraits;
         pub(crate) mod leaf;
         pub(crate) mod overlay;
         pub(crate) mod stacker;
         pub(crate) mod bumper;
         pub(crate) mod container;
         pub(crate) mod root;
+    }
+
+    pub(crate) mod builder {
+        mod holder;
+        pub(crate) mod stylebuilder;
     }
 
     pub(crate) mod collision {
@@ -16,12 +20,11 @@ mod allotment {
     }
 
     pub(crate) mod style {
-        pub(crate) mod holder;
         pub(crate) mod style;
-        pub(crate) mod stylebuilder;
     }
 
     pub(crate) mod core {
+        pub(crate) mod boxtraits;
         pub(crate) mod allotmentname;
         pub(crate) mod coordsystem;
         pub(crate) mod carriageoutput;
@@ -41,6 +44,7 @@ mod allotment {
     }
 
     pub(crate) mod stylespec {
+        pub(crate) mod specifiedstyle;
         pub(crate) mod stylegroup;
         pub(crate) mod styletree;
         pub(crate) mod styletreebuilder;
@@ -214,7 +218,7 @@ mod train {
     pub(crate) mod drawingcarriagemanager;
     pub(crate) mod carriageextent;
     mod railwaydatatasks;
-    mod carriageset;
+    pub(crate) mod carriageset;
     pub(crate) mod graphics;
     mod railway;
     mod railwaydependents;
@@ -224,7 +228,7 @@ mod train {
     pub(crate) mod train;
     mod trainset;
 
-    pub use carriageextent::{ DrawingCarriageExtent };
+    pub use carriageextent::{ CarriageExtent };
     pub use drawingcarriage::{ DrawingCarriage };
     pub use trainextent::TrainExtent;
     pub use railway::Railway;
@@ -246,7 +250,7 @@ mod util {
 }
 
 pub use self::allotment::core::leafrequest::LeafRequest;
-pub use self::allotment::style::style::LeafCommonStyle;
+pub use self::allotment::style::style::LeafStyle;
 pub use self::allotment::globals::{ allotmentmetadata::GlobalAllotmentMetadata, playingfield::PlayingField };
 pub use self::api::{ PeregrineCore, PeregrineCoreBase, PeregrineIntegration, PeregrineApiQueue, CarriageSpeed, AgentStore };
 pub use self::core::{ Asset, Assets, PgdPeregrineConfig, ConfigKey, Stick, StickId, StickTopology, Scale, Viewport };
@@ -265,7 +269,7 @@ pub use self::shape::{
 pub use self::allotment::core::coordsystem::{ CoordinateSystem, CoordinateSystemVariety };
 pub use self::switch::switch::{ Switches };
 pub use self::switch::track::Track;
-pub use self::train::{ DrawingCarriage, DrawingCarriageExtent, TrainExtent };
+pub use self::train::{ DrawingCarriage, CarriageExtent, TrainExtent };
 pub use self::util::{ CountingPromise, DataMessage, Builder };
 pub use self::util::vecutils::expand_by_repeating;
 pub use self::util::eachorevery::{ EachOrEvery, EachOrEveryFilterBuilder };
