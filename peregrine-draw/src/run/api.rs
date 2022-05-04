@@ -1,5 +1,6 @@
 use crate::util::message::{ Message };
-use peregrine_toolkit::{log_extra, log_important};
+use peregrine_toolkit::console::{set_printer, Severity};
+use peregrine_toolkit::{log_extra, log_important, error};
 use peregrine_toolkit::sync::blocker::Blocker;
 pub use url::Url;
 pub use web_sys::{ console, WebGlRenderingContext, Element };
@@ -215,14 +216,7 @@ impl PeregrineAPI {
     }
 
     async fn step(&self, mut draw: PeregrineInnerAPI) -> Result<(),Message> {
-        set_printer(|severity,message| {
-            match severity {
-                Severity::Error => { console::error_1(&message.into()); },
-                Severity::Warning => { console::warn_1(&message.into()); },
-                Severity::Notice => { console::log_1(&message.into()); },
-            }
-        });
-        log_important!("version {} {} {}",GIT_TAG,GIT_BUILD_DATE,env!("BUILD_TIME"));
+        log_important!("version {} {} {}.",GIT_TAG,GIT_BUILD_DATE,env!("BUILD_TIME"));
         #[cfg(debug_assertions)]
         dev_warning();
         loop {
@@ -234,6 +228,13 @@ impl PeregrineAPI {
     pub fn run(&self, config: PeregrineConfig, dom: PeregrineDom) -> Result<PgCommanderWeb,Message> {
         let commander = PgCommanderWeb::new()?;
         commander.start();
+        set_printer(|severity,message| {
+            match severity {
+                Severity::Error => { console::error_1(&message.into()); },
+                Severity::Warning => { console::warn_1(&message.into()); },
+                Severity::Notice => { console::log_1(&message.into()); },
+            }
+        });
         let configs = config.build();
         let mut inner = PeregrineInnerAPI::new(&configs,&dom,&commander,self.queue.syncer())?;
         run_animations(&mut inner,&dom)?;

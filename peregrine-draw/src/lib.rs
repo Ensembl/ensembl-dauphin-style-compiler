@@ -105,6 +105,7 @@ mod shape {
 
     pub(crate) mod layers {
         pub(crate) mod drawing;
+        pub(crate) mod drawingtools;
         pub(crate) mod drawingzmenus;
         pub(crate) mod consts;
         pub(crate) mod geometry;
@@ -143,6 +144,7 @@ mod util {
     pub(crate) mod debounce;
     pub(crate) mod resizeobserver;
     pub(crate) mod promise;
+    pub(crate) mod fonts;
     #[macro_use]
     pub(crate) mod misc;
     pub use self::ajax::PgAjax;

@@ -1,6 +1,7 @@
-use crate::{run::{ PgPeregrineConfig, PgConfigKey }, shape::layers::programstore::ProgramStore};
+use crate::{run::{ PgPeregrineConfig, PgConfigKey }, shape::layers::programstore::ProgramStore, util::fonts::Fonts};
 use crate::webgl::{ FlatStore, TextureBindery };
 use js_sys::Float32Array;
+use peregrine_toolkit::{log, error};
 use web_sys::Document;
 pub use url::Url;
 pub use web_sys::{ console, WebGlRenderingContext };
@@ -17,7 +18,8 @@ pub struct WebGlGlobal {
     document: Document,
     canvas_size: Option<(u32,u32)>,
     gpuspec: GPUSpec,
-    aux_array: Float32Array
+    aux_array: Float32Array,
+    fonts: Fonts
 }
 
 pub(crate) struct WebGlGlobalRefs<'a> {
@@ -49,6 +51,7 @@ impl WebGlGlobal {
             document: dom.document().clone(),
             canvas_size: None,
             gpuspec,
+            fonts: Fonts::new()?,
             aux_array: Float32Array::new_with_length(config.get_size(&PgConfigKey::AuxBufferSize)? as u32)
         })
     }

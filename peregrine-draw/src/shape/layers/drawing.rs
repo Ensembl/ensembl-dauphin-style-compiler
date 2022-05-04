@@ -1,4 +1,5 @@
 use std::sync::{Arc, Mutex};
+use super::drawingtools::DrawingToolsBuilder;
 use super::layer::Layer;
 use peregrine_data::{Assets, Scale, Shape, LeafStyle };
 use peregrine_toolkit::{lock};
@@ -6,14 +7,10 @@ use peregrine_toolkit::sync::needed::Needed;
 use peregrine_toolkit::sync::retainer::RetainTest;
 use super::super::core::prepareshape::{ prepare_shape_in_layer };
 use super::super::core::drawshape::{ add_shape_to_layer, GLShape };
-use crate::shape::core::bitmap::DrawingBitmap;
 use crate::shape::core::drawshape::ShapeToAdd;
-use crate::shape::heraldry::heraldry::DrawingHeraldry;
-use crate::webgl::canvas::flatplotallocator::FlatPositionManager;
-use crate::webgl::{CanvasWeave, DrawingAllFlats, DrawingAllFlatsBuilder, DrawingSession, FlatStore, Process};
-use super::super::core::text::DrawingText;
+use crate::webgl::{ DrawingAllFlats, DrawingAllFlatsBuilder, DrawingSession, Process};
 use crate::webgl::global::WebGlGlobal;
-use super::drawingzmenus::{ DrawingHotspotsBuilder, DrawingHotspots, HotspotEntryDetails };
+use super::drawingzmenus::{ DrawingHotspots, HotspotEntryDetails };
 use crate::stage::stage::ReadStage;
 use crate::util::message::Message;
 
@@ -22,74 +19,9 @@ pub(crate) trait DynamicShape {
     fn recompute(&mut self) -> Result<(),Message>;
 }
 
-pub(crate) struct ToolPreparations {
-    crisp: FlatPositionManager,
-    heraldry_h: FlatPositionManager,
-    heraldry_v: FlatPositionManager
-}
-
-impl ToolPreparations {
-    fn new() -> ToolPreparations {
-        ToolPreparations {
-            crisp: FlatPositionManager::new(&CanvasWeave::Crisp,"uSampler"),
-            heraldry_h: FlatPositionManager::new(&CanvasWeave::HorizStack,"uSampler"),
-            heraldry_v: FlatPositionManager::new(&CanvasWeave::VertStack,"uSampler"),
-        }
-    }
-
-    pub(crate) fn crisp_manager(&mut self) -> &mut FlatPositionManager { &mut self.crisp }
-    pub(crate) fn heraldry_h_manager(&mut self) -> &mut FlatPositionManager { &mut self.heraldry_h }
-    pub(crate) fn heraldry_v_manager(&mut self) -> &mut FlatPositionManager { &mut self.heraldry_v }
-
-    fn allocate(&mut self, gl: &mut WebGlGlobal, drawable: &mut DrawingAllFlatsBuilder) -> Result<(),Message> {
-        self.crisp.make(gl,drawable)?;
-        self.heraldry_h.make(gl,drawable)?;
-        self.heraldry_v.make(gl,drawable)?;
-        Ok(())
-    }
-}
-
-pub(crate) struct DrawingTools {
-    text: DrawingText,
-    bitmap: DrawingBitmap,
-    heraldry: DrawingHeraldry,
-    zmenus: DrawingHotspotsBuilder
-}
-
-impl DrawingTools {
-    fn new(assets: &Assets, scale: Option<&Scale>, left: f64) -> DrawingTools {
-        DrawingTools {
-            text: DrawingText::new(),
-            bitmap: DrawingBitmap::new(assets),
-            heraldry: DrawingHeraldry::new(),
-            zmenus: DrawingHotspotsBuilder::new(scale, left)
-        }
-    }
-
-    pub(crate) fn text(&mut self) -> &mut DrawingText { &mut self.text }
-    pub(crate) fn bitmap(&mut self) -> &mut DrawingBitmap { &mut self.bitmap }
-    pub(crate) fn heraldry(&mut self) -> &mut DrawingHeraldry { &mut self.heraldry }
-    pub(crate) fn zmenus(&mut self) -> &mut DrawingHotspotsBuilder { &mut self.zmenus }
-
-    pub(crate) fn start_preparation(&mut self, gl: &mut WebGlGlobal) -> Result<ToolPreparations,Message> {
-        let mut preparations = ToolPreparations::new();
-        self.text.calculate_requirements(gl,&mut preparations.crisp)?;
-        self.bitmap.calculate_requirements(gl, &mut preparations.crisp)?;
-        self.heraldry.calculate_requirements(gl,&mut preparations)?;
-        Ok(preparations)
-    }
-
-    pub(crate) fn finish_preparation(&mut self, canvas_store: &mut FlatStore, mut preparations: ToolPreparations) -> Result<(),Message> {
-        self.text.manager().draw_at_locations(canvas_store,&mut preparations.crisp)?;
-        self.bitmap.manager().draw_at_locations(canvas_store,&mut preparations.crisp)?;
-        self.heraldry.draw_at_locations(canvas_store,&mut preparations)?;
-        Ok(())
-    }
-}
-
 pub(crate) struct DrawingBuilder {
     main_layer: Layer,
-    tools: DrawingTools,
+    tools: DrawingToolsBuilder,
     flats: Option<DrawingAllFlatsBuilder>,
     dynamic_shapes: Vec<Box<dyn DynamicShape>>
 }
@@ -99,7 +31,7 @@ impl DrawingBuilder {
         let gl_ref = gl.refs();
         Ok(DrawingBuilder {
             main_layer: Layer::new(gl_ref.program_store,left)?,
-            tools: DrawingTools::new(assets,scale,left),
+            tools: DrawingToolsBuilder::new(assets,scale,left),
             flats: None,
             dynamic_shapes: vec![]
         })
@@ -128,7 +60,7 @@ impl DrawingBuilder {
                 self.dynamic_shapes.push(dynamic);
             },
             ShapeToAdd::Hotspot(area,hotspot) => {
-                self.tools.zmenus.add_rectangle(area,&hotspot);
+                self.tools.zmenus().add_rectangle(area,&hotspot);
             },
             ShapeToAdd::None => {}
         }
@@ -139,7 +71,8 @@ impl DrawingBuilder {
         let flats = self.flats.take().unwrap().built();
         let processes = self.main_layer.build(gl,&flats,retain_test).await?;
         Ok(if let Some(processes) = processes {
-            Some(Drawing::new_real(processes,flats,self.tools.zmenus.build(),self.dynamic_shapes)?)
+            let tools = self.tools.build();
+            Some(Drawing::new_real(processes,flats,tools.zmenus,self.dynamic_shapes)?)
         } else {
             None
         })
@@ -148,7 +81,8 @@ impl DrawingBuilder {
     pub(crate) fn build_sync(mut self, gl: &Arc<Mutex<WebGlGlobal>>) -> Result<Drawing,Message> {
         let flats = self.flats.take().unwrap().built();
         let processes = self.main_layer.build_sync(gl,&flats)?;
-        Ok(Drawing::new_real(processes,flats,self.tools.zmenus.build(),self.dynamic_shapes)?)
+        let tools = self.tools.build();
+        Ok(Drawing::new_real(processes,flats,tools.zmenus,self.dynamic_shapes)?)
     }
 }
 

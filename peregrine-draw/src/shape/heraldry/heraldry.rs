@@ -4,7 +4,7 @@ use peregrine_data::{ DirectColour };
 use keyed::keyed_handle;
 use crate::shape::core::flatdrawing::{FlatDrawingItem, FlatDrawingManager};
 use crate::shape::core::texture::CanvasTextureArea;
-use crate::shape::layers::drawing::ToolPreparations;
+use crate::shape::layers::drawingtools::ToolPreparations;
 use crate::webgl::{Flat, FlatStore};
 use crate::webgl::global::WebGlGlobal;
 use crate::util::message::Message;

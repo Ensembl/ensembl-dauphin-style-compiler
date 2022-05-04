@@ -11,6 +11,7 @@ use super::texture::{CanvasTextureArea, TextureYielder};
 use crate::shape::core::wigglegeometry::{make_wiggle};
 use crate::shape::heraldry::heraldry::{HeraldryCanvas, HeraldryHandle, HeraldryScale};
 use crate::shape::layers::drawing::DynamicShape;
+use crate::shape::layers::drawingtools::DrawingToolsBuilder;
 use crate::shape::layers::geometry::{GeometryYielder, GeometryProcessName };
 use crate::shape::layers::patina::PatinaYielder;
 use crate::shape::triangles::rectangles::{Rectangles, RectanglesData };
@@ -18,7 +19,6 @@ use crate::shape::triangles::drawgroup::DrawGroup;
 use crate::shape::util::iterators::eoe_throw;
 use crate::webgl::{ ProcessStanzaAddable };
 use crate::webgl::global::WebGlGlobal;
-use super::super::layers::drawing::DrawingTools;
 use crate::util::message::Message;
 use crate::webgl::canvas::flatstore::FlatId;
 
@@ -161,7 +161,7 @@ fn draw_points_from_canvas2(layer: &mut Layer, gl: &mut WebGlGlobal, draw_group:
     Ok(Box::new(Rectangles::new(rectangles)))
 }
 
-fn draw_heraldry_canvas(layer: &mut Layer, gl: &mut WebGlGlobal, tools: &mut DrawingTools, kind: &DrawGroup, area_a: &SpaceBaseArea<f64,LeafStyle>, handles: &EachOrEvery<HeraldryHandle>, depth: &EachOrEvery<i8>, heraldry_canvas: &HeraldryCanvas, scale: &HeraldryScale, edge: &Option<HollowEdge2<f64>>, count: usize, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>) -> Result<Option<Box<dyn DynamicShape>>,Message> {
+fn draw_heraldry_canvas(layer: &mut Layer, gl: &mut WebGlGlobal, tools: &mut DrawingToolsBuilder, kind: &DrawGroup, area_a: &SpaceBaseArea<f64,LeafStyle>, handles: &EachOrEvery<HeraldryHandle>, depth: &EachOrEvery<i8>, heraldry_canvas: &HeraldryCanvas, scale: &HeraldryScale, edge: &Option<HollowEdge2<f64>>, count: usize, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>) -> Result<Option<Box<dyn DynamicShape>>,Message> {
     let heraldry = tools.heraldry();
     let mut dims = vec![];
     let mut filter_builder = EachOrEveryFilterBuilder::new();
@@ -184,7 +184,7 @@ pub(crate) enum ShapeToAdd {
     None
 }
 
-pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &mut WebGlGlobal, tools: &mut DrawingTools, shape: GLShape) -> Result<ShapeToAdd,Message> {
+pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &mut WebGlGlobal, tools: &mut DrawingToolsBuilder, shape: GLShape) -> Result<ShapeToAdd,Message> {
     let bitmap_multiplier = gl.refs().flat_store.bitmap_multiplier() as f64;
     match shape {
         GLShape::Wiggle((start,end),yy,Plotter(_,colour),depth) => {

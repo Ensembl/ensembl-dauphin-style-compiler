@@ -1,5 +1,6 @@
 use peregrine_data::{ Pen, DirectColour };
 use keyed::keyed_handle;
+use peregrine_toolkit::log;
 use crate::webgl::canvas::flatplotallocator::FlatPositionManager;
 use crate::webgl::{ CanvasWeave, Flat };
 use crate::webgl::global::WebGlGlobal;
@@ -37,6 +38,7 @@ impl FlatDrawingItem for Text {
         let document = gl_ref.document.clone();
         let canvas = gl_ref.flat_store.scratch(&document,&CanvasWeave::Crisp,(100,100))?;
         canvas.set_font(&self.pen)?;
+        log!("Size of \"{:?}\" is {:?}",self.text,canvas.measure(&self.text));
         canvas.measure(&self.text)
     }
 
