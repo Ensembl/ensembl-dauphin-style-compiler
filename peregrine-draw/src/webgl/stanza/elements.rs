@@ -63,11 +63,6 @@ impl ProcessStanzaElementsEntry {
         Ok(())
     }
 
-    pub(super) fn make_stanza_sync(&self, values: &KeyedData<AttribHandle,Attribute>, context: &WebGlRenderingContext, aux_array: &Float32Array) -> Result<Option<ProcessStanza>,Message> {
-        let out = ProcessStanza::new_elements_sync(context,aux_array,&self.index,values,&self.attribs)?;
-        Ok(out)
-    }
-
     pub(super) async fn make_stanza(&self, values: &KeyedData<AttribHandle,Attribute>, gl: &Arc<Mutex<WebGlGlobal>>) -> Result<Option<ProcessStanza>,Message> {
         let out = ProcessStanza::new_elements(gl,&self.index,values,&self.attribs).await?;
         Ok(out)

@@ -8,15 +8,15 @@ use super::drawingcarriage::DrawingCarriage;
 use super::drawingcarriagemanager::{DrawingCarriageCreator, DrawingCarriageManager, SliderDrawingCarriage};
 use super::graphics::Graphics;
 use super::railwaydatatasks::RailwayDataTasks;
-use super::slider::{Slider, SliderActions};
+use super::slider::{Slider};
 use super::trainextent::TrainExtent;
-use crate::allotment::core::trainstate::{TrainStateSpec, TrainState3};
+use crate::allotment::core::trainstate::{TrainState3};
 use crate::shapeload::carriageprocess::CarriageProcess;
 use crate::api::MessageSender;
 use crate::switch::trackconfiglist::TrainTrackConfigList;
 
-const CARRIAGE_FLANK : u64 = 1;
-const MILESTONE_CARRIAGE_FLANK : u64 = 1;
+const CARRIAGE_FLANK : u64 = 2;
+const MILESTONE_CARRIAGE_FLANK : u64 = 2;
 
 pub(super) struct CarriageSetConstant {
     ping_needed: Needed,

@@ -30,10 +30,6 @@ impl ProcessStanzaArray {
         Ok(out)
     }
 
-    pub(super) fn make_stanza_sync(&self, values: &KeyedData<AttribHandle,Attribute>, context: &WebGlRenderingContext, aux_array: &Float32Array) -> Result<Option<ProcessStanza>,Message> {
-        ProcessStanza::new_array_sync(context,aux_array,self.len,values,&self.attribs.borrow())
-    }
-
     pub(super) async fn make_stanza(&self, values: &KeyedData<AttribHandle,Attribute>, gl: &Arc<Mutex<WebGlGlobal>>) -> Result<Option<ProcessStanza>,Message> {
         ProcessStanza::new_array(gl,self.len,values,&self.attribs.borrow()).await
     }

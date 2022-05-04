@@ -131,10 +131,6 @@ impl Program {
         stanza_builder.make_stanzas(gl,&self.attribs).await
     }
 
-    pub(super) fn make_stanzas_sync(&self, context: &WebGlRenderingContext, aux_array: &Float32Array, stanza_builder: &ProcessStanzaBuilder) -> Result<Vec<ProcessStanza>,Message> {
-        stanza_builder.make_stanzas_sync(context,aux_array,&self.attribs)
-    }
-
     pub(crate) fn select_program(&self, context: &WebGlRenderingContext) -> Result<(),Message> {
         context.use_program(Some(&self.program));
         handle_context_errors(&context)?;

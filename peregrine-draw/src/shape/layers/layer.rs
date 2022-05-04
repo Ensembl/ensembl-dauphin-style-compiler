@@ -106,33 +106,4 @@ impl Layer {
         }
         Ok(Some(processes))
     }
-
-    pub(super) fn build_sync(mut self, gl: &Arc<Mutex<WebGlGlobal>>, canvases: &DrawingAllFlats) -> Result<Vec<Process>,Message> {
-        let mut processes = vec![];
-        let mut characters = self.store.keys().cloned().collect::<Vec<_>>();
-        characters.sort();
-        for character in &characters {
-            //console::log_1(&format!("ch {:?}",character).into());
-            let mut prog = self.store.remove(&character).unwrap();
-            match character {
-                ProgramCharacter(_,PatinaProcessName::Texture(flat_id)) |
-                ProgramCharacter(_,PatinaProcessName::FreeTexture(flat_id)) =>{
-                    canvases.add_process(&flat_id,prog.get_process_mut())?;
-                },
-                ProgramCharacter(_,PatinaProcessName::Spot(colour)) => {
-                    let draw = match prog.get_patina() {
-                        PatinaProcess::Spot(draw) => Some(draw),
-                        _ => None
-                    }.cloned();
-                    if let Some(draw) = draw {
-                        let process = prog.get_process_mut();
-                        draw.set_spot(process,colour)?;
-                    }
-                },
-                _ => {}
-            }
-            processes.push(prog.into_process().build_sync(gl,self.left,character)?);
-        }
-        Ok(processes)
-    }
 }

@@ -76,41 +76,6 @@ impl ProcessStanza {
         )
     }
 
-    fn make_attribs_sync(context: &WebGlRenderingContext, aux_array: &Float32Array, values: &KeyedData<AttribHandle,Attribute>, attribs: &KeyedData<AttribHandle,AttribSource>) -> Result<KeyedData<AttribHandle,(AttribSource,AttributeValues)>,Message> {
-        let mut a_values = KeyedData::new();
-        for (k,v) in attribs.items() {
-            let value = AttributeValues::new(values.get(&k),&v.get(),context,aux_array)?;
-            a_values.insert(&k,value);
-        }
-        attribs.map(|k,v| 
-            Ok((v.clone(),a_values.remove(&k).unwrap()))
-        )
-    }
-
-    pub(super) fn new_elements_sync(context: &WebGlRenderingContext, aux_array: &Float32Array, index: &[u16], values: &KeyedData<AttribHandle,Attribute>, attribs: &KeyedData<AttribHandle,AttribSource>) -> Result<Option<ProcessStanza>,Message> {
-        if index.len() > 0 {
-            Ok(Some(ProcessStanza {
-                index: Some(create_index_buffer(context,index)?),
-                len: index.len(),
-                attribs: ProcessStanza::make_attribs_sync(context,aux_array,values,attribs)?
-            }))
-        } else {
-            Ok(None)
-        }
-    }
-
-    pub(super) fn new_array_sync(context: &WebGlRenderingContext, aux_array: &Float32Array, len: usize, values: &KeyedData<AttribHandle,Attribute>, attribs: &KeyedData<AttribHandle,AttribSource>) -> Result<Option<ProcessStanza>,Message> {
-        if len > 0 {
-            Ok(Some(ProcessStanza {
-                index: None,
-                len,
-                attribs: ProcessStanza::make_attribs_sync(context,aux_array,values,attribs)?
-            }))
-        } else {
-            Ok(None)
-        }
-    }
-
     pub(super) async fn new_elements(gl: &Arc<Mutex<WebGlGlobal>>, index: &[u16], values: &KeyedData<AttribHandle,Attribute>, attribs: &KeyedData<AttribHandle,AttribSource>) -> Result<Option<ProcessStanza>,Message> {
         if index.len() > 0 {
             let mut lgl = lock!(gl);
