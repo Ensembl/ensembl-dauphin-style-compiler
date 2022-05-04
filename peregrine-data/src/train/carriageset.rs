@@ -63,6 +63,7 @@ impl CarriageSet {
 
     pub(super) fn mute(&mut self, yn: bool) {
         self.process.inner_mut().mute(yn);
+        self.drawing.inner_mut().mute(yn);
     }
 
     pub(super) fn activate(&mut self) {

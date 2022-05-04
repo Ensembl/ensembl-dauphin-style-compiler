@@ -45,6 +45,7 @@ impl DrawingCarriageCreator {
 
 pub(super) struct DrawingCarriageManager {
     active: bool,
+    mute: bool,
     ping_needed: Needed,
     train_extent: TrainExtent,
     carriages: Vec<DrawingCarriage>,
@@ -55,6 +56,7 @@ impl DrawingCarriageManager {
     pub(super) fn new(ping_needed: &Needed, train_extent: &TrainExtent, graphics: &Graphics) -> DrawingCarriageManager {
         DrawingCarriageManager {
             active: false,
+            mute: false,
             ping_needed: ping_needed.clone(),
             train_extent: train_extent.clone(),
             carriages: vec![],
@@ -63,9 +65,13 @@ impl DrawingCarriageManager {
     }
 
     fn send_carriages(&self) {
-        if self.active && self.carriages.len() > 0 {
+        if self.active && !self.mute && self.carriages.len() > 0 {
             self.graphics.set_carriages(&self.train_extent,&self.carriages);
         }
+    }
+
+    pub(super) fn mute(&mut self, yn: bool) {
+        self.mute = yn;
     }
 
     pub(super) fn is_active(&self) -> bool { self.active }
@@ -99,7 +105,9 @@ impl SliderActions<(DrawingCarriageCreator,TrainState3),SliderDrawingCarriage,Sl
     fn ctor(&mut self, (creator,state): &(DrawingCarriageCreator,TrainState3)) -> SliderDrawingCarriage {
         #[cfg(debug_trains)] debug_log!("create dc {:?} {:?}",creator.extent,state);
         let carriage = SliderDrawingCarriage::new(creator,state);
-        self.graphics.create_carriage(&carriage.carriage);
+        if !self.mute {
+            self.graphics.create_carriage(&carriage.carriage);
+        }
         carriage
     }
 

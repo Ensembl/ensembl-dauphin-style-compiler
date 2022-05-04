@@ -78,12 +78,10 @@ impl GlRailwayData {
     }
 
     fn set_carriages(&mut self, extent: &TrainExtent, new_carriages: &[DrawingCarriage]) -> Result<(),Message> {
-        log!("set_carriages: {:?} len={}",extent,new_carriages.len());
         match new_carriages.iter().map(|c| self.carriages.get(c).cloned()).collect::<Option<Vec<_>>>() {
             Some(carriages) => {
                 let mut hash = DefaultHasher::new();
                 extent.hash(&mut hash);
-                log!("get train {}",hash.finish());        
                 self.get_our_train(&extent).set_carriages(carriages)
             },
             None => {
