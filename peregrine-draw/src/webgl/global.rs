@@ -1,7 +1,6 @@
 use crate::{run::{ PgPeregrineConfig, PgConfigKey }, shape::layers::programstore::ProgramStore, util::fonts::Fonts};
 use crate::webgl::{ FlatStore, TextureBindery };
 use js_sys::Float32Array;
-use peregrine_toolkit::{log, error};
 use web_sys::Document;
 pub use url::Url;
 pub use web_sys::{ console, WebGlRenderingContext };
@@ -30,7 +29,8 @@ pub(crate) struct WebGlGlobalRefs<'a> {
     pub document: &'a Document,
     pub canvas_size: &'a mut Option<(u32,u32)>,
     pub gpuspec: &'a GPUSpec,
-    pub aux_array: &'a Float32Array
+    pub aux_array: &'a Float32Array,
+    pub fonts: &'a Fonts
 }
 
 impl WebGlGlobal {
@@ -41,6 +41,7 @@ impl WebGlGlobal {
             .dyn_into::<WebGlRenderingContext>().map_err(|_| Message::WebGLFailure(format!("cannot get webgl context")))?;
         let gpuspec = GPUSpec::new(&context)?;
         let program_store = ProgramStore::new()?;
+        let fonts = Fonts::new()?;
         let canvas_store = FlatStore::new(dom.device_pixel_ratio());
         let bindery = TextureBindery::new(&gpuspec);
         Ok(WebGlGlobal {
@@ -51,7 +52,7 @@ impl WebGlGlobal {
             document: dom.document().clone(),
             canvas_size: None,
             gpuspec,
-            fonts: Fonts::new()?,
+            fonts,
             aux_array: Float32Array::new_with_length(config.get_size(&PgConfigKey::AuxBufferSize)? as u32)
         })
     }
@@ -65,7 +66,8 @@ impl WebGlGlobal {
             document: &self.document,
             canvas_size: &mut self.canvas_size,
             gpuspec: &self.gpuspec,
-            aux_array: &self.aux_array       
+            aux_array: &self.aux_array,
+            fonts: &self.fonts     
         }
     }
 }

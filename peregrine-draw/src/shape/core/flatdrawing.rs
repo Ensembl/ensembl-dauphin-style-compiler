@@ -120,7 +120,7 @@ impl<H: KeyedHandle+Clone,T: FlatDrawingItem> FlatDrawingManager<H,T> {
     pub(crate) fn calculate_requirements(&mut self, gl: &mut WebGlGlobal, allocator: &mut FlatPositionManager) -> Result<(),Message> {
         self.calc_sizes(gl)?;
         let mut sizes = vec![];
-        for (text,boundary) in self.texts.values_mut() {
+        for (_,boundary) in self.texts.values_mut() {
             let size = boundary.size_with_padding()?;
             /* mask and text */
             sizes.push(size);
@@ -158,5 +158,9 @@ impl<H: KeyedHandle+Clone,T: FlatDrawingItem> FlatDrawingManager<H,T> {
 
     pub(crate) fn get_texture_areas_on_bitmap(&self, handle: &H) -> Result<CanvasTextureArea,Message> {
         self.texts.get(handle).1.get_texture_areas_on_bitmap()
+    }
+
+    pub(crate) fn iter_mut(&mut self) -> impl Iterator<Item=&mut T> {
+        self.texts.values_mut().map(|x| &mut x.0)
     }
 }

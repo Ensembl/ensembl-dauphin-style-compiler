@@ -1,7 +1,7 @@
 use std::{sync::{Arc, Mutex}, collections::HashSet};
 
 use js_sys::Reflect;
-use peregrine_toolkit::{lock, log};
+use peregrine_toolkit::{lock};
 use wasm_bindgen::JsValue;
 use web_sys::FontFaceSet;
 
@@ -9,6 +9,7 @@ use crate::Message;
 
 use super::promise::promise_to_future;
 
+#[derive(Clone)]
 pub(crate) struct Fonts {
     loaded: Arc<Mutex<Option<HashSet<String>>>>
 }
@@ -42,7 +43,8 @@ impl Fonts {
         if self.contains(spec) { return; }
         let fonts = if let Some(x) = self.fonts_api() { x } else { return; };
         let promise = fonts.load(spec);
-        if promise_to_future(promise).await.is_ok() {
+        let result = promise_to_future(promise).await;
+        if result.is_ok() {
             if let Some(fonts) = lock!(self.loaded).as_mut() {
                 fonts.insert(spec.to_string());
             }

@@ -29,9 +29,10 @@ pub(crate) struct DrawingBuilder {
 impl DrawingBuilder {
     pub(crate) fn new(scale: Option<&Scale>, gl: &mut WebGlGlobal, assets: &Assets, left: f64) -> Result<DrawingBuilder,Message> {
         let gl_ref = gl.refs();
+        let bitmap_multiplier = gl_ref.flat_store.bitmap_multiplier() as f64;
         Ok(DrawingBuilder {
             main_layer: Layer::new(gl_ref.program_store,left)?,
-            tools: DrawingToolsBuilder::new(assets,scale,left),
+            tools: DrawingToolsBuilder::new(gl_ref.fonts,assets,scale,left,bitmap_multiplier),
             flats: None,
             dynamic_shapes: vec![]
         })
@@ -43,11 +44,12 @@ impl DrawingBuilder {
         prepare_shape_in_layer(layer,tools,shape)
     }
 
-    pub(crate) fn prepare_tools(&mut self, gl: &mut WebGlGlobal) -> Result<(),Message> {
-        let mut prep = self.tools.start_preparation(gl)?;
+    pub(crate) async fn prepare_tools(&mut self, gl: &Arc<Mutex<WebGlGlobal>>) -> Result<(),Message> {
+        let mut prep = self.tools.start_preparation(gl).await?;
         let mut drawable = DrawingAllFlatsBuilder::new();
-        prep.allocate(gl,&mut drawable)?;
-        let gl_ref = gl.refs();
+        let mut lgl = lock!(gl);
+        prep.allocate(&mut lgl,&mut drawable)?;
+        let gl_ref = lgl.refs();
         self.tools.finish_preparation(gl_ref.flat_store,prep)?;
         self.flats = Some(drawable);
         Ok(())
@@ -77,13 +79,6 @@ impl DrawingBuilder {
             None
         })
     }
-
-    pub(crate) fn build_sync(mut self, gl: &Arc<Mutex<WebGlGlobal>>) -> Result<Drawing,Message> {
-        let flats = self.flats.take().unwrap().built();
-        let processes = self.main_layer.build_sync(gl,&flats)?;
-        let tools = self.tools.build();
-        Ok(Drawing::new_real(processes,flats,tools.zmenus,self.dynamic_shapes)?)
-    }
 }
 
 struct DrawingData {
@@ -104,7 +99,9 @@ impl Drawing {
         let mut drawing = DrawingBuilder::new(scale,&mut lgl,assets,left)?;
         let mut prepared_shapes = shapes.iter().map(|s| drawing.prepare_shape(s)).collect::<Result<Vec<_>,_>>()?;
         /* gather and allocate aux requirements (2d canvas space etc) */
-        drawing.prepare_tools(&mut lgl)?;
+        drop(lgl);
+        drawing.prepare_tools(gl).await?;
+        let mut lgl = lock!(gl);
         /* draw shapes (including any 2d work) */
         for mut shapes in prepared_shapes.drain(..) {
             for shape in shapes.drain(..) {
@@ -114,24 +111,6 @@ impl Drawing {
         drop(lgl);
         /* convert stuff to WebGL processes */
         drawing.build(gl,retain_test).await
-    }
-
-    pub(crate) fn new_sync(scale: Option<&Scale>, shapes: Vec<Shape<LeafStyle>>, gl: &Arc<Mutex<WebGlGlobal>>, left: f64, assets: &Assets) -> Result<Drawing,Message> {
-        let mut lgl = lock!(gl);
-        /* convert core shape data model into gl shapes */
-        let mut drawing = DrawingBuilder::new(scale,&mut lgl,assets,left)?;
-        let mut prepared_shapes = shapes.iter().map(|s| drawing.prepare_shape(s)).collect::<Result<Vec<_>,_>>()?;
-        /* gather and allocate aux requirements (2d canvas space etc) */
-        drawing.prepare_tools(&mut lgl)?;
-        /* draw shapes (including any 2d work) */
-        for mut shapes in prepared_shapes.drain(..) {
-            for shape in shapes.drain(..) {
-                drawing.add_shape(&mut lgl,shape)?;
-            }
-        }
-        /* convert stuff to WebGL processes */
-        drop(lgl);
-        drawing.build_sync(gl)
     }
 
     fn new_real(processes: Vec<Process>, canvases: DrawingAllFlats, zmenus: DrawingHotspots, dynamic_shapes: Vec<Box<dyn DynamicShape>>) -> Result<Drawing,Message> {

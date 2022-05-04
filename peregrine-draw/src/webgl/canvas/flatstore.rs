@@ -4,7 +4,7 @@ use keyed::KeyedOptionalValues;
 use web_sys::{ Document };
 use super::flat::Flat;
 use keyed::keyed_handle;
-use crate::util::message::Message;
+use crate::util::{message::Message, fonts::Fonts};
 use super::canvasstore::CanvasStore;
 
 // TODO test discard webgl buffers etc
@@ -27,7 +27,7 @@ impl FlatStore {
             canvas_store: CanvasStore::new(),
             scratch: HashMap::new(),
             main_canvases: KeyedOptionalValues::new(),
-            png_cache: PngCache::new()
+            png_cache: PngCache::new(),
         }
     }
 

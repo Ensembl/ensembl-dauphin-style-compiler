@@ -10,8 +10,11 @@ impl RetainTest {
 #[derive(Clone)]
 pub struct Retainer(Arc<()>);
 
+impl Retainer {
+    pub fn test(&self) -> RetainTest { RetainTest(Arc::downgrade(&self.0)) }
+}
+
 pub fn retainer() -> (Retainer,RetainTest) {
-    let strong = Arc::new(());
-    let weak = Arc::downgrade(&strong);
-    (Retainer(strong),RetainTest(weak))
+    let strong = Retainer(Arc::new(()));
+    (strong.clone(),strong.test())
 }

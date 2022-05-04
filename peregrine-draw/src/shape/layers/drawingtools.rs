@@ -1,6 +1,8 @@
+use std::sync::{Arc, Mutex};
+
 use peregrine_data::{Assets, Scale};
 
-use crate::{shape::{core::{text::DrawingText, bitmap::DrawingBitmap}, heraldry::heraldry::DrawingHeraldry}, webgl::{global::WebGlGlobal, canvas::flatplotallocator::FlatPositionManager, CanvasWeave, DrawingAllFlatsBuilder, FlatStore}, Message};
+use crate::{shape::{core::{text::DrawingText, bitmap::DrawingBitmap}, heraldry::heraldry::DrawingHeraldry}, webgl::{global::WebGlGlobal, canvas::flatplotallocator::FlatPositionManager, CanvasWeave, DrawingAllFlatsBuilder, FlatStore}, Message, util::fonts::Fonts};
 
 use super::drawingzmenus::{DrawingHotspotsBuilder, DrawingHotspots};
 
@@ -43,9 +45,9 @@ pub(crate) struct DrawingToolsBuilder {
 }
 
 impl DrawingToolsBuilder {
-    pub(super) fn new(assets: &Assets, scale: Option<&Scale>, left: f64) -> DrawingToolsBuilder {
+    pub(super) fn new(fonts: &Fonts, assets: &Assets, scale: Option<&Scale>, left: f64, bitmap_multiplier: f64) -> DrawingToolsBuilder {
         DrawingToolsBuilder {
-            text: DrawingText::new(),
+            text: DrawingText::new(fonts,bitmap_multiplier),
             bitmap: DrawingBitmap::new(assets),
             heraldry: DrawingHeraldry::new(),
             zmenus: DrawingHotspotsBuilder::new(scale, left)
@@ -63,11 +65,11 @@ impl DrawingToolsBuilder {
         }
     }
 
-    pub(crate) fn start_preparation(&mut self, gl: &mut WebGlGlobal) -> Result<ToolPreparations,Message> {
+    pub(crate) async fn start_preparation(&mut self, gl: &Arc<Mutex<WebGlGlobal>>) -> Result<ToolPreparations,Message> {
         let mut preparations = ToolPreparations::new();
-        self.text.calculate_requirements(gl,&mut preparations.crisp)?;
-        self.bitmap.calculate_requirements(gl, &mut preparations.crisp)?;
-        self.heraldry.calculate_requirements(gl,&mut preparations)?;
+        self.text.calculate_requirements(gl,&mut preparations.crisp).await?;
+        self.bitmap.calculate_requirements(gl, &mut preparations.crisp).await?;
+        self.heraldry.calculate_requirements(gl,&mut preparations).await?;
         Ok(preparations)
     }
 

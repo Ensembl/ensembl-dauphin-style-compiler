@@ -2,9 +2,9 @@ use wasm_bindgen::{JsCast, JsValue, prelude::Closure};
 use web_sys::{CanvasRenderingContext2d, Document, HtmlCanvasElement, HtmlImageElement };
 use peregrine_data::{ Pen, DirectColour };
 use super::{bindery::SelfManagedWebGlTexture, canvasstore::HtmlFlatCanvas, pngcache::PngCache, weave::CanvasWeave};
-use crate::util::message::Message;
+use crate::util::{message::Message, fonts::Fonts};
 use super::canvasstore::CanvasStore;
-use peregrine_toolkit::{js::exception::js_result_to_option_console, log};
+use peregrine_toolkit::{js::exception::js_result_to_option_console };
 
 fn pen_to_font(pen: &Pen, bitmap_multiplier: f64) -> String {
     format!("{}px {}",(pen.size_in_webgl() * bitmap_multiplier).round(),pen.name())

@@ -1,12 +1,13 @@
 use peregrine_data::{Asset, Assets, DirectColour };
 use keyed::keyed_handle;
+use peregrine_toolkit::lock;
 use crate::webgl::canvas::flatplotallocator::FlatPositionManager;
 use crate::webgl::{ Flat };
 use crate::webgl::global::WebGlGlobal;
 use super::flatdrawing::{FlatDrawingItem, FlatDrawingManager};
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use crate::util::message::Message;
 
 // TODO padding measurements!
@@ -51,7 +52,7 @@ impl Bitmap {
 }
 
 impl FlatDrawingItem for Bitmap {
-    fn calc_size(&mut self, gl: &mut WebGlGlobal) -> Result<(u32,u32),Message> {
+    fn calc_size(&mut self, _gl: &mut WebGlGlobal) -> Result<(u32,u32),Message> {
         Ok((self.width*self.scale/100,self.height*self.scale/100))
     }
 
@@ -87,8 +88,8 @@ impl DrawingBitmap {
         Ok(self.manager.add(Bitmap::new(&self.assets,asset)?))
     }
 
-    pub(crate) fn calculate_requirements(&mut self, gl: &mut WebGlGlobal, allocator: &mut FlatPositionManager) -> Result<(),Message> {
-        self.manager.calculate_requirements(gl,allocator)
+    pub(crate) async fn calculate_requirements(&mut self, gl: &Arc<Mutex<WebGlGlobal>>, allocator: &mut FlatPositionManager) -> Result<(),Message> {
+        self.manager.calculate_requirements(&mut *lock!(gl),allocator)
     }
 
     pub(crate) fn manager(&mut self) -> &mut FlatDrawingManager<BitmapHandle,Bitmap> { &mut self.manager }
