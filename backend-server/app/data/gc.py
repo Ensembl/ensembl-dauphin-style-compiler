@@ -9,7 +9,7 @@ from .numbers import delta, zigzag, lesqlite2, compress
 
 SCALE = 4
 
-def get_gc(data_accessor: DataAccessor, chrom: Chromosome, panel: Panel) -> Response:
+def _get_gc(data_accessor: DataAccessor, chrom: Chromosome, panel: Panel) -> Response:
     item = chrom.item_path("gc")
     if panel.end - panel.start < 1000:
         (data,start,end) = get_bigwig(data_accessor,item,panel.start,panel.end)
@@ -29,4 +29,4 @@ class WiggleDataHandler(DataHandler):
         chrom = data_accessor.data_model.stick(data_accessor,panel.stick)
         if chrom == None:
             return Response(1,"Unknown chromosome {0}".format(panel.stick))
-        return get_gc(data_accessor,chrom,panel)
+        return _get_gc(data_accessor,chrom,panel)
