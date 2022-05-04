@@ -64,10 +64,18 @@ stmt red_dotted(pstart,pend,pallotment) {
 
 style("dots/",["system","depth"][],["tracking-special","56"][]);
 style("tracks/",["padding-top","priority"][],["16","0"][]);
-style("tracks/track/*/",["padding-top","padding-bottom","height-adjust"][],["8","8","tracking"][]);
+style("tracks/track/*/",["padding-top","padding-bottom","height-adjust"][],["4","4","tracking"][]);
 style("tracks/track/*/title/",["system","type","indent","padding-top","padding-bottom","priority"][],["window","overlay","left","2","2","-1000"][]);
 style("tracks/track/*/main/",["type","priority"][],["overlay","0"][]);
 style("tracks/track/*/main/letter/",["system","indent","depth"][],["window","datum(pad-left)","60"][]);
 style("tracks/track/*/title/letter/",["system","indent","depth"][],["window","datum(pad-left)","60"][]);
 style("tracks/track/*/main/main/",["system","priority"][],["tracking","1000"][]);
 style("tracks/track/*/main/background/",["system"][],["window"][]);
+
+stmt gene_track_styles() {
+    style("tracks/track/gene-other-rev/",["priority","report","min-height"][],["110","track;switch-id=gene-other-rev;has-labels=true","92"][]);
+    style("tracks/track/gene-pc-rev/",["priority","report","min-height"][],["100","track;switch-id=gene-pc-rev;has-labels=true","92"][]);
+    style("tracks/track/gene-other-fwd/",["priority","report","min-height"][],["-110","track;switch-id=gene-other-fwd;has-labels=true","92"][]);
+    style("tracks/track/gene-pc-fwd/",["priority","report","min-height"][],["-100","track;switch-id=gene-pc-fwd;has-labels=true","92"][]);
+    style("tracks/track/focus/",["priority","report"][],["-900","track;switch-id=focus;has-labels=true"][]);
+}

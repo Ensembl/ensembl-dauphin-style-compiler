@@ -72,11 +72,9 @@ main/main/<id>/text/ <- label
 
 */
 
-style("tracks/track/gene-other-rev/",["priority","report"][],["110","track;switch-id=gene-other-rev;has-labels=true"][]);
-style("tracks/track/gene-pc-rev/",["priority","report"][],["100","track;switch-id=gene-pc-rev;has-labels=true"][]);
-style("tracks/track/gene-other-fwd/",["priority","report"][],["-110","track;switch-id=gene-other-fwd;has-labels=true"][]);
-style("tracks/track/gene-pc-fwd/",["priority","report"][],["-100","track;switch-id=gene-pc-fwd;has-labels=true"][]);
-style("tracks/track/focus/",["priority","report"][],["-900","track;switch-id=focus;has-labels=true"][]);
+gene_track_styles();
+
+/* If we have labels then we bump */
 
 style("**/main/main/",["type"][],["bumper"][]);
 style("**/main/main/*/",["type"][],["overlay"][]);

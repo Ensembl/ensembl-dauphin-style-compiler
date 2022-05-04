@@ -252,7 +252,14 @@ impl Algorithm {
         (old,new)
     }
 
+    fn in_range(&self, index: usize) -> bool {
+        self.indexes.as_ref().map(|range| {
+            index >= range.start && index < range.end
+        }).unwrap_or(false)
+    }
+
     fn update_range(&mut self, index: usize) -> bool {
+        if self.in_range(index) { return true; }
         if let Some(range) = &mut self.indexes {
             if range.start == index+1 {
                 range.start -= 1;
@@ -261,8 +268,6 @@ impl Algorithm {
             } else {
                 return false;
             }
-        } else {
-            return false;
         }
         true
     }
@@ -301,6 +306,8 @@ impl Algorithm {
     }
 
     pub(crate) fn add(&mut self, requests: &BumpRequestSet) -> bool {
+        /* seen already */
+        if self.in_range(requests.index) { return true; }
         /* 1. We cannot add in a bridging fashion, bail.*/
         if !self.update_range(requests.index) { return false; }
         /* 2. For everything with pre-existing value */

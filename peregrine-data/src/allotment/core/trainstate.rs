@@ -210,13 +210,11 @@ impl TrainStateSpec {
 
     pub(crate) fn add(&mut self, index: u64, spec: &CarriageTrainStateSpec) {
         self.specs.insert(index,spec.clone());
-        log!("state {:?}",self.specs.keys());
         *lock!(self.cached_train_state) = None;
     }
 
     pub(crate) fn remove(&mut self, index: u64) {
         self.specs.remove(&index);
-        log!("state {:?}",self.specs.keys());
         *lock!(self.cached_train_state) = None;
     }
 }
