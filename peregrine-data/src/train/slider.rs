@@ -105,6 +105,5 @@ impl<X: Eq+Hash+Clone,P,T,S: SliderActions<X,P,T>> Drop for Slider<X,P,T,S> {
             }
         }
         self.ready.clear();
-//        self.actions.done(&mut self.ready.iter().map(|(x,y)| (x,y.as_ref().unwrap())));
     }
 }

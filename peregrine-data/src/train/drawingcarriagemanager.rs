@@ -113,7 +113,7 @@ impl SliderActions<(DrawingCarriageCreator,TrainState3),SliderDrawingCarriage,Sl
 
     fn init(&mut self, _: &(DrawingCarriageCreator,TrainState3), item: &mut SliderDrawingCarriage) -> Option<SliderDrawingCarriage> {
         if !item.carriage.is_ready() { return None; }
-        self.ping_needed.set(); // train can maybe be updates
+        self.ping_needed.set(); // train can maybe be updated
         Some(item.clone())
     }
 

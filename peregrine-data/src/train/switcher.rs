@@ -5,6 +5,8 @@
  * future: the fading in train, if fading
  * wanted: the train we are currently collecting data for
  * target: the train extent which would be ideal for the given coordinates
+ * 
+ * 
  */
 
 pub(super) trait SwitcherManager {
@@ -74,22 +76,10 @@ impl<M:SwitcherManager<Extent=X,Type=T,Error=E>,
         None
     }
 
-    pub(super) fn displaying(&self) -> Option<&T> {
-        if let Some(future) = &self.future { return Some(future); }
-        if let Some(current) = &self.current { return Some(current); }
-        None
-    }
-
     pub(super) fn each_mut<F>(&mut self, cb: &F) where F: Fn(&mut T) {
         if let Some(wanted) = &mut self.wanted { cb(wanted); }
         if let Some(future) = &mut self.future { cb(future); }
         if let Some(current) = &mut self.current { cb(current); }
-    }
-
-    pub(super) fn each<F>(&self, cb: &F) where F: Fn(&T) {
-        if let Some(wanted) = &self.wanted { cb(wanted); }
-        if let Some(future) = &self.future { cb(future); }
-        if let Some(current) = &self.current { cb(current); }
     }
 
     /* something has happened which may cause maneouverability */

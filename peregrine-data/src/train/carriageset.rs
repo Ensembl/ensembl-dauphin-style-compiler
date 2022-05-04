@@ -113,7 +113,9 @@ impl CarriageSet {
         if self.test_should_update_drawings() {
             /* Create any necessary DrawingCarriages */
             let state = self.process.inner().state();
-            let mut wanted = self.process.iter().map(|(_,x)| (x.clone(),state.clone())).collect::<Vec<_>>();
+            let mut wanted = self.process.iter().map(|(_,x)| 
+                (x.clone(),state.clone())
+            ).collect::<Vec<_>>();
             self.drawing.set(&mut wanted.drain(..));
             /* Maybe we need to update the UI? */
             self.drawing.check();
