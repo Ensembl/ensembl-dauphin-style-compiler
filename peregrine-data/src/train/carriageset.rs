@@ -64,7 +64,9 @@ impl CarriageSet {
 
     pub(super) fn mute(&mut self, yn: bool) {
         self.process.inner_mut().mute(yn);
-        self.drawing.set_mute();
+        if yn {
+            self.drawing.set_mute();
+        }
     }
 
     pub(super) fn activate(&mut self) {
@@ -111,7 +113,7 @@ impl CarriageSet {
      */
     pub(super) fn ping(&mut self) {
         self.process.ping();
-        if self.process.state() != self.seen_process_partystate {
+        if self.process.is_ready() && self.process.state() != self.seen_process_partystate {
             /* process was updated so update drawing target */
             let state = self.process.inner().state();
             let wanted = self.process.iter().map(|(_,x)| 

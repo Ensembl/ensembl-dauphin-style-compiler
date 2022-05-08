@@ -1,12 +1,12 @@
 use std::{sync::{Arc, Mutex}, collections::{HashMap, hash_map::DefaultHasher}, fmt, hash::{Hash, Hasher}};
-use peregrine_toolkit::{puzzle::{StaticAnswer, AnswerAllocator}, lock, log };
+use peregrine_toolkit::{puzzle::{StaticAnswer, AnswerAllocator}, lock, log, debug_log };
 use crate::{allotment::{globals::{heighttracker::{LocalHeightTrackerBuilder, LocalHeightTracker, GlobalHeightTracker, GlobalHeightTrackerBuilder}, playingfield::{LocalPlayingFieldBuilder, LocalPlayingField, GlobalPlayingField, GlobalPlayingFieldBuilder}, aligner::{LocalAlignerBuilder, LocalAligner, GlobalAligner, GlobalAlignerBuilder}, allotmentmetadata::{LocalAllotmentMetadataBuilder, LocalAllotmentMetadata, GlobalAllotmentMetadata, GlobalAllotmentMetadataBuilder}, bumping::{LocalBumpBuilder, GlobalBump, GlobalBumpBuilder, LocalBump}, trainpersistent::TrainPersistent}}};
 
 use lazy_static::lazy_static;
 use identitynumber::identitynumber;
 
-#[cfg(debug_trains)]
-use peregrine_toolkit::{debug_log};
+//#[cfg(debug_trains)]
+//use peregrine_toolkit::{debug_log};
 
 /* Every carriage manipulates in a CarriageTrainStateRequest during creation (during build). This specifies the
  * requirements which a Carriage has of the train. 
@@ -205,6 +205,7 @@ impl TrainStateSpec {
     pub fn spec(&self) -> TrainState3 {
         let mut state = lock!(self.cached_train_state);
         if state.is_none() {
+            debug_log!("new answer for {}",self.specs.keys().map(|x| { x.to_string() }).collect::<Vec<_>>().join(", "));
             let answer = lock!(self.answer_allocator).get();
             *state = Some(TrainState3::new(self,answer,&self.persistent));
             #[cfg(debug_trains)] debug_log!("TrainStateSpec::spec(): new train_state: {:?}",*state);
@@ -213,7 +214,6 @@ impl TrainStateSpec {
     }
 
     pub(crate) fn add(&mut self, index: u64, spec: &CarriageTrainStateSpec) {
-        log!("TrainStateSpec add index={}",index);
         self.specs.insert(index,spec.clone());
         *lock!(self.cached_train_state) = None;
     }

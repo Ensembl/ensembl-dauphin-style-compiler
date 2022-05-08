@@ -8,6 +8,7 @@ use super::{drawingcarriagemanager::DrawingCarriageCreator, railwaydatatasks::Ra
 
 pub(super) struct CarriageProcessManager {
     ping_needed: Needed,
+    ready: bool,
     mute: bool,
     active: bool,
     constant: Arc<CarriageSetConstant>,
@@ -22,6 +23,7 @@ impl CarriageProcessManager {
             graphics: &Graphics) -> CarriageProcessManager {
         CarriageProcessManager {
             ping_needed: ping_needed.clone(),
+            ready: false,
             mute: false,
             active: false,
             constant: constant.clone(),
@@ -77,5 +79,9 @@ impl PartyActions<u64,CarriageProcess,DrawingCarriageCreator> for CarriageProces
                 self.ping_needed.clone()
             )
         })
+    }
+
+    fn quiet(&mut self, _items: &mut dyn Iterator<Item=(&u64,&DrawingCarriageCreator)>) {
+        self.ready = true;
     }
 }

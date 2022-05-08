@@ -43,6 +43,7 @@ impl DrawingCarriageSetActions {
     fn try_send(&self) {
         if self.active && !self.mute {
             let carriages = self.current.iter().map(|c| c.carriage().clone()).collect::<Vec<_>>();
+            if carriages.len() == 0 { panic!(); }
             self.graphics.set_carriages(&self.extent,&carriages);
         }
     }

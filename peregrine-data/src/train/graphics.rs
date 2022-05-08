@@ -70,7 +70,7 @@ impl Graphics {
     }
 
     pub(super) fn set_carriages(&self, extent: &TrainExtent, carriages: &[DrawingCarriage]) {
-        #[cfg(debug_trains)] debug_log!("gl/set_carriages {:?}",carriages.iter().map(|c| { c.extent().train() }).collect::<Vec<_>>());
+        #[cfg(debug_trains)] debug_log!("gl/set_carriages {}",carriages.iter().map(|c| { c.compact() }).collect::<Vec<_>>().join(", "));
         lock!(self.integration).set_carriages(extent,carriages);
     }
 

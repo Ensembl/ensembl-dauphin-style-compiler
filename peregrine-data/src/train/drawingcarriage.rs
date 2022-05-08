@@ -33,7 +33,8 @@ pub struct DrawingCarriage {
     extent: CarriageExtent,
     ready: Arc<Mutex<bool>>,
     shapes: Arc<Vec<Shape<LeafStyle>>>,
-    retain: RetainTest
+    retain: RetainTest,
+    index: u64
 }
 
 impl DrawingCarriage {
@@ -45,9 +46,13 @@ impl DrawingCarriage {
             extent: extent.clone(),
             ready: Arc::new(Mutex::new(false)),
             shapes: Arc::new(shapes),
-            retain: retain.clone()
+            retain: retain.clone(),
+            index: lock!(train_state.answer()).serial()
         })
     }
+
+    #[cfg(debug_assertions)]
+    pub fn compact(&self) -> String { format!("({},{},{})",self.extent().train().scale().get_index(),self.extent().index(),self.index) }
 
     pub fn train(&self) -> &TrainExtent { &self.extent.train() }
     pub fn extent(&self) -> &CarriageExtent { &self.extent }

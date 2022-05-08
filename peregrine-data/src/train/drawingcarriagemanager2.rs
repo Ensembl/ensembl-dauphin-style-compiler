@@ -31,8 +31,6 @@ impl SwitcherManager for DrawingCarriageManager2 {
         let mut out = DrawingCarriageParty::new(&self.ping_needed,&self.train_extent,state,&self.graphics);
         if self.muted {
             out.set_mute();
-        } else if self.active {
-            out.set_active();
         }
         Ok(out)
     }
