@@ -57,12 +57,10 @@ impl GlRailwayData {
     }
 
     fn create_train(&mut self, extent: &TrainExtent) {
-        debug_log!("create train {:?}",extent);
         self.trains.insert(extent.clone(),GLTrain::new(&self.redraw_needed));
     }
 
     fn drop_train(&mut self, extent: &TrainExtent) {
-        debug_log!("drop train {:?}",extent);
         self.trains.remove(extent);
     }
 

@@ -38,7 +38,7 @@ impl SwitcherManager for TrainSetManager {
     type Error = DataMessage;
 
     fn create(&mut self, extent: &Self::Extent) -> Result<Self::Type,Self::Error> {
-        debug_log!("create train: {:?}",extent.extent);
+        #[cfg(debug_trains)] debug_log!("TRAIN create ({})",extent.extent.scale().get_index());
         let mut train = Train::new(&self.graphics,&self.ping_needed,&self.answer_allocator,&extent.extent,&self.carriage_loader,&self.messages)?;
         if let Some(viewport) = &self.viewport {
             train.set_position(viewport);

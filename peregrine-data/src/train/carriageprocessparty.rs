@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use peregrine_toolkit::{sync::needed::Needed, puzzle::AnswerAllocator, log};
+use peregrine_toolkit::{sync::needed::Needed, puzzle::AnswerAllocator, log, debug_log};
 
 use crate::{shapeload::carriageprocess::CarriageProcess, allotment::core::trainstate::{TrainStateSpec, TrainState3}};
 
@@ -58,24 +58,27 @@ impl CarriageProcessManager {
 impl PartyActions<u64,CarriageProcess,DrawingCarriageCreator> for CarriageProcessManager {
     fn ctor(&mut self, index: &u64) -> CarriageProcess {
         let new_carriage = self.constant.new_unloaded_carriage(*index);
+        #[cfg(debug_trains)] debug_log!("CP ctor ({})",new_carriage.extent().compact());
         self.railway_data_tasks.add_carriage(&new_carriage);
         new_carriage
     }
 
-    fn dtor(&mut self, index: &u64, _item: DrawingCarriageCreator) {
+    fn dtor(&mut self, index: &u64, carriage: DrawingCarriageCreator) {
+        #[cfg(debug_trains)] debug_log!("CP dtor ({})",carriage.extent().compact());
         self.train_state_spec.remove(*index);
         self.state_updated();
         self.ping_needed.set(); /* Need to call ping in case dc are ready */
     }
 
-    fn init(&mut self, index: &u64, item: &mut CarriageProcess) -> Option<DrawingCarriageCreator> {
-        item.get_shapes2().map(|shapes| {
+    fn init(&mut self, index: &u64, carriage: &mut CarriageProcess) -> Option<DrawingCarriageCreator> {
+        carriage.get_shapes2().map(|shapes| {
+            #[cfg(debug_trains)] debug_log!("CP init ({})",carriage.extent().compact());
             self.train_state_spec.add(*index,&shapes.spec().ok().unwrap()); // XXX errors
             self.state_updated();
             self.ping_needed.set(); /* Need to call ping in case dc are ready */
             DrawingCarriageCreator::new(
                 shapes.clone(),
-                item.extent().clone(),                
+                carriage.extent().clone(),                
                 self.ping_needed.clone()
             )
         })

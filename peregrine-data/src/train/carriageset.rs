@@ -15,8 +15,8 @@ use crate::shapeload::carriageprocess::CarriageProcess;
 use crate::api::MessageSender;
 use crate::switch::trackconfiglist::TrainTrackConfigList;
 
-const CARRIAGE_FLANK : u64 = 2;
-const MILESTONE_CARRIAGE_FLANK : u64 = 2;
+const CARRIAGE_FLANK : u64 = 1;
+const MILESTONE_CARRIAGE_FLANK : u64 = 1;
 
 pub(super) struct CarriageSetConstant {
     ping_needed: Needed,
