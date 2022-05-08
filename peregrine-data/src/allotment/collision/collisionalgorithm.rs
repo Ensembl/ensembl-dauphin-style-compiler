@@ -104,6 +104,7 @@ impl BumpRequestSet {
     pub(crate) fn index(&self) -> usize { self.index }
 }
 
+#[cfg_attr(debug_assertions,derive(Debug))]
 #[derive(Clone)]
 pub struct BumpResponses {
     offset: f64,

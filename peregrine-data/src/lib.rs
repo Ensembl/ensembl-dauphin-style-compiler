@@ -214,15 +214,17 @@ pub(crate) mod switch {
 mod train {
     mod anticipate;
     pub mod drawingcarriage;
-    pub(crate) mod carriageprocessmanager;
+    pub(crate) mod drawingcarriageparty;
+    pub(crate) mod carriageprocessparty;
     pub(crate) mod drawingcarriagemanager;
+    pub(crate) mod drawingcarriagemanager2;
     pub(crate) mod carriageextent;
     mod railwaydatatasks;
     pub(crate) mod carriageset;
     pub(crate) mod graphics;
     mod railway;
     mod railwaydependents;
-    pub(crate) mod slider;
+    pub(crate) mod party;
     mod switcher;
     pub(crate) mod trainextent;
     pub(crate) mod train;

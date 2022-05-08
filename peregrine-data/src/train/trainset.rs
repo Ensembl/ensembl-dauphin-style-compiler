@@ -96,7 +96,10 @@ impl SwitcherObject for SwitcherTrain {
     fn half_ready(&self) -> bool { self.train.train_half_ready() }
     fn ready(&self) -> bool { self.train.train_ready() }
     fn broken(&self) -> bool { self.train.train_broken() }
-    fn live(&mut self, speed: &Self::Speed) { self.train.set_active(speed.clone()) }
+    fn live(&mut self, speed: &Self::Speed) -> bool {
+        self.train.set_active(speed.clone());
+        false
+    }
     fn dead(&mut self) { self.train.set_inactive() }
 
     fn speed(&self, source: Option<&Self::Type>) -> Self::Speed {

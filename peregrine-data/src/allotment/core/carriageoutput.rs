@@ -1,9 +1,10 @@
 use std::{sync::{Arc, Mutex}};
-use peregrine_toolkit::{puzzle::{StaticAnswer}, lock};
-
+use peregrine_toolkit::{puzzle::{StaticAnswer}, lock, log};
 use crate::{allotment::{boxes::{root::{Root}}, collision::{collisionalgorithm::BumpRequestSetFactory}, util::bppxconverter::BpPxConverter}, ShapeRequestGroup, Shape, DataMessage, LeafRequest, LeafStyle};
-
 use super::{leafrequest::LeafTransformableMap, leaflist::LeafList, trainstate::{CarriageTrainStateRequest, CarriageTrainStateSpec}, boxtraits::Transformable};
+
+#[cfg(debug_trains)]
+use peregrine_toolkit::debug_log;
 
 pub(crate) struct BoxPositionContext {
     pub bp_px_converter: Arc<BpPxConverter>,
@@ -21,7 +22,7 @@ impl BoxPositionContext {
             bp_px_converter: Arc::new(BpPxConverter::new(extent)),
             root: Root::new(),
             plm: LeafTransformableMap::new(),
-            state_request: CarriageTrainStateRequest::new(),
+            state_request: CarriageTrainStateRequest::new(index),
             bumper_factory
         }
     }
@@ -35,7 +36,6 @@ struct CarriageOutputPrep {
 
 impl CarriageOutputPrep {
     fn build(&mut self) -> Result<CarriageOutputReady,DataMessage> {
-        #[cfg(debug_trains)] debug_log!("position_boxes {:?}",self.extent.as_ref().map(|x| x.region()));
         let (prep,spec) = self.builder.position_boxes(self.extent.as_ref())?;
         /* update leafs to reflect container position */
         let shapes = self.shapes.iter().map(|x| 
@@ -75,7 +75,7 @@ impl CarriageOutputChoice {
 }
 
 #[derive(Clone)]
-pub struct CarriageOutput(Arc<Mutex<CarriageOutputChoice>>);
+pub struct CarriageOutput(Arc<Mutex<CarriageOutputChoice>>,u64);
 
 impl CarriageOutput {
     pub fn new(builder: Arc<LeafList>, shapes: Arc<Vec<Shape<LeafRequest>>>, extent: Option<&ShapeRequestGroup>) -> CarriageOutput {
@@ -84,7 +84,9 @@ impl CarriageOutput {
                 builder, shapes,
                 extent: extent.cloned()
             }
-        ))))
+        ))),
+        extent.map(|x| x.region().index()).unwrap_or(0)
+        )
     }
 
     pub(crate) fn spec(&self) -> Result<CarriageTrainStateSpec,DataMessage> {

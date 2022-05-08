@@ -1,5 +1,5 @@
 use std::{sync::{Arc, Mutex}, collections::{HashMap, hash_map::DefaultHasher}, fmt, hash::{Hash, Hasher}};
-use peregrine_toolkit::{puzzle::{StaticAnswer, AnswerAllocator}, lock, log, debug_log };
+use peregrine_toolkit::{puzzle::{StaticAnswer, AnswerAllocator}, lock, log };
 use crate::{allotment::{globals::{heighttracker::{LocalHeightTrackerBuilder, LocalHeightTracker, GlobalHeightTracker, GlobalHeightTrackerBuilder}, playingfield::{LocalPlayingFieldBuilder, LocalPlayingField, GlobalPlayingField, GlobalPlayingFieldBuilder}, aligner::{LocalAlignerBuilder, LocalAligner, GlobalAligner, GlobalAlignerBuilder}, allotmentmetadata::{LocalAllotmentMetadataBuilder, LocalAllotmentMetadata, GlobalAllotmentMetadata, GlobalAllotmentMetadataBuilder}, bumping::{LocalBumpBuilder, GlobalBump, GlobalBumpBuilder, LocalBump}, trainpersistent::TrainPersistent}}};
 
 use lazy_static::lazy_static;
@@ -17,17 +17,19 @@ pub struct CarriageTrainStateRequest {
     playing_field: LocalPlayingFieldBuilder,
     aligner: LocalAlignerBuilder,
     metadata: LocalAllotmentMetadataBuilder,
-    bumper: LocalBumpBuilder
+    bumper: LocalBumpBuilder,
+    index: u64
 }
 
 impl CarriageTrainStateRequest {
-    pub fn new() -> CarriageTrainStateRequest {
+    pub fn new(index: u64) -> CarriageTrainStateRequest {
         CarriageTrainStateRequest {
             height_tracker: LocalHeightTrackerBuilder::new(),
             playing_field: LocalPlayingFieldBuilder::new(),
             aligner: LocalAlignerBuilder::new(),
             metadata: LocalAllotmentMetadataBuilder::new(),
-            bumper: LocalBumpBuilder::new()
+            bumper: LocalBumpBuilder::new(),
+            index
         }
     }
 
@@ -53,7 +55,8 @@ pub struct CarriageTrainStateSpec {
     playing_field: Arc<LocalPlayingField>,
     aligner: Arc<LocalAligner>,
     metadata: Arc<LocalAllotmentMetadata>,
-    bump: Arc<LocalBump>
+    bump: Arc<LocalBump>,
+    index: u64
 }
 
 impl CarriageTrainStateSpec {
@@ -68,7 +71,8 @@ impl CarriageTrainStateSpec {
             playing_field: Arc::new(playing_field),
             aligner: Arc::new(aligner),
             metadata: Arc::new(metadata),
-            bump: Arc::new(bump)
+            bump: Arc::new(bump),
+            index: request.index
         }
     }
 }
@@ -203,12 +207,13 @@ impl TrainStateSpec {
         if state.is_none() {
             let answer = lock!(self.answer_allocator).get();
             *state = Some(TrainState3::new(self,answer,&self.persistent));
-            #[cfg(debug_trains)] debug_log!("new state: {:?}",*state);
+            #[cfg(debug_trains)] debug_log!("TrainStateSpec::spec(): new train_state: {:?}",*state);
         }
         state.clone().unwrap()
     }
 
     pub(crate) fn add(&mut self, index: u64, spec: &CarriageTrainStateSpec) {
+        log!("TrainStateSpec add index={}",index);
         self.specs.insert(index,spec.clone());
         *lock!(self.cached_train_state) = None;
     }

@@ -3,14 +3,14 @@ use std::sync::{Mutex, Arc};
 use peregrine_toolkit::puzzle::AnswerAllocator;
 use peregrine_toolkit::sync::needed::Needed;
 use super::carriageextent::CarriageExtent;
-use super::carriageprocessmanager::CarriageProcessManager;
+use super::carriageprocessparty::CarriageProcessManager;
 use super::drawingcarriage::DrawingCarriage;
-use super::drawingcarriagemanager::{DrawingCarriageCreator, DrawingCarriageManager, SliderDrawingCarriage};
+use super::drawingcarriagemanager::{DrawingCarriageCreator };
+use super::drawingcarriagemanager2::DrawingCarriageSwitcher;
 use super::graphics::Graphics;
 use super::railwaydatatasks::RailwayDataTasks;
-use super::slider::{Slider};
+use super::party::{Party, PartyState};
 use super::trainextent::TrainExtent;
-use crate::allotment::core::trainstate::{TrainState3};
 use crate::shapeload::carriageprocess::CarriageProcess;
 use crate::api::MessageSender;
 use crate::switch::trackconfiglist::TrainTrackConfigList;
@@ -43,32 +43,33 @@ impl CarriageSetConstant {
 pub(super) struct CarriageSet {
     centre: Option<u64>,
     milestone: bool,
-    drawing: Slider<(DrawingCarriageCreator,TrainState3),SliderDrawingCarriage,SliderDrawingCarriage,DrawingCarriageManager>,
-    process: Slider<u64,CarriageProcess,DrawingCarriageCreator,CarriageProcessManager>
+    drawing: DrawingCarriageSwitcher,
+    process: Party<u64,CarriageProcess,DrawingCarriageCreator,CarriageProcessManager>,
+    seen_process_partystate: PartyState
 }
 
 impl CarriageSet {
     pub(super) fn new(ping_needed: &Needed, answer_allocator: &Arc<Mutex<AnswerAllocator>>, extent: &TrainExtent, configs: &TrainTrackConfigList, railway_data_tasks: &RailwayDataTasks, graphics: &Graphics, messages: &MessageSender) -> CarriageSet {
         let constant = Arc::new(CarriageSetConstant::new(ping_needed,extent,configs,messages));
         let carriage_actions = CarriageProcessManager::new(ping_needed,&constant,railway_data_tasks,answer_allocator,graphics);
-        let drawing_actions = DrawingCarriageManager::new(&ping_needed,extent,graphics);
         let is_milestone = extent.scale().is_milestone();
         CarriageSet {
             centre: None,
-            drawing: Slider::new(drawing_actions),
-            process: Slider::new(carriage_actions),
-            milestone: is_milestone
+            drawing: DrawingCarriageSwitcher::new(ping_needed,extent,graphics),
+            process: Party::new(carriage_actions),
+            milestone: is_milestone,
+            seen_process_partystate: PartyState::null()
         }
     }
 
     pub(super) fn mute(&mut self, yn: bool) {
         self.process.inner_mut().mute(yn);
-        self.drawing.inner_mut().mute(yn);
+        self.drawing.set_mute();
     }
 
     pub(super) fn activate(&mut self) {
         self.process.inner_mut().active();
-        self.drawing.inner_mut().set_active();
+        self.drawing.set_active();
         self.ping();
     }
 
@@ -81,44 +82,50 @@ impl CarriageSet {
     }
 
     pub(super) fn central_drawing_carriage(&self) -> Option<&DrawingCarriage> {
-        let index = if let Some(x) = self.centre { x } else { return None; };
-        let creator = if let Some(creator) = self.process.get(index) {creator } else { return None; }.clone();
-        let state = self.process.inner().state();
-        self.drawing.get((creator,state)).map(|x| x.carriage())
+        self.drawing.central_carriage()
     }
 
     pub(super) fn all_ready(&self) -> bool {
-        /* for efficiency */
-        if !self.process.is_ready() || !self.drawing.is_ready() { return false; }
-        /**/
-        let current_state = self.process.inner().state();
-        let mut wanted = self.process.wanted().clone();
-        for (got,got_state) in self.drawing.iter()
-                .map(|((dcc,c),_)| (dcc.extent().index(),c)) {
-            wanted.remove(&got);
-            if got_state != &current_state { return false; }
-        }
-        wanted.len() == 0
+        self.process.is_ready() && self.drawing.is_ready()
     }
 
-    /* only update drawings when not yet active when all are ready */
-    fn test_should_update_drawings(&self) -> bool {
-        self.drawing.inner().is_active() ||
-        self.process.is_ready()        
-    }
-
-    // TODO "good enough" layer via trains
+    /* We need to do a lot in a ping but also make sure we don't customarily do too much!
+     *
+     * We need to update the CarriageProcess party to see if any more processes are
+     * ready. If they are then partystate will have been updated. In this case we need to
+     * transfer copied of these into the DrawingCarriageSwitcher.
+     * 
+     * We should always ping DrawingCarriageSwitcher anyway to update anything that's
+     * changed there.
+     * 
+     * So we need to make sure ping is scheduled:
+     * 1. After anything which could cause a readiness change in CarriageProcess. This is
+     *    ensured by init and dtor in CarriageProcess and the set at the end of the
+     *    CarriageProcess async method itself.
+     * 2. After anything which could cause a readiness change in DrawingCarriageSwitcher.
+     *    This would be caused by anything which could cause a readiness change in any of
+     *    the underlying DrawingCarriagePartys. This is triggered by the set in set_ready
+     *    and dtor. Switcher pings respond to changes in ready() in any of their objects.
+     *    In this case, this is caused by calls to quiet(). Which gets called by ping in
+     *    party.
+     */
     pub(super) fn ping(&mut self) {
-        self.process.check();
-        if self.test_should_update_drawings() {
-            /* Create any necessary DrawingCarriages */
+        self.process.ping();
+        if self.process.state() != self.seen_process_partystate {
+            /* process was updated so update drawing target */
             let state = self.process.inner().state();
-            let mut wanted = self.process.iter().map(|(_,x)| 
-                (x.clone(),state.clone())
+            let wanted = self.process.iter().map(|(_,x)| 
+                x.clone()
             ).collect::<Vec<_>>();
-            self.drawing.set(&mut wanted.drain(..));
-            /* Maybe we need to update the UI? */
-            self.drawing.check();
+            self.drawing.set(&state,&wanted);
+            self.seen_process_partystate = self.process.state(); 
         }
+        self.drawing.ping();
     }
 }
+
+// TODO add logs
+// TODO test
+// TODO check for excess
+// TODO remove unused code
+// TODO lifecycle enum

@@ -1,6 +1,6 @@
-use peregrine_toolkit::{sync::{needed::Needed, retainer::{Retainer, RetainTest, retainer}}, debug_log};
+use peregrine_toolkit::{sync::{needed::Needed, retainer::{Retainer, RetainTest, retainer}}, debug_log, log};
 use crate::{TrainExtent, DrawingCarriage, allotment::core::{trainstate::TrainState3, carriageoutput::CarriageOutput}};
-use super::{graphics::Graphics, carriageextent::CarriageExtent, slider::SliderActions};
+use super::{graphics::Graphics, carriageextent::CarriageExtent, party::PartyActions};
 
 #[derive(Clone)]
 pub(super) struct DrawingCarriageCreator {
@@ -35,9 +35,9 @@ impl DrawingCarriageCreator {
         DrawingCarriageCreator { shapes, extent, ping_needed }
     }
 
-    fn create(&self, train_state: &TrainState3, retain: &RetainTest) -> DrawingCarriage {
-        DrawingCarriage::new(&self.extent,&self.ping_needed,&self.shapes,train_state,retain)
-            .ok().unwrap() // XXX errors
+    pub(super) fn create(&self, train_state: &TrainState3, retain: &RetainTest) -> DrawingCarriage {
+        let out = DrawingCarriage::new(&self.extent,&self.ping_needed,&self.shapes,train_state,retain);
+        out.ok().unwrap()
     }
 
     pub(super) fn extent(&self) -> &CarriageExtent { &self.extent }
@@ -83,17 +83,17 @@ impl DrawingCarriageManager {
 }
 
 #[derive(Clone)]
-pub(super) struct SliderDrawingCarriage {
+pub(super) struct PartyDrawingCarriage {
     carriage: DrawingCarriage,
     #[allow(unused)]
     retain: Retainer
 }
 
-impl SliderDrawingCarriage {
-    fn new(creator: &DrawingCarriageCreator, state: &TrainState3) -> SliderDrawingCarriage {
+impl PartyDrawingCarriage {
+    pub(super) fn new(creator: &DrawingCarriageCreator, state: &TrainState3) -> PartyDrawingCarriage {
         let (retain,retain_test) = retainer();
         let carriage = creator.create(state,&retain_test);
-        SliderDrawingCarriage {
+        PartyDrawingCarriage {
             carriage, retain
         }
     }
@@ -101,29 +101,28 @@ impl SliderDrawingCarriage {
     pub(super) fn carriage(&self) -> &DrawingCarriage { &self.carriage }
 }
 
-impl SliderActions<(DrawingCarriageCreator,TrainState3),SliderDrawingCarriage,SliderDrawingCarriage> for DrawingCarriageManager {
-    fn ctor(&mut self, (creator,state): &(DrawingCarriageCreator,TrainState3)) -> SliderDrawingCarriage {
-        #[cfg(debug_trains)] debug_log!("create dc {:?} {:?}",creator.extent,state);
-        let carriage = SliderDrawingCarriage::new(creator,state);
+impl PartyActions<(DrawingCarriageCreator,TrainState3),PartyDrawingCarriage,PartyDrawingCarriage> for DrawingCarriageManager {
+    fn ctor(&mut self, (creator,state): &(DrawingCarriageCreator,TrainState3)) -> PartyDrawingCarriage {
+        let carriage = PartyDrawingCarriage::new(creator,state);
         if !self.mute {
             self.graphics.create_carriage(&carriage.carriage);
         }
         carriage
     }
 
-    fn init(&mut self, _: &(DrawingCarriageCreator,TrainState3), item: &mut SliderDrawingCarriage) -> Option<SliderDrawingCarriage> {
+    fn init(&mut self, _: &(DrawingCarriageCreator,TrainState3), item: &mut PartyDrawingCarriage) -> Option<PartyDrawingCarriage> {
         if !item.carriage.is_ready() { return None; }
         self.ping_needed.set(); // train can maybe be updated
         Some(item.clone())
     }
 
-    fn done(&mut self, items: &mut dyn Iterator<Item=(&(DrawingCarriageCreator, TrainState3), &SliderDrawingCarriage)>) {
+    fn quiet(&mut self, items: &mut dyn Iterator<Item=(&(DrawingCarriageCreator, TrainState3), &PartyDrawingCarriage)>) {
         self.carriages = items.map(|x| &x.1.carriage).cloned().collect::<Vec<_>>();
         #[cfg(debug_trains)] debug_log!("set dcs {:?}",self.carriages.iter().map(|x| x.extent()).collect::<Vec<_>>());
         self.send_carriages();
     }
 
-    fn dtor(&mut self, (dcc,state): &(DrawingCarriageCreator,TrainState3), dc: SliderDrawingCarriage) {
+    fn dtor(&mut self, (dcc,state): &(DrawingCarriageCreator,TrainState3), dc: PartyDrawingCarriage) {
         #[cfg(debug_trains)] debug_log!("drop dc {:?} {:?}",dcc.extent,state);
         self.graphics.drop_carriage(&dc.carriage);
     }

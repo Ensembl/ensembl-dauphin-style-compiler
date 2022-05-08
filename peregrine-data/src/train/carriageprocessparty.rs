@@ -1,10 +1,10 @@
 use std::sync::{Arc, Mutex};
 
-use peregrine_toolkit::{sync::needed::Needed, puzzle::AnswerAllocator};
+use peregrine_toolkit::{sync::needed::Needed, puzzle::AnswerAllocator, log};
 
 use crate::{shapeload::carriageprocess::CarriageProcess, allotment::core::trainstate::{TrainStateSpec, TrainState3}};
 
-use super::{drawingcarriagemanager::DrawingCarriageCreator, railwaydatatasks::RailwayDataTasks, graphics::Graphics, slider::SliderActions, carriageset::CarriageSetConstant};
+use super::{drawingcarriagemanager::DrawingCarriageCreator, railwaydatatasks::RailwayDataTasks, graphics::Graphics, party::PartyActions, carriageset::CarriageSetConstant};
 
 pub(super) struct CarriageProcessManager {
     ping_needed: Needed,
@@ -53,7 +53,7 @@ impl CarriageProcessManager {
     pub(super) fn state(&self) -> TrainState3 { self.train_state_spec.spec() }
 }
 
-impl SliderActions<u64,CarriageProcess,DrawingCarriageCreator> for CarriageProcessManager {
+impl PartyActions<u64,CarriageProcess,DrawingCarriageCreator> for CarriageProcessManager {
     fn ctor(&mut self, index: &u64) -> CarriageProcess {
         let new_carriage = self.constant.new_unloaded_carriage(*index);
         self.railway_data_tasks.add_carriage(&new_carriage);
@@ -63,6 +63,7 @@ impl SliderActions<u64,CarriageProcess,DrawingCarriageCreator> for CarriageProce
     fn dtor(&mut self, index: &u64, _item: DrawingCarriageCreator) {
         self.train_state_spec.remove(*index);
         self.state_updated();
+        self.ping_needed.set(); /* Need to call ping in case dc are ready */
     }
 
     fn init(&mut self, index: &u64, item: &mut CarriageProcess) -> Option<DrawingCarriageCreator> {

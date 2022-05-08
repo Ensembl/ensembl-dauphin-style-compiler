@@ -45,7 +45,7 @@ pub(super) trait SwitcherManager {
     /* create an instance Tk from a spec xk */ 
     fn create(&mut self, extent: &Self::Extent) -> Result<Self::Type,Self::Error>;
 
-    /* callback to the manager when the Slider is busy, ie crating or transitioning. */
+    /* callback to the manager when the Party is busy, ie crating or transitioning. */
     fn busy(&self, yn: bool);
 }
 
@@ -65,7 +65,7 @@ pub(super) trait SwitcherObject {
     type Type;
     type Speed;
 
-    /*** Queries made by Slider of a SwitcherObject ***/
+    /*** Queries made by Party of a SwitcherObject ***/
 
     /* Return spec, xk, corresponding to this Tk. */
     fn extent(&self) -> Self::Extent;
@@ -86,10 +86,10 @@ pub(super) trait SwitcherObject {
      */
     fn speed(&self, source: Option<&Self::Type>) -> Self::Speed;
 
-    /*** Events raised by Slider to manipulate a SwitcherObject ***/
+    /*** Events raised by Party to manipulate a SwitcherObject ***/
 
     /* Object is now to be the current object, transitioning at the given speed */
-    fn live(&mut self, speed: &Self::Speed);
+    fn live(&mut self, speed: &Self::Speed) -> bool;
 
     /* Object is no longer current and may be deallocated */
     fn dead(&mut self);
@@ -130,9 +130,22 @@ impl<M:SwitcherManager<Extent=X,Type=T,Error=E>,
         None
     }
 
+    /* Currently displayed object, incoming if tie. */
+    pub(super) fn displayed(&self) -> Option<&T> {
+        if let Some(future) = &self.future { return Some(future); }
+        if let Some(current) = &self.current { return Some(current); }
+        None
+    }
+
     /* Call given callback on all objects currently displayed or being prepared. */
     pub(super) fn each_mut<F>(&mut self, cb: &F) where F: Fn(&mut T) {
         if let Some(wanted) = &mut self.wanted { cb(wanted); }
+        if let Some(future) = &mut self.future { cb(future); }
+        if let Some(current) = &mut self.current { cb(current); }
+    }
+
+    /* Call given callback on all objects currently displayed. */
+    pub(super) fn each_displayed_mut<F>(&mut self, cb: &F) where F: Fn(&mut T) {
         if let Some(future) = &mut self.future { cb(future); }
         if let Some(current) = &mut self.current { cb(current); }
     }
@@ -199,7 +212,9 @@ impl<M:SwitcherManager<Extent=X,Type=T,Error=E>,
         let wanted = self.wanted.take().unwrap();
         let speed = wanted.speed(self.current.as_ref());
         self.future = Some(wanted);
-        self.future.as_mut().unwrap().live(&speed);
+        if self.future.as_mut().unwrap().live(&speed) {
+            self.live_done();
+        }
     }
 
     /* Call periodically on a clock "beat" to cause Switcher to act. See the

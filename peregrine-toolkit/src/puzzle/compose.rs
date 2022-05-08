@@ -23,14 +23,15 @@ pub fn derived<'a:'b, 'b, 'f:'a, 'g:'a, 'h:'f, T:'a, U:'b, F: 'f>(a: Value<'g,'a
 }
 
 #[cfg(debug_assertions)]
-pub fn derived_debug<'a:'b, 'b, 'f:'a, 'g:'a, 'h:'f, T:'a, U:'b, F: 'f>(a: Value<'g,'a,T>, f: F, name: &'h str) -> Value<'h,'b,U> where F: Fn(T) -> U {
+pub fn derived_debug<'a:'b, 'b, 'f:'a, 'g:'a, 'h:'f, T:'a, U:'b, F: 'f>(a: Value<'g,'a,T>, f: F, name: &str) -> Value<'h,'b,U> where F: Fn(T) -> U {
     use crate::log;
 
+    let name = name.to_string();
     Value::new(move |answer_index| {
         a.inner(answer_index).map(|a| {
-            //log!("enter: {}",name);
+            log!("enter: {}",name);
             let out = f(a);
-            //log!("leave: {}",name);
+            log!("leave: {}",name);
             out
         })
     })
