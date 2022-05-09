@@ -1,9 +1,6 @@
 use std::{sync::{Arc, Mutex}, collections::{HashMap}};
-
-use peregrine_toolkit::{lock, debug_log, log};
-
+use peregrine_toolkit::lock;
 use crate::{PeregrineIntegration, TrainExtent, allotment::{globals::{playingfield::{GlobalPlayingField, PlayingField}, allotmentmetadata::GlobalAllotmentMetadata} }, CarriageSpeed, Viewport };
-
 use super::drawingcarriage::DrawingCarriage;
 
 struct GraphicsDropper {

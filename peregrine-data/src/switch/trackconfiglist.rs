@@ -89,10 +89,6 @@ impl TrainTrackConfigList {
         }))
     }
 
-    pub(crate) fn get_track(&self, track: &Track) -> Option<Arc<TrackConfig>> {
-        self.0.get_track(track)
-    }
-
     pub(crate) fn list_tracks(&self) -> Vec<Track> {
         self.0.list_tracks()
     }

@@ -54,7 +54,7 @@ impl Track {
         Some(Scale::new(end-((end-request)/self.scale_jump)*self.scale_jump))
     }
 
-    pub fn available(&self, layout: &Layout, scale: &Scale) -> bool {
+    pub fn available(&self, _layout: &Layout, scale: &Scale) -> bool {
         // XXX filter on layout
         let want_scale =scale.get_index();
         if want_scale < self.min_scale || want_scale >= self.max_scale { return false; }

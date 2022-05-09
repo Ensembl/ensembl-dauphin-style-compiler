@@ -1,6 +1,6 @@
 use std::sync::{Mutex, Arc};
 
-use peregrine_toolkit::{sync::needed::Needed, lock, debug_log};
+use peregrine_toolkit::{sync::needed::Needed, lock};
 
 use crate::{switch::trackconfiglist::TrainTrackConfigList, api::MessageSender, ShapeRequestGroup, PeregrineCoreBase, ShapeStore, DataMessage, allotment::core::{carriageoutput::CarriageOutput}, train::carriageextent::CarriageExtent};
 

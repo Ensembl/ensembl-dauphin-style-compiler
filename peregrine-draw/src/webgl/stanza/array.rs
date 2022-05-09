@@ -1,9 +1,7 @@
 use super::super::program::attribute::{ Attribute, AttribHandle };
-use js_sys::Float32Array;
 use keyed::{ KeyedData, KeyedDataMaker };
 use super::stanza::{AttribSource, ProcessStanza};
 use super::builder::ProcessStanzaAddable;
-use web_sys::WebGlRenderingContext;
 use std::rc::Rc;
 use std::cell::RefCell;
 use std::sync::{Arc, Mutex};

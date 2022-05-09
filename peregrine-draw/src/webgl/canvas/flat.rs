@@ -2,7 +2,7 @@ use wasm_bindgen::{JsCast, JsValue, prelude::Closure};
 use web_sys::{CanvasRenderingContext2d, Document, HtmlCanvasElement, HtmlImageElement };
 use peregrine_data::{ Pen, DirectColour };
 use super::{bindery::SelfManagedWebGlTexture, canvasstore::HtmlFlatCanvas, pngcache::PngCache, weave::CanvasWeave};
-use crate::util::{message::Message, fonts::Fonts};
+use crate::util::{message::Message};
 use super::canvasstore::CanvasStore;
 use peregrine_toolkit::{js::exception::js_result_to_option_console };
 

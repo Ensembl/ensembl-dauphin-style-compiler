@@ -1,10 +1,8 @@
 use super::super::program::attribute::{ Attribute, AttributeProto, AttribHandle };
-use js_sys::Float32Array;
 use keyed::{ KeyedValues, KeyedDataMaker };
 use super::array::ProcessStanzaArray;
 use super::elements::{ ProcessStanzaElements, ProcessStanzaElementsEntry };
 use super::stanza::{AttribSource, ProcessStanza};
-use web_sys::WebGlRenderingContext;
 use std::rc::Rc;
 use std::cell::RefCell;
 use std::sync::{Arc, Mutex};

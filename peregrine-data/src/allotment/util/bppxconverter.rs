@@ -5,22 +5,12 @@ use super::rangeused::RangeUsed;
 pub struct BpPxConverter {
     bp_per_carriage: f64,
     min_px_per_carriage: f64,
-    max_px_per_bp: Option<f64>,
     bp_start: f64
 }
 
 impl BpPxConverter {
     fn calc_bp_per_carriage(request: &ShapeRequestGroup) -> f64 {
         request.region().scale().bp_in_carriage() as f64
-    }
-
-    fn real_calc_max_px_per_bp(request: &ShapeRequestGroup, bp_per_carriage: f64) -> f64 {
-        let max_px_per_carriage = request.pixel_size().max_px_per_carriage() as f64;
-        max_px_per_carriage / bp_per_carriage
-    }
-
-    fn calc_max_px_per_bp(extent: Option<&ShapeRequestGroup>, bp_per_carriage: f64) -> Option<f64> {
-        extent.map(|e| BpPxConverter::real_calc_max_px_per_bp(e,bp_per_carriage))
     }
 
     pub(crate) fn new(extent: Option<&ShapeRequestGroup>) -> BpPxConverter {
@@ -30,7 +20,6 @@ impl BpPxConverter {
         }).unwrap_or(1.);
         BpPxConverter {
             bp_per_carriage, min_px_per_carriage,
-            max_px_per_bp: BpPxConverter::calc_max_px_per_bp(extent,bp_per_carriage),
             bp_start: extent.map(|x| x.region().min_value() as f64).unwrap_or(0.)
         }
     }
@@ -38,7 +27,6 @@ impl BpPxConverter {
     #[cfg(test)]
     pub(crate) fn new_test() -> BpPxConverter {
         BpPxConverter {
-            max_px_per_bp: Some(1.),
             min_px_per_carriage: 1.,
             bp_per_carriage: 1.,
             bp_start: 0.

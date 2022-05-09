@@ -1,12 +1,12 @@
 use std::{sync::{Arc, Mutex}, collections::{HashMap, hash_map::DefaultHasher, HashSet}, fmt, hash::{Hash, Hasher}};
-use peregrine_toolkit::{puzzle::{StaticAnswer, AnswerAllocator}, lock, log, debug_log };
+use peregrine_toolkit::{puzzle::{StaticAnswer, AnswerAllocator}, lock };
 use crate::{allotment::{globals::{heighttracker::{LocalHeightTrackerBuilder, LocalHeightTracker, GlobalHeightTracker, GlobalHeightTrackerBuilder}, playingfield::{LocalPlayingFieldBuilder, LocalPlayingField, GlobalPlayingField, GlobalPlayingFieldBuilder}, aligner::{LocalAlignerBuilder, LocalAligner, GlobalAligner, GlobalAlignerBuilder}, allotmentmetadata::{LocalAllotmentMetadataBuilder, LocalAllotmentMetadata, GlobalAllotmentMetadata, GlobalAllotmentMetadataBuilder}, bumping::{LocalBumpBuilder, GlobalBump, GlobalBumpBuilder, LocalBump}, trainpersistent::TrainPersistent}}};
 
 use lazy_static::lazy_static;
 use identitynumber::identitynumber;
 
-//#[cfg(debug_trains)]
-//use peregrine_toolkit::{debug_log};
+#[cfg(debug_trains)]
+use peregrine_toolkit::{debug_log};
 
 /* Every carriage manipulates in a CarriageTrainStateRequest during creation (during build). This specifies the
  * requirements which a Carriage has of the train. 
@@ -17,19 +17,17 @@ pub struct CarriageTrainStateRequest {
     playing_field: LocalPlayingFieldBuilder,
     aligner: LocalAlignerBuilder,
     metadata: LocalAllotmentMetadataBuilder,
-    bumper: LocalBumpBuilder,
-    index: u64
+    bumper: LocalBumpBuilder
 }
 
 impl CarriageTrainStateRequest {
-    pub fn new(index: u64) -> CarriageTrainStateRequest {
+    pub fn new() -> CarriageTrainStateRequest {
         CarriageTrainStateRequest {
             height_tracker: LocalHeightTrackerBuilder::new(),
             playing_field: LocalPlayingFieldBuilder::new(),
             aligner: LocalAlignerBuilder::new(),
             metadata: LocalAllotmentMetadataBuilder::new(),
-            bumper: LocalBumpBuilder::new(),
-            index
+            bumper: LocalBumpBuilder::new()
         }
     }
 
@@ -55,8 +53,7 @@ pub struct CarriageTrainStateSpec {
     playing_field: Arc<LocalPlayingField>,
     aligner: Arc<LocalAligner>,
     metadata: Arc<LocalAllotmentMetadata>,
-    bump: Arc<LocalBump>,
-    index: u64
+    bump: Arc<LocalBump>
 }
 
 impl CarriageTrainStateSpec {
@@ -72,7 +69,6 @@ impl CarriageTrainStateSpec {
             aligner: Arc::new(aligner),
             metadata: Arc::new(metadata),
             bump: Arc::new(bump),
-            index: request.index
         }
     }
 }
@@ -197,6 +193,7 @@ impl TrainState3 {
     }
 
     #[cfg(debug_assertions)]
+    #[allow(unused)]
     pub(crate) fn hash(&self) -> u64 { self.hash }
 
     pub(crate) fn answer(&self) -> Arc<Mutex<StaticAnswer>> { self.answer.clone() }

@@ -1,11 +1,10 @@
 use std::sync::{Arc, Mutex};
-use peregrine_toolkit::{lock, sync::{blocker::Blocker, needed::Needed}};
+use peregrine_toolkit::{lock, sync::{blocker::Blocker}};
 use crate::{DataMessage, ShapeStore, PeregrineCoreBase, Viewport, StickStore};
 use super::{trainset::TrainSet, railwaydatatasks::RailwayDataTasks};
 
 #[derive(Clone)]
 pub struct Railway {
-    ping_needed: Needed,
     train_set: Arc<Mutex<TrainSet>>,
     carriage_loader: RailwayDataTasks
 }
@@ -14,7 +13,6 @@ impl Railway {
     pub fn new(base: &PeregrineCoreBase, result_store: &ShapeStore, stick_store: &StickStore, visual_blocker: &Blocker) -> Railway {
         let mut carriage_loader = RailwayDataTasks::new(base,result_store,&stick_store,&base.redraw_needed);
         let railway = Railway {
-            ping_needed: base.redraw_needed.clone(),
             train_set: Arc::new(Mutex::new(TrainSet::new(base,result_store,visual_blocker,&base.redraw_needed.clone(),&carriage_loader))),
             carriage_loader: carriage_loader.clone(),
         };

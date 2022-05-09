@@ -4,6 +4,7 @@ use crate::simple_interp_command;
 use crate::util::{ get_instance, get_peregrine };
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, AsyncBlock, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue, RegisterFile };
+use peregrine_data::DataRequest;
 use peregrine_data::{Channel, PacketPriority, ProgramData, Region, Scale, ShapeRequest, StickId};
 use serde_cbor::Value as CborValue;
 
@@ -55,7 +56,8 @@ async fn get(context: &mut InterpContext, cmd: GetDataInterpCommand) -> anyhow::
         let peregrine = get_peregrine(context)?;
         let data_store = peregrine.agent_store().data_store.clone();
         let channel = Channel::parse(&self_channel,&channel_name[0])?;
-        let (result,took_ms) = data_store.get(&region,&channel,prog_name,&priority).await?;
+        let request = DataRequest::new(&channel,&prog_name,&region);
+        let (result,took_ms) = data_store.get(&request,&priority).await?;
         net_time = Some(took_ms);
         let id = program_data.add(result);
         ids.push(id as usize);

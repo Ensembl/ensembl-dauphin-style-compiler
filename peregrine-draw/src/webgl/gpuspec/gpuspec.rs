@@ -1,4 +1,3 @@
-use anyhow::{ anyhow as err, bail };
 use std::cmp::min;
 use super::precision::Precision;
 use super::glsize::GLSize;

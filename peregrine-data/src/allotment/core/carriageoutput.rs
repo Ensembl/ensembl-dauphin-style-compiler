@@ -19,7 +19,7 @@ impl BoxPositionContext {
             bp_px_converter: Arc::new(BpPxConverter::new(extent)),
             root: Root::new(),
             plm: LeafTransformableMap::new(),
-            state_request: CarriageTrainStateRequest::new(index),
+            state_request: CarriageTrainStateRequest::new(),
             bumper_factory
         }
     }

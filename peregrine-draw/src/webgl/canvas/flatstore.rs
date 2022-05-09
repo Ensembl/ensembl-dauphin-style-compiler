@@ -4,7 +4,7 @@ use keyed::KeyedOptionalValues;
 use web_sys::{ Document };
 use super::flat::Flat;
 use keyed::keyed_handle;
-use crate::util::{message::Message, fonts::Fonts};
+use crate::util::{message::Message};
 use super::canvasstore::CanvasStore;
 
 // TODO test discard webgl buffers etc

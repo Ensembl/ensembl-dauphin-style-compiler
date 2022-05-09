@@ -1,4 +1,3 @@
-use js_sys::Float32Array;
 use web_sys::{ WebGlProgram, WebGlRenderingContext };
 use crate::webgl::global::WebGlGlobal;
 use crate::webgl::{GPUSpec, ProcessStanza, ProcessStanzaBuilder, make_program};

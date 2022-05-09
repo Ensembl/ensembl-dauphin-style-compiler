@@ -9,14 +9,31 @@ use super::shaperequest::{ Region };
 
 // TODO Memoized errors with retry semantics
 
-async fn run(base: PeregrineCoreBase, (region,channel,name): (Region,Channel,String), priority: PacketPriority) -> Result<Arc<DataRes>,DataMessage> {
-    let backend = base.all_backends.backend(&channel);
-    backend.data(&name,&region,&priority).await.map(|x| Arc::new(x))
+#[derive(Clone,PartialEq,Eq,Hash)]
+pub struct DataRequest {
+    region: Region,
+    channel: Channel,
+    name: String
 }
 
-fn make_data_cache(cache_size: usize, base: &PeregrineCoreBase) -> Memoized<(Region,Channel,String),Result<Arc<DataRes>,DataMessage>> {
+impl DataRequest {
+    pub fn new(channel: &Channel, name: &str, region: &Region) -> DataRequest {
+        DataRequest {
+            channel: channel.clone(),
+            name: name.to_string(),
+            region: region.clone()
+        }
+    }
+}
+
+async fn run(base: PeregrineCoreBase, request: DataRequest, priority: PacketPriority) -> Result<Arc<DataRes>,DataMessage> {
+    let backend = base.all_backends.backend(&request.channel);
+    backend.data(&request.name,&request.region,&priority).await.map(|x| Arc::new(x))
+}
+
+fn make_data_cache(cache_size: usize, base: &PeregrineCoreBase) -> Memoized<DataRequest,Result<Arc<DataRes>,DataMessage>> {
     let base = base.clone();
-     Memoized::new(MemoizedType::Cache(cache_size),move |_,k: &(Region,Channel,String)|{
+     Memoized::new(MemoizedType::Cache(cache_size),move |_,k: &DataRequest|{
         let base = base.clone();
         let k = k.clone();
         Box::pin(async move { run(base.clone(),k.clone(),PacketPriority::RealTime).await })
@@ -25,7 +42,7 @@ fn make_data_cache(cache_size: usize, base: &PeregrineCoreBase) -> Memoized<(Reg
 
 #[derive(Clone)]
 pub struct DataStore {
-    cache: Memoized<(Region,Channel,String),Result<Arc<DataRes>,DataMessage>>,
+    cache: Memoized<DataRequest,Result<Arc<DataRes>,DataMessage>>,
     base: PeregrineCoreBase
 }
 
@@ -37,17 +54,16 @@ impl DataStore {
         }
     }
 
-    pub async fn get(&self, region: &Region, channel: &Channel, name: &str, priority: &PacketPriority) -> Result<(Arc<DataRes>,f64),DataMessage> {
-        let location = (region.clone(),channel.clone(),name.to_string());
+    pub async fn get(&self, request: &DataRequest, priority: &PacketPriority) -> Result<(Arc<DataRes>,f64),DataMessage> {
         let start = cdr_current_time();
         let response = match priority {
             PacketPriority::RealTime => {
-                self.cache.get(&location).await.as_ref().clone()
+                self.cache.get(&request).await.as_ref().clone()
             },
             PacketPriority::Batch => {
                 // XXX todo detect dups
-                let data = run(self.base.clone(),location.clone(),PacketPriority::Batch).await;
-                self.cache.warm(&location,data.clone());
+                let data = run(self.base.clone(),request.clone(),PacketPriority::Batch).await;
+                self.cache.warm(&request,data.clone());
                 data
             }
         };

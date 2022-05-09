@@ -119,7 +119,7 @@ impl RailwayDataTasks {
     }
 
     pub(super) fn load(&self) {
-        let mut tasks = mem::replace(&mut *lock!(self.tasks), vec![]);
+        let tasks = mem::replace(&mut *lock!(self.tasks), vec![]);
         if tasks.len() == 0 { return; }
         let self2 = self.clone();
         let handle = add_task(&self.base.commander,PgCommanderTaskSpec {

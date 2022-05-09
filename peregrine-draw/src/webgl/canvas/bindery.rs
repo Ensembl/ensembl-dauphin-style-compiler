@@ -1,4 +1,3 @@
-use std::collections::{ HashSet };
 use crate::webgl::{ FlatId, FlatStore };
 use crate::webgl::GPUSpec;
 use super::weave::CanvasWeave;
@@ -6,7 +5,6 @@ use web_sys::WebGlRenderingContext;
 use web_sys::WebGlTexture;
 use crate::webgl::util::handle_context_errors;
 use crate::util::message::Message;
-use crate::util::evictlist::EvictList;
 
 /* We don't want to recreate textures if we don't have to. The main reason for this is repeated draws of multiple
  * programs (likely from adjacent carriages).
