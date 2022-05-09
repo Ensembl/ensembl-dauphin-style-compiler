@@ -1,10 +1,10 @@
 use std::sync::{Arc, Mutex};
-
-use peregrine_toolkit::{sync::needed::Needed, puzzle::AnswerAllocator, log, debug_log};
-
+use peregrine_toolkit::{sync::needed::Needed, puzzle::AnswerAllocator};
 use crate::{shapeload::carriageprocess::CarriageProcess, allotment::core::trainstate::{TrainStateSpec, TrainState3}};
-
 use super::{drawingcarriagemanager::DrawingCarriageCreator, railwaydatatasks::RailwayDataTasks, graphics::Graphics, party::PartyActions, carriageset::CarriageSetConstant};
+
+#[cfg(debug_trains)]
+use peregrine_toolkit::debug_log;
 
 pub(super) struct CarriageProcessManager {
     ping_needed: Needed,
@@ -63,8 +63,15 @@ impl PartyActions<u64,CarriageProcess,DrawingCarriageCreator> for CarriageProces
         new_carriage
     }
 
-    fn dtor(&mut self, index: &u64, carriage: DrawingCarriageCreator) {
-        #[cfg(debug_trains)] debug_log!("CP dtor ({})",carriage.extent().compact());
+    fn dtor_pending(&mut self, index: &u64, _carriage: CarriageProcess) {
+        #[cfg(debug_trains)] debug_log!("CP dtor_pending ({})",_carriage.extent().compact());
+        self.train_state_spec.remove(*index);
+        self.state_updated();
+        self.ping_needed.set(); /* Need to call ping in case dc are ready */
+    }
+
+    fn dtor(&mut self, index: &u64, _carriage: DrawingCarriageCreator) {
+        #[cfg(debug_trains)] debug_log!("CP dtor ({})",_carriage.extent().compact());
         self.train_state_spec.remove(*index);
         self.state_updated();
         self.ping_needed.set(); /* Need to call ping in case dc are ready */

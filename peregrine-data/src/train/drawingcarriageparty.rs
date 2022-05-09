@@ -1,6 +1,10 @@
-use peregrine_toolkit::{sync::needed::Needed, log};
-use crate::{allotment::core::trainstate::TrainState3, TrainExtent, DrawingCarriage, Track};
+use peregrine_toolkit::{sync::needed::Needed};
+use crate::{allotment::core::trainstate::TrainState3, TrainExtent, DrawingCarriage};
 use super::{drawingcarriagemanager::{DrawingCarriageCreator, PartyDrawingCarriage}, party::{PartyActions, Party}, graphics::Graphics};
+#[cfg(debug_trains)]
+use lazy_static::lazy_static;
+#[cfg(debug_trains)]
+use identitynumber::identitynumber;
 
 #[cfg(debug_trains)]
 use peregrine_toolkit::debug_log;
@@ -14,8 +18,13 @@ pub(crate) struct DrawingCarriageSetActions {
     state: TrainState3,
     extent: TrainExtent,
     graphics: Graphics,
-    ready_serial: u64
+    ready_serial: u64,
+    #[cfg(debug_trains)]
+    index: u64
 }
+
+#[cfg(debug_trains)]
+identitynumber!(IDS);
 
 impl DrawingCarriageSetActions {
     fn new(ping_needed: &Needed, extent: &TrainExtent, state: &TrainState3, graphics: &Graphics) -> DrawingCarriageSetActions {
@@ -28,7 +37,9 @@ impl DrawingCarriageSetActions {
             state: state.clone(),
             extent: extent.clone(),
             graphics: graphics.clone(),
-            ready_serial: 0
+            ready_serial: 0,
+            #[cfg(debug_trains)]
+            index: IDS.next()
         }
     }
 
@@ -41,9 +52,8 @@ impl DrawingCarriageSetActions {
     }
 
     fn try_send(&self) {
-        if self.active && !self.mute {
+        if self.active && !self.mute && self.ready {
             let carriages = self.current.iter().map(|c| c.carriage().clone()).collect::<Vec<_>>();
-            if carriages.len() == 0 { panic!(); }
             self.graphics.set_carriages(&self.extent,&carriages);
         }
     }
@@ -52,21 +62,28 @@ impl DrawingCarriageSetActions {
 impl PartyActions<DrawingCarriageCreator,PartyDrawingCarriage,PartyDrawingCarriage> for DrawingCarriageSetActions {
     fn ctor(&mut self, creator: &DrawingCarriageCreator) -> PartyDrawingCarriage {
         let carriage = PartyDrawingCarriage::new(creator,&self.state);
+        #[cfg(debug_trains)] debug_log!("DC({:x}) ctor {}",self.state.hash(),creator.extent().compact());
         if !self.mute {
             self.graphics.create_carriage(&carriage.carriage());
         }
         carriage
     }
 
+    fn dtor_pending(&mut self, index: &DrawingCarriageCreator, item: PartyDrawingCarriage) {
+        self.dtor(index,item);
+    }
+
     fn dtor(&mut self, _index: &DrawingCarriageCreator, dc: PartyDrawingCarriage) {
         self.ping_needed.set(); // train can maybe be updated
+        #[cfg(debug_trains)] debug_log!("DC({}) dtor {}",self.index,dc.carriage().extent().compact());
         self.graphics.drop_carriage(dc.carriage());
     }
 
-    fn init(&mut self, _index: &DrawingCarriageCreator, item: &mut PartyDrawingCarriage) -> Option<PartyDrawingCarriage> {
-        if !item.carriage().is_ready() { return None; }
+    fn init(&mut self, _index: &DrawingCarriageCreator, carriage: &mut PartyDrawingCarriage) -> Option<PartyDrawingCarriage> {
+        if !carriage.carriage().is_ready() { return None; }
+        #[cfg(debug_trains)] debug_log!("DC({:x}) init {}",self.state.hash(),carriage.carriage().extent().compact());
         self.ping_needed.set(); // train can maybe be updated
-        Some(item.clone())
+        Some(carriage.clone())
     }
 
     fn ready_changed(&mut self, items: &mut dyn Iterator<Item=(&DrawingCarriageCreator,&PartyDrawingCarriage)>) {
@@ -78,6 +95,7 @@ impl PartyActions<DrawingCarriageCreator,PartyDrawingCarriage,PartyDrawingCarria
 
     fn quiet(&mut self, _items: &mut dyn Iterator<Item=(&DrawingCarriageCreator,&PartyDrawingCarriage)>) { 
         self.ready = true;
+        self.try_send();
     }
 }
 

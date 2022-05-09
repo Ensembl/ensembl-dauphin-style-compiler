@@ -3,7 +3,7 @@ use peregrine_data::{
     Assets, CarriageSpeed, ChannelIntegration, PeregrineIntegration, 
     Viewport, TrainExtent, DrawingCarriage, GlobalAllotmentMetadata, PlayingField
 };
-use peregrine_toolkit::{lock, log};
+use peregrine_toolkit::lock;
 use super::pgchannel::PgChannel;
 use crate::{PeregrineDom};
 use crate::input::Input;
@@ -33,7 +33,7 @@ impl PeregrineIntegration for PgIntegration {
     }
 
     fn drop_train(&mut self, train: &TrainExtent) {
-        self.trainset.drop_train(train);
+        self.trainset.drop_train(train,&self.webgl);
     }
 
     fn create_carriage(&mut self, carriage: &DrawingCarriage) {

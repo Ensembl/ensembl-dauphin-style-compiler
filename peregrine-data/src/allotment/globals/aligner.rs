@@ -50,4 +50,8 @@ impl GlobalAligner {
             (v,(v*100000.).round() as i64)
         },answer))
     }
+
+    pub(crate) fn add(&self, local: &LocalAligner, answer: &mut StaticAnswer) {
+        self.0.add(&local.0,answer);
+    }
 }

@@ -15,6 +15,9 @@ use crate::shapeload::carriageprocess::CarriageProcess;
 use crate::api::MessageSender;
 use crate::switch::trackconfiglist::TrainTrackConfigList;
 
+#[cfg(debug_trains)]
+use peregrine_toolkit::debug_log;
+
 const CARRIAGE_FLANK : u64 = 1;
 const MILESTONE_CARRIAGE_FLANK : u64 = 1;
 
@@ -119,6 +122,7 @@ impl CarriageSet {
             let wanted = self.process.iter().map(|(_,x)| 
                 x.clone()
             ).collect::<Vec<_>>();
+            #[cfg(debug_trains)] debug_log!("CP->DP {}",wanted.iter().map(|x| x.extent().compact()).collect::<Vec<_>>().join(", "));
             self.drawing.set(&state,&wanted);
             self.seen_process_partystate = self.process.state(); 
         }

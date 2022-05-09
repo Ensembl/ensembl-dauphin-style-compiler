@@ -58,4 +58,8 @@ impl GlobalBump {
             persistent.bump_mut(name).make(&requests)
         },answer))
     }
+
+    pub(crate) fn add(&self, local: &LocalBump, answer: &mut StaticAnswer) {
+        self.0.add(&local.0,answer);
+    }
 }

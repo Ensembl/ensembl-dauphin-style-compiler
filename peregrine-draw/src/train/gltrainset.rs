@@ -1,10 +1,9 @@
 use std::collections::HashMap;
 use std::collections::hash_map::DefaultHasher;
-use std::hash::{Hasher, Hash};
-use std::rc::Rc;
+use std::hash::{Hash};
 use std::sync::{ Arc, Mutex };
-use peregrine_data::{Assets, CarriageSpeed, PeregrineCore, Scale, ZMenuProxy, TrainExtent, DrawingCarriage};
-use peregrine_toolkit::{lock, log, debug_log};
+use peregrine_data::{Assets, CarriageSpeed, PeregrineCore, Scale, TrainExtent, DrawingCarriage};
+use peregrine_toolkit::{lock};
 use peregrine_toolkit::sync::needed::{Needed, NeededLock};
 use super::glcarriage::GLCarriage;
 use super::gltrain::GLTrain;
@@ -60,7 +59,8 @@ impl GlRailwayData {
         self.trains.insert(extent.clone(),GLTrain::new(&self.redraw_needed));
     }
 
-    fn drop_train(&mut self, extent: &TrainExtent) {
+    fn drop_train(&mut self, extent: &TrainExtent, gl: &Arc<Mutex<WebGlGlobal>>) {
+        self.get_our_train(&extent).discard(&mut *lock!(gl));
         self.trains.remove(extent);
     }
 
@@ -146,17 +146,14 @@ impl GlRailwayData {
         }
     }
 
-    fn transition_animate_tick(&mut self, gl: &mut WebGlGlobal, newly_elapsed: f64) -> Result<bool,Message> {
+    fn transition_animate_tick(&mut self, _gl: &mut WebGlGlobal, newly_elapsed: f64) -> Result<bool,Message> {
         let mut complete = false;
         match self.fade_state.clone() {
             FadeState::Constant(_) => {}
             FadeState::Fading(from,to,speed,mut elapsed,redraw) => {
                 elapsed = Some(elapsed.map(|e| e+newly_elapsed).unwrap_or(0.));
                 let prop = self.prop(&speed,elapsed.unwrap());
-                if prop >= 1.{
-                    if let Some(from) = from {
-                        self.get_our_train(&from).discard(gl)?;
-                    }
+                if prop >= 1. {
                     self.fade_state = FadeState::Constant(Some(to));
                     self.redraw_needed.set(); // probably not needed; belt-and-braces
                     complete = true;
@@ -229,7 +226,7 @@ impl GlRailway {
     }
 
     pub fn create_train(&mut self, train: &TrainExtent) { lock!(self.data).create_train(train) }
-    pub fn drop_train(&mut self, train: &TrainExtent) { lock!(self.data).drop_train(train) }
+    pub fn drop_train(&mut self, train: &TrainExtent, gl: &Arc<Mutex<WebGlGlobal>>) { lock!(self.data).drop_train(train,gl) }
 
     pub(crate) fn create_carriage(&mut self, carriage: &DrawingCarriage, gl: &Arc<Mutex<WebGlGlobal>>, assets: &Assets) -> Result<(),Message> {
         lock!(self.data).create_carriage(carriage,gl,assets)

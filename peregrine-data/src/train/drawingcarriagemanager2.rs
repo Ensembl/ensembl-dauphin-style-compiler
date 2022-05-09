@@ -1,6 +1,9 @@
-use peregrine_toolkit::sync::{retainer::{Retainer, retainer, RetainTest}, needed::Needed};
-use crate::{allotment::core::{trainstate::TrainState3, carriageoutput::CarriageOutput}, DrawingCarriage, DataMessage, shapeload::carriageprocess::CarriageProcess, TrainExtent, CarriageExtent};
-use super::{switcher::{SwitcherManager, SwitcherExtent, SwitcherObject, Switcher}, drawingcarriagemanager::DrawingCarriageCreator, graphics::Graphics, drawingcarriageparty::DrawingCarriageParty, party::PartyState};
+use peregrine_toolkit::{sync::{needed::Needed}};
+use crate::{allotment::core::{trainstate::TrainState3}, DrawingCarriage, DataMessage, TrainExtent};
+use super::{switcher::{SwitcherManager, SwitcherExtent, SwitcherObject, Switcher}, drawingcarriagemanager::DrawingCarriageCreator, graphics::Graphics, drawingcarriageparty::DrawingCarriageParty};
+
+#[cfg(debug_trains)]
+use peregrine_toolkit::debug_log;
 
 pub(crate) struct DrawingCarriageManager2 {
     ping_needed: Needed,
@@ -28,6 +31,7 @@ impl SwitcherManager for DrawingCarriageManager2 {
     type Error = DataMessage;
 
     fn create(&mut self, state: &TrainState3) -> Result<DrawingCarriageParty,DataMessage> {
+        #[cfg(debug_trains)] debug_log!("DC party for {:x}",state.hash());
         let mut out = DrawingCarriageParty::new(&self.ping_needed,&self.train_extent,state,&self.graphics);
         if self.muted {
             out.set_mute();

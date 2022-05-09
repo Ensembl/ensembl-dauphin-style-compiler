@@ -19,7 +19,12 @@ pub trait PartyActions<X,P,T> {
     /* have finished with this object */
     fn dtor(&mut self, index: &X, item: T);
 
-    /* Called whenever ready changed either from inside set or ping */
+    /* don't want it and not inited */
+    fn dtor_pending(&mut self, index: &X, item: P);
+
+    /* Called whenever ready changed either from inside set or ping.
+     * Called after ctors but bfore dtors.
+     */
     fn ready_changed(&mut self, _items: &mut dyn Iterator<Item=(&X,&T)>) {}
 
     /* Called in ping to check if pending items are now ready */
@@ -72,10 +77,15 @@ impl<X: Eq+Hash+Clone,P,T,S: PartyActions<X,P,T>> Party<X,P,T,S> {
             self.ready.insert(missing.clone(),None);
         }
         /* Remove excess */
+        let mut gone = vec![];
+        let mut gone_pending = vec![];
         for unneeded in unneededs {
             if let Some(old) = self.ready.remove(unneeded).unwrap() {
-                self.actions.dtor(unneeded,old);
                 ready_changed = true;
+                gone.push((unneeded,old));
+            }
+            if let Some(old) = self.pending.remove(unneeded) {
+                gone_pending.push((unneeded,old));
             }
         }
         /* Call steady if changed */
@@ -84,9 +94,14 @@ impl<X: Eq+Hash+Clone,P,T,S: PartyActions<X,P,T>> Party<X,P,T,S> {
             let mut ready = self.ready.iter().filter_map(|(x,t)| t.as_ref().map(|t| (x,t)));
             self.actions.ready_changed(&mut ready);
         }
+        /* Remove excess */
+        for (unneeded,old) in gone {
+            self.actions.dtor(unneeded,old);
+        }
+        for (unneeded,old) in gone_pending {
+            self.actions.dtor_pending(unneeded,old);
+        }
     }
-
-    pub fn wanted(&self) -> &HashSet<X> { &self.want }
 
     pub fn set<V>(&mut self, wanted: V) where V: Iterator<Item=X> {
         let new = HashSet::from_iter(wanted);
@@ -130,10 +145,6 @@ impl<X: Eq+Hash+Clone,P,T,S: PartyActions<X,P,T>> Party<X,P,T,S> {
     pub fn is_ready(&self) -> bool { self.pending.len() == 0 }
     pub fn state(&self) -> PartyState { self.state.clone() }
 
-    pub fn get(&self, index: X) -> Option<&T> {
-        self.ready.get(&index).map(|x| x.as_ref()).flatten()
-    }
-
     pub fn iter(&self) -> impl Iterator<Item=(&X,&T)> {
         self.ready.iter().filter_map(|(x,t)| t.as_ref().map(|t| (x,t)))
     }
@@ -141,11 +152,8 @@ impl<X: Eq+Hash+Clone,P,T,S: PartyActions<X,P,T>> Party<X,P,T,S> {
 
 impl<X: Eq+Hash+Clone,P,T,S: PartyActions<X,P,T>> Drop for Party<X,P,T,S> {
     fn drop(&mut self) {
-        for (index,item) in self.ready.drain() {
-            if let Some(item) = item {
-                self.actions.dtor(&index,item);
-            }
-        }
-        self.ready.clear();
+        self.want = HashSet::new();
+        self.make_it_so();
+        self.ping();
     }
 }

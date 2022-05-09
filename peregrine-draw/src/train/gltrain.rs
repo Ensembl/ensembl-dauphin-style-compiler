@@ -1,7 +1,6 @@
-use peregrine_data::{ Scale, ZMenuProxy};
-use peregrine_toolkit::lock;
+use peregrine_data::{ Scale };
+use peregrine_toolkit::{lock};
 use peregrine_toolkit::sync::needed::Needed;
-use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use super::glcarriage::GLCarriage;
 use crate::shape::layers::drawingzmenus::HotspotEntryDetails;

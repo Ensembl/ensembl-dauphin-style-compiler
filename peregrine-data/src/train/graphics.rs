@@ -1,6 +1,6 @@
 use std::{sync::{Arc, Mutex}, collections::{HashMap}};
 
-use peregrine_toolkit::{lock, debug_log};
+use peregrine_toolkit::{lock, debug_log, log};
 
 use crate::{PeregrineIntegration, TrainExtent, allotment::{globals::{playingfield::{GlobalPlayingField, PlayingField}, allotmentmetadata::GlobalAllotmentMetadata} }, CarriageSpeed, Viewport };
 
@@ -66,6 +66,10 @@ impl Graphics {
     }
 
     pub(super) fn set_carriages(&self, extent: &TrainExtent, carriages: &[DrawingCarriage]) {
+        let state = lock!(self.state);
+        if !state.trains.contains_key(extent) {
+            panic!("set_carriages on dead train");
+        }
         lock!(self.integration).set_carriages(extent,carriages);
     }
 

@@ -1,6 +1,5 @@
-use peregrine_data::{Assets, ZMenuProxy, DrawingCarriage, CarriageExtent};
-use peregrine_toolkit::sync::retainer::RetainTest;
-use peregrine_toolkit::{lock, warn, log, error, debug_log};
+use peregrine_data::{Assets, DrawingCarriage, CarriageExtent};
+use peregrine_toolkit::{lock, warn, error };
 use peregrine_toolkit::sync::asynconce::AsyncOnce;
 use peregrine_toolkit::sync::needed::Needed;
 use crate::shape::layers::drawingzmenus::HotspotEntryDetails;
@@ -9,7 +8,6 @@ use crate::shape::layers::drawing::{ Drawing };
 use crate::webgl::DrawingSession;
 use crate::webgl::global::WebGlGlobal;
 use std::hash::{ Hash, Hasher };
-use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use crate::stage::stage::ReadStage;
 use crate::util::message::Message;
@@ -19,7 +17,8 @@ struct GLCarriageData {
     extent: CarriageExtent,
     opacity: Mutex<f64>,
     drawing: AsyncOnce<Result<Option<Drawing>,Message>>,
-    preflight_done: bool
+    preflight_done: bool,
+    discarded: bool
 }
 
 fn get_drawing(data: &GLCarriageData) -> Result<Option<Drawing>,Message> {
@@ -69,6 +68,7 @@ impl GLCarriage {
             extent: carriage.extent().clone(),
             opacity: Mutex::new(1.),
             preflight_done: false,
+            discarded: false,
             drawing: AsyncOnce::new(async move {
                 let carriage = carriage2;
                 let scale = carriage.extent().train().scale();
@@ -86,14 +86,11 @@ impl GLCarriage {
         let state = lock!(self.0);
         let drawing = state.drawing.clone();
         drop(state);
-        //debug_log!("preflight started for {:?}",lock!(self.0).extent);
         let g = drawing.get().await;
-        //debug_log!("U preflight started for {:?}",lock!(self.0).extent);
         let x = g.as_ref().map(|_| ()).map_err(|e| e.clone());
         if let Err(e) = x {
             error!("{}",e);
         }
-        //debug_log!("preflight done for {:?}",lock!(self.0).extent);
         lock!(self.0).preflight_done = true;
         carriage.set_ready();
         Ok(())
@@ -119,6 +116,9 @@ impl GLCarriage {
         if !state.preflight_done {
             warn!("draw without preflight");
         }
+        if state.discarded {
+            panic!("draw on discarded glcarriage");
+        }
         let opacity = state.opacity.lock().unwrap().clone();
         let in_view =  state.in_view(stage)?;
         if let Some(mut drawing) = get_drawing(&state)? {
@@ -140,7 +140,8 @@ impl GLCarriage {
     }
 
     pub fn discard(&mut self, gl: &mut WebGlGlobal) -> Result<(),Message> {
-        let state = lock!(self.0);
+        let mut state = lock!(self.0);
+        state.discarded = true;
         if let Some(mut drawing) = get_drawing(&state)? {
             drawing.discard(gl)?;
         }

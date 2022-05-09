@@ -1,4 +1,4 @@
-use std::{sync::{Arc, Mutex}, collections::{HashMap, hash_map::DefaultHasher}, fmt, hash::{Hash, Hasher}};
+use std::{sync::{Arc, Mutex}, collections::{HashMap, hash_map::DefaultHasher, HashSet}, fmt, hash::{Hash, Hasher}};
 use peregrine_toolkit::{puzzle::{StaticAnswer, AnswerAllocator}, lock, log, debug_log };
 use crate::{allotment::{globals::{heighttracker::{LocalHeightTrackerBuilder, LocalHeightTracker, GlobalHeightTracker, GlobalHeightTrackerBuilder}, playingfield::{LocalPlayingFieldBuilder, LocalPlayingField, GlobalPlayingField, GlobalPlayingFieldBuilder}, aligner::{LocalAlignerBuilder, LocalAligner, GlobalAligner, GlobalAlignerBuilder}, allotmentmetadata::{LocalAllotmentMetadataBuilder, LocalAllotmentMetadata, GlobalAllotmentMetadata, GlobalAllotmentMetadataBuilder}, bumping::{LocalBumpBuilder, GlobalBump, GlobalBumpBuilder, LocalBump}, trainpersistent::TrainPersistent}}};
 
@@ -81,6 +81,7 @@ identitynumber!(IDS);
 
 #[derive(Clone)]
 pub struct TrainState3 {
+    indexes: Arc<Mutex<HashSet<u64>>>,
     height_tracker: Arc<GlobalHeightTracker>,
     playing_field: Arc<GlobalPlayingField>,
     metadata: Arc<GlobalAllotmentMetadata>,
@@ -161,6 +162,20 @@ impl TrainState3 {
         self.hash = hasher.finish();
     }
 
+    pub(crate) fn add(&self, index: u64, state: &CarriageTrainStateSpec) {
+        let mut indexes = lock!(self.indexes);
+        if indexes.contains(&index) { return; }
+        indexes.insert(index);
+        drop(indexes);
+        let mut answer = lock!(self.answer);
+        self.bump.add(&state.bump,&mut answer);
+        self.height_tracker.add(&state.height_values,&mut answer);
+        self.playing_field.add(&state.playing_field,&mut answer);
+        self.aligner.add(&state.aligner,&mut answer);
+    }
+
+    // TODO new add method to add to existing trait by populating answers
+
     fn new(spec: &TrainStateSpec, mut answer: StaticAnswer, persistent: &Arc<Mutex<TrainPersistent>>) -> TrainState3 {
         /* The order of these are important. Their funcs can only depend on preceding funcs.
          * eg. heights depend on bumps, so bumps must be first. Everything else depends on
@@ -172,6 +187,7 @@ impl TrainState3 {
         let aligner = Arc::new(Self::calc_aligner(spec,&mut answer));
         let metadata = Arc::new(Self::calc_metadata(spec,&mut answer));
         let mut out = TrainState3 {
+            indexes: Arc::new(Mutex::new(spec.specs.keys().cloned().collect::<HashSet<_>>())),
             height_tracker, playing_field, aligner, metadata, bump,
             answer: Arc::new(Mutex::new(answer)), hash: 0,
             serial: IDS.next()
@@ -179,6 +195,9 @@ impl TrainState3 {
         out.calc_hash();
         out
     }
+
+    #[cfg(debug_assertions)]
+    pub(crate) fn hash(&self) -> u64 { self.hash }
 
     pub(crate) fn answer(&self) -> Arc<Mutex<StaticAnswer>> { self.answer.clone() }
     pub(crate) fn playing_field(&self) -> &GlobalPlayingField { &self.playing_field }
@@ -189,7 +208,8 @@ pub struct TrainStateSpec {
     answer_allocator: Arc<Mutex<AnswerAllocator>>,
     specs: HashMap<u64,CarriageTrainStateSpec>,
     cached_train_state: Mutex<Option<TrainState3>>,
-    persistent: Arc<Mutex<TrainPersistent>>
+    persistent: Arc<Mutex<TrainPersistent>>,
+    old_states: Mutex<HashMap<u64,TrainState3>>
 }
 
 impl TrainStateSpec {
@@ -198,17 +218,24 @@ impl TrainStateSpec {
             answer_allocator: answer_allocator.clone(),
             specs: HashMap::new(),
             cached_train_state: Mutex::new(None),
-            persistent: Arc::new(Mutex::new(TrainPersistent::new()))
+            persistent: Arc::new(Mutex::new(TrainPersistent::new())),
+            old_states: Mutex::new(HashMap::new()),
         }
     }
 
     pub fn spec(&self) -> TrainState3 {
         let mut state = lock!(self.cached_train_state);
         if state.is_none() {
-            debug_log!("new answer for {}",self.specs.keys().map(|x| { x.to_string() }).collect::<Vec<_>>().join(", "));
             let answer = lock!(self.answer_allocator).get();
-            *state = Some(TrainState3::new(self,answer,&self.persistent));
-            #[cfg(debug_trains)] debug_log!("TrainStateSpec::spec(): new train_state: {:?}",*state);
+            let new_state = TrainState3::new(self,answer,&self.persistent);
+            let mut old = lock!(self.old_states);
+            if let Some(existing_state) = old.get(&new_state.hash) {
+                *state = Some(existing_state.clone());
+            } else {
+                #[cfg(debug_trains)] debug_log!("new state");
+                old.insert(new_state.hash,new_state.clone());
+                *state = Some(new_state);
+            }
         }
         state.clone().unwrap()
     }
