@@ -27,7 +27,11 @@ class DataHandler(Handler):
         }
 
     def process(self, data_accessor: DataAccessor, channel: Any, payload: Any, metrics: ResponseMetrics, version: Version) -> Response:
-        (channel,name,panel) = payload
+        if len(payload) == 3:
+            (channel,name,panel) = payload
+            scope = []
+        else:
+            (channel,name,panel,scope) = payload
         panel = Panel(panel)
         out = data_accessor.cache.get_data(channel,name,panel)
         if out != None:

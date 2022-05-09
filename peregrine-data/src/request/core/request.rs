@@ -1,7 +1,7 @@
 // TODO tied failures
 use crate::request::messages::authorityreq::AuthorityReq;
 use crate::request::messages::bootstrapreq::BootstrapReq;
-use crate::request::messages::datareq::DataReq;
+use crate::request::messages::datareq::DataRequest;
 use crate::request::messages::failureres::FailureRes;
 use crate::request::messages::jumpreq::JumpReq;
 use crate::request::messages::metricreq::MetricReport;
@@ -18,7 +18,7 @@ pub(crate) enum RequestVariant {
     Program(ProgramReq),
     Stick(StickReq),
     Authority(AuthorityReq),
-    Data(DataReq),
+    Data(DataRequest),
     Jump(JumpReq),
     Metric(MetricReport),
 }

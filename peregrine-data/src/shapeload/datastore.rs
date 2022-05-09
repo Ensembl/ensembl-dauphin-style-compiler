@@ -1,47 +1,17 @@
 use commander::cdr_current_time;
-use peregrine_toolkit::log;
-use std::collections::{HashMap, BTreeMap};
 use std::sync::{ Arc };
 use crate::api::{ PeregrineCoreBase };
-use crate::core::channel::{Channel, PacketPriority};
+use crate::core::channel::{PacketPriority};
+use crate::request::messages::datareq::DataRequest;
 use crate::request::messages::datares::DataRes;
 use crate::util::memoized::{ Memoized, MemoizedType };
 use crate::util::message::{ DataMessage };
-use super::shaperequest::{ Region };
 
 // TODO Memoized errors with retry semantics
 
-#[derive(Clone,PartialEq,Eq,Hash)]
-pub struct DataRequest {
-    region: Region,
-    channel: Channel,
-    name: String,
-    scope: BTreeMap<String,Vec<String>>
-}
-
-impl DataRequest {
-    pub fn new(channel: &Channel, name: &str, region: &Region) -> DataRequest {
-        DataRequest {
-            channel: channel.clone(),
-            name: name.to_string(),
-            region: region.clone(),
-            scope: BTreeMap::new()
-        }
-    }
-
-    pub fn add_scope(&self, key: &str, values: &[String]) -> DataRequest {
-        let mut out = self.clone();
-        out.scope.insert(key.to_string(),values.to_vec());
-        out
-    }
-}
-
 async fn run(base: PeregrineCoreBase, request: DataRequest, priority: PacketPriority) -> Result<Arc<DataRes>,DataMessage> {
-    let backend = base.all_backends.backend(&request.channel);
-    if !request.scope.is_empty() {
-        log!("{:?}",request.scope);
-    }
-    backend.data(&request.name,&request.region,&priority).await.map(|x| Arc::new(x))
+    let backend = base.all_backends.backend(request.channel());
+    backend.data(&request,&priority).await.map(|x| Arc::new(x))
 }
 
 fn make_data_cache(cache_size: usize, base: &PeregrineCoreBase) -> Memoized<DataRequest,Result<Arc<DataRes>,DataMessage>> {

@@ -116,7 +116,7 @@ mod shapeload {
     pub(crate) mod programdata;
     pub(crate) mod programname;
 
-    pub use self::datastore::{ DataStore, DataRequest };
+    pub use self::datastore::{ DataStore };
     pub use self::shaperequest::{ Region, ShapeRequest, ShapeRequestGroup };
     pub use self::programdata::ProgramData;
     pub use self::programname::ProgramName;
@@ -258,7 +258,7 @@ pub use self::api::{ PeregrineCore, PeregrineCoreBase, PeregrineIntegration, Per
 pub use self::core::{ Asset, Assets, PgdPeregrineConfig, ConfigKey, Stick, StickId, StickTopology, Scale, Viewport };
 pub use self::core::channel::{ Channel, PacketPriority, ChannelLocation, ChannelIntegration };
 pub use self::index::{ StickStore, AuthorityStore };
-pub use self::shapeload::{ Region, ProgramName, ProgramRegion, ShapeStore, DataStore, DataRequest, ProgramData, ProgramRegionBuilder, ShapeRequest, ShapeRequestGroup };
+pub use self::shapeload::{ Region, ProgramName, ProgramRegion, ShapeStore, DataStore, ProgramData, ProgramRegionBuilder, ShapeRequest, ShapeRequestGroup };
 pub use self::run::{ PgCommander, PgCommanderTaskSpec, PgDauphin, Commander, InstancePayload, add_task, complete_task, async_complete_task };
 pub use self::request::core::packet::{ RequestPacket, ResponsePacket };
 pub use self::request::core::backend::{ AllBackends, Backend };
@@ -281,3 +281,4 @@ pub use self::spacebase::{
 };
 pub use self::shape::rectangleshape::RectangleShape;
 pub use self::request::core::manager::RequestManager;
+pub use self::request::messages::datareq::DataRequest;
