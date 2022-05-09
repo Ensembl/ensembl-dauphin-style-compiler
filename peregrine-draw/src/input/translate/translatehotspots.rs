@@ -1,7 +1,7 @@
 use commander::CommanderStream;
 use peregrine_toolkit::log;
 
-use crate::{Message, PeregrineInnerAPI, PgCommanderWeb, input::{InputEvent, InputEventKind, low::lowlevel::LowLevelInput}, run::inner::LockedPeregrineInnerAPI, train::GlRailway, shape::layers::drawingzmenus::HotspotEntryDetails};
+use crate::{Message, PeregrineInnerAPI, PgCommanderWeb, input::{InputEvent, InputEventKind, low::lowlevel::LowLevelInput}, run::inner::LockedPeregrineInnerAPI, shape::layers::drawingzmenus::HotspotEntryDetails};
 
 fn process_hotspot_event(api: &LockedPeregrineInnerAPI, x: f64, y: f64) -> Result<(),Message> {
     let events = api.trainset.get_hotspot(&api.stage.lock().unwrap().read_stage(), (x,y))?;

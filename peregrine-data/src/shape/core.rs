@@ -2,17 +2,6 @@ use std::{collections::{hash_map::DefaultHasher}, hash::{Hash, Hasher}, sync::Ar
 use super::zmenu::ZMenu;
 use crate::{ util::{eachorevery::EachOrEveryFilter}, EachOrEvery};
 
-pub(super) fn filter<F>(x: &[F], w: &[bool], primary: bool) -> Vec<F> where F: Clone {
-    let mut out = vec![];
-    if !primary && x.len() < 2 {
-        return x.to_vec();
-    }
-    for (v,f) in x.iter().zip(w.iter().cycle()) {
-        if *f { out.push(v.clone()); }
-    }
-    out
-}
-
 pub(super) fn bulk<T>(b: Vec<T>, a_len: usize, primary: bool) -> Vec<T> where T: Clone {
     if b.len() < a_len && (b.len() > 1 || primary) {
         let mut out = b.to_vec();

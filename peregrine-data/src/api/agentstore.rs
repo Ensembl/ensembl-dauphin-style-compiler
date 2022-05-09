@@ -1,39 +1,7 @@
-use std::sync::{ Arc, Mutex };
-use commander::PromiseFuture;
-use commander::FusePromise;
 use crate::PeregrineCoreBase;
 use crate::index::jumpstore::JumpStore;
 use crate::shapeload::programloader::ProgramLoader;
 use crate::{ AuthorityStore, StickStore, ShapeStore, DataStore };
-
-#[derive(Clone)]
-struct DelayedLoader<T> where T: Clone {
-    item: Arc<Mutex<Option<T>>>,
-    fuse: FusePromise<()>
-}
-
-impl<T> DelayedLoader<T> where T: Clone {
-    fn new() -> DelayedLoader<T> {
-        DelayedLoader {
-            item: Arc::new(Mutex::new(None)),
-            fuse: FusePromise::new()
-        }
-    }
-
-    async fn get(&self) -> T {
-        let promise = PromiseFuture::new();
-        self.fuse.add(promise.clone());                   
-        promise.await;
-        self.item.lock().unwrap().as_ref().unwrap().clone()
-    }
-
-    fn set(&mut self, value: T) {
-        self.item.lock().unwrap().replace(value);
-        self.fuse.fuse(());
-    }
-
-    fn ready(&self) -> bool { self.item.lock().unwrap().is_some() }
-}
 
 #[derive(Clone)]
 pub struct AgentStore {

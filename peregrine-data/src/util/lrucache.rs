@@ -47,7 +47,8 @@ impl<K,V> Cache<K,V> where K:Eq+Hash {
             dropper: None
         }
     }
-    
+
+    #[cfg(test)]
     pub fn set_dropper<F>(&mut self, cb: F) where F: FnMut(usize,V) + 'static {
         self.dropper = Some(Box::new(cb));
     }
@@ -93,10 +94,6 @@ impl<K,V> Cache<K,V> where K:Eq+Hash {
             }
         }
         None
-    }
-
-    pub fn get_row(&self, row: usize) -> Option<&V> {
-        self.values[row].as_ref().map(|v| &v.1)
     }
 }
 

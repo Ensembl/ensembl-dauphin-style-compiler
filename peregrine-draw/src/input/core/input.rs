@@ -5,7 +5,6 @@ use peregrine_toolkit::sync::blocker::{Blocker, Lockout};
 use crate::PeregrineInnerAPI;
 use crate::input::translate::targetreporter::TargetReporter;
 use crate::input::translate::translatehotspots::{translate_hotspots};
-use crate::run::report::Report;
 use crate::shape::core::spectre::Spectre;
 use crate::stage::stage::ReadStage;
 use crate::{ PeregrineDom, run::PgPeregrineConfig, PgCommanderWeb };
@@ -81,10 +80,10 @@ impl Input {
 
     fn state<F,T>(&self, f: F) -> T where F: FnOnce(&mut InputState) -> T { f(self.state.lock().unwrap().as_mut().unwrap()) }
 
-    pub fn set_api(&mut self, dom: &PeregrineDom, config: &PgPeregrineConfig, inner_api: &PeregrineInnerAPI, commander: &PgCommanderWeb, report: &Report, target_reporter: &TargetReporter) -> Result<(),Message> {
+    pub fn set_api(&mut self, dom: &PeregrineDom, config: &PgPeregrineConfig, inner_api: &PeregrineInnerAPI, commander: &PgCommanderWeb, target_reporter: &TargetReporter) -> Result<(),Message> {
         let spectres = inner_api.spectres();
         let mut low_level = LowLevelInput::new(dom,commander,spectres,config,&target_reporter)?;
-        let translator = InputTranslator::new(config,&mut low_level,inner_api,commander,report,&self.queue_blocker,&target_reporter)?;
+        let translator = InputTranslator::new(config,&mut low_level,inner_api,commander,&self.queue_blocker,&target_reporter)?;
         translate_hotspots(&mut low_level,commander,&inner_api);
         debug_register(config,&mut low_level,inner_api)?;
         *self.state.lock().unwrap() = Some(InputState {

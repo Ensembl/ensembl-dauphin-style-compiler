@@ -165,7 +165,7 @@ impl PeregrineInnerAPI {
             assets,
             target_reporter: target_reporter.clone()
         };
-        input.set_api(dom,&config.draw,&out,&commander,&report,&target_reporter)?;
+        input.set_api(dom,&config.draw,&out,&commander,&target_reporter)?;
         message_sender.add(Message::Ready);
         Ok(out)
     }
