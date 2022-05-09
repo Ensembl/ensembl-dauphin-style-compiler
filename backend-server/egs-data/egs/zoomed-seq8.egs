@@ -2,7 +2,8 @@ import "lib:std"; use "std";
 import "lib:peregrine"; use "peregrine";
 import "file:common8.egs"; use "common8";
 
-data := get_data("self()","zoomed-seq",get_region());
+req := make_request("self()","zoomed-seq",get_region());
+data := get_data(req);
 halt(only_warm(),[data]);
 
 seq_start := delta_seq(data,"seq_starts");

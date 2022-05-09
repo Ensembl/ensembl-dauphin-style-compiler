@@ -4,7 +4,8 @@ import "file:common8.egs"; use "common8";
 
 endpoint := ["contig","shimmer-contig"][(@==1)==get_switch(["scale","shimmer"])];
 
-data := get_data("self()",endpoint,get_region());
+req := make_request("self()",endpoint,get_region());
+data := get_data(req);
 halt(only_warm(),[data]);
 
 start := delta_seq(data,"contig_starts");

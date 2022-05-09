@@ -1,7 +1,7 @@
 use anyhow::{ anyhow as err, bail };
 use core::f64;
 use std::sync::{ Arc, Mutex };
-use peregrine_data::{Colour, DirectColour, Patina, Pen, Plotter, ZMenu, SpaceBase, LeafRequest};
+use peregrine_data::{Colour, DirectColour, Patina, Pen, Plotter, ZMenu, SpaceBase, LeafRequest, DataRequest};
 use owning_ref::ArcRef;
 use peregrine_toolkit::lock;
 
@@ -15,6 +15,7 @@ enum GeometryBuilderEntry {
     Plotter(Arc<Plotter>),
     LeafRequest(Arc<LeafRequest>),
     SpaceBase(Arc<SpaceBase<f64,()>>),
+    DataRequest(Arc<DataRequest>)
 }
 
 impl GeometryBuilderEntry {
@@ -28,6 +29,7 @@ impl GeometryBuilderEntry {
             GeometryBuilderEntry::Plotter(_) => "plotter",
             GeometryBuilderEntry::LeafRequest(_) => "allotment",
             GeometryBuilderEntry::SpaceBase(_) => "spacebase",
+            GeometryBuilderEntry::DataRequest(_) => "datarequest"
         }
     }
 }
@@ -93,4 +95,5 @@ impl GeometryBuilder {
     builder_type!(plotter,add_plotter,Plotter,Plotter,"plotter");
     builder_type!(allotment,add_allotment,LeafRequest,LeafRequest,"allotment");
     builder_type!(spacebase,add_spacebase,SpaceBase,SpaceBase<f64,()>,"spacebase");
+    builder_type!(request,add_request,DataRequest,DataRequest,"datarequest");
 }

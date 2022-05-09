@@ -8,7 +8,10 @@ use super::boot::{
     AddAuthorityCommandType, GetStickIdCommandType, GetStickDataCommandType, AddStickCommandType,
     GetJumpDataCommandType, GetJumpLocationCommandType
 };
-use super::data::{ GetLaneCommandType, GetDataCommandType, DataStreamCommandType, OnlyWarmCommandType };
+use super::data::{ 
+    GetLaneCommandType, GetDataCommandType, DataStreamCommandType, OnlyWarmCommandType,
+    RequestCommandType, RequestScopeCommandType
+};
 use super::decompress::{
     InflateBytesCommandType, InflateStringCommandType, Lesqlite2CommandType, ZigzagCommandType, DeltaCommandType,
     ClassifyCommandType, SplitStringCommandType, BaseFlipCommandType
@@ -26,11 +29,10 @@ use super::shape::{ WiggleCommandType, RectangleCommandType, Text2CommandType, I
 use super::switch::{ GetSwitchCommandType, ListSwitchCommandType };
 
 pub fn peregrine_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(48,0),0xB1309964C0498460)
+    CommandSetId::new("peregrine",(49,0),0x383CFE6598D40F34)
 }
 
 pub fn make_peregrine() -> CompLibRegister {
-    // 10 is free
     let mut set = CompLibRegister::new(&peregrine_id(),Some(make_peregrine_interp()));
     set.push("add_stick_authority",Some(0),AddAuthorityCommandType());
     set.push("get_stick_id",Some(1),GetStickIdCommandType());
@@ -42,6 +44,7 @@ pub fn make_peregrine() -> CompLibRegister {
     set.push("wiggle",Some(7),WiggleCommandType());
     set.push("track_apply",Some(8),DataSourceCommandType());
     set.push("patina_hollow",Some(9),PatinaHollowCommandType());
+    set.push("make_request",Some(10),RequestCommandType());
     set.push("track_add_switch",Some(11),AddSwitchCommandType());
     set.push("use_allotment",Some(12),UseAllotmentCommandType());
     set.push("direct_colour",Some(13),DirectColourCommandType());
@@ -83,6 +86,7 @@ pub fn make_peregrine() -> CompLibRegister {
     set.push("px_per_carriage",Some(49),PpcCommandType());
     set.push("style",Some(50),StyleCommandType());
     set.push("patina_switch",Some(51),PatinaSwitchCommandType());
+    set.push("request_scope",Some(52),RequestScopeCommandType());
     set.add_header("peregrine",include_str!("header.egs"));
     set
 }

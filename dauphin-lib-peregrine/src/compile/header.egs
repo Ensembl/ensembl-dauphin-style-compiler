@@ -42,6 +42,7 @@ struct penspec { value: number };
 struct plotterspec { value: number };
 struct allotment { value: number };
 struct spacebaseid { value: number };
+struct request { value: number };
 
 struct region {
     stick: string,
@@ -80,6 +81,8 @@ func patina_zmenu(zmenutmpl, vec(string), vec(string)) becomes patina;
 func patina_switch(string,boolean) becomes patina;
 func pen(string,number,directcolour,directcolour) becomes penspec;
 func plotter(number,directcolour) becomes plotterspec;
+func make_request(string,string,region) becomes request;
+func request_scope(request,string,string) becomes request;
 
 func get_switch(vec(string)) becomes boolean;
 func list_switch(vec(string)) becomes string;
@@ -119,7 +122,7 @@ stmt indented_rectangle_on_genome(dstart,dend,height,patina,allt) {
 }
 
 func get_region() becomes region;
-func get_data(string,string,region) becomes datasource;
+func get_data(request) becomes datasource;
 
 func data_stream(datasource,string) becomes bytes;
 func inflate_bytes(bytes) becomes bytes;

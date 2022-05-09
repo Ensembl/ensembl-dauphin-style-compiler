@@ -6,7 +6,8 @@ import "file:common8.egs"; use "common8";
  * actually get the data from the server
  */
 
-data := get_data("self()","zoomed-transcript",get_region());
+req := make_request("self()","zoomed-transcript",get_region());
+data := get_data(req);
 halt(only_warm(),[data]);
 
 /*

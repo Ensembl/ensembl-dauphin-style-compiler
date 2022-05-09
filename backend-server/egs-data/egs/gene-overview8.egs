@@ -6,7 +6,9 @@ import "file:common8.egs"; use "common8";
  * actually get the data from the server
  */
 
-data := get_data("self()","gene-overview",get_region());
+req := make_request("self()","gene-overview",get_region());
+req := request_scope(req,"x",["y","z"][]);
+data := get_data(req);
 halt(only_warm(),[data]);
 
 /*

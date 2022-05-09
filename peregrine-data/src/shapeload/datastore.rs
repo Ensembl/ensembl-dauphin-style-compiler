@@ -1,4 +1,6 @@
 use commander::cdr_current_time;
+use peregrine_toolkit::log;
+use std::collections::{HashMap, BTreeMap};
 use std::sync::{ Arc };
 use crate::api::{ PeregrineCoreBase };
 use crate::core::channel::{Channel, PacketPriority};
@@ -13,7 +15,8 @@ use super::shaperequest::{ Region };
 pub struct DataRequest {
     region: Region,
     channel: Channel,
-    name: String
+    name: String,
+    scope: BTreeMap<String,Vec<String>>
 }
 
 impl DataRequest {
@@ -21,13 +24,23 @@ impl DataRequest {
         DataRequest {
             channel: channel.clone(),
             name: name.to_string(),
-            region: region.clone()
+            region: region.clone(),
+            scope: BTreeMap::new()
         }
+    }
+
+    pub fn add_scope(&self, key: &str, values: &[String]) -> DataRequest {
+        let mut out = self.clone();
+        out.scope.insert(key.to_string(),values.to_vec());
+        out
     }
 }
 
 async fn run(base: PeregrineCoreBase, request: DataRequest, priority: PacketPriority) -> Result<Arc<DataRes>,DataMessage> {
     let backend = base.all_backends.backend(&request.channel);
+    if !request.scope.is_empty() {
+        log!("{:?}",request.scope);
+    }
     backend.data(&request.name,&request.region,&priority).await.map(|x| Arc::new(x))
 }
 
