@@ -39,8 +39,6 @@ def add_exon_data(result: dict, genes: List[str], transcripts: Dict[str,Transcri
     sizes = []
     thick = []
     # below are needed to get it into the correct allotment
-    gene_biotypes = []
-    strands = []
     transcript_sizes = []
     exon_counts = []
     for (gene_idx,gene_id) in enumerate(genes):
@@ -50,13 +48,9 @@ def add_exon_data(result: dict, genes: List[str], transcripts: Dict[str,Transcri
         exon_counts.append(len(line.block_starts))
         for (start,length) in zip(line.block_starts,line.block_sizes):
             sizes.append((line.transcript_start+start,length))
-            gene_biotypes.append(line.gene_biotype)
-            strands.append(line.strand=='+')
     starts_and_lengths(result,sizes,"exon")
     starts_and_ends(result,transcript_sizes,"transcript")
     starts_and_ends(result,thick,"thick")
-    classified_numbers(result,gene_biotypes,"exon_gene_biotypes")
-    result['exon_strands'] = compress(lesqlite2(strands))
     result['exon_counts'] = compress(lesqlite2(zigzag(delta(exon_counts))))
 
 def extract_gene_data(data_accessor: DataAccessor, chrom: Chromosome, panel: Panel, include_exons: bool, include_sequence: bool) -> Response:

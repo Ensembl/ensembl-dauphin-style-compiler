@@ -32,8 +32,6 @@ designated_transcript_designation := classified_seq(data,"designated_transcript_
 strand_string := len([strand]) (*) "reverse strand";
 strand_string#[strand>0] := "forward strand";
 /* exon stuff */
-exon_strand := positive_seq(data,"exon_strands");
-exon_gene_biotype := classified_seq(data,"exon_gene_biotypes_keys","exon_gene_biotypes_values");
 exon_start := delta_seq(data,"exon_starts");
 exon_end := exon_start + delta_seq(data,"exon_lengths");
 exon_gene_indexes := derun(delta_seq(data,"exon_counts"));
@@ -46,6 +44,8 @@ seq_rev_letter := base_flip(seq_letter);
 thick_start := delta_seq(data,"thick_starts");
 thick_end := thick_start + delta_seq(data,"thick_lengths");
 exon_gene_indexes := derun(delta_seq(data,"exon_counts"));
+exon_gene_biotype := index(exon_gene_indexes,[gene_biotype]);
+exon_strand := index(exon_gene_indexes,[strand]);
 
 enabled_tracks := get_switch([
     ["track","gene-other-rev"],

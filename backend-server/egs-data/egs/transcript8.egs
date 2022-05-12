@@ -33,8 +33,6 @@ designated_transcript_designation := classified_seq(data,"designated_transcript_
 strand_string := len([strand]) (*) "reverse strand";
 strand_string#[strand>0] := "forward strand";
 /* exon stuff */
-exon_strand := positive_seq(data,"exon_strands");
-exon_gene_biotype := classified_seq(data,"exon_gene_biotypes_keys","exon_gene_biotypes_values");
 exon_start := delta_seq(data,"exon_starts");
 exon_end := exon_start + delta_seq(data,"exon_lengths");
 thick_start := delta_seq(data,"thick_starts");
@@ -43,6 +41,9 @@ exon_gene_indexes := derun(delta_seq(data,"exon_counts"));
 
 exon_gene_ids := index(exon_gene_indexes,[gene_id]);
 exon_focus_id := index(exon_gene_indexes,[focus_id]);
+exon_gene_biotype := index(exon_gene_indexes,[gene_biotype]);
+exon_strand := index(exon_gene_indexes,[strand]);
+
 /* apply solidity in thick region ... */
 /* ... find thick limits for each exon */
 exon_thick_limit_start := index(exon_gene_indexes,[thick_start]);
