@@ -44,6 +44,8 @@ class Memcached(object):
         return self._available
 
     def _get_bump(self):
+        if self._bump_on_restart:
+            return self._bump_on_restart
         now = time.time()
         if self._last_bump_check == None or now - self._last_bump_check > 30:
             self._last_bump_check = now
@@ -51,13 +53,17 @@ class Memcached(object):
             if new_value != None:
                 self._bump = new_value
 
-    def __init__(self,prefix):
+
+    def __init__(self,prefix,bump_on_restart):
         self._start_time = time.time()
         self._last_check = 0
         self._last_bump_check = None
         self._bump = None
         self._prefix = prefix
         self._available = False
+        self._bump_on_restart = time.time() if bump_on_restart else None
+        if bump_on_restart:
+            logging.warn("Bumping on restart as requested. Do not use in production.")
         if not PYMEMCACHE_FOUND:
             logging.warn("missing pymemcached. Cannot use memcache")
             return
