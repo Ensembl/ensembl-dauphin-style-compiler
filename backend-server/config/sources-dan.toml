@@ -11,6 +11,8 @@ upstream="http://52.56.215.72:3333/api/data"
 [redirect.metric]
 upstream="http://52.56.215.72:3333/api/data"
 
+[redirect.data."gene-location"]
+upstream = ""
 
 #
 # Don't request corrupt wheat file from S3. Costs money!

@@ -52,6 +52,8 @@ def get_bigwig_data(path,chrom,start,end):
     return (out,start,end)
 
 def get_bigbed(data_accessor: DataAccessor, item: AccessItem, start: int, end: int):
+    if end <= start:
+        return []
     accessor = data_accessor.resolver.get(item)
     chromosome = data_accessor.data_model.stick(data_accessor,item.stick())
     if accessor == None:

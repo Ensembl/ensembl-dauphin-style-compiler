@@ -16,6 +16,9 @@ impl DataRes {
         }
     }
 
+    #[cfg(debug_assertions)]
+    pub fn keys(&self) -> Vec<String> { self.data.keys().cloned().collect::<Vec<_>>() }
+
     pub fn decode(value: CborValue) -> Result<DataRes,String> {
         for (key,value) in cbor_into_drained_map(value)?.drain(..) {
             if key == "data" {
@@ -29,6 +32,9 @@ impl DataRes {
     }
 
     pub fn get(&self, name: &str) -> anyhow::Result<&ReceivedData> {
-        self.data.get(name).ok_or_else(|| err!("no such data {}",name))
+        self.data.get(name).ok_or_else(|| err!("no such data {}: have {}",
+            name,
+            self.data.keys().cloned().collect::<Vec<_>>().join(", ")
+        ))
     }
 }

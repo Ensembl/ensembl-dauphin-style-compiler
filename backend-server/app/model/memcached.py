@@ -72,17 +72,17 @@ class Memcached(object):
         value.update(cbor2.dumps([self._prefix,self._bump,parts]))
         return value.hexdigest()
 
-    def store_data(self, channel, name, panel, data):
+    def store_data(self, channel, name, panel, scope, data):
         if not self._is_available():
             return
-        key = self.hashed_key([channel,name,panel.dumps()])
+        key = self.hashed_key([channel,name,panel.dumps(),scope])
         if len(data.payload) < 900_000:
             self._client.set(key,data.payload)
 
-    def get_data(self, channel, name, panel) -> Optional[Response]:
+    def get_data(self, channel, name, panel, scope) -> Optional[Response]:
         if not self._is_available():
             return None
-        key = self.hashed_key([channel,name,panel.dumps()])
+        key = self.hashed_key([channel,name,panel.dumps(),scope])
         value = self._client.get(key)
         if value == None:
             return None

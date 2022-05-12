@@ -4,6 +4,7 @@ use crate::{Region, core::channel::Channel};
 use peregrine_toolkit::log;
 use serde_cbor::{Value as CborValue};
 
+#[cfg_attr(debug_assertions,derive(Debug))]
 #[derive(Clone,PartialEq,Eq,Hash)]
 pub struct DataRequest {
     channel: Channel,
@@ -36,9 +37,6 @@ impl DataRequest {
     pub fn region(&self) -> &Region { &self.region }
 
     pub(crate) fn encode(&self) -> CborValue {
-        if !self.scope.is_empty() {
-            log!("{:?}",self.scope);
-        }    
         CborValue::Array(vec![
             self.channel.encode(),
             CborValue::Text(self.name.to_string()),

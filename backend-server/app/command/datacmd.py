@@ -1,9 +1,10 @@
+import logging
 from typing import Any, Dict, List, Optional
 import time
 from .coremodel import Handler, Panel
 from .response import Response
 from .datasources import DataAccessor
-from data.genedata import GeneDataHandler, GeneOverviewDataHandler, TranscriptDataHandler
+from data.genedata import GeneDataHandler, GeneLocationHandler, GeneOverviewDataHandler, TranscriptDataHandler
 from data.gc import WiggleDataHandler
 from data.variant import VariantDataHandler
 from data.sequence import ZoomedSeqDataHandler
@@ -20,6 +21,7 @@ class DataHandler(Handler):
             "transcript": TranscriptDataHandler(False),
             "gene": GeneDataHandler(),
             "gene-overview": GeneOverviewDataHandler(),
+            "gene-location": GeneLocationHandler(),
             "gc": WiggleDataHandler(),
             "contig": ContigDataHandler(),
             "shimmer-contig": ShimmerContigDataHandler(),
@@ -27,13 +29,15 @@ class DataHandler(Handler):
         }
 
     def process(self, data_accessor: DataAccessor, channel: Any, payload: Any, metrics: ResponseMetrics, version: Version) -> Response:
+        scope = []
         if len(payload) == 3:
             (channel,name,panel) = payload
             scope = []
         else:
-            (channel,name,panel,scope) = payload
+            (channel,name,panel,new_scope) = payload
+            scope = new_scope
         panel = Panel(panel)
-        out = data_accessor.cache.get_data(channel,name,panel)
+        out = data_accessor.cache.get_data(channel,name,panel,scope)
         if out != None:
             metrics.cache_hits += 1
             metrics.cache_hits_bytes += out.len()
@@ -42,13 +46,13 @@ class DataHandler(Handler):
         if handler == None:
             return Response(1,"Unknown data endpoint {0}".format(name))
         start = time.time()
-        out = handler.process_data(data_accessor, panel)
+        out = handler.process_data(data_accessor, panel, scope)
         time_taken_ms = (time.time() - start) * 1000.0
         metrics.runtime_num[(name,panel.scale)] += time_taken_ms
         metrics.runtime_denom[(name,panel.scale)] += 1
         metrics.cache_misses += 1
         metrics.cache_misses_bytes += out.len()
-        data_accessor.cache.store_data(channel,name,panel,out)
+        data_accessor.cache.store_data(channel,name,panel,scope,out)
         return out
 
     def remote_prefix(self, payload: Any) -> Optional[List[str]]:

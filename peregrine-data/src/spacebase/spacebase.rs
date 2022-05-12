@@ -106,6 +106,10 @@ impl<X: Clone, Y: Clone> PartialSpaceBase<X,Y> {
         self.0.len = compat_len;
         Some(self.0)
     }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
 }
 
 impl<X,Y> SpaceBase<X,Y> {

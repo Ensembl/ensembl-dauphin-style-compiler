@@ -25,7 +25,7 @@ def get_gc(data_accessor: DataAccessor, chrom: Chromosome, panel: Panel) -> Resp
     return Response(5,{ 'data': out })
 
 class WiggleDataHandler(DataHandler):
-    def process_data(self, data_accessor: DataAccessor, panel: Panel) -> Response:
+    def process_data(self, data_accessor: DataAccessor, panel: Panel, scope) -> Response:
         chrom = data_accessor.data_model.stick(data_accessor,panel.stick)
         if chrom == None:
             return Response(1,"Unknown chromosome {0}".format(panel.stick))

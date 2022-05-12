@@ -25,23 +25,25 @@ impl InterpCommand for RectangleInterpCommand {
         let peregrine = get_peregrine(context)?;
         let geometry = peregrine.geometry_builder();
         let top_left = geometry.spacebase(top_left_id[0] as u32)?.as_ref().clone();
-        let bottom_right = geometry.spacebase(bottom_right_id[0] as u32)?.as_ref().clone();
-        let patina = geometry.patina(patina_id[0] as u32)?.as_ref().clone();
-        let allotments = allotment_id.map_results::<_,_,anyhow::Error>(|id| {
-            Ok(geometry.allotment(*id as u32)?.as_ref().clone())
-        })?;
-        let zoo = get_instance::<Arc<Mutex<Option<ProgramShapesBuilder>>>>(context,"out")?;
-        if allotments.len() != Some(0) {
-            let area = SpaceBaseArea::new(
-                PartialSpaceBase::from_spacebase(top_left),
-                PartialSpaceBase::from_spacebase(bottom_right)).ok_or_else(|| err!("sb1"))?;
-            let mut allotments_iter = allotments.iter(area.len()).ok_or_else(|| err!("sb2"))?;
-            let mut allotments_iter2 = allotments.iter(area.len()).ok_or_else(|| err!("sb2"))?;
-            let area = area.fullmap_allotments_results::<_,_,_,DataMessage>(
-                move |_| Ok(allotments_iter.next().unwrap().clone()),
-                move |_| Ok(allotments_iter2.next().unwrap().clone())
-            )?;
-            lock!(zoo).as_mut().unwrap().add_rectangle(area,patina,None)?;
+        if top_left.len() > 0 {
+            let bottom_right = geometry.spacebase(bottom_right_id[0] as u32)?.as_ref().clone();
+            let patina = geometry.patina(patina_id[0] as u32)?.as_ref().clone();
+            let allotments = allotment_id.map_results::<_,_,anyhow::Error>(|id| {
+                Ok(geometry.allotment(*id as u32)?.as_ref().clone())
+            })?;
+            let zoo = get_instance::<Arc<Mutex<Option<ProgramShapesBuilder>>>>(context,"out")?;
+            if allotments.len() != Some(0) {
+                let area = SpaceBaseArea::new(
+                    PartialSpaceBase::from_spacebase(top_left),
+                    PartialSpaceBase::from_spacebase(bottom_right)).ok_or_else(|| err!("sb1"))?;
+                let mut allotments_iter = allotments.iter(area.len()).ok_or_else(|| err!("sb2"))?;
+                let mut allotments_iter2 = allotments.iter(area.len()).ok_or_else(|| err!("sb2"))?;
+                let area = area.fullmap_allotments_results::<_,_,_,DataMessage>(
+                    move |_| Ok(allotments_iter.next().unwrap().clone()),
+                    move |_| Ok(allotments_iter2.next().unwrap().clone())
+                )?;
+                lock!(zoo).as_mut().unwrap().add_rectangle(area,patina,None)?;
+            }
         }
         Ok(CommandResult::SyncResult())
     }
@@ -58,15 +60,17 @@ impl InterpCommand for Text2InterpCommand {
         let peregrine = get_peregrine(context)?;
         let geometry = peregrine.geometry_builder();
         let spacebase = geometry.spacebase(spacebase_id[0] as u32)?.as_ref().clone();
-        let pen = geometry.pen(pen_id[0] as u32)?.as_ref().clone();
-        let allotments = allotment_id.map_results(|id| {
-            geometry.allotment(*id as u32).map(|x| x.as_ref().clone())
-        })?;
-        let zoo = get_instance::<Arc<Mutex<Option<ProgramShapesBuilder>>>>(context,"out")?;
-        if text.len() != Some(0) || allotments.len() != Some(0) {
-            let mut allotments_iter = allotments.iter(spacebase.len()).ok_or_else(|| err!("sb2"))?;
-            let spacebase = spacebase.fullmap_allotments_results::<_,_,DataMessage>(move |_| Ok(allotments_iter.next().unwrap().clone()))?;
-            lock!(zoo).as_mut().unwrap().add_text(spacebase,pen,text)?;
+        if spacebase.len() > 0 {
+            let pen = geometry.pen(pen_id[0] as u32)?.as_ref().clone();
+            let allotments = allotment_id.map_results(|id| {
+                geometry.allotment(*id as u32).map(|x| x.as_ref().clone())
+            })?;
+            let zoo = get_instance::<Arc<Mutex<Option<ProgramShapesBuilder>>>>(context,"out")?;
+            if text.len() != Some(0) || allotments.len() != Some(0) {
+                let mut allotments_iter = allotments.iter(spacebase.len()).ok_or_else(|| err!("sb2"))?;
+                let spacebase = spacebase.fullmap_allotments_results::<_,_,DataMessage>(move |_| Ok(allotments_iter.next().unwrap().clone()))?;
+                lock!(zoo).as_mut().unwrap().add_text(spacebase,pen,text)?;
+            }
         }
         Ok(CommandResult::SyncResult())
     }
@@ -82,14 +86,16 @@ impl InterpCommand for ImageInterpCommand {
         let peregrine = get_peregrine(context)?;
         let geometry = peregrine.geometry_builder();
         let spacebase = geometry.spacebase(spacebase_id[0] as u32)?.as_ref().clone();
-        let allotments = allotment_id.map_results(|id| {
-            geometry.allotment(*id as u32).map(|x| x.as_ref().clone())
-        })?;
-        if images.len() != Some(0) && allotments.len() != Some(0) {
-            let mut allotments_iter = allotments.iter(spacebase.len()).ok_or_else(|| err!("sb2"))?;
-            let spacebase = spacebase.fullmap_allotments_results::<_,_,DataMessage>(move |_| Ok(allotments_iter.next().unwrap().clone()))?;
-            let zoo = get_instance::<Arc<Mutex<Option<ProgramShapesBuilder>>>>(context,"out")?;
-            lock!(zoo).as_mut().unwrap().add_image(spacebase,images)?;
+        if spacebase.len() > 0 {
+            let allotments = allotment_id.map_results(|id| {
+                geometry.allotment(*id as u32).map(|x| x.as_ref().clone())
+            })?;
+            if images.len() != Some(0) && allotments.len() != Some(0) {
+                let mut allotments_iter = allotments.iter(spacebase.len()).ok_or_else(|| err!("sb2"))?;
+                let spacebase = spacebase.fullmap_allotments_results::<_,_,DataMessage>(move |_| Ok(allotments_iter.next().unwrap().clone()))?;
+                let zoo = get_instance::<Arc<Mutex<Option<ProgramShapesBuilder>>>>(context,"out")?;
+                lock!(zoo).as_mut().unwrap().add_image(spacebase,images)?;
+            }
         }
         Ok(CommandResult::SyncResult())
     }

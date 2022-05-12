@@ -10,6 +10,9 @@ from model.transcriptfile import TranscriptFileLine
 from .util import classified_numbers, starts_and_ends, starts_and_lengths
 from .numbers import delta, zigzag, lesqlite2, compress, classify
 from .sequence import sequence_blocks
+from model.datalocator import AccessItem
+from ncd import NCDRead
+
 
 BLOCKS_PER_PANEL = 1000
 
@@ -117,10 +120,10 @@ def extract_gene_data(data_accessor: DataAccessor, chrom: Chromosome, panel: Pan
     #    logging.warn("len({}) = {}".format(k,len(v)))
     return Response(5,{ 'data': out })
 
-def extract_gene_overview_data(data_accessor: DataAccessor, chrom: Chromosome, panel: Panel) -> Response:
+def extract_gene_overview_data(data_accessor: DataAccessor, chrom: Chromosome, start: int, end: int, with_ids: bool) -> Response:
     out = {}
     item = chrom.item_path("transcripts")
-    data = get_bigbed(data_accessor,item,panel.start,panel.end)
+    data = get_bigbed(data_accessor,item,start,end)
     seen_genes = set()
     genes = []
     gene_sizes = {}
@@ -144,29 +147,82 @@ def extract_gene_overview_data(data_accessor: DataAccessor, chrom: Chromosome, p
     out['strands'] = compress(lesqlite2([int(x=='+') for x in strands.values()]))
     out['gene_biotypes_keys'] = compress("\0".join(gene_biotypes_keys))
     out['gene_biotypes_values'] = compress(lesqlite2(gene_biotypes_values))
-    out['focus_ids'] = compress("\0".join([x.split('.')[0] for x in genes]))
-    return Response(5,{ 'data': out })
+    if with_ids:
+        out['focus_ids'] = compress("\0".join([x.split('.')[0] for x in genes]))
+    return out
 
 class TranscriptDataHandler(DataHandler):
     def __init__(self, seq: bool):
         self._seq = seq
 
-    def process_data(self, data_accessor: DataAccessor, panel: Panel) -> Response:
+    def process_data(self, data_accessor: DataAccessor, panel: Panel, scope) -> Response:
         chrom = data_accessor.data_model.stick(data_accessor,panel.stick)
         if chrom == None:
             return Response(1,"Unknown chromosome {0}".format(panel.stick))
         return extract_gene_data(data_accessor,chrom,panel,True,self._seq)
 
 class GeneDataHandler(DataHandler):
-    def process_data(self, data_accessor: DataAccessor, panel: Panel) -> Response:
+    def process_data(self, data_accessor: DataAccessor, panel: Panel, scope) -> Response:
         chrom = data_accessor.data_model.stick(data_accessor,panel.stick)
         if chrom == None:
             return Response(1,"Unknown chromosome {0}".format(panel.stick))
         return extract_gene_data(data_accessor,chrom,panel,False,False)
 
 class GeneOverviewDataHandler(DataHandler):
-    def process_data(self, data_accessor: DataAccessor, panel: Panel) -> Response:
+    def process_data(self, data_accessor: DataAccessor, panel: Panel,scope) -> Response:
         chrom = data_accessor.data_model.stick(data_accessor,panel.stick)
         if chrom == None:
             return Response(1,"Unknown chromosome {0}".format(panel.stick))
-        return extract_gene_overview_data(data_accessor,chrom,panel)
+        out = extract_gene_overview_data(data_accessor,chrom,panel.start,panel.end,False)
+        return Response(5,{ 'data': out })
+
+
+def _get_approx_location(data_accessor: DataAccessor, panel: Panel, id):
+    genome = panel.stick.rsplit(":",1)[0]
+    key = "focus:{}:{}".format(genome,id)
+    accessor = data_accessor.resolver.get(AccessItem("jump"))
+    jump_ncd = NCDRead(accessor.ncd())
+    value = jump_ncd.get(key.encode("utf-8"))
+    if value != None:
+        parts = value.decode('utf-8').split("\t")
+        if len(parts) == 3:
+            on_stick = "{}:{}".format(genome,parts[0])
+            if on_stick == panel.stick:
+                return (int(parts[1]),int(parts[2]))
+    return None
+
+def _remove_version(id: str):
+    return id.rsplit('.',1)[0]
+
+def _get_exact_location(data_accessor: DataAccessor, panel, gene_id, approx_start, approx_end):
+    chrom = data_accessor.data_model.stick(data_accessor,panel.stick)
+    if chrom == None:
+        return Response(1,"Unknown chromosome {0}".format(panel.stick))
+    item = chrom.item_path("transcripts")
+    data = get_bigbed(data_accessor,item,approx_start,approx_end)
+    for line in data:
+        line = TranscriptFileLine(line)
+        line_gene_id = _remove_version(line.gene_id)
+        if line_gene_id == gene_id:
+            return (line.gene_start,line.gene_end,1 if line.strand == '+' else 0)
+    return None
+
+class GeneLocationHandler(DataHandler):
+    def process_data(self, data_accessor: DataAccessor, panel: Panel,scope) -> Response:
+        id = scope.get("id",[])
+        out = []
+        location = None
+        if len(id) > 0:
+            approx = _get_approx_location(data_accessor,panel,id[0])
+            if approx is not None:
+                exact = _get_exact_location(data_accessor,panel,id[0],approx[0],approx[1])
+                if exact is not None:
+                    location = exact
+        chrom = data_accessor.data_model.stick(data_accessor,panel.stick)
+        if location is not None:
+            out = extract_gene_overview_data(data_accessor,chrom,exact[0],exact[1],True)
+        else:
+            out = extract_gene_overview_data(data_accessor,chrom,0,0,True)
+            location = []
+        out["location"] = compress(lesqlite2(location))
+        return Response(5,{ 'data': out })
