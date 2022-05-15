@@ -45,14 +45,14 @@ class Memcached(object):
 
     def _get_bump(self):
         if self._bump_on_restart:
-            return self._bump_on_restart
-        now = time.time()
-        if self._last_bump_check == None or now - self._last_bump_check > 30:
-            self._last_bump_check = now
-            new_value = self._client.get(self._prefix+":"+"bump")
-            if new_value != None:
-                self._bump = new_value
-
+            self._bump = self._bump_on_restart
+        else:
+            now = time.time()
+            if self._last_bump_check == None or now - self._last_bump_check > 30:
+                self._last_bump_check = now
+                new_value = self._client.get(self._prefix+":"+"bump")
+                if new_value != None:
+                    self._bump = new_value
 
     def __init__(self,prefix,bump_on_restart):
         self._start_time = time.time()

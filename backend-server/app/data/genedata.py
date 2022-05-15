@@ -35,23 +35,35 @@ def transcript_grade(designation: str, transcript_biotype: str) -> str:
     else:
         return 0
 
-def add_exon_data(result: dict, genes: List[str], transcripts: Dict[str,TranscriptFileLine]):
+def add_exon_data(result: dict, genes: List[str], transcripts: Dict[str,List[TranscriptFileLine]]):
     sizes = []
-    thick = []
-    # below are needed to get it into the correct allotment
+    transcript_ids = []
+    transcript_designations = []
     transcript_sizes = []
+    transcript_counts = []
+    transcript_biotypes = []
     exon_counts = []
-    for (gene_idx,gene_id) in enumerate(genes):
-        line = transcripts[gene_id]
-        transcript_sizes.append((line.transcript_start,line.transcript_end))
-        thick.append((line.thick_start,line.thick_end))
-        exon_counts.append(len(line.block_starts))
-        for (start,length) in zip(line.block_starts,line.block_sizes):
-            sizes.append((line.transcript_start+start,length))
-    starts_and_lengths(result,sizes,"exon")
-    starts_and_ends(result,transcript_sizes,"transcript")
-    starts_and_ends(result,thick,"thick")
-    result['exon_counts'] = compress(lesqlite2(zigzag(delta(exon_counts))))
+    thick = []
+    for gene_id in genes:
+        gene_transcripts = transcripts[gene_id]
+        transcript_counts.append(len(gene_transcripts))
+        for line in transcripts[gene_id]:
+            transcript_ids.append(line.transcript_id)
+            transcript_designations.append(line.transcript_designation)
+            transcript_sizes.append((line.transcript_start,line.transcript_end))
+            transcript_biotypes.append(line.transcript_biotype)
+            exon_counts.append(len(line.block_starts))
+            thick.append((line.thick_start,line.thick_end))
+            for (start,length) in zip(line.block_starts,line.block_sizes):
+                sizes.append((line.transcript_start+start,length))
+    starts_and_lengths(result,sizes,"transcript_exon")
+    starts_and_ends(result,transcript_sizes,"transcripts")
+    classified_numbers(result,transcript_biotypes,"transcript_biotypes")
+    starts_and_ends(result,thick,"thicks")
+    classified_numbers(result,transcript_designations,"transcript_designation")
+    result['transcript_ids'] =  compress("\0".join(transcript_ids))
+    result['transcript_counts'] = compress(lesqlite2(zigzag(delta(transcript_counts))))
+    result['transcript_exon_counts'] =  compress(lesqlite2(zigzag(delta(exon_counts))))
 
 def extract_gene_data(data_accessor: DataAccessor, chrom: Chromosome, panel: Panel, include_exons: bool, include_sequence: bool) -> Response:
     out = {}
@@ -66,6 +78,7 @@ def extract_gene_data(data_accessor: DataAccessor, chrom: Chromosome, panel: Pan
     gene_biotypes = {}
     strands = {}
     designated_transcript = collections.defaultdict(lambda: (-1,None))
+    all_transcripts = collections.defaultdict(lambda: [])
     transcript_biotypes = {}
     transcript_designations = {}
     for line in data:
@@ -86,6 +99,13 @@ def extract_gene_data(data_accessor: DataAccessor, chrom: Chromosome, panel: Pan
         dt_grade = transcript_grade(transcript_designations[line.transcript_id],transcript_biotypes[line.transcript_id])
         if dt_grade > dt_grade_stored:
             designated_transcript[line.gene_id] = (dt_grade,line)
+        all_transcripts[line.gene_id].append((dt_grade,line))
+    if include_exons:
+        top_five = {}
+        for (gene,transcript) in all_transcripts.items():
+            transcript = sorted(transcript, key = lambda x: -x[0])
+            top_five[gene] = [x[1] for x in transcript[:5]]  
+        add_exon_data(out,genes,top_five)
     designated_transcript = { k: v[1] for (k,v) in designated_transcript.items() }
     gene_sizes = list([ gene_sizes[gene] for gene in genes ])
     transcript_sizes = list([ transcript_sizes[gene] for gene in genes ])
@@ -107,8 +127,6 @@ def extract_gene_data(data_accessor: DataAccessor, chrom: Chromosome, panel: Pan
     classified_numbers(out,gene_biotypes,"gene_biotypes")
     classified_numbers(out,designated_transcript_biotypes,"designated_transcript_biotypes")
     classified_numbers(out,designated_transcript_designations,"designated_transcript_designations")
-    if include_exons:
-        add_exon_data(out,genes,designated_transcript)
     sequence_blocks(out,data_accessor,chrom,panel,not include_sequence)
     #for (k,v) in out.items():
     #    logging.warn("len({}) = {}".format(k,len(v)))

@@ -11,7 +11,7 @@ upstream="http://52.56.215.72:3333/api/data"
 [redirect.metric]
 upstream="http://52.56.215.72:3333/api/data"
 
-[redirect.data."gene-location"]
+[redirect.data.transcript]
 upstream = ""
 
 #
