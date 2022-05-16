@@ -47,6 +47,7 @@ impl DrawingCarriageCreator {
 #[derive(Clone)]
 pub(super) struct PartyDrawingCarriage {
     carriage: DrawingCarriage,
+    state: TrainState3,
     #[allow(unused)]
     retain: Retainer
 }
@@ -56,9 +57,13 @@ impl PartyDrawingCarriage {
         let (retain,retain_test) = retainer();
         let carriage = creator.create(state,&retain_test);
         PartyDrawingCarriage {
-            carriage, retain
+            carriage, retain, state: state.clone()
         }
     }
 
     pub(super) fn carriage(&self) -> &DrawingCarriage { &self.carriage }
+
+    pub(super) fn destroy(&self) {
+        self.state.remove(self.carriage().extent().index());
+    }
 }

@@ -10,7 +10,7 @@ pub struct LocalBumpBuilder {
 impl LocalBumpBuilder {
     pub(crate) fn new() -> LocalBumpBuilder {
         LocalBumpBuilder {
-            builder: LocalValueBuilder::new("bump")
+            builder: LocalValueBuilder::new()
         }
     }
 

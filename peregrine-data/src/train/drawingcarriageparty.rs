@@ -74,6 +74,7 @@ impl PartyActions<DrawingCarriageCreator,PartyDrawingCarriage,PartyDrawingCarria
     }
 
     fn dtor(&mut self, _index: &DrawingCarriageCreator, dc: PartyDrawingCarriage) {
+        dc.destroy();
         self.ping_needed.set(); // train can maybe be updated
         #[cfg(debug_trains)] debug_log!("DC({}) dtor {}",self.index,dc.carriage().extent().compact());
         self.graphics.drop_carriage(dc.carriage());

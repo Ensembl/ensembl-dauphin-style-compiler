@@ -47,13 +47,16 @@ impl CarriageTrainStateRequest {
     pub fn bump_mut(&mut self) -> &mut LocalBumpBuilder { &mut self.bumper }
 }
 
+identitynumber!(SERIALS);
+
 #[derive(Clone)]
 pub struct CarriageTrainStateSpec {
     height_values: Arc<LocalHeightTracker>,
     playing_field: Arc<LocalPlayingField>,
     aligner: Arc<LocalAligner>,
     metadata: Arc<LocalAllotmentMetadata>,
-    bump: Arc<LocalBump>
+    bump: Arc<LocalBump>,
+    serial: u64
 }
 
 impl CarriageTrainStateSpec {
@@ -69,15 +72,18 @@ impl CarriageTrainStateSpec {
             aligner: Arc::new(aligner),
             metadata: Arc::new(metadata),
             bump: Arc::new(bump),
+            serial: SERIALS.next()
         }
     }
+
+    pub fn serial(&self) -> u64 { self.serial }
 }
 
 identitynumber!(IDS);
 
 #[derive(Clone)]
 pub struct TrainState3 {
-    indexes: Arc<Mutex<HashSet<u64>>>,
+    indexes: Arc<Mutex<HashMap<u64,u64>>>,
     height_tracker: Arc<GlobalHeightTracker>,
     playing_field: Arc<GlobalPlayingField>,
     metadata: Arc<GlobalAllotmentMetadata>,
@@ -160,14 +166,21 @@ impl TrainState3 {
 
     pub(crate) fn add(&self, index: u64, state: &CarriageTrainStateSpec) {
         let mut indexes = lock!(self.indexes);
-        if indexes.contains(&index) { return; }
-        indexes.insert(index);
+        if let Some(old_serial) = indexes.get(&index) {
+            if *old_serial == state.serial() { return; }
+        }
+        indexes.insert(index,state.serial());
         drop(indexes);
         let mut answer = lock!(self.answer);
         self.bump.add(&state.bump,&mut answer);
         self.height_tracker.add(&state.height_values,&mut answer);
         self.playing_field.add(&state.playing_field,&mut answer);
         self.aligner.add(&state.aligner,&mut answer);
+    }
+
+    pub(crate) fn remove(&self, index: u64) {
+        let mut indexes = lock!(self.indexes);
+        indexes.remove(&index);
     }
 
     // TODO new add method to add to existing trait by populating answers
@@ -182,8 +195,12 @@ impl TrainState3 {
         let playing_field = Arc::new(Self::calc_playing_field(spec,&mut answer));
         let aligner = Arc::new(Self::calc_aligner(spec,&mut answer));
         let metadata = Arc::new(Self::calc_metadata(spec,&mut answer));
+        let mut indexes = HashMap::new();
+        for (index,spec) in spec.specs.iter() {
+            indexes.insert(*index,spec.serial());
+        }
         let mut out = TrainState3 {
-            indexes: Arc::new(Mutex::new(spec.specs.keys().cloned().collect::<HashSet<_>>())),
+            indexes: Arc::new(Mutex::new(indexes)),
             height_tracker, playing_field, aligner, metadata, bump,
             answer: Arc::new(Mutex::new(answer)), hash: 0,
             serial: IDS.next()

@@ -21,7 +21,7 @@
 
 use std::sync::Arc;
 
-use super::{answer::Answer, derived, derived_debug};
+use super::{answer::Answer, derived };
 
 pub struct Value<'f,'a: 'f,T: 'a> {
     f: Arc<dyn (Fn(&Option<&Answer<'a>>) -> Option<T>) + 'f>
