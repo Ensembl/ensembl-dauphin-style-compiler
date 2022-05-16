@@ -17,20 +17,20 @@ use super::{value::Value};
  */
 
 pub fn derived<'a:'b, 'b, 'f:'a, 'g:'a, 'h:'f, T:'a, U:'b, F: 'f>(a: Value<'g,'a,T>, f: F) -> Value<'h,'b,U> where F: Fn(T) -> U {
-    Value::new(move |answer_index| {
-        a.inner(answer_index).map(|a| f(a))
+    Value::new(move |answer| {
+        a.inner(answer).map(|a| f(a))
     })
 }
 
 #[cfg(debug_assertions)]
-pub fn derived_debug<'a:'b, 'b, 'f:'a, 'g:'a, 'h:'f, T:'a, U:'b, F: 'f>(a: Value<'g,'a,T>, f: F, name: &str) -> Value<'h,'b,U> where F: Fn(T) -> U {
+pub fn derived_debug<'a:'b, 'b, 'f:'a, 'g:'a, 'h:'f, T:'a, U:'b, F: 'f>(a: Value<'g,'a,T>, f: F, name: &str) -> Value<'h,'b,U> where F: Fn(T,Option<u64>) -> U {
     use crate::log;
 
     let name = name.to_string();
-    Value::new(move |answer_index| {
-        a.inner(answer_index).map(|a| {
+    Value::new(move |answer| {
+        a.inner(answer).map(|a| {
             log!("enter: {}",name);
-            let out = f(a);
+            let out = f(a,answer.map(|x| x.serial()));
             log!("leave: {}",name);
             out
         })

@@ -8,7 +8,7 @@ pub struct LocalHeightTrackerBuilder(LocalValueBuilder<AllotmentName,f64,f64>);
 
 impl LocalHeightTrackerBuilder {
     pub(crate) fn new() -> LocalHeightTrackerBuilder {
-        LocalHeightTrackerBuilder(LocalValueBuilder::new())
+        LocalHeightTrackerBuilder(LocalValueBuilder::new("heighttracker"))
     }
 
     pub(crate) fn set(&mut self, name: &AllotmentName, value: StaticValue<f64>) {

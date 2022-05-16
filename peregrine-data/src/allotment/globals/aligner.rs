@@ -5,7 +5,7 @@ pub struct LocalAlignerBuilder(LocalValueBuilder<String,f64,f64>);
 
 impl LocalAlignerBuilder {
     pub(crate) fn new() -> LocalAlignerBuilder {
-        LocalAlignerBuilder(LocalValueBuilder::new())
+        LocalAlignerBuilder(LocalValueBuilder::new("aligner"))
     }
 
     pub(crate) fn set(&mut self, name: &String, value: StaticValue<f64>) {

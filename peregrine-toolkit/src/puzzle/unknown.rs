@@ -50,12 +50,12 @@ pub fn short_unknown_function<'f,'a,T: 'a>() -> (UnknownSetter<'a,Value<'f,'a,T>
 
 pub fn short_unknown_promise_clonable<'f,'a,T: Clone+'a>() -> (UnknownSetter<'a,T>,Value<'f,'a,T>) {
     let (setter,solver) = unknown(ShortStore::new());
-    (setter,solver.unwrap().dearc())
+    (setter,solver.expect("supc").dearc())
 }
 
 pub fn short_unknown_function_promise<'f,'a,T: 'a>() -> (UnknownSetter<'a,Value<'f,'a,T>>,Value<'f,'a,T>) {
     let (setter,solver) = unknown_function(ShortStore::new());
-    (setter,solver.unwrap())
+    (setter,solver.expect("sufp"))
 }
 
 #[cfg(test)]

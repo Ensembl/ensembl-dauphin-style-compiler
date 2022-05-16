@@ -21,7 +21,7 @@
 
 use std::sync::Arc;
 
-use super::{answer::Answer, derived};
+use super::{answer::Answer, derived, derived_debug};
 
 pub struct Value<'f,'a: 'f,T: 'a> {
     f: Arc<dyn (Fn(&Option<&Answer<'a>>) -> Option<T>) + 'f>
@@ -51,8 +51,9 @@ impl<'f:'a,'a,T:'a+Clone> Value<'f,'a,Arc<T>> {
 }
 
 impl<'f:'a,'a,T:'a> Value<'f,'a,Option<T>> {
-    pub fn unwrap(self)  -> Value<'f,'a,T> {
-        derived(self,|x| x.unwrap())
+    pub fn expect(self, msg: &str)  -> Value<'f,'a,T> {
+        let msg = msg.to_string();
+        derived(self,move |x| x.expect(&msg))
     }
 }
 

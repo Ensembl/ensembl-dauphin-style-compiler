@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use super::{answer::Answer, value::Value, DelayedSetter, delayed, derived };
+use super::{answer::Answer, value::Value, DelayedSetter, derived, promise_delayed };
 
 struct ClonableBuildCommuter<'f:'a,'a,T> {
     initial: T,
@@ -146,8 +146,7 @@ pub struct DelayedCommuteBuilder<'a,T: 'a> {
 
 impl<'a,T: 'a> DelayedCommuteBuilder<'a,T> {
     pub fn new<F>(f: F) -> DelayedCommuteBuilder<'a,T> where F: Fn(&T,&T) -> T + 'a {
-        let (setter,solver) = delayed();
-        let solver = solver.unwrap();
+        let (setter,solver) = promise_delayed();
         DelayedCommuteBuilder { setter, solver, f: Arc::new(f), values: vec![] }
     }
 

@@ -32,7 +32,7 @@ pub fn delayed<'f:'a, 'a:'f, T:'a>() -> (DelayedSetter<'f,'a,T>,Value<'f,'a,Opti
 
 pub fn promise_delayed<'f:'a,'a,T>() -> (DelayedSetter<'f,'a,T>,Value<'f,'a,T>) {
     let (setter,solver) = delayed();
-    (setter,solver.unwrap())
+    (setter,solver.expect("delayed promise failed"))
 }
 
 impl<'f,'a,T> DelayedSetter<'f,'a,T> {

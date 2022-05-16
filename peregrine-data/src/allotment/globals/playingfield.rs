@@ -12,7 +12,7 @@ pub struct LocalPlayingFieldBuilder(LocalValueBuilder<PlayingFieldEdge,f64,f64>)
 
 impl LocalPlayingFieldBuilder {
     pub(crate) fn new() -> LocalPlayingFieldBuilder {
-        LocalPlayingFieldBuilder(LocalValueBuilder::new())
+        LocalPlayingFieldBuilder(LocalValueBuilder::new("playingfield"))
     }
 
     pub(crate) fn set(&mut self, coord_system: &CoordinateSystem, value: StaticValue<f64>) {
