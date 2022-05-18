@@ -9,11 +9,16 @@ import "file:common8.egs"; use "common8";
  *
  * property:
  * start/end -- a start/end coordinate
+ * id_X -- which id (type X)
  * text -- some text
+ * sd -- strand
+ * gbt -- gene biotype
+ * tbt -- transcript biotype
  * al -- an allotment
  * pt -- a patina
  * num -- how many
- * idx_X_in_Y -- the nth X in Y (ie enumeration, zero based)
+ * which_X -- which X does this belong to, ie what index in data?
+ * idx_X_(in_Y) -- the nth X (in Y) (ie enumeration, zero based)
  *
  * item:
  * gn -- gene
@@ -66,31 +71,31 @@ strand_string#[strand>0] := "forward strand";
 
 /* transcript stuff */
 num_tr_by_gn := delta_seq(data,"transcript_counts");
-transcript_gene_indexes := derun(num_tr_by_gn);
-start_gn_by_tr := index(transcript_gene_indexes,[start_gn]);
-end_gn_by_tr := index(transcript_gene_indexes,[end_gn]);
-transcript_gene_id := index(transcript_gene_indexes,[gene_id]);
+which_gn_by_tr := derun(num_tr_by_gn);
+start_gn_by_tr := index(which_gn_by_tr,[start_gn]);
+end_gn_by_tr := index(which_gn_by_tr,[end_gn]);
+transcript_gene_id := index(which_gn_by_tr,[gene_id]);
 
 /* exon stuff */
-thick_start := delta_seq(data,"thicks_starts");
-thick_end := thick_start + delta_seq(data,"thicks_lengths");
+start_thex := delta_seq(data,"thicks_starts");
+end_thex := start_thex + delta_seq(data,"thicks_lengths");
 
-exon_transcript_indexes := derun(delta_seq(data,"transcript_exon_counts"));
-exon_gene_indexes := index(exon_transcript_indexes,[transcript_gene_indexes]);
+which_tr_by_ex := derun(delta_seq(data,"transcript_exon_counts"));
+which_gn_by_ex := index(which_tr_by_ex,[which_gn_by_tr]);
 idx_tr_in_gn := run(delta_seq(data,"transcript_counts"));
-idx_tr_in_gn_by_ex :=  index(exon_transcript_indexes,[idx_tr_in_gn]);
+idx_tr_in_gn_by_ex :=  index(which_tr_by_ex,[idx_tr_in_gn]);
 
 start_ex := delta_seq(data,"transcript_exon_starts");
 end_ex := start_ex + delta_seq(data,"transcript_exon_lengths");
-exon_gene_ids := index(exon_gene_indexes,[gene_id]);
-exon_focus_id := index(exon_gene_indexes,[focus_id]);
-exon_gene_biotype := index(exon_gene_indexes,[gene_biotype]);
-exon_strand := index(exon_gene_indexes,[strand]);
+id_gn_by_ex := index(which_gn_by_ex,[gene_id]);
+exon_focus_id := index(which_gn_by_ex,[focus_id]);
+exon_gene_biotype := index(which_gn_by_ex,[gene_biotype]);
+exon_strand := index(which_gn_by_ex,[strand]);
 
 /* apply solidity in thick region ... */
 /* ... find thick limits for each exon */
-exon_thick_limit_start := index(exon_transcript_indexes,[thick_start]);
-exon_thick_limit_end := index(exon_transcript_indexes,[thick_end]);
+exon_thick_limit_start := index(which_tr_by_ex,[start_thex]);
+exon_thick_limit_end := index(which_tr_by_ex,[end_thex]);
 trunc_left := exon_thick_limit_start>start_ex;
 trunc_right := exon_thick_limit_end<end_ex;
 
@@ -209,7 +214,7 @@ allotment_idx#[focus_id==focus_gene] := 4;
 allotment_colour_idx := [allotment_idx][true];
 allotment_colour_idx#[in(gene_id,[expanded_genes])] := 5;
 
-transcript_allotment_colour_idx := index(transcript_gene_indexes,[allotment_colour_idx]);
+transcript_allotment_colour_idx := index(which_gn_by_tr,[allotment_colour_idx]);
 
 /*
  * Exon allotments
@@ -224,18 +229,18 @@ exon_allotment_colour_idx := len([start_ex]) (*) 0;
 exon_allotment_colour_idx#[exon_strand > 0] (+=) 2;
 exon_allotment_colour_idx#[in(exon_gene_biotype,["protein_coding"])] (+=) 1;
 exon_allotment_colour_idx#[exon_focus_id==focus_gene] := 4;
-exon_allotment_colour_idx#[in(exon_gene_ids,[expanded_genes])] := 5;
+exon_allotment_colour_idx#[in(id_gn_by_ex,[expanded_genes])] := 5;
 
 thick_exon_allotment_idx := exon_allotment_idx#[thick_exons];
-thick_exon_gene_ids := exon_gene_ids#[thick_exons];
+thick_id_gn_by_ex := id_gn_by_ex#[thick_exons];
 
 use_allotment_names(root_allotment_names,enabled_tracks,potential_tracks);
 base_allotment_names := [append_group(index(allotment_idx,root_allotment_names),gene_id)];
-base_exon_allotment_names := [append_group(index(exon_allotment_idx,root_allotment_names),exon_gene_ids)];
-base_thick_exon_allotment_names := [append_group(index(thick_exon_allotment_idx,root_allotment_names),thick_exon_gene_ids)];
+base_exon_allotment_names := [append_group(index(exon_allotment_idx,root_allotment_names),id_gn_by_ex)];
+base_thick_exon_allotment_names := [append_group(index(thick_exon_allotment_idx,root_allotment_names),thick_id_gn_by_ex)];
 
 allotment_names := [append_group(base_allotment_names[],["diagram"][])];
-transcript_allotment_names := [index(transcript_gene_indexes,allotment_names)];
+transcript_allotment_names := [index(which_gn_by_tr,allotment_names)];
 exon_allotment_names := [append_group(base_exon_allotment_names[],["diagram"][])];
 thick_exon_allotment_names := [append_group(base_thick_exon_allotment_names[],["diagram"][])];
 
@@ -278,7 +283,7 @@ al_text_by_gn#[get_switch(["scale","no-labels"])] := use_allotment("");
 gene_labels := if(get_switch(["track","gene-pc-fwd","label","id"]),gene_id,gene_name);
 
 track_name := index(allotment_idx,potential_tracks);
-transcript_allotment_idx := index(transcript_gene_indexes,[allotment_idx]);
+transcript_allotment_idx := index(which_gn_by_tr,[allotment_idx]);
 transcript_track_name := index(transcript_allotment_idx,potential_tracks);
 
 /*
@@ -322,7 +327,7 @@ textpen := pen("'Lato', sans-serif",text_size,text_colour,[][]);
 pt_zmenu_type := patina_zmenu(zmenu(""),["type"],[["gene-and-one-transcript"]][]);
 
 /* transcript part */
-transcript_strand_string := index(transcript_gene_indexes,[strand_string]);
+transcript_strand_string := index(which_gn_by_tr,[strand_string]);
 zmenu_tmpl := zmenu("[<light>Transcript</light> <strong>{transcript_id}</strong>] [<light>{transcript_biotype}</light>] [<light>{strand}</light>] / [<light>{transcript_id}</light>] [<light>{designation}</light>]");
 pt_zmenu_tr := patina_zmenu(zmenu_tmpl,["gene_id","transcript_id","transcript_biotype","strand","designation","track","type"],
                                       [[transcript_gene_id],[transcript_id],[transcript_biotype],[transcript_strand_string],[transcript_designation],[transcript_track_name],[len([transcript_gene_id]) (*) "transcript"]][]);
