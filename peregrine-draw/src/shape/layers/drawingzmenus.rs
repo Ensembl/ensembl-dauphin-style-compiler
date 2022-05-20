@@ -200,7 +200,7 @@ impl ScaledHotspots {
         for v_zone in (top_px/VERT_ZONE_HEIGHT)..((bottom_px/VERT_ZONE_HEIGHT)+1) {
             let left_zone = (left_scr*(HORIZ_ZONES as f64)).floor() as u64;
             let right_zone = (right_scr*(HORIZ_ZONES as f64)).floor() as u64;
-            for h_zone in left_zone..(right_zone+1) {
+            for h_zone in left_zone..(right_zone+1).min(HORIZ_ZONES) {
                 out.push(v_zone*HORIZ_ZONES+h_zone);
             }
         }

@@ -361,6 +361,7 @@ impl EachOrEveryFilter {
     pub fn count(&self) -> usize { self.count }
 
     pub fn filter_clone<Z: Clone>(&self, input: &[Z]) -> Vec<Z> {
+        if input.len() == 0 { return vec![]; }
         match &self.data {
             EachOrEveryFilterData::All => input.to_vec(),
             EachOrEveryFilterData::None => vec![],

@@ -11,6 +11,12 @@
         "conditions": { "eq": ["CFG_RUST_MODE","dev"] }
     },
     {
+        "key": "CFG_NO_FLANK",
+        "question": "Disable flank",
+        "options": ["no","yes"],
+        "conditions": { "eq": ["CFG_RUST_MODE","dev"] }
+    },
+    {
         "key": "CFG_DEBUG_TRAINS",
         "question": "Debug trains",
         "options": ["no","yes"],

@@ -21,6 +21,9 @@ fi
 if [ "x$CFG_DISABLE_ANTICIPATE" = "xyes" ] ; then
   FLAGS="$FLAGS --cfg disable_anticipate"
 fi
+if [ "x$CFG_NO_FLANK" = "xyes" ] ; then
+  FLAGS="$FLAGS --cfg no_flank"
+fi
 
 case "$CFG_CONSOLE" in
   noisy)

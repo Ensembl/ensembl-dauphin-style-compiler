@@ -18,8 +18,15 @@ use crate::switch::trackconfiglist::TrainTrackConfigList;
 #[cfg(debug_trains)]
 use peregrine_toolkit::debug_log;
 
-const CARRIAGE_FLANK : u64 = 1;
-const MILESTONE_CARRIAGE_FLANK : u64 = 1;
+#[cfg(no_flank)]
+const FLANK : u64 = 0;
+
+#[cfg(not(no_flank))]
+const FLANK : u64 = 1;
+
+const CARRIAGE_FLANK : u64 = FLANK;
+const MILESTONE_CARRIAGE_FLANK : u64 = FLANK;
+
 
 pub(super) struct CarriageSetConstant {
     ping_needed: Needed,

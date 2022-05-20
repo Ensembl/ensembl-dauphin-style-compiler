@@ -22,6 +22,17 @@ def sequence_blocks(out: Dict[str,bytes], data_accessor: DataAccessor, chrom: Ch
     out['seq_starts'] = compress(lesqlite2(zigzag(delta(starts))))
     classified_numbers(out,letters,"seq")
 
+def sequence_blocks8(out: Dict[str,bytes], data_accessor: DataAccessor, chrom: Chromosome, panel: Panel, dummy: bool):
+    line = ""
+    if not dummy:
+        line = list(" " * (panel.end-panel.start+2))
+        sequence = retrieve_range(data_accessor,chrom,panel)
+        logging.error("line len = {0} seq len {1}".format(len(line),len(sequence)))
+        for (offset,letter) in enumerate(sequence):
+            line[offset] = letter if letter in "CGAT" else " "
+    out['sequence'] = compress("".join(line))
+    out['sequence_start'] = compress(lesqlite2([panel.start]))
+
 class ZoomedSeqDataHandler(DataHandler):
     def process_data(self, data_accessor: DataAccessor, panel: Panel, scope) -> Response:
         chrom = data_accessor.data_model.stick(data_accessor,panel.stick)
@@ -29,4 +40,5 @@ class ZoomedSeqDataHandler(DataHandler):
             return Response(1,"Unknown chromosome {0}".format(panel.stick))
         out = {}
         sequence_blocks(out,data_accessor,chrom,panel,False)
+        sequence_blocks8(out,data_accessor,chrom,panel,False)
         return Response(5,{ 'data': out })
