@@ -123,7 +123,7 @@ main/main/<id>/text/ <- label
 
 gene_track_styles();
 
-style("**/main/main/",["type"][],["stacker"][]);
+style("**/main/main/",["type"][],["bumper"][]);
 style("**/main/main/*/",["type"][],["overlay"][]);
 style("**/main/main/*/diagram/",["type"][],["overlay"][]);
 style("**/main/main/*/diagram/under",["depth"][],["-3"][]);
