@@ -263,6 +263,13 @@ endos_thex := end_thex;
 startos_thex#[start_thex<bp[@==0]] := bp[@==0];
 endos_thex#[end_thex>bp[@==1]] := bp[@==1];
 
+/* WHOLE TRANSCRIPT */
+/* We put an empty under the whole transcript to keep bumping consistent */
+c := idx_tr_in_gn * 20;
+w := spacebase(start_tr,c,0);
+e := spacebase(end_tr,c+20,0);
+empty(w,e,al_far_under_by_tr);
+
 /* EXONS */
 
 range(pos_seq,which_thex_by_seq, startos_thex,endos_thex);

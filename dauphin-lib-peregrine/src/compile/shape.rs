@@ -10,3 +10,4 @@ simple_command!(WiggleCommand,WiggleCommandType,"peregrine","wiggle",6,(0,1,2,3,
 simple_command!(RectangleCommand,RectangleCommandType,"peregrine","rectangle",4,(0,1,2,3));
 simple_command!(Text2Command,Text2CommandType,"peregrine","text2",4,(0,1,2,3));
 simple_command!(ImageCommand,ImageCommandType,"peregrine","draw_image",3,(0,1,2));
+simple_command!(EmptyCommand,EmptyCommandType,"peregrine","empty",3,(0,1,2));

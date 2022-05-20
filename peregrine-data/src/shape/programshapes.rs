@@ -1,6 +1,6 @@
 use std::{collections::HashMap};
 
-use super::{core::{ Patina, Pen, Plotter }, imageshape::ImageShape, rectangleshape::RectangleShape, textshape::TextShape, wiggleshape::WiggleShape};
+use super::{core::{ Patina, Pen, Plotter }, imageshape::ImageShape, rectangleshape::RectangleShape, textshape::TextShape, wiggleshape::WiggleShape, emptyshape::EmptyShape};
 use crate::{Shape, LeafRequest, CarriageShapesBuilder, allotment::core::leaflist::LeafList};
 use crate::{Assets, DataMessage, SpaceBaseArea, reactive::Observable, SpaceBase, allotment::{stylespec::{stylegroup::AllotmentStyleGroup, styletreebuilder::StyleTreeBuilder, styletree::StyleTree}}, EachOrEvery };
 
@@ -38,6 +38,11 @@ impl ProgramShapesBuilder {
     fn push_shape(&mut self, shape: Shape<LeafRequest>) {
         shape.register_space(&self.assets);
         self.shapes.push(shape);
+    }
+
+    pub fn add_empty(&mut self, area: SpaceBaseArea<f64,LeafRequest>) -> Result<(),DataMessage> {
+        self.push_shape(EmptyShape::new(area)?);
+        Ok(())
     }
 
     pub fn add_rectangle(&mut self, area: SpaceBaseArea<f64,LeafRequest>, patina: Patina, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>) -> Result<(),DataMessage> {

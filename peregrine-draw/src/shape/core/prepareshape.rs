@@ -109,6 +109,7 @@ pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingTool
     let demerge = shape.demerge(&GLCategoriser());
     for (draw_group,shape) in demerge {
         match shape {
+            Shape::Empty(_) => {},
             Shape::Wiggle(shape) => {
                 out.push(GLShape::Wiggle(shape.range(),shape.values(),shape.plotter().clone(),shape.get_style().depth));
             },

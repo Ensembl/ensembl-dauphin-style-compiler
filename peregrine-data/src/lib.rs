@@ -176,6 +176,7 @@ mod run {
 mod shape {
     mod carriageshapes;
     mod core;
+    pub mod emptyshape;
     mod imageshape;
     pub mod rectangleshape;
     mod textshape;

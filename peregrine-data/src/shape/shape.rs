@@ -1,6 +1,7 @@
 use std::hash::Hash;
 use std::sync::Arc;
 
+use super::emptyshape::EmptyShape;
 use super::imageshape::ImageShape;
 use super::rectangleshape::RectangleShape;
 use super::textshape::TextShape;
@@ -11,6 +12,7 @@ use crate::CoordinateSystem;
 use crate::DataMessage;
 use crate::DrawnType;
 use crate::LeafRequest;
+use crate::SpaceBaseArea;
 use crate::allotment::style::style::LeafStyle;
 use crate::allotment::transformers::transformers::Transformer;
 use crate::allotment::util::rangeused::RangeUsed;
@@ -31,7 +33,8 @@ pub enum Shape<A> {
     Text(TextShape<A>),
     Image(ImageShape<A>),
     Wiggle(WiggleShape<A>),
-    SpaceBaseRect(RectangleShape<A>)
+    SpaceBaseRect(RectangleShape<A>),
+    Empty(EmptyShape<A>)
 }
 
 impl<A> Clone for Shape<A> where A: Clone {
@@ -41,6 +44,7 @@ impl<A> Clone for Shape<A> where A: Clone {
             Self::Image(arg0) => Self::Image(arg0.clone()),
             Self::Wiggle(arg0) => Self::Wiggle(arg0.clone()),
             Self::SpaceBaseRect(arg0) => Self::SpaceBaseRect(arg0.clone()),
+            Self::Empty(arg0) => Self::Empty(arg0.clone())
         }
     }
 }
@@ -52,6 +56,7 @@ impl<A> Shape<A> {
             Self::Image(arg0) => Shape::<B>::Image(arg0.map_new_allotment(cb)),
             Self::Wiggle(arg0) => Shape::<B>::Wiggle(arg0.map_new_allotment(cb)),
             Self::SpaceBaseRect(arg0) => Shape::<B>::SpaceBaseRect(arg0.map_new_allotment(cb)),
+            Self::Empty(arg0) => Shape::<B>::Empty(arg0.map_new_allotment(cb)),
         }
     }
 
@@ -60,7 +65,8 @@ impl<A> Shape<A> {
             Shape::SpaceBaseRect(shape) => shape.len(),
             Shape::Text(shape) => shape.len(),
             Shape::Image(shape) => shape.len(),
-            Shape::Wiggle(shape) => shape.len()
+            Shape::Wiggle(shape) => shape.len(),
+            Shape::Empty(shape) => shape.len()
         }
     }
 }
@@ -71,7 +77,8 @@ impl<A: Clone> Shape<A> {
             Shape::SpaceBaseRect(shape) => Shape::SpaceBaseRect(shape.filter(filter)),
             Shape::Text(shape) => Shape::Text(shape.filter(filter)),
             Shape::Image(shape) => Shape::Image(shape.filter(filter)),
-            Shape::Wiggle(shape) => Shape::Wiggle(shape.filter(filter))
+            Shape::Wiggle(shape) => Shape::Wiggle(shape.filter(filter)),
+            Shape::Empty(shape) => Shape::Empty(shape.filter(filter))
         }
     }
 }
@@ -83,6 +90,7 @@ impl Shape<LeafRequest> {
             Shape::Text(shape) => Shape::Text(shape.base_filter(min,max)),
             Shape::Image(shape) => Shape::Image(shape.base_filter(min,max)),
             Shape::Wiggle(shape) => Shape::Wiggle(shape.base_filter(min,max)),
+            Shape::Empty(shape) => Shape::Empty(shape.base_filter(min, max))
         }
     }
 }
@@ -109,7 +117,12 @@ impl Shape<LeafStyle> {
                 return shape.demerge(cat).drain(..).map(|(x,details)|
                     (x,Shape::SpaceBaseRect(details))
                 ).collect()
-            }
+            },
+            Shape::Empty(shape) => {
+                return shape.demerge(cat).drain(..).map(|(x,details)|
+                    (x,Shape::Empty(details))
+                ).collect()
+            },
         }
     }
 }
@@ -121,7 +134,19 @@ impl Shape<Arc<dyn Transformer>> {
             Shape::Text(shape) => shape.make().drain(..).map(|x| Shape::Text(x)).collect(),
             Shape::Image(shape) => shape.make().drain(..).map(|x| Shape::Image(x)).collect(),
             Shape::Wiggle(shape) => shape.make().drain(..).map(|x| Shape::Wiggle(x)).collect(),
+            Shape::Empty(shape) => shape.make().drain(..).map(|x| Shape::Empty(x)).collect(),
         }
+    }
+}
+
+fn register_space_area(area: &SpaceBaseArea<f64,LeafRequest>) {
+    for (top_left,bottom_right) in area.iter() {
+        top_left.allotment.update_drawing_info(|allotment| {
+            allotment.merge_base_range(&RangeUsed::Part(*top_left.base,*bottom_right.base));
+            allotment.merge_pixel_range(&RangeUsed::Part(*top_left.tangent,*bottom_right.tangent));
+            allotment.merge_max_y(top_left.normal.ceil());
+            allotment.merge_max_y(bottom_right.normal.ceil());
+        });
     }
 }
 
@@ -129,14 +154,10 @@ impl Shape<LeafRequest> {
     pub fn register_space(&self, assets: &Assets) -> Result<(),DataMessage> {
         match &self {
             Shape::SpaceBaseRect(shape) => {
-                for (top_left,bottom_right) in shape.area().iter() {
-                    top_left.allotment.update_drawing_info(|allotment| {
-                        allotment.merge_base_range(&RangeUsed::Part(*top_left.base,*bottom_right.base));
-                        allotment.merge_pixel_range(&RangeUsed::Part(*top_left.tangent,*bottom_right.tangent));
-                        allotment.merge_max_y(top_left.normal.ceil());
-                        allotment.merge_max_y(bottom_right.normal.ceil());
-                    });
-                }
+                register_space_area(shape.area());
+            },
+            Shape::Empty(area) => {
+                register_space_area(area.area());
             },
             Shape::Text(shape) => {
                 let size = shape.pen().size_in_webgl();

@@ -53,7 +53,6 @@ impl<A> Clone for RectangleShape<A> where A: Clone {
     fn clone(&self) -> Self {
         Self { area: self.area.clone(), patina: self.patina.clone(), wobble: self.wobble.clone() }
     }
-
 }
 
 impl<A: Clone> RectangleShape<A> {

@@ -25,11 +25,11 @@ use super::geometry:: {
     PlotterCommandType, UseAllotmentCommandType, SpaceBaseCommandType, SimpleColourCommandType, StripedCommandType,
     BarCommandType, BpRangeCommandType, SpotColourCommandType, PpcCommandType, StyleCommandType, PatinaSwitchCommandType
 };
-use super::shape::{ WiggleCommandType, RectangleCommandType, Text2CommandType, ImageCommandType };
+use super::shape::{ WiggleCommandType, RectangleCommandType, Text2CommandType, ImageCommandType, EmptyCommandType };
 use super::switch::{ GetSwitchCommandType, ListSwitchCommandType };
 
 pub fn peregrine_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(49,0),0x383CFE6598D40F34)
+    CommandSetId::new("peregrine",(50,0),0xB9D05316D3F3EC03)
 }
 
 pub fn make_peregrine() -> CompLibRegister {
@@ -87,6 +87,7 @@ pub fn make_peregrine() -> CompLibRegister {
     set.push("style",Some(50),StyleCommandType());
     set.push("patina_switch",Some(51),PatinaSwitchCommandType());
     set.push("request_scope",Some(52),RequestScopeCommandType());
+    set.push("empty",Some(53),EmptyCommandType());
     set.add_header("peregrine",include_str!("header.egs"));
     set
 }
