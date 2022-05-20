@@ -6,10 +6,17 @@ req := make_request("self()","zoomed-seq",get_region());
 data := get_data(req);
 halt(only_warm(),[data]);
 
-seq_start := delta_seq(data,"seq_starts");
-seq_end := seq_start + 1;
-seq_letter := classified_seq(data,"seq_keys","seq_values");
-seq_rev_letter := base_flip(seq_letter);
+sequence := [letter_string(data,"sequence")];
+sequence_rev := [base_flip(sequence[])];
+sequence_start := [positive_seq(data,"sequence_start")][@==0];
+
+bp := [bp_range()];
+range(pos_seq,seq_idx,bp[@==0],bp[@==1]);
+
+seq_letter_pos := pos_seq - sequence_start;
+seq_letter := index(seq_letter_pos,sequence);
+seq_rev_letter := index(seq_letter_pos,sequence_rev);
+
 three_bonds := len([seq_letter]) (*) false;
 three_bonds#[seq_letter=="C"] := true;
 three_bonds#[seq_letter=="G"] := true;
@@ -30,11 +37,11 @@ style("tracks/track/contig/",["priority","report"][],["0","track;switch-id=conti
 
 height := 12;
 
-stmt seq_rectangle(start,end,source,offset) {
+stmt seq_rectangle(start,source,offset) {
     top_left := spacebase(start,offset,1);
-    bottom_right := spacebase(end,offset+height,-1);
+    bottom_right := spacebase(start+1,offset+height,-1);
     rectangle(top_left,bottom_right,patina,allotment);
-    coords := spacebase(seq_start + 0.5,offset+1.5,-3.5);
+    coords := spacebase(start + 0.5,offset+1.5,-3.5);
     text2(coords,textpen,source,allotment);
 }
 
@@ -47,13 +54,12 @@ stmt bond(start,offset) {
 /* track names */
 draw_track_names(["Sequence"],[["track","contig","name"]],[allotment_track_name]);
 
+seq_rectangle(pos_seq,seq_letter,0);
+seq_rectangle(pos_seq,seq_rev_letter,16);
 
-seq_rectangle(seq_start,seq_end,seq_letter,0);
-seq_rectangle(seq_start,seq_end,seq_rev_letter,16);
-
-bond(seq_start,0.3);
-bond(seq_start,0.7);
-bond(seq_start#[three_bonds],0.5);
+bond(pos_seq,0.3);
+bond(pos_seq,0.7);
+bond(pos_seq#[three_bonds],0.5);
 
 /* track category */
 draw_track_category("G",[allotment_letter]);
