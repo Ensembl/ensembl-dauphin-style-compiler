@@ -25,7 +25,7 @@ seq_colour := spot_colour(direct_colour(39,154,252,255));
 patina := patina_hollow(seq_colour,1);
 
 text_colour := direct_colour(39,154,252,255);
-text_size := 12;
+text_size := 10;
 textpen := pen("'Lato', sans-serif",text_size,text_colour,[][]);
 allotment := use_allotment("track:contig");
 
@@ -33,15 +33,15 @@ allotment := use_allotment("tracks/track/contig/main/main/content");
 allotment_track_name := use_allotment("tracks/track/contig/title/content");
 allotment_letter := use_allotment("tracks/track/contig/title/letter/content");
 
-style("tracks/track/contig/",["priority","report"][],["0","track;switch-id=contig"][]);
+style("tracks/track/contig/",["min-height","priority","report"][],["40","0","track;switch-id=contig"][]);
 
-height := 12;
+height := 10;
 
 stmt seq_rectangle(start,source,offset) {
     top_left := spacebase(start,offset,1);
     bottom_right := spacebase(start+1,offset+height,-1);
     rectangle(top_left,bottom_right,patina,allotment);
-    coords := spacebase(start + 0.5,offset+1.5,-3.5);
+    coords := spacebase(start + 0.5,offset+1,-3.5);
     text2(coords,textpen,source,allotment);
 }
 
@@ -55,7 +55,7 @@ stmt bond(start,offset) {
 draw_track_names(["Sequence"],[["track","contig","name"]],[allotment_track_name]);
 
 seq_rectangle(pos_seq,seq_letter,0);
-seq_rectangle(pos_seq,seq_rev_letter,16);
+seq_rectangle(pos_seq,seq_rev_letter,14);
 
 bond(pos_seq,0.3);
 bond(pos_seq,0.7);
