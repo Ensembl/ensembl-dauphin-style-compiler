@@ -7,7 +7,7 @@ stages:
 
 .base-peregrine-rules:
   rules:
-    - if: '$CI_DEPLOY_FREEZE == null && $CI_COMMIT_BRANCH =~ /(master|staging)/'
+    - if: '$CI_DEPLOY_FREEZE == null && $CI_COMMIT_BRANCH == "master"'
       changes:
         - peregrine-ensembl/**/*
       when: always
@@ -95,11 +95,10 @@ Build-npm:staging:
   variables:
     # Pass branch name to downstream pipeline as a variable
     DSC_UPSTREAM_BRANCH: $CI_COMMIT_REF_NAME
-    DSC_COMMIT_HASH: $CI_COMMIT_SHORT_SHA
 
   needs: ["WASM-Files"]
   # Trigger pipeline in ensembl-genome-browser project for respective branch name
   trigger:
     project: ensembl-web/ensembl-genome-browser
     branch: main
-
+  #  branch: $CI_COMMIT_REF_NAME
