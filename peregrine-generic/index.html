@@ -34,9 +34,7 @@
               <th>track id</th>
               <th>offset</th>
               <th>size</th>
-              <th>on/off</th>
-              <th>on/off</th>
-              <th>on/off</th>
+              <th colspan="4">on/off</th>
             </tr>
           </thead>
           <tbody id="track-metadata">
@@ -100,6 +98,17 @@
             genome_browser.clear_switch(["track",track_name,"name"]);
           }
         }
+        function toggle_several(track_name) {
+          let cur = labels[track_name];
+          if(cur!==true && cur!==false) { cur = false; }
+          let value = !cur;
+          labels[track_name] = value;
+          if(value) {
+            genome_browser.set_switch(["track",track_name,"several"]);
+          } else {
+            genome_browser.clear_switch(["track",track_name,"several"]);
+          }
+        }
         let all_tracks = {};
         let current_span = document.getElementById("current");
         let target_span = document.getElementById("target");
@@ -115,13 +124,11 @@
           } else if(kind=="endstops") {
               console.log("endstops: " + more[0])
           } else if(kind=="track_summary") {
-            console.log(more[0]);
             let tbody = document.getElementById("track-metadata");
             for(const track of more[0].summary) {
                 if(track.type != "track") { continue; } /* don't care */
                 all_tracks[track["switch-id"]] = track;
             }
-            console.log(all_tracks);
             tbody.innerHTML = "";
             for(const track_name in all_tracks) {
                 let track = all_tracks[track_name];
@@ -134,19 +141,23 @@
                   tr.appendChild(td);
                 }
                 let td1 = document.createElement("td");
-                td1.innerHTML = "<a href='#''>track</a>";
+                td1.innerHTML = "<a href='#''>trck</a>";
                 td1.onclick = function() { toggle_track(track['switch-id']) };
                 let td2 = document.createElement("td");
+                let td4 = document.createElement("td");
                 if(track["has-labels"]) {
-                  td2.innerHTML = "<a href='#''>labels</a>";
+                  td2.innerHTML = "<a href='#''>lbl</a>";
                   td2.onclick = function() { toggle_label(track['switch-id']) };
+                  td4.innerHTML = "<a href='#''>1/5</a>";
+                  td4.onclick = function() { toggle_several(track['switch-id']) };
                 }
                 let td3 = document.createElement("td");
-                td3.innerHTML = "<a href='#''>name</a>";
+                td3.innerHTML = "<a href='#''>nm</a>";
                 td3.onclick = function() { toggle_name(track['switch-id']) };
                 tr.appendChild(td1);
                 tr.appendChild(td2);
                 tr.appendChild(td3);
+                tr.appendChild(td4);
                 tbody.appendChild(tr);
               }
           } else if(kind=="zmenu") {

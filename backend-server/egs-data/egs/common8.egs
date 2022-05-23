@@ -10,7 +10,7 @@ stmt use_allotments(our_allotments,enabled_tracks,potential_tracks) {
 }
 
 stmt use_allotment_names(our_allotments,enabled_tracks,potential_tracks) {
-    tracks_used := ["","","","",""];
+    tracks_used := ["","","","","",""];
     tracks_used[enabled_tracks] := potential_tracks[enabled_tracks];
     our_allotments := [tracks_used[]];
 }
