@@ -223,6 +223,8 @@ transcript_allotment_names := [index(which_gn_by_tr,allotment_names)];
 al_far_under_by_gn := use_allotment(append_group(allotment_names[],["far-under"][]));
 al_far_under_by_tr := use_allotment(append_group(transcript_allotment_names[],["far-under"][]));
 
+al_text_by_gn := use_allotment(append_group(base_allotment_names[],["text"][]));
+
 /*
  * What colour? What font? etc
  *
@@ -359,6 +361,20 @@ pt_zmenu_tr := patina_zmenu(zmenu_tmpl,["gene_id","transcript_id","transcript_bi
 
 zmenu_tmpl := zmenu("[<light>Gene</light> {symbol}] / [<strong><focus>{id}</focus></strong>]");
 pt_zmenu_gn := patina_zmenu(zmenu_tmpl,["symbol","id","track","type"],[[gene_name],[gene_id],[track_name],["gene"]][]);
+
+enabled_labels := get_switch([
+    ["track","gene-other-rev","label"],
+    ["track","gene-pc-rev","label"],
+    ["track","gene-other-fwd","label"],
+    ["track","gene-pc-fwd","label"],
+    ["track","focus","label"],
+][]);
+
+enabled_gene_labels := index(allotment_idx,[enabled_labels]);
+al_text_by_gn#[enabled_gene_labels==false] := use_allotment("");
+al_text_by_gn#[get_switch(["scale","no-labels"])] := use_allotment("");
+textpen := pen("'Lato', sans-serif",text_size,text_colour,[][]);
+text2(spacebase(start_gn,num_tr_by_gn*20-5,0),textpen,gene_name,al_text_by_gn);
 
 /* zmenu areas */
 /* type and gene zmenus */

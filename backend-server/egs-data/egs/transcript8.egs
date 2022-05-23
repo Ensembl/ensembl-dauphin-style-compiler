@@ -423,7 +423,8 @@ button_colour := len([start_gn]) (*) blue_colour;
 button_colour#[in(gene_id,[expanded_genes])] := green_colour;
 button_patina := patina_filled(button_colour);
 
-rectangle(blue_top_left,blue_bottom_right,button_patina,button_allotment);
+// DISABLED FOR 0.3.0
+//rectangle(blue_top_left,blue_bottom_right,button_patina,button_allotment);
 
 expand_base := len([gene_id]) (*) "buttons/gene/expand";
 expand_switches := append_group(expand_base,gene_id);
@@ -433,5 +434,5 @@ sense#[in(gene_id,[expanded_genes])] := false;
 
 blue_hotspot_patina := patina_switch(expand_switches,sense);
 
-rectangle(blue_top_left,blue_bottom_right,blue_hotspot_patina,button_allotment);
-
+// DISABLED FOR 0.3.0
+//rectangle(blue_top_left,blue_bottom_right,blue_hotspot_patina,button_allotment);
