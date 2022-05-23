@@ -81,14 +81,14 @@ class Memcached(object):
     def store_data(self, channel, name, version, panel, scope, data):
         if not self._is_available():
             return
-        key = self.hashed_key([channel,name,panel.dumps(),scope,version])
+        key = self.hashed_key([channel,name,panel.dumps(),scope],version)
         if len(data.payload) < 900_000:
             self._client.set(key,data.payload)
 
     def get_data(self, channel, name, version, panel, scope) -> Optional[Response]:
         if not self._is_available():
             return None
-        key = self.hashed_key([channel,name,panel.dumps(),scope,version])
+        key = self.hashed_key([channel,name,panel.dumps(),scope],version)
         value = self._client.get(key)
         if value == None:
             return None
