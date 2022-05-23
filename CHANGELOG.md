@@ -1,3 +1,32 @@
+# 0.3.0
+  * Gene bumping
+    * Add "functional" puzzle systm for inter-carriage dependencies
+    * Full box model for vertical positioning
+    * Style model
+    * Accompanying style-compiler program changes
+  * Multiple transcripts on screen
+    * "Several" transcripts mode via `["track",X,"several"]` flag
+    * Support for on-screen buttons (not used this release)
+    * Accopanying style-compiler program changes
+  * New "empty" shape which occupies space but has no content
+  * Support for scope flags in BE communication. 
+  * Memcached backend flushing
+    * alwaysflush in dev mode
+    * take egs version into account in production mode
+  * Tidy & Refactor
+    * Carriage-positioning code
+    * Each/Every repetition code
+    * spacebase coordinate sytem
+    * spectres for marching-ants zoom
+  * Bug fixes
+    * Fix stall bug in scheduler when under load
+    * Fix screen resize bug
+    * Fix various styling bugs in sequence view
+  * NEW BUGS / REVERSIONS (to be removed in 0.3.1):
+    * some alignment bugs when transitioning scales make it look dodgy
+    * some flicker during scaling
+    * slow sequence views
+
 # 0.2.1
   * Build system improvements
     * Document it
