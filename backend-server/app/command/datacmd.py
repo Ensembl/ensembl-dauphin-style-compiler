@@ -72,7 +72,7 @@ class DataHandler(Handler):
             (channel,name,panel,new_scope) = payload
             scope = new_scope
         panel = Panel(panel)
-        out = data_accessor.cache.get_data(channel,name,panel,scope)
+        out = data_accessor.cache.get_data(channel,name,version,panel,scope)
         if out != None:
             metrics.cache_hits += 1
             metrics.cache_hits_bytes += out.len()
@@ -87,7 +87,7 @@ class DataHandler(Handler):
         metrics.runtime_denom[(name,panel.scale)] += 1
         metrics.cache_misses += 1
         metrics.cache_misses_bytes += out.len()
-        data_accessor.cache.store_data(channel,name,panel,scope,out)
+        data_accessor.cache.store_data(channel,name,version,panel,scope,out)
         return out
 
     def remote_prefix(self, payload: Any) -> Optional[List[str]]:

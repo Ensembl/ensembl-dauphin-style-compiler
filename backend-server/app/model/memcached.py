@@ -72,23 +72,23 @@ class Memcached(object):
         self._client = PooledClient((host,port),max_pool_size=64)
         self._check()
 
-    def hashed_key(self,parts):
+    def hashed_key(self,parts,version):
         value = hashlib.sha256()
         self._get_bump()
-        value.update(cbor2.dumps([self._prefix,self._bump,parts]))
+        value.update(cbor2.dumps([self._prefix,self._bump,version.get_egs(),parts]))
         return value.hexdigest()
 
-    def store_data(self, channel, name, panel, scope, data):
+    def store_data(self, channel, name, version, panel, scope, data):
         if not self._is_available():
             return
-        key = self.hashed_key([channel,name,panel.dumps(),scope])
+        key = self.hashed_key([channel,name,panel.dumps(),scope,version])
         if len(data.payload) < 900_000:
             self._client.set(key,data.payload)
 
-    def get_data(self, channel, name, panel, scope) -> Optional[Response]:
+    def get_data(self, channel, name, version, panel, scope) -> Optional[Response]:
         if not self._is_available():
             return None
-        key = self.hashed_key([channel,name,panel.dumps(),scope])
+        key = self.hashed_key([channel,name,panel.dumps(),scope,version])
         value = self._client.get(key)
         if value == None:
             return None
