@@ -10,10 +10,9 @@ from model.transcriptfile import TranscriptFileLine
 from .util import classified_numbers, starts_and_ends, starts_and_lengths
 from .numbers import delta, zigzag, lesqlite2, compress, classify
 from .sequence import sequence_blocks
-
-#
-# THIS FILE CAN BE DELETEDWHEN VERSION 7 IS REMOVED
-#
+from .sequence8 import sequence_blocks8
+from model.datalocator import AccessItem
+from ncd import NCDRead
 
 BLOCKS_PER_PANEL = 1000
 
@@ -36,29 +35,35 @@ def transcript_grade(designation: str, transcript_biotype: str) -> str:
     else:
         return 0
 
-def add_exon_data(result: dict, genes: List[str], transcripts: Dict[str,TranscriptFileLine]):
+def add_exon_data(result: dict, genes: List[str], transcripts: Dict[str,List[TranscriptFileLine]]):
     sizes = []
-    thick = []
-    # below are needed to get it into the correct allotment
-    gene_biotypes = []
-    strands = []
+    transcript_ids = []
+    transcript_designations = []
     transcript_sizes = []
+    transcript_counts = []
+    transcript_biotypes = []
     exon_counts = []
-    for (gene_idx,gene_id) in enumerate(genes):
-        line = transcripts[gene_id]
-        transcript_sizes.append((line.transcript_start,line.transcript_end))
-        thick.append((line.thick_start,line.thick_end))
-        exon_counts.append(len(line.block_starts))
-        for (start,length) in zip(line.block_starts,line.block_sizes):
-            sizes.append((line.transcript_start+start,length))
-            gene_biotypes.append(line.gene_biotype)
-            strands.append(line.strand=='+')
-    starts_and_lengths(result,sizes,"exon")
-    starts_and_ends(result,transcript_sizes,"transcript")
-    starts_and_ends(result,thick,"thick")
-    classified_numbers(result,gene_biotypes,"exon_gene_biotypes")
-    result['exon_strands'] = compress(lesqlite2(strands))
-    result['exon_counts'] = compress(lesqlite2(zigzag(delta(exon_counts))))
+    thick = []
+    for gene_id in genes:
+        gene_transcripts = transcripts[gene_id]
+        transcript_counts.append(len(gene_transcripts))
+        for line in transcripts[gene_id]:
+            transcript_ids.append(line.transcript_id)
+            transcript_designations.append(line.transcript_designation)
+            transcript_sizes.append((line.transcript_start,line.transcript_end))
+            transcript_biotypes.append(line.transcript_biotype)
+            exon_counts.append(len(line.block_starts))
+            thick.append((line.thick_start,line.thick_end))
+            for (start,length) in zip(line.block_starts,line.block_sizes):
+                sizes.append((line.transcript_start+start,length))
+    starts_and_lengths(result,sizes,"transcript_exon")
+    starts_and_ends(result,transcript_sizes,"transcripts")
+    classified_numbers(result,transcript_biotypes,"transcript_biotypes")
+    starts_and_ends(result,thick,"thicks")
+    classified_numbers(result,transcript_designations,"transcript_designation")
+    result['transcript_ids'] =  compress("\0".join(transcript_ids))
+    result['transcript_counts'] = compress(lesqlite2(zigzag(delta(transcript_counts))))
+    result['transcript_exon_counts'] =  compress(lesqlite2(zigzag(delta(exon_counts))))
 
 def extract_gene_data(data_accessor: DataAccessor, chrom: Chromosome, panel: Panel, include_exons: bool, include_sequence: bool) -> Response:
     out = {}
@@ -73,6 +78,7 @@ def extract_gene_data(data_accessor: DataAccessor, chrom: Chromosome, panel: Pan
     gene_biotypes = {}
     strands = {}
     designated_transcript = collections.defaultdict(lambda: (-1,None))
+    all_transcripts = collections.defaultdict(lambda: [])
     transcript_biotypes = {}
     transcript_designations = {}
     for line in data:
@@ -93,6 +99,13 @@ def extract_gene_data(data_accessor: DataAccessor, chrom: Chromosome, panel: Pan
         dt_grade = transcript_grade(transcript_designations[line.transcript_id],transcript_biotypes[line.transcript_id])
         if dt_grade > dt_grade_stored:
             designated_transcript[line.gene_id] = (dt_grade,line)
+        all_transcripts[line.gene_id].append((dt_grade,line))
+    if include_exons:
+        top_five = {}
+        for (gene,transcript) in all_transcripts.items():
+            transcript = sorted(transcript, key = lambda x: -x[0])
+            top_five[gene] = [x[1] for x in transcript[:5]]  
+        add_exon_data(out,genes,top_five)
     designated_transcript = { k: v[1] for (k,v) in designated_transcript.items() }
     gene_sizes = list([ gene_sizes[gene] for gene in genes ])
     transcript_sizes = list([ transcript_sizes[gene] for gene in genes ])
@@ -114,17 +127,16 @@ def extract_gene_data(data_accessor: DataAccessor, chrom: Chromosome, panel: Pan
     classified_numbers(out,gene_biotypes,"gene_biotypes")
     classified_numbers(out,designated_transcript_biotypes,"designated_transcript_biotypes")
     classified_numbers(out,designated_transcript_designations,"designated_transcript_designations")
-    if include_exons:
-        add_exon_data(out,genes,designated_transcript)
     sequence_blocks(out,data_accessor,chrom,panel,not include_sequence)
+    sequence_blocks8(out,data_accessor,chrom,panel,not include_sequence)
     #for (k,v) in out.items():
     #    logging.warn("len({}) = {}".format(k,len(v)))
     return Response(5,{ 'data': out })
 
-def extract_gene_overview_data(data_accessor: DataAccessor, chrom: Chromosome, panel: Panel) -> Response:
+def extract_gene_overview_data(data_accessor: DataAccessor, chrom: Chromosome, start: int, end: int, with_ids: bool) -> Response:
     out = {}
     item = chrom.item_path("transcripts")
-    data = get_bigbed(data_accessor,item,panel.start,panel.end)
+    data = get_bigbed(data_accessor,item,start,end)
     seen_genes = set()
     genes = []
     gene_sizes = {}
@@ -148,10 +160,11 @@ def extract_gene_overview_data(data_accessor: DataAccessor, chrom: Chromosome, p
     out['strands'] = compress(lesqlite2([int(x=='+') for x in strands.values()]))
     out['gene_biotypes_keys'] = compress("\0".join(gene_biotypes_keys))
     out['gene_biotypes_values'] = compress(lesqlite2(gene_biotypes_values))
-    out['focus_ids'] = compress("\0".join([x.split('.')[0] for x in genes]))
-    return Response(5,{ 'data': out })
+    if with_ids:
+        out['focus_ids'] = compress("\0".join([x.split('.')[0] for x in genes]))
+    return out
 
-class TranscriptDataHandler(DataHandler):
+class TranscriptDataHandler8(DataHandler):
     def __init__(self, seq: bool):
         self._seq = seq
 
@@ -161,16 +174,68 @@ class TranscriptDataHandler(DataHandler):
             return Response(1,"Unknown chromosome {0}".format(panel.stick))
         return extract_gene_data(data_accessor,chrom,panel,True,self._seq)
 
-class GeneDataHandler(DataHandler):
+class GeneDataHandler8(DataHandler):
     def process_data(self, data_accessor: DataAccessor, panel: Panel, scope) -> Response:
         chrom = data_accessor.data_model.stick(data_accessor,panel.stick)
         if chrom == None:
             return Response(1,"Unknown chromosome {0}".format(panel.stick))
         return extract_gene_data(data_accessor,chrom,panel,False,False)
 
-class GeneOverviewDataHandler(DataHandler):
-    def process_data(self, data_accessor: DataAccessor, panel: Panel, scope) -> Response:
+class GeneOverviewDataHandler8(DataHandler):
+    def process_data(self, data_accessor: DataAccessor, panel: Panel,scope) -> Response:
         chrom = data_accessor.data_model.stick(data_accessor,panel.stick)
         if chrom == None:
             return Response(1,"Unknown chromosome {0}".format(panel.stick))
-        return extract_gene_overview_data(data_accessor,chrom,panel)
+        out = extract_gene_overview_data(data_accessor,chrom,panel.start,panel.end,False)
+        return Response(5,{ 'data': out })
+
+
+def _get_approx_location(data_accessor: DataAccessor, panel: Panel, id):
+    genome = panel.stick.rsplit(":",1)[0]
+    key = "focus:{}:{}".format(genome,id)
+    accessor = data_accessor.resolver.get(AccessItem("jump"))
+    jump_ncd = NCDRead(accessor.ncd())
+    value = jump_ncd.get(key.encode("utf-8"))
+    if value != None:
+        parts = value.decode('utf-8').split("\t")
+        if len(parts) == 3:
+            on_stick = "{}:{}".format(genome,parts[0])
+            if on_stick == panel.stick:
+                return (int(parts[1]),int(parts[2]))
+    return None
+
+def _remove_version(id: str):
+    return id.rsplit('.',1)[0]
+
+def _get_exact_location(data_accessor: DataAccessor, panel, gene_id, approx_start, approx_end):
+    chrom = data_accessor.data_model.stick(data_accessor,panel.stick)
+    if chrom == None:
+        return Response(1,"Unknown chromosome {0}".format(panel.stick))
+    item = chrom.item_path("transcripts")
+    data = get_bigbed(data_accessor,item,approx_start,approx_end)
+    for line in data:
+        line = TranscriptFileLine(line)
+        line_gene_id = _remove_version(line.gene_id)
+        if line_gene_id == gene_id:
+            return (line.gene_start,line.gene_end,1 if line.strand == '+' else 0)
+    return None
+
+class GeneLocationHandler8(DataHandler):
+    def process_data(self, data_accessor: DataAccessor, panel: Panel,scope) -> Response:
+        id = scope.get("id",[])
+        out = []
+        location = None
+        if len(id) > 0:
+            approx = _get_approx_location(data_accessor,panel,id[0])
+            if approx is not None:
+                exact = _get_exact_location(data_accessor,panel,id[0],approx[0],approx[1])
+                if exact is not None:
+                    location = exact
+        chrom = data_accessor.data_model.stick(data_accessor,panel.stick)
+        if location is not None:
+            out = extract_gene_overview_data(data_accessor,chrom,exact[0],exact[1],True)
+        else:
+            out = extract_gene_overview_data(data_accessor,chrom,0,0,True)
+            location = []
+        out["location"] = compress(lesqlite2(location))
+        return Response(5,{ 'data': out })
