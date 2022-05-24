@@ -1,6 +1,7 @@
 use std::sync::{Arc, Mutex};
 use super::drawingtools::DrawingToolsBuilder;
 use super::layer::Layer;
+use commander::cdr_tick;
 use peregrine_data::{Assets, Scale, Shape, LeafStyle };
 use peregrine_toolkit::{lock, log_extra, timer_start, timer_end};
 use peregrine_toolkit_async::sync::needed::Needed;
@@ -101,14 +102,27 @@ impl Drawing {
         /* gather and allocate aux requirements (2d canvas space etc) */
         drop(lgl);
         drawing.prepare_tools(gl).await?;
+        if !retain_test.test() {
+            #[cfg(debug_trains)]
+            log_extra!("drop discared after prepare");
+            return Ok(None);
+        }
         let mut lgl = lock!(gl);
         /* draw shapes (including any 2d work) */
+        //timer_start!("pt-shape");
         for mut shapes in prepared_shapes.drain(..) {
             for shape in shapes.drain(..) {
                 drawing.add_shape(&mut lgl,shape)?;
             }
         }
+        //timer_end!("pt-shape");
         drop(lgl);
+        cdr_tick(0).await;
+        if !retain_test.test() {
+            #[cfg(debug_trains)]
+            log_extra!("drop discared after flat");
+            return Ok(None);
+        }
         /* convert stuff to WebGL processes */
         drawing.build(gl,retain_test).await
     }
