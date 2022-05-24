@@ -22,7 +22,7 @@ impl AnticipateTask {
             let result_store = result_store.clone();
             let base2 = base.clone();
             let handle = add_task(&base.commander,PgCommanderTaskSpec {
-                name: format!("data program"),
+                name: format!("anticipator"),
                 prio: 9,
                 slot: None,
                 timeout: None,
@@ -95,11 +95,13 @@ impl Anticipate {
         let base_index = extent.index();
         for offset in -amount_width..(amount_width+1) {
             for delta in 0..amount_depth {
-                /* out */
-                let new_scale = extent.train().scale().delta_scale(delta);
-                if let Some(new_scale) = &new_scale {
-                    let new_base_index = new_scale.convert_index(extent.train().scale(),base_index) as i64;
-                    self.build_carriage(&mut carriages,layout,new_scale,extent.train().pixel_size(),new_base_index+offset);
+                if offset.abs() < 2 {
+                    /* out */
+                    let new_scale = extent.train().scale().delta_scale(delta);
+                    if let Some(new_scale) = &new_scale {
+                        let new_base_index = new_scale.convert_index(extent.train().scale(),base_index) as i64;
+                        self.build_carriage(&mut carriages,layout,new_scale,extent.train().pixel_size(),new_base_index+offset);
+                    }
                 }
                 /* in */
                 let new_scale = extent.train().scale().delta_scale(-delta);
