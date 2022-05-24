@@ -100,7 +100,7 @@ impl GLCarriage {
         let self2 = self.clone();
         let commander = lock!(self.0).commander.clone();
         let carriage = carriage.clone();
-        commander.add::<Message>("load", 0, None, None, Box::pin(async move {
+        commander.add::<Message>("load", 2, None, None, Box::pin(async move {
             self2.preflight(&carriage).await
         }));
     }
