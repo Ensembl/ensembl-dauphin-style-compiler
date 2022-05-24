@@ -1,6 +1,6 @@
 use std::rc::Rc;
 use std::cell::RefCell;
-use peregrine_toolkit::sync::needed::Needed;
+use peregrine_toolkit_async::sync::needed::Needed;
 
 use crate::util::message::Message;
 

@@ -1,5 +1,5 @@
 use peregrine_data::{StickId, Viewport, PlayingField};
-use peregrine_toolkit::sync::needed::Needed;
+use peregrine_toolkit_async::sync::needed::Needed;
 
 use crate::{ webgl::{ SourceInstrs, UniformProto, GLArity, UniformHandle, ProgramBuilder, Process }};
 use crate::shape::layers::consts::{ PR_DEF, PR_LOW };

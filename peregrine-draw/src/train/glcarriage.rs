@@ -1,7 +1,7 @@
 use peregrine_data::{Assets, DrawingCarriage, CarriageExtent};
 use peregrine_toolkit::{lock, warn, error };
-use peregrine_toolkit::sync::asynconce::AsyncOnce;
-use peregrine_toolkit::sync::needed::Needed;
+use peregrine_toolkit_async::sync::asynconce::AsyncOnce;
+use peregrine_toolkit_async::sync::needed::Needed;
 use crate::shape::layers::drawingzmenus::HotspotEntryDetails;
 use crate::{PgCommanderWeb};
 use crate::shape::layers::drawing::{ Drawing };

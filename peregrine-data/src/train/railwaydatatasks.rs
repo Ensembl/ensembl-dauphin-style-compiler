@@ -1,5 +1,6 @@
 use std::{sync::{Arc, Mutex}, mem};
-use peregrine_toolkit::{sync::needed::Needed, lock};
+use peregrine_toolkit_async::sync::needed::Needed;
+use peregrine_toolkit::lock;
 use crate::{shapeload::{carriageprocess::CarriageProcess, loadshapes::LoadMode}, add_task, PgCommanderTaskSpec, async_complete_task, PeregrineCoreBase, ShapeStore, DataMessage, StickStore, TrainExtent};use super::{Railway, train::StickData};
 
 #[derive(Clone)]

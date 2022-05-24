@@ -1,8 +1,8 @@
 use std::sync::{Arc, Mutex};
 use peregrine_toolkit::{debug_log};
 use peregrine_toolkit::puzzle::AnswerAllocator;
-use peregrine_toolkit::sync::blocker::{Blocker};
-use peregrine_toolkit::sync::needed::Needed;
+use peregrine_toolkit_async::sync::blocker::{Blocker};
+use peregrine_toolkit_async::sync::needed::Needed;
 use crate::{CarriageSpeed, ShapeStore, PeregrineCoreBase};
 use crate::api::MessageSender;
 use crate::core::{Scale, Viewport};

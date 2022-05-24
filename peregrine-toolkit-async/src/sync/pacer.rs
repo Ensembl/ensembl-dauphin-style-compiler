@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use crate::lock;
+use peregrine_toolkit::lock;
 
 struct PacerData<T> {
     config: Vec<T>,

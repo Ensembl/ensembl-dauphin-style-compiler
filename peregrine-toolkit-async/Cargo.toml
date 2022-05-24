@@ -1,0 +1,30 @@
+[package]
+name = "peregrine_toolkit_async"
+version = "0.0.0"
+authors = ["ensembl-webteam@ebi.ac.uk"]
+edition = "2018"
+
+[dependencies]
+#anyhow="*"
+#js-sys="*"
+#wasm-bindgen="*"
+#serde="*"
+#serde_cbor="*"
+#serde_derive="*"
+#lazy_static="*"
+
+[dependencies.commander]
+version="*"
+path="../commander"
+
+#[dependencies.identitynumber]
+#version="*"
+#path="../identitynumber"
+
+#[dependencies.web-sys]
+#version="*"
+#features=["console"]
+
+[dependencies.peregrine_toolkit]
+version="*"
+path="../peregrine-toolkit"

@@ -1,6 +1,6 @@
 use peregrine_toolkit::lock;
 use commander::{ CommanderStream };
-use peregrine_toolkit::sync::blocker::Blocker;
+use peregrine_toolkit_async::sync::blocker::Blocker;
 use std::collections::HashMap;
 use std::future::Future;
 use std::pin::Pin;

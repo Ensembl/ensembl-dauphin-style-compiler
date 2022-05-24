@@ -1,7 +1,7 @@
 use crate::util::message::{ Message };
 use peregrine_toolkit::console::{set_printer, Severity};
 use peregrine_toolkit::{log_extra, log_important, error};
-use peregrine_toolkit::sync::blocker::Blocker;
+use peregrine_toolkit_async::sync::blocker::Blocker;
 pub use url::Url;
 pub use web_sys::{ console, WebGlRenderingContext, Element };
 use peregrine_data::{ Channel, StickId, Commander };

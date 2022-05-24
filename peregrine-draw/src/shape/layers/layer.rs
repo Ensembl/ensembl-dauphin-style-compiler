@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 use std::{collections::HashMap};
 use commander::cdr_tick;
 use peregrine_toolkit::log_extra;
-use peregrine_toolkit::sync::retainer::RetainTest;
+use peregrine_toolkit_async::sync::retainer::RetainTest;
 
 use crate::shape::layers::patina::PatinaProcess;
 use crate::webgl::{ ProcessBuilder, Process, DrawingAllFlats };

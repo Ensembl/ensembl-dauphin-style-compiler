@@ -1,5 +1,6 @@
 use std::sync::{Arc, Mutex};
-use peregrine_toolkit::{lock, sync::{blocker::Blocker}};
+use peregrine_toolkit::lock;
+use peregrine_toolkit_async::sync::{blocker::Blocker};
 use crate::{DataMessage, ShapeStore, PeregrineCoreBase, Viewport, StickStore};
 use super::{trainset::TrainSet, railwaydatatasks::RailwayDataTasks};
 

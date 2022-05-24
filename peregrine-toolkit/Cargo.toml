@@ -13,10 +13,6 @@ serde_cbor="*"
 serde_derive="*"
 lazy_static="*"
 
-[dependencies.commander]
-version="*"
-path="../commander"
-
 [dependencies.identitynumber]
 version="*"
 path="../identitynumber"

@@ -1,7 +1,7 @@
 use std::{sync::{ Arc, Mutex }};
 use commander::cdr_tick;
 use js_sys::Date;
-use peregrine_toolkit::sync::{blocker::{Blocker, Lockout}, needed::{Needed, NeededLock}};
+use peregrine_toolkit_async::sync::{blocker::{Blocker, Lockout}, needed::{Needed, NeededLock}};
 use crate::{ PeregrineInnerAPI, run::report::Report };
 use crate::run::{ PgPeregrineConfig };
 use crate::input::{InputEvent, InputEventKind };

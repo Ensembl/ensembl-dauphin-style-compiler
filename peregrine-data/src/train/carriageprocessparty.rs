@@ -1,5 +1,6 @@
 use std::sync::{Arc, Mutex};
-use peregrine_toolkit::{sync::needed::Needed, puzzle::AnswerAllocator};
+use peregrine_toolkit::{puzzle::AnswerAllocator};
+use peregrine_toolkit_async::sync::needed::Needed;
 use crate::{shapeload::carriageprocess::CarriageProcess, allotment::core::trainstate::{TrainStateSpec, TrainState3}};
 use super::{drawingcarriagemanager::DrawingCarriageCreator, railwaydatatasks::RailwayDataTasks, graphics::Graphics, party::PartyActions, carriageset::CarriageSetConstant};
 

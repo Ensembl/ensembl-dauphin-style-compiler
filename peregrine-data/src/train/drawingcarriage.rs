@@ -1,8 +1,8 @@
 use std::hash::{Hash, Hasher};
 use std::sync::{ Arc, Mutex };
 use peregrine_toolkit::lock;
-use peregrine_toolkit::sync::needed::Needed;
-use peregrine_toolkit::sync::retainer::RetainTest;
+use peregrine_toolkit_async::sync::needed::Needed;
+use peregrine_toolkit_async::sync::retainer::RetainTest;
 use crate::allotment::core::carriageoutput::CarriageOutput;
 use crate::allotment::core::trainstate::{TrainState3};
 use crate::{Shape, LeafStyle, DataMessage, TrainExtent };

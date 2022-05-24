@@ -46,6 +46,10 @@ path="../dauphin-interp"
 version="*"
 path="../peregrine-toolkit"
 
+[dependencies.peregrine_toolkit_async]
+version="*"
+path="../peregrine-toolkit-async"
+
 # XXX
 [dependencies.web-sys]
 version="*"

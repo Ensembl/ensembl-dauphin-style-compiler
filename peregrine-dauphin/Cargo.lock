@@ -75,6 +75,7 @@ dependencies = [
  "lazy_static",
  "ordered-float",
  "owning_ref",
+ "peregrine_toolkit",
 ]
 
 [[package]]
@@ -390,6 +391,7 @@ dependencies = [
  "peregrine_dauphin_queue",
  "peregrine_message",
  "peregrine_toolkit",
+ "peregrine_toolkit_async",
  "serde",
  "serde_cbor",
  "serde_derive",
@@ -432,7 +434,6 @@ name = "peregrine_toolkit"
 version = "0.0.0"
 dependencies = [
  "anyhow",
- "commander",
  "identitynumber",
  "js-sys",
  "lazy_static",
@@ -441,6 +442,14 @@ dependencies = [
  "serde_derive",
  "wasm-bindgen",
  "web-sys",
+]
+
+[[package]]
+name = "peregrine_toolkit_async"
+version = "0.0.0"
+dependencies = [
+ "commander",
+ "peregrine_toolkit",
 ]
 
 [[package]]

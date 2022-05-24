@@ -8,7 +8,7 @@ use crate::run::{add_task};
 use crate::run::bootstrap::bootstrap;
 use crate::{Assets, PgCommanderTaskSpec};
 use commander::{CommanderStream, PromiseFuture};
-use peregrine_toolkit::sync::blocker::{Blocker, Lockout};
+use peregrine_toolkit_async::sync::blocker::{Blocker, Lockout};
 use crate::util::message::DataMessage;
 
 //#[cfg_attr(debug_assertions,derive(Debug))]

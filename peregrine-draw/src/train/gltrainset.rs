@@ -4,7 +4,7 @@ use std::hash::{Hash};
 use std::sync::{ Arc, Mutex };
 use peregrine_data::{Assets, CarriageSpeed, PeregrineCore, Scale, TrainExtent, DrawingCarriage};
 use peregrine_toolkit::{lock};
-use peregrine_toolkit::sync::needed::{Needed, NeededLock};
+use peregrine_toolkit_async::sync::needed::{Needed, NeededLock};
 use super::glcarriage::GLCarriage;
 use super::gltrain::GLTrain;
 use crate::PgCommanderWeb;

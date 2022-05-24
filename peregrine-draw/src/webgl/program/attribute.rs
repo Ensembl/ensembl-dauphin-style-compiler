@@ -3,6 +3,8 @@ use std::collections::{HashSet};
 use super::source::Source;
 use super::program::{ ProgramBuilder };
 use super::super::{ GLArity, GPUSpec, Precision, Phase };
+use peregrine_toolkit::log;
+use peregrine_toolkit::time::now;
 use web_sys::{ WebGlRenderingContext, WebGlBuffer, WebGlProgram };
 use keyed::keyed_handle;
 use crate::webgl::util::handle_context_errors;

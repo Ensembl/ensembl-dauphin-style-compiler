@@ -1,5 +1,6 @@
 use std::sync::Mutex;
-use peregrine_toolkit::{lock, sync::{blocker::{Blocker, Lockout}}};
+use peregrine_toolkit_async::{sync::{blocker::{Blocker, Lockout}}};
+use peregrine_toolkit::lock;
 use crate::{ShapeStore, PeregrineCoreBase};
 use super::{anticipate::Anticipate, carriageextent::CarriageExtent};
 

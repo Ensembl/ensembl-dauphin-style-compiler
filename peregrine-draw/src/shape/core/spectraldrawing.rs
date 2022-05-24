@@ -1,6 +1,7 @@
 use std::sync::{Arc, Mutex};
 use peregrine_data::{Assets, reactive::Reactive, ProgramShapesBuilder, CarriageShapesBuilder};
-use peregrine_toolkit::{lock, puzzle::AnswerAllocator, sync::retainer::{RetainTest, Retainer, retainer}};
+use peregrine_toolkit::{lock, puzzle::AnswerAllocator};
+use peregrine_toolkit_async::{sync::retainer::{RetainTest, Retainer, retainer}};
 use crate::{Message, shape::layers::drawing::Drawing, stage::stage::ReadStage, webgl::{DrawingSession, global::WebGlGlobal}, PgCommanderWeb};
 use super::spectre::Spectre;
 

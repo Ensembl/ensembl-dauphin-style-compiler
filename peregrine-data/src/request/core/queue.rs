@@ -1,8 +1,8 @@
 use commander::cdr_timer;
-use peregrine_toolkit::sync::blocker::{Blocker, Lockout};
+use peregrine_toolkit_async::sync::blocker::{Blocker, Lockout};
 use peregrine_toolkit::lock;
 use commander::{ CommanderStream, cdr_add_timer };
-use peregrine_toolkit::sync::pacer::Pacer;
+use peregrine_toolkit_async::sync::pacer::Pacer;
 use std::collections::HashMap;
 use std::future::Future;
 use std::pin::Pin;

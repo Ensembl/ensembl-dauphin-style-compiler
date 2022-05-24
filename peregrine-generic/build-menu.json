@@ -19,8 +19,12 @@
     {
         "key": "CFG_DEBUG_TRAINS",
         "question": "Debug trains",
-        "options": ["no","yes"],
-        "conditions": { "eq": ["CFG_RUST_MODE","dev"] }
+        "options": ["no","yes"]
+    },
+    {
+        "key": "CFG_DEBUG_SAMPLER",
+        "question": "Use performance sampler",
+        "options": ["no","yes"]
     },
     {
         "key": "CFG_DISABLE_ANTICIPATE",

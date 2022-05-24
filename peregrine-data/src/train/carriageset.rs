@@ -1,7 +1,7 @@
 use std::cmp::max;
 use std::sync::{Mutex, Arc};
 use peregrine_toolkit::puzzle::AnswerAllocator;
-use peregrine_toolkit::sync::needed::Needed;
+use peregrine_toolkit_async::sync::needed::Needed;
 use super::carriageextent::CarriageExtent;
 use super::carriageprocessparty::CarriageProcessManager;
 use super::drawingcarriage::DrawingCarriage;
@@ -26,7 +26,6 @@ const FLANK : u64 = 1;
 
 const CARRIAGE_FLANK : u64 = FLANK;
 const MILESTONE_CARRIAGE_FLANK : u64 = FLANK;
-
 
 pub(super) struct CarriageSetConstant {
     ping_needed: Needed,
