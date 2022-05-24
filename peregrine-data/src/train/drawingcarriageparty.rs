@@ -90,7 +90,11 @@ impl PartyActions<DrawingCarriageCreator,PartyDrawingCarriage,PartyDrawingCarria
 
     fn ready_changed(&mut self, items: &mut dyn Iterator<Item=(&DrawingCarriageCreator,&PartyDrawingCarriage)>) {
         self.ready_serial += 1;
-        self.current = items.map(|(_,y)| y.clone()).collect();
+        if !self.mute {
+            self.current = items.map(|(_,y)| y.clone()).collect();
+        } else {
+            self.current = vec![];
+        }
         self.current.sort_by_cached_key(|c| c.carriage().extent().index());
         self.try_send();
     }
@@ -129,6 +133,8 @@ impl DrawingCarriageParty {
 
     pub(super) fn set_mute(&mut self) {
         self.slider.inner_mut().mute = true;
+        #[cfg(debug_trains)] log!("DC({}) mute",self.slider.inner().index);
+        self.slider.inner_mut().current = vec![];
     }
 
     pub(super) fn ping(&mut self) {
