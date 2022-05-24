@@ -1,5 +1,6 @@
 use futures::task::{ Context, waker_ref };
 use owning_ref::MutexGuardRefMut;
+use peregrine_toolkit::sample_str;
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::{ Arc, Mutex };
@@ -227,7 +228,9 @@ impl Agent {
     }
 
     fn run_one_main<R>(&self, context: &mut Context, future: &mut Pin<Box<dyn Future<Output=R> + 'static>>, result: &mut Option<R>) {
+        sample_str!(self.name_agent().get_name());
         let out = future.as_mut().poll(context);
+        sample_str!("".to_string());
         match out {
             Poll::Pending => {
                 self.block_agent().root_block().block();
