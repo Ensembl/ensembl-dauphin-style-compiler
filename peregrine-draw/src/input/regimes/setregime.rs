@@ -1,5 +1,5 @@
 use crate::{input::translate::{measure::Measure}};
-use super::regime::{TickResult, RegimeCreator, RegimeTrait};
+use super::regime::{TickResult, RegimeCreator, RegimeTrait, TickUpdate};
 
 pub(super) struct SetRegimeCreator();
 
@@ -34,7 +34,7 @@ impl RegimeTrait for SetRegime {
 
     fn tick(&mut self, _measure: &Measure, _total_dt: f64) -> TickResult {
         if let Some((x,bp)) = self.target.take() {
-            TickResult::Update(Some(x),Some(bp),false)
+            TickResult::Update(TickUpdate { x: Some(x), bp: Some(bp), force_fade: false })
         } else {
             TickResult::Finished
         }

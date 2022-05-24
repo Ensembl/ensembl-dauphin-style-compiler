@@ -1,9 +1,15 @@
 use crate::{Message, PeregrineInnerAPI, input::translate::{axisphysics::{AxisPhysicsConfig, Scaling}, measure::Measure}, run::{PgConfigKey, PgPeregrineConfig}};
 use super::{dragregime::{DragRegime, DragRegimeCreator}, setregime::{SetRegime, SetRegimeCreator}, gotoregime::{GotoRegime, GotoRegimeCreator}};
 
+pub(crate) struct TickUpdate {
+    pub x: Option<f64>,
+    pub bp: Option<f64>,
+    pub force_fade: bool
+}
+
 pub(crate) enum TickResult {
     Finished,
-    Update(Option<f64>,Option<f64>,bool)
+    Update(TickUpdate)
 }
 
 pub(super) trait RegimeCreator {
@@ -135,21 +141,21 @@ impl Regime {
         let mut finished = false;
         let measure = if let Some(measure) = Measure::new(inner)? { measure } else { return Ok(true); };
         self.update_settings(&measure);
-        let (new_x,new_bp,invalidate) = match self.object.as_trait_mut().tick(&measure,total_dt) {
-            TickResult::Update(x,bp,force_fade) => (x,bp,force_fade),
+        let update= match self.object.as_trait_mut().tick(&measure,total_dt) {
+            TickResult::Update(u) => u,
             TickResult::Finished => {
                 self.object = RegimeObject::None(RegimeNone());
                 finished = true;
-                (None,None,false)
+                TickUpdate { x: None, bp: None, force_fade: false }
             }
         };
-        if invalidate {
+        if update.force_fade {
             inner.invalidate();
         }
-        if let Some(new_x) = new_x {
+        if let Some(new_x) = update.x {
             inner.set_x(new_x);
         }
-        if let Some(bp_per_screen) = new_bp {
+        if let Some(bp_per_screen) = update.bp {
             inner.set_bp_per_screen(bp_per_screen);
         }
         Ok(finished)
