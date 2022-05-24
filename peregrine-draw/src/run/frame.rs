@@ -20,6 +20,7 @@ fn animation_tick(lweb: &mut LockedPeregrineInnerAPI, size_manager: &SizeManager
     let gl = lweb.webgl.clone();
     let assets = lweb.assets.clone();
     lweb.trainset.transition_animate_tick(&lweb.data_api,&mut *lock!(gl),elapsed)?;
+    lweb.data_api.ping_trains();
     if read_stage.ready() {
         let mut session = DrawingSession::new(lweb.trainset.scale());
         session.begin(&mut *lock!(gl))?;
