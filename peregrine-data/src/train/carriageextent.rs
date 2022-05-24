@@ -17,7 +17,7 @@ impl CarriageExtent {
         }
     }
 
-    #[cfg(debug_assertions)]
+    #[cfg(any(debug_assertions,debug_trains))]
     pub fn compact(&self) -> String { format!("({},{})",self.train().scale().get_index(),self.index()) }
 
     pub fn train(&self) -> &TrainExtent { &self.train }

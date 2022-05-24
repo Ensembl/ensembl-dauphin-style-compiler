@@ -14,7 +14,7 @@ use crate::util::memoized::{ Memoized, MemoizedType };
 use crate::api::{ PeregrineCoreBase };
 use crate::run::{ PgDauphinTaskSpec };
 use crate::shapeload::programdata::ProgramData;
-use peregrine_toolkit::lock;
+use peregrine_toolkit::{lock, log};
 
 async fn make_unfiltered_shapes(base: PeregrineCoreBase, program_loader: ProgramLoader, request: ShapeRequest, mode: LoadMode) -> Result<Arc<CarriageShapesBuilder>,DataMessage> {
     base.booted.wait().await;
@@ -28,6 +28,10 @@ async fn make_unfiltered_shapes(base: PeregrineCoreBase, program_loader: Program
     payloads.insert("priority".to_string(),Box::new(priority) as Box<dyn Any>);
     payloads.insert("only_warm".to_string(),Box::new(!mode.build_shapes()) as Box<dyn Any>);
     payloads.insert("net_time".to_string(),Box::new(net_ms.clone()) as Box<dyn Any>);
+    if mode.high_priority() {
+        #[cfg(debug_trains)]
+        log!("store miss {}",request.track().track().program_name());
+    }
     let start = cdr_current_time();
     base.dauphin.run_program(&program_loader,PgDauphinTaskSpec {
         prio: if mode.high_priority() { 2 } else { 9 },

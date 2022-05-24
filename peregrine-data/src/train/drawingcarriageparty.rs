@@ -63,7 +63,7 @@ impl DrawingCarriageSetActions {
 impl PartyActions<DrawingCarriageCreator,PartyDrawingCarriage,PartyDrawingCarriage> for DrawingCarriageSetActions {
     fn ctor(&mut self, creator: &DrawingCarriageCreator) -> PartyDrawingCarriage {
         let carriage = PartyDrawingCarriage::new(creator,&self.state);
-        #[cfg(debug_trains)] debug_log!("DC({:x}) ctor {}",self.state.hash(),creator.extent().compact());
+        #[cfg(debug_trains)] log!("DC({:x}) ctor {}",self.index,creator.extent().compact());
         if !self.mute {
             self.graphics.create_carriage(&carriage.carriage());
         }
@@ -77,13 +77,13 @@ impl PartyActions<DrawingCarriageCreator,PartyDrawingCarriage,PartyDrawingCarria
     fn dtor(&mut self, _index: &DrawingCarriageCreator, dc: PartyDrawingCarriage) {
         dc.destroy();
         self.ping_needed.set(); // train can maybe be updated
-        #[cfg(debug_trains)] debug_log!("DC({}) dtor {}",self.index,dc.carriage().extent().compact());
+        #[cfg(debug_trains)] log!("DC({}) dtor {}",self.index,dc.carriage().extent().compact());
         self.graphics.drop_carriage(dc.carriage());
     }
 
     fn init(&mut self, _index: &DrawingCarriageCreator, carriage: &mut PartyDrawingCarriage) -> Option<PartyDrawingCarriage> {
         if !carriage.carriage().is_ready() { return None; }
-        #[cfg(debug_trains)] debug_log!("DC({:x}) init {}",self.state.hash(),carriage.carriage().extent().compact());
+        #[cfg(debug_trains)] log!("DC({:x}) init {}",self.index,carriage.carriage().extent().compact());
         self.ping_needed.set(); // train can maybe be updated
         Some(carriage.clone())
     }

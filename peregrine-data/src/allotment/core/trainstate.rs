@@ -209,7 +209,7 @@ impl TrainState3 {
         out
     }
 
-    #[cfg(debug_assertions)]
+    #[cfg(any(debug_assertions,debug_trains))]
     #[allow(unused)]
     pub(crate) fn hash(&self) -> u64 { self.hash }
 

@@ -41,6 +41,9 @@ impl DrawingCarriageCreator {
         let out = DrawingCarriage::new(&self.extent,&self.ping_needed,&self.shapes,train_state,retain).ok().unwrap();
         out
     }
+
+    #[cfg(any(debug_trains,debug_assertions))]
+    pub(super) fn extent(&self) -> &CarriageExtent { &self.extent }
 }
 
 
