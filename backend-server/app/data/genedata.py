@@ -17,38 +17,24 @@ from .sequence import sequence_blocks
 
 """
 Attributes:
-    BLOCKS_PER_PANEL (int)
+    BLOCKS_PER_PANEL (int) Don't care about anything which occupies less space on the screen
+    than a 1/BLOCKS_PER_PANEL-th of the screen in overviews. Removes tiny crud that no one
+    will see anyway.
 """
 BLOCKS_PER_PANEL = 1000
 
-
-# HACK should use correct codes in the first place
-def munge_designation(s):
-    """
-
-    Args:
-        s ():
-
-    Returns:
-        str
-    """
-    s = re.sub(r'_', ' ', s)
-    if s == 'mane select':
-        s = "MANE Select"
-    elif s == 'canonical':
-        s = "Selected"
-    return s
-
-
 def transcript_grade(designation: str, transcript_biotype: str) -> int:
     """
+    Computes a value to order a transcript by based on its properties.
 
     Args:
-        designation (str):
-        transcript_biotype (str):
+        designation (str): MANE/canonical/not etc
+        transcript_biotype (str): transcript_biotype
 
     Returns:
-        int
+        int: A value where the more prioritised transcripts have a higher value than
+        the less during this request. No other guarantees about the stability/meaning of the 
+        number beyond that.
     """
     if designation == "mane_select":
         return 3
@@ -62,13 +48,17 @@ def transcript_grade(designation: str, transcript_biotype: str) -> int:
 
 def add_exon_data(result: dict, genes: List[str], transcripts: Dict[str, TranscriptFileLine]):
     """
+    Called by extract_gene_data to add exon data to the output object, if include_exons is
+    set. Note that this method (and file!) is only used prior to multiple transcripts being
+    implemented, so there is a 1-to-1 mapping for genes and transcripts.
 
     Args:
-        result (dict):
-        genes (List[str]):
-        transcripts (Dict[str, TranscriptFileLine]):
+        result (dict): Dict to add the exon data to (output variable)
+        genes (List[str]): list of genes we want to include data for
+        transcripts (Dict[str, TranscriptFileLine]): the line in the data file we want to use for this gene.
 
     Returns:
+        Nothing. Updates result object.
 
     """
     sizes = []
@@ -98,13 +88,17 @@ def add_exon_data(result: dict, genes: List[str], transcripts: Dict[str, Transcr
 def extract_gene_data(data_accessor: DataAccessor, chrom: Chromosome, panel: Panel, include_exons: bool,
                       include_sequence: bool) -> Response:
     """
+    Actually performs the actions described in GeneDataHandler and TranscriptDataHadnler, ie
+    retrieves data for zoomed in scales (see those objects for more details). Separated out as
+    top level function as there is no need for self etc when doing this activity and allows two
+    objects to share an implementation (with different flags)
 
     Args:
-        data_accessor (object):
-        chrom (object):
-        panel (object):
-        include_exons (bool):
-        include_sequence (bool):
+        data_accessor (DataAccessor): The means of accessing data
+        chrom (Chromosome): The chromosome we want
+        panel (Panel): The panel (ie genomic location, scale) we want
+        include_exons (bool): include info about exon location (ie for transcript views)
+        include_sequence (bool): include info aboutsequence (ie for super-zoomed-in views)
 
     Returns:
         Response object
@@ -174,11 +168,14 @@ def extract_gene_data(data_accessor: DataAccessor, chrom: Chromosome, panel: Pan
 
 def extract_gene_overview_data(data_accessor: DataAccessor, chrom: Chromosome, panel: Panel) -> Response:
     """
+    Actually performs the actions described in GeneOverviewDataHandler, ie retrieves data for
+    overview scales (see that object for more details). Separated out as top level function as
+    there is no need for self etc when doing this activity.
 
     Args:
-        data_accessor ():
-        chrom ():
-        panel ():
+        data_accessor (DataAccessor): The means of accessing data
+        chrom (Chromosome): The chromosome we want
+        panel (Panel): The panel (ie genomic location, scale) we want
 
     Returns:
         Response object
@@ -203,6 +200,7 @@ def extract_gene_overview_data(data_accessor: DataAccessor, chrom: Chromosome, p
     gene_sizes = list([gene_sizes[gene] for gene in genes])
     gene_biotypes = [gene_biotypes[gene] for gene in genes]
     (gene_biotypes_keys, gene_biotypes_values) = classify(gene_biotypes)
+    # BUG Disabled during a bug hunt: will just lead to bigger data payloads while disabled
     min_width = 0  # int((panel.end - panel.start) / BLOCKS_PER_PANEL)
     out['starts'] = compress(lesqlite2(zigzag(delta([x[0] for x in gene_sizes]))))
     out['lengths'] = compress(lesqlite2(zigzag(delta([max(x[1] - x[0], min_width) for x in gene_sizes]))))
@@ -215,9 +213,16 @@ def extract_gene_overview_data(data_accessor: DataAccessor, chrom: Chromosome, p
 
 class TranscriptDataHandler(DataHandler):
     """
+    Handle a request for Transcript data. This is the scale for genes where genes are 
+    displayed either:
+    a. as blocks with exon structure, labels, zmenus, etc, or
+    b. as actual sequence.
+
+    Whether a or b is chosen depends on whether False (a) or True (b) was passed to the
+    object constructor.
 
     Args:
-        seq ():
+        seq (bool): Include sequence or not
     """
 
     def __init__(self, seq: bool):
@@ -225,14 +230,20 @@ class TranscriptDataHandler(DataHandler):
 
     def process_data(self, data_accessor: DataAccessor, panel: Panel, scope) -> Response:
         """
+        Handle a request for Transcript data. This is the scale for genes where genes are 
+        displayed either:
+        a. as blocks with exon structure, labels, zmenus, etc, or
+        b. as actual sequence.
+
+        Whether a or b is chosen depends on whether False (a) or True (b) was passed to the
+        object constructor.
 
         Args:
-            data_accessor ():
-            panel ():
-            scope ():
+            data_accessor (DataAccessor): The means of accessing data
+            panel (Panel): The panel (ie genomic location, scale) we want
+            scope (): extra scope info. Arg provided by caller but none defined for this endpoint.
 
-        Returns:
-            Response object
+        Returns: A complete Resonse object
 
         """
         chrom = data_accessor.data_model.stick(data_accessor,panel.stick)
@@ -243,14 +254,15 @@ class TranscriptDataHandler(DataHandler):
 class GeneDataHandler(DataHandler):
     def process_data(self, data_accessor: DataAccessor, panel: Panel, scope) -> Response:
         """
+        Handle a request for Gene data. This is the scale for genes where genes are displayed
+        as blocks without exon structure but including labels, zmenus, etc.
 
         Args:
-            data_accessor ():
-            panel ():
-            scope ():
+            data_accessor (DataAccessor): The means of accessing data
+            panel (Panel): The panel (ie genomic location, scale) we want
+            scope (): extra scope info. Arg provided by caller but none defined for this endpoint.
 
-        Returns:
-            Response object
+        Returns: A complete Resonse object
 
         """
         chrom = data_accessor.data_model.stick(data_accessor,panel.stick)
@@ -261,14 +273,16 @@ class GeneDataHandler(DataHandler):
 class GeneOverviewDataHandler(DataHandler):
     def process_data(self, data_accessor: DataAccessor, panel: Panel, scope) -> Response:
         """
+        Handle a request for GeneOverview data. This is the scale for genes where the track is
+        so zoomed out that it's just a sequence of unclickable rectangles so that there's very
+        little information *PER* gene but many genes.
 
         Args:
-            data_accessor ():
-            panel ():
-            scope ():
+            data_accessor (DataAccessor): The means of accessing data
+            panel (Panel): The panel (ie genomic location, scale) we want
+            scope (): extra scope info. Arg provided by caller but none defined for this endpoint.
 
-        Returns:
-            Response object
+        Returns: A complete Resonse object
 
         """
         chrom = data_accessor.data_model.stick(data_accessor,panel.stick)
