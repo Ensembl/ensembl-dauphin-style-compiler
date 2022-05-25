@@ -3,7 +3,7 @@ use super::boot::{
     AddAuthorityDeserializer, GetStickIdDeserializer, GetStickDataDeserializer, AddStickDeserializer,
     AddJumpDeserializer, GetJumpDataDeserializer, GetJumpLocationDeserializer
 };
-use super::data::{ GetLaneDeserializer, GetDataDeserializer, DataStreamDeserializer, OnlyWarmDeserializer };
+use super::data::{ GetLaneDeserializer, GetDataDeserializer, DataStreamDeserializer, OnlyWarmDeserializer, RequestScopeDeserializer, RequestDeserializer };
 use super::decompress::{ 
     InflateBytesDeserializer, InflateStringDeserializer, Lesqlite2Deserializer, ZigzagDeserializer, DeltaDeserializer,
     ClassifyDeserializer, SplitStringDeserializer, BaseFlipDeserializer
@@ -11,15 +11,15 @@ use super::decompress::{
 
 use super::track::{ 
     NewLaneDeserializer, AddTagDeserializer, AddTriggerDeserializer, DataSourceDeserializer, AddSwitchDeserializer,
-    AddAllotmentDeserializer, SetSwitchDeserializer, ClearSwitchDeserializer
+    SetSwitchDeserializer, ClearSwitchDeserializer, AppendGroupDeserializer, AppendDepthDeserializer
 };
 use super::geometry::{
     PatinaFilledDeserializer, PatinaHollowDeserializer, DirectColourDeserializer, ZMenuDeserializer, PatinaZMenuDeserializer,
     PenDeserializer, PlotterDeserializer, UseAllotmentDeserializer, SpaceBaseDeserializer, SimpleColourDeserializer,
-    StripedDeserializer, BarredDeserializer, BpRangeDeserializer, SpotColourDeserializer
+    StripedDeserializer, BarredDeserializer, BpRangeDeserializer, SpotColourDeserializer, PpcDeserializer, StyleDeserializer, PatinaSwitchDeserializer
 };
 use super::shape::{
-    WiggleDeserializer, RectangleDeserializer, Text2Deserializer, ImageDeserializer,
+    WiggleDeserializer, RectangleDeserializer, Text2Deserializer, ImageDeserializer, EmptyDeserializer,
 };
 
 use super::switch::{
@@ -27,7 +27,7 @@ use super::switch::{
 };
 
 pub fn std_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(43,0),0xDCDCB974E54E7EC1)
+    CommandSetId::new("peregrine",(50,0),0xB9D05316D3F3EC03)
 }
 
 pub fn make_peregrine_interp() -> InterpLibRegister {
@@ -60,7 +60,6 @@ pub fn make_peregrine_interp() -> InterpLibRegister {
     set.push(PenDeserializer());
     set.push(PlotterDeserializer());
     set.push(WiggleDeserializer());
-    set.push(AddAllotmentDeserializer());
     set.push(AddSwitchDeserializer());
     set.push(UseAllotmentDeserializer());
     set.push(SpaceBaseDeserializer());
@@ -79,5 +78,13 @@ pub fn make_peregrine_interp() -> InterpLibRegister {
     set.push(ImageDeserializer());
     set.push(BpRangeDeserializer());
     set.push(SpotColourDeserializer());
+    set.push(AppendGroupDeserializer());
+    set.push(AppendDepthDeserializer());
+    set.push(PpcDeserializer());
+    set.push(StyleDeserializer());
+    set.push(PatinaSwitchDeserializer());
+    set.push(RequestDeserializer());
+    set.push(RequestScopeDeserializer());
+    set.push(EmptyDeserializer());
     set
 }

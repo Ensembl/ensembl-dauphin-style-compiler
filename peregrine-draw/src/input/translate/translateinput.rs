@@ -114,7 +114,7 @@ impl InputTranslatorState {
         Ok(())
     }
 
-    fn animate_to(&mut self, inner: &mut PeregrineInnerAPI, centre: f64, bp_per_screen: f64, cadence: &Cadence) -> Result<(),Message> {
+    fn animate_to(&mut self, _inner: &mut PeregrineInnerAPI, centre: f64, bp_per_screen: f64, cadence: &Cadence) -> Result<(),Message> {
         self.queue.remove_pending_actions();
         self.queue.queue_add(QueueEntry::LockReports);
         self.queue.queue_add(QueueEntry::Sketchy(true));
@@ -154,7 +154,6 @@ impl InputTranslatorState {
 #[derive(Clone)]
 pub struct InputTranslator {
     state: Arc<Mutex<InputTranslatorState>>,
-    report: Report,
     physics_needed: Needed
 }
 
@@ -256,11 +255,10 @@ impl InputTranslator {
         }
     }
 
-    pub fn new(config: &PgPeregrineConfig, low_level: &mut LowLevelInput, inner: &PeregrineInnerAPI, commander: &PgCommanderWeb, report: &Report, queue_blocker: &Blocker, target_reporter: &TargetReporter) -> Result<InputTranslator,Message> {
+    pub fn new(config: &PgPeregrineConfig, low_level: &mut LowLevelInput, inner: &PeregrineInnerAPI, commander: &PgCommanderWeb, queue_blocker: &Blocker, target_reporter: &TargetReporter) -> Result<InputTranslator,Message> {
         let physics_needed = Needed::new();
         let out = InputTranslator {
             state: Arc::new(Mutex::new(InputTranslatorState::new(config,&physics_needed,queue_blocker,target_reporter)?)),
-            report: report.clone(),
             physics_needed: physics_needed.clone()
         };
         let out2 = out.clone();

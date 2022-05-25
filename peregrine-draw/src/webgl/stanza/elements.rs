@@ -1,9 +1,7 @@
 use super::super::program::attribute::{ Attribute, AttribHandle };
-use js_sys::Float32Array;
 use keyed::{ KeyedData, KeyedDataMaker };
 use super::stanza::{AttribSource, ProcessStanza};
 use super::builder::{ ProcessStanzaBuilder, ProcessStanzaAddable };
-use web_sys::{ WebGlRenderingContext };
 use std::rc::Rc;
 use std::cell::RefCell;
 use std::sync::{Arc, Mutex};
@@ -61,11 +59,6 @@ impl ProcessStanzaElementsEntry {
             target.extend_from_slice(values);
         }
         Ok(())
-    }
-
-    pub(super) fn make_stanza_sync(&self, values: &KeyedData<AttribHandle,Attribute>, context: &WebGlRenderingContext, aux_array: &Float32Array) -> Result<Option<ProcessStanza>,Message> {
-        let out = ProcessStanza::new_elements_sync(context,aux_array,&self.index,values,&self.attribs)?;
-        Ok(out)
     }
 
     pub(super) async fn make_stanza(&self, values: &KeyedData<AttribHandle,Attribute>, gl: &Arc<Mutex<WebGlGlobal>>) -> Result<Option<ProcessStanza>,Message> {

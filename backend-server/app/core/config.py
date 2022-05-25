@@ -75,6 +75,7 @@ if not os.path.exists(SOURCES_TOML):
 
 MEMCACHED = config("MEMCACHED", default="127.0.0.1:11211")
 MEMCACHED_PREFIX = config("MEMCACHED_PREFIX",default="")
+MEMCACHED_BUMP_ON_RESTART = config("MEMCACHED_BUMP_ON_RESTART",default = False)
 
 LO_PORT = config("LO_PORT",default=False)
 

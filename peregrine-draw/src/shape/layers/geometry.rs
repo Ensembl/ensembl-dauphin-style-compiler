@@ -4,7 +4,7 @@ use super::super::core::wigglegeometry::WiggleAdder;
 use crate::shape::layers::consts::{ PR_DEF, PR_LOW };
 use crate::shape::triangles::triangleadder::TriangleAdder;
 use crate::util::enummap::{Enumerable, EnumerableKey};
-use crate::webgl::{AttributeProto, Conditional, Declaration, GLArity, Header, ProcessBuilder, ProgramBuilder, SourceInstrs, Statement, Varying};
+use crate::webgl::{AttributeProto, Conditional, Declaration, GLArity, Header, ProgramBuilder, SourceInstrs, Statement, Varying};
 use web_sys::{ WebGlRenderingContext };
 use crate::util::message::Message;
 
@@ -121,10 +121,9 @@ impl GeometryProgramName {
                     vec4 transform(in vec4 p)
                     {
                         return uModel * vec4(
-
-                                                            (p.z -uStageHpos) * uStageZoom + 
-                                                            p.x / uSize.x,
-                                                          -p.y/uSize.y-p.a*2.0+1.0,    aDepth,1.0);
+                        (p.z -uStageHpos) * uStageZoom + 
+                        p.x / uSize.x,
+                        -p.y/uSize.y-p.a*2.0+1.0,    aDepth,1.0);
                     }
                 "),
                 Statement::new_vertex("

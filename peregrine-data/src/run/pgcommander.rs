@@ -5,7 +5,6 @@ use std::sync::{ Arc, Mutex };
 use commander::{ Agent, Executor, RunSlot, Lock, RunConfig, TaskHandle, cdr_in_agent, cdr_add, cdr_new_agent, TaskResult, KillReason };
 use crate::api::MessageSender;
 use crate::util::message::DataMessage;
-use web_sys::console;
 
 async fn then_print_stats<T>(agent: Agent, f: Pin<Box<dyn Future<Output=T>>>) -> T  {
     let out = f.await;

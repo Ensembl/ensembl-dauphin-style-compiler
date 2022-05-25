@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use crate::Message;
-use crate::webgl::{GPUSpec, ProgramBuilder, SourceInstrs, Statement};
+use crate::webgl::{GPUSpec, ProgramBuilder, SourceInstrs};
 
 use super::source::Source;
 use super::super::{ Phase };

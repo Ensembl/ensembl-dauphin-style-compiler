@@ -2,9 +2,9 @@ use wasm_bindgen::{JsCast, JsValue, prelude::Closure};
 use web_sys::{CanvasRenderingContext2d, Document, HtmlCanvasElement, HtmlImageElement };
 use peregrine_data::{ Pen, DirectColour };
 use super::{bindery::SelfManagedWebGlTexture, canvasstore::HtmlFlatCanvas, pngcache::PngCache, weave::CanvasWeave};
-use crate::util::message::Message;
+use crate::util::{message::Message};
 use super::canvasstore::CanvasStore;
-use peregrine_toolkit::js::exception::js_result_to_option_console;
+use peregrine_toolkit::{js::exception::js_result_to_option_console };
 
 fn pen_to_font(pen: &Pen, bitmap_multiplier: f64) -> String {
     format!("{}px {}",(pen.size_in_webgl() * bitmap_multiplier).round(),pen.name())
@@ -76,6 +76,7 @@ impl Flat {
         if self.discarded { return Err(Message::CodeInvariantFailed(format!("set_font on discarded flat canvas"))); }
         let width = self.context.as_ref().unwrap().measure_text(text).map_err(|e| Message::Canvas2DFailure(format!("cannot measure text: {:?}",e)))?.width();
         let height = self.font_height.ok_or_else(|| Message::CodeInvariantFailed("no font set before measure".to_string()))?;
+//        log!("width of {:?} is {:?} (canvas is {:?} font {:?} fh {:?})",text,width,self.size.0,self.font,self.font_height);
         Ok((width as u32,height as u32))
     }
 

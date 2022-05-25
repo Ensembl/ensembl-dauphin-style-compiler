@@ -6,6 +6,7 @@ three circumstances:
 1. on each frame to:
    a. do any necessary resizing of the CANVAS.
    b. tell the drawing code how big the CONTAINER currently is.
+   c. tell the core code an approximate bp/px ratio for bumping purposes.
 2. on observing a resize of CONTAINER to:
    a. resize the CANVAS if needed.
    b. set the monostable.
@@ -182,6 +183,8 @@ impl SizeManager {
             let mut stage = draw.stage.lock().unwrap();
             stage.x_mut().set_drawable_size(drawable.0 as f64);
             stage.y_mut().set_drawable_size(drawable.1 as f64);
+            drop(stage);
+            draw.data_api.set_min_px_per_carriage(drawable.0/2);
             state.set_booted();
         }
         Ok(())

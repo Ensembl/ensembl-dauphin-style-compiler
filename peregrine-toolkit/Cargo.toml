@@ -17,6 +17,11 @@ lazy_static="*"
 version="*"
 path="../commander"
 
+[dependencies.identitynumber]
+version="*"
+path="../identitynumber"
+
+
 [dependencies.web-sys]
 version="*"
 features=["console"]

@@ -33,7 +33,7 @@ use super::map::{ library_map_commands };
 use crate::make_std_interp;
 
 pub fn std_id() -> CommandSetId {
-    CommandSetId::new("std",(8,0),0x5419544B7434B16E)
+    CommandSetId::new("std",(12,0),0xADE3256200D7A739)
 }
 
 pub(super) fn std(name: &str) -> Identifier {
@@ -195,6 +195,98 @@ impl Command for ExtractFilterCommand {
         Ok(Some(vec![self.0.serialize(),self.1.serialize(),self.2.serialize(),
                      self.3.serialize(),self.4.serialize(),self.5.serialize(),
                      self.6.serialize()]))
+    }
+}
+
+pub struct GapsCommandType();
+
+impl CommandType for GapsCommandType {
+    fn get_schema(&self) -> CommandSchema {
+        CommandSchema {
+            values: 8,
+            trigger: CommandTrigger::Command(std("gaps"))
+        }
+    }
+
+    fn from_instruction(&self, it: &Instruction) -> anyhow::Result<Box<dyn Command>> {
+        if let InstructionType::Call(_,_,sig,_) = &it.itype {
+            Ok(Box::new(GapsCommand(
+                it.regs[0].clone(),it.regs[1].clone(),it.regs[2].clone(),
+                it.regs[3].clone(),it.regs[4].clone(),it.regs[5].clone(),
+                it.regs[6].clone(),it.regs[7].clone())))
+        } else {
+            Err(DauphinError::malformed("unexpected instruction"))
+        }
+    }
+}
+
+pub struct GapsCommand(Register,Register,Register,Register,Register,Register,Register,Register);
+
+impl Command for GapsCommand {
+    fn serialize(&self) -> anyhow::Result<Option<Vec<CborValue>>> {
+        Ok(Some(vec![self.0.serialize(),self.1.serialize(),self.2.serialize(),
+                     self.3.serialize(),self.4.serialize(),self.5.serialize(),
+                     self.6.serialize(),self.7.serialize()]))
+    }
+}
+
+pub struct RangeCommandType();
+
+impl CommandType for RangeCommandType {
+    fn get_schema(&self) -> CommandSchema {
+        CommandSchema {
+            values: 4,
+            trigger: CommandTrigger::Command(std("range"))
+        }
+    }
+
+    fn from_instruction(&self, it: &Instruction) -> anyhow::Result<Box<dyn Command>> {
+        if let InstructionType::Call(_,_,sig,_) = &it.itype {
+            Ok(Box::new(RangeCommand(
+                it.regs[0].clone(),it.regs[1].clone(),it.regs[2].clone(),
+                it.regs[3].clone())))
+        } else {
+            Err(DauphinError::malformed("unexpected instruction"))
+        }
+    }
+}
+
+pub struct RangeCommand(Register,Register,Register,Register);
+
+impl Command for RangeCommand {
+    fn serialize(&self) -> anyhow::Result<Option<Vec<CborValue>>> {
+        Ok(Some(vec![self.0.serialize(),self.1.serialize(),self.2.serialize(),
+                     self.3.serialize()]))
+    }
+}
+
+pub struct SplitCharactersCommandType();
+
+impl CommandType for SplitCharactersCommandType {
+    fn get_schema(&self) -> CommandSchema {
+        CommandSchema {
+            values: 4,
+            trigger: CommandTrigger::Command(std("split_characters"))
+        }
+    }
+
+    fn from_instruction(&self, it: &Instruction) -> anyhow::Result<Box<dyn Command>> {
+        if let InstructionType::Call(_,_,sig,_) = &it.itype {
+            Ok(Box::new(RangeCommand(
+                it.regs[0].clone(),it.regs[1].clone(),it.regs[2].clone(),
+                it.regs[3].clone())))
+        } else {
+            Err(DauphinError::malformed("unexpected instruction"))
+        }
+    }
+}
+
+pub struct SplitCharactersCommand(Register,Register,Register,Register);
+
+impl Command for SplitCharactersCommand {
+    fn serialize(&self) -> anyhow::Result<Option<Vec<CborValue>>> {
+        Ok(Some(vec![self.0.serialize(),self.1.serialize(),self.2.serialize(),
+                     self.3.serialize()]))
     }
 }
 
@@ -384,7 +476,7 @@ impl Command for RulerMarkingsCommand {
 }
 
 pub fn make_std() -> CompLibRegister {
-    /* next is 35 */
+    /* next is 38, 27 is free */
     let mut set = CompLibRegister::new(&std_id(),Some(make_std_interp()));
     library_eq_command(&mut set);
     set.push("len",None,LenCommandType());
@@ -395,13 +487,15 @@ pub fn make_std() -> CompLibRegister {
     set.push("format",Some(2),FormatCommandType());
     set.push("bytes_to_bool",Some(25),BytesToBoolCommandType());
     set.push("derun",Some(26),DerunCommandType());
-    set.push("extract_filter",Some(27),ExtractFilterCommandType());
     set.push("run",Some(29),RunCommandType());
     set.push("halt",Some(30),HaltCommandType());
     set.push("ruler_interval",Some(31),RulerIntervalCommandType());
     set.push("ruler_markings",Some(32),RulerMarkingsCommandType());
     set.push("comma_format",Some(33),CommaFormatCommandType());
     set.push("set_difference",Some(34),SetDifferenceCommandType());
+    set.push("gaps",Some(35),GapsCommandType());
+    set.push("range",Some(36),RangeCommandType());
+    set.push("split_characters",Some(37),SplitCharactersCommandType());
     set.add_header("std",include_str!("header.dp"));
     library_numops_commands(&mut set);
     library_assign_commands(&mut set);

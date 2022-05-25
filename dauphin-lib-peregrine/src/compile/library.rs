@@ -8,25 +8,28 @@ use super::boot::{
     AddAuthorityCommandType, GetStickIdCommandType, GetStickDataCommandType, AddStickCommandType,
     GetJumpDataCommandType, GetJumpLocationCommandType
 };
-use super::data::{ GetLaneCommandType, GetDataCommandType, DataStreamCommandType, OnlyWarmCommandType };
+use super::data::{ 
+    GetLaneCommandType, GetDataCommandType, DataStreamCommandType, OnlyWarmCommandType,
+    RequestCommandType, RequestScopeCommandType
+};
 use super::decompress::{
     InflateBytesCommandType, InflateStringCommandType, Lesqlite2CommandType, ZigzagCommandType, DeltaCommandType,
     ClassifyCommandType, SplitStringCommandType, BaseFlipCommandType
 };
 use super::track::{ 
-    NewLaneCommandType, AddTagCommandType, AddTrackCommandType, DataSourceCommandType, AddAllotmentCommandType,
-    AddSwitchCommandType, SetSwitchCommandType, ClearSwitchCommandType
+    NewLaneCommandType, AddTagCommandType, AddTrackCommandType, DataSourceCommandType,
+    AddSwitchCommandType, SetSwitchCommandType, ClearSwitchCommandType, AppendGroupCommandType, AppendDepthCommandType
 };
 use super::geometry:: {
     PatinaFilledCommandType, PatinaHollowCommandType, DirectColourCommandType, ZMenuCommandType, PatinaZMenuCommandType, PenCommandType,
     PlotterCommandType, UseAllotmentCommandType, SpaceBaseCommandType, SimpleColourCommandType, StripedCommandType,
-    BarCommandType, BpRangeCommandType, SpotColourCommandType
+    BarCommandType, BpRangeCommandType, SpotColourCommandType, PpcCommandType, StyleCommandType, PatinaSwitchCommandType
 };
-use super::shape::{ WiggleCommandType, RectangleCommandType, Text2CommandType, ImageCommandType };
+use super::shape::{ WiggleCommandType, RectangleCommandType, Text2CommandType, ImageCommandType, EmptyCommandType };
 use super::switch::{ GetSwitchCommandType, ListSwitchCommandType };
 
 pub fn peregrine_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(43,0),0xDCDCB974E54E7EC1)
+    CommandSetId::new("peregrine",(50,0),0xB9D05316D3F3EC03)
 }
 
 pub fn make_peregrine() -> CompLibRegister {
@@ -41,7 +44,7 @@ pub fn make_peregrine() -> CompLibRegister {
     set.push("wiggle",Some(7),WiggleCommandType());
     set.push("track_apply",Some(8),DataSourceCommandType());
     set.push("patina_hollow",Some(9),PatinaHollowCommandType());
-    set.push("track_add_allotment",Some(10),AddAllotmentCommandType());
+    set.push("make_request",Some(10),RequestCommandType());
     set.push("track_add_switch",Some(11),AddSwitchCommandType());
     set.push("use_allotment",Some(12),UseAllotmentCommandType());
     set.push("direct_colour",Some(13),DirectColourCommandType());
@@ -78,6 +81,13 @@ pub fn make_peregrine() -> CompLibRegister {
     set.push("draw_image",Some(44),ImageCommandType());
     set.push("bp_range",Some(45),BpRangeCommandType());
     set.push("spot_colour",Some(46),SpotColourCommandType());
+    set.push("append_group",Some(47),AppendGroupCommandType());
+    set.push("append_depth",Some(48),AppendDepthCommandType());
+    set.push("px_per_carriage",Some(49),PpcCommandType());
+    set.push("style",Some(50),StyleCommandType());
+    set.push("patina_switch",Some(51),PatinaSwitchCommandType());
+    set.push("request_scope",Some(52),RequestScopeCommandType());
+    set.push("empty",Some(53),EmptyCommandType());
     set.add_header("peregrine",include_str!("header.egs"));
     set
 }

@@ -1,323 +1,322 @@
-use std::{ops::{Add, Div}, sync::{Arc}};
-use crate::{ util::ringarray::{ DataFilter }};
+use std::ops::{Add, Div};
+use std::hash::Hash;
 
-use super::parametric::{Flattenable, ParameterValue, ParametricType, Substitutions};
+use crate::util::eachorevery::{EachOrEveryFilter, EachOrEveryGroupCompatible};
+use crate::{ EachOrEvery };
 
-fn cycle<T>(data: &[T], index: usize) -> &T {
-    &data[index%data.len()]
-}
-
-fn average<X: Clone + Add<Output=X> + Div<f64,Output=X>>(a: &[X], b: &[X]) -> Vec<X> {
-    a.iter().zip(b.iter().cycle()).map(|(a,b)| (a.clone()+b.clone())/2.).collect()
-}
-pub struct SpaceBasePoint<X> {
+pub struct SpaceBasePoint<X,Y> {
     pub base: X,
     pub normal: X,
-    pub tangent: X
+    pub tangent: X,
+    pub allotment: Y
 }
 
-impl<X> SpaceBasePoint<X> {
-    pub fn as_ref(&self) -> SpaceBasePointRef<X> {
+impl<X,Y> SpaceBasePoint<X,Y> {
+    pub fn as_ref(&self) -> SpaceBasePointRef<X,Y> {
         SpaceBasePointRef {
             base: &self.base,
             normal: &self.normal,
-            tangent: &self.tangent
+            tangent: &self.tangent,
+            allotment: &self.allotment
         }
     }
 }
 
 #[cfg_attr(debug_assertions,derive(Debug))]
-pub struct SpaceBasePointRef<'a,X> {
+pub struct SpaceBasePointRef<'a,X,Y> {
     pub base: &'a X,
     pub normal: &'a X,
-    pub tangent: &'a X
+    pub tangent: &'a X,
+    pub allotment: &'a Y
 }
 
-impl<'a,X: Clone> SpaceBasePointRef<'a,X> {
-    pub fn make(&self) -> SpaceBasePoint<X> {
+impl<'a,X: Clone,Y: Clone> SpaceBasePointRef<'a,X,Y> {
+    pub fn make(&self) -> SpaceBasePoint<X,Y> {
         SpaceBasePoint {
             base: self.base.clone(),
             normal: self.normal.clone(),
-            tangent: self.tangent.clone()
+            tangent: self.tangent.clone(),
+            allotment: self.allotment.clone()
         }
     }
 }
-
-/* If any are empty, all are empty */
 
 #[cfg_attr(debug_assertions,derive(Debug))]
-pub struct SpaceBase<X> {
-    pub(super) base: Arc<Vec<X>>,
-    pub(super) normal: Arc<Vec<X>>,
-    pub(super) tangent: Arc<Vec<X>>,
-    pub(super) max_len: usize
+pub struct SpaceBase<X,Y> {
+    pub(super) base: EachOrEvery<X>,
+    pub(super) normal: EachOrEvery<X>,
+    pub(super) tangent: EachOrEvery<X>,
+    pub(super) allotment: EachOrEvery<Y>,
+    len: usize
 }
 
-pub enum SpaceBaseParameterLocation {
-    Base(usize),
-    Normal(usize),
-    Tangent(usize)
+impl<X,Y> SpaceBase<X,Y> {
+    pub fn demerge_by_allotment<F,K: Hash+PartialEq+Eq>(&self, cb: F) -> Vec<(K,EachOrEveryFilter)> where F: Fn(&Y) -> K {
+        self.allotment.demerge(self.len,cb)
+    }
 }
 
-impl<X: Clone> SpaceBase<ParameterValue<X>> {
-    pub(crate) fn flatten<F,L>(&self, subs: &mut Substitutions<L>, cb: F) -> SpaceBase<X> where F: Fn(SpaceBaseParameterLocation) -> L {
-        SpaceBase {
-            base: Arc::new(subs.flatten(&self.base,|x| cb(SpaceBaseParameterLocation::Base(x)))),
-            normal: Arc::new(subs.flatten(&self.normal, |x| cb(SpaceBaseParameterLocation::Normal(x)))),
-            tangent: Arc::new(subs.flatten(&self.tangent,|x| cb(SpaceBaseParameterLocation::Tangent(x)))),
-            max_len: self.max_len
+pub struct SpaceBaseIterator<'a,X,Y> {
+    item: Box<dyn Iterator<Item=(((&'a X,&'a X),&'a X),&'a Y)> + 'a>,
+}
+
+impl<'a,X,Y> Iterator for SpaceBaseIterator<'a,X,Y> {
+    type Item = SpaceBasePointRef<'a,X,Y>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some ((((base,normal),tangent),allotment)) = self.item.next() {
+            Some(SpaceBasePointRef { base, normal, tangent, allotment })
+        } else {
+            None
         }
     }
 }
 
-impl<X: Clone> ParametricType for SpaceBase<X> {
-    type Location = SpaceBaseParameterLocation;
-    type Value = X;
-
-    fn replace(&mut self, replace: &[(&Self::Location,X)]) {
-        let mut go_base = false;
-        let mut go_normal = false;
-        let mut go_tangent = false;
-        for (location,_) in replace {
-            match location {
-                SpaceBaseParameterLocation::Base(_) => {go_base = true;; },
-                SpaceBaseParameterLocation::Normal(_) => { go_normal = true; },
-                SpaceBaseParameterLocation::Tangent(_) => { go_tangent = true;  },
-            }
-        }
-        let mut base = if go_base { Some(Arc::make_mut(&mut self.base)) } else { None };
-        let mut normal = if go_normal { Some(Arc::make_mut(&mut self.normal)) } else { None };
-        let mut tangent = if go_tangent { Some(Arc::make_mut(&mut self.tangent)) } else { None };
-        for (location,value) in replace {
-            match location {
-                SpaceBaseParameterLocation::Base(index) => { base.as_mut().unwrap()[*index] = value.clone(); },
-                SpaceBaseParameterLocation::Normal(index) => { normal.as_mut().unwrap()[*index] = value.clone(); },
-                SpaceBaseParameterLocation::Tangent(index) => { tangent.as_mut().unwrap()[*index] = value.clone(); },
-            }
-        }
-    }
-}
-
-#[derive(Clone)]
-#[cfg_attr(debug_assertions,derive(Debug))]
-pub enum HoleySpaceBase {
-    Simple(SpaceBase<f64>),
-    Parametric(SpaceBase<ParameterValue<f64>>)
-}
-
-impl HoleySpaceBase {
-    pub fn default_values(&self) -> SpaceBase<f64> {
-        match self {
-            HoleySpaceBase::Simple(x) => x.clone(),
-            HoleySpaceBase::Parametric(x) => {
-                x.clone().map_into(|x| *x.param_default())
-            }
-        }
-    }
-
-    pub fn len(&self) -> usize {
-        match self {
-            HoleySpaceBase::Simple(x) => x.len(),
-            HoleySpaceBase::Parametric(x) => x.len()
-        }
-    }
-
-    pub fn filter(&self, filter: &DataFilter) -> HoleySpaceBase {
-        match self {
-            HoleySpaceBase::Simple(x) => HoleySpaceBase::Simple(x.filter(filter)),
-            HoleySpaceBase::Parametric(x) => HoleySpaceBase::Parametric(x.filter(filter))
-        }
-    }
-
-    pub fn make_base_filter(&self, min_value: f64, max_value: f64) -> DataFilter {
-        match self {
-            HoleySpaceBase::Simple(x) =>
-                x.make_base_filter(min_value,max_value),
-            HoleySpaceBase::Parametric(x) =>
-                x.make_base_filter(ParameterValue::Constant(min_value),ParameterValue::Constant(max_value))
-        }
-    }
-}
-
-impl Flattenable for HoleySpaceBase {
-    type Location = SpaceBaseParameterLocation;
-    type Target = SpaceBase<f64>;
-
-    fn flatten<F,L>(&self, subs: &mut Substitutions<L>, cb: F) -> SpaceBase<f64> where F: Fn(Self::Location) -> L {
-        match self {
-            HoleySpaceBase::Simple(x) => x.clone(),
-            HoleySpaceBase::Parametric(x) => x.flatten(subs,cb)
-        }
-    }
-}
-
-impl<X> Clone for SpaceBase<X> {
+impl<X,Y> Clone for SpaceBase<X,Y> {
     fn clone(&self) -> Self {
         SpaceBase {
             base: self.base.clone(),
             normal: self.normal.clone(),
             tangent: self.tangent.clone(),
-            max_len: self.max_len
+            allotment: self.allotment.clone(),
+            len: self.len
         }
     }
 }
 
-impl<X: Clone> SpaceBase<X> {
-    pub fn empty() -> SpaceBase<X> {
-        SpaceBase {
-            base: Arc::new(vec![]),
-            normal: Arc::new(vec![]),
-            tangent: Arc::new(vec![]),
-            max_len: 0
-        }
+#[cfg_attr(debug_assertions,derive(Debug))]
+#[derive(Clone)]
+pub struct PartialSpaceBase<X,Y>(SpaceBase<X,Y>);
+
+impl<X: Clone, Y: Clone> PartialSpaceBase<X,Y> {
+    pub fn new(base: &EachOrEvery<X>, normal: &EachOrEvery<X>, tangent: &EachOrEvery<X>, allotment: &EachOrEvery<Y>) -> PartialSpaceBase<X,Y> {
+        PartialSpaceBase(SpaceBase::new_unszied(base,normal,tangent,allotment))
     }
 
-    pub fn len(&self) -> usize { self.max_len }
-
-    pub fn new(base: Vec<X>, normal: Vec<X>, tangent: Vec<X>) -> SpaceBase<X> {
-        let max_len = base.len().max(normal.len()).max(tangent.len());
-        if base.len() == 0 || normal.len() == 0 || tangent.len() == 0 {
-            SpaceBase::empty()
-        } else {
-            SpaceBase {
-                base: Arc::new(base),
-                normal: Arc::new(normal),
-                tangent: Arc::new(tangent),
-                max_len
-            }
-        }
+    pub fn from_spacebase(spacebase: SpaceBase<X,Y>) -> PartialSpaceBase<X,Y> {
+        PartialSpaceBase(spacebase)
     }
 
-    pub fn iter_len<'a>(&'a self, length: usize) -> SpaceBaseIterator<'a,X> {
-        SpaceBaseIterator {
-            spacebase: self,
-            index: 0,
-            length
-        }
+    pub fn compat(&self,compat: &mut EachOrEveryGroupCompatible) {
+        self.0.compat(compat);
     }
 
-    pub fn iter<'a>(&'a self) -> SpaceBaseIterator<'a,X> {
-        SpaceBaseIterator {
-            spacebase: self,
-            index: 0,
-            length: self.max_len
-        }
+    pub fn make(mut self, compat: &EachOrEveryGroupCompatible) -> Option<SpaceBase<X,Y>> {
+        let compat_len = if let Some(len) = compat.len() { len } else { return None; };
+        self.0.len = compat_len;
+        Some(self.0)
     }
 
-    // XXX WRONG! Consider
-    pub fn filter(&self, filter: &DataFilter) -> SpaceBase<X> {
-        SpaceBase {
-            base: Arc::new(filter.filter(&self.base)),
-            normal: Arc::new(filter.filter(&self.normal)),
-            tangent: Arc::new(filter.filter(&self.tangent)),
-            max_len: filter.count()
-        }
-    }
-
-    pub fn replace_normal(&self, other: &SpaceBase<X>) -> SpaceBase<X> {
-        SpaceBase {
-            base: self.base.clone(),
-            tangent: self.tangent.clone(),
-            normal: other.normal.clone(),
-            max_len: self.max_len
-        }
-    }
-
-    pub fn map_into<F,Z>(&mut self, cb : F) -> SpaceBase<Z> where F: Fn(&X) -> Z {
-        SpaceBase {
-            base: Arc::new(self.base.iter().map(&cb).collect()),
-            tangent: Arc::new(self.tangent.iter().map(&cb).collect()),
-            normal: Arc::new(self.normal.iter().map(&cb).collect()),
-            max_len: self.max_len
-        }
-    }
-
-    pub fn update_tangent<'a,F>(&mut self, mut cb: F) where F: FnMut(&mut X) {
-        for x in Arc::make_mut(&mut self.tangent) { cb(x); }
-    }
-
-    pub fn update_normal<F>(&mut self, mut cb: F) where F: FnMut(&mut X) {
-        for x in Arc::make_mut(&mut self.normal) { cb(x); }
-    }
-
-    pub fn fold_tangent<F,Z>(&mut self, values: &[Z], cb: F) where F: Fn(&mut X,&Z) {
-        if values.len() == 0 { return; }
-        let mut values2 = values.iter().cycle();
-        self.update_tangent(move |x| { cb(x,values2.next().unwrap()) });
-    }
-
-    pub fn fold_normal<F,Z>(&mut self, values: &[Z], cb: F) where F: Fn(&mut X,&Z) {
-        if values.len() == 0 { return; }
-        let mut values2 = values.iter().cycle();
-        self.update_normal(move |x| { cb(x,values2.next().unwrap()) });
+    pub fn len(&self) -> usize {
+        self.0.len()
     }
 }
 
-impl<X: Clone + PartialOrd> SpaceBase<X> {
-    pub fn make_base_filter(&self, min_value: X, max_value: X) -> DataFilter {
-        let mut filter = DataFilter::new(&mut self.base.iter(),|base| {
-            let exclude =  *base >= max_value || *base < min_value;
-            !exclude
-        });
-        filter.set_size(self.max_len);
-        filter
-    }
-}
-
-impl<X: Clone + Add<Output=X>> SpaceBase<X> {
-    pub fn delta(&mut self, x_size: &[X], y_size: &[X]) {
-        self.fold_tangent(x_size,|v,d| { *v = v.clone() + d.clone(); });
-        self.fold_normal(y_size,|v,d| { *v = v.clone() + d.clone(); });
-    }
-
-    pub fn nudge_normal(&self, amt: X) -> SpaceBase<X> {
+impl<X,Y> SpaceBase<X,Y> {
+    pub fn map_allotments<F,A>(&self, cb: F) -> SpaceBase<X,A> where F: Fn(&Y) -> A {
         SpaceBase {
             base: self.base.clone(),
-            tangent: self.tangent.clone(),
-            normal: Arc::new(self.normal.iter().map(|x| x.clone()+amt.clone()).collect()),
-            max_len: self.max_len
-        }        
-    }
-
-    pub fn nudge_tangent(&self, amt: X) -> SpaceBase<X> {
-        SpaceBase {
-            base: self.base.clone(),
-            tangent: Arc::new(self.tangent.iter().map(|x| x.clone()+amt.clone()).collect()),
             normal: self.normal.clone(),
-            max_len: self.max_len
-        }        
-    }
-}
-
-impl<X: Clone + Add<Output=X> + Div<f64,Output=X>> SpaceBase<X> {
-    pub fn middle_base(&self, other: &SpaceBase<X>) -> SpaceBase<X> {
-        if self.max_len < other.max_len { return other.middle_base(self); }
-        SpaceBase {
-            base: Arc::new(average(&self.base,&other.base)),
             tangent: self.tangent.clone(),
-            normal: self.normal.clone(),
-            max_len: self.max_len
+            allotment: self.allotment.map(cb),
+            len: self.len
+        }
+    }
+
+    pub fn into_new_allotment<F,A>(self, cb: F) -> SpaceBase<X,A> where F: Fn(&Y) -> A {
+        SpaceBase {
+            base: self.base,
+            normal: self.normal,
+            tangent: self.tangent,
+            allotment: self.allotment.clone().map(cb),
+            len: self.len
+        }
+    }
+
+    pub fn allotments(&self) -> &EachOrEvery<Y> { &self.allotment }
+
+    pub fn len(&self) -> usize { self.len }
+
+    pub fn iter<'a>(&'a self) -> SpaceBaseIterator<'a,X,Y> {
+        let base = self.base.iter(self.len).unwrap();
+        let normal = self.normal.iter(self.len).unwrap();
+        let tangent = self.tangent.iter(self.len).unwrap();
+        let allotment = self.allotment.iter(self.len).unwrap();
+        let item = base.zip(normal).zip(tangent).zip(allotment);
+        SpaceBaseIterator {
+            item: Box::new(item)
+        }
+    }
+
+    pub fn filter(&self, filter: &EachOrEveryFilter) -> SpaceBase<X,Y> {
+        SpaceBase {
+            base: self.base.filter(filter),
+            normal: self.normal.filter(filter),
+            tangent: self.tangent.filter(filter),
+            allotment:self.allotment.filter(filter),
+            len: filter.count()
         }
     }
 }
 
-pub struct SpaceBaseIterator<'a,X> {
-    spacebase: &'a SpaceBase<X>,
-    index: usize,
-    length: usize
-}
+impl<X: Clone, Y: Clone> SpaceBase<X,Y> {
+    fn compat(&self, compat: &mut EachOrEveryGroupCompatible) {
+        compat.add(&self.base);
+        compat.add(&self.normal);
+        compat.add(&self.tangent);
+        compat.add(&self.allotment);
+    }
 
-impl<'a,X> Iterator for SpaceBaseIterator<'a,X> {
-    type Item = SpaceBasePointRef<'a,X>;
+    fn new_unszied(base: &EachOrEvery<X>, normal: &EachOrEvery<X>, tangent: &EachOrEvery<X>, allotment: &EachOrEvery<Y>) -> SpaceBase<X,Y> {
+        SpaceBase {
+            base: base.clone(),
+            normal: normal.clone(),
+            tangent: tangent.clone(),
+            allotment: allotment.clone(),
+            len: 0
+        }
+    }
 
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.index >= self.length { return None; }
-        let out = SpaceBasePointRef {
-            base: cycle(&self.spacebase.base,self.index),
-            normal: cycle(&self.spacebase.normal,self.index),
-            tangent: cycle(&self.spacebase.tangent,self.index),
-        };
-        self.index += 1;
+    pub fn new(base: &EachOrEvery<X>, normal: &EachOrEvery<X>, tangent: &EachOrEvery<X>, allotment: &EachOrEvery<Y>) -> Option<SpaceBase<X,Y>> {
+        let mut out = Self::new_unszied(base,normal,tangent,allotment);
+        let mut compat = EachOrEveryGroupCompatible::new(None);
+        out.compat(&mut compat);
+        out.len = if let Some(len) = compat.len() { len } else { return None; };
         Some(out)
+    }
+
+    pub fn merge<A,B,P: Clone,Q: Clone>(&self, other: SpaceBase<A,B>, cbs: SpaceBasePoint<&dyn (Fn(&X,&A) -> P),&dyn (Fn(&Y,&B) -> Q)>) -> SpaceBase<P,Q> {
+        let base = self.base.zip(&other.base,cbs.base);
+        let normal = self.normal.zip(&other.normal,cbs.normal);
+        let tangent =self.tangent.zip(&other.tangent,cbs.tangent);
+        let allotment = self.allotment.zip(&other.allotment,cbs.allotment);
+        SpaceBase::new_unszied(&base,&normal,&tangent,&allotment)
+    }
+
+    pub fn replace_normal(&self, other: &SpaceBase<X,Y>) -> Option<SpaceBase<X,Y>> {
+        SpaceBase::new(&self.base,&other.normal,&self.tangent,&self.allotment)
+    }
+
+    pub fn map_all<F,A: Clone>(&self, cb: F) -> SpaceBase<A,Y> where F: Fn(&X) -> A {
+        SpaceBase {
+            base: self.base.map(&cb),
+            tangent: self.tangent.map(&cb),
+            normal: self.normal.map(&cb),
+            allotment: self.allotment.clone(),
+            len: self.len
+        }
+    }
+
+    pub fn map_all_results<F,G,A: Clone,B: Clone,E>(&mut self, cb: F, cb2: G) -> Result<SpaceBase<A,B>,E> 
+                where F: Fn(&X) -> Result<A,E>, G: Fn(&Y) -> Result<B,E> {
+        Ok(SpaceBase {
+            base: self.base.map_results(&cb)?,
+            tangent: self.tangent.map_results(&cb)?,
+            normal: self.normal.map_results(&cb)?,
+            allotment: self.allotment.map_results(&cb2)?,
+            len: self.len
+        })
+    }
+
+    pub fn fullmap_allotments_results<F,A: Clone,E>(&self, mut cb: F) -> Result<SpaceBase<X,A>,E> 
+                where F: FnMut(&Y) -> Result<A,E> {
+        let allotment = if self.len>0 {
+            self.allotment.to_each(self.len).unwrap().fullmap_results(&mut cb)?
+        } else {
+            EachOrEvery::each(vec![])
+        };
+        Ok(SpaceBase {
+            base: self.base.clone(),
+            tangent: self.tangent.clone(),
+            normal: self.normal.clone(),
+            allotment,
+            len: self.len
+        })
+    }
+    // XXX not bool, result.
+
+    pub fn update_tangent_from_allotment<'a,F>(&mut self, cb: F) where F: Fn(&mut X,&Y) {
+        self.tangent = self.tangent.zip(&self.allotment,|t,a| {
+            let mut t2 = t.clone();
+            cb(&mut t2,a);
+            t2
+        });
+    }
+
+    pub fn update_tangent<'a,F>(&mut self, cb: F) where F: Fn(&X) -> X {
+        self.tangent.map_mut(cb);
+    }
+
+    pub fn update_normal<'a,F>(&mut self, cb: F) where F: Fn(&X) -> X {
+        self.normal.map_mut(cb);
+    }
+
+    pub fn update_normal_from_allotment<'a,F>(&mut self, cb: F) where F: Fn(&mut X,&Y) {
+        self.normal = self.normal.zip(&self.allotment,|t,a| {
+            let mut t2 = t.clone();
+            cb(&mut t2,a);
+            t2
+        });
+    }
+
+    pub fn fold_tangent<F,Z>(&mut self, values: &[Z], cb: F) -> bool where F: Fn(&X,&Z) -> X {
+        self.tangent = if let Some(t) = self.tangent.to_each(values.len()) { t.clone() } else { return false; };
+        self.tangent.fold_mut(values,cb);
+        true
+    }
+
+    pub fn fold_normal<F,Z>(&mut self, values: &[Z], cb: F) -> bool where F: Fn(&X,&Z) -> X {
+        self.normal = if let Some(n) = self.normal.to_each(values.len()) { n.clone() } else { return false; };
+        self.normal.fold_mut(values,cb);
+        true
+    }
+}
+
+impl<Y> SpaceBase<f64,Y> {
+    pub fn make_base_filter(&self, min_value: f64, max_value: f64) -> EachOrEveryFilter {
+        self.base.make_filter(self.len, |base| {
+            let exclude =  base.floor() >= max_value || base.ceil() < min_value;
+            !exclude
+        })
+    }
+}
+
+impl<X: Clone + Add<Output=X>,Y: Clone> SpaceBase<X,Y> {
+    pub fn delta(&mut self, x_size: &[X], y_size: &[X]) {
+        self.fold_tangent(x_size,|v,d| { v.clone() + d.clone() });
+        self.fold_normal(y_size,|v,d| { v.clone() + d.clone() });
+    }
+
+    pub fn nudge_normal(&self, amt: X) -> SpaceBase<X,Y> {
+        SpaceBase {
+            base: self.base.clone(),
+            tangent: self.tangent.clone(),
+            normal: self.normal.map(|x| x.clone()+amt.clone()),
+            allotment: self.allotment.clone(),
+            len: self.len
+        }        
+    }
+
+    pub fn nudge_tangent(&self, amt: X) -> SpaceBase<X,Y> {
+        SpaceBase {
+            base: self.base.clone(),
+            tangent: self.tangent.map(|x| x.clone()+amt.clone()),
+            normal: self.normal.clone(),
+            allotment: self.allotment.clone(),
+            len: self.len
+        }        
+    }
+}
+
+impl<X: Clone + Add<Output=X> + Div<f64,Output=X>,Y: Clone> SpaceBase<X,Y> {
+    pub fn middle_base(&self, other: &SpaceBase<X,Y>) -> SpaceBase<X,Y> {
+        let base =  self.base.zip(&other.base, |a,b| (a.clone()+b.clone())/2.);
+        SpaceBase {
+            base,
+            tangent: self.tangent.clone(),
+            normal: self.normal.clone(),
+            allotment: self.allotment.clone(),
+            len: self.len
+        }
     }
 }

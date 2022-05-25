@@ -130,6 +130,8 @@ def get_bigbed(data_accessor: DataAccessor, item: AccessItem, start: int, end: i
         List of 3-tuples each being: start coordinate; end coordinate; rest of string
 
     """
+    if end <= start:
+        return []
     accessor = data_accessor.resolver.get(item)
     chromosome = data_accessor.data_model.stick(data_accessor, item.stick())
     if accessor is None:

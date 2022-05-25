@@ -1,9 +1,9 @@
 use std::{collections::HashMap, sync::{Arc, Mutex}};
 use peregrine_toolkit::lock;
 
-use crate::{DataMessage, ProgramName, Region, RequestManager, Stick, StickId, api::MessageSender, core::channel::{Channel, PacketPriority}, index::stickauthority::Authority, metric::{datastreammetric::PacketDatastreamMetricBuilder, metricreporter::MetricCollector}, request::messages::{authorityreq::AuthorityReq, bootstrapreq::BootstrapReq, bootstrapres::BootRes, datareq::DataReq, datares::DataRes, jumpreq::JumpReq, jumpres::{JumpLocation, JumpRes}, programreq::ProgramReq, stickreq::StickReq}};
+use crate::{DataMessage, ProgramName, RequestManager, Stick, StickId, api::MessageSender, core::channel::{Channel, PacketPriority}, index::stickauthority::Authority, metric::{datastreammetric::PacketDatastreamMetricBuilder, metricreporter::MetricCollector}, request::messages::{authorityreq::AuthorityReq, bootstrapreq::BootstrapReq, bootstrapres::BootRes, datareq::DataRequest, datares::DataRes, jumpreq::JumpReq, jumpres::{JumpLocation, JumpRes}, programreq::ProgramReq, stickreq::StickReq}};
 
-use super::request::BackendRequest;
+use super::request::{BackendRequest, RequestVariant};
 
 #[derive(Clone)]
 pub struct Backend {
@@ -23,9 +23,9 @@ impl Backend {
         }
     }
 
-    pub async fn data(&self, name: &str, region: &Region, priority: &PacketPriority) -> Result<DataRes,DataMessage> {
-        let request = DataReq::new(&self.channel,name,region);
-        let account_builder = PacketDatastreamMetricBuilder::new(&self.metrics,name,priority,region);
+    pub async fn data(&self, data_request: &DataRequest, priority: &PacketPriority) -> Result<DataRes,DataMessage> {
+        let request = RequestVariant::Data(data_request.clone());
+        let account_builder = PacketDatastreamMetricBuilder::new(&self.metrics,data_request.name(),priority,data_request.region());
         let r = self.manager.submit(&self.channel,priority,BackendRequest::new(request), |v| {
             v.into_data()
         }).await?;

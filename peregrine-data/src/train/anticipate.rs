@@ -1,20 +1,20 @@
 use std::{sync::{Arc, Mutex}};
 use commander::CommanderStream;
-use peregrine_toolkit::sync::needed::Needed;
-use crate::{Carriage, CarriageExtent, DataMessage, LaneStore, PeregrineCoreBase, PgCommanderTaskSpec, Scale, add_task, core::Layout, lane::shapeloader::LoadMode, switch::trackconfiglist::TrainTrackConfigList };
-use super::{carriage::CarriageSerialSource, trainextent::TrainExtent};
+use crate::{DataMessage, ShapeStore, PeregrineCoreBase, PgCommanderTaskSpec, Scale, add_task, core::{Layout, pixelsize::PixelSize}, shapeload::loadshapes::LoadMode, switch::trackconfiglist::TrainTrackConfigList };
+use super::{trainextent::TrainExtent, carriageextent::CarriageExtent};
+use crate::shapeload::carriageprocess::CarriageProcess;
 
 struct AnticipateTask {
-    carriages: Vec<Carriage>,
+    carriages: Vec<CarriageProcess>,
     batch: bool
 }
 
 impl AnticipateTask {
-    fn new(carriages: Vec<Carriage>, batch: bool) -> AnticipateTask {
+    fn new(carriages: Vec<CarriageProcess>, batch: bool) -> AnticipateTask {
         AnticipateTask { carriages, batch }
     }
 
-    async fn run(&mut self, base: &PeregrineCoreBase, result_store: &LaneStore) -> Result<(),DataMessage> {
+    async fn run(&mut self, base: &PeregrineCoreBase, result_store: &ShapeStore) -> Result<(),DataMessage> {
         let mut handles = vec![];
         let load_mode = if self.batch { LoadMode::Network } else { LoadMode::Batch };
         for mut carriage in self.carriages.drain(..) {
@@ -40,7 +40,7 @@ impl AnticipateTask {
     }
 }
 
-fn run_anticipator(base: &PeregrineCoreBase, result_store: &LaneStore, stream: &CommanderStream<AnticipateTask>) {
+fn run_anticipator(base: &PeregrineCoreBase, result_store: &ShapeStore, stream: &CommanderStream<AnticipateTask>) {
     let stream = stream.clone();
     let base2 = base.clone();
     let result_store = result_store.clone();
@@ -59,38 +59,38 @@ fn run_anticipator(base: &PeregrineCoreBase, result_store: &LaneStore, stream: &
 }
 
 pub struct Anticipate {
-    try_lifecycle: Needed,
-    serial_source: CarriageSerialSource,
     extent: Arc<Mutex<Option<CarriageExtent>>>,
     stream: CommanderStream<AnticipateTask>
 }
 
 impl Anticipate {
-    pub(crate) fn new(base: &PeregrineCoreBase, try_lifecycle: &Needed, result_store: &LaneStore, serial_source: &CarriageSerialSource) -> Anticipate {
+    pub(crate) fn new(base: &PeregrineCoreBase, result_store: &ShapeStore) -> Anticipate {
         let stream = CommanderStream::new();
         run_anticipator(&base,&result_store,&stream);
         Anticipate {
-            try_lifecycle: try_lifecycle.clone(),
-            serial_source: serial_source.clone(),
             extent: Arc::new(Mutex::new(None)),
             stream
         }
+    }
+
+    fn enabled(&self) -> bool {
+        !cfg!(disable_anticipate)
     }
 
     fn lightweight(&self) -> bool {
         cfg!(debug_assertions)
     }
 
-    fn build_carriage(&self, carriages: &mut Vec<Carriage>, layout: &Layout, scale: &Scale, index: i64) {
+    fn build_carriage(&self, carriages: &mut Vec<CarriageProcess>, layout: &Layout, scale: &Scale, pixel_size: &PixelSize, index: i64) {
         if index < 0 { return; }
         let train_track_config_list = TrainTrackConfigList::new(layout,scale); // TODO cache
-        let train_extent = TrainExtent::new(layout,scale);
+        let train_extent = TrainExtent::new(layout,scale,pixel_size);
         let carriage_extent = CarriageExtent::new(&train_extent,index as u64);
-        let carriage = Carriage::new(&self.try_lifecycle,&self.serial_source,&carriage_extent,&train_track_config_list,None,true);
+        let carriage = CarriageProcess::new(&carriage_extent,None,&train_track_config_list,None,true);
         carriages.push(carriage);
     }
 
-    fn build_carriages(&self, layout: &Layout, extent: &CarriageExtent, amount_depth: i64, amount_width: i64) -> Result<Vec<Carriage>,DataMessage> {
+    fn build_carriages(&self, layout: &Layout, extent: &CarriageExtent, amount_depth: i64, amount_width: i64) -> Result<Vec<CarriageProcess>,DataMessage> {
         let mut carriages = vec![];
         let base_index = extent.index();
         for offset in -amount_width..(amount_width+1) {
@@ -99,13 +99,13 @@ impl Anticipate {
                 let new_scale = extent.train().scale().delta_scale(delta);
                 if let Some(new_scale) = &new_scale {
                     let new_base_index = new_scale.convert_index(extent.train().scale(),base_index) as i64;
-                    self.build_carriage(&mut carriages,layout,new_scale,new_base_index+offset);
+                    self.build_carriage(&mut carriages,layout,new_scale,extent.train().pixel_size(),new_base_index+offset);
                 }
                 /* in */
                 let new_scale = extent.train().scale().delta_scale(-delta);
                 if let Some(new_scale) = &new_scale {
                     let new_base_index = new_scale.convert_index(extent.train().scale(),base_index) as i64;
-                    self.build_carriage(&mut carriages,layout,new_scale,new_base_index+offset);
+                    self.build_carriage(&mut carriages,layout,new_scale,extent.train().pixel_size(),new_base_index+offset);
                 }
             }
         }
@@ -129,15 +129,17 @@ impl Anticipate {
             if extent == old_extent { return Ok(()); }
         }
         self.stream.clear();
-        if self.lightweight() {
-            self.build_tasks(extent,2,2,false)?;
-        } else {
-            self.build_tasks(extent,8,0,true)?;
-            self.build_tasks(extent,8,0,false)?;
-            self.build_tasks(extent,8,2,false)?;
-            self.build_tasks(extent,8,6,false)?;
-            self.build_tasks(extent,30,2,false)?;
-            self.build_tasks(extent,30,6,false)?;
+        if self.enabled() {
+            if self.lightweight() {
+                self.build_tasks(extent,2,2,false)?;
+            } else {
+                self.build_tasks(extent,8,0,true)?;
+                self.build_tasks(extent,8,0,false)?;
+                self.build_tasks(extent,8,2,false)?;
+                self.build_tasks(extent,8,6,false)?;
+                self.build_tasks(extent,30,2,false)?;
+                self.build_tasks(extent,30,6,false)?;
+            }
         }
         *self.extent.lock().unwrap() = Some(extent.clone());
         Ok(())

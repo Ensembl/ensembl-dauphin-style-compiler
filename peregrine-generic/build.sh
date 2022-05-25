@@ -12,8 +12,17 @@ source .cfg
 
 FLAGS=""
 
-if [ "x$CFG_DEBUG_WEB_GL" = "xyes" ] ; then
+if [ "x$CFG_DEBUG_WEBGL" = "xyes" ] ; then
   FLAGS="$FLAGS --cfg debug_webgl"
+fi
+if [ "x$CFG_DEBUG_TRAINS" = "xyes" ] ; then
+  FLAGS="$FLAGS --cfg debug_trains"
+fi
+if [ "x$CFG_DISABLE_ANTICIPATE" = "xyes" ] ; then
+  FLAGS="$FLAGS --cfg disable_anticipate"
+fi
+if [ "x$CFG_NO_FLANK" = "xyes" ] ; then
+  FLAGS="$FLAGS --cfg no_flank"
 fi
 
 case "$CFG_CONSOLE" in

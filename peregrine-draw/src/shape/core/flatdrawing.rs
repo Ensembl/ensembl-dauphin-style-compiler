@@ -11,7 +11,7 @@ pub(crate) trait FlatDrawingItem {
     fn compute_hash(&self) -> Option<u64> { None }
     fn group_hash(&self) -> Option<u64> { None }
     fn calc_size(&mut self, gl: &mut WebGlGlobal) -> Result<(u32,u32),Message>;
-    fn padding(&mut self, gl: &mut WebGlGlobal) -> Result<(u32,u32),Message> { Ok((0,0)) }
+    fn padding(&mut self, _gl: &mut WebGlGlobal) -> Result<(u32,u32),Message> { Ok((0,0)) }
     fn build(&mut self, canvas: &mut Flat, text_origin: (u32,u32), mask_origin: (u32,u32), size: (u32,u32)) -> Result<(),Message>;
 }
 
@@ -69,7 +69,6 @@ fn unpack<T: Clone>(data: &Option<T>) -> Result<T,Message> {
 }
 
 pub(crate) struct FlatDrawingManager<H: KeyedHandle,T: FlatDrawingItem> {
-    bitmap_multiplier: f32,
     hashed_items: HashMap<u64,H>,
     texts: KeyedData<H,(T,FlatBoundary)>,
     request: Option<FlatPositionCampaignHandle>,
@@ -78,9 +77,8 @@ pub(crate) struct FlatDrawingManager<H: KeyedHandle,T: FlatDrawingItem> {
 }
 
 impl<H: KeyedHandle+Clone,T: FlatDrawingItem> FlatDrawingManager<H,T> {
-    pub fn new(bitmap_multiplier: f32) -> FlatDrawingManager<H,T> {
+    pub fn new() -> FlatDrawingManager<H,T> {
         FlatDrawingManager {
-            bitmap_multiplier,
             hashed_items: HashMap::new(),
             texts: KeyedData::new(),
             groups: HashMap::new(),
@@ -122,7 +120,7 @@ impl<H: KeyedHandle+Clone,T: FlatDrawingItem> FlatDrawingManager<H,T> {
     pub(crate) fn calculate_requirements(&mut self, gl: &mut WebGlGlobal, allocator: &mut FlatPositionManager) -> Result<(),Message> {
         self.calc_sizes(gl)?;
         let mut sizes = vec![];
-        for (text,boundary) in self.texts.values_mut() {
+        for (_,boundary) in self.texts.values_mut() {
             let size = boundary.size_with_padding()?;
             /* mask and text */
             sizes.push(size);
@@ -160,5 +158,9 @@ impl<H: KeyedHandle+Clone,T: FlatDrawingItem> FlatDrawingManager<H,T> {
 
     pub(crate) fn get_texture_areas_on_bitmap(&self, handle: &H) -> Result<CanvasTextureArea,Message> {
         self.texts.get(handle).1.get_texture_areas_on_bitmap()
+    }
+
+    pub(crate) fn iter_mut(&mut self) -> impl Iterator<Item=&mut T> {
+        self.texts.values_mut().map(|x| &mut x.0)
     }
 }

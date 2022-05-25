@@ -1,68 +1,108 @@
-use crate::{AllotmentRequest, DataFilter, DataMessage, EachOrEvery, Flattenable, HoleySpaceBaseArea, Patina, Shape, ShapeDemerge, ShapeDetails, SpaceBaseArea, shape::shape::ShapeCommon, util::eachorevery::eoe_throw};
-use std::hash::Hash;
+use crate::{DataMessage, Patina, ShapeDemerge, Shape, util::{eachorevery::EachOrEveryFilter}, SpaceBaseArea, reactive::Observable, allotment::{transformers::transformers::{Transformer, TransformerVariety}, style::{style::{LeafStyle}}}, CoordinateSystem, LeafRequest};
+use std::{hash::Hash, sync::Arc};
 
-#[derive(Clone)]
 #[cfg_attr(debug_assertions,derive(Debug))]
-pub struct RectangleShape {
-    area: HoleySpaceBaseArea,
-    patina: Patina
+pub struct RectangleShape<A> {
+    area: SpaceBaseArea<f64,A>,
+    patina: Patina,
+    wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>
 }
 
-impl RectangleShape {
-    pub fn new_details(area: HoleySpaceBaseArea, patina: Patina) -> Option<RectangleShape> {
-        if !patina.compatible(area.len()) { return None; }
-        Some(RectangleShape {
-            area, patina
+impl<A> RectangleShape<A> {
+    pub fn new_details(area: SpaceBaseArea<f64,A>, patina: Patina, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>) -> Result<RectangleShape<A>,DataMessage> {
+        if !patina.compatible(area.len()) { return Err(DataMessage::LengthMismatch(format!("rectangle patina"))); }
+        Ok(RectangleShape {
+            area, patina, wobble
         })
     }
 
-    pub fn new(area: HoleySpaceBaseArea, patina: Patina, allotments: EachOrEvery<AllotmentRequest>) -> Result<Vec<Shape>,DataMessage> {
-        let len = area.len();
-        let mut out = vec![];
-        let details = eoe_throw("add_rectangles",RectangleShape::new_details(area,patina))?;
-        for (coord_system,mut filter) in allotments.demerge(|x| { x.coord_system() }) {
-            filter.set_size(len);
-            out.push(Shape::new(
-                eoe_throw("add_rectangles",ShapeCommon::new(filter.count(),coord_system, allotments.filter(&filter)))?,
-                ShapeDetails::SpaceBaseRect(details.clone().filter(&filter))
-            ));
+    pub fn map_new_allotment<F,B>(&self, cb: F) -> RectangleShape<B> where F: Fn(&A) -> B {
+        RectangleShape {
+            area: self.area.map_allotments(cb),
+            patina: self.patina.clone(),
+            wobble: self.wobble.clone()
         }
-        Ok(out)        
+    }
+
+    pub(super) fn filter(&self, filter: &EachOrEveryFilter) -> RectangleShape<A> {
+        RectangleShape {
+            area: self.area.filter(filter),
+            patina: self.patina.filter(filter),
+            wobble: self.wobble.as_ref().map(|w| w.filter(filter))
+        }
     }
 
     pub fn len(&self) -> usize { self.area.len() }
+    pub fn area(&self) -> &SpaceBaseArea<f64,A> { &self.area }
+}
+
+impl RectangleShape<LeafRequest> {
+    pub fn new2(area: SpaceBaseArea<f64,LeafRequest>, patina: Patina, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>) -> Result<Shape<LeafRequest>,DataMessage> {
+        let details = RectangleShape::new_details(area,patina.clone(),wobble.clone())?;
+        Ok(Shape::SpaceBaseRect(details))
+    }
+
+    pub fn base_filter(&self, min_value: f64, max_value: f64) -> RectangleShape<LeafRequest> {
+        let non_tracking = self.area.top_left().allotments().make_filter(self.area.len(),|a| !a.leaf_style().coord_system.is_tracking());
+        let filter = self.area.make_base_filter(min_value,max_value);
+        self.filter(&filter.or(&non_tracking))
+    }
+}
+
+impl<A> Clone for RectangleShape<A> where A: Clone {
+    fn clone(&self) -> Self {
+        Self { area: self.area.clone(), patina: self.patina.clone(), wobble: self.wobble.clone() }
+    }
+}
+
+impl<A: Clone> RectangleShape<A> {
     pub fn patina(&self) -> &Patina { &self.patina }
-    pub fn holey_area(&self) -> &HoleySpaceBaseArea { &self.area }
-    pub fn area(&self) -> SpaceBaseArea<f64> { self.area.extract().0 }
+    pub fn wobble(&self) -> &Option<SpaceBaseArea<Observable<'static,f64>,()>> { &self.wobble }
+}
 
-    pub(super) fn filter(&self, filter: &DataFilter) -> RectangleShape {
-        RectangleShape {
-            area: self.area.filter(filter),
-            patina: self.patina.filter(filter)
-        }
-    }
-
-    pub fn make_base_filter(&self, min: f64, max: f64) -> DataFilter {
-        self.area.make_base_filter(min,max)
-    }
-
-    pub fn demerge<T: Hash + PartialEq + Eq,D>(self, common_in: &ShapeCommon, cat: &D) -> Vec<(T,ShapeCommon,RectangleShape)> where D: ShapeDemerge<X=T> {
+impl RectangleShape<LeafStyle> {
+    pub fn demerge<T: Hash + PartialEq + Eq,D>(self, cat: &D) -> Vec<(T,RectangleShape<LeafStyle>)> where D: ShapeDemerge<X=T> {
         let demerge = match &self.patina {
             Patina::Drawn(drawn_type,colours) => {
-                let allotments_and_colours = common_in.allotments().merge(&colours).unwrap();
-                allotments_and_colours.demerge(|(a,c)| 
-                    cat.categorise_with_colour(a,drawn_type,c)
+                let allotments_and_colours = self.area.top_left().allotments().zip(&colours,|x,y| (x.clone(),y.clone()));
+                allotments_and_colours.demerge(self.area.len(),|(a,c)| 
+                    cat.categorise_with_colour(&a.coord_system,drawn_type,c)
                 )
             },
             _ => {
-                common_in.allotments().demerge(|a| cat.categorise(a))
+                self.area.top_left().allotments().demerge(self.area.len(),|a| cat.categorise(&a.coord_system))
             }
         };
         let mut out = vec![];
-        for (draw_group,mut filter) in demerge {
-            filter.set_size(self.area.len());
-            let common = common_in.filter(&filter);
-            out.push((draw_group,common,self.filter(&filter)));
+        for (draw_group,filter) in demerge {
+            out.push((draw_group,self.filter(&filter)));
+        }
+        out
+    }
+}
+
+impl RectangleShape<Arc<dyn Transformer>> {
+    fn demerge_by_variety(&self) -> Vec<((TransformerVariety,CoordinateSystem),RectangleShape<Arc<dyn Transformer>>)> {
+        let demerge = self.area.top_left().allotments().demerge(self.area.len(),|x| {
+            x.choose_variety()
+        });
+        let mut out = vec![];
+        for (variety,filter) in demerge {
+            out.push((variety,self.filter(&filter)));
+        }
+        out
+    }
+}
+
+impl RectangleShape<Arc<dyn Transformer>> {
+    pub fn make(&self) -> Vec<RectangleShape<LeafStyle>> {
+        let mut out = vec![];
+        for ((variety,coord_system),rectangles) in self.demerge_by_variety() {
+            out.push(RectangleShape {
+                area: variety.spacebasearea_transform(&coord_system,&rectangles.area),
+                patina: rectangles.patina.clone(),
+                wobble: rectangles.wobble.clone()
+            });
         }
         out
     }

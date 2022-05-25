@@ -1,13 +1,13 @@
-use peregrine_data::{Assets, Carriage, CarriageExtent, VariableValues, ZMenuProxy};
-use peregrine_toolkit::lock;
+use peregrine_data::{Assets, DrawingCarriage, CarriageExtent};
+use peregrine_toolkit::{lock, warn, error };
 use peregrine_toolkit::sync::asynconce::AsyncOnce;
 use peregrine_toolkit::sync::needed::Needed;
+use crate::shape::layers::drawingzmenus::HotspotEntryDetails;
 use crate::{PgCommanderWeb};
 use crate::shape::layers::drawing::{ Drawing };
 use crate::webgl::DrawingSession;
 use crate::webgl::global::WebGlGlobal;
 use std::hash::{ Hash, Hasher };
-use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use crate::stage::stage::ReadStage;
 use crate::util::message::Message;
@@ -16,11 +16,19 @@ struct GLCarriageData {
     commander: PgCommanderWeb,
     extent: CarriageExtent,
     opacity: Mutex<f64>,
-    drawing: AsyncOnce<Result<Drawing,Message>>
+    drawing: AsyncOnce<Result<Option<Drawing>,Message>>,
+    preflight_done: bool,
+    discarded: bool
 }
 
 fn get_drawing(data: &GLCarriageData) -> Result<Option<Drawing>,Message> {
-    data.drawing.peek().map(|x| x.map(|x| Some(x))).unwrap_or(Ok(None))
+    let current = data.drawing.peek();
+    let result = if let Some(x) = current { x } else { return Ok(None); };
+    let drawing = match result {
+        Ok(x) => x,
+        Err(e) => { return Err(e); }
+    };
+    Ok(drawing)
 }
 
 impl GLCarriageData {
@@ -50,7 +58,7 @@ impl Hash for GLCarriage {
 }
 
 impl GLCarriage {
-    pub fn new(redraw_needed: &Needed, commander: &PgCommanderWeb, carriage: &Carriage, gl: &Arc<Mutex<WebGlGlobal>>, assets: &Assets) -> Result<GLCarriage,Message> {
+    pub fn new(redraw_needed: &Needed, commander: &PgCommanderWeb, carriage: &DrawingCarriage, gl: &Arc<Mutex<WebGlGlobal>>, assets: &Assets) -> Result<GLCarriage,Message> {
         let carriage2 = carriage.clone();
         let gl = gl.clone();
         let assets = assets.clone();
@@ -59,14 +67,14 @@ impl GLCarriage {
             commander: commander.clone(),
             extent: carriage.extent().clone(),
             opacity: Mutex::new(1.),
+            preflight_done: false,
+            discarded: false,
             drawing: AsyncOnce::new(async move {
                 let carriage = carriage2;
                 let scale = carriage.extent().train().scale();
-                let drawing = Drawing::new(Some(scale),carriage.shapes(),&gl,carriage.extent().left_right().0,&VariableValues::new(),&assets).await;
-                carriage.set_ready();
+                let shapes = carriage.shapes().clone();
+                let drawing = Drawing::new(Some(scale),shapes,&gl,carriage.extent().left_right().0,&assets,&carriage.relevancy()).await;
                 redraw_needed.set();
-                //use web_sys::console;
-                //console::log_1(&format!("ready at {}",carriage.extent().train().scale().get_index()).into());        
                 drawing
             })
         })));
@@ -74,15 +82,21 @@ impl GLCarriage {
         Ok(our_carriage)
     }
 
-    pub(super) async fn preflight(&self, _carriage: &Carriage) -> Result<(),Message> {
+    pub(super) async fn preflight(&self, carriage: &DrawingCarriage) -> Result<(),Message> {
         let state = lock!(self.0);
         let drawing = state.drawing.clone();
         drop(state);
-        drawing.get().await.as_ref().map(|_| ()).map_err(|e| e.clone())?;
+        let g = drawing.get().await;
+        let x = g.as_ref().map(|_| ()).map_err(|e| e.clone());
+        if let Err(e) = x {
+            error!("{}",e);
+        }
+        lock!(self.0).preflight_done = true;
+        carriage.set_ready();
         Ok(())
     }
 
-    pub fn preflight_freewheel(&self, carriage: &Carriage) {
+    pub fn preflight_freewheel(&self, carriage: &DrawingCarriage) {
         let self2 = self.clone();
         let commander = lock!(self.0).commander.clone();
         let carriage = carriage.clone();
@@ -99,6 +113,12 @@ impl GLCarriage {
 
     pub fn draw(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage, session: &mut DrawingSession) -> Result<(),Message> {
         let state = lock!(self.0);
+        if !state.preflight_done {
+            warn!("draw without preflight");
+        }
+        if state.discarded {
+            panic!("draw on discarded glcarriage");
+        }
         let opacity = state.opacity.lock().unwrap().clone();
         let in_view =  state.in_view(stage)?;
         if let Some(mut drawing) = get_drawing(&state)? {
@@ -110,7 +130,7 @@ impl GLCarriage {
         Ok(())
     }
 
-    pub(crate) fn get_hotspot(&self, stage: &ReadStage, position: (f64,f64)) -> Result<Vec<Rc<ZMenuProxy>>,Message> {
+    pub(crate) fn get_hotspot(&self, stage: &ReadStage, position: (f64,f64)) -> Result<Vec<HotspotEntryDetails>,Message> {
         let state = lock!(self.0);
         if let Some(drawing) = get_drawing(&state)? {
             drawing.get_hotspot(stage,position)
@@ -120,9 +140,8 @@ impl GLCarriage {
     }
 
     pub fn discard(&mut self, gl: &mut WebGlGlobal) -> Result<(),Message> {
-        use web_sys::console;
-        //console::log_1(&format!("discard at {}",self.extent().train().scale().get_index()).into());
-        let state = lock!(self.0);
+        let mut state = lock!(self.0);
+        state.discarded = true;
         if let Some(mut drawing) = get_drawing(&state)? {
             drawing.discard(gl)?;
         }

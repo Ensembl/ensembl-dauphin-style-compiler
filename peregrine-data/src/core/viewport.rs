@@ -1,5 +1,5 @@
 use crate::{DataMessage, core::{ StickId }};
-use super::layout::Layout;
+use super::{layout::Layout, pixelsize::PixelSize};
 use crate::switch::trackconfiglist::TrackConfigList;
 
 fn unwrap<T>(x: Option<T>) -> Result<T,DataMessage> {
@@ -65,7 +65,8 @@ fn limit_value(value: &mut f64, min: f64, max: f64) {
 pub struct Viewport {
     layout: LayoutBuilder,
     position: Option<f64>,
-    bp_per_screen: Option<f64>
+    bp_per_screen: Option<f64>,
+    pixel_size: Option<PixelSize>
 }
 
 impl Viewport {
@@ -73,17 +74,19 @@ impl Viewport {
         Viewport {
             layout: LayoutBuilder::empty(),
             position: None,
-            bp_per_screen: None
+            bp_per_screen: None,
+            pixel_size: None
         }
     }
 
     pub fn ready(&self) -> bool {
-        self.layout.layout().is_some() && self.position.is_some() && self.bp_per_screen.is_some()
+        self.layout.layout().is_some() && self.position.is_some() && self.bp_per_screen.is_some() && self.pixel_size.is_some()
     }
 
     pub fn layout(&self) -> Result<&Layout,DataMessage> { unwrap(self.layout.layout()) }
     pub fn position(&self) -> Result<f64,DataMessage> { unwrap(self.position) }
     pub fn bp_per_screen(&self) -> Result<f64,DataMessage> { unwrap(self.bp_per_screen) }
+    pub fn pixel_size(&self) -> Result<&PixelSize,DataMessage> { unwrap(self.pixel_size.as_ref()) }
 
     fn update_by_limits(&mut self) {
         if let (Ok(size),Some(position),Some(bp_per_screen)) = (
@@ -113,6 +116,12 @@ impl Viewport {
         let mut out = self.clone();
         out.bp_per_screen = Some(scale);
         out.update_by_limits();
+        out
+    }
+
+    pub fn set_pixel_size(&self, pixel_size: &PixelSize) -> Viewport {
+        let mut out = self.clone();
+        out.pixel_size = Some(pixel_size.clone());
         out
     }
 

@@ -1,10 +1,12 @@
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{ Hash, Hasher };
+use std::sync::{Arc, Mutex};
 use peregrine_data::{ DirectColour };
 use keyed::keyed_handle;
+use peregrine_toolkit::lock;
 use crate::shape::core::flatdrawing::{FlatDrawingItem, FlatDrawingManager};
 use crate::shape::core::texture::CanvasTextureArea;
-use crate::shape::layers::drawing::ToolPreparations;
+use crate::shape::layers::drawingtools::ToolPreparations;
 use crate::webgl::{Flat, FlatStore};
 use crate::webgl::global::WebGlGlobal;
 use crate::util::message::Message;
@@ -181,11 +183,11 @@ pub struct DrawingHeraldry {
 }
 
 impl DrawingHeraldry {
-    pub fn new(bitmap_multiplier: f32) -> DrawingHeraldry { 
+    pub fn new() -> DrawingHeraldry { 
         DrawingHeraldry {
-            horiz: FlatDrawingManager::new(bitmap_multiplier),
-            vert: FlatDrawingManager::new(bitmap_multiplier),
-            crisp: FlatDrawingManager::new(bitmap_multiplier)
+            horiz: FlatDrawingManager::new(),
+            vert: FlatDrawingManager::new(),
+            crisp: FlatDrawingManager::new()
         }
     }
 
@@ -204,10 +206,11 @@ impl DrawingHeraldry {
         }
     }
 
-    pub(crate) fn calculate_requirements(&mut self, gl: &mut WebGlGlobal, preparations: &mut ToolPreparations) -> Result<(),Message> {
-        self.horiz.calculate_requirements(gl,preparations.heraldry_h_manager())?;
-        self.vert.calculate_requirements(gl,preparations.heraldry_v_manager())?;
-        self.crisp.calculate_requirements(gl,preparations.crisp_manager())?;
+    pub(crate) async fn calculate_requirements(&mut self, gl: &Arc<Mutex<WebGlGlobal>>, preparations: &mut ToolPreparations) -> Result<(),Message> {
+        let mut gl = lock!(gl);
+        self.horiz.calculate_requirements(&mut gl,preparations.heraldry_h_manager())?;
+        self.vert.calculate_requirements(&mut gl,preparations.heraldry_v_manager())?;
+        self.crisp.calculate_requirements(&mut gl,preparations.crisp_manager())?;
         Ok(())
     }
 

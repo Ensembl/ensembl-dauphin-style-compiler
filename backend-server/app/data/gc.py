@@ -41,17 +41,18 @@ def _get_gc(data_accessor: DataAccessor, chrom: Chromosome, panel: Panel) -> Res
 
 
 class WiggleDataHandler(DataHandler):
-    def process_data(self, data_accessor: DataAccessor, panel: Panel) -> Response:
+    def process_data(self, data_accessor: DataAccessor, panel: Panel, scope) -> Response:
         """
 
         Args:
             data_accessor ():
             panel ():
+            scope ():
 
         Returns:
 
         """
-        chrom = data_accessor.data_model.stick(data_accessor, panel.stick)
-        if chrom is None:
-            return Response(1, "Unknown chromosome {0}".format(panel.stick))
-        return _get_gc(data_accessor, chrom, panel)
+        chrom = data_accessor.data_model.stick(data_accessor,panel.stick)
+        if chrom == None:
+            return Response(1,"Unknown chromosome {0}".format(panel.stick))
+        return _get_gc(data_accessor,chrom,panel)

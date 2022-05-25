@@ -1,4 +1,4 @@
-use peregrine_data::{PlayingField, StickId, Viewport};
+use peregrine_data::{StickId, Viewport, PlayingField};
 use peregrine_toolkit::sync::needed::Needed;
 
 use crate::{ webgl::{ SourceInstrs, UniformProto, GLArity, UniformHandle, ProgramBuilder, Process }};
@@ -110,13 +110,12 @@ impl Clone for ReadStage {
 }
 
 impl Stage {
-    pub fn new() -> Stage {
-        let redraw_needed = Needed::new();
+    pub fn new(redraw_needed: &Needed) -> Stage {
         let mut out = Stage {
             stick: None,
             x: StageAxis::new(&redraw_needed),
             y: StageAxis::new(&redraw_needed),
-            redraw_needed
+            redraw_needed: redraw_needed.clone()
         };
         out.y.set_position(0.);
         out.y.set_bp_per_screen(1.);
@@ -135,14 +134,13 @@ impl Stage {
     
     pub fn redraw_needed(&self) -> Needed { self.redraw_needed.clone() }
 
-    pub fn stick(&self) -> Option<&StickId> { self.stick.as_ref() }
     pub fn x(&self) -> &StageAxis { &self.x }
     pub fn y(&self) -> &StageAxis { &self.y }
     pub fn x_mut(&mut self) -> &mut StageAxis { &mut self.x }
     pub fn y_mut(&mut self) -> &mut StageAxis { &mut self.y }
 
     pub fn notify_playingfield(&mut self, playing_field: &PlayingField) {
-        let squeeze = playing_field.squeeze();
+        let squeeze = playing_field.squeeze;
         self.x.set_squeeze((squeeze.0 as f32, squeeze.1 as f32));
     }
 

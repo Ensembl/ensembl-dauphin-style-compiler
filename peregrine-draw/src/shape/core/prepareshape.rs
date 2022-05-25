@@ -1,25 +1,16 @@
-use peregrine_data::{Allotment, AllotmentRequest, Colour, DrawnType, EachOrEvery, HollowEdge, Patina, RectangleShape, Shape, ShapeCommon, ShapeDemerge, ShapeDetails};
+use peregrine_data::{ Colour, DrawnType, Patina, RectangleShape, Shape, ShapeDemerge, CoordinateSystem, HollowEdge2, EachOrEvery, LeafStyle };
 use super::super::layers::layer::{ Layer };
-use super::super::layers::drawing::DrawingTools;
 use crate::shape::core::drawshape::{SimpleShapePatina};
 use crate::shape::heraldry::heraldry::{Heraldry, HeraldryCanvasesUsed};
+use crate::shape::layers::drawingtools::DrawingToolsBuilder;
 use crate::shape::triangles::drawgroup::{DrawGroup, ShapeCategory};
 use crate::util::message::Message;
 use super::drawshape::{ GLShape };
 
-fn get_allotment(handle: &AllotmentRequest) -> Result<Allotment,Message> {
-    handle.allotment().map_err(|e| Message::DataError(e))
-}
-
-fn allotments(allotments: &EachOrEvery<AllotmentRequest>) -> Result<EachOrEvery<Allotment>,Message> {
-    allotments.map_results(|handle|{
-        handle.allotment()
-    }).map_err(|e| Message::DataError(e))
-}
-
-fn split_spacebaserect(tools: &mut DrawingTools, common: &ShapeCommon, shape: &RectangleShape, draw_group: &DrawGroup) -> Result<Vec<GLShape>,Message> {
-    let allotment = allotments(common.allotments())?;
+fn split_spacebaserect(tools: &mut DrawingToolsBuilder, shape: &RectangleShape<LeafStyle>, draw_group: &DrawGroup) -> Result<Vec<GLShape>,Message> {
     let mut out = vec![];
+    let depth = shape.area().top_left().allotments().map(|x| x.depth);
+    let wobble = shape.wobble().clone();
     match shape.patina() {
         Patina::Drawn(drawn_variety,_) => {
             let width = match drawn_variety {
@@ -28,16 +19,16 @@ fn split_spacebaserect(tools: &mut DrawingTools, common: &ShapeCommon, shape: &R
             };
             match draw_group.shape_category() {
                 ShapeCategory::SolidColour | ShapeCategory::Other => {
-                    out.push(GLShape::SpaceBaseRect(shape.holey_area().clone(),SimpleShapePatina::from_patina(shape.patina())?,allotment,draw_group.clone()));
+                    out.push(GLShape::SpaceBaseRect(shape.area().clone(),SimpleShapePatina::from_patina(shape.patina())?,depth,draw_group.clone(),wobble));
                 },
                 ShapeCategory::SpotColour(c) => {
-                    out.push(GLShape::SpaceBaseRect(shape.holey_area().clone(),SimpleShapePatina::spot_from_patina(c,shape.patina())?,allotment,draw_group.clone()));
+                    out.push(GLShape::SpaceBaseRect(shape.area().clone(),SimpleShapePatina::spot_from_patina(c,shape.patina())?,depth,draw_group.clone(),wobble));
                 },
                 ShapeCategory::Heraldry(HeraldryCanvasesUsed::Solid(heraldry_canvas),scale) => {
                     let heraldry_tool = tools.heraldry();
                     let heraldry = make_heraldry(shape.patina())?;
                     let handles = heraldry.map(|x| heraldry_tool.add(x.clone()));
-                    out.push(GLShape::Heraldry(shape.holey_area().clone(),handles,allotment,draw_group.clone(),heraldry_canvas.clone(),scale.clone(),None));
+                    out.push(GLShape::Heraldry(shape.area().clone(),handles,depth,draw_group.clone(),heraldry_canvas.clone(),scale.clone(),None,wobble));
                 },
                 ShapeCategory::Heraldry(HeraldryCanvasesUsed::Hollow(heraldry_canvas_h,heraldry_canvas_v),scale) => {
                     let width = width.unwrap_or(0.);
@@ -45,16 +36,16 @@ fn split_spacebaserect(tools: &mut DrawingTools, common: &ShapeCommon, shape: &R
                     let heraldry = make_heraldry(shape.patina())?;
                     let handles = heraldry.map(|x| heraldry_tool.add(x.clone()));
                     // XXX too much cloning, at least Arc them
-                    let area = shape.holey_area();
-                    out.push(GLShape::Heraldry(area.clone(),handles.clone(),allotment.clone(),draw_group.clone(),heraldry_canvas_v.clone(),scale.clone(),Some(HollowEdge::Left(width))));
-                    out.push(GLShape::Heraldry(area.clone(),handles.clone(),allotment.clone(),draw_group.clone(),heraldry_canvas_v.clone(),scale.clone(),Some(HollowEdge::Right(width))));
-                    out.push(GLShape::Heraldry(area.clone(),handles.clone(),allotment.clone(),draw_group.clone(),heraldry_canvas_h.clone(),scale.clone(),Some(HollowEdge::Top(width))));
-                    out.push(GLShape::Heraldry(area.clone(),handles,allotment,draw_group.clone(),heraldry_canvas_h.clone(),scale.clone(),Some(HollowEdge::Bottom(width))));
+                    let area = shape.area();
+                    out.push(GLShape::Heraldry(area.clone(),handles.clone(),depth.clone(),draw_group.clone(),heraldry_canvas_v.clone(),scale.clone(),Some(HollowEdge2::Left(width)),wobble.clone()));
+                    out.push(GLShape::Heraldry(area.clone(),handles.clone(),depth.clone(),draw_group.clone(),heraldry_canvas_v.clone(),scale.clone(),Some(HollowEdge2::Right(width)),wobble.clone()));
+                    out.push(GLShape::Heraldry(area.clone(),handles.clone(),depth.clone(),draw_group.clone(),heraldry_canvas_h.clone(),scale.clone(),Some(HollowEdge2::Top(width)),wobble.clone()));
+                    out.push(GLShape::Heraldry(area.clone(),handles,depth,draw_group.clone(),heraldry_canvas_h.clone(),scale.clone(),Some(HollowEdge2::Bottom(width)),wobble.clone()));
                 }
             }
         },
-        Patina::ZMenu(zmenu,values) => {
-            out.push(GLShape::SpaceBaseRect(shape.holey_area().clone(),SimpleShapePatina::ZMenu(zmenu.clone(),values.clone()),allotment,draw_group.clone()));
+        Patina::Hotspot(hotspot) => {
+            out.push(GLShape::SpaceBaseRect(shape.area().clone(),SimpleShapePatina::Hotspot(hotspot.clone()),depth,draw_group.clone(),None));
         }
     }
     Ok(out)
@@ -93,11 +84,11 @@ pub struct GLCategoriser();
 impl ShapeDemerge for GLCategoriser {
     type X = DrawGroup;
 
-    fn categorise(&self, allotment: &AllotmentRequest) -> Self::X {
-        DrawGroup::new(&allotment.coord_system(),&ShapeCategory::Other)
+    fn categorise(&self, coord_system: &CoordinateSystem) -> Self::X {
+        DrawGroup::new(coord_system,&ShapeCategory::Other)
     }
 
-    fn categorise_with_colour(&self, allotment: &AllotmentRequest, drawn_variety: &DrawnType, colour: &Colour) -> Self::X {
+    fn categorise_with_colour(&self, coord_system: &CoordinateSystem, drawn_variety: &DrawnType, colour: &Colour) -> Self::X {
         let is_fill = match drawn_variety {
             DrawnType::Fill => false,
             DrawnType::Stroke(_) => true
@@ -109,38 +100,41 @@ impl ShapeDemerge for GLCategoriser {
         } else {
             ShapeCategory::SolidColour
         };
-        DrawGroup::new(&allotment.coord_system(),&category)        
+        DrawGroup::new(&coord_system,&category)        
     }
 }
 
-pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingTools, shape: Shape) -> Result<Vec<GLShape>,Message> {
+pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingToolsBuilder, shape: Shape<LeafStyle>) -> Result<Vec<GLShape>,Message> {
     let mut out = vec![];
-    for (draw_group,shape) in shape.demerge(&GLCategoriser()) {
-        let common = shape.common();
-        match shape.details() {
-            ShapeDetails::Wiggle(shape) => {
-                out.push(GLShape::Wiggle(shape.range(),shape.values(),shape.plotter().clone(),get_allotment(shape.allotment())?));
+    let demerge = shape.demerge(&GLCategoriser());
+    for (draw_group,shape) in demerge {
+        match shape {
+            Shape::Empty(_) => {},
+            Shape::Wiggle(shape) => {
+                out.push(GLShape::Wiggle(shape.range(),shape.values(),shape.plotter().clone(),shape.get_style().depth));
             },
-            ShapeDetails::Text(shape) => {
-                let allotment = allotments(&common.allotments())?;
+            Shape::Text(shape) => {
+                let depth = shape.position().allotments().map(|x| x.depth);
                 let drawing_text = tools.text();
                 let colours_iter = shape.pen().colours().iter().cycle();
                 let background = shape.pen().background();
                 let texts = shape.iter_texts().collect::<Vec<_>>();
-                let handles : Vec<_> = texts.iter().zip(colours_iter).map(|(text,colour)| drawing_text.add_text(&shape.pen(),text,colour,background)).collect();
-                out.push(GLShape::Text(shape.holey_position().clone(),handles,allotment,draw_group));
+                let handles : Vec<_> = texts.iter().zip(colours_iter).map(|(text,colour)| {
+                    drawing_text.add_text(&shape.pen(),text,colour,background)
+                }).collect();
+                out.push(GLShape::Text(shape.position().clone(),handles,depth,draw_group));
             },
-            ShapeDetails::Image(shape) => {
-                let allotment = allotments(&common.allotments())?;
+            Shape::Image(shape) => {
+                let depth = shape.position().allotments().map(|x| x.depth);
                 let drawing_bitmap = tools.bitmap();
                 let names = shape.iter_names().collect::<Vec<_>>();
                 let handles = names.iter().map(|asset| drawing_bitmap.add_bitmap(asset)).collect::<Result<Vec<_>,_>>()?;
-                out.push(GLShape::Image(shape.holey_position().clone(),handles,allotment,draw_group));
+                out.push(GLShape::Image(shape.position().clone(),handles,depth,draw_group));
             },
-            ShapeDetails::SpaceBaseRect(shape) => {
-                out.append(&mut split_spacebaserect(tools,&common,&shape,&draw_group)?);
+            Shape::SpaceBaseRect(shape) => {
+                out.append(&mut split_spacebaserect(tools,&shape,&draw_group)?);
             }
-        }    
+        }
     }
     Ok(out)
 }

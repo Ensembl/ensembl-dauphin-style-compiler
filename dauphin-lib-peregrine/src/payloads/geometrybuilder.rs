@@ -1,7 +1,7 @@
 use anyhow::{ anyhow as err, bail };
 use core::f64;
 use std::sync::{ Arc, Mutex };
-use peregrine_data::{AllotmentRequest, Colour, DirectColour, Patina, Pen, Plotter, SpaceBase, ZMenu};
+use peregrine_data::{Colour, DirectColour, Patina, Pen, Plotter, ZMenu, SpaceBase, LeafRequest, DataRequest};
 use owning_ref::ArcRef;
 use peregrine_toolkit::lock;
 
@@ -13,8 +13,9 @@ enum GeometryBuilderEntry {
     ZMenu(Arc<ZMenu>),
     Pen(Arc<Pen>),
     Plotter(Arc<Plotter>),
-    AllotmentRequest(Arc<AllotmentRequest>),
-    SpaceBase(Arc<SpaceBase<f64>>),
+    LeafRequest(Arc<LeafRequest>),
+    SpaceBase(Arc<SpaceBase<f64,()>>),
+    DataRequest(Arc<DataRequest>)
 }
 
 impl GeometryBuilderEntry {
@@ -26,8 +27,9 @@ impl GeometryBuilderEntry {
             GeometryBuilderEntry::ZMenu(_) => "zmenu",
             GeometryBuilderEntry::Pen(_) => "pen",
             GeometryBuilderEntry::Plotter(_) => "plotter",
-            GeometryBuilderEntry::AllotmentRequest(_) => "allotment",
+            GeometryBuilderEntry::LeafRequest(_) => "allotment",
             GeometryBuilderEntry::SpaceBase(_) => "spacebase",
+            GeometryBuilderEntry::DataRequest(_) => "datarequest"
         }
     }
 }
@@ -91,6 +93,7 @@ impl GeometryBuilder {
     builder_type!(zmenu,add_zmenu,ZMenu,ZMenu,"zmenu");
     builder_type!(pen,add_pen,Pen,Pen,"pen");
     builder_type!(plotter,add_plotter,Plotter,Plotter,"plotter");
-    builder_type!(allotment,add_allotment,AllotmentRequest,AllotmentRequest,"allotment");
-    builder_type!(spacebase,add_spacebase,SpaceBase,SpaceBase<f64>,"spacebase");
+    builder_type!(allotment,add_allotment,LeafRequest,LeafRequest,"allotment");
+    builder_type!(spacebase,add_spacebase,SpaceBase,SpaceBase<f64,()>,"spacebase");
+    builder_type!(request,add_request,DataRequest,DataRequest,"datarequest");
 }

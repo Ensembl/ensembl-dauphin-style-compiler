@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use std::sync::{ Arc, Mutex };
 use commander::cdr_identity;
 use lazy_static::lazy_static;
-use peregrine_data::{AllotmentMetadataReport, DataMessage, ZMenuFixed, zmenu_fixed_vec_to_json};
+use peregrine_data::{DataMessage, ZMenuFixed, zmenu_fixed_vec_to_json, GlobalAllotmentMetadata };
 use peregrine_message::{MessageAction, MessageKind, MessageLikelihood, PeregrineMessage};
 
 fn calculate_hash<T: Hash>(t: &T) -> u64 {
@@ -27,7 +27,7 @@ pub enum Endstop {
 pub enum Message {
     CurrentLocation(String,u64,u64),
     TargetLocation(String,u64,u64),
-    AllotmentMetadataReport(AllotmentMetadataReport),
+    AllotmentMetadataReport(GlobalAllotmentMetadata),
     ZMenuEvent(f64,f64,Vec<ZMenuFixed>),
     HitEndstop(Vec<Endstop>),
     Ready,
@@ -118,7 +118,7 @@ impl PeregrineMessage for Message {
             Message::CurrentLocation(stick,left,right) => format!("current location: {}:{}-{}",stick,left,right),
             Message::TargetLocation(stick,left,right) => format!("target location: {}:{}-{}",stick,left,right),
             Message::Ready => format!("ready"),
-            Message::AllotmentMetadataReport(metadata) => format!("allotment metadata: {:?}",metadata),
+            Message::AllotmentMetadataReport(metadata) => format!("allotment metadata: {:?}",metadata.summarize()),
             Message::ZMenuEvent(x,y,zmenu) => format!("zmenu event: {} at ({},{})",zmenu_fixed_vec_to_json(zmenu),x,y),
             Message::HitEndstop(x) => format!("hit endstop: {:?}",x.iter().map(|y| format!("{:?}",y)).collect::<Vec<_>>().join(", ")),
         }

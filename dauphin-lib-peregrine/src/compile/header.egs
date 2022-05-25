@@ -42,6 +42,7 @@ struct penspec { value: number };
 struct plotterspec { value: number };
 struct allotment { value: number };
 struct spacebaseid { value: number };
+struct request { value: number };
 
 struct region {
     stick: string,
@@ -52,6 +53,7 @@ struct region {
 struct datasource { value: number };
 
 func bp_range() becomes number;
+func px_per_carriage() becomes number;
 
 func track_new(string,string,number,number,number) becomes laneid;
 proc track_add_tag(laneid,string);
@@ -76,22 +78,25 @@ func zmenu(string) becomes zmenutmpl;
 func patina_filled(colour) becomes patina;
 func patina_hollow(colour,number) becomes patina;
 func patina_zmenu(zmenutmpl, vec(string), vec(string)) becomes patina;
+func patina_switch(string,boolean) becomes patina;
 func pen(string,number,directcolour,directcolour) becomes penspec;
 func plotter(number,directcolour) becomes plotterspec;
+func make_request(string,string,region) becomes request;
+func request_scope(request,string,string) becomes request;
 
 func get_switch(vec(string)) becomes boolean;
 func list_switch(vec(string)) becomes string;
 
 func only_warm() becomes boolean;
 
+proc empty(spacebaseid,spacebaseid,allotment);
 proc rectangle(spacebaseid,spacebaseid,patina,allotment);
 proc text2(spacebaseid,penspec,string,allotment);
 proc wiggle(number,number,plotterspec,number,boolean,allotment);
 proc draw_image(spacebaseid,string,allotment);
 
 stmt text_underneath(x,y,penspec,writing,allt) {
-    x := spacebase(x,y,0);
-    text2(x,penspec,writing,allt);
+    text2(spacebase(x,y,0),penspec,writing,allt);
 }
 
 stmt image_underneath(x,y,name,allt) {
@@ -118,7 +123,7 @@ stmt indented_rectangle_on_genome(dstart,dend,height,patina,allt) {
 }
 
 func get_region() becomes region;
-func get_data(string,string,region) becomes datasource;
+func get_data(request) becomes datasource;
 
 func data_stream(datasource,string) becomes bytes;
 func inflate_bytes(bytes) becomes bytes;
@@ -130,9 +135,14 @@ func alternate(number) becomes number;
 func classify(string,number) becomes string;
 func split_string(string) becomes vec(string);
 func base_flip(string) becomes string;
+func append_group(string,string) becomes string;
+func append_depth(string,number) becomes string;
+
+proc style(string,string,string);
 
 expr delta_seq(stream,name) delta(zigzag(lesqlite2(inflate_bytes(data_stream(stream,name)))));
 expr string_seq(stream,name) split_string(inflate_string(data_stream(stream,name)))[];
-expr positive_seq(stream,name) lesqlite2(inflate_bytes(data_stream(data,name)));
+expr letter_string(stream,name) std::split_characters(inflate_string(data_stream(stream,name)))[];
+expr positive_seq(stream,name) lesqlite2(inflate_bytes(data_stream(stream,name)));
 expr classified_seq(stream,keys,values) classify(string_seq(stream,keys),positive_seq(stream,values));
-expr bool_seq(stream,name) std::bytes_to_bool(inflate_bytes(data_stream(data,name)));
+expr bool_seq(stream,name) std::bytes_to_bool(inflate_bytes(data_stream(stream,name)));

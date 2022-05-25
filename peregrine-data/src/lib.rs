@@ -1,13 +1,66 @@
 mod allotment {
-    pub(crate) mod allotment;
-    pub(crate) mod allotmentmetadata;
-    pub(crate) mod allotmentrequest;
-    pub(crate) mod baseallotmentrequest;
-    pub(crate) mod dustbinallotment;
-    pub(crate) mod lineargroup;
-    pub(crate) mod maintrack;
-    pub(crate) mod offsetallotment;
-    pub(crate) mod universe;
+    pub(crate) mod boxes {
+        pub(crate) mod leaf;
+        pub(crate) mod overlay;
+        pub(crate) mod stacker;
+        pub(crate) mod bumper;
+        pub(crate) mod container;
+        pub(crate) mod root;
+    }
+
+    pub(crate) mod builder {
+        mod holder;
+        pub(crate) mod stylebuilder;
+    }
+
+    pub(crate) mod collision {
+        mod bumppart;
+        pub(crate) mod bumpprocess;
+        pub(crate) mod collisionalgorithm;
+    }
+
+    pub(crate) mod style {
+        pub(crate) mod style;
+    }
+
+    pub(crate) mod core {
+        pub(crate) mod boxtraits;
+        pub(crate) mod allotmentname;
+        pub(crate) mod coordsystem;
+        pub(crate) mod carriageoutput;
+        pub(crate) mod leaflist;
+        pub(crate) mod leafrequest;
+        pub(crate) mod trainstate;
+    }
+
+    pub(crate) mod globals {
+        pub(crate) mod globalvalue;
+        pub(crate) mod aligner;
+        pub(crate) mod allotmentmetadata;
+        pub(crate) mod heighttracker;
+        pub(crate) mod bumping;
+        pub(crate) mod trainpersistent;
+        pub mod playingfield;
+    }
+
+    pub(crate) mod stylespec {
+        pub(crate) mod specifiedstyle;
+        pub(crate) mod stylegroup;
+        pub(crate) mod styletree;
+        pub(crate) mod styletreebuilder;
+    }
+
+    pub(crate) mod transformers {
+        pub(crate) mod drawinginfo;
+        pub(crate) mod transformertraits;
+        pub(crate) mod simple;
+        pub(crate) mod transformers;
+    }
+
+    pub(crate) mod util {
+        pub(crate) mod bppxconverter;
+        pub(crate) mod rangeused;
+    }
 }
 
 mod api {
@@ -17,7 +70,7 @@ mod api {
     mod queue;
 
     pub use agentstore::AgentStore;
-    pub use api::{ PeregrineIntegration, CarriageSpeed, PlayingField };
+    pub use api::{ PeregrineIntegration, CarriageSpeed };
     pub use self::pgcore::{ PeregrineCore, MessageSender, PeregrineCoreBase };
     pub use queue::{ ApiMessage, PeregrineApiQueue };
 }
@@ -26,6 +79,7 @@ mod core {
     pub(crate) mod asset;
     mod config;
     mod layout;
+    pub(crate) mod pixelsize;
     pub(crate) mod programbundle;
     mod scale;
     pub mod stick;
@@ -51,22 +105,23 @@ mod index {
     pub use self::stickauthoritystore::AuthorityStore;
 }
 
-mod lane {
+mod shapeload {
+    pub(crate) mod carriageprocess;
     mod datastore;
     mod shaperequest;
-    pub(crate) mod shapeloader;
+    pub(crate) mod loadshapes;
     pub(crate) mod programloader;
     pub(crate) mod programregion;
     mod resultstore;
     pub(crate) mod programdata;
     pub(crate) mod programname;
 
-    pub use self::datastore::DataStore;
-    pub use self::shaperequest::{ Region, ShapeRequest };
+    pub use self::datastore::{ DataStore };
+    pub use self::shaperequest::{ Region, ShapeRequest, ShapeRequestGroup };
     pub use self::programdata::ProgramData;
     pub use self::programname::ProgramName;
     pub use self::programregion::{ ProgramRegion, ProgramRegionBuilder };
-    pub use self::resultstore::{ LaneStore };
+    pub use self::resultstore::{ ShapeStore };
 }
 
 mod metric {
@@ -119,33 +174,35 @@ mod run {
 }
 
 mod shape {
+    mod carriageshapes;
     mod core;
+    pub mod emptyshape;
     mod imageshape;
     pub mod rectangleshape;
     mod textshape;
     pub(crate) mod shape;
-    mod shapelist;
+    mod programshapes;
     mod zmenu;
     mod zmenufixed;
     mod wiggleshape;
 
     pub use self::core::{ 
-        Patina, Pen, Colour, DirectColour, Plotter, DrawnType
+        Patina, Pen, Colour, DirectColour, Plotter, DrawnType, Hotspot
     };
-    pub use self::shape::{ Shape, ShapeDemerge, ShapeDetails, ShapeCommon };
+    pub use self::shape::{ ShapeDemerge, Shape };
     pub use self::zmenu::ZMenu;
-    pub use self::shapelist::{ ShapeListBuilder, ShapeList };
+    pub use self::carriageshapes::CarriageShapesBuilder;
+    pub use self::programshapes::ProgramShapesBuilder;
     pub use self::zmenufixed::{ ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator, ZMenuProxy, zmenu_fixed_vec_to_json, zmenu_to_json };
 }
 
 pub(crate) mod spacebase {
-    pub(crate) mod parametric;
+    pub mod reactive;
     pub(crate) mod spacebase;
     pub(crate) mod spacebasearea;
 
-    pub use self::parametric::{ VariableValues, ParameterValue, Flattenable, Substitutions, Variable };
-    pub use self::spacebase::{ SpaceBase, HoleySpaceBase, SpaceBaseParameterLocation, SpaceBasePointRef };
-    pub use self::spacebasearea::{ SpaceBaseArea, HoleySpaceBaseArea, SpaceBaseAreaParameterLocation, HollowEdge };
+    pub use self::spacebase::{ SpaceBase, PartialSpaceBase, SpaceBasePoint, SpaceBasePointRef };
+    pub use self::spacebasearea::{ SpaceBaseArea, HollowEdge2 };
 }
 
 pub(crate) mod switch {
@@ -157,19 +214,26 @@ pub(crate) mod switch {
 
 mod train {
     mod anticipate;
-    pub(crate) mod carriage;
-    mod railwayevent;
-    mod carriageextent;
-    mod carriageset;
+    pub mod drawingcarriage;
+    pub(crate) mod drawingcarriageparty;
+    pub(crate) mod carriageprocessparty;
+    pub(crate) mod drawingcarriagemanager;
+    pub(crate) mod drawingcarriagemanager2;
+    pub(crate) mod carriageextent;
+    mod railwaydatatasks;
+    pub(crate) mod carriageset;
+    pub(crate) mod graphics;
     mod railway;
     mod railwaydependents;
-    mod trainextent;
-    mod train;
+    pub(crate) mod party;
+    mod switcher;
+    pub(crate) mod trainextent;
+    pub(crate) mod train;
     mod trainset;
 
-    pub use carriageextent::CarriageExtent;
-    pub use carriage::{ Carriage, CarriageSerial };
-    pub use train::{ Train, TrainSerial };
+    pub use carriageextent::{ CarriageExtent };
+    pub use drawingcarriage::{ DrawingCarriage };
+    pub use trainextent::TrainExtent;
     pub use railway::Railway;
 }
 
@@ -180,45 +244,42 @@ mod util {
     pub mod message;
     pub mod miscpromises;
     pub mod eachorevery;
-    pub mod ringarray;
     pub mod vecutils;
 
     pub use self::builder::Builder;
     pub use self::miscpromises::CountingPromise;
     pub use self::message::DataMessage;
-    pub use self::eachorevery::EachOrEvery;
+    pub use self::eachorevery::{ EachOrEvery, EachOrEveryFilterBuilder };
 }
 
-pub use self::api::{ PeregrineCore, PeregrineCoreBase, PeregrineIntegration, PeregrineApiQueue, CarriageSpeed, AgentStore, PlayingField };
+pub use self::allotment::core::leafrequest::LeafRequest;
+pub use self::allotment::style::style::LeafStyle;
+pub use self::allotment::globals::{ allotmentmetadata::GlobalAllotmentMetadata, playingfield::PlayingField };
+pub use self::api::{ PeregrineCore, PeregrineCoreBase, PeregrineIntegration, PeregrineApiQueue, CarriageSpeed, AgentStore };
 pub use self::core::{ Asset, Assets, PgdPeregrineConfig, ConfigKey, Stick, StickId, StickTopology, Scale, Viewport };
 pub use self::core::channel::{ Channel, PacketPriority, ChannelLocation, ChannelIntegration };
 pub use self::index::{ StickStore, AuthorityStore };
-pub use self::lane::{ Region, ProgramName, ProgramRegion, LaneStore, DataStore, ProgramData, ProgramRegionBuilder, ShapeRequest };
+pub use self::shapeload::{ Region, ProgramName, ProgramRegion, ShapeStore, DataStore, ProgramData, ProgramRegionBuilder, ShapeRequest, ShapeRequestGroup };
 pub use self::run::{ PgCommander, PgCommanderTaskSpec, PgDauphin, Commander, InstancePayload, add_task, complete_task, async_complete_task };
 pub use self::request::core::packet::{ RequestPacket, ResponsePacket };
 pub use self::request::core::backend::{ AllBackends, Backend };
 pub use self::shape::{ 
-    Patina, Colour, DirectColour, DrawnType, ShapeDetails, ShapeCommon,
-    ZMenu, Pen, Plotter, Shape, ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator, ShapeListBuilder,
-    ShapeList, ZMenuProxy, zmenu_fixed_vec_to_json, ShapeDemerge, zmenu_to_json
+    Patina, Colour, DirectColour, DrawnType, Shape, Hotspot,
+    ZMenu, Pen, Plotter, ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator,
+    ZMenuProxy, zmenu_fixed_vec_to_json, ShapeDemerge, zmenu_to_json,
+    ProgramShapesBuilder, CarriageShapesBuilder
 };
-pub use self::allotment::allotment::{ Allotment, CoordinateSystem };
-pub use self::allotment::allotmentrequest::AllotmentRequest;
-pub use self::allotment::allotmentmetadata::{
-    AllotmentMetadataStore, AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataReport
-};
-pub use self::allotment::universe::Universe;
+pub use self::allotment::core::coordsystem::{ CoordinateSystem, CoordinateSystemVariety };
 pub use self::switch::switch::{ Switches };
 pub use self::switch::track::Track;
-pub use self::train::{ Carriage, CarriageExtent, Train, TrainSerial, CarriageSerial };
+pub use self::train::{ DrawingCarriage, CarriageExtent, TrainExtent };
 pub use self::util::{ CountingPromise, DataMessage, Builder };
-pub use self::util::ringarray::{ DataFilter, DataFilterBuilder };
 pub use self::util::vecutils::expand_by_repeating;
-pub use self::util::eachorevery::EachOrEvery;
+pub use self::util::eachorevery::{ EachOrEvery, EachOrEveryFilterBuilder };
 pub use self::spacebase::{ 
-    SpaceBase, SpaceBaseArea, VariableValues, ParameterValue, HoleySpaceBaseArea, Flattenable, SpaceBasePointRef,
-    SpaceBaseAreaParameterLocation, Substitutions, HoleySpaceBase,
-    SpaceBaseParameterLocation, HollowEdge, Variable
+    reactive, HollowEdge2, SpaceBase, SpaceBaseArea, PartialSpaceBase,
+    SpaceBasePoint, SpaceBasePointRef
 };
 pub use self::shape::rectangleshape::RectangleShape;
 pub use self::request::core::manager::RequestManager;
+pub use self::request::messages::datareq::DataRequest;

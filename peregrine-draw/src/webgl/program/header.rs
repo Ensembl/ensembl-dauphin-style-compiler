@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use super::source::Source;
-use super::program::{ Program, ProgramBuilder };
+use super::program::{ ProgramBuilder };
 use crate::util::message::Message;
 
 #[derive(Clone)]

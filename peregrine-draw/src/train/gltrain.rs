@@ -1,9 +1,9 @@
-use peregrine_data::{ Scale, ZMenuProxy};
-use peregrine_toolkit::lock;
+use peregrine_data::{ Scale };
+use peregrine_toolkit::{lock};
 use peregrine_toolkit::sync::needed::Needed;
-use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use super::glcarriage::GLCarriage;
+use crate::shape::layers::drawingzmenus::HotspotEntryDetails;
 use crate::stage::stage::{ ReadStage };
 use crate::webgl::DrawingSession;
 use crate::webgl::global::WebGlGlobal;
@@ -63,7 +63,7 @@ impl GLTrain {
         Ok(())
     }
 
-    pub(crate) fn get_hotspot(&self, stage: &ReadStage, position: (f64,f64)) -> Result<Vec<Rc<ZMenuProxy>>,Message> {
+    pub(crate) fn get_hotspot(&self, stage: &ReadStage, position: (f64,f64)) -> Result<Vec<HotspotEntryDetails>,Message> {
         let mut out = vec![];
         for carriage in &lock!(self.0).carriages {
             out.append(&mut carriage.get_hotspot(stage,position)?);

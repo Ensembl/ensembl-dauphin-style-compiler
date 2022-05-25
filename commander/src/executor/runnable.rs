@@ -111,6 +111,10 @@ impl Runnable {
         }
     }
 
+    pub(super) fn something_runnable(&self) -> bool {
+        self.range.is_some()
+    }
+
     pub(super) fn run(&mut self, tasks: &mut TaskContainer, tick_index: u64) -> bool {
         if let Some((index,_)) = self.range {
             self.queues[index].as_mut().unwrap().run(tasks,tick_index);

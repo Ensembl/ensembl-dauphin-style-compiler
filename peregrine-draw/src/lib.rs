@@ -34,7 +34,7 @@ mod input {
         pub(crate) mod translateinput;
         pub(crate) mod debug;
         pub(crate) mod targetreporter;
-        pub(crate) mod translatezmenu;
+        pub(crate) mod translatehotspots;
 
         pub use self::translateinput::InputTranslator;
     }
@@ -105,6 +105,7 @@ mod shape {
 
     pub(crate) mod layers {
         pub(crate) mod drawing;
+        pub(crate) mod drawingtools;
         pub(crate) mod drawingzmenus;
         pub(crate) mod consts;
         pub(crate) mod geometry;
@@ -137,12 +138,12 @@ mod util {
     pub(crate) mod ajax;
     pub(crate) mod enummap;
     pub(crate) mod error;
-    pub(crate) mod evictlist;
     pub(crate) mod message;
     pub(crate) mod monostable;
     pub(crate) mod debounce;
     pub(crate) mod resizeobserver;
     pub(crate) mod promise;
+    pub(crate) mod fonts;
     #[macro_use]
     pub(crate) mod misc;
     pub use self::ajax::PgAjax;

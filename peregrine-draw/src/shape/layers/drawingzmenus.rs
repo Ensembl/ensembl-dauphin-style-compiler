@@ -1,6 +1,7 @@
 use std::{collections::HashMap, rc::Rc, sync::{Arc, Mutex}};
-use peregrine_data::{Allotment, EachOrEvery, Scale, SpaceBaseArea, SpaceBasePointRef, ZMenu, ZMenuGenerator, ZMenuProxy};
-use crate::{shape::util::iterators::eoe_throw, stage::stage::{ ReadStage }};
+use peregrine_data::{ Scale, ZMenu, ZMenuGenerator, ZMenuProxy, SpaceBaseArea, SpaceBasePointRef, EachOrEvery, LeafStyle, Hotspot };
+use peregrine_toolkit::{lock, log};
+use crate::stage::{stage::{ ReadStage }, axis::UnitConverter};
 use crate::util::message::Message;
 
 const HORIZ_ZONES : u64 = 10;
@@ -23,81 +24,153 @@ const VERT_ZONE_HEIGHT : u64 = 200;
  * max bp and use bp_in_carriage to convert to maximum proportion of carriage.
  */
 
-struct ZMenuUnscaledEntry {
-    generator: ZMenuGenerator,
-    area: SpaceBaseArea<f64>,
-    allotments: EachOrEvery<Allotment>
+pub struct SwitchProxy(Rc<EachOrEvery<(Vec<String>,bool)>>,usize);
+
+impl SwitchProxy {
+    pub fn value(&self) -> (Vec<String>,bool) {
+        self.0.get(self.1).unwrap().clone()
+    }
+}
+
+#[derive(Clone)]
+struct SwitchGenerator(Rc<EachOrEvery<(Vec<String>,bool)>>);
+
+impl SwitchGenerator {
+    fn new(values: &EachOrEvery<(Vec<String>,bool)>) -> SwitchGenerator {
+        SwitchGenerator(Rc::new(values.clone()))
+    }
+
+    fn make_proxy(&self, index: usize) -> SwitchProxy {
+        SwitchProxy(self.0.clone(),index)
+    }
+}
+
+enum HotspotUnscaledEntryDetails {
+    ZMenu(ZMenuGenerator),
+    Switch(SwitchGenerator)
+}
+
+struct HotspotUnscaledEntry {
+    details: HotspotUnscaledEntryDetails,
+    area: SpaceBaseArea<f64,LeafStyle>
+}
+
+impl HotspotUnscaledEntry {
+    fn new(area: SpaceBaseArea<f64,LeafStyle>, hotspot: &Hotspot) -> HotspotUnscaledEntry {
+        match hotspot {
+            Hotspot::ZMenu(zmenu,values) => {
+                let mut map_values = HashMap::new();
+                for (k,v) in values.iter() {
+                    map_values.insert(k.to_string(),v.clone());
+                }
+                let details = ZMenuGenerator::new(&zmenu,&map_values); // XXX push up
+                HotspotUnscaledEntry {
+                    details: HotspotUnscaledEntryDetails::ZMenu(details),
+                    area
+                }      
+            },
+            Hotspot::Switch(values) => {
+                let details = SwitchGenerator::new(values);
+                HotspotUnscaledEntry {
+                    details: HotspotUnscaledEntryDetails::Switch(details),
+                    area
+                }
+            }
+        }
+    }
 }
 
 fn order(a: f64, b: f64) -> (f64,f64) {
     if a < b { (a,b) } else { (b,a) }
 }
 
-pub struct DrawingZMenusBuilder {
-    entries: Vec<ZMenuUnscaledEntry>,
+pub struct DrawingHotspotsBuilder {
+    entries: Vec<HotspotUnscaledEntry>,
     scale: Option<Scale>,
     left: f64
 }
 
-impl DrawingZMenusBuilder {
-    pub(crate) fn new(scale: Option<&Scale>, left: f64) -> DrawingZMenusBuilder {
-        DrawingZMenusBuilder {
+impl DrawingHotspotsBuilder {
+    pub(crate) fn new(scale: Option<&Scale>, left: f64) -> DrawingHotspotsBuilder {
+        DrawingHotspotsBuilder {
             entries: vec![],
             scale: scale.cloned(),
             left
         }
     }
 
-    pub(crate) fn add_rectangle(&mut self, area: SpaceBaseArea<f64>, allotments: EachOrEvery<Allotment>, zmenu: ZMenu, values: Vec<(String,EachOrEvery<String>)>) {
-        let mut map_values = HashMap::new();
-        for (k,v) in values.iter() {
-            map_values.insert(k.to_string(),v.clone());
+    pub(crate) fn add_rectangle(&mut self, area: SpaceBaseArea<f64,LeafStyle>, hotspot: &Hotspot) {
+        self.entries.push(HotspotUnscaledEntry::new(area,hotspot));
+    }
+
+    pub(crate) fn build(self) -> DrawingHotspots {
+        DrawingHotspots::new(self)
+    }
+}
+
+#[derive(Clone)]
+pub(crate) enum HotspotEntryDetails {
+    ZMenu(Rc<ZMenuProxy>),
+    Switch(Rc<SwitchProxy>)
+}
+
+impl HotspotEntryDetails {
+    fn new(unscaled: &HotspotUnscaledEntryDetails, index: usize) -> HotspotEntryDetails {
+        match unscaled {
+            HotspotUnscaledEntryDetails::ZMenu(generator) => {
+                HotspotEntryDetails::ZMenu(Rc::new(generator.make_proxy(index)))
+            },
+            HotspotUnscaledEntryDetails::Switch(generator) => {
+                HotspotEntryDetails::Switch(Rc::new(generator.make_proxy(index)))
+            }
         }
-        let generator = ZMenuGenerator::new(&zmenu,&map_values); // XXX push up
-        self.entries.push(ZMenuUnscaledEntry { generator, area, allotments });
-    }
-
-    pub(crate) fn build(mut self) -> DrawingZMenus {
-        DrawingZMenus::new(self)
     }
 }
 
-struct ZMenuEntry {
-    area: SpaceBaseArea<f64>,
-    allotment: Allotment,
+#[derive(Clone)]
+struct HotspotEntry {
+    area: SpaceBaseArea<f64,LeafStyle>,
     index: usize,
-    proxy: Rc<ZMenuProxy>,
-    order: usize
+    order: usize,
+    details: HotspotEntryDetails
 }
 
-impl ZMenuEntry {
+impl HotspotEntry {
+    fn new(unscaled: &HotspotUnscaledEntry, index: usize, order: usize) -> HotspotEntry {
+        HotspotEntry {
+            area: unscaled.area.clone(),
+            index,
+            order,
+            details: HotspotEntryDetails::new(&unscaled.details,index)
+        }
+    }
+
     fn is_hotspot(&self, x_px: f64, y_px: f64, left: f64, bp_per_carriage: f64, px_per_carriage: f64, car_px_left: f64) -> bool {
-        if let Some((top_left,bottom_right)) = self.area.iter().nth(self.index) {
-            let top_left = self.allotment.transform_spacebase(&top_left);
-            let bottom_right = self.allotment.transform_spacebase(&bottom_right);
+        let mut iter = self.area.iter();
+        if let Some((top_left,bottom_right)) = iter.nth(self.index) {
             let top_px = top_left.normal;
             let bottom_px = bottom_right.normal;
             let left_px = (top_left.base - left) / bp_per_carriage * px_per_carriage + car_px_left + top_left.tangent;
             let right_px = (bottom_right.base - left) / bp_per_carriage * px_per_carriage + car_px_left + bottom_right.tangent;
-            return x_px >= left_px && x_px <= right_px && y_px >= top_px && y_px < bottom_px;
+            return x_px >= left_px && x_px <= right_px && y_px >= *top_px && y_px < *bottom_px;
         }
         false
     }
 }
 
-struct ScaledZMenus {
+struct ScaledHotspots {
     min_px_per_screen: f64,
     bp_in_carriage: f64,
     left: f64,
     max_bp_per_px: f64,
-    zmenus: HashMap<u64,Rc<Vec<ZMenuEntry>>>
+    zmenus: HashMap<u64,Rc<Vec<HotspotEntry>>>
 }
 
-impl ScaledZMenus {
-    fn new(min_px_per_screen: f64, unscaled: &DrawingZMenusBuilder) -> ScaledZMenus {
+impl ScaledHotspots {
+    fn new(min_px_per_screen: f64, unscaled: &DrawingHotspotsBuilder) -> ScaledHotspots {
         let max_bp_per_screen = unscaled.scale.as_ref().map(|s| s.bp_per_screen_range().1).unwrap_or(1) as f64;
         let max_bp_per_px = max_bp_per_screen / min_px_per_screen;
-        let mut out = ScaledZMenus {
+        let mut out = ScaledHotspots {
             min_px_per_screen,
             bp_in_carriage: unscaled.scale.as_ref().map(|s| s.bp_in_carriage()).unwrap_or(1) as f64,
             max_bp_per_px,
@@ -108,51 +181,40 @@ impl ScaledZMenus {
         out
     }
 
-    fn maximum_footprint(&self, top_left: &SpaceBasePointRef<f64>, bottom_right: &SpaceBasePointRef<f64>, allotment: &Allotment) -> ((f64,u64),(f64,u64)) {
-        let top_left = allotment.transform_spacebase(top_left);
-        let bottom_right = allotment.transform_spacebase(bottom_right);
+    fn maximum_footprint(&self, top_left: &SpaceBasePointRef<f64,LeafStyle>, bottom_right: &SpaceBasePointRef<f64,LeafStyle>) -> ((f64,u64),(f64,u64)) {
         /* y-coordinate */
-        let (top_px,bottom_px) = order(top_left.normal,bottom_right.normal);
+        let (top_px,bottom_px) = order(*top_left.normal,*bottom_right.normal);
         /* x-coordinate */
-        let (mut left_bp,mut right_bp) = order(top_left.base,bottom_right.base);
-        if top_left.tangent < 0. { left_bp += top_left.tangent * self.max_bp_per_px; }
-        if bottom_right.tangent > 0. { right_bp += bottom_right.tangent * self.max_bp_per_px; }
+        let (mut left_bp,mut right_bp) = order(*top_left.base,*bottom_right.base);
+        if *top_left.tangent < 0. { left_bp += top_left.tangent * self.max_bp_per_px; }
+        if *bottom_right.tangent > 0. { right_bp += bottom_right.tangent * self.max_bp_per_px; }
         let left_scr = (left_bp - self.left) / self.bp_in_carriage;
         let right_scr = (right_bp - self.left) / self.bp_in_carriage;
         ((left_scr,top_px as u64),(right_scr,(bottom_px+1.) as u64))
     }
 
     // TODO no-bp zmenus
-    fn get_zones(&self, top_left: &SpaceBasePointRef<f64>, bottom_right: &SpaceBasePointRef<f64>, allotment: &Allotment) -> Vec<u64> {
-        let ((left_scr,top_px),(right_scr,bottom_px)) = self.maximum_footprint(top_left,bottom_right,allotment);
+    fn get_zones(&self, top_left: &SpaceBasePointRef<f64,LeafStyle>, bottom_right: &SpaceBasePointRef<f64,LeafStyle>) -> Vec<u64> {
+        let ((left_scr,top_px),(right_scr,bottom_px)) = self.maximum_footprint(top_left,bottom_right);
         let mut out = vec![];
         for v_zone in (top_px/VERT_ZONE_HEIGHT)..((bottom_px/VERT_ZONE_HEIGHT)+1) {
             let left_zone = (left_scr*(HORIZ_ZONES as f64)).floor() as u64;
             let right_zone = (right_scr*(HORIZ_ZONES as f64)).floor() as u64;
-            for h_zone in left_zone..(right_zone+1) {
+            for h_zone in left_zone..(right_zone+1).min(HORIZ_ZONES) {
                 out.push(v_zone*HORIZ_ZONES+h_zone);
             }
         }
         out
     }
 
-    fn build_scaled(&mut self, unscaled: &DrawingZMenusBuilder) -> Result<(),Message> {
+    fn build_scaled(&mut self, unscaled: &DrawingHotspotsBuilder) -> Result<(),Message> {
         let mut order = 0;
         let mut building_zmenus = HashMap::new();
         for entry in &unscaled.entries {
-            let loop_iter = entry.area.iter().zip(eoe_throw("scaled",entry.allotments.iter(entry.area.len()))?);
-            let z = entry.generator.iter().next().unwrap().value();
-            for (i,((top_left,bottom_right),allotment)) in loop_iter.enumerate() {
-                let proxy = Rc::new(entry.generator.make_proxy(i));
-                for zone in self.get_zones(&top_left,&bottom_right,&allotment) {
-                    let entry = ZMenuEntry {
-                        area: entry.area.clone(),
-                        allotment: allotment.clone(),
-                        index: i,
-                        proxy: proxy.clone(),
-                        order
-                    };
-                    building_zmenus.entry(zone).or_insert_with(|| vec![]).push(entry);
+            for (i,(top_left,bottom_right)) in entry.area.iter().enumerate() {
+                let entry = HotspotEntry::new(entry,i,order);
+                for zone in self.get_zones(&top_left,&bottom_right) {
+                    building_zmenus.entry(zone).or_insert_with(|| vec![]).push(entry.clone());
                 }
             }
             order += 1;
@@ -167,19 +229,19 @@ fn rounded_px_per_screen(px_per_screen: f64) -> f64 {
     (px_per_screen.next_power_of_two() >> 1) as f64
 }
 
-pub struct DrawingZMenus {
-    unscaled: Arc<DrawingZMenusBuilder>,
-    last_lookup: Mutex<Option<(u64,Rc<Vec<ZMenuEntry>>)>>,
+pub struct DrawingHotspots {
+    unscaled: Arc<DrawingHotspotsBuilder>,
+    last_lookup: Mutex<Option<(u64,Rc<Vec<HotspotEntry>>)>>,
     min_px_per_screen: Option<f64>,
-    scaled: Option<ScaledZMenus>,
+    scaled: Option<ScaledHotspots>,
     bp_in_carriage: u64,
     left: f64
 }
 
 // TODO mouse move needed set on screen resize
-impl DrawingZMenus {
-    fn new(builder: DrawingZMenusBuilder) -> DrawingZMenus {
-        DrawingZMenus {
+impl DrawingHotspots {
+    fn new(builder: DrawingHotspotsBuilder) -> DrawingHotspots {
+        DrawingHotspots {
             left: builder.left,
             bp_in_carriage: builder.scale.as_ref().map(|s| s.bp_in_carriage()).unwrap_or(1), // XXX unwrap
             unscaled: Arc::new(builder),
@@ -198,23 +260,22 @@ impl DrawingZMenus {
         if let Some(scaled) = &self.scaled {
             if scaled.min_px_per_screen == min_px_per_screen { return; }
         }
-        self.scaled = Some(ScaledZMenus::new(min_px_per_screen,&self.unscaled));
+        self.scaled = Some(ScaledHotspots::new(min_px_per_screen,&self.unscaled));
     }
 
-    pub(crate) fn get_hotspot(&self, stage: &ReadStage, position_px: (f64,f64)) -> Result<Vec<Rc<ZMenuProxy>>,Message> {
-        let converter = stage.x().unit_converter()?;
+    fn calculate_zone(&self, converter: &UnitConverter, position_px: (f64,f64)) -> Result<Option<u64>,Message> {
         let position_x_bp = converter.px_pos_to_bp(position_px.0);
         let bp_from_left = position_x_bp - self.left;
-        if bp_from_left < 0. || bp_from_left >= self.bp_in_carriage as f64 { return Ok(vec![]); }
+        if bp_from_left < 0. || bp_from_left >= self.bp_in_carriage as f64 { return Ok(None); }
         let carriage_prop = bp_from_left / self.bp_in_carriage as f64;
         let h_zone = (carriage_prop * HORIZ_ZONES as f64).floor() as u64;
         let v_zone = (position_px.1 / VERT_ZONE_HEIGHT as f64).floor() as u64;
-        let zone = h_zone + (v_zone * HORIZ_ZONES);
-        let bp_per_px = converter.px_delta_to_bp(1.);
-        let px_per_carriage = self.bp_in_carriage as f64 / bp_per_px;
-        let left_px = converter.bp_to_pos_px(self.left)?;
+        Ok(Some(h_zone + (v_zone * HORIZ_ZONES)))
+    }
+
+    fn get_zone_data(&self, zone: u64) -> Option<Rc<Vec<HotspotEntry>>> {
         let mut zone_data = None;
-        let mut last_lookup = self.last_lookup.lock().unwrap();
+        let mut last_lookup = lock!(self.last_lookup);
         if let Some((last_zone,last_zone_data)) = last_lookup.as_ref() {
             if *last_zone == zone { zone_data = Some(last_zone_data.clone()); }
         }
@@ -224,11 +285,22 @@ impl DrawingZMenus {
                 *last_lookup = Some((zone,zone_data.clone()));
             }
         }
+        zone_data
+    }
+
+    pub(crate) fn get_hotspot(&self, stage: &ReadStage, position_px: (f64,f64)) -> Result<Vec<HotspotEntryDetails>,Message> {
+        let converter = stage.x().unit_converter()?;
+        let zone = self.calculate_zone(&converter,position_px)?;
+        let zone = if let Some(zone) = zone { zone } else { return Ok(vec![]); };
+        let bp_per_px = converter.px_delta_to_bp(1.);
+        let px_per_carriage = self.bp_in_carriage as f64 / bp_per_px;
+        let left_px = converter.bp_to_pos_px(self.left)?;
+        let zone_data = self.get_zone_data(zone);
         let mut out = vec![];
         if let Some(zone_data) = &zone_data {
             for entry in zone_data.iter() {
                 if entry.is_hotspot(position_px.0,position_px.1,self.left,self.bp_in_carriage as f64,px_per_carriage,left_px as f64) {
-                    out.push((entry.order,entry.proxy.clone()));
+                    out.push((entry.order,entry.details.clone()));
                 }
             }
         }

@@ -111,7 +111,7 @@ macro_rules! hashable {
     };
 }
 
-/// Implements `PartialEq`, `Eq`, and `Hash` for you on a field in your type.
+/// Implements `Ord` for you on a field in your type.
 #[macro_export]
 macro_rules! orderable {
     ($type: ident, $field: ident) => {

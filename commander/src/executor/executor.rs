@@ -165,7 +165,7 @@ impl Executor {
                         self.locks.lock(&handle,lock,callback);
                     },
                     (_handle,Request::Unlock(lock)) => {
-                        self.locks.unlock(lock)
+                        self.locks.unlock(lock);
                     },
                 }
             }
@@ -196,7 +196,14 @@ impl Executor {
     }
 
     fn calculate_sleep(&self, now: f64) -> SleepQuantity {
-        self.get_timings().calculate_sleep(now)
+        let mut out = self.get_timings().calculate_sleep(now);
+        if self.tasks.something_runnable() {
+            out = match out {
+                SleepQuantity::Yesterday => SleepQuantity::Yesterday,
+                _ => SleepQuantity::None
+            };
+        }
+        out
     }
 
     /// Callback for executing tasks in future, called each periodic tick.

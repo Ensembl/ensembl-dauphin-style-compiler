@@ -87,14 +87,35 @@ class Memcached(object):
         Returns:
             None
         """
-        now = time.time()
-        if self._last_bump_check is None or now - self._last_bump_check > 30:
-            self._last_bump_check = now
-            new_value = self._client.get(self._prefix + ":" + "bump")
-            if new_value is not None:
-                self._bump = new_value
+        if self._bump_on_restart:
+            self._bump = self._bump_on_restart
+        else:
+            now = time.time()
+            if self._last_bump_check == None or now - self._last_bump_check > 30:
+                self._last_bump_check = now
+                new_value = self._client.get(self._prefix+":"+"bump")
+                if new_value != None:
+                    self._bump = new_value
 
-    def hashed_key(self, parts):
+    def __init__(self,prefix,bump_on_restart):
+        self._start_time = time.time()
+        self._last_check = 0
+        self._last_bump_check = None
+        self._bump = None
+        self._prefix = prefix
+        self._available = False
+        self._bump_on_restart = time.time() if bump_on_restart else None
+        if bump_on_restart:
+            logging.warn("Bumping on restart as requested. Do not use in production.")
+        if not PYMEMCACHE_FOUND:
+            logging.warn("missing pymemcached. Cannot use memcache")
+            return
+        (host,port) = MEMCACHED.split(':',1)
+        logging.warn("trying memcached {0}:{1}".format(host,port))
+        self._client = PooledClient((host,port),max_pool_size=64)
+        self._check()
+
+    def hashed_key(self,parts,version):
         """
 
         Args:
@@ -105,10 +126,10 @@ class Memcached(object):
         """
         value = hashlib.sha256()
         self._get_bump()
-        value.update(cbor2.dumps([self._prefix, self._bump, parts]))
+        value.update(cbor2.dumps([self._prefix,self._bump,version.get_egs(),parts]))
         return value.hexdigest()
 
-    def store_data(self, channel, name, panel, data):
+    def store_data(self, channel, name, version, panel, scope, data):
         """
 
         Args:
@@ -122,11 +143,11 @@ class Memcached(object):
         """
         if not self._is_available():
             return
-        key = self.hashed_key([channel, name, panel.dumps()])
+        key = self.hashed_key([channel,name,panel.dumps(),scope],version)
         if len(data.payload) < 900_000:
             self._client.set(key, data.payload)
 
-    def get_data(self, channel, name, panel) -> Optional[Response]:
+    def get_data(self, channel, name, version, panel, scope) -> Optional[Response]:
         """
 
         Args:
@@ -139,7 +160,7 @@ class Memcached(object):
         """
         if not self._is_available():
             return None
-        key = self.hashed_key([channel, name, panel.dumps()])
+        key = self.hashed_key([channel,name,panel.dumps(),scope],version)
         value = self._client.get(key)
         if value is None:
             return None

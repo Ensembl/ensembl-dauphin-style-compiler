@@ -20,5 +20,5 @@ class Panel(object):
         return cbor2.dumps([self.stick,self.scale,self.index])
 
 class DataHandler:
-    def process_data(self, data_accessor: DataAccessor, panel: Panel) -> Response:
+    def process_data(self, data_accessor: DataAccessor, panel: Panel, scope) -> Response:
         raise NotImplementedError("override process_data!")

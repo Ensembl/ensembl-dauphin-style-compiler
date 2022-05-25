@@ -7,12 +7,13 @@ use std::sync::{ Mutex, Arc };
 use crate::util::message::{ Message, message_register_callback, routed_message, message_register_default };
 use crate::input::translate::targetreporter::TargetReporter;
 use js_sys::Date;
-use peregrine_data::{AllotmentMetadataStore, Assets, Commander, PeregrineCore};
+use peregrine_data::{Assets, Commander, PeregrineCore};
 use peregrine_dauphin::peregrine_dauphin;
 use peregrine_message::MessageKind;
 use peregrine_toolkit::log;
 use peregrine_toolkit::plumbing::distributor::Distributor;
 use peregrine_toolkit::sync::blocker::Blocker;
+use peregrine_toolkit::sync::needed::Needed;
 use super::report::Report;
 use super::sound::Sound;
 use super::{PgPeregrineConfig, globalconfig::CreatedPeregrineConfigs};
@@ -132,7 +133,8 @@ impl PeregrineInnerAPI {
             message_sender2.add(message);
         });
         let webgl = Arc::new(Mutex::new(WebGlGlobal::new(&dom,&config.draw)?));
-        let stage = Arc::new(Mutex::new(Stage::new()));
+        let redraw_needed = Needed::new();
+        let stage = Arc::new(Mutex::new(Stage::new(&redraw_needed)));
         let trainset = GlRailway::new(&commander,&config.draw,&stage.lock().unwrap())?;
         let report = Report::new(&config.draw,&message_sender)?;
         let target_reporter = TargetReporter::new(&commander,&config.draw,&report)?;
@@ -142,12 +144,10 @@ impl PeregrineInnerAPI {
         let assets = integration.assets().clone();
         let mut core = PeregrineCore::new(integration,commander.clone(),move |e| {
             routed_message(Some(commander_id),Message::DataError(e))
-        },queue_blocker).map_err(|e| Message::DataError(e))?;
+        },queue_blocker,&redraw_needed).map_err(|e| Message::DataError(e))?;
         peregrine_dauphin(Box::new(PgDauphinIntegrationWeb()),&core);
-        let redraw_needed = stage.lock().unwrap().redraw_needed();
         report.run(&commander);
         core.application_ready();
-        let allotment_metadata = AllotmentMetadataStore::new(); // XXX unify with core?
         message_sender.add(Message::Ready);
         let out = PeregrineInnerAPI {
             config: config.draw.clone(),
@@ -158,14 +158,14 @@ impl PeregrineInnerAPI {
             commander: commander.clone(),
             trainset, stage, webgl,
             dom: dom.clone(),
-            spectre_manager: SpectreManager::new(&config.draw,&allotment_metadata,&redraw_needed),
+            spectre_manager: SpectreManager::new(&commander,&config.draw,&redraw_needed),
             input: input.clone(),
             sound: sound.clone(),
             report: report.clone(),
             assets,
             target_reporter: target_reporter.clone()
         };
-        input.set_api(dom,&config.draw,&out,&commander,&report,&target_reporter)?;
+        input.set_api(dom,&config.draw,&out,&commander,&target_reporter)?;
         message_sender.add(Message::Ready);
         Ok(out)
     }

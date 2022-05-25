@@ -1,4 +1,4 @@
-use peregrine_data::{ AllotmentMetadata, Channel, ProgramName, ProgramRegion, ProgramRegionBuilder, Switches, Track };
+use peregrine_data::{ Channel, ProgramName, ProgramRegion, ProgramRegionBuilder, Switches, Track };
 use anyhow::{ anyhow as err };
 use std::collections::HashMap;
 use std::sync::{ Arc, Mutex };

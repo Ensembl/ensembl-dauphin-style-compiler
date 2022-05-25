@@ -1,0 +1,425 @@
+import "lib:std"; use "std";
+import "lib:peregrine"; use "peregrine";
+import "file:common8.egs"; use "common8";
+
+/* This program uses a *lot* of confusingly similar variables which are named
+ * systematically for precision.
+ *
+ * (property)_(item)_[by_(index)]
+ *
+ * property:
+ * start/end -- a start/end coordinate
+ * startos/endos -- start/end but truncated to only part in current panel (ie on screen)
+ * text -- some text
+ * al -- an allotment
+ * pt -- a patina
+ * num -- how many
+ * idx_X_in_Y -- the nth X in Y (ie enumeration, zero based)
+ *
+ * item:
+ * gn -- gene
+ * tr -- transcript
+ * ex -- exon (both thick and thin)
+ * it -- intron
+ * thex -- thick exon (ie only those with some thick part)
+ * focus -- focus gene
+ * tk -- track (the five tracks which we can write to)
+ * (al, text and pt just use their name)
+ *
+ * index:
+ * what each item corresponds to. For example
+ * al_under_by_gn: "under" allotment with one entry per gene, in order
+ * al_under_by_tr: "under" allotment with one entry per transcript, in order
+ *
+ * examples:
+ * idx_tr_in_gn: this is 1st, 2nd, 3rd, etc transcript of its gene
+ * idx_tr_in_gn_by_ex: for each exon, it is in the 1st, 2nd, 3rd, etc transcript of its gene
+ */
+
+
+/* 
+ * actually get the data from the server
+ */
+
+req := make_request("self()","zoomed-transcript",get_region());
+data := get_data(req);
+halt(only_warm(),[data]);
+
+bp := [bp_range()];
+
+/*
+ * undo the compression applied by the server basically by applying
+ * the transforms applied there in reverse order.
+ */
+
+focus_id := string_seq(data,"focus_ids");
+gene_id := string_seq(data,"gene_ids");
+gene_name := string_seq(data,"gene_names");
+gene_desc := string_seq(data,"gene_descs");
+start_gn := delta_seq(data,"starts");
+end_gn := start_gn + delta_seq(data,"lengths");
+start_tr := delta_seq(data,"transcripts_starts");
+end_tr := start_tr + delta_seq(data,"transcripts_lengths");
+gene_designation := classified_seq(data,"gene_designation_keys","gene_designation_values");
+transcript_designation := classified_seq(data,"transcript_designation_keys","transcript_designation_values");
+gene_biotype := classified_seq(data,"gene_biotypes_keys","gene_biotypes_values");
+strand := positive_seq(data,"strands");
+transcript_id := string_seq(data,"transcript_ids");
+transcript_biotype := classified_seq(data,"transcript_biotypes_keys","transcript_biotypes_values");
+strand_string := len([strand]) (*) "reverse strand";
+strand_string#[strand>0] := "forward strand";
+
+/* transcript stuff */
+num_tr_by_gn := delta_seq(data,"transcript_counts");
+which_gn_by_tr := derun(num_tr_by_gn);
+start_gn_by_tr := index(which_gn_by_tr,[start_gn]);
+end_gn_by_tr := index(which_gn_by_tr,[end_gn]);
+id_gn_by_tr := index(which_gn_by_tr,[gene_id]);
+
+/* exon stuff */
+start_thex := delta_seq(data,"thicks_starts");
+end_thex := start_thex + delta_seq(data,"thicks_lengths");
+
+which_tr_by_ex := derun(delta_seq(data,"transcript_exon_counts"));
+which_gn_by_ex := index(which_tr_by_ex,[which_gn_by_tr]);
+idx_tr_in_gn := run(delta_seq(data,"transcript_counts"));
+idx_tr_in_gn_by_ex :=  index(which_tr_by_ex,[idx_tr_in_gn]);
+
+start_ex := delta_seq(data,"transcript_exon_starts");
+end_ex := start_ex + delta_seq(data,"transcript_exon_lengths");
+id_gn_by_ex := index(which_gn_by_ex,[gene_id]);
+exon_focus_id := index(which_gn_by_ex,[focus_id]);
+exon_gene_biotype := index(which_gn_by_ex,[gene_biotype]);
+exon_strand := index(which_gn_by_ex,[strand]);
+
+/* sequence stuff */
+sequence := [letter_string(data,"sequence")];
+sequence_rev := [base_flip(sequence[])];
+sequence_start := [positive_seq(data,"sequence_start")][@==0];
+
+enabled_tracks := get_switch([
+    ["track","gene-other-rev"],
+    ["track","gene-pc-rev"],
+    ["track","gene-other-fwd"],
+    ["track","gene-pc-fwd"],
+    ["track","focus"]
+][]);
+
+/*
+
+/ <- stack
+title/ <- track title
+main/ <- overlay
+main/background/ <- chevrons (WINDOW)
+main/main/ <- bumper
+main/main/<id>/ <- stacker
+main/main/<id>/diagram/ <- overlay
+main/main/<id>/diagram/far-under <- central dotted line
+main/main/<id>/diagram/under <- central solid line
+main/main/<id>/diagram/far-over <- solid exon box
+main/main/<id>/text/ <- label
+
+*/
+
+gene_track_styles();
+
+style("**/main/main/",["type"][],["bumper"][]);
+style("**/main/main/*/",["type"][],["overlay"][]);
+style("**/main/main/*/diagram/",["type"][],["overlay"][]);
+style("**/main/main/*/diagram/under",["depth"][],["-3"][]);
+style("**/main/main/*/diagram/far-under",["depth"][],["-2"][]);
+style("**/main/main/*/diagram/blanking",["depth"][],["1"][]);
+style("**/main/main/*/diagram/over",["depth"][],["2"][]);
+style("**/main/main/*/diagram/far-over",["depth"][],["3"][]);
+style("**/main/main/*/diagram/thick-over",["depth"][],["4"][]);
+style("**/main/main/*/diagram/thick-far-over",["depth"][],["5"][]);
+style("**/main/background/content",["depth","padding-top"][],["-10","32"][]);
+
+potential_tracks := [
+    "tracks/track/gene-other-rev/main/main",
+    "tracks/track/gene-pc-rev/main/main",
+    "tracks/track/gene-other-fwd/main/main",
+    "tracks/track/gene-pc-fwd/main/main",
+    "tracks/track/focus/main/main",
+    ""
+];
+
+use_allotments(allotments_trackname,enabled_tracks,[
+    "tracks/track/gene-other-rev/title/content",
+    "tracks/track/gene-pc-rev/title/content",
+    "tracks/track/gene-other-fwd/title/content",
+    "tracks/track/gene-pc-fwd/title/content",
+    "tracks/track/focus/title/content",
+]);
+
+use_allotments(allotments_letter,enabled_tracks,[
+    "tracks/track/gene-other-rev/title/letter/content",
+    "tracks/track/gene-pc-rev/title/letter/content",
+    "tracks/track/gene-other-fwd/title/letter/content",
+    "tracks/track/gene-pc-fwd/title/letter/content",
+    "tracks/track/focus/title/letter/content",
+]);
+
+/* apply solidity in thick region ... */
+/* ... find thick limits for each exon */
+
+exon_thick_limit_start := index(which_tr_by_ex,[start_thex]);
+exon_thick_limit_end := index(which_tr_by_ex,[end_thex]);
+trunc_left := exon_thick_limit_start>start_ex;
+trunc_right := exon_thick_limit_end<end_ex;
+
+/* ... update exons to thick limit */
+start_thex := start_ex;
+end_thex := end_ex;
+start_thex#[trunc_left] := exon_thick_limit_start#[trunc_left];
+end_thex#[trunc_right] := exon_thick_limit_end#[trunc_right];
+
+/* ... remove entirely thin exons */
+thick_exons := start_thex < end_thex;
+idx_tr_in_gn_by_thex := idx_tr_in_gn_by_ex#[thick_exons];
+start_thex := start_thex#[thick_exons];
+end_thex := end_thex#[thick_exons];
+which_gn_by_thex := which_gn_by_ex#[thick_exons];
+which_tr_by_thex := which_tr_by_ex#[thick_exons];
+
+/*
+ * Allotments
+ */
+
+allotment_idx := len([gene_id]) (*) 0;
+allotment_idx#[strand > 0] (+=) 2;
+allotment_idx#[in(gene_biotype,["protein_coding"])] (+=) 1;
+focus_gene := list_switch(["focus","gene"]);
+allotment_idx#[focus_id==focus_gene] := 4;
+
+focus_start := start_gn#[allotment_idx==4];
+focus_end := end_gn#[allotment_idx==4];
+
+/*
+ * Manage the "several" setting.
+ */
+
+several_tracks := get_switch([
+    ["track","gene-other-rev","several"],
+    ["track","gene-pc-rev","several"],
+    ["track","gene-other-fwd","several"],
+    ["track","gene-pc-fwd","several"],
+    ["track","focus","several"]
+][]);
+
+SEVERAL := 5;
+
+tk_by_gn := allotment_idx;
+bool_sv_by_gn := index(tk_by_gn,[several_tracks]);
+limit_gn := len([gene_id]) (*) 1;
+limit_gn#[bool_sv_by_gn] := 5;
+
+limit_gn_by_tr := index(which_gn_by_tr,[limit_gn]);
+
+bool_show_tr := len([which_gn_by_tr]) (*) false;
+bool_show_tr#[idx_tr_in_gn<limit_gn_by_tr] := true;
+
+transcript_allotment_idx := index(which_gn_by_tr,[allotment_idx]);
+transcript_allotment_idx#[bool_show_tr==false] := 5;
+
+drawn_tr_by_gn := num_tr_by_gn;
+drawn_tr_by_gn#[drawn_tr_by_gn>limit_gn] := limit_gn#[drawn_tr_by_gn>limit_gn];
+
+exon_focus_id := index(which_gn_by_ex,[focus_id]);
+exon_allotment_idx := index(which_tr_by_ex,[transcript_allotment_idx]);
+
+thick_exon_allotment_idx := exon_allotment_idx#[thick_exons];
+thick_id_gn_by_ex := id_gn_by_ex#[thick_exons];
+
+use_allotment_names(root_allotment_names,enabled_tracks,potential_tracks);
+
+base_allotment_names := [append_group(index(allotment_idx,root_allotment_names),gene_id)];
+base_transcript_allotment_names := [append_group(index(transcript_allotment_idx,root_allotment_names),id_gn_by_tr)];
+base_thick_exon_allotment_names := [append_group(index(thick_exon_allotment_idx,root_allotment_names),thick_id_gn_by_ex)];
+
+allotment_names := [append_group(base_allotment_names[],["diagram"][])];
+transcript_allotment_names := [append_group(base_transcript_allotment_names[],["diagram"][])];
+thick_exon_allotment_names := [append_group(base_thick_exon_allotment_names[],["diagram"][])];
+
+al_over_by_gn := use_allotment(append_group(allotment_names[],["over"][]));
+al_over_by_tr := use_allotment(append_group(transcript_allotment_names[],["over"][]));
+al_far_over_by_gn := use_allotment(append_group(allotment_names[],["far-over"][]));
+al_far_over_by_tr := use_allotment(append_group(transcript_allotment_names[],["far-over"][]));
+
+al_far_under_by_gn := use_allotment(append_group(allotment_names[],["far-under"][]));
+al_far_under_by_tr := use_allotment(append_group(transcript_allotment_names[],["far-under"][]));
+
+al_text_by_gn := use_allotment(append_group(base_allotment_names[],["text"][]));
+
+/*
+ * What colour? What font? etc
+ *
+ * (driven by allotment for gene)
+ */
+
+normal_text_colour := direct_colour(111,129,144,255);
+focus_text_colour := direct_colour(39,154,252,255);
+
+text_colour := index(allotment_idx,[normal_text_colour,normal_text_colour,normal_text_colour,normal_text_colour,focus_text_colour]);
+
+thick_text_colour := direct_colour(255,255,255,255);
+
+text_size := 12;
+
+normal_thick_colour := direct_colour(148,160,171,255);
+focus_thick_colour := direct_colour(39,154,252,255);
+
+thick_colour := index(allotment_idx,[normal_thick_colour,normal_thick_colour,normal_thick_colour,normal_thick_colour,focus_thick_colour]);
+
+thick_seq_colour := spot_colour(thick_colour);
+thin_seq_colour := spot_colour(text_colour);
+thick_seq_patina := patina_filled(thick_seq_colour);
+thin_seq_patina := patina_hollow(thin_seq_colour,1);
+
+thick_textpen := pen("'Lato', sans-serif",text_size,thick_text_colour,thick_colour);
+
+/******/
+
+/* restrict transcript sizes to bases in range before iterating! */
+startos_tr := start_tr;
+endos_tr := end_tr;
+startos_tr#[start_tr<bp[@==0]] := bp[@==0];
+endos_tr#[end_tr>bp[@==1]] := bp[@==1];
+
+startos_thex := start_thex;
+endos_thex := end_thex;
+startos_thex#[start_thex<bp[@==0]] := bp[@==0];
+endos_thex#[end_thex>bp[@==1]] := bp[@==1];
+
+/* WHOLE TRANSCRIPT */
+/* We put an empty under the whole transcript to keep bumping consistent */
+c := idx_tr_in_gn * 20;
+w := spacebase(start_tr,c,0);
+e := spacebase(end_tr,c+20,0);
+empty(w,e,al_far_under_by_tr);
+
+/* EXONS */
+
+range(pos_seq,which_thex_by_seq, startos_thex,endos_thex);
+which_tr_by_seq := index(which_thex_by_seq,[which_tr_by_thex]);
+which_gn_by_seq := index(which_tr_by_seq,[which_gn_by_tr]);
+idx_tr_in_gn_by_thseq := index(which_tr_by_seq,[idx_tr_in_gn]);
+which_tk_by_thseq := index(which_gn_by_seq,[allotment_idx]);
+
+thseq_letter_pos := pos_seq - sequence_start;
+thseq_letter := index(thseq_letter_pos,sequence);
+rev_thseq_letter := index(thseq_letter_pos,sequence_rev);
+
+draw_thseq_letter := thseq_letter;
+thseq_strand := index(which_gn_by_seq,[strand]);
+draw_thseq_letter#[thseq_strand<1] := rev_thseq_letter#[thseq_strand<1];
+
+thick_seq_allotment_over := index(which_tr_by_seq,[al_over_by_tr]);
+thick_seq_allotment_far_over := index(which_tr_by_seq,[al_far_over_by_tr]);
+
+thick_colour := index(which_tk_by_thseq,[normal_thick_colour,normal_thick_colour,normal_thick_colour,normal_thick_colour,focus_thick_colour]);
+thick_textpen := pen("'Lato', sans-serif",text_size,thick_text_colour,thick_colour);
+
+/* exon blocks */
+
+thick_seq_colour := spot_colour(thick_colour);
+thick_seq_patina := patina_filled(thick_seq_colour);
+
+c := idx_tr_in_gn_by_thseq * 20;
+w := spacebase(pos_seq,c,1);
+e := spacebase(pos_seq+1,c+12,-1);
+rectangle(w,e,thick_seq_patina,thick_seq_allotment_over);
+
+/* exon letters */
+c := idx_tr_in_gn_by_thseq * 20;
+pos := spacebase(pos_seq+0.5,c+0.5,-4);
+text2(pos,thick_textpen,draw_thseq_letter,thick_seq_allotment_far_over);
+
+/* INTRONS */
+
+gaps(start_it, end_it, which_tr_by_it,
+     startos_tr, endos_tr,
+     start_thex, end_thex, which_tr_by_thex);
+range(pos_seq,which_it_by_seq, start_it,end_it);
+
+which_tr_by_seq := index(which_it_by_seq,[which_tr_by_it]);
+idx_tr_in_gn_by_seq := index(which_tr_by_seq,[idx_tr_in_gn]);
+which_gn_by_seq := index(which_tr_by_seq,[which_gn_by_tr]);
+thin_seq_allotment_over := index(which_tr_by_seq,[al_over_by_tr]);
+
+/* intron rectangles */
+c := idx_tr_in_gn_by_seq * 20;
+w := spacebase(pos_seq,c,1);
+e := spacebase(pos_seq+1,c+12,-1);
+rectangle(w,e,thin_seq_patina,thin_seq_allotment_over);
+
+/* intron letters */
+seq_letter_pos := pos_seq - sequence_start;
+seq_letter := index(seq_letter_pos,sequence);
+rev_seq_letter := index(seq_letter_pos,sequence_rev);
+
+draw_seq_letter := seq_letter;
+seq_strand := index(which_gn_by_seq,[strand]);
+draw_seq_letter#[seq_strand<1] := rev_seq_letter#[seq_strand<1];
+
+c := idx_tr_in_gn_by_seq * 20;
+text_colour := index(index(which_gn_by_seq,[allotment_idx]),[normal_text_colour,normal_text_colour,normal_text_colour,normal_text_colour,focus_text_colour]);
+thin_textpen := pen("'Lato', sans-serif",text_size,text_colour,[][]);
+pos := spacebase(pos_seq+0.5,c+1,-4);
+thin_seq_allotment_far_over := index(which_tr_by_seq,[al_far_over_by_tr]);
+
+text2(pos,thin_textpen,draw_seq_letter,thin_seq_allotment_far_over);
+
+/* track names */
+draw_track_names(gene_track_names,gene_name_switches,allotments_trackname);
+
+/* zmenus */
+track_name := index(allotment_idx,potential_tracks);
+transcript_track_name := index(transcript_allotment_idx,potential_tracks);
+
+pt_zmenu_type := patina_zmenu(zmenu(""),["type"],[["gene-and-one-transcript"]][]);
+
+transcript_strand_string := index(which_gn_by_tr,[strand_string]);
+zmenu_tmpl := zmenu("[<light>Transcript</light> <strong>{transcript_id}</strong>] [<light>{transcript_biotype}</light>] [<light>{strand}</light>] / [<light>{transcript_id}</light>] [<light>{designation}</light>]");
+pt_zmenu_tr := patina_zmenu(zmenu_tmpl,["gene_id","transcript_id","transcript_biotype","strand","designation","track","type"],
+                                      [[id_gn_by_tr],[transcript_id],[transcript_biotype],[transcript_strand_string],[transcript_designation],[transcript_track_name],[len([id_gn_by_tr]) (*) "transcript"]][]);
+
+zmenu_tmpl := zmenu("[<light>Gene</light> {symbol}] / [<strong><focus>{id}</focus></strong>]");
+pt_zmenu_gn := patina_zmenu(zmenu_tmpl,["symbol","id","track","type"],[[gene_name],[gene_id],[track_name],["gene"]][]);
+
+enabled_labels := get_switch([
+    ["track","gene-other-rev","label"],
+    ["track","gene-pc-rev","label"],
+    ["track","gene-other-fwd","label"],
+    ["track","gene-pc-fwd","label"],
+    ["track","focus","label"],
+][]);
+
+enabled_gene_labels := index(allotment_idx,[enabled_labels]);
+al_text_by_gn#[enabled_gene_labels==false] := use_allotment("");
+al_text_by_gn#[get_switch(["scale","no-labels"])] := use_allotment("");
+textpen := pen("'Lato', sans-serif",text_size,text_colour,[][]);
+text2(spacebase(start_gn,drawn_tr_by_gn*20-5,0),textpen,gene_name,al_text_by_gn);
+
+/* zmenu areas */
+/* type and gene zmenus */
+nw := spacebase(start_gn,0,0);
+se := spacebase(end_gn,drawn_tr_by_gn*20,0);
+rectangle(nw,se,pt_zmenu_type,al_far_under_by_gn);
+rectangle(nw,se,pt_zmenu_gn,al_far_under_by_gn);
+
+/* transcript zmenus */
+c := idx_tr_in_gn * 20;
+w := spacebase(start_tr,c,0);
+e := spacebase(end_tr,c+20,0);
+rectangle(w,e,pt_zmenu_tr,al_far_under_by_tr);
+
+/* track category */
+draw_track_category("G",allotments_letter);
+
+/* focus swatch */
+draw_focus_swatch(allotments_letter[@==4]);
+
+/* red-dotted lines */
+dots_allotment := use_allotment(["","dots/content"][(@==1)==(get_switch(["track","focus"]))]);
+red_dotted(focus_start,focus_end,dots_allotment);

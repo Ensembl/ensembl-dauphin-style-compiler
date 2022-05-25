@@ -20,7 +20,7 @@ patina := patina_filled(index(sense,[neg_colour,pos_colour]));
 rectangle_on_genome(start,end,5,patina,allotment);
 
 /* track names */
-draw_track_names(["Contigs"],[["track","contig","name"]],[use_allotment("track:contig:wallpaper[-10]")]);
+draw_track_names(["Contigs"],[["track","contig","name"]],[use_allotment("track:contig:header[-10]")]);
 
 /* track category */
 draw_track_category("G",[use_allotment("track:contig:wallpaper{left:left-pad}[60]")]);

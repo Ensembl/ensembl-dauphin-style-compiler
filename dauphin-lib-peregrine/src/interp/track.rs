@@ -1,5 +1,5 @@
 use crate::simple_interp_command;
-use peregrine_data::{AllotmentMetadataRequest, Channel};
+use peregrine_data::{Channel };
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult, AsyncBlock };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
 use serde_cbor::Value as CborValue;
@@ -9,10 +9,11 @@ simple_interp_command!(NewLaneInterpCommand,NewLaneDeserializer,4,6,(0,1,2,3,4,5
 simple_interp_command!(AddTagInterpCommand,AddTagDeserializer,5,2,(0,1));
 simple_interp_command!(AddTriggerInterpCommand,AddTriggerDeserializer,6,4,(0,1,2,3));
 simple_interp_command!(AddSwitchInterpCommand,AddSwitchDeserializer,11,4,(0,1,2,3));
-simple_interp_command!(AddAllotmentInterpCommand,AddAllotmentDeserializer,10,7,(0,1,2,3,4,5,6));
 simple_interp_command!(DataSourceInterpCommand,DataSourceDeserializer,8,1,(0));
 simple_interp_command!(SetSwitchInterpCommand,SetSwitchDeserializer,33,4,(0,1,2,3));
 simple_interp_command!(ClearSwitchInterpCommand,ClearSwitchDeserializer,34,4,(0,1,2,3));
+simple_interp_command!(AppendGroupInterpCommand,AppendGroupDeserializer,47,3,(0,1,2));
+simple_interp_command!(AppendDepthInterpCommand,AppendDepthDeserializer,48,3,(0,1,2));
 
 impl InterpCommand for NewLaneInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
@@ -54,40 +55,6 @@ impl InterpCommand for AddTagInterpCommand {
                 track.add_tag(tag);
             }
             drop(track);
-        }
-        Ok(CommandResult::SyncResult())
-    }
-}
-
-impl InterpCommand for AddAllotmentInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
-        let registers = context.registers_mut();
-        let track_ids = registers.get_indexes(&self.0)?.to_vec();
-        let names = registers.get_strings(&self.1)?.to_vec();
-        let prios = registers.get_numbers(&self.2)?.to_vec();
-        let pair_key = registers.get_strings(&self.3)?.to_vec();
-        let pair_value_d = registers.get_strings(&self.4)?.to_vec();
-        let pair_value_a = registers.get_indexes(&self.5)?.to_vec();
-        let pair_value_b = registers.get_indexes(&self.6)?.to_vec();
-        let mut pairs = vec![];
-        let value_pos = pair_value_a.iter().cycle().zip(pair_value_b.iter().cycle());
-        let data = pair_key.iter().zip(value_pos);    
-        for (pair_key,(value_a,value_b)) in data {
-            let values = &pair_value_d[*value_a..(*value_a+*value_b)];
-            let values = values.iter().map(|x| x.clone()).collect::<Vec<_>>();
-            pairs.push((pair_key.clone(),values));
-        }
-        drop(registers);
-        let peregrine = get_peregrine(context)?;
-        let mut allotment_metadata = peregrine.allotment_metadata().clone();
-        for (i,(name,prio)) in names.iter().zip(prios.iter().cycle()).enumerate() {
-            let mut metadata = AllotmentMetadataRequest::new(name,*prio as i64);
-            for (key,values) in &pairs {
-                if values.len() > 0 {
-                    metadata.add_pair(key,&values[i%values.len()]);
-                }
-            }
-            allotment_metadata.add(metadata);
         }
         Ok(CommandResult::SyncResult())
     }
@@ -190,5 +157,41 @@ impl InterpCommand for DataSourceInterpCommand {
     fn execute(&self, _context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         let cmd = self.clone();
         Ok(CommandResult::AsyncResult(AsyncBlock::new(Box::new(|context| Box::pin(data_source(context,cmd))))))
+    }
+}
+
+impl InterpCommand for AppendGroupInterpCommand {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+        let registers = context.registers_mut();
+        let allotments = registers.get_strings(&self.1)?.to_vec();
+        let groups = registers.get_strings(&self.2)?.to_vec();
+        let mut out = vec![];
+        for (allotment,group) in allotments.iter().zip(groups.iter().cycle()) {
+            if allotment.is_empty() {
+                out.push("".to_string());
+            } else {
+                out.push(format!("{}/{}",allotment,group));
+            }
+        }
+        registers.write(&self.0, InterpValue::Strings(out));
+        Ok(CommandResult::SyncResult())
+    }
+}
+
+impl InterpCommand for AppendDepthInterpCommand {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+        let registers = context.registers_mut();
+        let allotments = registers.get_strings(&self.1)?.to_vec();
+        let depths = registers.get_numbers(&self.2)?.to_vec();
+        let mut out = vec![];
+        for (allotment,depth) in allotments.iter().zip(depths.iter().cycle()) {
+            if allotment.is_empty() {
+                out.push("".to_string());
+            } else {
+                out.push(format!("{}[{}]",allotment,depth));
+            }
+        }
+        registers.write(&self.0, InterpValue::Strings(out));
+        Ok(CommandResult::SyncResult())
     }
 }

@@ -94,24 +94,24 @@ class Free:
         if default is None:
             default = self.default
         if skip_ask:
-            return self.default
+            return default
         print(rich("\0y{0}\0- [\0g{1}\0-]? ".format(self.question,default)),end='',flush=True)
         line = sys.stdin.readline().strip()
         if line == '':
-            return self.default
+            return default
         else:
             return line
 
 class ChooseOne:
     def __init__(self, question, options):
         self.question = question
-        self.options = options
+        self.options = options[:]
 
     def label(self):
         return self.question
 
     def ask(self, default, skip_ask):
-        options = self.options
+        options = self.options[:]
         if default != None:
             try:
                 index = options.index(default)
@@ -125,15 +125,21 @@ class ChooseOne:
             print(rich("\0y{0}\0- [{1}]? ".format(self.question,optstr)),end='',flush=True)
             line = sys.stdin.readline().strip()
             if line != '': 
-                a = unique(line,self.options)
+                a = unique(line,options)
                 if a != None:
                     return a
                 else:
                     print(rich("\0rEh?\0- Please type one of: {0}".format(", ".join(self.options))))
             else:
-                return self.options[0]
+                return options[0]
 
-def ask(question,verifiers,default,skip_ask):
+def conditions_met(conditions,values):
+    if "eq" in conditions:
+        if values.get(conditions["eq"][0],None) != conditions["eq"][1]:
+            return False
+    return True
+
+def ask(question,verifiers,default,skip_ask,feedback=True):
     while True:
         out = question.ask(default,skip_ask)
         error = None
@@ -143,19 +149,24 @@ def ask(question,verifiers,default,skip_ask):
                 print(rich("\0rProblem:\0- {0}".format(error)))
                 break
         if error == None:
-            print(rich("Ok, using \0c{0}\0-\n".format(out)))
+            if feedback:
+                print(rich("Ok, using \0c{0}\0-\n".format(out)))
             return out
         print("\n")
 
 def ask_all(questions):
     first = True
     while True:
-        skip_ask = ( quick and first)
+        skip_ask = (quick and first)
         first = False
         out = {}
         # Ask
         for q in questions:
-            out[q[0]] = ask(q[1],q[2],defaults.get(q[0],None),skip_ask)
+            default = defaults.get(q[0],None)
+            if conditions_met(q[3],out):
+                out[q[0]] = ask(q[1],q[2],default,skip_ask)
+            else:
+                out[q[0]] = ask(q[1],"",None,True,feedback=False)
 
         # Show settings for confirmation
         print(rich("\0X\0gSummary:\0-"))
@@ -184,10 +195,11 @@ with open(config_file,'r') as f:
         for verifier in prompt.get("verifiers",[]):
             if verifier["verifier"] == "number":
                 verifiers.append(VerifyNumber(verifier.get("min",None),verifier.get("max",None)))
+        conditions = prompt.get("conditions",{})
         if "options" in prompt:
-            config.append([prompt["key"],ChooseOne(prompt["question"],prompt["options"]),verifiers]),
+            config.append([prompt["key"],ChooseOne(prompt["question"],prompt["options"]),verifiers,conditions]),
         else:
-            config.append([prompt["key"],Free(prompt["question"],prompt.get("default","")),verifiers])
+            config.append([prompt["key"],Free(prompt["question"],prompt.get("default","")),verifiers,conditions])
 
 print(rich("\0X\0yConfiguration\0-\nFor default (\0ggreen\0-) hit enter. Unambiguous prefixes are fine. Defaults usually sensible.\n"))
 
@@ -203,3 +215,5 @@ with open(output_file,'w') as f:
 if use_prev:
     with open(use_prev,'w') as f:
         json.dump(answers,f)
+
+print()

@@ -36,7 +36,7 @@ patina := patina_filled(index(values,colours));
 rectangle(spacebase(r_start,0,-1),spacebase(r_end,5,1),patina,allotment);
 
 /* track names */
-draw_track_names(["Variants"],[["track","variant","name"]],[use_allotment("track:variant:wallpaper[-3]")]);
+draw_track_names(["Variants"],[["track","variant","name"]],[use_allotment("track:variant:header[-3]")]);
 
 /* track category */
 draw_track_category("V",[use_allotment("track:variant:wallpaper{left:left-pad}[60]")]);

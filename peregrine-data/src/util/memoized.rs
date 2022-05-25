@@ -66,10 +66,6 @@ impl<K: Clone+Eq+Hash,V> MemoizedState<K,V> {
         self.known.get(key).cloned()
     }
 
-    fn in_hand(&mut self, key: &K) -> bool {
-        self.known.get(key).is_some() || self.pending.get(key).is_some()
-    }
-
     fn get_promise(&mut self, key: &K) -> (PromiseFuture<Arc<V>>,Option<FusePromise<Arc<V>>>) {
         let p = PromiseFuture::new();
         let fuse = if let Some(value) = self.known.get(key) {
@@ -125,9 +121,5 @@ impl<K: Clone+Hash+Eq,V> Memoized<K,V> {
 
     pub fn try_get(&self, key: &K) -> Option<Arc<V>> {
         lock!(self.state).try_get(key)
-    }
-
-    pub fn in_hand(&self, key: &K) -> bool {
-        lock!(self.state).in_hand(key)
     }
 }

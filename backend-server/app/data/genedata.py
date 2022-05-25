@@ -11,11 +11,14 @@ from .util import classified_numbers, starts_and_ends, starts_and_lengths
 from .numbers import delta, zigzag, lesqlite2, compress, classify
 from .sequence import sequence_blocks
 
+#
+# THIS FILE CAN BE DELETEDWHEN VERSION 7 IS REMOVED
+#
+
 """
 Attributes:
     BLOCKS_PER_PANEL (int)
 """
-
 BLOCKS_PER_PANEL = 1000
 
 
@@ -220,54 +223,55 @@ class TranscriptDataHandler(DataHandler):
     def __init__(self, seq: bool):
         self._seq = seq
 
-    def process_data(self, data_accessor: DataAccessor, panel: Panel) -> Response:
+    def process_data(self, data_accessor: DataAccessor, panel: Panel, scope) -> Response:
         """
 
         Args:
             data_accessor ():
             panel ():
+            scope ():
 
         Returns:
             Response object
 
         """
-        chrom = data_accessor.data_model.stick(data_accessor, panel.stick)
-        if chrom is None:
-            return Response(1, "Unknown chromosome {0}".format(panel.stick))
-        return extract_gene_data(data_accessor, chrom, panel, True, self._seq)
-
+        chrom = data_accessor.data_model.stick(data_accessor,panel.stick)
+        if chrom == None:
+            return Response(1,"Unknown chromosome {0}".format(panel.stick))
+        return extract_gene_data(data_accessor,chrom,panel,True,self._seq)
 
 class GeneDataHandler(DataHandler):
-    def process_data(self, data_accessor: DataAccessor, panel: Panel) -> Response:
+    def process_data(self, data_accessor: DataAccessor, panel: Panel, scope) -> Response:
         """
 
         Args:
             data_accessor ():
             panel ():
+            scope ():
 
         Returns:
             Response object
 
         """
-        chrom = data_accessor.data_model.stick(data_accessor, panel.stick)
-        if chrom is None:
-            return Response(1, "Unknown chromosome {0}".format(panel.stick))
-        return extract_gene_data(data_accessor, chrom, panel, False, False)
-
+        chrom = data_accessor.data_model.stick(data_accessor,panel.stick)
+        if chrom == None:
+            return Response(1,"Unknown chromosome {0}".format(panel.stick))
+        return extract_gene_data(data_accessor,chrom,panel,False,False)
 
 class GeneOverviewDataHandler(DataHandler):
-    def process_data(self, data_accessor: DataAccessor, panel: Panel) -> Response:
+    def process_data(self, data_accessor: DataAccessor, panel: Panel, scope) -> Response:
         """
 
         Args:
             data_accessor ():
             panel ():
+            scope ():
 
         Returns:
             Response object
 
         """
-        chrom = data_accessor.data_model.stick(data_accessor, panel.stick)
-        if chrom is None:
-            return Response(1, "Unknown chromosome {0}".format(panel.stick))
-        return extract_gene_overview_data(data_accessor, chrom, panel)
+        chrom = data_accessor.data_model.stick(data_accessor,panel.stick)
+        if chrom == None:
+            return Response(1,"Unknown chromosome {0}".format(panel.stick))
+        return extract_gene_overview_data(data_accessor,chrom,panel)

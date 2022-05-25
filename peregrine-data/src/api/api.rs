@@ -1,8 +1,8 @@
-use crate::Scale;
-use crate::allotment::allotmentmetadata::AllotmentMetadataReport;
+use crate::allotment::globals::allotmentmetadata::GlobalAllotmentMetadata;
+use crate::allotment::globals::playingfield::PlayingField;
 use crate::core::channel::ChannelIntegration;
-use crate::{DataMessage};
-use crate::train::{ Carriage, Train };
+use crate::train::drawingcarriage::DrawingCarriage;
+use crate::{DataMessage, TrainExtent};
 use crate::core::Viewport;
 use crate::core::Assets;
 
@@ -13,57 +13,19 @@ pub enum CarriageSpeed {
     Slow /* different stick */
 }
 
-#[derive(PartialEq,Eq,Clone,Debug)]
-pub struct PlayingField {
-    height: i64,
-    squeeze: (i64,i64),
-}
-
-impl PlayingField {
-    pub fn empty() -> PlayingField {
-        PlayingField {
-            height: 0,
-            squeeze: (0,0)
-        }
-    }
-
-    pub fn new_height(height: i64) -> PlayingField {
-        PlayingField {
-            height,
-            squeeze: (0,0)
-        }
-    }
-
-    pub fn new_squeeze(left: i64, right: i64) -> PlayingField {
-        PlayingField {
-            height: 0,
-            squeeze: (left,right)
-        }
-    }
-
-    pub fn height(&self) -> i64 { self.height }
-    pub fn squeeze(&self) -> (i64,i64) { self.squeeze }
-
-    pub fn union(&mut self, other: &PlayingField) {
-        self.height = self.height.max(other.height);
-        self.squeeze.0 = self.squeeze.0.max(other.squeeze.0);
-        self.squeeze.1 = self.squeeze.1.max(other.squeeze.1);
-    }
-}
-
 pub trait PeregrineIntegration {
     fn set_assets(&mut self, assets: Assets);
 
-    fn create_train(&mut self, train: &Train);
-    fn drop_train(&mut self, train: &Train);
+    fn create_train(&mut self, train: &TrainExtent);
+    fn drop_train(&mut self, train: &TrainExtent);
 
-    fn create_carriage(&mut self, carriage: &Carriage);
-    fn drop_carriage(&mut self, carriage: &Carriage);
+    fn create_carriage(&mut self, carriage: &DrawingCarriage);
+    fn drop_carriage(&mut self, carriage: &DrawingCarriage);
 
-    fn set_carriages(&mut self, train: &Train, carriages: &[Carriage]) -> Result<(),DataMessage>;
-    fn start_transition(&mut self, train: &Train, max: u64, speed: CarriageSpeed) -> Result<(),DataMessage>;
-    fn notify_viewport(&mut self, viewport: &Viewport, future: bool);
-    fn notify_allotment_metadata(&mut self, metadata: &AllotmentMetadataReport);
+    fn set_carriages(&mut self, train: &TrainExtent, carriages: &[DrawingCarriage]) -> Result<(),DataMessage>;
+    fn start_transition(&mut self, train: &TrainExtent, max: u64, speed: CarriageSpeed) -> Result<(),DataMessage>;
+    fn notify_viewport(&mut self, viewport: &Viewport);
+    fn notify_allotment_metadata(&mut self, metadata: &GlobalAllotmentMetadata);
     fn set_playing_field(&mut self, playing_field: PlayingField);
     fn channel(&self) -> Box<dyn ChannelIntegration>;
 }

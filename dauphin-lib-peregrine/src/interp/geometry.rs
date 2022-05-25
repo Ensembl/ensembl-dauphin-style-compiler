@@ -1,9 +1,13 @@
+use anyhow::anyhow as err;
+use peregrine_toolkit::{lock, log};
 use crate::simple_interp_command;
-use peregrine_data::{Builder, Colour, DataMessage, DirectColour, DrawnType, EachOrEvery, Patina, Pen, Plotter, ShapeListBuilder, ShapeRequest, SpaceBase, ZMenu};
+use peregrine_data::{Builder, Colour, DataMessage, DirectColour, DrawnType, EachOrEvery, Patina, Pen, Plotter, ShapeRequest, ZMenu, SpaceBase, ProgramShapesBuilder, Hotspot};
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
 use serde_cbor::Value as CborValue;
 use std::cmp::max;
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 use crate::util::{get_instance, get_peregrine, vec_to_eoe};
 
 simple_interp_command!(ZMenuInterpCommand,ZMenuDeserializer,14,2,(0,1));
@@ -20,6 +24,9 @@ simple_interp_command!(StripedInterpCommand,StripedDeserializer,36,6,(0,1,2,3,4,
 simple_interp_command!(BarredInterpCommand,BarredDeserializer,37,6,(0,1,2,3,4,5));
 simple_interp_command!(BpRangeInterpCommand,BpRangeDeserializer,45,1,(0));
 simple_interp_command!(SpotColourInterpCommand,SpotColourDeserializer,46,2,(0,1));
+simple_interp_command!(PpcInterpCommand,PpcDeserializer,49,1,(0));
+simple_interp_command!(StyleInterpCommand,StyleDeserializer,50,3,(0,1,2));
+simple_interp_command!(PatinaSwitchInterpCommand,PatinaSwitchDeserializer,51,3,(0,1,2));
 
 impl InterpCommand for BpRangeInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
@@ -33,16 +40,31 @@ impl InterpCommand for BpRangeInterpCommand {
     }
 }
 
+impl InterpCommand for PpcInterpCommand {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+        let shape = get_instance::<ShapeRequest>(context,"request")?;
+        let pixel_size = shape.pixel_size();
+        let registers = context.registers_mut();
+        let min = pixel_size.min_px_per_carriage();
+        let max = pixel_size.max_px_per_carriage();
+        registers.write(&self.0,InterpValue::Numbers(vec![min as f64, max as f64]));
+        Ok(CommandResult::SyncResult())
+    }
+}
+
 impl InterpCommand for SpaceBaseInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         let registers = context.registers_mut();
-        let base = registers.get_numbers(&self.1)?.to_vec();
-        let normal = registers.get_numbers(&self.2)?.to_vec();
-        let tangent = registers.get_numbers(&self.3)?.to_vec();
+        let mut base = vec_to_eoe(registers.get_numbers(&self.1)?.to_vec());
+        let normal = vec_to_eoe(registers.get_numbers(&self.2)?.to_vec());
+        let tangent = vec_to_eoe(registers.get_numbers(&self.3)?.to_vec());
+        if base.len().is_none() && normal.len().is_none() && tangent.len().is_none() {
+            base = base.to_each(1).unwrap();
+        }
         drop(registers);
         let peregrine = get_peregrine(context)?;
         let geometry_builder = peregrine.geometry_builder();
-        let spacebase = SpaceBase::new(base,normal,tangent);
+        let spacebase = SpaceBase::new(&base,&normal,&tangent,&EachOrEvery::every(())).ok_or_else(|| err!("sb4"))?;
         let id = geometry_builder.add_spacebase(spacebase);
         let registers = context.registers_mut();
         registers.write(&self.0,InterpValue::Indexes(vec![id as usize]));    
@@ -205,24 +227,19 @@ impl InterpCommand for UseAllotmentInterpCommand {
         let registers = context.registers_mut();
         let mut name = registers.get_strings(&self.1)?.to_vec();
         drop(registers);
-        let zoo = get_instance::<Builder<ShapeListBuilder>>(context,"out")?;
-        let universe = zoo.lock().universe().clone();
-        let requests = name.drain(..).map(|name| {
-            universe.make_request(&name).ok_or_else(||
-                DataMessage::NoSuchAllotment(name)
-            )
-        }).collect::<Result<Vec<_>,DataMessage>>()?;
-        drop(universe);
+        let zoo = get_instance::<Arc<Mutex<Option<ProgramShapesBuilder>>>>(context,"out")?;
+        let mut shapes_lock = lock!(zoo);
+        let shapes = shapes_lock.as_mut().unwrap();
+        let requests = name.drain(..).map(|name| shapes.use_allotment(&name).clone()).collect::<Vec<_>>();
+        drop(shapes);
+        drop(shapes_lock);
+        drop(zoo);
         let peregrine = get_peregrine(context)?;
         let geometry_builder = peregrine.geometry_builder(); 
         let ids = requests.iter().map(|request| {
-            geometry_builder.add_allotment(request.clone()) as usize           
+            geometry_builder.add_allotment(request.clone()) as usize
         }).collect();
         drop(peregrine);
-        let zoo = get_instance::<Builder<ShapeListBuilder>>(context,"out")?;
-        for request in &requests {
-            zoo.lock().use_allotment(request);
-        }
         let registers = context.registers_mut();
         registers.write(&self.0,InterpValue::Indexes(ids));
         Ok(CommandResult::SyncResult())
@@ -298,12 +315,41 @@ impl InterpCommand for PatinaZMenuInterpCommand {
         for (zmenu,(key_start,key_length)) in each {
             let keys = &key_d[*key_start..(*key_start+*key_length)];
             let values = make_values(keys,&value_d,&value_a,&value_b)?;
-            let patina = Patina::ZMenu(zmenu.as_ref().clone(),values);
+            let patina = Patina::Hotspot(Hotspot::ZMenu(zmenu.as_ref().clone(),values));
             payload.push(geometry_builder.add_patina(patina) as usize);
         }
         drop(peregrine);
         let registers = context.registers_mut();
         registers.write(&self.0,InterpValue::Indexes(payload));
+        Ok(CommandResult::SyncResult())
+    }
+}
+
+fn make_switches(key: &[String], sense: &[bool]) -> anyhow::Result<Vec<(Vec<String>,bool)>> {
+    let mut out = vec![];
+    for (key,sense) in key.iter().zip(sense.iter().cycle()) {
+        out.push((key.split("/").map(|x| x.to_string()).collect(),*sense));
+    }
+    Ok(out)
+}
+
+/* 0: out/patina  1: key  2: bool */
+impl InterpCommand for PatinaSwitchInterpCommand {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+        let registers = context.registers_mut();
+        let key = registers.get_strings(&self.1)?.to_vec();
+        let sense = registers.get_boolean(&self.2)?;
+        drop(registers);
+        let peregrine = get_peregrine(context)?;
+        let geometry_builder = peregrine.geometry_builder();
+        let values = vec_to_eoe(make_switches(&key,&sense)?);
+        let patina = Patina::Hotspot(Hotspot::Switch(values));
+        let patina_id = geometry_builder.add_patina(patina) as usize;
+        drop(peregrine);
+        let registers = context.registers_mut();
+        registers.write(&self.0,InterpValue::Indexes(vec![
+            patina_id
+        ]));
         Ok(CommandResult::SyncResult())
     }
 }
@@ -345,5 +391,22 @@ impl InterpCommand for PlotterInterpCommand {
         let registers = context.registers_mut();
         registers.write(&self.0,InterpValue::Indexes(vec![id as usize]));
         Ok(CommandResult::SyncResult())
+    }
+}
+
+impl InterpCommand for StyleInterpCommand {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+        let registers = context.registers_mut();
+        let spec = registers.get_strings(&self.0)?[0].clone();        
+        let keys = registers.get_strings(&self.1)?;
+        let values = registers.get_strings(&self.2)?;
+        drop(registers);
+        let mut props = HashMap::new();
+        for (key,value) in keys.iter().zip(values.iter()) {
+            props.insert(key.to_string(),value.to_string());
+        }
+        let zoo = get_instance::<Arc<Mutex<Option<ProgramShapesBuilder>>>>(context,"out")?;
+        lock!(zoo).as_mut().unwrap().add_style(&spec,props);
+        Ok(CommandResult::SyncResult())       
     }
 }

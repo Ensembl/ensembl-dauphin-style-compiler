@@ -10,13 +10,13 @@ use super::dom::PeregrineDom;
 
 fn animation_tick(lweb: &mut LockedPeregrineInnerAPI, size_manager: &SizeManager, input: &Input, elapsed: f64) -> Result<(),Message> {
     size_manager.tick(lweb)?;
-    let read_stage = &lweb.stage.lock().unwrap().read_stage();
+    let read_stage = &lock!(lweb.stage).read_stage();
     input.update_stage(read_stage);
     let spectres = input.get_spectres();
     if spectres.len() > 0 {
-        lweb.stage.lock().unwrap().redraw_needed().set();
+        lock!(lweb.stage).redraw_needed().set();
     }
-    lweb.data_api.try_lifecycle_trains();
+    lweb.data_api.ping_trains();
     let gl = lweb.webgl.clone();
     let assets = lweb.assets.clone();
     lweb.trainset.transition_animate_tick(&lweb.data_api,&mut *lock!(gl),elapsed)?;
@@ -34,7 +34,7 @@ fn animation_tick(lweb: &mut LockedPeregrineInnerAPI, size_manager: &SizeManager
 async fn animation_tick_loop(mut web: PeregrineInnerAPI, size_manager: SizeManager, input: Input) {
     let mut start = cdr_current_time();
     let lweb = web.lock().await;
-    let redraw = lweb.stage.lock().unwrap().redraw_needed().clone();
+    let redraw = lock!(lweb.stage).redraw_needed().clone();
     drop(lweb);
     loop {
         let next = cdr_current_time();

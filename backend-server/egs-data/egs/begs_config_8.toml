@@ -1,0 +1,43 @@
+#
+# The programs to use.
+#
+
+[core]
+boot="boot"
+
+[stick-authority]
+startup="sa-startup"
+lookup="sa-lookup"
+jump="sa-jump"
+
+[egs]
+stick=["startup","lookup"]
+boot="boot"
+render=["gene","gene-overview"]
+
+# Every program has a unique string name in the channel. It is by this name that it is referred to by both the frontend
+# and the backend. Program files also have names (not necessarily the same). The mapping is as follows:
+#
+# [begs.FILENAME]
+# NAME_IN_FILE="NAME_FOR_CHANNEL"
+# ...
+
+[begs.stick8]
+startup8="sa-startup"
+lookup="sa-lookup"
+jump="sa-jump"
+
+[begs.boot8]
+boot="boot"
+
+[begs.render8]
+zoomed-seq8="zoomed-seq"
+zoomed-transcript8="zoomed-transcript"
+transcript8="transcript"
+gene8="gene"
+gene-overview8="gene-overview"
+gc8="gc"
+contig8="contig"
+variant8="variant"
+ruler8="ruler"
+framing8="framing"

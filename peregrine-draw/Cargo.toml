@@ -48,6 +48,7 @@ features = [
   'console', 'CustomEvent', 'CustomEventInit', 'CanvasRenderingContext2d', 'CssStyleDeclaration', 'Crypto',
   'Document', 'DomRect',
   'Element',
+  'FontFaceSet',
   'GainNode',
   'HtmlElement', 'Headers', 'HtmlCanvasElement', 'HtmlCollection', 'HtmlImageElement',
   'KeyboardEvent',

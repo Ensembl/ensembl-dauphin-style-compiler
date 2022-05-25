@@ -1,0 +1,37 @@
+import "lib:std"; use "std";
+import "lib:peregrine"; use "peregrine";
+import "file:common8.egs"; use "common8";
+
+/* 
+ * actually get the data from the server
+ */
+
+req := make_request("self()","gc",get_region());
+data := get_data(req);
+halt(only_warm(),[data]);
+
+allotment := use_allotment("tracks/track/gc/main/main/content");
+allotment_track_name := use_allotment("tracks/track/gc/title/content");
+allotment_track_background := use_allotment("tracks/track/gc/main/background/content");
+allotment_letter := use_allotment("tracks/track/gc/title/letter/content");
+
+style("tracks/track/gc/",["priority","report"][],["900","track;switch-id=gc"][]);
+
+values := delta_seq(data,"values");
+values := values / 25;
+x_range := [positive_seq(data,"range")];
+
+/* wiggle */
+colour := direct_colour(251,180,75,255);
+p := plotter(32,colour);
+wiggle(x_range[@==0],x_range[@==1],p,values,true,allotment);
+
+/* track names */
+draw_track_names(["%GC"],[["track","gc","name"]],[allotment_track_name]);
+
+/* track category */
+draw_track_category("G",[allotment_letter]);
+
+/* horizontal line */
+line_patina := patina_hollow(spot_colour(direct_colour(208,208,208,255)),1);
+rectangle(spacebase(0,16,0),spacebase(1,16,0),line_patina,allotment_track_background);

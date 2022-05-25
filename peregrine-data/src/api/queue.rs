@@ -1,5 +1,6 @@
 use crate::api::PeregrineCore;
 use crate::core::channel::Channel;
+use crate::core::pixelsize::PixelSize;
 use crate::core::{ StickId, Viewport };
 use crate::request::core::request::{BackendRequest, RequestVariant};
 use crate::request::messages::metricreq::MetricReport;
@@ -17,6 +18,7 @@ pub enum ApiMessage {
     SetPosition(f64),
     SetBpPerScreen(f64),
     SetStick(StickId),
+    SetMinPxPerCarriage(u32),
     Bootstrap(u64,Channel),
     SetSwitch(Vec<String>),
     ClearSwitch(Vec<String>),
@@ -26,7 +28,7 @@ pub enum ApiMessage {
     ReportMetric(Channel,MetricReport),
     GeneralMetric(String,Vec<(String,String)>,Vec<(String,f64)>),
     SetAssets(Assets),
-    TryLifecycleTrains,
+    PingTrains,
     Sketchy(bool),
     Invalidate
 }
@@ -49,7 +51,7 @@ impl ApiQueueCampaign {
             },
             ApiMessage::TransitionComplete => {
                 let train_set = data.train_set.clone();
-                train_set.transition_complete(data);
+                train_set.transition_complete(&mut data.base);
             },
             ApiMessage::SetPosition(pos) =>{
                 self.viewport = self.viewport.set_position(pos);
@@ -57,6 +59,9 @@ impl ApiQueueCampaign {
             ApiMessage::SetBpPerScreen(scale) => {
                 self.viewport = self.viewport.set_bp_per_screen(scale);
             },
+            ApiMessage::SetMinPxPerCarriage(px) => {
+                self.viewport = self.viewport.set_pixel_size(&PixelSize::new(px))
+            }            
             ApiMessage::Jump(location,promise) => {
                 data.agent_store.jump_store.jump(&location,promise);
             },
@@ -97,17 +102,14 @@ impl ApiQueueCampaign {
             ApiMessage::SetAssets(assets) => {
                 *data.base.assets.lock().unwrap() = assets;
             },
-            ApiMessage::TryLifecycleTrains => {
-                let train_set = data.train_set.clone();
-                train_set.try_lifecycle_trains(data);
+            ApiMessage::PingTrains => {
+                data.train_set.ping();
             },
             ApiMessage::Sketchy(yn) => {
-                let train_set = data.train_set.clone();
-                train_set.set_sketchy(data,yn);
+                 data.train_set.set_sketchy(yn);
             },
             ApiMessage::Invalidate => {
-                let train_set = data.train_set.clone();
-                train_set.invalidate(data);
+                 data.train_set.invalidate();
             }
         }
     }
@@ -132,7 +134,7 @@ impl PeregrineApiQueue {
     fn update_train_set(&mut self, objects: &mut PeregrineCore) {
         let viewport = objects.viewport.clone();
         let train_set = objects.train_set.clone();
-        train_set.set(objects,&viewport);
+        train_set.set(&viewport);
     }
 
     fn update_viewport(&mut self, data: &mut PeregrineCore, new_viewport: Viewport) {

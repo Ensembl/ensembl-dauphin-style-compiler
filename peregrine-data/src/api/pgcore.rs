@@ -9,13 +9,17 @@ use crate::train::Railway;
 use commander::PromiseFuture;
 use peregrine_dauphin_queue::{ PgDauphinQueue };
 use peregrine_message::PeregrineMessage;
+use peregrine_toolkit::{lock};
+use peregrine_toolkit::puzzle::AnswerAllocator;
 use peregrine_toolkit::sync::blocker::Blocker;
+use peregrine_toolkit::sync::needed::Needed;
 use std::sync::{ Arc, Mutex };
-use crate::{AllBackends, AllotmentMetadataStore, Assets, Commander, CountingPromise, PgCommander, PgDauphin};
+use crate::{AllBackends, Assets, Commander, CountingPromise, PgCommander, PgDauphin};
 use crate::api::PeregrineApiQueue;
 use crate::api::queue::ApiMessage;
 use crate::api::AgentStore;
 use crate::core::{ StickId };
+use crate::train::graphics::Graphics;
 use crate::util::message::DataMessage;
 use crate::switch::switch::Switches;
 
@@ -34,6 +38,7 @@ impl MessageSender {
 
 #[derive(Clone)]
 pub struct PeregrineCoreBase {
+    pub answer_allocator: Arc<Mutex<AnswerAllocator>>,
     pub messages: MessageSender,
     pub metrics: MetricCollector,
     pub dauphin_queue: PgDauphinQueue,
@@ -43,11 +48,12 @@ pub struct PeregrineCoreBase {
     pub manager: RequestManager,
     pub booted: CountingPromise,
     pub queue: PeregrineApiQueue,
-    pub allotment_metadata: AllotmentMetadataStore,
     pub identity: Arc<Mutex<u64>>,
+    pub(crate) graphics: Graphics,
     pub integration: Arc<Mutex<Box<dyn PeregrineIntegration>>>,
     pub assets: Arc<Mutex<Assets>>,
-    pub version: VersionMetadata
+    pub version: VersionMetadata,
+    pub redraw_needed: Needed
 }
 
 #[derive(Clone)]
@@ -60,19 +66,21 @@ pub struct PeregrineCore {
 }
 
 impl PeregrineCore {
-    pub fn new<M,F>(integration: Box<dyn PeregrineIntegration>, commander: M, messages: F, visual_blocker: &Blocker) -> Result<PeregrineCore,DataMessage> 
+    pub fn new<M,F>(integration: Box<dyn PeregrineIntegration>, commander: M, messages: F, visual_blocker: &Blocker, redraw_needed: &Needed) -> Result<PeregrineCore,DataMessage> 
                 where M: Commander + 'static, F: FnMut(DataMessage) + 'static + Send {
+        let integration = Arc::new(Mutex::new(integration));
+        let graphics = Graphics::new(&integration);
         let commander = PgCommander::new(Box::new(commander));
         let metrics = MetricCollector::new(&commander);
         let messages = MessageSender::new(messages);
         let dauphin_queue = PgDauphinQueue::new();
         let dauphin = PgDauphin::new(&dauphin_queue).map_err(|e| DataMessage::DauphinIntegrationError(format!("could not create: {}",e)))?;
         let version = VersionMetadata::new();
-        let manager = RequestManager::new(integration.channel(),&commander,&messages,&version);
+        let manager = RequestManager::new(lock!(integration).channel(),&commander,&messages,&version);
         let all_backends = AllBackends::new(&manager,&metrics,&messages);
         let booted = CountingPromise::new();
-        let allotment_metadata = AllotmentMetadataStore::new();
         let base = PeregrineCoreBase {
+            answer_allocator: Arc::new(Mutex::new(AnswerAllocator::new())),
             metrics,
             booted,
             commander,
@@ -81,15 +89,16 @@ impl PeregrineCore {
             manager,
             messages,
             all_backends,
-            integration: Arc::new(Mutex::new(integration)),
+            graphics,
+            integration,
             queue: PeregrineApiQueue::new(visual_blocker),
-            allotment_metadata,
             identity: Arc::new(Mutex::new(0)),
             assets: Arc::new(Mutex::new(Assets::empty())),
-            version
+            version,
+            redraw_needed: redraw_needed.clone()
         };
         let agent_store = AgentStore::new(&base);
-        let train_set = Railway::new(&base,&agent_store.lane_store,visual_blocker);
+        let train_set = Railway::new(&base,&agent_store.lane_store,&agent_store.stick_store,visual_blocker);
         Ok(PeregrineCore {
             base,
             agent_store,
@@ -119,7 +128,7 @@ impl PeregrineCore {
         self.base.queue.push(ApiMessage::Ready);
     }
 
-    /* called after someprograms to refresh state in-case tracks appeared */
+    /* called after some programs to refresh state in-case tracks appeared */
     pub(crate) fn regenerate_track_config(&self) {
         self.base.queue.push(ApiMessage::RegeneraateTrackConfig);
     }
@@ -158,12 +167,16 @@ impl PeregrineCore {
         self.base.queue.push(ApiMessage::SetBpPerScreen(scale));
     }
 
+    pub fn set_min_px_per_carriage(&self, px: u32) {
+        self.base.queue.push(ApiMessage::SetMinPxPerCarriage(px));
+    }
+
     pub fn set_stick(&self, stick: &StickId) {
         self.base.queue.push(ApiMessage::SetStick(stick.clone()));
     }
 
-    pub fn try_lifecycle_trains(&self) {
-        self.base.queue.push(ApiMessage::TryLifecycleTrains);
+    pub fn ping_trains(&self) {
+        self.base.queue.push(ApiMessage::PingTrains);
     }
 
     pub fn report_message(&self, channel: &Channel, message: &(dyn PeregrineMessage + 'static)) {

@@ -1,4 +1,4 @@
-use peregrine_data::{CoordinateSystem, DirectColour};
+use peregrine_data::{CoordinateSystem, DirectColour, CoordinateSystemVariety};
 use crate::shape::{heraldry::heraldry::{HeraldryCanvasesUsed, HeraldryScale}, layers::geometry::{GeometryProcessName, GeometryYielder, TrianglesGeometry}};
 
 #[derive(Clone,PartialEq,Eq,Hash)]
@@ -13,27 +13,22 @@ pub(crate) enum ShapeCategory {
 #[cfg_attr(debug_assertions,derive(Debug))]
 #[derive(Clone,PartialEq,Eq,Hash)]
 pub struct DrawGroup {
-    geometry: TrianglesGeometry,
+    coordsystem: CoordinateSystem,
     shape_category: ShapeCategory
 }
 
 fn geometry(coord_system: &CoordinateSystem) -> TrianglesGeometry {
-    match coord_system {
-        CoordinateSystem::Tracking => TrianglesGeometry::Tracking,
-        CoordinateSystem::TrackingWindow => TrianglesGeometry::TrackingWindow,
-        CoordinateSystem::TrackingWindowBottom => TrianglesGeometry::TrackingWindow,
-        CoordinateSystem::Window => TrianglesGeometry::Window,
-        CoordinateSystem::WindowBottom => TrianglesGeometry::Window,
-        CoordinateSystem::SidewaysLeft => TrianglesGeometry::Window,
-        CoordinateSystem::SidewaysRight =>  TrianglesGeometry::Window,
+    match coord_system.0 {
+        CoordinateSystemVariety::Tracking => TrianglesGeometry::Tracking,
+        CoordinateSystemVariety::TrackingWindow => TrianglesGeometry::TrackingWindow,
+        _ => TrianglesGeometry::Window
     }
 }
 
 impl DrawGroup {
     pub(crate) fn new(coord_system: &CoordinateSystem, shape_category: &ShapeCategory) -> DrawGroup {
-        let geometry = geometry(coord_system);
         DrawGroup {
-            geometry,
+            coordsystem: coord_system.clone(),
             shape_category: shape_category.clone()
         }
     }
@@ -45,16 +40,12 @@ impl DrawGroup {
         }
     }
 
+    pub(crate) fn coord_system(&self) -> &CoordinateSystem { &self.coordsystem }
+
     pub(crate) fn shape_category(&self) -> &ShapeCategory { &self.shape_category }
-    pub(crate) fn is_tracking(&self) -> bool {
-        match self.geometry {
-            TrianglesGeometry::Tracking | TrianglesGeometry::TrackingWindow => true,
-            _ => false
-        }
-    }
 
     pub(crate) fn geometry_process_name(&self) -> GeometryProcessName {
-        GeometryProcessName::Triangles(self.geometry.clone())
+        GeometryProcessName::Triangles(geometry(self.coord_system()).clone())
     }
 
     pub(crate) fn geometry_yielder(&self) -> GeometryYielder {

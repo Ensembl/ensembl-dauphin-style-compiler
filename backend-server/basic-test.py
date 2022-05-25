@@ -13,6 +13,7 @@ request_data = cbor2.dumps({ "channel": "self()", "requests": [[0,0,None]]} )
 request = requests.post(url,data=request_data)
 content = cbor2.loads(request.content)
 good = False
+print(content)
 if "responses" in content:
     for response in content["responses"]:
         if len(response) == 2:

@@ -1,4 +1,4 @@
-use std::{collections::{BTreeMap, BTreeSet}, future::Ready, sync::{ Arc, Mutex }};
+use std::{collections::{BTreeMap}, sync::{ Arc, Mutex }};
 use std::collections::HashMap;
 use crate::{PeregrineDom, run::PgPeregrineConfig};
 use crate::util::Message;

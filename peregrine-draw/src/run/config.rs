@@ -9,7 +9,7 @@ use css_color_parser::Color as CssColor;
 use std::fmt;
 
 // XXX factor with similar in peregrine-data
-// XXX chromosome ned-stops
+// XXX chromosome end-stops
 
 #[derive(Clone,PartialEq,Eq,Hash)]
 #[cfg_attr(debug_assertions,derive(Debug))]

@@ -5,7 +5,7 @@ use crate::Message;
 use crate::input::low::lowlevel::LowLevelState;
 use crate::input::low::modifiers::Modifiers;
 use crate::input::translate::targetreporter::TargetReporter;
-use crate::shape::core::spectre::AreaVariables;
+use crate::shape::core::spectre::AreaVariables2;
 use crate::shape::core::spectre::Spectre;
 use crate::shape::core::spectremanager::SpectreHandle;
 use super::pinch::PinchManager;
@@ -94,7 +94,7 @@ pub struct DragStateData {
     pinch: Option<PinchManager>,
     mode: DragMode,
     alive: bool,
-    hold_vars: AreaVariables,
+    hold_vars2: AreaVariables2<'static>,
     min_hold_drag_size: f64,
     #[allow(unused)] // keep as guard
     cursor: Option<CursorHandle>,
@@ -115,7 +115,7 @@ impl DragStateData {
             pinch: None,
             mode: DragMode::Unknown,
             alive: true,
-            hold_vars: AreaVariables::new(lowlevel.spectre_manager().variables()),
+            hold_vars2: AreaVariables2::new(lowlevel.spectre_manager().reactive()),
             min_hold_drag_size: config.min_hold_drag_size,
             cursor: None,
             spectre: None,
@@ -128,7 +128,7 @@ impl DragStateData {
 
     fn update_spectre(&mut self) -> Result<(),Message> {
         if self.spectre.is_some() {
-            self.hold_vars.update(self.make_ants());
+            self.hold_vars2.update(self.make_ants());
             self.lowlevel.spectre_manager().update()?;
         }
         Ok(())
@@ -190,11 +190,11 @@ impl DragStateData {
             self.set_mode(DragMode::Hold);
             let ants = self.make_ants();
             let spectre = Spectre::Compound(vec![
-                self.lowlevel.spectre_manager().marching_ants(&self.hold_vars)?,
-                self.lowlevel.spectre_manager().stain(&self.hold_vars,true)?
+                self.lowlevel.spectre_manager().marching_ants(&self.hold_vars2)?,
+                self.lowlevel.spectre_manager().stain(&self.hold_vars2,true)?
             ]);
             self.spectre = Some(self.lowlevel.add_spectre(spectre));
-            self.hold_vars.update(ants);
+            self.hold_vars2.update(ants);
             self.lowlevel.spectre_manager().update()?;
             self.update_spectre()?;
             self.lowlevel.spectre_manager().update()?;
