@@ -102,7 +102,7 @@ class JumpHandler(Handler):
     def process(self, data_accessor: DataAccessor, channel: Any, payload: Any, metrics: ResponseMetrics, version: Version) -> Response:
         (location,) = payload
         for handler in self.handlers:
-            jump = handler.get(data_accessor,location)
+            jump = handler.get(data_accessor,location,version)
             if jump != None:
                 return Response(6,{
                     "stick": jump[0],

@@ -166,22 +166,22 @@ class Memcached(object):
             return None
         return Response(-1, value)
 
-    def get_jump(self, name: str) -> Optional[Tuple[str, int, int]]:
+    def get_jump(self, name: str, version) -> Optional[Tuple[str,int,int]]:
         """
-
         Args:
             name (str):
+            version (Version):
 
         Returns:
             Optional[Tuple[str, int, int]]: if validated and value isn't None else None.
         """
         if not self._is_available():
             return None
-        key = self.hashed_key(["jump", name])
+        key = self.hashed_key(["jump",name],version)
         value = self._client.get(key)
         return cbor2.loads(value) if value is not None else None
 
-    def set_jump(self, name: str, stick: str, start: int, end: int):
+    def set_jump(self, name: str, stick: str, start: int, end: int, version):
         """
 
         Args:
@@ -189,11 +189,12 @@ class Memcached(object):
             stick (str):
             start (int):
             end (int):
+            version (Version):
 
         Returns:
             None
         """
         if not self._is_available():
             return
-        key = self.hashed_key(["jump", name])
-        self._client.set(key, cbor2.dumps([stick, start, end]))
+        key = self.hashed_key(["jump",name],version)
+        self._client.set(key,cbor2.dumps([stick,start,end]))
