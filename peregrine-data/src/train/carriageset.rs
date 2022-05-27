@@ -64,7 +64,7 @@ impl CarriageSet {
         let is_milestone = extent.scale().is_milestone();
         CarriageSet {
             centre: None,
-            drawing: DrawingCarriageSwitcher::new(ping_needed,extent,graphics),
+            drawing: DrawingCarriageSwitcher::new(ping_needed,graphics),
             process: Party::new(carriage_actions),
             milestone: is_milestone,
             seen_process_partystate: PartyState::null()
@@ -78,9 +78,9 @@ impl CarriageSet {
         }
     }
 
-    pub(super) fn activate(&mut self) {
+    pub(super) fn activate(&mut self, max: u64) {
         self.process.inner_mut().active();
-        self.drawing.set_active();
+        self.drawing.set_active(max);
         self.ping();
     }
 
@@ -97,7 +97,7 @@ impl CarriageSet {
     }
 
     pub(super) fn all_ready(&self) -> bool {
-        self.process.is_ready() && self.drawing.is_ready()
+        self.process.is_ready() && self.drawing.can_be_made_active()
     }
 
     /* We need to do a lot in a ping but also make sure we don't customarily do too much!

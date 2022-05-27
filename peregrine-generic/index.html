@@ -14,8 +14,10 @@
       <div class="viewport" id="browser">
       </div>
       <div class="other" id="other">
+        <div id="clock" style="font-size: 100px"></div>
         <div>bigger text <input id="bigger" type="checkbox"/></div>
         <div>id labels <input id="id-labels" type="checkbox"/></div>
+        <button id="clock-button">clock</button>
         <button id="jump-brca2">jump brca2</button>
         <button id="jump-fry">jump fry</button>
         <button id="jump-zar1l">jump zar1l</button>
@@ -191,7 +193,7 @@
         genome_browser.set_switch(["ruler"]);
         genome_browser.goto(2000000,3000000);
         //genome_browser.goto(6140000,6240000);
-        //genome_browser.goto(6186500,6187000);
+        genome_browser.goto(6186500,6187000);
 
         function flipper(path,go) {
             let flip = false;
@@ -270,6 +272,13 @@
           //genome_browser.jump("focus:none");
           genome_browser.set_stick("");
           //yygenome_browser.wait();
+        };
+        document.getElementById("clock-button").onclick = function() {
+          let clock = document.getElementById("clock");
+          window.setInterval(function() { 
+            let out = new Date().toISOString();
+            clock.innerHTML = out.substr(out.length-7).substr(0,5);
+          },10);
         };
       });
     </script>

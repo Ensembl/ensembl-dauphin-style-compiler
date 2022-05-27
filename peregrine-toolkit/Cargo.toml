@@ -20,4 +20,4 @@ path="../identitynumber"
 
 [dependencies.web-sys]
 version="*"
-features=["console"]
+features=["console","Performance","Window"]

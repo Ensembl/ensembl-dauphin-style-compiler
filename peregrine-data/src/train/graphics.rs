@@ -1,6 +1,6 @@
 use std::{sync::{Arc, Mutex}, collections::{HashMap}};
 use peregrine_toolkit::lock;
-use crate::{PeregrineIntegration, TrainExtent, allotment::{globals::{playingfield::{GlobalPlayingField, PlayingField}, allotmentmetadata::GlobalAllotmentMetadata} }, CarriageSpeed, Viewport };
+use crate::{PeregrineIntegration, allotment::{globals::{playingfield::{GlobalPlayingField, PlayingField}, allotmentmetadata::GlobalAllotmentMetadata} }, CarriageSpeed, Viewport, api::TrainIdentity };
 use super::drawingcarriage::DrawingCarriage;
 
 struct GraphicsDropper {
@@ -9,7 +9,7 @@ struct GraphicsDropper {
 }
 
 struct GraphicsState {
-    trains: HashMap<TrainExtent,i32>, // create&destroy trains as needed
+    trains: HashMap<TrainIdentity,i32>, // create&destroy trains as needed
     playing_field: Option<GlobalPlayingField>, // don't repeat ourselves
     metadata: Option<GlobalAllotmentMetadata>, // don't repeat ourcelves, ;-)
 }
@@ -41,14 +41,14 @@ impl Graphics {
 
     fn upate_train(&mut self, dc: &DrawingCarriage, delta: i32) {
         let mut state = lock!(self.state);
-        let train = dc.train();
+        let train = dc.train_identity();
         let value = state.trains.entry(train.clone()).or_insert(0);
         if *value == 0 {
-            lock!(self.integration).create_train(train);
+            lock!(self.integration).create_train(&train);
         }
         *value += delta;
         if *value == 0 {
-            lock!(self.integration).drop_train(train);
+            lock!(self.integration).drop_train(&train);
         }
     }
 
@@ -62,16 +62,16 @@ impl Graphics {
         self.upate_train(dc,-1);
     }
 
-    pub(super) fn set_carriages(&self, extent: &TrainExtent, carriages: &[DrawingCarriage]) {
+    pub(super) fn set_carriages(&self, train_identity: &TrainIdentity, carriages: &[DrawingCarriage]) {
         let state = lock!(self.state);
-        if !state.trains.contains_key(extent) {
+        if !state.trains.contains_key(train_identity) {
             panic!("set_carriages on dead train");
         }
-        lock!(self.integration).set_carriages(extent,carriages);
+        lock!(self.integration).set_carriages(&train_identity,carriages);
     }
 
-    pub(super) fn start_transition(&self, train: &TrainExtent, max: u64, speed: CarriageSpeed) {
-        lock!(self.integration).start_transition(train,max,speed);
+    pub(super) fn start_transition(&self, train: &TrainIdentity, max: u64, speed: CarriageSpeed) {
+        lock!(self.integration).start_transition(&train,max,speed);
     }
 
     pub(super) fn set_playing_field(&mut self, playing_field: &GlobalPlayingField) {
@@ -105,7 +105,7 @@ impl Drop for GraphicsDropper {
         let state = lock!(self.state);
         let trains = state.trains.clone();
         for train in trains.keys() {
-            lock!(self.integration).drop_train(train);
+            lock!(self.integration).drop_train(&train);
         }
     }
 }

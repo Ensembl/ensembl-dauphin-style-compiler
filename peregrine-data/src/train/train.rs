@@ -1,6 +1,6 @@
 use std::sync::{ Arc, Mutex };
 use peregrine_toolkit::puzzle::AnswerAllocator;
-use peregrine_toolkit::{lock};
+use peregrine_toolkit::lock;
 use peregrine_toolkit_async::sync::needed::Needed;
 use crate::api::{CarriageSpeed, MessageSender };
 use super::graphics::Graphics;
@@ -68,8 +68,7 @@ impl Train {
             _ => { panic!("set_active() called on non-ready train") }
         };
         self.carriages.mute(false);
-        self.carriages.activate();
-        self.graphics.start_transition(&self.extent,max,speed);
+        self.carriages.activate(max);
     }
 
     pub(super) fn set_inactive(&mut self) {

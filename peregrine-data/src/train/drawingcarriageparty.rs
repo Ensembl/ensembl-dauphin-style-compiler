@@ -1,6 +1,5 @@
-use peregrine_toolkit::log;
 use peregrine_toolkit_async::sync::needed::Needed;
-use crate::{allotment::core::trainstate::TrainState3, TrainExtent, DrawingCarriage};
+use crate::{allotment::core::trainstate::TrainState3, DrawingCarriage, TrainIdentity, CarriageSpeed};
 use super::{drawingcarriagemanager::{DrawingCarriageCreator, PartyDrawingCarriage}, party::{PartyActions, Party}, graphics::Graphics};
 #[cfg(debug_trains)]
 use lazy_static::lazy_static;
@@ -12,12 +11,13 @@ use peregrine_toolkit::debug_log;
 
 pub(crate) struct DrawingCarriageSetActions {
     current: Vec<PartyDrawingCarriage>,
+    train_identity: TrainIdentity,
     ping_needed: Needed,
     ready: bool, /* We have initial loaded */
     active: bool,
     mute: bool,
     state: TrainState3,
-    extent: TrainExtent,
+    max: Option<u64>,
     graphics: Graphics,
     ready_serial: u64,
     #[cfg(debug_trains)]
@@ -28,15 +28,16 @@ pub(crate) struct DrawingCarriageSetActions {
 identitynumber!(IDS);
 
 impl DrawingCarriageSetActions {
-    fn new(ping_needed: &Needed, extent: &TrainExtent, state: &TrainState3, graphics: &Graphics) -> DrawingCarriageSetActions {
+    fn new(ping_needed: &Needed, train_identity: &TrainIdentity, state: &TrainState3, graphics: &Graphics) -> DrawingCarriageSetActions {
         DrawingCarriageSetActions {
             current: vec![],
             ping_needed: ping_needed.clone(),
+            train_identity: train_identity.clone(),
             ready: false,
             active: false,
             mute: false,
+            max: None,
             state: state.clone(),
-            extent: extent.clone(),
             graphics: graphics.clone(),
             ready_serial: 0,
             #[cfg(debug_trains)]
@@ -55,14 +56,27 @@ impl DrawingCarriageSetActions {
     fn try_send(&self) {
         if self.active && !self.mute && self.ready {
             let carriages = self.current.iter().map(|c| c.carriage().clone()).collect::<Vec<_>>();
-            self.graphics.set_carriages(&self.extent,&carriages);
+            self.graphics.set_carriages(&self.train_identity,&carriages);
         }
+    }
+
+    fn set_max(&mut self, max: u64) {
+        self.max = Some(max);
+    }
+
+    fn transition(&self) {
+        let max = self.max.expect("transition without max set");
+        self.graphics.start_transition(&self.train_identity,max,CarriageSpeed::Quick);
+    }
+
+    fn is_ready(&self) -> bool {
+        self.ready && self.max.is_some()
     }
 }
 
 impl PartyActions<DrawingCarriageCreator,PartyDrawingCarriage,PartyDrawingCarriage> for DrawingCarriageSetActions {
     fn ctor(&mut self, creator: &DrawingCarriageCreator) -> PartyDrawingCarriage {
-        let carriage = PartyDrawingCarriage::new(creator,&self.state);
+        let carriage = PartyDrawingCarriage::new(creator,&self.train_identity,&self.state);
         #[cfg(debug_trains)] log!("DC({:x}) ctor {}",self.index,creator.extent().compact());
         if !self.mute {
             self.graphics.create_carriage(&carriage.carriage());
@@ -110,14 +124,14 @@ pub(crate) struct DrawingCarriageParty {
 }
 
 impl DrawingCarriageParty {
-    pub fn new(ping_needed: &Needed, extent: &TrainExtent, state: &TrainState3, graphics: &Graphics) -> DrawingCarriageParty {
+    pub fn new(ping_needed: &Needed, train_identity: &TrainIdentity, state: &TrainState3, graphics: &Graphics) -> DrawingCarriageParty {
         DrawingCarriageParty {
-            slider: Party::new(DrawingCarriageSetActions::new(ping_needed,extent,state,graphics))
+            slider: Party::new(DrawingCarriageSetActions::new(ping_needed,train_identity,state,graphics)),
         }
     }
 
     pub(super) fn state(&self) -> &TrainState3 { &self.slider.inner().state }
-    pub(super) fn is_ready(&self) -> bool { self.slider.inner().ready }
+    pub(super) fn is_ready(&self) -> bool { self.slider.inner().is_ready() }
     pub(super) fn central(&self) -> Option<&DrawingCarriage> { self.slider.inner().central() }
 
     pub(super) fn set(&mut self, state: &TrainState3, dcc: &[DrawingCarriageCreator]) {
@@ -126,9 +140,17 @@ impl DrawingCarriageParty {
         }
     }
 
+    pub(super) fn set_max(&mut self, max: u64) {
+        self.slider.inner_mut().set_max(max);
+    }
+
     pub(super) fn set_active(&mut self) {
+        if self.slider.inner().max.is_none() {
+            panic!("set_active called before set_max");
+        }
         self.slider.inner_mut().active = true;
         self.slider.inner_mut().try_send();
+        self.slider.inner_mut().transition();
     }
 
     pub(super) fn set_mute(&mut self) {

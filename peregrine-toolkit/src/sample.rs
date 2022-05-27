@@ -3,6 +3,9 @@ use std::{collections::HashMap, sync::{Arc, Mutex}};
 use crate::{time::now, log};
 use lazy_static::lazy_static;
 
+#[cfg(debug_sampler)]
+use crate::lock;
+
 const REPORT_SEC : u64 = 2;
 
 pub struct Sampler {
@@ -123,3 +126,44 @@ macro_rules! timer_end {
         $crate::lock!($crate::sample::SAMPLER).timer_end($name)
     };
 }
+
+lazy_static! {
+    pub static ref MARK_IDS : Arc<Mutex<u64>> = Arc::new(Mutex::new(0));
+}    
+
+#[cfg(debug_sampler)]
+pub struct RegionStart(String);
+
+#[cfg(not(debug_sampler))]
+pub struct RegionStart();
+
+#[cfg(debug_sampler)]
+fn mark_id() -> RegionStart {
+    let mut id = lock!(MARK_IDS);
+    *id += 1;
+    RegionStart(format!("m{}",id))
+}
+
+#[cfg(debug_sampler)]
+pub fn region_start() -> RegionStart {
+    let window = web_sys::window().unwrap();
+    let performance = window.performance().unwrap();
+    let name = mark_id();
+    performance.mark(&name.0).ok();
+    name
+}
+
+#[cfg(debug_sampler)]
+pub fn region_end(name: &str, start: RegionStart) {
+    let window = web_sys::window().unwrap();
+    let performance = window.performance().unwrap();
+    let end = mark_id();
+    performance.mark(&end.0).ok();
+    performance.measure_with_start_mark_and_end_mark(name, &start.0, &end.0);
+}
+
+#[cfg(not(debug_sampler))]
+pub fn region_start() -> RegionStart { RegionStart() }
+
+#[cfg(not(debug_sampler))]
+pub fn region_end(_name: &str, _start: RegionStart) {}

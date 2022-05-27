@@ -15,6 +15,9 @@ FLAGS=""
 if [ "x$CFG_DEBUG_WEBGL" = "xyes" ] ; then
   FLAGS="$FLAGS --cfg debug_webgl"
 fi
+if [ "x$CFG_DEBUG_TIMEHOGS" = "xyes" ] ; then
+  FLAGS="$FLAGS --cfg debug_timehogs"
+fi
 if [ "x$CFG_DEBUG_SAMPLER" = "xyes" ] ; then
   FLAGS="$FLAGS --cfg debug_sampler"
 fi

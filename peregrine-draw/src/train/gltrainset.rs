@@ -2,8 +2,8 @@ use std::collections::HashMap;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash};
 use std::sync::{ Arc, Mutex };
-use peregrine_data::{Assets, CarriageSpeed, PeregrineCore, Scale, TrainExtent, DrawingCarriage};
-use peregrine_toolkit::{lock};
+use peregrine_data::{Assets, CarriageSpeed, PeregrineCore, Scale, DrawingCarriage, TrainIdentity};
+use peregrine_toolkit::lock;
 use peregrine_toolkit_async::sync::needed::{Needed, NeededLock};
 use super::glcarriage::GLCarriage;
 use super::gltrain::GLTrain;
@@ -14,10 +14,13 @@ use crate::webgl::DrawingSession;
 use crate::webgl::global::WebGlGlobal;
 use crate::util::message::Message;
 
+#[cfg(debug_trains)]
+use peregrine_toolkit::debug_log;
+
 #[derive(Clone)]
 enum FadeState {
-    Constant(Option<TrainExtent>),
-    Fading(Option<TrainExtent>,TrainExtent,CarriageSpeed,Option<f64>,Arc<NeededLock>)
+    Constant(Option<TrainIdentity>),
+    Fading(Option<TrainIdentity>,TrainIdentity,CarriageSpeed,Option<f64>,Arc<NeededLock>)
 }
 
 struct GlRailwayData {
@@ -28,7 +31,7 @@ struct GlRailwayData {
     slow_cross_fade_overlap_prop: f64,
     fast_fade_overlap_prop: f64,
     commander: PgCommanderWeb,
-    trains: HashMap<TrainExtent,GLTrain>,
+    trains: HashMap<TrainIdentity,GLTrain>,
     carriages: HashMap<DrawingCarriage,GLCarriage>,
     fade_state: FadeState,
     redraw_needed: Needed
@@ -51,15 +54,15 @@ impl GlRailwayData {
         })
     }
 
-    fn get_our_train(&mut self, extent: &TrainExtent) -> &mut GLTrain {
+    fn get_our_train(&mut self, extent: &TrainIdentity) -> &mut GLTrain {
         self.trains.get_mut(extent).unwrap()
     }
 
-    fn create_train(&mut self, extent: &TrainExtent) {
+    fn create_train(&mut self, extent: &TrainIdentity) {
         self.trains.insert(extent.clone(),GLTrain::new(&self.redraw_needed));
     }
 
-    fn drop_train(&mut self, extent: &TrainExtent, gl: &Arc<Mutex<WebGlGlobal>>) {
+    fn drop_train(&mut self, extent: &TrainIdentity, gl: &Arc<Mutex<WebGlGlobal>>) {
         self.get_our_train(&extent).discard(&mut *lock!(gl));
         self.trains.remove(extent);
     }
@@ -75,7 +78,7 @@ impl GlRailwayData {
         self.carriages.remove(carriage);
     }
 
-    fn set_carriages(&mut self, extent: &TrainExtent, new_carriages: &[DrawingCarriage]) -> Result<(),Message> {
+    fn set_carriages(&mut self, extent: &TrainIdentity, new_carriages: &[DrawingCarriage]) -> Result<(),Message> {
         match new_carriages.iter().map(|c| self.carriages.get(c).cloned()).collect::<Option<Vec<_>>>() {
             Some(carriages) => {
                 let mut hash = DefaultHasher::new();
@@ -88,17 +91,19 @@ impl GlRailwayData {
         }
     }
 
-    fn set_max(&mut self, extent: &TrainExtent, len: u64) {
+    fn set_max(&mut self, extent: &TrainIdentity, len: u64) {
         self.get_our_train(extent).set_max(len);
     }
 
-    fn start_fade(&mut self, train: &TrainExtent, speed: CarriageSpeed) -> Result<(),Message> {
+    fn start_fade(&mut self, train: &TrainIdentity, speed: CarriageSpeed) -> Result<(),Message> {
         let from = match &self.fade_state {            
             FadeState::Constant(x) => x,
             FadeState::Fading(_,_,_,_,_) => {
                 return Err(Message::CodeInvariantFailed("overlapping fades sent to UI".to_string()));
             }
         };
+        #[cfg(debug_trains)]
+        debug_log!("fading start {:?}",speed);
         self.fade_state = FadeState::Fading(from.clone(),train.clone(),speed,None,Arc::new(self.redraw_needed.clone().lock()));
         Ok(())
     }
@@ -120,10 +125,10 @@ impl GlRailwayData {
         };
         let prop = self.prop(speed,elapsed).min(1.).max(0.)*(1.+factor.abs());
         let val = match (factor>0.,out) {
-            (true,true) => { 1.-prop }, /* out before in; out */
-            (true,false) => { prop-factor }, /* out before in; in */
-            (false,true) => { 1.-(prop+factor) }, /* in before out; out */
-            (false,false) => { prop } /* in before out; in */
+            (true,true) => { 1.-prop },           /* fade-out then fade-in ; fade-out opacity */
+            (true,false) => { prop-factor },      /* fade-out then fade-in ; fade-in  opacity */
+            (false,true) => { 1.-(prop+factor) }, /* fade-in  then fade-out; fade-out opacity */
+            (false,false) => { prop }             /* fase-in  then fade-out; fade-in  opacity */
         }.min(1.).max(0.);
         val
     }
@@ -154,6 +159,8 @@ impl GlRailwayData {
                 elapsed = Some(elapsed.map(|e| e+newly_elapsed).unwrap_or(0.));
                 let prop = self.prop(&speed,elapsed.unwrap());
                 if prop >= 1. {
+                    #[cfg(debug_trains)]
+                    debug_log!("fading done");
                     self.fade_state = FadeState::Constant(Some(to));
                     self.redraw_needed.set(); // probably not needed; belt-and-braces
                     complete = true;
@@ -166,7 +173,7 @@ impl GlRailwayData {
         Ok(complete)
     }
 
-    fn train_scale(&mut self, extent: &TrainExtent)-> u64 {
+    fn train_scale(&mut self, extent: &TrainIdentity)-> u64 {
         self.get_our_train(extent).scale().map(|x| x.get_index()).unwrap_or(0)
     }
 
@@ -225,8 +232,8 @@ impl GlRailway {
         })
     }
 
-    pub fn create_train(&mut self, train: &TrainExtent) { lock!(self.data).create_train(train) }
-    pub fn drop_train(&mut self, train: &TrainExtent, gl: &Arc<Mutex<WebGlGlobal>>) { lock!(self.data).drop_train(train,gl) }
+    pub fn create_train(&mut self, train: &TrainIdentity) { lock!(self.data).create_train(train) }
+    pub fn drop_train(&mut self, train: &TrainIdentity, gl: &Arc<Mutex<WebGlGlobal>>) { lock!(self.data).drop_train(train,gl) }
 
     pub(crate) fn create_carriage(&mut self, carriage: &DrawingCarriage, gl: &Arc<Mutex<WebGlGlobal>>, assets: &Assets) -> Result<(),Message> {
         lock!(self.data).create_carriage(carriage,gl,assets)
@@ -251,12 +258,12 @@ impl GlRailway {
         Ok(())
     }
 
-    pub fn set_carriages(&mut self, train: &TrainExtent, new_carriages: &[DrawingCarriage]) -> Result<(),Message> {
+    pub fn set_carriages(&mut self, train: &TrainIdentity, new_carriages: &[DrawingCarriage]) -> Result<(),Message> {
         lock!(self.data).set_carriages(train,new_carriages)?;
         Ok(())
     }
 
-    pub fn start_fade(&mut self, train: &TrainExtent, max: u64, speed: CarriageSpeed) -> Result<(),Message> {
+    pub fn start_fade(&mut self, train: &TrainIdentity, max: u64, speed: CarriageSpeed) -> Result<(),Message> {
         self.data.lock().unwrap().start_fade(train,speed)?;
         self.data.lock().unwrap().set_max(&train,max);
         Ok(())

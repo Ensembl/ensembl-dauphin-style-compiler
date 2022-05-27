@@ -1,5 +1,6 @@
+use peregrine_toolkit::{log, warn};
 use peregrine_toolkit_async::{sync::{needed::Needed}};
-use crate::{allotment::core::{trainstate::TrainState3}, DrawingCarriage, DataMessage, TrainExtent};
+use crate::{allotment::core::{trainstate::TrainState3}, DrawingCarriage, DataMessage, TrainExtent, TrainIdentity, api::api::new_train_identity, CarriageSpeed};
 use super::{switcher::{SwitcherManager, SwitcherExtent, SwitcherObject, Switcher}, drawingcarriagemanager::DrawingCarriageCreator, graphics::Graphics, drawingcarriageparty::DrawingCarriageParty};
 
 #[cfg(debug_trains)]
@@ -7,19 +8,17 @@ use peregrine_toolkit::debug_log;
 
 pub(crate) struct DrawingCarriageManager2 {
     ping_needed: Needed,
-    train_extent: TrainExtent,
-    active: bool,
+    max: Option<u64>,
     muted: bool,
     graphics: Graphics
 }
 
 impl DrawingCarriageManager2 {
-    pub(crate) fn new(ping_needed: &Needed, extent: &TrainExtent, graphics: &Graphics) -> DrawingCarriageManager2 {
+    pub(crate) fn new(ping_needed: &Needed, graphics: &Graphics) -> DrawingCarriageManager2 {
         DrawingCarriageManager2 {
             ping_needed: ping_needed.clone(),
-            train_extent: extent.clone(),
+            max: None,
             graphics: graphics.clone(),
-            active: false,
             muted: false
         }
     }
@@ -31,8 +30,12 @@ impl SwitcherManager for DrawingCarriageManager2 {
     type Error = DataMessage;
 
     fn create(&mut self, state: &TrainState3) -> Result<DrawingCarriageParty,DataMessage> {
-        #[cfg(debug_trains)] debug_log!("DC party for {:x}",state.hash());
-        let mut out = DrawingCarriageParty::new(&self.ping_needed,&self.train_extent,state,&self.graphics);
+        let train_identity = new_train_identity();
+        #[cfg(debug_trains)] debug_log!("DC party for {:x} {:?}",state.hash(),self.train_extent.scale());
+        let mut out = DrawingCarriageParty::new(&self.ping_needed,&train_identity,state,&self.graphics);
+        if let Some(max) = self.max {
+            out.set_max(max);
+        }
         if self.muted {
             out.set_mute();
         }
@@ -69,9 +72,9 @@ pub(crate) struct DrawingCarriageSwitcher {
 }
 
 impl DrawingCarriageSwitcher {
-    pub(crate) fn new(ping_needed: &Needed, extent: &TrainExtent, graphics: &Graphics) -> DrawingCarriageSwitcher {
+    pub(crate) fn new(ping_needed: &Needed, graphics: &Graphics) -> DrawingCarriageSwitcher {
         DrawingCarriageSwitcher {
-            switcher: Switcher::new(DrawingCarriageManager2::new(ping_needed,extent,graphics))
+            switcher: Switcher::new(DrawingCarriageManager2::new(ping_needed,graphics))
         }
     }
 
@@ -82,11 +85,12 @@ impl DrawingCarriageSwitcher {
         self.switcher.manager_mut().muted = true;
     }
 
-    pub(super) fn set_active(&mut self) {
+    pub(super) fn set_active(&mut self, max: u64) {
+        self.switcher.manager_mut().max = Some(max);
+        self.switcher.each_mut(&|dcp| dcp.set_max(max));
         self.switcher.each_displayed_mut(&|dcp| {
             dcp.set_active();
         });
-        self.switcher.manager_mut().active = true;
     }
 
     pub(super) fn set(&mut self, state: &TrainState3, carriages: &[DrawingCarriageCreator]) {
@@ -97,11 +101,11 @@ impl DrawingCarriageSwitcher {
     }
 
     pub(super) fn central_carriage(&self) -> Option<&DrawingCarriage> {
-        self.switcher.displayed().and_then(|p| p.central())
+        self.switcher.quiescent().and_then(|p| p.central())
     }
 
-    pub(super) fn is_ready(&self) -> bool {
-        self.switcher.displayed().is_some()
+    pub(super) fn can_be_made_active(&self) -> bool {
+        self.switcher.quiescent().is_some()
     }
 
     pub(super) fn ping(&mut self) {

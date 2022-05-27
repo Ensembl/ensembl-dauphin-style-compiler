@@ -5,7 +5,7 @@ use crate::{shapeload::carriageprocess::CarriageProcess, allotment::core::trains
 use super::{drawingcarriagemanager::DrawingCarriageCreator, railwaydatatasks::RailwayDataTasks, graphics::Graphics, party::PartyActions, carriageset::CarriageSetConstant};
 
 #[cfg(debug_trains)]
-use peregrine_toolkit::debug_log;
+use peregrine_toolkit::{ log, debug_log };
 
 pub(super) struct CarriageProcessManager {
     ping_needed: Needed,
@@ -49,8 +49,10 @@ impl CarriageProcessManager {
     }
 
     pub(super) fn active(&mut self) {
-        self.active = true;
-        self.state_updated();
+        if !self.active && !self.mute {
+            self.active = true;
+            self.state_updated();
+        }
     }
 
     pub(super) fn state(&self) -> TrainState3 { self.train_state_spec.spec() }
@@ -59,20 +61,20 @@ impl CarriageProcessManager {
 impl PartyActions<u64,CarriageProcess,DrawingCarriageCreator> for CarriageProcessManager {
     fn ctor(&mut self, index: &u64) -> CarriageProcess {
         let new_carriage = self.constant.new_unloaded_carriage(*index);
-        #[cfg(debug_trains)] debug_log!("CP ctor ({})",new_carriage.extent().compact());
+        #[cfg(debug_trains)] log!("CP ctor ({})",new_carriage.extent().compact());
         self.railway_data_tasks.add_carriage(&new_carriage);
         new_carriage
     }
 
     fn dtor_pending(&mut self, index: &u64, _carriage: CarriageProcess) {
-        #[cfg(debug_trains)] debug_log!("CP dtor_pending ({})",_carriage.extent().compact());
+        #[cfg(debug_trains)] log!("CP dtor_pending ({})",_carriage.extent().compact());
         self.train_state_spec.remove(*index);
         self.state_updated();
         self.ping_needed.set(); /* Need to call ping in case dc are ready */
     }
 
     fn dtor(&mut self, index: &u64, _carriage: DrawingCarriageCreator) {
-        #[cfg(debug_trains)] debug_log!("CP dtor ({})",_carriage.extent().compact());
+        #[cfg(debug_trains)] log!("CP dtor ({})",_carriage.extent().compact());
         self.train_state_spec.remove(*index);
         self.state_updated();
         self.ping_needed.set(); /* Need to call ping in case dc are ready */
@@ -80,7 +82,7 @@ impl PartyActions<u64,CarriageProcess,DrawingCarriageCreator> for CarriageProces
 
     fn init(&mut self, index: &u64, carriage: &mut CarriageProcess) -> Option<DrawingCarriageCreator> {
         carriage.get_shapes2().map(|shapes| {
-            #[cfg(debug_trains)] debug_log!("CP init ({})",carriage.extent().compact());
+            #[cfg(debug_trains)] log!("CP init ({})",carriage.extent().compact());
             self.train_state_spec.add(*index,&shapes.spec().ok().unwrap()); // XXX errors
             self.state_updated();
             self.ping_needed.set(); /* Need to call ping in case dc are ready */

@@ -137,7 +137,7 @@ impl GotoInstance {
         let s = self.t_seen * self.v;
         let (x,bp,force_fade) = self.algorithm.tick(s.min(self.s));
         let finished = s >= self.s;
-        (TickResult::Update(TickUpdate { x: Some(x), bp: Some(bp),force_fade }),finished)
+        (TickResult::Update(TickUpdate { x: Some(x), bp: Some(bp), force_fade }),finished)
     }
 }
 

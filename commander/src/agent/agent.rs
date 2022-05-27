@@ -1,6 +1,6 @@
 use futures::task::{ Context, waker_ref };
 use owning_ref::MutexGuardRefMut;
-use peregrine_toolkit::sample_str;
+use peregrine_toolkit::{sample_str };
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::{ Arc, Mutex };
@@ -21,6 +21,9 @@ use super::finishagent::FinishAgent;
 use super::nameagent::NameAgent;
 use super::runagent::RunAgent;
 use super::taskrun::cdr_set_agent;
+
+#[cfg(debug_timehogs)]
+use peregrine_toolkit::{ log, time::now };
 
 /* An agent provides methods on behalf of an Executor for use within a future. It
  * is also ultimately responsible for executing the future and for destructors.
@@ -227,9 +230,24 @@ impl Agent {
         }
     }
 
+    #[cfg(debug_timehogs)]
+    fn poll<R>(&self, context: &mut Context, future: &mut Pin<Box<dyn Future<Output=R> + 'static>>) -> Poll<R> {
+        let start = now();
+        let out = future.as_mut().poll(context);
+        if now() - start > 10. {
+            log!("Time hog {}ms: {}",now()-start,self.name_agent().get_name());
+        }
+        out
+    }
+
+    #[cfg(not(debug_timehogs))]
+    fn poll<R>(&self, context: &mut Context, future: &mut Pin<Box<dyn Future<Output=R> + 'static>>) -> Poll<R> {
+        future.as_mut().poll(context)
+    }
+
     fn run_one_main<R>(&self, context: &mut Context, future: &mut Pin<Box<dyn Future<Output=R> + 'static>>, result: &mut Option<R>) {
         sample_str!(self.name_agent().get_name());
-        let out = future.as_mut().poll(context);
+        let out = self.poll(context,future);
         sample_str!("".to_string());
         match out {
             Poll::Pending => {

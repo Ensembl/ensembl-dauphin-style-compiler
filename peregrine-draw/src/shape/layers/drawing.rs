@@ -3,7 +3,7 @@ use super::drawingtools::DrawingToolsBuilder;
 use super::layer::Layer;
 use commander::cdr_tick;
 use peregrine_data::{Assets, Scale, Shape, LeafStyle };
-use peregrine_toolkit::{lock, log_extra, timer_start, timer_end};
+use peregrine_toolkit::lock;
 use peregrine_toolkit_async::sync::needed::Needed;
 use peregrine_toolkit_async::sync::retainer::RetainTest;
 use super::super::core::prepareshape::{ prepare_shape_in_layer };
@@ -14,6 +14,9 @@ use crate::webgl::global::WebGlGlobal;
 use super::drawingzmenus::{ DrawingHotspots, HotspotEntryDetails };
 use crate::stage::stage::ReadStage;
 use crate::util::message::Message;
+
+#[cfg(debug_trains)]
+use peregrine_toolkit::log_extra;
 
 pub(crate) trait DynamicShape {
     fn any_dynamic(&self) -> bool;
@@ -109,13 +112,11 @@ impl Drawing {
         }
         let mut lgl = lock!(gl);
         /* draw shapes (including any 2d work) */
-        //timer_start!("pt-shape");
         for mut shapes in prepared_shapes.drain(..) {
             for shape in shapes.drain(..) {
                 drawing.add_shape(&mut lgl,shape)?;
             }
         }
-        //timer_end!("pt-shape");
         drop(lgl);
         cdr_tick(0).await;
         if !retain_test.test() {

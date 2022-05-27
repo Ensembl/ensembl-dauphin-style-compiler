@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::{LeafRequest, ShapeRequestGroup, DataMessage, allotment::builder::stylebuilder::make_transformable};
 use super::{carriageoutput::BoxPositionContext, trainstate::CarriageTrainStateSpec, allotmentname::{allotmentname_hashmap, AllotmentName, AllotmentNameHashMap}};
 
@@ -12,20 +14,22 @@ impl LeafList {
         }
     }
 
+    pub(crate) fn merge(input: Vec<Arc<LeafList>>) -> LeafList {
+        let len = input.iter().map(|x| x.leafs.len()).sum();
+        let mut leafs = allotmentname_hashmap();
+        leafs.reserve(len);
+        for more in input {
+            leafs.extend(more.leafs.iter().map(|(n,r)| (n.clone(),r.clone())));
+        }
+        LeafList { leafs }
+    }
+
     pub fn pending_leaf(&mut self, spec: &str) -> &mut LeafRequest {
         let name = AllotmentName::new(spec);
         if !self.leafs.contains_key(&name) {
             self.leafs.insert(name.clone(),LeafRequest::new(&AllotmentName::new(spec)));
         }
         self.leafs.get_mut(&name).unwrap()
-    }
-
-    pub fn union(&self, other: &LeafList) -> LeafList {
-        let mut leafs = self.leafs.clone();
-        leafs.extend(&mut other.leafs.iter().map(|(k,v)| (k.clone(),v.clone())));
-        LeafList {
-            leafs
-        }
     }
 
     pub(super) fn position_boxes(&self, extent: Option<&ShapeRequestGroup>) -> Result<(BoxPositionContext,CarriageTrainStateSpec),DataMessage> {

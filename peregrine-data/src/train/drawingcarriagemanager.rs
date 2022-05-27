@@ -1,5 +1,5 @@
 use peregrine_toolkit_async::{sync::{needed::Needed, retainer::{Retainer, RetainTest, retainer}}};
-use crate::{DrawingCarriage, allotment::core::{trainstate::TrainState3, carriageoutput::CarriageOutput}};
+use crate::{DrawingCarriage, allotment::core::{trainstate::TrainState3, carriageoutput::CarriageOutput}, TrainIdentity};
 use super::{carriageextent::CarriageExtent};
 
 #[derive(Clone)]
@@ -35,11 +35,10 @@ impl DrawingCarriageCreator {
         DrawingCarriageCreator { shapes, extent, ping_needed }
     }
 
-    pub(super) fn create(&self, train_state: &TrainState3, retain: &RetainTest) -> DrawingCarriage {
+    pub(super) fn create(&self, train_state: &TrainState3, train_identity: &TrainIdentity, retain: &RetainTest) -> DrawingCarriage {
         let carriage_spec = self.shapes.spec().ok().unwrap();
         train_state.add(self.extent.index(),&carriage_spec);
-        let out = DrawingCarriage::new(&self.extent,&self.ping_needed,&self.shapes,train_state,retain).ok().unwrap();
-        out
+        DrawingCarriage::new(train_identity,&self.extent,&self.ping_needed,&self.shapes,train_state,retain).ok().unwrap()
     }
 
     #[cfg(any(debug_trains,debug_assertions))]
@@ -56,9 +55,9 @@ pub(super) struct PartyDrawingCarriage {
 }
 
 impl PartyDrawingCarriage {
-    pub(super) fn new(creator: &DrawingCarriageCreator, state: &TrainState3) -> PartyDrawingCarriage {
+    pub(super) fn new(creator: &DrawingCarriageCreator, train_identity: &TrainIdentity, state: &TrainState3) -> PartyDrawingCarriage {
         let (retain,retain_test) = retainer();
-        let carriage = creator.create(state,&retain_test);
+        let carriage = creator.create(state,train_identity,&retain_test);
         PartyDrawingCarriage {
             carriage, retain, state: state.clone()
         }

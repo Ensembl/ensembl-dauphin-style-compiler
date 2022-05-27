@@ -27,6 +27,11 @@
         "options": ["no","yes"]
     },
     {
+        "key": "CFG_DEBUG_TIMEHOGS",
+        "question": "Debug timehogs",
+        "options": ["no","yes"]
+    },
+    {
         "key": "CFG_DISABLE_ANTICIPATE",
         "question": "Disable anticipation",
         "options": ["no","yes"]
