@@ -15,6 +15,7 @@ pub enum CarriageSpeed {
     Slow /* different stick */
 }
 
+#[cfg_attr(any(debug_assertions,debug_trains),derive(Debug))]
 #[derive(Clone,PartialEq,Eq,Hash)]
 pub struct TrainIdentity(u64);
 

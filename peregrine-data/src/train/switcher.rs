@@ -130,13 +130,6 @@ impl<M:SwitcherManager<Extent=X,Type=T,Error=E>,
         None
     }
 
-    /* Currently displayed object, incoming if tie. */
-    pub(super) fn displayed(&self) -> Option<&T> {
-        if let Some(future) = &self.future { return Some(future); }
-        if let Some(current) = &self.current { return Some(current); }
-        None
-    }
-
     /* Call given callback on all objects currently displayed or being prepared. */
     pub(super) fn each_mut<F>(&mut self, cb: &F) where F: Fn(&mut T) {
         if let Some(wanted) = &mut self.wanted { cb(wanted); }
@@ -248,7 +241,7 @@ impl<M:SwitcherManager<Extent=X,Type=T,Error=E>,
         Ok(())
     }
 
-    /* *Called by the object_being made current to indicate that this process is now
+    /* Called by the object_being made current to indicate that this process is now
      * complete.
      */
     pub(super) fn live_done(&mut self) -> Result<(),E> {

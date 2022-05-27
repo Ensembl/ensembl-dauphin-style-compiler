@@ -3,7 +3,7 @@ use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash};
 use std::sync::{ Arc, Mutex };
 use peregrine_data::{Assets, CarriageSpeed, PeregrineCore, Scale, DrawingCarriage, TrainIdentity};
-use peregrine_toolkit::lock;
+use peregrine_toolkit::{lock, log};
 use peregrine_toolkit_async::sync::needed::{Needed, NeededLock};
 use super::glcarriage::GLCarriage;
 use super::gltrain::GLTrain;
@@ -54,16 +54,42 @@ impl GlRailwayData {
         })
     }
 
-    fn get_our_train(&mut self, extent: &TrainIdentity) -> &mut GLTrain {
-        self.trains.get_mut(extent).unwrap()
+    fn get_our_train(&mut self, identity: &TrainIdentity, id: u64) -> &mut GLTrain {
+        self.trains.get_mut(identity).expect(&format!("no self train {}",id))
     }
 
     fn create_train(&mut self, extent: &TrainIdentity) {
+        #[cfg(debug_trains)] log!("GL create train {:?}",extent);
         self.trains.insert(extent.clone(),GLTrain::new(&self.redraw_needed));
     }
 
+    #[cfg(any(debug_assertions,debug_trains))] 
+    fn check_train_unused_one(&self, a: Option<&TrainIdentity>, b: &TrainIdentity) {
+        if let Some(a) = a {
+            if a == b {
+                panic!("disposing of train in use! {:?}",b);
+            }
+        }
+    }
+
+    #[cfg(any(debug_assertions,debug_trains))] 
+    fn check_train_unused(&self, extent: &TrainIdentity) {
+        match &self.fade_state {
+            FadeState::Constant(id) => {
+                self.check_train_unused_one(id.as_ref(),extent);
+            },
+            FadeState::Fading(from, to, _, _, _) => {
+                self.check_train_unused_one(from.as_ref(),extent);
+                self.check_train_unused_one(Some(to),extent);
+            }
+        }
+    }
+
     fn drop_train(&mut self, extent: &TrainIdentity, gl: &Arc<Mutex<WebGlGlobal>>) {
-        self.get_our_train(&extent).discard(&mut *lock!(gl));
+        #[cfg(any(debug_assertions,debug_trains))] 
+        self.check_train_unused(extent);
+        #[cfg(debug_trains)] log!("GL drop train {:?}",extent);
+        self.get_our_train(&extent,0).discard(&mut *lock!(gl));
         self.trains.remove(extent);
     }
 
@@ -83,7 +109,7 @@ impl GlRailwayData {
             Some(carriages) => {
                 let mut hash = DefaultHasher::new();
                 extent.hash(&mut hash);
-                self.get_our_train(&extent).set_carriages(carriages)
+                self.get_our_train(&extent,1).set_carriages(carriages)
             },
             None => {
                 Err(Message::CodeInvariantFailed(format!("missing carriages")))
@@ -92,7 +118,7 @@ impl GlRailwayData {
     }
 
     fn set_max(&mut self, extent: &TrainIdentity, len: u64) {
-        self.get_our_train(extent).set_max(len);
+        self.get_our_train(extent,2).set_max(len);
     }
 
     fn start_fade(&mut self, train: &TrainIdentity, speed: CarriageSpeed) -> Result<(),Message> {
@@ -137,14 +163,14 @@ impl GlRailwayData {
         match self.fade_state.clone() {
             FadeState::Constant(None) => {},
             FadeState::Constant(Some(extent)) => {
-                self.get_our_train(&extent).set_opacity(1.);
+                self.get_our_train(&extent,3).set_opacity(1.);
             },
             FadeState::Fading(from,to,speed,Some(elapsed),_) => {
                 let prop_out = self.fade_time(&speed,elapsed,true);
                 let prop_in = self.fade_time(&speed,elapsed,false);
-                self.get_our_train(&to).set_opacity(prop_in);
+                self.get_our_train(&to,4).set_opacity(prop_in);
                 if let Some(from) = from {
-                    self.get_our_train(&from).set_opacity(prop_out);
+                    self.get_our_train(&from,5).set_opacity(prop_out);
                 }
             },
             FadeState::Fading(_,_,_,None,_) => {}
@@ -160,7 +186,7 @@ impl GlRailwayData {
                 let prop = self.prop(&speed,elapsed.unwrap());
                 if prop >= 1. {
                     #[cfg(debug_trains)]
-                    debug_log!("fading done");
+                    log!("fading done {:?}",from);
                     self.fade_state = FadeState::Constant(Some(to));
                     self.redraw_needed.set(); // probably not needed; belt-and-braces
                     complete = true;
@@ -174,7 +200,7 @@ impl GlRailwayData {
     }
 
     fn train_scale(&mut self, extent: &TrainIdentity)-> u64 {
-        self.get_our_train(extent).scale().map(|x| x.get_index()).unwrap_or(0)
+        self.get_our_train(extent,6).scale().map(|x| x.get_index()).unwrap_or(0)
     }
 
     fn get_draws(&mut self) -> Vec<GLTrain> {
@@ -182,20 +208,20 @@ impl GlRailwayData {
         match self.fade_state.clone() {
             FadeState::Constant(None) => {},
             FadeState::Constant(Some(train)) => {
-                out.push(self.get_our_train(&train).clone());
+                out.push(self.get_our_train(&train,7).clone());
             },
             FadeState::Fading(from,to,_,_,_) => {
                 if let Some(from) = from {
                     if self.train_scale(&from) > self.train_scale(&to) {
                         /* zooming in, give priority to more detailed target */
-                        out.push(self.get_our_train(&to).clone());
-                        out.push(self.get_our_train(&from).clone());
+                        out.push(self.get_our_train(&to,8).clone());
+                        out.push(self.get_our_train(&from,9).clone());
                     } else {
                         /* zooming out, give priority to more detailed source */
-                        out.push(self.get_our_train(&from).clone());
-                        out.push(self.get_our_train(&to).clone());                    }
+                        out.push(self.get_our_train(&from,10).clone());
+                        out.push(self.get_our_train(&to,11).clone());                    }
                 } else {
-                    out.push(self.get_our_train(&to).clone());
+                    out.push(self.get_our_train(&to,12).clone());
                 }
             },
         }
@@ -205,8 +231,8 @@ impl GlRailwayData {
     fn scale(&mut self) -> Option<Scale> {
         match self.fade_state.clone() {
             FadeState::Constant(None) => None,
-            FadeState::Constant(Some(train)) => self.get_our_train(&train).scale(),
-            FadeState::Fading(_,to,_,_,_) => self.get_our_train(&to).scale()
+            FadeState::Constant(Some(train)) => self.get_our_train(&train,13).scale(),
+            FadeState::Fading(_,to,_,_,_) => self.get_our_train(&to,14).scale()
         }
     }
 
@@ -215,7 +241,7 @@ impl GlRailwayData {
             FadeState::Constant(x) => x.as_ref(),
             FadeState::Fading(_,x,_,_,_) => Some(x)
         }.cloned().as_ref().map(|id| {
-            self.get_our_train(id).get_hotspot(stage,position)
+            self.get_our_train(id,15).get_hotspot(stage,position)
         }).unwrap_or(Ok(vec![]))
     }
 }

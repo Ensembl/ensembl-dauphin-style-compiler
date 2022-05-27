@@ -161,6 +161,7 @@ impl TrainSet {
     }
 
     pub(super) fn transition_complete(&mut self) {
+        self.0.manager_mut().graphics.transition_complete();
         self.0.live_done();
     }
 

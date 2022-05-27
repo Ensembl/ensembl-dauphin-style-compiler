@@ -7,7 +7,7 @@ use lazy_static::lazy_static;
 use identitynumber::identitynumber;
 
 #[cfg(debug_trains)]
-use peregrine_toolkit::debug_log;
+use peregrine_toolkit::{log, debug_log };
 
 pub(crate) struct DrawingCarriageSetActions {
     current: Vec<PartyDrawingCarriage>,
@@ -64,7 +64,7 @@ impl DrawingCarriageSetActions {
         self.max = Some(max);
     }
 
-    fn transition(&self) {
+    fn transition(&mut self) {
         let max = self.max.expect("transition without max set");
         self.graphics.start_transition(&self.train_identity,max,CarriageSpeed::Quick);
     }
@@ -148,9 +148,11 @@ impl DrawingCarriageParty {
         if self.slider.inner().max.is_none() {
             panic!("set_active called before set_max");
         }
-        self.slider.inner_mut().active = true;
-        self.slider.inner_mut().try_send();
-        self.slider.inner_mut().transition();
+        if !self.slider.inner_mut().active {
+            self.slider.inner_mut().active = true;
+            self.slider.inner_mut().try_send();
+            self.slider.inner_mut().transition();
+        }
     }
 
     pub(super) fn set_mute(&mut self) {
