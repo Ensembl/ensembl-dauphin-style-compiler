@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
 use crate::{LeafRequest, ShapeRequestGroup, DataMessage, allotment::builder::stylebuilder::make_transformable};
-use super::{carriageoutput::BoxPositionContext, trainstate::CarriageTrainStateSpec, allotmentname::{allotmentname_hashmap, AllotmentName, AllotmentNameHashMap}};
+use super::{trainstate::CarriageTrainStateSpec, allotmentname::{allotmentname_hashmap, AllotmentName, AllotmentNameHashMap}, boxpositioncontext::BoxPositionContext};
+
 
 pub struct LeafList {
     leafs: AllotmentNameHashMap<LeafRequest>

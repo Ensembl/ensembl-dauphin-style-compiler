@@ -1,5 +1,5 @@
 use std::{collections::HashMap};
-use crate::{allotment::{core::{carriageoutput::BoxPositionContext, trainstate::CarriageTrainStateSpec, allotmentname::{AllotmentNamePart, AllotmentName}}, boxes::{ stacker::Stacker, overlay::Overlay, bumper::Bumper }, boxes::{leaf::{FloatingLeaf}}, transformers::drawinginfo::DrawingInfo, stylespec::stylegroup::AllotmentStyleGroup, style::style::ContainerAllotmentType}, DataMessage, LeafRequest, LeafStyle};
+use crate::{allotment::{core::{trainstate::CarriageTrainStateSpec, allotmentname::{AllotmentNamePart, AllotmentName}, boxpositioncontext::BoxPositionContext}, boxes::{ stacker::Stacker, overlay::Overlay, bumper::Bumper }, boxes::{leaf::{FloatingLeaf}}, transformers::drawinginfo::DrawingInfo, stylespec::stylegroup::AllotmentStyleGroup, style::style::ContainerAllotmentType}, DataMessage, LeafRequest, LeafStyle};
 
 use super::holder::{ContainerHolder, LeafHolder};
 
@@ -106,7 +106,7 @@ mod test {
 
     use peregrine_toolkit::{puzzle::{AnswerAllocator}};
 
-    use crate::{allotment::{core::{carriageoutput::BoxPositionContext, allotmentname::AllotmentName}, stylespec::{stylegroup::AllotmentStyleGroup, styletreebuilder::StyleTreeBuilder, styletree::StyleTree}, util::{bppxconverter::BpPxConverter, rangeused::RangeUsed}, globals::allotmentmetadata::{LocalAllotmentMetadata, GlobalAllotmentMetadataBuilder, GlobalAllotmentMetadata}, builder::stylebuilder::make_transformable}, LeafRequest};
+    use crate::{allotment::{core::{allotmentname::AllotmentName, boxpositioncontext::BoxPositionContext}, stylespec::{stylegroup::AllotmentStyleGroup, styletreebuilder::StyleTreeBuilder, styletree::StyleTree}, util::{bppxconverter::BpPxConverter, rangeused::RangeUsed}, globals::allotmentmetadata::{LocalAllotmentMetadata, GlobalAllotmentMetadataBuilder, GlobalAllotmentMetadata}, builder::stylebuilder::make_transformable}, LeafRequest};
 
     fn make_pendings(names: &[&str], heights: &[f64], pixel_range: &[RangeUsed<f64>], style: &AllotmentStyleGroup) -> Vec<LeafRequest> {
         let heights = if heights.len() > 0 {

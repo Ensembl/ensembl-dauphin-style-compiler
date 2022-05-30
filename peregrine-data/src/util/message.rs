@@ -2,10 +2,10 @@ use std::sync::{ Arc, Mutex };
 use std::{ hash::{ Hash, Hasher }, fmt };
 use std::collections::hash_map::{ DefaultHasher };
 use std::error::Error;
-use crate::{TrainExtent};
 use crate::core::channel::Channel;
 use crate::shapeload::programname::ProgramName;
 use crate::core::stick::StickId;
+use crate::train::model::trainextent::TrainExtent;
 use peregrine_message::{ MessageKind, MessageAction, MessageLikelihood, PeregrineMessage };
 use peregrine_config::ConfigError;
 
@@ -36,7 +36,7 @@ pub enum DataMessage {
     AuthorityUnavailable(Box<DataMessage>),
     NoSuchStick(StickId),
     NoSuchJump(String),
-    CarriageUnavailable(TrainExtent,usize,Vec<DataMessage>),
+    CarriageUnavailable(Vec<DataMessage>),
     DauphinProgramDidNotLoad(ProgramName),
     DauphinIntegrationError(String),
     DauphinRunError(ProgramName,String),
@@ -104,7 +104,7 @@ impl PeregrineMessage for DataMessage {
             DataMessage::AuthorityUnavailable(cause) => (16,calculate_hash(&cause.code())),
             DataMessage::NoSuchJump(s) => (12,calculate_hash(s)),
             DataMessage::NoSuchStick(s) => (19,calculate_hash(s)),
-            DataMessage::CarriageUnavailable(t,x,_) => (20,calculate_hash(&(t,x))),
+            DataMessage::CarriageUnavailable(_) => (20,calculate_hash(&())),
             DataMessage::DauphinProgramDidNotLoad(name) => (21,calculate_hash(name)),
             DataMessage::DauphinIntegrationError(e) => (22,calculate_hash(e)),
             DataMessage::DauphinRunError(p,e) => (23,calculate_hash(&(p,e))),
@@ -123,7 +123,7 @@ impl PeregrineMessage for DataMessage {
         match self {
             DataMessage::DataMissing(_) => true,
             DataMessage::AuthorityUnavailable(_) => true,
-            DataMessage::CarriageUnavailable(_,_,_) => true,
+            DataMessage::CarriageUnavailable(_) => true,
             _ => false
         }
     }
@@ -150,8 +150,8 @@ impl PeregrineMessage for DataMessage {
             DataMessage::AuthorityUnavailable(source) => format!("stick authority unavailable due to earlier: {}",source),
             DataMessage::NoSuchStick(stick) => format!("no such stick: {}",stick),
             DataMessage::NoSuchJump(jump) => format!("no such stick: {}",jump),
-            DataMessage::CarriageUnavailable(train,index,causes) =>
-                format!("carriage {:?}/{} unavilable. causes = [{}]",train,index,causes.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(", ")),
+            DataMessage::CarriageUnavailable(causes) =>
+                format!("carriage unavilable. causes = [{}]",causes.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(", ")),
             DataMessage::DauphinProgramDidNotLoad(name) => format!("dauphin program '{}' did not load",name),
             DataMessage::DauphinIntegrationError(message) => format!("dauphin integration error: {}",message),
             DataMessage::DauphinRunError(program,message) => format!("error running dauphin program '{}': {}",program,message),
@@ -192,8 +192,8 @@ impl PeregrineMessage for DataMessage {
             DataMessage::AuthorityUnavailable(source) => format!("stick authority unavailable due to earlier: {}",source),
             DataMessage::NoSuchStick(stick) => format!("no such stick: {}",stick),
             DataMessage::NoSuchJump(location) => format!("no such jump: {}",location),
-            DataMessage::CarriageUnavailable(train,index,causes) =>
-                format!("carriage {:?}/{} unavilable. causes = [{}]",train,index,causes.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(", ")),
+            DataMessage::CarriageUnavailable(causes) =>
+                format!("carriage unavilable. causes = [{}]",causes.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(", ")),
             DataMessage::DauphinProgramDidNotLoad(name) => format!("dauphin program '{}' did not load",name),
             DataMessage::DauphinIntegrationError(message) => format!("dauphin integration error: {}",message),
             DataMessage::DauphinRunError(program,message) => format!("error running dauphin program '{}': {}",program,message),
@@ -221,7 +221,7 @@ impl DataMessage {
     fn cause(&self) -> Option<&DataMessage> {
         match self {
             DataMessage::DataMissing(s) => Some(s),
-            DataMessage::CarriageUnavailable(_,_,causes) => Some(&causes[0]),
+            DataMessage::CarriageUnavailable(causes) => Some(&causes[0]),
             _ => None
         }
     }

@@ -1,4 +1,4 @@
-use crate::{DataMessage, ShapeStore, PeregrineCoreBase, PgCommanderTaskSpec, add_task, api::MessageSender,  shape::{CarriageShapesBuilder}, ShapeRequestGroup, allotment::core::carriageoutput::CarriageOutput };
+use crate::{DataMessage, ShapeStore, PeregrineCoreBase, PgCommanderTaskSpec, add_task, api::MessageSender,  shape::{AbstractShapesContainer}, ShapeRequestGroup, allotment::core::abstractcarriage::AbstractCarriage, CarriageExtent };
 
 #[derive(Clone)]
 pub enum LoadMode {
@@ -23,7 +23,7 @@ impl LoadMode {
     }
 }
 
-pub(crate) async fn load_carriage_shape_list(base: &PeregrineCoreBase, result_store: &ShapeStore, messages: Option<&MessageSender>, shape_requests: ShapeRequestGroup, mode: &LoadMode) -> Result<CarriageOutput,Vec<DataMessage>> {
+pub(crate) async fn load_carriage_shape_list(base: &PeregrineCoreBase, result_store: &ShapeStore, messages: Option<&MessageSender>, shape_requests: ShapeRequestGroup, extent: Option<&CarriageExtent>, mode: &LoadMode) -> Result<AbstractCarriage,Vec<DataMessage>> {
     let mut errors = vec![];
     let lane_store = result_store.clone();
     let tracks : Vec<_> = shape_requests.iter().map(|request|{
@@ -57,6 +57,6 @@ pub(crate) async fn load_carriage_shape_list(base: &PeregrineCoreBase, result_st
             }
         }
     }
-    let new_shapes = CarriageShapesBuilder::merge(new_shapes);
-    Ok(new_shapes.to_universe(Some(&shape_requests)))
+    let new_shapes = AbstractShapesContainer::merge(new_shapes);
+    Ok(new_shapes.build_abstract_carriage(Some(&shape_requests),extent))
 }

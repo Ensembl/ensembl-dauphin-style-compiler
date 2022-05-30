@@ -1,7 +1,7 @@
 use std::{sync::{Arc, Mutex}, mem};
 use peregrine_toolkit_async::sync::needed::Needed;
 use peregrine_toolkit::lock;
-use crate::{shapeload::{carriageprocess::CarriageProcess, loadshapes::LoadMode}, add_task, PgCommanderTaskSpec, async_complete_task, PeregrineCoreBase, ShapeStore, DataMessage, StickStore, TrainExtent};use super::{Railway, train::StickData};
+use crate::{shapeload::{carriagebuilder::CarriageBuilder, loadshapes::LoadMode}, add_task, PgCommanderTaskSpec, async_complete_task, PeregrineCoreBase, ShapeStore, DataMessage, StickStore, Stick };use super::{Railway, model::trainextent::TrainExtent, train::StickData };
 
 #[derive(Clone)]
 struct RailwayPinger(Arc<Mutex<Option<Railway>>>);
@@ -20,18 +20,18 @@ impl RailwayPinger {
 }
 
 enum Task {
-    Carriage(CarriageProcess),
+    Carriage(CarriageBuilder),
     Stick(TrainExtent,Arc<Mutex<StickData>>)
 }
 
-async fn load_one_carriage(base: &mut PeregrineCoreBase, pinger: &RailwayPinger, shape_store: &ShapeStore, mut carriage: CarriageProcess) -> Result<(),DataMessage> {
+async fn load_one_carriage(base: &mut PeregrineCoreBase, pinger: &RailwayPinger, shape_store: &ShapeStore, mut carriage: CarriageBuilder) -> Result<(),DataMessage> {
     let r = carriage.load(base,&shape_store,LoadMode::RealTime).await;
     pinger.ping();
     r
 }
 
-async fn find_max(stick_store: &StickStore, train_extent: &TrainExtent) -> Result<u64,DataMessage> {
-    Ok(stick_store.get(&train_extent.layout().stick()).await?.size())
+async fn find_max(stick_store: &StickStore, train_extent: &TrainExtent) -> Result<Arc<Stick>,DataMessage> {
+    stick_store.get(&train_extent.layout().stick()).await
 }
 
 async fn load_one_stick(base: &mut PeregrineCoreBase, pinger: &RailwayPinger, stick_store: &StickStore, train_extent: &TrainExtent, stick_data: &Arc<Mutex<StickData>>) -> Result<(),DataMessage> {
@@ -50,7 +50,7 @@ async fn load_one_stick(base: &mut PeregrineCoreBase, pinger: &RailwayPinger, st
 
 
 #[derive(Clone)]
-pub(super) struct RailwayDataTasks {
+pub(crate) struct RailwayDataTasks {
     tasks: Arc<Mutex<Vec<Task>>>,
     base: PeregrineCoreBase,
     shape_store: ShapeStore,
@@ -71,15 +71,15 @@ impl RailwayDataTasks {
         }
     }
 
-    pub fn set_railway(&mut self, railway: &Railway) {
+    pub(crate) fn set_railway(&mut self, railway: &Railway) {
         self.pinger.set_railway(railway);
     }
 
-    pub fn add_carriage(&self, carriage: &CarriageProcess) {
+    pub(crate) fn add_carriage(&self, carriage: &CarriageBuilder) {
         lock!(self.tasks).push(Task::Carriage(carriage.clone()));
     }
 
-    pub fn add_stick(&self, train_extent: &TrainExtent, output: &Arc<Mutex<StickData>>) {
+    pub(crate) fn add_stick(&self, train_extent: &TrainExtent, output: &Arc<Mutex<StickData>>) {
         lock!(self.tasks).push(Task::Stick(train_extent.clone(),output.clone()));
     }
 

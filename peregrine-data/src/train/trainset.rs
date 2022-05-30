@@ -1,18 +1,19 @@
 use std::sync::{Arc, Mutex};
 use peregrine_toolkit::{debug_log};
 use peregrine_toolkit::puzzle::AnswerAllocator;
-use peregrine_toolkit_async::sync::blocker::{Blocker};
+use peregrine_toolkit_async::sync::blocker::{Blocker, LockoutBool};
 use peregrine_toolkit_async::sync::needed::Needed;
+use crate::switch::trackconfiglist::TrainTrackConfigList;
+use crate::train::train::Train;
 use crate::{CarriageSpeed, ShapeStore, PeregrineCoreBase};
 use crate::api::MessageSender;
 use crate::core::{Scale, Viewport};
-use super::carriageextent::CarriageExtent;
+use super::anticipate::Anticipate;
+use super::model::carriageextent::CarriageExtent;
 use super::graphics::Graphics;
 use super::railwaydatatasks::RailwayDataTasks;
-use super::railwaydependents::RailwayDependents;
-use super::switcher::{SwitcherExtent, SwitcherObject, SwitcherManager, Switcher};
-use super::train::{ Train };
-use super::trainextent::TrainExtent;
+use super::core::switcher::{SwitcherExtent, SwitcherObject, SwitcherManager, Switcher};
+use super::model::trainextent::TrainExtent;
 use crate::util::message::DataMessage;
 
 struct TrainSetManager {
@@ -22,7 +23,8 @@ struct TrainSetManager {
     answer_allocator: Arc<Mutex<AnswerAllocator>>,
     messages: MessageSender,
     carriage_loader: RailwayDataTasks,
-    dependents: RailwayDependents,
+    busy: LockoutBool,
+    anticipate: Anticipate,
     viewport: Option<Viewport>
 }
 
@@ -39,7 +41,9 @@ impl SwitcherManager for TrainSetManager {
 
     fn create(&mut self, extent: &Self::Extent) -> Result<Self::Type,Self::Error> {
         #[cfg(debug_trains)] debug_log!("TRAIN create ({})",extent.extent.scale().get_index());
-        let mut train = Train::new(&self.graphics,&self.ping_needed,&self.answer_allocator,&extent.extent,&self.carriage_loader,&self.messages)?;
+        //let mut train = Train::new(&self.graphics,&self.ping_needed,&self.answer_allocator,&extent.extent,&self.carriage_loader,&self.messages)?;
+        let train_track_config_list = TrainTrackConfigList::new(&extent.extent.layout(),&extent.extent.scale());
+        let mut train = Train::new(&extent.extent,&self.ping_needed,&self.answer_allocator,&train_track_config_list,&self.carriage_loader,&self.graphics,&self.messages);
         if let Some(viewport) = &self.viewport {
             train.set_position(viewport);
         }
@@ -49,7 +53,7 @@ impl SwitcherManager for TrainSetManager {
         })
     }
 
-    fn busy(&self, yn: bool) { self.dependents.busy(yn) }
+    fn busy(&self, yn: bool) { self.busy.set(yn) }
 }
 
 #[derive(Clone,PartialEq,Eq)]
@@ -89,7 +93,7 @@ impl SwitcherObject for SwitcherTrain {
 
     fn extent(&self) -> Self::Extent { 
         SwitcherTrainExtent {
-            extent: self.train.extent().clone(),
+            extent: self.train.train_extent().clone(),
             epoch: self.epoch
         }
     }
@@ -100,7 +104,7 @@ impl SwitcherObject for SwitcherTrain {
         self.train.set_active(speed.clone());
         false
     }
-    fn dead(&mut self) { self.train.set_inactive() }
+    fn dead(&mut self) { self.train.mute(true) }
 
     fn speed(&self, source: Option<&Self::Type>) -> Self::Speed {
         return CarriageSpeed::Quick;
@@ -124,7 +128,8 @@ impl TrainSet {
             answer_allocator: base.answer_allocator.clone(),
             messages: base.messages.clone(),
             carriage_loader: carriage_loader.clone(),
-            dependents:  RailwayDependents::new(base,result_store,visual_blocker),
+            anticipate: Anticipate::new(base,result_store),
+            busy: LockoutBool::new(visual_blocker),
             viewport: None
         };
         TrainSet(Switcher::new(manager))
@@ -143,8 +148,8 @@ impl TrainSet {
         /* set position in anticipator */
         if let Some(train) = self.0.quiescent() {
             let central_index = train.extent().extent.scale().carriage(viewport.position()?);
-            let central_carriage = CarriageExtent::new(&train.train.extent(),central_index);
-            self.0.manager().dependents.position_was_updated(&central_carriage);
+            let central_carriage = CarriageExtent::new(&train.train.train_extent(),central_index);
+            self.0.manager().anticipate.anticipate(&central_carriage);
         }
         /* set position in all current trains (data) */
         let viewport_stick = viewport.layout()?.stick();

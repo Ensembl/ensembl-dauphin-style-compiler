@@ -1,7 +1,7 @@
 use crate::allotment::globals::allotmentmetadata::GlobalAllotmentMetadata;
 use crate::allotment::globals::playingfield::PlayingField;
 use crate::core::channel::ChannelIntegration;
-use crate::train::drawingcarriage::DrawingCarriage;
+use crate::train::drawing::drawingcarriage::DrawingCarriage;
 use crate::DataMessage;
 use crate::core::Viewport;
 use crate::core::Assets;

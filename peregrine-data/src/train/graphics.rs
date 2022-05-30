@@ -1,7 +1,7 @@
 use std::{sync::{Arc, Mutex}, collections::{HashMap, VecDeque}};
 use peregrine_toolkit::lock;
-use crate::{PeregrineIntegration, allotment::{globals::{playingfield::{GlobalPlayingField, PlayingField}, allotmentmetadata::GlobalAllotmentMetadata} }, CarriageSpeed, Viewport, api::TrainIdentity };
-use super::drawingcarriage::DrawingCarriage;
+use crate::{PeregrineIntegration, allotment::{globals::{playingfield::{GlobalPlayingField, PlayingField}, allotmentmetadata::GlobalAllotmentMetadata} }, CarriageSpeed, Viewport, api::TrainIdentity, Stick };
+use super::drawing::drawingcarriage::DrawingCarriage;
 
 #[cfg(debug_trains)]
 use peregrine_toolkit::log;
@@ -113,10 +113,10 @@ impl Graphics {
         lock!(self.integration).set_carriages(&train_identity,carriages);
     }
 
-    pub(super) fn start_transition(&mut self, train: &TrainIdentity, max: u64, speed: CarriageSpeed) {
+    pub(super) fn start_transition(&mut self, train: &TrainIdentity, stick: &Stick, speed: CarriageSpeed) {
         self.upate_train(train,1);
         let mut state = lock!(self.state);
-        let transition = TransitionSpec::new(train,max,&speed);
+        let transition = TransitionSpec::new(train,stick.size(),&speed);
         if !state.transition.running {
             state.transition.running = true;
             state.transition.from = state.transition.to.take();

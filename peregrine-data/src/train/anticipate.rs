@@ -1,16 +1,16 @@
 use std::{sync::{Arc, Mutex}};
 use commander::CommanderStream;
 use crate::{DataMessage, ShapeStore, PeregrineCoreBase, PgCommanderTaskSpec, Scale, add_task, core::{Layout, pixelsize::PixelSize}, shapeload::loadshapes::LoadMode, switch::trackconfiglist::TrainTrackConfigList };
-use super::{trainextent::TrainExtent, carriageextent::CarriageExtent};
-use crate::shapeload::carriageprocess::CarriageProcess;
+use super::model::{trainextent::TrainExtent, carriageextent::CarriageExtent};
+use crate::shapeload::carriagebuilder::CarriageBuilder;
 
 struct AnticipateTask {
-    carriages: Vec<CarriageProcess>,
+    carriages: Vec<CarriageBuilder>,
     batch: bool
 }
 
 impl AnticipateTask {
-    fn new(carriages: Vec<CarriageProcess>, batch: bool) -> AnticipateTask {
+    fn new(carriages: Vec<CarriageBuilder>, batch: bool) -> AnticipateTask {
         AnticipateTask { carriages, batch }
     }
 
@@ -81,16 +81,16 @@ impl Anticipate {
         cfg!(debug_assertions)
     }
 
-    fn build_carriage(&self, carriages: &mut Vec<CarriageProcess>, layout: &Layout, scale: &Scale, pixel_size: &PixelSize, index: i64) {
+    fn build_carriage(&self, carriages: &mut Vec<CarriageBuilder>, layout: &Layout, scale: &Scale, pixel_size: &PixelSize, index: i64) {
         if index < 0 { return; }
         let train_track_config_list = TrainTrackConfigList::new(layout,scale); // TODO cache
         let train_extent = TrainExtent::new(layout,scale,pixel_size);
         let carriage_extent = CarriageExtent::new(&train_extent,index as u64);
-        let carriage = CarriageProcess::new(&carriage_extent,None,&train_track_config_list,None,true);
+        let carriage = CarriageBuilder::new(&carriage_extent,None,&train_track_config_list,None,true);
         carriages.push(carriage);
     }
 
-    fn build_carriages(&self, layout: &Layout, extent: &CarriageExtent, amount_depth: i64, amount_width: i64) -> Result<Vec<CarriageProcess>,DataMessage> {
+    fn build_carriages(&self, layout: &Layout, extent: &CarriageExtent, amount_depth: i64, amount_width: i64) -> Result<Vec<CarriageBuilder>,DataMessage> {
         let mut carriages = vec![];
         let base_index = extent.index();
         for offset in -amount_width..(amount_width+1) {

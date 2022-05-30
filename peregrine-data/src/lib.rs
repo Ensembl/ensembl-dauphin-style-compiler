@@ -25,9 +25,10 @@ mod allotment {
 
     pub(crate) mod core {
         pub(crate) mod boxtraits;
+        pub(crate) mod boxpositioncontext;
         pub(crate) mod allotmentname;
         pub(crate) mod coordsystem;
-        pub(crate) mod carriageoutput;
+        pub(crate) mod abstractcarriage;
         pub(crate) mod leaflist;
         pub(crate) mod leafrequest;
         pub(crate) mod trainstate;
@@ -106,7 +107,7 @@ mod index {
 }
 
 mod shapeload {
-    pub(crate) mod carriageprocess;
+    pub(crate) mod carriagebuilder;
     mod datastore;
     mod shaperequest;
     pub(crate) mod loadshapes;
@@ -174,7 +175,7 @@ mod run {
 }
 
 mod shape {
-    mod carriageshapes;
+    mod abstractshapescontainer;
     mod core;
     pub mod emptyshape;
     mod imageshape;
@@ -191,7 +192,7 @@ mod shape {
     };
     pub use self::shape::{ ShapeDemerge, Shape };
     pub use self::zmenu::ZMenu;
-    pub use self::carriageshapes::CarriageShapesBuilder;
+    pub use self::abstractshapescontainer::AbstractShapesContainer;
     pub use self::programshapes::ProgramShapesBuilder;
     pub use self::zmenufixed::{ ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator, ZMenuProxy, zmenu_fixed_vec_to_json, zmenu_to_json };
 }
@@ -213,27 +214,35 @@ pub(crate) mod switch {
 }
 
 mod train {
+    mod abstracttrain {
+        pub(crate) mod abstracttrain;
+    }
+
+    mod core {
+        pub(crate) mod party;
+        pub(crate) mod switcher;    
+    }
+
+    pub(crate) mod drawing {
+        pub mod drawingcarriage;
+        pub(crate) mod drawingtrain;
+        pub(crate) mod drawingtrainset;
+    }
+
+    pub mod model {
+        pub(crate) mod carriageextent;
+        pub(crate) mod trainextent;
+    }
+
     mod anticipate;
-    pub mod drawingcarriage;
-    pub(crate) mod drawingcarriageparty;
-    pub(crate) mod carriageprocessparty;
-    pub(crate) mod drawingcarriagemanager;
-    pub(crate) mod drawingcarriagemanager2;
-    pub(crate) mod carriageextent;
     mod railwaydatatasks;
-    pub(crate) mod carriageset;
     pub(crate) mod graphics;
     mod railway;
-    mod railwaydependents;
-    pub(crate) mod party;
-    mod switcher;
-    pub(crate) mod trainextent;
     pub(crate) mod train;
     mod trainset;
 
-    pub use carriageextent::{ CarriageExtent };
-    pub use drawingcarriage::{ DrawingCarriage };
-    pub use trainextent::TrainExtent;
+    pub use model::carriageextent::{ CarriageExtent };
+    pub use drawing::drawingcarriage::{ DrawingCarriage };
     pub use railway::Railway;
 }
 
@@ -263,16 +272,17 @@ pub use self::shapeload::{ Region, ProgramName, ProgramRegion, ShapeStore, DataS
 pub use self::run::{ PgCommander, PgCommanderTaskSpec, PgDauphin, Commander, InstancePayload, add_task, complete_task, async_complete_task };
 pub use self::request::core::packet::{ RequestPacket, ResponsePacket };
 pub use self::request::core::backend::{ AllBackends, Backend };
+pub use self::shape::shape::DrawingShape;
 pub use self::shape::{ 
     Patina, Colour, DirectColour, DrawnType, Shape, Hotspot,
     ZMenu, Pen, Plotter, ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator,
     ZMenuProxy, zmenu_fixed_vec_to_json, ShapeDemerge, zmenu_to_json,
-    ProgramShapesBuilder, CarriageShapesBuilder
+    ProgramShapesBuilder, AbstractShapesContainer
 };
 pub use self::allotment::core::coordsystem::{ CoordinateSystem, CoordinateSystemVariety };
 pub use self::switch::switch::{ Switches };
 pub use self::switch::track::Track;
-pub use self::train::{ DrawingCarriage, CarriageExtent, TrainExtent };
+pub use self::train::{ DrawingCarriage, CarriageExtent };
 pub use self::util::{ CountingPromise, DataMessage, Builder };
 pub use self::util::vecutils::expand_by_repeating;
 pub use self::util::eachorevery::{ EachOrEvery, EachOrEveryFilterBuilder };

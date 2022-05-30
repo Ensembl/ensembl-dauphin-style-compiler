@@ -13,6 +13,7 @@ use crate::DataMessage;
 use crate::DrawnType;
 use crate::LeafRequest;
 use crate::SpaceBaseArea;
+use crate::allotment::core::boxtraits::Transformable;
 use crate::allotment::style::style::LeafStyle;
 use crate::allotment::transformers::transformers::Transformer;
 use crate::allotment::util::rangeused::RangeUsed;
@@ -36,6 +37,15 @@ pub enum Shape<A> {
     SpaceBaseRect(RectangleShape<A>),
     Empty(EmptyShape<A>)
 }
+
+/* A shape without reference to its surroundings re placement -> */
+pub(crate) type UnplacedShape = Shape<LeafRequest>;
+
+/* -> A shape with reference only to the surroundings of its own carriage -> */
+pub(crate) type AbstractShape = Shape<Arc<dyn Transformable>>;
+
+/* -> A completely placed shape, ready to draw */
+pub type DrawingShape = Shape<LeafStyle>;
 
 impl<A> Clone for Shape<A> where A: Clone {
     fn clone(&self) -> Self {

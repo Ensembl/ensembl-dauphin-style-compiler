@@ -30,7 +30,7 @@ impl GLTrain {
     }
 
     pub(super) fn scale(&self) -> Option<Scale> {
-        lock!(self.0).carriages.iter().next().map(|c| c.extent().train().scale().clone())
+        lock!(self.0).carriages.iter().next().map(|c| c.extent().scale().clone())
     }
 
     pub(super) fn set_max(&mut self, max: u64) {

@@ -7,7 +7,6 @@ use crate::{PgCommanderWeb};
 use crate::shape::layers::drawing::{ Drawing };
 use crate::webgl::DrawingSession;
 use crate::webgl::global::WebGlGlobal;
-use std::hash::{ Hash, Hasher };
 use std::sync::{Arc, Mutex};
 use crate::stage::stage::ReadStage;
 use crate::util::message::Message;
@@ -42,21 +41,6 @@ impl GLCarriageData {
 #[derive(Clone)]
 pub(crate) struct GLCarriage(Arc<Mutex<GLCarriageData>>);
 
-impl PartialEq for GLCarriage {
-    fn eq(&self, other: &Self) -> bool {
-        if Arc::ptr_eq(&self.0,&other.0) { return true; }
-        lock!(self.0).extent == lock!(other.0).extent
-    }
-}
-
-impl Eq for GLCarriage {}
-
-impl Hash for GLCarriage {
-    fn hash<H: Hasher>(&self, hasher: &mut H) {
-        lock!(self.0).extent.hash(hasher);
-    }
-}
-
 impl GLCarriage {
     pub fn new(redraw_needed: &Needed, commander: &PgCommanderWeb, carriage: &DrawingCarriage, gl: &Arc<Mutex<WebGlGlobal>>, assets: &Assets) -> Result<GLCarriage,Message> {
         let carriage2 = carriage.clone();
@@ -71,7 +55,7 @@ impl GLCarriage {
             discarded: false,
             drawing: AsyncOnce::new(async move {
                 let carriage = carriage2;
-                let scale = carriage.extent().train().scale();
+                let scale = carriage.extent().scale();
                 let shapes = carriage.shapes().clone();
                 let drawing = Drawing::new(Some(scale),shapes,&gl,carriage.extent().left_right().0,&assets,&carriage.relevancy()).await;
                 redraw_needed.set();

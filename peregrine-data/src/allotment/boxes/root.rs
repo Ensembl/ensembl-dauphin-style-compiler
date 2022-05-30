@@ -1,6 +1,6 @@
 use std::{sync::{Arc, Mutex}};
 use peregrine_toolkit::{lock, puzzle::{constant}};
-use crate::{ allotment::core::{carriageoutput::BoxPositionContext, trainstate::CarriageTrainStateSpec, boxtraits::Stackable}};
+use crate::{ allotment::core::{trainstate::CarriageTrainStateSpec, boxtraits::Stackable, boxpositioncontext::BoxPositionContext}};
 
 #[derive(Clone)]
 pub struct Root {
