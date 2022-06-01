@@ -1,6 +1,6 @@
 use std::{sync::{Arc, Mutex}, mem};
 use peregrine_toolkit_async::sync::needed::Needed;
-use peregrine_toolkit::lock;
+use peregrine_toolkit::{lock, log};
 use crate::{shapeload::{carriagebuilder::CarriageBuilder, loadshapes::LoadMode}, add_task, PgCommanderTaskSpec, async_complete_task, PeregrineCoreBase, ShapeStore, DataMessage, StickStore, Stick };use super::{Railway, model::trainextent::TrainExtent, train::StickData };
 
 #[derive(Clone)]
@@ -24,18 +24,13 @@ enum Task {
     Stick(TrainExtent,Arc<Mutex<StickData>>)
 }
 
-async fn load_one_carriage(base: &mut PeregrineCoreBase, pinger: &RailwayPinger, shape_store: &ShapeStore, mut carriage: CarriageBuilder) -> Result<(),DataMessage> {
+async fn load_one_carriage(base: &mut PeregrineCoreBase, shape_store: &ShapeStore, mut carriage: CarriageBuilder) -> Result<(),DataMessage> {
     let r = carriage.load(base,&shape_store,LoadMode::RealTime).await;
-    pinger.ping();
     r
 }
 
-async fn find_max(stick_store: &StickStore, train_extent: &TrainExtent) -> Result<Arc<Stick>,DataMessage> {
-    stick_store.get(&train_extent.layout().stick()).await
-}
-
-async fn load_one_stick(base: &mut PeregrineCoreBase, pinger: &RailwayPinger, stick_store: &StickStore, train_extent: &TrainExtent, stick_data: &Arc<Mutex<StickData>>) -> Result<(),DataMessage> {
-    let output = find_max(stick_store,train_extent).await;
+async fn load_one_stick(base: &mut PeregrineCoreBase, stick_store: &StickStore, train_extent: &TrainExtent, stick_data: &Arc<Mutex<StickData>>) -> Result<(),DataMessage> {
+    let output = stick_store.get(&train_extent.layout().stick()).await;
     let data = match output {
         Ok(value) => StickData::Ready(value),
         Err(e) => {
@@ -44,7 +39,6 @@ async fn load_one_stick(base: &mut PeregrineCoreBase, pinger: &RailwayPinger, st
         }
     };
     *lock!(stick_data) = data;
-    pinger.ping();
     Ok(())
 }
 
@@ -86,6 +80,8 @@ impl RailwayDataTasks {
     async fn async_load(&self, mut tasks: Vec<Task>) {
         let mut loads = vec![];
         let commander= self.base.commander.clone();
+        #[cfg(debug_trains)]
+        log!("async_load len={}",tasks.len());
         for task in tasks.drain(..) {
             let mut base2 = self.base.clone();
             let shape_store = self.shape_store.clone();
@@ -97,14 +93,16 @@ impl RailwayDataTasks {
                     slot: None,
                     timeout: None,
                     task: Box::pin(async move {
-                        match task {
+                        let out = match task {
                             Task::Carriage(carriage) => {
-                                load_one_carriage(&mut base2,&pinger,&shape_store,carriage).await
+                                load_one_carriage(&mut base2,&shape_store,carriage).await
                             },
                             Task::Stick(extent,stick) => {
-                                load_one_stick(&mut base2,&pinger,&stick_store,&extent,&stick).await
+                                load_one_stick(&mut base2,&stick_store,&extent,&stick).await
                             }
-                        }
+                        };
+                        pinger.ping();
+                        out
                     }),
                     stats: false
                 });
@@ -117,9 +115,10 @@ impl RailwayDataTasks {
                 self.base.messages.send(e.clone());
             }
         }
+        self.load();
     }
 
-    pub(super) fn load(&self) {
+    pub(crate) fn load(&self) {
         let tasks = mem::replace(&mut *lock!(self.tasks), vec![]);
         if tasks.len() == 0 { return; }
         let self2 = self.clone();

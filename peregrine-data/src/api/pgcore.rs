@@ -6,6 +6,7 @@ use crate::request::core::manager::RequestManager;
 use crate::request::messages::metricreq::MetricReport;
 use crate::api::PeregrineIntegration;
 use crate::train::Railway;
+use crate::train::railwaydatatasks::RailwayDataTasks;
 use commander::PromiseFuture;
 use peregrine_dauphin_queue::{ PgDauphinQueue };
 use peregrine_message::PeregrineMessage;
@@ -60,7 +61,8 @@ pub struct PeregrineCoreBase {
 pub struct PeregrineCore {
     pub base: PeregrineCoreBase,
     pub agent_store: AgentStore,
-    pub train_set: Railway,
+    pub train_set: Railway, // XXX into AgentStore
+    pub(crate) carriage_loader: RailwayDataTasks, // XXX into AgentStore
     pub viewport: Viewport,
     pub switches: Switches,
 }
@@ -98,11 +100,14 @@ impl PeregrineCore {
             redraw_needed: redraw_needed.clone()
         };
         let agent_store = AgentStore::new(&base);
-        let train_set = Railway::new(&base,&agent_store.lane_store,&agent_store.stick_store,visual_blocker);
+        let mut carriage_loader = RailwayDataTasks::new(&base,&agent_store.lane_store,&agent_store.stick_store,&base.redraw_needed);
+        let train_set = Railway::new(&base,&agent_store.lane_store,visual_blocker,&carriage_loader);
+        carriage_loader.set_railway(&train_set);
         Ok(PeregrineCore {
             base,
             agent_store,
             train_set,
+            carriage_loader,
             viewport: Viewport::empty(),
             switches: Switches::new()
         })

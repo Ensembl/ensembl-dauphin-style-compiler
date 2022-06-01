@@ -1,4 +1,3 @@
-use crate::api::PeregrineCore;
 use crate::core::channel::Channel;
 use crate::core::pixelsize::PixelSize;
 use crate::core::{ StickId, Viewport };
@@ -10,6 +9,7 @@ use crate::{Assets, PgCommanderTaskSpec};
 use commander::{CommanderStream, PromiseFuture};
 use peregrine_toolkit_async::sync::blocker::{Blocker, Lockout};
 use crate::util::message::DataMessage;
+use super::pgcore::PeregrineCore;
 
 //#[cfg_attr(debug_assertions,derive(Debug))]
 pub enum ApiMessage {
@@ -51,7 +51,7 @@ impl ApiQueueCampaign {
             },
             ApiMessage::TransitionComplete => {
                 let train_set = data.train_set.clone();
-                train_set.transition_complete(&mut data.base);
+                train_set.transition_complete();
             },
             ApiMessage::SetPosition(pos) =>{
                 self.viewport = self.viewport.set_position(pos);
@@ -144,13 +144,10 @@ impl PeregrineApiQueue {
         }
     }
 
-    fn bootstrap(&mut self, data: &mut PeregrineCore, channel: Channel, identity: u64) {
-        bootstrap(&data.base,&data.agent_store,channel,identity)
-    }
-
-    pub fn run(&self, data: &mut PeregrineCore) {
+    pub(crate) fn run(&self, data: &mut PeregrineCore) {
         let mut self2 = self.clone();
         let mut data2 = data.clone();
+        let carriage_loader = data.carriage_loader.clone();
         add_task::<Result<(),DataMessage>>(&data.base.commander,PgCommanderTaskSpec {
             name: format!("api message runner"),
             prio: 0,
@@ -165,6 +162,7 @@ impl PeregrineApiQueue {
                         campaign.run_message(&mut data2,message).await;
                         lockouts.push(lockout);
                     }
+                    carriage_loader.load();
                     self2.update_viewport(&mut data2,campaign.viewport().clone());
                     drop(lockouts);
                 }

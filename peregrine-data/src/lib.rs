@@ -235,7 +235,7 @@ mod train {
     }
 
     mod anticipate;
-    mod railwaydatatasks;
+    pub(crate)mod railwaydatatasks;
     pub(crate) mod graphics;
     mod railway;
     pub(crate) mod train;
