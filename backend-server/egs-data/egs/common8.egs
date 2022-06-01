@@ -34,9 +34,10 @@ gene_track_names := [
 stmt draw_track_names(track_names,switch_names,allotments) {
     name_text_size := 10;
     name_text_colour := direct_colour(111,129,144,255);
+    good_track_names := [[track_names][@<5]][];
 
     switches := get_switch(switch_names[]);
-    label_allotments := allotments;
+    label_allotments := [[allotments][@<5]][];
     label_allotments[switches==false] := use_allotment("");
 
     textpen_trackname := pen("'Lato', sans-serif",name_text_size,name_text_colour,[][]);

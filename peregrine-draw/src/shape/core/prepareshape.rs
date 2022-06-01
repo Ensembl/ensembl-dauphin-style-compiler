@@ -108,6 +108,7 @@ pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingTool
     let mut out = vec![];
     let demerge = shape.demerge(&GLCategoriser());
     for (draw_group,shape) in demerge {
+        if draw_group.coord_system().is_dustbin() { continue; }
         match shape {
             Shape::Empty(_) => {},
             Shape::Wiggle(shape) => {
