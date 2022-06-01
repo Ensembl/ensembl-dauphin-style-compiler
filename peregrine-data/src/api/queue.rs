@@ -23,7 +23,7 @@ pub enum ApiMessage {
     SetSwitch(Vec<String>),
     ClearSwitch(Vec<String>),
     RadioSwitch(Vec<String>,bool),
-    RegeneraateTrackConfig,
+    RegenerateTrackConfig,
     Jump(String,PromiseFuture<Option<(StickId,f64,f64)>>),
     ReportMetric(Channel,MetricReport),
     GeneralMetric(String,Vec<(String,String)>,Vec<(String,f64)>),
@@ -90,7 +90,7 @@ impl ApiQueueCampaign {
                 data.switches.radio_switch(&path.iter().map(|x| x.as_str()).collect::<Vec<_>>(),yn);
                 self.viewport = self.viewport.set_track_config_list(&data.switches.get_track_config_list());
             },
-            ApiMessage::RegeneraateTrackConfig => {
+            ApiMessage::RegenerateTrackConfig => {
                 self.viewport = self.viewport.set_track_config_list(&data.switches.get_track_config_list());
             },
             ApiMessage::ReportMetric(channel,metric) => {

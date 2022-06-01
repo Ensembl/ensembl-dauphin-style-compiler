@@ -1,7 +1,6 @@
 use std::{sync::{Arc, Mutex}};
 use commander::CommanderStream;
-use crate::{DataMessage, ShapeStore, PeregrineCoreBase, PgCommanderTaskSpec, Scale, add_task, core::{Layout, pixelsize::PixelSize}, shapeload::loadshapes::LoadMode, switch::trackconfiglist::TrainTrackConfigList };
-use super::model::{trainextent::TrainExtent, carriageextent::CarriageExtent};
+use crate::{DataMessage, ShapeStore, PeregrineCoreBase, PgCommanderTaskSpec, Scale, add_task, core::{Layout, pixelsize::PixelSize}, shapeload::loadshapes::LoadMode, switch::trackconfiglist::TrainTrackConfigList, CarriageExtent, train::model::trainextent::TrainExtent };
 use crate::shapeload::carriagebuilder::CarriageBuilder;
 
 struct AnticipateTask {

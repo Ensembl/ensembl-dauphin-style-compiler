@@ -15,7 +15,7 @@ async fn finish_bootstrap(response: &BootRes, manager: &RequestManager, dauphin:
     }).await?;
     integration.lock().unwrap().set_assets(response.assets().clone()); // XXX don't clone
     queue.push(ApiMessage::SetAssets(response.assets().clone()));
-    queue.push(ApiMessage::RegeneraateTrackConfig);
+    queue.push(ApiMessage::RegenerateTrackConfig);
     Ok(())
 }
 

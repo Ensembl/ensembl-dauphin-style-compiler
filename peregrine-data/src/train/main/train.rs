@@ -2,17 +2,18 @@ use std::sync::{Mutex, Arc};
 use peregrine_toolkit::lock;
 use peregrine_toolkit::puzzle::AnswerAllocator;
 use peregrine_toolkit_async::sync::needed::Needed;
+use crate::train::drawing::drawingtrainset::DrawingTrainSet;
 use crate::train::graphics::Graphics;
 use crate::train::model::trainextent::TrainExtent;
 use crate::train::railwaydatatasks::RailwayDataTasks;
 use crate::{Stick, CarriageSpeed, Viewport, DataMessage, DrawingCarriage};
 use crate::api::MessageSender;
 use crate::switch::trackconfiglist::TrainTrackConfigList;
-use super::abstracttrain::abstracttrain::AbstractTrain;
-use super::drawing::drawingtrainset::DrawingTrainSet;
 
 #[cfg(debug_trains)]
 use peregrine_toolkit::debug_log;
+
+use super::abstracttrain::AbstractTrain;
 
 pub(crate) enum StickData {
     Pending,
@@ -29,21 +30,24 @@ pub(crate) struct Train {
     stick_data: Arc<Mutex<StickData>>,
     train_extent: TrainExtent,
     drawing_train_set: DrawingTrainSet,
-    abstract_train: AbstractTrain
+    abstract_train: AbstractTrain,
+    epoch: u64
 }
 
 impl Train {
-    pub(crate) fn new(train_extent: &TrainExtent, ping_needed: &Needed, answer_allocator: &Arc<Mutex<AnswerAllocator>>, configs: &TrainTrackConfigList, railway_data_tasks: &RailwayDataTasks, graphics: &Graphics, messages: &MessageSender) -> Train {
+    pub(crate) fn new(train_extent: &TrainExtent, ping_needed: &Needed, answer_allocator: &Arc<Mutex<AnswerAllocator>>, configs: &TrainTrackConfigList, railway_data_tasks: &RailwayDataTasks, graphics: &Graphics, messages: &MessageSender, epoch: u64) -> Train {
         let abstract_train = AbstractTrain::new(train_extent,ping_needed,answer_allocator,configs,railway_data_tasks,graphics,messages);
         let out = Train {
             train_extent: train_extent.clone(),
             stick_data: Arc::new(Mutex::new(StickData::Pending)),
             drawing_train_set: DrawingTrainSet::new(ping_needed,graphics),
-            abstract_train
+            abstract_train, epoch
         };
         railway_data_tasks.add_stick(&out.train_extent(),&out.stick_data);
         out
     }
+
+    pub(crate) fn epoch(&self) -> u64 { self.epoch }
 
     pub(crate) fn speed_limit(&self, other: &Train) -> CarriageSpeed {
         self.train_extent().speed_limit(&other.train_extent())

@@ -37,7 +37,7 @@ impl Authority {
             program_name: self.startup_program_name.clone(),
             payloads: None
         }).await?;
-        base.queue.push(ApiMessage::RegeneraateTrackConfig);
+        base.queue.push(ApiMessage::RegenerateTrackConfig);
         Ok(())
     }
 

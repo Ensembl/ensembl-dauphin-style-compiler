@@ -1,7 +1,11 @@
 use std::{sync::{Arc, Mutex}, mem};
 use peregrine_toolkit_async::sync::needed::Needed;
-use peregrine_toolkit::{lock, log};
-use crate::{shapeload::{carriagebuilder::CarriageBuilder, loadshapes::LoadMode}, add_task, PgCommanderTaskSpec, async_complete_task, PeregrineCoreBase, ShapeStore, DataMessage, StickStore, Stick };use super::{Railway, model::trainextent::TrainExtent, train::StickData };
+use peregrine_toolkit::lock;
+use crate::{shapeload::{carriagebuilder::CarriageBuilder, loadshapes::LoadMode}, add_task, PgCommanderTaskSpec, async_complete_task, PeregrineCoreBase, ShapeStore, DataMessage, StickStore };
+use super::{model::trainextent::TrainExtent, main::{train::StickData, railway::Railway} };
+
+#[cfg(debug_trains)]
+use peregrine_toolkit::log;
 
 #[derive(Clone)]
 struct RailwayPinger(Arc<Mutex<Option<Railway>>>);
@@ -77,63 +81,44 @@ impl RailwayDataTasks {
         lock!(self.tasks).push(Task::Stick(train_extent.clone(),output.clone()));
     }
 
-    async fn async_load(&self, mut tasks: Vec<Task>) {
-        let mut loads = vec![];
-        let commander= self.base.commander.clone();
-        #[cfg(debug_trains)]
-        log!("async_load len={}",tasks.len());
-        for task in tasks.drain(..) {
-            let mut base2 = self.base.clone();
-            let shape_store = self.shape_store.clone();
-            let stick_store = self.stick_store.clone();
-            let pinger = self.pinger.clone();
-            let handle = add_task(&commander,PgCommanderTaskSpec {
-                    name: format!("single carriage loader"),
-                    prio: 1,
-                    slot: None,
-                    timeout: None,
-                    task: Box::pin(async move {
-                        let out = match task {
-                            Task::Carriage(carriage) => {
-                                load_one_carriage(&mut base2,&shape_store,carriage).await
-                            },
-                            Task::Stick(extent,stick) => {
-                                load_one_stick(&mut base2,&stick_store,&extent,&stick).await
-                            }
-                        };
-                        pinger.ping();
-                        out
-                    }),
-                    stats: false
-                });
-            loads.push(handle);
-        }
-        for future in loads {
-            future.finish_future().await;
-            let r = future.take_result().unwrap();
-            if let Err(e) = r {
-                self.base.messages.send(e.clone());
-            }
-        }
-        self.load();
-    }
-
-    pub(crate) fn load(&self) {
-        let tasks = mem::replace(&mut *lock!(self.tasks), vec![]);
-        if tasks.len() == 0 { return; }
+    fn async_load(&self, task: Task) {
         let self2 = self.clone();
+        let mut base2 = self.base.clone();
+        let ping_needed = self.ping_needed.clone();
+        let shape_store = self.shape_store.clone();
+        let stick_store = self.stick_store.clone();
+        let pinger = self.pinger.clone();
         let handle = add_task(&self.base.commander,PgCommanderTaskSpec {
             name: format!("carriage loader"),
             prio: 1,
             slot: None,
             timeout: None,
             task: Box::pin(async move {
-                self2.async_load(tasks).await;
-                self2.ping_needed.set();
+                let result = match task {
+                    Task::Carriage(carriage) => {
+                        load_one_carriage(&mut base2,&shape_store,carriage).await
+                    },
+                    Task::Stick(extent,stick) => {
+                        load_one_stick(&mut base2,&stick_store,&extent,&stick).await
+                    }
+                };
+                pinger.ping();
+                ping_needed.set();
+                self2.load();
+                if let Err(e) = result {
+                    base2.messages.send(e.clone());
+                }
                 Ok(())
             }),
             stats: false
         });
         async_complete_task(&self.base.commander, &self.base.messages,handle,|e| (e,false));
+    }
+
+    pub(crate) fn load(&self) {
+        let mut tasks = mem::replace(&mut *lock!(self.tasks), vec![]);
+        for task in tasks.drain(..) {
+            self.async_load(task);
+        }
     }
 }

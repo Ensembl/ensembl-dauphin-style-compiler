@@ -5,7 +5,7 @@ use crate::core::{ Viewport };
 use crate::request::core::manager::RequestManager;
 use crate::request::messages::metricreq::MetricReport;
 use crate::api::PeregrineIntegration;
-use crate::train::Railway;
+use crate::train::main::railway::Railway;
 use crate::train::railwaydatatasks::RailwayDataTasks;
 use commander::PromiseFuture;
 use peregrine_dauphin_queue::{ PgDauphinQueue };
@@ -135,7 +135,7 @@ impl PeregrineCore {
 
     /* called after some programs to refresh state in-case tracks appeared */
     pub(crate) fn regenerate_track_config(&self) {
-        self.base.queue.push(ApiMessage::RegeneraateTrackConfig);
+        self.base.queue.push(ApiMessage::RegenerateTrackConfig);
     }
 
     pub fn transition_complete(&self) {

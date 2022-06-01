@@ -107,6 +107,7 @@ mod index {
 }
 
 mod shapeload {
+    pub(crate) mod anticipate;
     pub(crate) mod carriagebuilder;
     mod datastore;
     mod shaperequest;
@@ -214,10 +215,6 @@ pub(crate) mod switch {
 }
 
 mod train {
-    mod abstracttrain {
-        pub(crate) mod abstracttrain;
-    }
-
     mod core {
         pub(crate) mod party;
         pub(crate) mod switcher;    
@@ -229,21 +226,22 @@ mod train {
         pub(crate) mod drawingtrainset;
     }
 
+    pub(crate) mod main {
+        pub(crate) mod abstracttrain;
+        pub(crate) mod railway;
+        pub(crate) mod train;    
+    }
+
     pub mod model {
         pub(crate) mod carriageextent;
         pub(crate) mod trainextent;
     }
 
-    mod anticipate;
     pub(crate)mod railwaydatatasks;
     pub(crate) mod graphics;
-    mod railway;
-    pub(crate) mod train;
-    mod trainset;
 
     pub use model::carriageextent::{ CarriageExtent };
     pub use drawing::drawingcarriage::{ DrawingCarriage };
-    pub use railway::Railway;
 }
 
 mod util {
