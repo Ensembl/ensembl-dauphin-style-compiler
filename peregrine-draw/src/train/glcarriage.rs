@@ -1,4 +1,4 @@
-use peregrine_data::{Assets, DrawingCarriage, CarriageExtent};
+use peregrine_data::{Assets, DrawingCarriage, CarriageExtent, PeregrineCore, PeregrineApiQueue};
 use peregrine_toolkit::{lock, warn, error };
 use peregrine_toolkit_async::sync::asynconce::AsyncOnce;
 use peregrine_toolkit_async::sync::needed::Needed;
@@ -12,6 +12,7 @@ use crate::stage::stage::ReadStage;
 use crate::util::message::Message;
 
 struct GLCarriageData {
+    data_api: PeregrineApiQueue,
     commander: PgCommanderWeb,
     extent: CarriageExtent,
     opacity: Mutex<f64>,
@@ -42,13 +43,14 @@ impl GLCarriageData {
 pub(crate) struct GLCarriage(Arc<Mutex<GLCarriageData>>);
 
 impl GLCarriage {
-    pub fn new(redraw_needed: &Needed, commander: &PgCommanderWeb, carriage: &DrawingCarriage, gl: &Arc<Mutex<WebGlGlobal>>, assets: &Assets) -> Result<GLCarriage,Message> {
+    pub fn new(data_api: &PeregrineApiQueue, redraw_needed: &Needed, commander: &PgCommanderWeb, carriage: &DrawingCarriage, gl: &Arc<Mutex<WebGlGlobal>>, assets: &Assets) -> Result<GLCarriage,Message> {
         let carriage2 = carriage.clone();
         let gl = gl.clone();
         let assets = assets.clone();
         let redraw_needed = redraw_needed.clone();
         let our_carriage = GLCarriage(Arc::new(Mutex::new(GLCarriageData {
             commander: commander.clone(),
+            data_api: data_api.clone(),
             extent: carriage.extent().clone(),
             opacity: Mutex::new(1.),
             preflight_done: false,
@@ -76,7 +78,8 @@ impl GLCarriage {
             error!("{}",e);
         }
         lock!(self.0).preflight_done = true;
-        carriage.set_ready();
+        let api = lock!(self.0).data_api.clone();
+        api.carriage_ready(&carriage);
         Ok(())
     }
 

@@ -65,10 +65,10 @@ impl DrawingCarriage {
     }
 
     pub fn extent(&self) -> &CarriageExtent { &self.extent }
-    pub fn train_identity(&self) -> &TrainIdentity { &self.train_identity }
+    pub(crate) fn train_identity(&self) -> &TrainIdentity { &self.train_identity }
     
     pub(crate) fn is_ready(&self) -> bool { *lock!(self.ready) }
-    pub fn set_ready(&self) { *lock!(self.ready) = true; self.try_lifecycle.set(); }
+    pub(crate) fn set_ready(&self) { *lock!(self.ready) = true; self.try_lifecycle.set(); }
 
     pub fn shapes(&self) -> &Arc<Vec<DrawingShape>> { &self.shapes }
     pub fn relevancy(&self) -> RetainTest { self.retain.test() }

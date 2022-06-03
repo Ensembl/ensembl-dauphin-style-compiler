@@ -1,5 +1,5 @@
 use std::sync::{Arc, Mutex};
-use crate::{AgentStore, DataMessage, PeregrineApiQueue, PeregrineCoreBase, PeregrineIntegration, PgCommanderTaskSpec, PgDauphin, add_task, api::ApiMessage, core::{channel::Channel, version::VersionMetadata}, request::{core::manager::RequestManager, messages::bootstrapres::BootRes}, shapeload::programloader::ProgramLoader};
+use crate::{AgentStore, DataMessage, PeregrineApiQueue, PeregrineCoreBase, PeregrineIntegration, PgCommanderTaskSpec, PgDauphin, add_task, core::{channel::Channel, version::VersionMetadata}, request::{core::manager::RequestManager, messages::bootstrapres::BootRes}, shapeload::programloader::ProgramLoader};
 
 use super::PgDauphinTaskSpec;
 
@@ -14,8 +14,8 @@ async fn finish_bootstrap(response: &BootRes, manager: &RequestManager, dauphin:
         payloads: None
     }).await?;
     integration.lock().unwrap().set_assets(response.assets().clone()); // XXX don't clone
-    queue.push(ApiMessage::SetAssets(response.assets().clone()));
-    queue.push(ApiMessage::RegenerateTrackConfig);
+    queue.set_assets(response.assets());
+    queue.regenerate_track_config();
     Ok(())
 }
 

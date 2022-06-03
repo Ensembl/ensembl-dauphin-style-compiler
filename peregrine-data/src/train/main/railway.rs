@@ -8,8 +8,7 @@ use crate::switch::trackconfiglist::TrainTrackConfigList;
 use crate::train::core::switcher::{Switcher, SwitcherManager, SwitcherExtent, SwitcherObject};
 use crate::train::graphics::Graphics;
 use crate::train::model::trainextent::TrainExtent;
-use crate::train::railwaydatatasks::RailwayDataTasks;
-use crate::{CarriageSpeed, ShapeStore, PeregrineCoreBase, CarriageExtent};
+use crate::{CarriageSpeed, ShapeStore, PeregrineCoreBase, CarriageExtent, PeregrineApiQueue};
 use crate::api::MessageSender;
 use crate::core::{Scale, Viewport};
 use crate::util::message::DataMessage;
@@ -27,12 +26,12 @@ use super::train::Train;
  */
 
 struct RailwayActions {
+    api_queue: PeregrineApiQueue,
     current_epoch: u64,
     ping_needed: Needed,
     graphics: Graphics,
     answer_allocator: Arc<Mutex<AnswerAllocator>>,
     messages: MessageSender,
-    carriage_loader: RailwayDataTasks,
     busy: LockoutBool,
     anticipate: Anticipate,
     viewport: Option<Viewport>
@@ -52,7 +51,7 @@ impl SwitcherManager for RailwayActions {
     fn create(&mut self, extent: &Self::Extent) -> Result<Self::Type,Self::Error> {
         #[cfg(debug_trains)] debug_log!("TRAIN create ({})",extent.extent.scale().get_index());
         let train_track_config_list = TrainTrackConfigList::new(&extent.extent.layout(),&extent.extent.scale());
-        let mut train = Train::new(&extent.extent,&self.ping_needed,&self.answer_allocator,&train_track_config_list,&self.carriage_loader,&self.graphics,&self.messages,self.current_epoch);
+        let mut train = Train::new(&self.api_queue,&extent.extent,&self.ping_needed,&self.answer_allocator,&train_track_config_list,&self.graphics,&self.messages,self.current_epoch);
         if let Some(viewport) = &self.viewport {
             train.set_position(viewport);
         }
@@ -121,14 +120,14 @@ impl SwitcherObject for Train {
 struct RailwayState(Switcher<RailwayActions,SwitcherTrainExtent,Train,DataMessage>);
 
 impl RailwayState {
-    pub(crate) fn new(base: &PeregrineCoreBase, result_store: &ShapeStore, visual_blocker: &Blocker, ping_needed: &Needed, carriage_loader: &RailwayDataTasks) -> RailwayState {
+    pub(crate) fn new(base: &PeregrineCoreBase, result_store: &ShapeStore, visual_blocker: &Blocker, ping_needed: &Needed) -> RailwayState {
         let manager = RailwayActions {
+            api_queue: base.queue.clone(),
             current_epoch: 0,
             ping_needed: ping_needed.clone(),
             graphics: base.graphics.clone(),
             answer_allocator: base.answer_allocator.clone(),
             messages: base.messages.clone(),
-            carriage_loader: carriage_loader.clone(),
             anticipate: Anticipate::new(base,result_store),
             busy: LockoutBool::new(visual_blocker),
             viewport: None
@@ -194,8 +193,8 @@ impl RailwayState {
 pub struct Railway(Arc<Mutex<RailwayState>>);
 
 impl Railway {
-    pub(crate) fn new(base: &PeregrineCoreBase, result_store: &ShapeStore, visual_blocker: &Blocker, carriage_loader: &RailwayDataTasks) -> Railway {
-        Railway(Arc::new(Mutex::new(RailwayState::new(base,result_store,visual_blocker,&base.redraw_needed.clone(),&carriage_loader))))
+    pub(crate) fn new(base: &PeregrineCoreBase, result_store: &ShapeStore, visual_blocker: &Blocker) -> Railway {
+        Railway(Arc::new(Mutex::new(RailwayState::new(base,result_store,visual_blocker,&base.redraw_needed.clone()))))
     }
 
     pub(crate) fn ping(&self) {

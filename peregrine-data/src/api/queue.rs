@@ -1,3 +1,5 @@
+use std::sync::{Arc, Mutex};
+
 use crate::core::channel::Channel;
 use crate::core::pixelsize::PixelSize;
 use crate::core::{ StickId, Viewport };
@@ -5,14 +7,53 @@ use crate::request::core::request::{BackendRequest, RequestVariant};
 use crate::request::messages::metricreq::MetricReport;
 use crate::run::{add_task};
 use crate::run::bootstrap::bootstrap;
-use crate::{Assets, PgCommanderTaskSpec};
+use crate::shapeload::carriagebuilder::CarriageBuilder;
+use crate::train::main::datatasks::{load_stick, load_carriage};
+use crate::train::main::train::StickData;
+use crate::train::model::trainextent::TrainExtent;
+use crate::{Assets, PgCommanderTaskSpec, DrawingCarriage};
 use commander::{CommanderStream, PromiseFuture};
+use peregrine_toolkit::log;
 use peregrine_toolkit_async::sync::blocker::{Blocker, Lockout};
 use crate::util::message::DataMessage;
 use super::pgcore::PeregrineCore;
 
-//#[cfg_attr(debug_assertions,derive(Debug))]
-pub enum ApiMessage {
+/* Messages fall into broad categories:
+ *
+ *  Updating viewport or switches to be transfered to the railway on the next raf:
+ *    SetPosition
+ *    SetBpPerScreen
+ *    SetMinPxPerCarriage
+ *    SetSwitch
+ *    ClearSwitch
+ *    RadioSwitch
+ *    RegenerateTrackConfig
+ *    SetStick
+ *
+ * Feedback from input/graphics to be fed to the railway immediately:
+ *    Sketchy
+ *    CarriageLoaded
+ *    TransitionComplete
+ *    Invalidate
+ *    PingTrains
+ * 
+ * Retrieve information immediately from cache/backend:
+ *    LoadCarriage
+ *    LoadStick
+ *    Jump
+ * 
+ * Metric reports to be sent to backend on a when-possible basis:
+ *    ReportMetric
+ *    GeneralMetric
+ *
+ * During boot:
+ *    Bootstrap
+ *    SetAssets
+ *    Ready
+ *
+ */
+
+ pub(crate) enum ApiMessage {
     Ready,
     TransitionComplete,
     SetPosition(f64),
@@ -30,7 +71,10 @@ pub enum ApiMessage {
     SetAssets(Assets),
     PingTrains,
     Sketchy(bool),
-    Invalidate
+    CarriageLoaded(DrawingCarriage),
+    Invalidate,
+    LoadStick(TrainExtent,Arc<Mutex<StickData>>),
+    LoadCarriage(CarriageBuilder)
 }
 
 struct ApiQueueCampaign {
@@ -49,6 +93,12 @@ impl ApiQueueCampaign {
             ApiMessage::Ready => {
                 data.dauphin_ready();
             },
+            ApiMessage::LoadStick(extent,output) => {
+                load_stick(&mut data.base,&data.agent_store.stick_store,&extent,&output);
+            },
+            ApiMessage::LoadCarriage(builder) => {
+                load_carriage(&mut data.base, &data.agent_store.lane_store,&builder);
+            }
             ApiMessage::TransitionComplete => {
                 let train_set = data.train_set.clone();
                 train_set.transition_complete();
@@ -74,6 +124,9 @@ impl ApiQueueCampaign {
                         data.base.messages.send(e.clone());
                     }
                 }
+            },
+            ApiMessage::CarriageLoaded(carriage) => {
+                carriage.set_ready();
             },
             ApiMessage::Bootstrap(identity,channel) => {
                 bootstrap(&data.base,&data.agent_store,channel,identity);
@@ -144,10 +197,11 @@ impl PeregrineApiQueue {
         }
     }
 
+    pub(crate) fn visual_blocker(&self) -> &Blocker { &self.visual_blocker }
+
     pub(crate) fn run(&self, data: &mut PeregrineCore) {
         let mut self2 = self.clone();
         let mut data2 = data.clone();
-        let carriage_loader = data.carriage_loader.clone();
         add_task::<Result<(),DataMessage>>(&data.base.commander,PgCommanderTaskSpec {
             name: format!("api message runner"),
             prio: 0,
@@ -162,8 +216,8 @@ impl PeregrineApiQueue {
                         campaign.run_message(&mut data2,message).await;
                         lockouts.push(lockout);
                     }
-                    carriage_loader.load();
                     self2.update_viewport(&mut data2,campaign.viewport().clone());
+                    data2.train_set.ping();
                     drop(lockouts);
                 }
             }),
@@ -171,7 +225,27 @@ impl PeregrineApiQueue {
         });
     }
 
-    pub fn push(&self, message: ApiMessage) {
+    pub(crate) fn push(&self, message: ApiMessage) {
         self.queue.add((message,self.visual_blocker.lock()));
+    }
+
+    pub fn carriage_ready(&self, drawing_carriage: &DrawingCarriage) {
+        self.push(ApiMessage::CarriageLoaded(drawing_carriage.clone()));
+    }
+
+    pub(crate) fn regenerate_track_config(&self) {
+        self.push(ApiMessage::RegenerateTrackConfig);
+    }
+
+    pub(crate) fn set_assets(&self, assets: &Assets) {
+        self.push(ApiMessage::SetAssets(assets.clone()));
+    }
+
+    pub(crate) fn load_stick(&self, extent: &TrainExtent, output: &Arc<Mutex<StickData>>) {
+        self.push(ApiMessage::LoadStick(extent.clone(),output.clone()));
+    }
+
+    pub(crate) fn load_carriage(&self, builder: &CarriageBuilder) {
+        self.push(ApiMessage::LoadCarriage(builder.clone()));
     }
 }

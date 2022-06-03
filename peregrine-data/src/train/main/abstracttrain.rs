@@ -1,7 +1,7 @@
 use std::{sync::{Arc, Mutex}, cmp::max};
 use peregrine_toolkit::{puzzle::AnswerAllocator};
 use peregrine_toolkit_async::sync::needed::Needed;
-use crate::{shapeload::carriagebuilder::CarriageBuilder, allotment::core::{trainstate::{TrainStateSpec, TrainState3}, abstractcarriage::AbstractCarriage}, switch::trackconfiglist::TrainTrackConfigList, api::MessageSender, CarriageExtent, train::{model::trainextent::TrainExtent, railwaydatatasks::RailwayDataTasks, graphics::Graphics, core::party::{PartyActions, Party, PartyState}}};
+use crate::{shapeload::carriagebuilder::CarriageBuilder, allotment::core::{trainstate::{TrainStateSpec, TrainState3}, abstractcarriage::AbstractCarriage}, switch::trackconfiglist::TrainTrackConfigList, api::MessageSender, CarriageExtent, train::{model::trainextent::TrainExtent, graphics::Graphics, core::party::{PartyActions, Party, PartyState}}, PeregrineApiQueue};
 
 #[cfg(debug_trains)]
 use peregrine_toolkit::{ log, debug_log };
@@ -36,28 +36,28 @@ impl AbstractCarriageFactory {
 }
 
 pub(crate) struct AbstractTrainActions {
+    data_api: PeregrineApiQueue,
     ping_needed: Needed,
     ready: bool,
     mute: bool,
     active: bool,
     carriage_factory: AbstractCarriageFactory,
-    railway_data_tasks: RailwayDataTasks, 
     train_state_spec: TrainStateSpec,
     graphics: Graphics
 }
 
 impl AbstractTrainActions {
-    pub(crate) fn new(ping_needed: &Needed, carriage_factory: AbstractCarriageFactory, 
-           railway_data_tasks: &RailwayDataTasks, answer_allocator: &Arc<Mutex<AnswerAllocator>>,
+    pub(crate) fn new(data_api: &PeregrineApiQueue, ping_needed: &Needed, carriage_factory: AbstractCarriageFactory, 
+            answer_allocator: &Arc<Mutex<AnswerAllocator>>,
             graphics: &Graphics) -> AbstractTrainActions {
         AbstractTrainActions {
+            data_api: data_api.clone(),
             ping_needed: ping_needed.clone(),
             ready: false,
             mute: false,
             active: false,
             carriage_factory,
             graphics: graphics.clone(),
-            railway_data_tasks: railway_data_tasks.clone(),
             train_state_spec: TrainStateSpec::new(answer_allocator)
         }
     }
@@ -90,7 +90,7 @@ impl PartyActions<u64,CarriageBuilder,AbstractCarriage> for AbstractTrainActions
     fn ctor(&mut self, index: &u64) -> CarriageBuilder {
         let new_carriage = self.carriage_factory.new_unloaded_carriage(*index,&self.ping_needed);
         #[cfg(debug_trains)] log!("CP ctor ({})",new_carriage.extent().compact());
-        self.railway_data_tasks.add_carriage(&new_carriage);
+        self.data_api.load_carriage(&new_carriage);
         new_carriage
     }
 
@@ -130,10 +130,10 @@ pub struct AbstractTrain {
 }
 
 impl AbstractTrain {
-    pub(crate) fn new(train_extent: &TrainExtent, ping_needed: &Needed, answer_allocator: &Arc<Mutex<AnswerAllocator>>, configs: &TrainTrackConfigList, railway_data_tasks: &RailwayDataTasks, graphics: &Graphics, messages: &MessageSender) -> AbstractTrain {
+    pub(crate) fn new(data_api: &PeregrineApiQueue, train_extent: &TrainExtent, ping_needed: &Needed, answer_allocator: &Arc<Mutex<AnswerAllocator>>, configs: &TrainTrackConfigList, graphics: &Graphics, messages: &MessageSender) -> AbstractTrain {
         let is_milestone = train_extent.scale().is_milestone();
         let carriage_factory = AbstractCarriageFactory::new(train_extent,configs,messages);
-        let carriage_actions = AbstractTrainActions::new(ping_needed,carriage_factory,railway_data_tasks,answer_allocator,graphics);
+        let carriage_actions = AbstractTrainActions::new(data_api,ping_needed,carriage_factory,answer_allocator,graphics);
         AbstractTrain {
             party: Party::new(carriage_actions),
             flank: if is_milestone { MILESTONE_CARRIAGE_FLANK } else { CARRIAGE_FLANK },

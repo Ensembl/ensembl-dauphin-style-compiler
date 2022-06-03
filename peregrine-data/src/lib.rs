@@ -73,7 +73,7 @@ mod api {
     pub use agentstore::AgentStore;
     pub use api::{ PeregrineIntegration, CarriageSpeed, TrainIdentity };
     pub use self::pgcore::{ PeregrineCore, MessageSender, PeregrineCoreBase };
-    pub use queue::{ ApiMessage, PeregrineApiQueue };
+    pub use queue::{ PeregrineApiQueue };
 }
 
 mod core {
@@ -228,6 +228,7 @@ mod train {
 
     pub(crate) mod main {
         pub(crate) mod abstracttrain;
+        pub(crate) mod datatasks;
         pub(crate) mod railway;
         pub(crate) mod train;    
     }
@@ -237,7 +238,6 @@ mod train {
         pub(crate) mod trainextent;
     }
 
-    pub(crate)mod railwaydatatasks;
     pub(crate) mod graphics;
 
     pub use model::carriageextent::{ CarriageExtent };

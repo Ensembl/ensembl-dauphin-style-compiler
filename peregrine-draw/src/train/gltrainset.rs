@@ -2,12 +2,12 @@ use std::collections::HashMap;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash};
 use std::sync::{ Arc, Mutex };
-use peregrine_data::{Assets, CarriageSpeed, PeregrineCore, Scale, DrawingCarriage, TrainIdentity};
+use peregrine_data::{Assets, CarriageSpeed, PeregrineCore, Scale, DrawingCarriage, TrainIdentity, PeregrineApiQueue};
 use peregrine_toolkit::{lock, log};
 use peregrine_toolkit_async::sync::needed::{Needed, NeededLock};
 use super::glcarriage::GLCarriage;
 use super::gltrain::GLTrain;
-use crate::PgCommanderWeb;
+use crate::{PgCommanderWeb, PeregrineAPI};
 use crate::shape::layers::drawingzmenus::HotspotEntryDetails;
 use crate::{run::{ PgPeregrineConfig, PgConfigKey }, stage::stage::{ Stage, ReadStage } };
 use crate::webgl::DrawingSession;
@@ -30,6 +30,7 @@ struct GlRailwayData {
     slow_fade_overlap_prop: f64,
     slow_cross_fade_overlap_prop: f64,
     fast_fade_overlap_prop: f64,
+    data_api: PeregrineApiQueue,
     commander: PgCommanderWeb,
     trains: HashMap<TrainIdentity,GLTrain>,
     carriages: HashMap<DrawingCarriage,GLCarriage>,
@@ -38,7 +39,7 @@ struct GlRailwayData {
 }
 
 impl GlRailwayData {
-    fn new(commander: &PgCommanderWeb, draw_config: &PgPeregrineConfig,redraw_needed: &Needed) -> Result<GlRailwayData,Message> {
+    fn new(data_api: &PeregrineApiQueue, commander: &PgCommanderWeb, draw_config: &PgPeregrineConfig,redraw_needed: &Needed) -> Result<GlRailwayData,Message> {
         Ok(GlRailwayData {
             commander: commander.clone(),
             slow_fade_time: draw_config.get_f64(&PgConfigKey::AnimationFadeRate(CarriageSpeed::Slow))?,
@@ -51,6 +52,7 @@ impl GlRailwayData {
             carriages: HashMap::new(),
             fade_state: FadeState::Constant(None),
             redraw_needed: redraw_needed.clone(),
+            data_api: data_api.clone(),
         })
     }
 
@@ -95,7 +97,7 @@ impl GlRailwayData {
 
     fn create_carriage(&mut self, carriage: &DrawingCarriage, gl: &Arc<Mutex<WebGlGlobal>>, assets: &Assets) -> Result<(),Message> {
         if !self.carriages.contains_key(&carriage) {
-            self.carriages.insert(carriage.clone(), GLCarriage::new(&self.redraw_needed,&self.commander,carriage, gl, assets)?);
+            self.carriages.insert(carriage.clone(), GLCarriage::new(&self.data_api,&self.redraw_needed,&self.commander,carriage, gl, assets)?);
         }
         Ok(())
     }
@@ -252,9 +254,9 @@ pub struct GlRailway {
 }
 
 impl GlRailway {
-    pub fn new(commander: &PgCommanderWeb, draw_config: &PgPeregrineConfig, stage: &Stage) -> Result<GlRailway,Message> {
+    pub fn new(data_api: &PeregrineApiQueue, commander: &PgCommanderWeb, draw_config: &PgPeregrineConfig, stage: &Stage) -> Result<GlRailway,Message> {
         Ok(GlRailway {
-            data: Arc::new(Mutex::new(GlRailwayData::new(commander,draw_config,&stage.redraw_needed())?))
+            data: Arc::new(Mutex::new(GlRailwayData::new(data_api,commander,draw_config,&stage.redraw_needed())?))
         })
     }
 

@@ -54,7 +54,7 @@ struct GraphicsState {
     trains: HashMap<TrainIdentity,i32>, // create&destroy trains as needed
     transition: DisplayedTrains,
     playing_field: Option<GlobalPlayingField>, // don't repeat ourselves
-    metadata: Option<GlobalAllotmentMetadata>, // don't repeat ourcelves, ;-)
+    metadata: Option<GlobalAllotmentMetadata>, // don't repeat ourselves, ;-)
 }
 
 #[derive(Clone)]

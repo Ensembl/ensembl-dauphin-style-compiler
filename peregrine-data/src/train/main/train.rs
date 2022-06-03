@@ -5,8 +5,7 @@ use peregrine_toolkit_async::sync::needed::Needed;
 use crate::train::drawing::drawingtrainset::DrawingTrainSet;
 use crate::train::graphics::Graphics;
 use crate::train::model::trainextent::TrainExtent;
-use crate::train::railwaydatatasks::RailwayDataTasks;
-use crate::{Stick, CarriageSpeed, Viewport, DataMessage, DrawingCarriage};
+use crate::{Stick, CarriageSpeed, Viewport, DataMessage, DrawingCarriage, PeregrineApiQueue};
 use crate::api::MessageSender;
 use crate::switch::trackconfiglist::TrainTrackConfigList;
 
@@ -35,15 +34,15 @@ pub(crate) struct Train {
 }
 
 impl Train {
-    pub(crate) fn new(train_extent: &TrainExtent, ping_needed: &Needed, answer_allocator: &Arc<Mutex<AnswerAllocator>>, configs: &TrainTrackConfigList, railway_data_tasks: &RailwayDataTasks, graphics: &Graphics, messages: &MessageSender, epoch: u64) -> Train {
-        let abstract_train = AbstractTrain::new(train_extent,ping_needed,answer_allocator,configs,railway_data_tasks,graphics,messages);
+    pub(crate) fn new(data_api: &PeregrineApiQueue, train_extent: &TrainExtent, ping_needed: &Needed, answer_allocator: &Arc<Mutex<AnswerAllocator>>, configs: &TrainTrackConfigList, graphics: &Graphics, messages: &MessageSender, epoch: u64) -> Train {
+        let abstract_train = AbstractTrain::new(data_api,train_extent,ping_needed,answer_allocator,configs,graphics,messages);
         let out = Train {
             train_extent: train_extent.clone(),
             stick_data: Arc::new(Mutex::new(StickData::Pending)),
             drawing_train_set: DrawingTrainSet::new(ping_needed,graphics),
             abstract_train, epoch
         };
-        railway_data_tasks.add_stick(&out.train_extent(),&out.stick_data);
+        data_api.load_stick(&out.train_extent(),&out.stick_data);
         out
     }
 
