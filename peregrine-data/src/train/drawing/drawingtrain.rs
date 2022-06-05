@@ -12,7 +12,6 @@ use peregrine_toolkit::{log, debug_log };
 pub(crate) struct DrawingTrainState {
     current: Vec<DrawingCarriage>,
     train_identity: TrainIdentity,
-    ping_needed: Needed,
     ready: bool, /* We have initial loaded */
     active: bool,
     mute: bool,
@@ -28,10 +27,9 @@ pub(crate) struct DrawingTrainState {
 identitynumber!(IDS);
 
 impl DrawingTrainState {
-    fn new(ping_needed: &Needed, train_identity: &TrainIdentity, state: &TrainState3, graphics: &Graphics) -> DrawingTrainState {
+    fn new(train_identity: &TrainIdentity, state: &TrainState3, graphics: &Graphics) -> DrawingTrainState {
         DrawingTrainState {
             current: vec![],
-            ping_needed: ping_needed.clone(),
             train_identity: train_identity.clone(),
             ready: false,
             active: false,
@@ -76,7 +74,7 @@ impl DrawingTrainState {
 
 impl PartyActions<AbstractCarriage,DrawingCarriage,DrawingCarriage> for DrawingTrainState {
     fn ctor(&mut self, creator: &AbstractCarriage) -> DrawingCarriage {
-        let carriage = DrawingCarriage::new(&self.train_identity,creator,&self.ping_needed,&self.state).ok().unwrap(); // XXX
+        let carriage = DrawingCarriage::new(&self.train_identity,creator,&self.state).ok().unwrap(); // XXX
         #[cfg(debug_trains)] log!("DC({:x}) ctor {:?}",self.index,creator.extent().map(|x| x.compact()));
         if !self.mute {
             self.graphics.create_carriage(&carriage);
@@ -90,7 +88,6 @@ impl PartyActions<AbstractCarriage,DrawingCarriage,DrawingCarriage> for DrawingT
 
     fn dtor(&mut self, _index: &AbstractCarriage, mut dc: DrawingCarriage) {
         dc.destroy();
-        self.ping_needed.set(); // train can maybe be updated
         #[cfg(debug_trains)] log!("DC({}) dtor {}",self.index,dc.extent().compact());
         self.graphics.drop_carriage(&dc);
     }
@@ -98,7 +95,6 @@ impl PartyActions<AbstractCarriage,DrawingCarriage,DrawingCarriage> for DrawingT
     fn init(&mut self, _index: &AbstractCarriage, carriage: &mut DrawingCarriage) -> Option<DrawingCarriage> {
         if !carriage.is_ready() { return None; }
         #[cfg(debug_trains)] log!("DC({:x}) init {}",self.index,carriage.extent().compact());
-        self.ping_needed.set(); // train can maybe be updated
         Some(carriage.clone())
     }
 
@@ -124,9 +120,9 @@ pub(crate) struct DrawingTrain {
 }
 
 impl DrawingTrain {
-    pub fn new(ping_needed: &Needed, train_identity: &TrainIdentity, state: &TrainState3, graphics: &Graphics) -> DrawingTrain {
+    pub fn new(train_identity: &TrainIdentity, state: &TrainState3, graphics: &Graphics) -> DrawingTrain {
         DrawingTrain {
-            slider: Party::new(DrawingTrainState::new(ping_needed,train_identity,state,graphics)),
+            slider: Party::new(DrawingTrainState::new(train_identity,state,graphics)),
         }
     }
 

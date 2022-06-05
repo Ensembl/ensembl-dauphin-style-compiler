@@ -3,14 +3,14 @@ use std::sync::{Mutex, Arc};
 use peregrine_toolkit_async::{sync::needed::Needed};
 use peregrine_toolkit::lock;
 
-use crate::{switch::trackconfiglist::TrainTrackConfigList, api::MessageSender, ShapeRequestGroup, PeregrineCoreBase, ShapeStore, DataMessage, allotment::core::{abstractcarriage::AbstractCarriage}};
+use crate::{switch::trackconfiglist::TrainTrackConfigList, api::MessageSender, ShapeRequestGroup, PeregrineCoreBase, ShapeStore, DataMessage, allotment::core::{abstractcarriage::AbstractCarriage}, PeregrineApiQueue};
 
 use crate::train::model::carriageextent::CarriageExtent;
 use super::loadshapes::{LoadMode, load_carriage_shape_list};
 
 #[derive(Clone)]
 pub(crate) struct CarriageBuilder {
-    try_lifecycle: Option<Needed>,
+    api_queue: PeregrineApiQueue,
     extent: CarriageExtent,
     config: TrainTrackConfigList,
     messages: Option<MessageSender>,
@@ -19,9 +19,9 @@ pub(crate) struct CarriageBuilder {
 }
 
 impl CarriageBuilder {
-    pub(crate) fn new(extent: &CarriageExtent, try_lifecycle: Option<&Needed>, configs: &TrainTrackConfigList, messages: Option<&MessageSender>, warm: bool) -> CarriageBuilder {
+    pub(crate) fn new(api_queue: &PeregrineApiQueue, extent: &CarriageExtent, configs: &TrainTrackConfigList, messages: Option<&MessageSender>, warm: bool) -> CarriageBuilder {
         CarriageBuilder {
-            try_lifecycle: try_lifecycle.cloned(),
+            api_queue: api_queue.clone(),
             extent: extent.clone(),
             config: configs.clone(),
             messages: messages.cloned(),
@@ -62,9 +62,7 @@ impl CarriageBuilder {
             _ => {}
         }
         *lock!(self.output) = Some(shapes);
-        if let Some(lifecycle) = &self.try_lifecycle {
-            lifecycle.set();
-        }
+        self.api_queue.ping();
         Ok(())
     }
 }

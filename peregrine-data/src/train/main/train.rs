@@ -34,12 +34,12 @@ pub(crate) struct Train {
 }
 
 impl Train {
-    pub(crate) fn new(data_api: &PeregrineApiQueue, train_extent: &TrainExtent, ping_needed: &Needed, answer_allocator: &Arc<Mutex<AnswerAllocator>>, configs: &TrainTrackConfigList, graphics: &Graphics, messages: &MessageSender, epoch: u64) -> Train {
-        let abstract_train = AbstractTrain::new(data_api,train_extent,ping_needed,answer_allocator,configs,graphics,messages);
+    pub(crate) fn new(data_api: &PeregrineApiQueue, train_extent: &TrainExtent, answer_allocator: &Arc<Mutex<AnswerAllocator>>, configs: &TrainTrackConfigList, graphics: &Graphics, messages: &MessageSender, epoch: u64) -> Train {
+        let abstract_train = AbstractTrain::new(data_api,train_extent,answer_allocator,configs,graphics,messages);
         let out = Train {
             train_extent: train_extent.clone(),
             stick_data: Arc::new(Mutex::new(StickData::Pending)),
-            drawing_train_set: DrawingTrainSet::new(ping_needed,graphics),
+            drawing_train_set: DrawingTrainSet::new(graphics),
             abstract_train, epoch
         };
         data_api.load_stick(&out.train_extent(),&out.stick_data);

@@ -32,7 +32,9 @@ be noted in the test_update_canvas_size call.
 
 use std::sync::{ Arc, Mutex };
 use crate::util::{message::Message };
-use peregrine_toolkit::log_extra;
+use commander::cdr_tick;
+use peregrine_data::{PeregrineCoreBase, PgCommanderTaskSpec, add_task, async_complete_task};
+use peregrine_toolkit::{log_extra, lock, log};
 use peregrine_toolkit_async::sync::needed::Needed;
 use web_sys::{ WebGlRenderingContext, window };
 use super::{dom::PeregrineDom, inner::LockedPeregrineInnerAPI };
@@ -159,6 +161,7 @@ impl SizeManager {
         if self.state.lock().unwrap().booted() {
             self.activity_monostable.set();
         }
+        log!("resized");
         self.redraw_needed.set();
     }
 
@@ -189,4 +192,27 @@ impl SizeManager {
         }
         Ok(())
     }
+
+    async fn run_async(&self, api: &PeregrineInnerAPI) -> Result<(),Message> {
+        let mut api = api.clone();
+        let self2 = self.clone();
+        loop {
+            let mut locked_api = api.lock().await;
+            self2.tick(&mut locked_api)?;
+            drop(locked_api);
+            cdr_tick(1).await;
+        }
+    }
+}
+
+pub(crate) fn start_size_manager(api: &PeregrineInnerAPI, dom: &PeregrineDom) {
+    let mut api = api.clone();
+    let dom = dom.clone();
+    let commander = api.commander();
+    commander.add::<Message>("size manager",1,None,None, Box::pin(async move {
+        let manager = SizeManager::new(&mut api,&dom).await?; // XXX
+        manager.run_async(&api).await;
+        Ok(())
+    }));
+    // XXX errors
 }

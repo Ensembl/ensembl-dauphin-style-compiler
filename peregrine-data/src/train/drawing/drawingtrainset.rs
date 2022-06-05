@@ -7,16 +7,14 @@ use peregrine_toolkit::debug_log;
 use super::drawingtrain::DrawingTrain;
 
 pub(crate) struct DrawingTrainSetActions {
-    ping_needed: Needed,
     stick: Option<Stick>,
     muted: bool,
     graphics: Graphics
 }
 
 impl DrawingTrainSetActions {
-    pub(crate) fn new(ping_needed: &Needed, graphics: &Graphics) -> DrawingTrainSetActions {
+    pub(crate) fn new(graphics: &Graphics) -> DrawingTrainSetActions {
         DrawingTrainSetActions {
-            ping_needed: ping_needed.clone(),
             stick: None,
             graphics: graphics.clone(),
             muted: false
@@ -32,7 +30,7 @@ impl SwitcherManager for DrawingTrainSetActions {
     fn create(&mut self, state: &TrainState3) -> Result<DrawingTrain,DataMessage> {
         let train_identity = new_train_identity();
         #[cfg(debug_trains)] debug_log!("DC party for {:x} {:?}",state.hash(),train_identity);
-        let mut out = DrawingTrain::new(&self.ping_needed,&train_identity,state,&self.graphics);
+        let mut out = DrawingTrain::new(&train_identity,state,&self.graphics);
         if let Some(stick) = &self.stick {
             out.set_stick(stick);
         }
@@ -72,9 +70,9 @@ pub(crate) struct DrawingTrainSet {
 }
 
 impl DrawingTrainSet {
-    pub(crate) fn new(ping_needed: &Needed, graphics: &Graphics) -> DrawingTrainSet {
+    pub(crate) fn new(graphics: &Graphics) -> DrawingTrainSet {
         DrawingTrainSet {
-            switcher: Switcher::new(DrawingTrainSetActions::new(ping_needed,graphics))
+            switcher: Switcher::new(DrawingTrainSetActions::new(graphics))
         }
     }
 

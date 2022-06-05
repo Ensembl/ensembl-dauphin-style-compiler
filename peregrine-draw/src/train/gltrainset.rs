@@ -111,7 +111,9 @@ impl GlRailwayData {
             Some(carriages) => {
                 let mut hash = DefaultHasher::new();
                 extent.hash(&mut hash);
-                self.get_our_train(&extent,1).set_carriages(carriages)
+                let out = self.get_our_train(&extent,1).set_carriages(carriages);
+                self.redraw_needed.set();
+                out
             },
             None => {
                 Err(Message::CodeInvariantFailed(format!("missing carriages")))

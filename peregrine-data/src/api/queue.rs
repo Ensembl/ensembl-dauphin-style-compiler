@@ -248,4 +248,8 @@ impl PeregrineApiQueue {
     pub(crate) fn load_carriage(&self, builder: &CarriageBuilder) {
         self.push(ApiMessage::LoadCarriage(builder.clone()));
     }
+
+    pub(crate) fn ping(&self) {
+        self.push(ApiMessage::PingTrains);
+    }
 }

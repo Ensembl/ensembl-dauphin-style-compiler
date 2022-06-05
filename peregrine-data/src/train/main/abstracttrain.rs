@@ -16,28 +16,29 @@ const CARRIAGE_FLANK : u64 = FLANK;
 const MILESTONE_CARRIAGE_FLANK : u64 = FLANK;
 
 pub(crate) struct AbstractCarriageFactory {
+    api_queue: PeregrineApiQueue,
     extent: TrainExtent,
     configs: TrainTrackConfigList,
     messages: MessageSender
 }
 
 impl AbstractCarriageFactory {
-    pub(crate) fn new(extent: &TrainExtent, configs: &TrainTrackConfigList, messages: &MessageSender) -> AbstractCarriageFactory {
+    pub(crate) fn new(api_queue: &PeregrineApiQueue, extent: &TrainExtent, configs: &TrainTrackConfigList, messages: &MessageSender) -> AbstractCarriageFactory {
         AbstractCarriageFactory {
+            api_queue: api_queue.clone(),
             extent: extent.clone(),
             configs: configs.clone(),
             messages: messages.clone()
         }
     }
 
-    fn new_unloaded_carriage(&self, index: u64, ping_needed: &Needed) -> CarriageBuilder {
-        CarriageBuilder::new(&CarriageExtent::new(&self.extent,index),Some(ping_needed),&self.configs,Some(&self.messages),false)
+    fn new_unloaded_carriage(&self, index: u64) -> CarriageBuilder {
+        CarriageBuilder::new(&self.api_queue,&CarriageExtent::new(&self.extent,index),&self.configs,Some(&self.messages),false)
     }
 }
 
 pub(crate) struct AbstractTrainActions {
     data_api: PeregrineApiQueue,
-    ping_needed: Needed,
     ready: bool,
     mute: bool,
     active: bool,
@@ -47,12 +48,11 @@ pub(crate) struct AbstractTrainActions {
 }
 
 impl AbstractTrainActions {
-    pub(crate) fn new(data_api: &PeregrineApiQueue, ping_needed: &Needed, carriage_factory: AbstractCarriageFactory, 
+    pub(crate) fn new(data_api: &PeregrineApiQueue, carriage_factory: AbstractCarriageFactory, 
             answer_allocator: &Arc<Mutex<AnswerAllocator>>,
             graphics: &Graphics) -> AbstractTrainActions {
         AbstractTrainActions {
             data_api: data_api.clone(),
-            ping_needed: ping_needed.clone(),
             ready: false,
             mute: false,
             active: false,
@@ -88,7 +88,7 @@ impl AbstractTrainActions {
 
 impl PartyActions<u64,CarriageBuilder,AbstractCarriage> for AbstractTrainActions {
     fn ctor(&mut self, index: &u64) -> CarriageBuilder {
-        let new_carriage = self.carriage_factory.new_unloaded_carriage(*index,&self.ping_needed);
+        let new_carriage = self.carriage_factory.new_unloaded_carriage(*index);
         #[cfg(debug_trains)] log!("CP ctor ({})",new_carriage.extent().compact());
         self.data_api.load_carriage(&new_carriage);
         new_carriage
@@ -98,14 +98,12 @@ impl PartyActions<u64,CarriageBuilder,AbstractCarriage> for AbstractTrainActions
         #[cfg(debug_trains)] log!("CP dtor_pending ({})",_carriage.extent().compact());
         self.train_state_spec.remove(*index);
         self.state_updated();
-        self.ping_needed.set(); /* Need to call ping in case dc are ready */
     }
 
     fn dtor(&mut self, index: &u64, _carriage: AbstractCarriage) {
         #[cfg(debug_trains)] log!("CP dtor ({:?})",_carriage.extent().map(|x| x.compact()));
         self.train_state_spec.remove(*index);
         self.state_updated();
-        self.ping_needed.set(); /* Need to call ping in case dc are ready */
     }
 
     fn init(&mut self, index: &u64, carriage: &mut CarriageBuilder) -> Option<AbstractCarriage> {
@@ -113,7 +111,6 @@ impl PartyActions<u64,CarriageBuilder,AbstractCarriage> for AbstractTrainActions
             #[cfg(debug_trains)] log!("CP init ({:?})",carriage.extent().compact());
             self.train_state_spec.add(*index,&shapes.spec().ok().unwrap()); // XXX errors
             self.state_updated();
-            self.ping_needed.set(); /* Need to call ping in case dc are ready */
             shapes
         })
     }
@@ -130,10 +127,10 @@ pub struct AbstractTrain {
 }
 
 impl AbstractTrain {
-    pub(crate) fn new(data_api: &PeregrineApiQueue, train_extent: &TrainExtent, ping_needed: &Needed, answer_allocator: &Arc<Mutex<AnswerAllocator>>, configs: &TrainTrackConfigList, graphics: &Graphics, messages: &MessageSender) -> AbstractTrain {
+    pub(crate) fn new(data_api: &PeregrineApiQueue, train_extent: &TrainExtent, answer_allocator: &Arc<Mutex<AnswerAllocator>>, configs: &TrainTrackConfigList, graphics: &Graphics, messages: &MessageSender) -> AbstractTrain {
         let is_milestone = train_extent.scale().is_milestone();
-        let carriage_factory = AbstractCarriageFactory::new(train_extent,configs,messages);
-        let carriage_actions = AbstractTrainActions::new(data_api,ping_needed,carriage_factory,answer_allocator,graphics);
+        let carriage_factory = AbstractCarriageFactory::new(data_api,train_extent,configs,messages);
+        let carriage_actions = AbstractTrainActions::new(data_api,carriage_factory,answer_allocator,graphics);
         AbstractTrain {
             party: Party::new(carriage_actions),
             flank: if is_milestone { MILESTONE_CARRIAGE_FLANK } else { CARRIAGE_FLANK },

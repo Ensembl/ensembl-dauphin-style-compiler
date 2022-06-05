@@ -30,7 +30,6 @@ impl Hash for DrawingCarriage {
 #[derive(Clone)]
 pub struct DrawingCarriage {
     id: u64,
-    try_lifecycle: Needed,
     train_identity: TrainIdentity,
     extent: CarriageExtent,
     ready: Arc<Mutex<bool>>,
@@ -41,14 +40,13 @@ pub struct DrawingCarriage {
 }
 
 impl DrawingCarriage {
-    pub(crate) fn new(train_identity: &TrainIdentity, abstract_carriage: &AbstractCarriage, try_lifecycle: &Needed, train_state: &TrainState3) -> Result<DrawingCarriage,DataMessage> {
+    pub(crate) fn new(train_identity: &TrainIdentity, abstract_carriage: &AbstractCarriage, train_state: &TrainState3) -> Result<DrawingCarriage,DataMessage> {
         let extent = abstract_carriage.extent().unwrap();
         let carriage_spec = abstract_carriage.spec().ok().unwrap();
         train_state.add(extent.index(),&carriage_spec);
         let shapes = abstract_carriage.make_drawing_shapes(&mut *lock!(train_state.answer()))?;
         Ok(DrawingCarriage {
             id: IDS.next(),
-            try_lifecycle: try_lifecycle.clone(),
             extent: extent.clone(),
             train_state: train_state.clone(),
             ready: Arc::new(Mutex::new(false)),
@@ -68,7 +66,7 @@ impl DrawingCarriage {
     pub(crate) fn train_identity(&self) -> &TrainIdentity { &self.train_identity }
     
     pub(crate) fn is_ready(&self) -> bool { *lock!(self.ready) }
-    pub(crate) fn set_ready(&self) { *lock!(self.ready) = true; self.try_lifecycle.set(); }
+    pub(crate) fn set_ready(&self) { *lock!(self.ready) = true; }
 
     pub fn shapes(&self) -> &Arc<Vec<DrawingShape>> { &self.shapes }
     pub fn relevancy(&self) -> RetainTest { self.retain.test() }
