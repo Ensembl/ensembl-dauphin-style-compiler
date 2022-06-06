@@ -161,7 +161,6 @@ impl SizeManager {
         if self.state.lock().unwrap().booted() {
             self.activity_monostable.set();
         }
-        log!("resized");
         self.redraw_needed.set();
     }
 

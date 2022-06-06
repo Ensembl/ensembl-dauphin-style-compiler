@@ -2,6 +2,8 @@ import "lib:std"; use "std";
 import "lib:peregrine"; use "peregrine";
 import "file:common8.egs"; use "common8";
 
+halt(only_warm(),[]);
+
 min_max := bp_range();
 min := [min_max][@==0];
 max := [min_max][@==1];

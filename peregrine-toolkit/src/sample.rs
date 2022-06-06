@@ -79,15 +79,22 @@ impl Sampler {
     }
 
     pub fn timer_start(&mut self, name: &str) {
+        self.try_sample();
         let now = now() as u64;
         self.timers.insert(name.to_string(),now);
     }
 
     pub fn timer_end(&mut self, name: &str) {
+        self.try_sample();
         let now = now() as u64;
         if let Some(start) = self.timers.get(name) {
             *self.strings.entry(name.to_string()).or_insert(0) += now - start;
+            if now - start > 10 {
+                #[cfg(debug_timehogs)]
+                log!("time hog: timer {} {}ms",name,now-start);
+            }
         }
+        *self.strings.entry(format!("{}-counter",name)).or_insert(0) += 1;
     }
 }
 

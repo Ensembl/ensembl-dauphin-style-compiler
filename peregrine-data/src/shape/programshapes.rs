@@ -1,13 +1,15 @@
-use std::{collections::HashMap};
+use std::{collections::{HashMap, HashSet}};
+
+use peregrine_toolkit::{timer_start, timer_end, log};
 
 use super::{core::{ Patina, Pen, Plotter }, imageshape::ImageShape, rectangleshape::RectangleShape, textshape::TextShape, wiggleshape::WiggleShape, emptyshape::EmptyShape, shape::UnplacedShape};
-use crate::{Shape, LeafRequest, AbstractShapesContainer, allotment::core::leaflist::LeafList};
+use crate::{LeafRequest, AbstractShapesContainer, allotment::core::leaflist::LeafList};
 use crate::{Assets, DataMessage, SpaceBaseArea, reactive::Observable, SpaceBase, allotment::{stylespec::{stylegroup::AllotmentStyleGroup, styletreebuilder::StyleTreeBuilder, styletree::StyleTree}}, EachOrEvery };
 
 pub struct ProgramShapesBuilder {
     assets: Assets,
     shapes: Vec<UnplacedShape>,
-    leafs: Vec<LeafRequest>,
+    leafs: HashSet<LeafRequest>,
     carriage_universe: LeafList,
     style: StyleTreeBuilder
 }
@@ -16,7 +18,7 @@ impl ProgramShapesBuilder {
     pub fn new(assets: &Assets) -> ProgramShapesBuilder {
         ProgramShapesBuilder {
             shapes: vec![],
-            leafs: vec![],
+            leafs: HashSet::new(),
             carriage_universe: LeafList::new(),
             style: StyleTreeBuilder::new(),
             assets: assets.clone()
@@ -25,7 +27,7 @@ impl ProgramShapesBuilder {
 
     pub fn use_allotment(&mut self, spec: &str) -> &LeafRequest {
         let leaf = self.carriage_universe.pending_leaf(spec);
-        self.leafs.push(leaf.clone());
+        self.leafs.insert(leaf.clone());
         leaf
     }
 
@@ -66,10 +68,20 @@ impl ProgramShapesBuilder {
     }
 
     pub fn to_abstract_shapes_container(self) -> AbstractShapesContainer {
+        timer_start!("to_abstract_shapes_container A");
         let style = AllotmentStyleGroup::new(StyleTree::new(self.style));
+        timer_end!("to_abstract_shapes_container A");
+        timer_start!("to_abstract_shapes_container B");
+        if self.leafs.len() > 1000 {
+            log!("many leafs! {}",self.leafs.len());
+        }
         for leaf in self.leafs {
             leaf.set_style(&style);
         }
-        AbstractShapesContainer::build(self.shapes,self.carriage_universe)
+        timer_end!("to_abstract_shapes_container B");
+        timer_start!("to_abstract_shapes_container C");
+        let out = AbstractShapesContainer::build(self.shapes,self.carriage_universe);
+        timer_end!("to_abstract_shapes_container C");
+        out
     }
 }

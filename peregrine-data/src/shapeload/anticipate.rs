@@ -140,8 +140,7 @@ impl Anticipate {
                 self.build_tasks(extent,8,0,false)?;
                 self.build_tasks(extent,8,2,false)?;
                 self.build_tasks(extent,8,6,false)?;
-                self.build_tasks(extent,30,2,false)?;
-                self.build_tasks(extent,30,6,false)?;
+                self.build_tasks(extent,30,6,true)?;
             }
         }
         *self.extent.lock().unwrap() = Some(extent.clone());
