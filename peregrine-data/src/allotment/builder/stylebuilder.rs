@@ -102,11 +102,11 @@ pub(crate) fn make_transformable(prep: &mut BoxPositionContext, pendings: &mut d
 
 #[cfg(test)]
 mod test {
-    use std::{sync::{Arc}, collections::{HashMap}};
+    use std::{sync::{Arc, Mutex}, collections::{HashMap}};
 
     use peregrine_toolkit::{puzzle::{AnswerAllocator}};
 
-    use crate::{allotment::{core::{allotmentname::AllotmentName, boxpositioncontext::BoxPositionContext}, stylespec::{stylegroup::AllotmentStyleGroup, styletreebuilder::StyleTreeBuilder, styletree::StyleTree}, util::{bppxconverter::BpPxConverter, rangeused::RangeUsed}, globals::allotmentmetadata::{LocalAllotmentMetadata, GlobalAllotmentMetadataBuilder, GlobalAllotmentMetadata}, builder::stylebuilder::make_transformable}, LeafRequest};
+    use crate::{allotment::{core::{allotmentname::AllotmentName, boxpositioncontext::BoxPositionContext, trainstate::CarriageTrainStateSpec}, stylespec::{stylegroup::AllotmentStyleGroup, styletreebuilder::StyleTreeBuilder, styletree::StyleTree}, util::{bppxconverter::BpPxConverter, rangeused::RangeUsed}, globals::{allotmentmetadata::{LocalAllotmentMetadata, GlobalAllotmentMetadataBuilder, GlobalAllotmentMetadata}, bumping::{GlobalBumpBuilder, GlobalBump}, trainpersistent::TrainPersistent}, builder::stylebuilder::make_transformable}, LeafRequest};
 
     fn make_pendings(names: &[&str], heights: &[f64], pixel_range: &[RangeUsed<f64>], style: &AllotmentStyleGroup) -> Vec<LeafRequest> {
         let heights = if heights.len() > 0 {
@@ -208,14 +208,14 @@ mod test {
     fn allotment_bumper() {
         let ranges = [
             RangeUsed::Part(0.,3.),
-            RangeUsed::Part(2.,5.),
-            RangeUsed::Part(4.,7.),
+            RangeUsed::Part(2.,6.),
+            RangeUsed::Part(4.,10.),
             RangeUsed::Part(0.,2.),
             RangeUsed::Part(2.,4.),
             RangeUsed::Part(4.,6.)
         ];
         let mut tree = StyleTreeBuilder::new();
-        add_style(&mut tree, "z/a/", &[("padding-top","10"),("padding-bottom","5"),("type","bumper"),("report","track")]);        
+        add_style(&mut tree, "z/a/", &[("padding-top","10"),("padding-bottom","5"),("type","bumper"),("report","track")]);
         add_style(&mut tree, "z/b/", &[("type","bumper"),("report","track")]);
         add_style(&mut tree, "z/a/1", &[("depth","10"),("system","tracking")]);
         add_style(&mut tree, "**", &[("system","tracking")]);
@@ -227,6 +227,11 @@ mod test {
         let metadata = prep.state_request.metadata();
         let mut aia = AnswerAllocator::new();
         let mut answer_index = aia.get();
+        let ctss = CarriageTrainStateSpec::new(&prep.state_request);
+        let tp = Arc::new(Mutex::new(TrainPersistent::new()));
+        let mut builder = GlobalBumpBuilder::new();
+        ctss.bump().add(&mut builder);
+        GlobalBump::new(builder,&mut answer_index,&tp);
         let transformers = pending.iter().map(|x| prep.plm.transformable(x.name()).make(&answer_index)).collect::<Vec<_>>();
         let descs = transformers.iter().map(|x| x.describe()).collect::<Vec<_>>();
         assert_eq!(6,descs.len());

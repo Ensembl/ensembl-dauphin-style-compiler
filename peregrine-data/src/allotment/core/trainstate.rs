@@ -77,6 +77,9 @@ impl CarriageTrainStateSpec {
     }
 
     pub fn serial(&self) -> u64 { self.serial }
+
+    #[cfg(test)]
+    pub fn bump(&self) -> &LocalBump { &self.bump }
 }
 
 identitynumber!(IDS);
