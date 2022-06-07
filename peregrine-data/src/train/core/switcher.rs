@@ -173,7 +173,7 @@ impl<M:SwitcherManager<Extent=X,Type=T,Error=E>,
         /* Exit if we are happy with the way things are */
         if self.target_matches_wanted() { return Ok(()); }
         let target = self.target.as_ref().unwrap();
-        /* Where do we ain: direct, or to milestone? We aim for milestones if
+        /* Where do we aim: direct, or to milestone? We aim for milestones if
          * there is already something in wanted which we are evicting (thrashing) or if
          * the user has set "sketchy" to indicate there is a great deal of interaction
          * going on.
