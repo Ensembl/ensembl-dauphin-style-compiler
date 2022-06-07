@@ -1,6 +1,6 @@
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::rc::Rc;
-use crate::util::enummap::{Enumerable, EnumerableKey, EnumerableMap, enumerable_compose };
 use crate::webgl::{ProcessBuilder, ProgramBuilder, SourceInstrs};
 use super::geometry::{GeometryProcessName, GeometryAdder, GeometryProgramName};
 use super::patina::{PatinaProcessName, PatinaAdder, PatinaProgramName};
@@ -9,12 +9,8 @@ use crate::stage::stage::get_stage_source;
 use crate::util::message::Message;
 
 
-#[derive(Clone)]
+#[derive(Clone,PartialEq,Eq,Hash)]
 struct ProgramIndex(GeometryProgramName,PatinaProgramName);
-
-impl EnumerableKey for ProgramIndex {
-    fn enumerable(&self) -> Enumerable { enumerable_compose(&self.0,&self.1) }
-}
 
 pub(crate) struct ProgramStoreEntry {
     builder: Rc<ProgramBuilder>,
@@ -42,13 +38,13 @@ impl ProgramStoreEntry {
 }
 
 struct ProgramStoreData {
-    programs: EnumerableMap<ProgramIndex,ProgramStoreEntry>
+    programs: HashMap<ProgramIndex,ProgramStoreEntry>
 }
 
 impl ProgramStoreData {
     fn new() -> Result<ProgramStoreData,Message> {
         Ok(ProgramStoreData {
-            programs: EnumerableMap::new()
+            programs: HashMap::new()
         })
     }
 

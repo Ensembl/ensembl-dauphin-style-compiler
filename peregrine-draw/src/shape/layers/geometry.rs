@@ -3,7 +3,6 @@ use std::any::Any;
 use super::super::core::wigglegeometry::WiggleAdder;
 use crate::shape::layers::consts::{ PR_DEF, PR_LOW };
 use crate::shape::triangles::triangleadder::TriangleAdder;
-use crate::util::enummap::{Enumerable, EnumerableKey};
 use crate::webgl::{AttributeProto, Conditional, Declaration, GLArity, Header, ProgramBuilder, SourceInstrs, Statement, Varying};
 use web_sys::{ WebGlRenderingContext };
 use crate::util::message::Message;
@@ -57,17 +56,6 @@ impl TrianglesGeometry {
 pub(crate) enum GeometryProgramName {
     Wiggle,
     Triangles(TrianglesGeometry)
-}
-
-impl EnumerableKey for GeometryProgramName {
-    fn enumerable(&self) -> Enumerable {
-        Enumerable(match self {
-            GeometryProgramName::Wiggle => 0,
-            GeometryProgramName::Triangles(TrianglesGeometry::Tracking) => 1,
-            GeometryProgramName::Triangles(TrianglesGeometry::TrackingWindow) => 2,
-            GeometryProgramName::Triangles(TrianglesGeometry::Window) => 3,
-        },4)
-    }
 }
 
 impl GeometryProgramName {
@@ -198,17 +186,5 @@ impl GeometryProcessName {
             GeometryProcessName::Triangles(g) => GeometryProgramName::Triangles(g.clone()),
             GeometryProcessName::Wiggle => GeometryProgramName::Wiggle
         }
-    }
-}
-
-impl PartialOrd for GeometryProcessName {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.get_program_name().enumerable().partial_cmp(&other.get_program_name().enumerable())
-    }
-}
-
-impl Ord for GeometryProcessName  {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.partial_cmp(other).unwrap()
     }
 }
