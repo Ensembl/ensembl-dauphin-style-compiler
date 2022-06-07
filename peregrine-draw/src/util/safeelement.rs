@@ -4,11 +4,12 @@ use js_sys::Math::random;
 use wasm_bindgen::JsCast;
 use crate::util::message::Message;
 
-#[derive(Clone)]
-pub struct SafeElement(String);
+//#[derive(Clone)]
+//pub struct SafeElement(String);
 
 // TODO check FlatSotre discard
 
+/*
 impl SafeElement {
     pub fn new(el: &HtmlElement) -> SafeElement {
         let mut id = el.id();
@@ -27,3 +28,4 @@ impl SafeElement {
         Ok(html_el)
     }
 }
+*/

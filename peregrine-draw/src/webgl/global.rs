@@ -1,4 +1,4 @@
-use crate::{run::{ PgPeregrineConfig, PgConfigKey }, shape::layers::programstore::ProgramStore, util::fonts::Fonts};
+use crate::{run::{ PgPeregrineConfig, PgConfigKey }, shape::layers::programstore::ProgramStore, util::fonts::Fonts, PgCommanderWeb};
 use crate::webgl::{ FlatStore, TextureBindery };
 use js_sys::Float32Array;
 use web_sys::Document;
@@ -34,13 +34,13 @@ pub(crate) struct WebGlGlobalRefs<'a> {
 }
 
 impl WebGlGlobal {
-    pub(crate) fn new(dom: &PeregrineDom, config: &PgPeregrineConfig) -> Result<WebGlGlobal,Message> {
+    pub(crate) fn new(commander: &PgCommanderWeb, dom: &PeregrineDom, config: &PgPeregrineConfig) -> Result<WebGlGlobal,Message> {
         let context = dom.canvas()
             .get_context("webgl").map_err(|_| Message::WebGLFailure(format!("cannot get webgl context")))?
             .unwrap()
             .dyn_into::<WebGlRenderingContext>().map_err(|_| Message::WebGLFailure(format!("cannot get webgl context")))?;
         let gpuspec = GPUSpec::new(&context)?;
-        let program_store = ProgramStore::new()?;
+        let program_store = ProgramStore::new(commander)?;
         let fonts = Fonts::new()?;
         let canvas_store = FlatStore::new(dom.device_pixel_ratio());
         let bindery = TextureBindery::new(&gpuspec);

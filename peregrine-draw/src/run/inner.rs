@@ -132,7 +132,7 @@ impl PeregrineInnerAPI {
         message_register_callback(Some(commander_id),move |message| {
             message_sender2.add(message);
         });
-        let webgl = Arc::new(Mutex::new(WebGlGlobal::new(&dom,&config.draw)?));
+        let webgl = Arc::new(Mutex::new(WebGlGlobal::new(&commander,&dom,&config.draw)?));
         let redraw_needed = Needed::new();
         let stage = Arc::new(Mutex::new(Stage::new(&redraw_needed)));
         let report = Report::new(&config.draw,&message_sender)?;

@@ -22,6 +22,7 @@ async-trait="*"
 url="*"
 console_error_panic_hook="*"
 css-color-parser="*"
+enum-iterator="*"
 
 [dependencies.wasm-bindgen]
 version="*"

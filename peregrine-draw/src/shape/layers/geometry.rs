@@ -6,6 +6,7 @@ use crate::shape::triangles::triangleadder::TriangleAdder;
 use crate::webgl::{AttributeProto, Conditional, Declaration, GLArity, Header, ProgramBuilder, SourceInstrs, Statement, Varying};
 use web_sys::{ WebGlRenderingContext };
 use crate::util::message::Message;
+use enum_iterator::Sequence;
 
 #[derive(Clone)]
 pub(crate) enum GeometryAdder {
@@ -42,17 +43,14 @@ impl GeometryYielder {
     }
 }
 
-#[derive(Clone,Hash,PartialEq,Eq,Debug)]
+#[derive(Clone,Hash,PartialEq,Eq,Debug,Sequence)]
 pub enum TrianglesGeometry {
     Tracking,
     TrackingWindow,
     Window
 }
 
-impl TrianglesGeometry {
-}
-
-#[derive(Clone,Hash,PartialEq,Eq,Debug)]
+#[derive(Clone,Hash,PartialEq,Eq,Debug,Sequence)]
 pub(crate) enum GeometryProgramName {
     Wiggle,
     Triangles(TrianglesGeometry)

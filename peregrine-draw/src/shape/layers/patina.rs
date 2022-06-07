@@ -1,3 +1,4 @@
+use enum_iterator::Sequence;
 use peregrine_data::DirectColour;
 
 use super::super::core::directcolourdraw::{ DirectColourDraw, DirectProgram };
@@ -26,7 +27,7 @@ impl PatinaAdder {
     }
 }
 
-#[derive(Clone,Debug,Hash,PartialEq,Eq)]
+#[derive(Clone,Debug,Hash,PartialEq,Eq,Sequence)]
 pub(crate) enum PatinaProgramName { Direct, Spot, Texture, FreeTexture }
 
 impl PatinaProgramName {
