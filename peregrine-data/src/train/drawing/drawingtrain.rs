@@ -74,8 +74,9 @@ impl DrawingTrainState {
 
 impl PartyActions<AbstractCarriage,DrawingCarriage,DrawingCarriage> for DrawingTrainState {
     fn ctor(&mut self, creator: &AbstractCarriage) -> DrawingCarriage {
+        #[cfg(debug_trains)] log!("DC({:x}) ctor/1 {:?}",self.index,creator.extent().map(|x| x.compact()));
         let carriage = DrawingCarriage::new(&self.train_identity,creator,&self.state).ok().unwrap(); // XXX
-        #[cfg(debug_trains)] log!("DC({:x}) ctor {:?}",self.index,creator.extent().map(|x| x.compact()));
+        #[cfg(debug_trains)] log!("DC({:x}) ctor/2 {:?}",self.index,creator.extent().map(|x| x.compact()));
         if !self.mute {
             self.graphics.create_carriage(&carriage);
         }
@@ -88,7 +89,7 @@ impl PartyActions<AbstractCarriage,DrawingCarriage,DrawingCarriage> for DrawingT
 
     fn dtor(&mut self, _index: &AbstractCarriage, mut dc: DrawingCarriage) {
         dc.destroy();
-        #[cfg(debug_trains)] log!("DC({}) dtor {}",self.index,dc.extent().compact());
+        #[cfg(debug_trains)] log!("DC({:x}) dtor {}",self.index,dc.extent().compact());
         self.graphics.drop_carriage(&dc);
     }
 
@@ -153,7 +154,7 @@ impl DrawingTrain {
 
     pub(crate) fn set_mute(&mut self) {
         self.slider.inner_mut().mute = true;
-        #[cfg(debug_trains)] log!("DC({}) mute",self.slider.inner().index);
+        #[cfg(debug_trains)] log!("DC({:x}) mute",self.slider.inner().index);
         self.slider.inner_mut().current = vec![];
     }
 

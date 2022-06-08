@@ -56,7 +56,7 @@ impl DrawingCarriage {
         })
     }
 
-    #[cfg(debug_assertions)]
+    #[cfg(any(debug_assertions,debug_trains))]
     pub fn compact(&self) -> String { 
         let index = lock!(self.train_state.answer()).serial();
         format!("({},{},{})",self.extent().train().scale().get_index(),self.extent().index(),index)

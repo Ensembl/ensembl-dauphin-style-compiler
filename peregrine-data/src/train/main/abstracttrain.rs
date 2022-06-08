@@ -1,6 +1,5 @@
 use std::{sync::{Arc, Mutex}, cmp::max};
-use peregrine_toolkit::{puzzle::AnswerAllocator};
-use peregrine_toolkit_async::sync::needed::Needed;
+use peregrine_toolkit::{puzzle::AnswerAllocator };
 use crate::{shapeload::carriagebuilder::CarriageBuilder, allotment::core::{trainstate::{TrainStateSpec, TrainState3}, abstractcarriage::AbstractCarriage}, switch::trackconfiglist::TrainTrackConfigList, api::MessageSender, CarriageExtent, train::{model::trainextent::TrainExtent, graphics::Graphics, core::party::{PartyActions, Party, PartyState}}, PeregrineApiQueue};
 
 #[cfg(debug_trains)]
@@ -146,8 +145,8 @@ impl AbstractTrain {
             let wanted = self.party.iter().map(|(_,x)| 
                 x.clone()
             ).collect::<Vec<_>>();
-            #[cfg(debug_trains)] debug_log!("CP->DP {}",wanted.iter().map(|x| x.extent().compact()).collect::<Vec<_>>().join(", "));
-            self.seen = self.party.state(); 
+            #[cfg(debug_trains)] log!("CP->DP {}",wanted.iter().map(|x| x.extent().map(|z| z.compact()).unwrap_or("None".to_string())).collect::<Vec<_>>().join(", "));
+            self.seen = self.party.state();
             Some((state,wanted))
         } else {
             None
