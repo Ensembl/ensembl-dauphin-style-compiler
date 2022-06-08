@@ -68,20 +68,13 @@ impl ProgramShapesBuilder {
     }
 
     pub fn to_abstract_shapes_container(self) -> AbstractShapesContainer {
-        timer_start!("to_abstract_shapes_container A");
         let style = AllotmentStyleGroup::new(StyleTree::new(self.style));
-        timer_end!("to_abstract_shapes_container A");
-        timer_start!("to_abstract_shapes_container B");
         if self.leafs.len() > 1000 {
             log!("many leafs! {}",self.leafs.len());
         }
         for leaf in self.leafs {
             leaf.set_style(&style);
         }
-        timer_end!("to_abstract_shapes_container B");
-        timer_start!("to_abstract_shapes_container C");
-        let out = AbstractShapesContainer::build(self.shapes,self.carriage_universe);
-        timer_end!("to_abstract_shapes_container C");
-        out
+        AbstractShapesContainer::build(self.shapes,self.carriage_universe)
     }
 }

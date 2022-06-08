@@ -136,9 +136,9 @@ focus_allotment := use_allotment(index(focus_allotment_idx,allotment_names));
  * (driven by allotment for gene)
  */
 
-non_pc_colour := spot_colour(direct_colour(200,200,200,255));
-pc_colour := spot_colour(direct_colour(128,128,128,255));
-focus_colour := spot_colour(direct_colour(39,154,252,255));
+non_pc_colour := simple_colour(direct_colour(200,200,200,255));
+pc_colour := simple_colour(direct_colour(128,128,128,255));
+focus_colour := simple_colour(direct_colour(39,154,252,255));
 patina := index(allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour,focus_colour]);
 focus_patina := patina_filled(index(focus_allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour,focus_colour]));
 

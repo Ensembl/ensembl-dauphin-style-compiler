@@ -324,11 +324,11 @@ base_focus_colour := direct_colour(39,154,252,255);
 dotted_non_pc_colour := barred(direct_colour(255,255,255,255),base_non_pc_colour,4,1,0.25);
 dotted_pc_colour := barred(direct_colour(255,255,255,255),base_pc_colour,4,1,0.25);
 dotted_focus_colour := barred(direct_colour(255,255,255,255),base_focus_colour,4,1,0.25);
-non_pc_colour := spot_colour(base_non_pc_colour);
-pc_colour := spot_colour(base_pc_colour);
-focus_colour := spot_colour(base_focus_colour);
+non_pc_colour := simple_colour(base_non_pc_colour);
+pc_colour := simple_colour(base_pc_colour);
+focus_colour := simple_colour(base_focus_colour);
 
-special_colour := spot_colour(direct_colour(255,200,0,255));
+special_colour := simple_colour(direct_colour(255,200,0,255));
 dotted_special_colour := barred(direct_colour(255,255,255,255),direct_colour(255,200,0,255),4,1,0.25);
 
 pt_under_by_tr := patina_filled(index(transcript_allotment_colour_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour,focus_colour,special_colour]));
@@ -336,7 +336,7 @@ pt_under_by_tr := patina_filled(index(transcript_allotment_colour_idx,[non_pc_co
 pt_under_dotted_by_tr := patina_hollow(index(transcript_allotment_colour_idx,[dotted_non_pc_colour,dotted_pc_colour,dotted_non_pc_colour,dotted_pc_colour,dotted_focus_colour,dotted_special_colour]),1);
 pt_hollow_by_tr := patina_hollow(index(transcript_allotment_colour_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour,focus_colour,special_colour]),1);
 pt_hollow_by_ex := patina_hollow(index(exon_allotment_colour_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour,focus_colour,special_colour]),1);
-pt_white := patina_filled(spot_colour(direct_colour(255,255,255,255)));
+pt_white := patina_filled(simple_colour(direct_colour(255,255,255,255)));
 pt_thick_by_thex := patina_filled(index(exon_allotment_colour_idx#[thick_exons],[non_pc_colour,pc_colour,non_pc_colour,pc_colour,focus_colour,special_colour]));
 text_colour := direct_colour(111,129,144,255);
 text_size := 10;
@@ -441,8 +441,8 @@ red_dotted(start_focus,end_focus,al_dots);
 /* blue button */
 blue_top_left := spacebase(start_gn,drawn_tr_by_gn*20+6,0);
 blue_bottom_right := spacebase(start_gn,drawn_tr_by_gn*20+14,12);
-blue_colour := spot_colour(direct_colour(239,154,52,255));
-green_colour := spot_colour(direct_colour(154,239,52,255));
+blue_colour := simple_colour(direct_colour(239,154,52,255));
+green_colour := simple_colour(direct_colour(154,239,52,255));
 
 button_colour := len([start_gn]) (*) blue_colour;
 button_colour#[in(gene_id,[expanded_genes])] := green_colour;
