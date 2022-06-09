@@ -1,6 +1,6 @@
 use std::sync::{Arc};
 
-use peregrine_toolkit::{puzzle::{derived, DelayedSetter, compose, StaticValue, compose_slice, promise_delayed, cache_constant_arc, short_memoized_arc }};
+use peregrine_toolkit::{puzzle::{derived, DelayedSetter, compose, StaticValue, compose_slice, promise_delayed, cache_constant_arc, short_memoized_arc, compose_slice_vec }};
 
 use crate::{allotment::{core::{allotmentname::{AllotmentNamePart, AllotmentName}, boxtraits::{Stackable, BuildSize, ContainerSpecifics, Coordinated}, boxpositioncontext::BoxPositionContext}, style::{style::{ContainerAllotmentStyle}}, collision::{collisionalgorithm::{BumpRequestSet, BumpRequest, BumpResponses}}}, CoordinateSystem};
 
@@ -57,7 +57,7 @@ impl ContainerSpecifics for UnpaddedBumper {
         for (_,size) in children {
             items.push(size.to_value());
         }
-        let items = compose_slice(&items,|x| x.to_vec());
+        let items = compose_slice_vec(&items);
         /* build the ConcreteRequests for this container */
         let factory = prep.bumper_factory.clone();
         let concrete_req = derived(items,move |items| {

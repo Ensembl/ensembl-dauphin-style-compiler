@@ -86,6 +86,22 @@ pub fn compose_slice<'a:'b, 'b, 'f:'a, 'g:'f, 'h:'f, T, U, F:'f>(inputs: &[Value
     })
 }
 
+/* lifetime agrument same as derived */
+pub fn compose_slice_vec<'a:'b, 'b, 'f:'a, 'g:'f, 'h:'f, T>(inputs: &[Value<'g,'a,T>]) -> Value<'h,'b,Vec<T>> {
+    let inputs = Arc::new(inputs.iter().cloned().collect::<Vec<_>>());
+    Value::new(move |answer_index| {
+        let mut values = vec![];
+        for input in &*inputs {
+            if let Some(value) = input.inner(answer_index) {
+                values.push(value)
+            } else {
+                return None;
+            }
+        }
+        Some(values)
+    })
+}
+
 #[cfg(test)]
 mod test {
     use compose::compose_slice;

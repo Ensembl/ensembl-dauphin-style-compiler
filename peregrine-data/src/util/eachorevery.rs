@@ -1,5 +1,5 @@
 use core::panic;
-use std::collections::HashMap;
+use hashbrown::HashMap;
 use std::hash::Hash;
 use std::sync::Arc;
 
@@ -66,22 +66,41 @@ impl<X> EachOrEvery<X> {
         }
     }
 
+    fn unsquash<F,K: Clone+Hash+Eq>(&self, cb: F) -> (Vec<(K,EachOrEveryFilterBuilder)>,Vec<usize>) where F: Fn(&X) -> K {
+        /* Optimised hot-path: main objsective is to minimise operations done per index,
+         * iterating as much as we can only over data instead. This will be much smaller
+         * for indexed values.
+         */
+        let mut builders = vec![];
+        let mut key_to_builder = HashMap::new();
+        let mut builder_choices = vec![];
+        for key in self.data.iter().map(cb) {
+            if let Some(choice) = key_to_builder.get(&key) {
+                builder_choices.push(*choice);
+            } else {
+                builder_choices.push(builders.len());
+                key_to_builder.insert(key.clone(),builders.len());
+                builders.push((key.clone(),EachOrEveryFilterBuilder::new()));
+            }
+        }
+        (builders,builder_choices)
+    }
+
     pub fn demerge<F,K: Clone+Hash+Eq>(&self, len: usize, cb: F) -> Vec<(K,EachOrEveryFilter)> where F: Fn(&X) -> K {
         match &self.index {
             EachOrEveryIndex::Unindexed => {
-                let mut out = HashMap::new();
-                for (i,value) in self.data.iter().enumerate() {
-                    out.entry(cb(value)).or_insert_with(|| EachOrEveryFilterBuilder::new()).set(i);
+                let (mut out,mapped_dest) = self.unsquash(cb);
+                for (i,value) in mapped_dest.iter().enumerate() {
+                    out[mapped_dest[*value]].1.set(i);
                 }
-                out.drain().map(|(key,filter)| (key,filter.make(len))).collect::<Vec<_>>()
+                out.drain(..).map(|(key,filter)| (key,filter.make(len))).collect::<Vec<_>>()
             },
             EachOrEveryIndex::Indexed(index) => {
-                let mut out = HashMap::new();
-                let dest = self.data.iter().map(cb).collect::<Vec<_>>();
+                let (mut out,mapped_dest) = self.unsquash(cb);
                 for (i,value) in index.iter().enumerate() {
-                    out.entry(dest[*value].clone()).or_insert_with(|| EachOrEveryFilterBuilder::new()).set(i);
+                    out[mapped_dest[*value]].1.set(i);
                 }
-                out.drain().map(|(key,filter)| (key,filter.make(len))).collect::<Vec<_>>()
+                out.drain(..).map(|(key,filter)| (key,filter.make(len))).collect::<Vec<_>>()
             },
             EachOrEveryIndex::Every => vec![(cb(&self.data[0]),EachOrEveryFilter::all(len))]
         }

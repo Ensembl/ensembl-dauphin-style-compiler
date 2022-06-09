@@ -17,6 +17,7 @@ serde_json="*"
 futures="*"
 lazy_static="*"
 lru="*"
+hashbrown="*"
 
 [dependencies.keyed]
 version="*"

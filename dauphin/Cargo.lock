@@ -739,6 +739,7 @@ dependencies = [
  "commander",
  "dauphin_interp",
  "futures",
+ "hashbrown 0.9.1",
  "identitynumber",
  "js-sys",
  "keyed",
