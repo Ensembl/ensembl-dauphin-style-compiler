@@ -48,6 +48,12 @@ impl ImageShape<LeafRequest> {
         let details = ImageShape::new_details(position,names.clone())?;
         Ok(Shape::Image(details))
     }
+
+    pub fn base_filter(&self, min: f64, max: f64) -> ImageShape<LeafRequest> {
+        let non_tracking = self.position.allotments().make_filter(self.position.len(),|a| !a.leaf_style().coord_system.is_tracking());
+        let filter = self.position.make_base_filter(min,max);
+        self.filter(&filter.or(&non_tracking))
+    }
 }
 
 impl<A: Clone> ImageShape<A> {
@@ -68,14 +74,6 @@ impl ImageShape<Arc<dyn Transformer>> {
             out.push((variety,self.filter(&filter)));
         }
         out
-    }
-}
-
-impl ImageShape<LeafRequest> {
-    pub fn base_filter(&self, min: f64, max: f64) -> ImageShape<LeafRequest> {
-        let non_tracking = self.position.allotments().make_filter(self.position.len(),|a| !a.leaf_style().coord_system.is_tracking());
-        let filter = self.position.make_base_filter(min,max);
-        self.filter(&filter.or(&non_tracking))
     }
 }
 

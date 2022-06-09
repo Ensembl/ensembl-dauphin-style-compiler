@@ -42,7 +42,7 @@ impl SoundState {
         Ok(Some(audio_buffer))
     }
 
-    async fn get_source(&mut self, name: &str, asset: &Asset) -> Result<Option<&AudioBuffer>,JsValue> {
+    async fn get_source<'a>(&'a mut self, name: &'a str, asset: &Asset) -> Result<Option<&AudioBuffer>,JsValue> {
         if !self.samples.contains_key(name) {
             let source = self.make_source(asset).await?;
             self.samples.insert(name.to_string(),source);

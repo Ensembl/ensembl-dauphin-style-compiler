@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
 use keyed::{KeyedData, KeyedHandle};
-use peregrine_toolkit::{timer_start, timer_end};
 use crate::webgl::canvas::flatplotallocator::FlatPositionManager;
 use crate::webgl::{ FlatId, FlatStore, Flat, FlatPositionCampaignHandle };
 use crate::webgl::global::WebGlGlobal;

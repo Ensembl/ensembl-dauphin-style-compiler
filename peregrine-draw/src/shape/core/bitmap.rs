@@ -51,9 +51,14 @@ impl Bitmap {
     }
 }
 
+fn dpr_round(size: u32, dpr: f32, scale: u32) -> u32 {
+    ( ((size*100/scale) as f32) * dpr ).ceil() as u32
+}
+
 impl FlatDrawingItem for Bitmap {
-    fn calc_size(&mut self, _gl: &mut WebGlGlobal) -> Result<(u32,u32),Message> {
-        Ok((self.width*self.scale/100,self.height*self.scale/100))
+    fn calc_size(&mut self, gl: &mut WebGlGlobal) -> Result<(u32,u32),Message> {
+        let dpr = gl.device_pixel_ratio();
+        Ok((dpr_round(self.width,dpr,self.scale),dpr_round(self.height,dpr,self.scale)))
     }
 
     fn padding(&mut self, _: &mut WebGlGlobal) -> Result<(u32,u32),Message> { Ok((PAD,PAD)) }

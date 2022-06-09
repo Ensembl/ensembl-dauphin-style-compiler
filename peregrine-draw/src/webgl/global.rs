@@ -18,7 +18,8 @@ pub struct WebGlGlobal {
     canvas_size: Option<(u32,u32)>,
     gpuspec: GPUSpec,
     aux_array: Float32Array,
-    fonts: Fonts
+    fonts: Fonts,
+    dpr: f32
 }
 
 pub(crate) struct WebGlGlobalRefs<'a> {
@@ -53,9 +54,12 @@ impl WebGlGlobal {
             canvas_size: None,
             gpuspec,
             fonts,
-            aux_array: Float32Array::new_with_length(config.get_size(&PgConfigKey::AuxBufferSize)? as u32)
+            aux_array: Float32Array::new_with_length(config.get_size(&PgConfigKey::AuxBufferSize)? as u32),
+            dpr: dom.device_pixel_ratio()
         })
     }
+
+    pub fn device_pixel_ratio(&self) -> f32 { self.dpr }
 
     pub(crate) fn refs<'a>(&'a mut self) -> WebGlGlobalRefs<'a> {
         WebGlGlobalRefs {
