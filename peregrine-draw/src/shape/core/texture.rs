@@ -4,49 +4,30 @@ use crate::webgl::{ FlatId };
 use crate::util::message::Message;
 use crate::webgl::canvas::flatstore::FlatStore;
 
-fn scale(pair: (u32,u32), factor: f64) -> (u32,u32) {
-    (
-        (pair.0 as f64 * factor) as u32,
-        (pair.1 as f64 * factor) as u32
-    )
-}
-
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub struct CanvasTextureArea {
     texture_origin: (u32,u32),
-    mask_origin: (u32,u32),
     size: (u32,u32)
 }
 
 impl CanvasTextureArea {
-    pub(crate) fn new(texture_origin: (u32,u32), mask_origin: (u32,u32), size: (u32,u32)) -> CanvasTextureArea {
-        CanvasTextureArea { texture_origin, mask_origin, size }
-    }
-
-    pub(crate) fn scale(&self, factor: f64) -> CanvasTextureArea {
-        CanvasTextureArea {
-            texture_origin: scale(self.texture_origin,factor),
-            mask_origin: scale(self.mask_origin,factor),
-            size: scale(self.size,factor)
-        }
+    pub(crate) fn new(texture_origin: (u32,u32), size: (u32,u32)) -> CanvasTextureArea {
+        CanvasTextureArea { texture_origin, size }
     }
 
     pub(crate) fn texture_origin(&self) -> (u32,u32) { self.texture_origin }
-    pub(crate) fn mask_origin(&self) -> (u32,u32) { self.mask_origin }
     pub(crate) fn size(&self) -> (u32,u32) { self.size }
 }
 
 #[derive(Clone)]
 pub struct TextureProgram {
-    texture: AttribHandle,
-    mask: AttribHandle
+    texture: AttribHandle
 }
 
 impl TextureProgram {
     pub(crate) fn new(builder: &ProgramBuilder) -> Result<TextureProgram,Message> {
         Ok(TextureProgram {
-            texture: builder.get_attrib_handle("aTextureCoord")?,
-            mask: builder.get_attrib_handle("aMaskCoord")?,
+            texture: builder.get_attrib_handle("aTextureCoord")?
         })
     }
 }
@@ -84,10 +65,7 @@ impl TextureDraw {
         let size = flat_store.get(canvas)?.size();
         let mut texture_data = dims.iter()
             .map(|x| (x.texture_origin(),x.size()));
-        let mut mask_data = dims.iter()
-            .map(|x| (x.mask_origin(),x.size()));
         self.add_rectangle_one(addable,&self.0.texture,&mut texture_data,size)?;
-        self.add_rectangle_one(addable,&self.0.mask,&mut mask_data,size)?;
         Ok(())
     }
 }

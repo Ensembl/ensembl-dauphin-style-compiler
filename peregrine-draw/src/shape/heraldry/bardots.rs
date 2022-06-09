@@ -96,30 +96,14 @@ impl HeraldryBarDots {
         out
     }
 
-    fn draw_one(&self, canvas: &Flat, text_origin: (u32,u32), mask_origin: (u32,u32), x: u32, y: u32) -> Result<(),Message> {
+    fn draw_one(&self, canvas: &Flat, text_origin: (u32,u32), x: u32, y: u32) -> Result<(),Message> {
         let bitmap_multiplier = canvas.bitmap_multiplier();
         let unit = self.unit_size(bitmap_multiplier);
         let t = (text_origin.0+x*unit.0,text_origin.1+y*unit.1);
-        let m = (mask_origin.0+x*unit.0,mask_origin.1+y*unit.1);
         let extent= if self.dir { (100,self.prop) } else { (self.prop,100) };
         let offset= if self.dir { (0,50-self.prop/2) } else { (50-self.prop/2,0) };
         let extent = ((extent.0*unit.0) / 100,(extent.1*unit.1) / 100);
         let offset = ((offset.0*unit.0) / 100,(offset.1*unit.1) / 100);
-        match self.variety {
-            Variety::Bar => {
-                canvas.rectangle(m,unit,&DirectColour(0,0,0,255),true)?;
-            },
-            Variety::Dots => {
-                canvas.rectangle(m,unit,&DirectColour(255,255,255,255),true)?;
-                canvas.path((m.0+offset.0,m.1+offset.1),&[
-                    (0,       0),
-                    (extent.0,0),
-                    (extent.0,extent.1),
-                    (0,       extent.1)
-                ],&DirectColour(0,0,0,255))?;
-            },
-            _ => {}
-        }
         canvas.rectangle(t,unit,&self.col_a,true)?;
         canvas.path((t.0+offset.0,t.1+offset.1),&[
             (0,       0),
@@ -130,13 +114,13 @@ impl HeraldryBarDots {
         Ok(())
     }
     
-    pub(super) fn draw(&self, canvas: &mut Flat, text_origin: (u32,u32), mask_origin: (u32,u32), size: (u32,u32)) -> Result<(),Message> {
+    pub(super) fn draw(&self, canvas: &mut Flat, text_origin: (u32,u32), size: (u32,u32)) -> Result<(),Message> {
         let bitmap_multiplier = canvas.bitmap_multiplier();
         let unit = self.unit_size(bitmap_multiplier);
         let count = (size.0/unit.0,size.1/unit.1);
         for y in 0..count.1 {
             for x in 0..count.0 {
-                self.draw_one(canvas,text_origin,mask_origin,x,y)?;
+                self.draw_one(canvas,text_origin,x,y)?;
             }
         }
         Ok(())

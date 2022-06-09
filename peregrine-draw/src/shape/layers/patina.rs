@@ -70,23 +70,17 @@ impl PatinaProgramName {
                 PatinaProgramName::Texture => vec![
                     TextureProto::new("uSampler","uSamplerSize","uSamplerScale"),
                     AttributeProto::new(PR_DEF,GLArity::Vec2,"aTextureCoord"),
-                    AttributeProto::new(PR_DEF,GLArity::Vec2,"aMaskCoord"),
                     Varying::new(PR_DEF,GLArity::Vec2,"vTextureCoord"),
-                    Varying::new(PR_DEF,GLArity::Vec2,"vMaskCoord"),
                     Statement::new_vertex("vTextureCoord = aTextureCoord"),
-                    Statement::new_vertex("vMaskCoord = aMaskCoord"),
                     Statement::new_fragment("gl_FragColor = texture2D(uSampler,vTextureCoord)"),
                     Statement::new_fragment("gl_FragColor.a = gl_FragColor.a * uOpacity"),
-                    Statement::new_fragment("if(texture2D(uSampler,vMaskCoord).r > 0.995) discard")
                 ],
                 PatinaProgramName::FreeTexture => vec![
                     TextureProto::new("uSampler","uSamplerSize","uSamplerScale"),
                     AttributeProto::new(PR_DEF,GLArity::Vec2,"aTextureCoord"),
-                    AttributeProto::new(PR_DEF,GLArity::Vec2,"aMaskCoord"),
                     Varying::new(PR_DEF,GLArity::Vec2,"vTextureCoord"),
                     Varying::new(PR_DEF,GLArity::Vec2,"vMaskCoord"),
                     Statement::new_vertex("vTextureCoord = aTextureCoord"),
-                    Statement::new_vertex("vMaskCoord = aMaskCoord"),
                     Statement::new_fragment("gl_FragColor = texture2D(uSampler,vec2(
                             (gl_FragCoord.x/uSamplerScale.x-vOrigin.x)/uSamplerSize.x+vTextureCoord.x,
                             (vOrigin.y-gl_FragCoord.y/uSamplerScale.y)/uSamplerSize.y+vTextureCoord.y))"),
@@ -95,7 +89,6 @@ impl PatinaProgramName {
                         (gl_FragCoord.x/uSamplerScale.x-vOrigin.x)/uSamplerSize.x+vMaskCoord.x,
                         (vOrigin.y-gl_FragCoord.y/uSamplerScale.y)/uSamplerSize.y+vMaskCoord.y))"),
                     Statement::new_fragment("gl_FragColor.a = gl_FragColor.a * uOpacity"),
-                    Statement::new_fragment("if(mask.r > 0.995) discard")
                 ]
             }
         )

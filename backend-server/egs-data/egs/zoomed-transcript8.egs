@@ -365,9 +365,10 @@ c := idx_tr_in_gn_by_seq * 20;
 text_colour := index(index(which_gn_by_seq,[allotment_idx]),[normal_text_colour,normal_text_colour,normal_text_colour,normal_text_colour,focus_text_colour]);
 thin_textpen := pen("'Lato', sans-serif",text_size,text_colour,[][]);
 pos := spacebase(pos_seq+0.5,c+1,-4);
+thin_seq_allotment_over := index(which_tr_by_seq,[al_over_by_tr]);
 thin_seq_allotment_far_over := index(which_tr_by_seq,[al_far_over_by_tr]);
 
-text2(pos,thin_textpen,draw_seq_letter,thin_seq_allotment_far_over);
+text2(pos,thin_textpen,draw_seq_letter,thin_seq_allotment_over);
 
 /* track names */
 draw_track_names(gene_track_names,gene_name_switches,allotments_trackname);

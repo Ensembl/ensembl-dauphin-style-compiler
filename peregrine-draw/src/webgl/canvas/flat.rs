@@ -11,7 +11,7 @@ fn pen_to_font(pen: &PenGeometry, bitmap_multiplier: f64) -> String {
 }
 
 fn colour_to_css(c: &DirectColour) -> String {
-    format!("rgb({},{},{})",c.0,c.1,c.2)
+    format!("rgb({},{},{},{})",c.0,c.1,c.2,c.3)
 }
 
 fn draw_png_onload(context: CanvasRenderingContext2d, el: HtmlImageElement, origin: (u32,u32), size: (u32,u32)) -> Result<(),JsValue> {
@@ -116,13 +116,6 @@ impl Flat {
         if self.discarded { return Err(Message::CodeInvariantFailed(format!("set_font on discarded flat canvas"))); }
         let context = self.context()?.clone();
         self.draw_png_real(context,name,origin,size,data).map_err(|_| Message::Canvas2DFailure("cannot carate png".to_string()))?;
-        Ok(())
-    }
-
-    pub(crate) fn clear(&self, origin: (u32,u32), size: (u32,u32)) -> Result<(),Message> {
-        if self.discarded { return Err(Message::CodeInvariantFailed(format!("set_font on discarded flat canvas"))); }
-        let context = self.context()?;
-        context.clear_rect(origin.0 as f64, origin.1 as f64, size.0 as f64, size.1 as f64);
         Ok(())
     }
 

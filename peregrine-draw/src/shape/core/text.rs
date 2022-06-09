@@ -1,6 +1,6 @@
-use peregrine_data::{ Pen, DirectColour, PenGeometry };
+use peregrine_data::{ DirectColour, PenGeometry };
 use keyed::keyed_handle;
-use peregrine_toolkit::{log, lock};
+use peregrine_toolkit::lock;
 use crate::util::fonts::Fonts;
 use crate::webgl::canvas::flatplotallocator::FlatPositionManager;
 use crate::webgl::{ CanvasWeave, Flat };
@@ -67,15 +67,10 @@ impl FlatDrawingItem for Text {
         Some(self.pen.group_hash())
     }
 
-    fn build(&mut self, canvas: &mut Flat, text_origin: (u32,u32), mask_origin: (u32,u32), size: (u32,u32)) -> Result<(),Message> {
+    fn build(&mut self, canvas: &mut Flat, text_origin: (u32,u32), size: (u32,u32)) -> Result<(),Message> {
         canvas.set_font(&self.pen)?;
-        let background = self.background.clone().unwrap_or_else(|| DirectColour(255,255,255,255));
+        let background = self.background.clone().unwrap_or_else(|| DirectColour(255,255,255,0));
         canvas.text(&self.text,pad(text_origin),size,&self.colour,&background)?;
-        if self.background.is_some() {
-            canvas.rectangle(pad(mask_origin),size, &DirectColour(0,0,0,255),false)?;
-        } else{
-            canvas.text(&self.text,pad(mask_origin),size,&DirectColour(0,0,0,255),&DirectColour(255,255,255,255))?;
-        }
         Ok(())
     }
 }
