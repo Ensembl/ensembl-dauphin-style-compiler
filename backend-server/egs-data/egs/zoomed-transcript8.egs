@@ -397,6 +397,7 @@ enabled_labels := get_switch([
 enabled_gene_labels := index(allotment_idx,[enabled_labels]);
 al_text_by_gn#[enabled_gene_labels==false] := use_allotment("");
 al_text_by_gn#[get_switch(["scale","no-labels"])] := use_allotment("");
+text_colour := index(allotment_idx,[normal_text_colour,normal_text_colour,normal_text_colour,normal_text_colour,focus_text_colour]);
 textpen := pen("'Lato', sans-serif",text_size,text_colour,[][]);
 text2(spacebase(start_gn,drawn_tr_by_gn*20-12,0),textpen,gene_name,al_text_by_gn);
 

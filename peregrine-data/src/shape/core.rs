@@ -17,7 +17,7 @@ pub(super) fn bulk<T>(b: Vec<T>, a_len: usize, primary: bool) -> Vec<T> where T:
 pub struct DirectColour(pub u8,pub u8,pub u8,pub u8);
 
 #[derive(Clone,Debug,PartialEq,Eq,Hash)]
-struct PenGeometry {
+pub struct PenGeometry {
     name: String,
     size: u32,
     hash: u64
@@ -35,60 +35,45 @@ impl PenGeometry {
             hash
         }
     }
+
+    pub fn name(&self) -> &str { &self.name }
+    pub fn size_in_webgl(&self) -> f64 { self.size as f64 }
+    pub fn group_hash(&self) -> u64 { self.hash }
 }
 
-#[derive(Clone,Debug,PartialEq,Eq,Hash)]
-struct PenInner {
+#[cfg_attr(debug_assertions,derive(Debug))]
+#[derive(Clone)]
+pub struct Pen {
     geometry: Arc<PenGeometry>,
-    colours: Vec<DirectColour>,
+    colours: EachOrEvery<DirectColour>,
     background: Option<DirectColour>
 }
 
-#[derive(Clone,Debug,PartialEq,Eq)]
-pub struct Pen {
-    inner: Arc<PenInner>,
-    hash: u64
-}
-
-impl Hash for Pen {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.hash.hash(state);
-    }
-}
-
 impl Pen {
-    fn new_real(geometry: &Arc<PenGeometry>, colours: &[DirectColour], background: &Option<DirectColour>) -> Pen {
-        let inner = PenInner {
-            geometry: geometry.clone(),
-            colours: colours.to_vec(),
-            background: background.clone()
-        };
-        let mut h = DefaultHasher::new();
-        inner.hash(&mut h);
+    fn new_real(geometry: &Arc<PenGeometry>, colours: &EachOrEvery<DirectColour>, background: &Option<DirectColour>) -> Pen {
         Pen {
-            inner: Arc::new(inner),
-            hash: h.finish()
+            geometry: geometry.clone(),
+            colours: colours.clone(),
+            background: background.clone(),
         }
     }
 
     pub fn new(name: &str, size: u32, colours: &[DirectColour], background: &Option<DirectColour>) -> Pen {
-        Pen::new_real(&Arc::new(PenGeometry::new(name,size)), colours,background)
+        let colours = if colours.len() == 1 {
+            EachOrEvery::every(colours[0].clone())
+        } else {
+            EachOrEvery::each(colours.to_vec())
+        };
+        Pen::new_real(&Arc::new(PenGeometry::new(name,size)), &colours.index(|x| x.clone()),background)
     }
 
-    pub fn name(&self) -> &str { &self.inner.geometry.name }
-    pub fn size_in_webgl(&self) -> f64 { self.inner.geometry.size as f64 }
-    pub fn colours(&self) -> &[DirectColour] { &self.inner.colours }
-    pub fn background(&self) -> &Option<DirectColour> { &self.inner.background }
-
-    pub fn bulk(self, len: usize, primary: bool) -> Pen {
-        Pen::new_real(&self.inner.geometry,&bulk(self.inner.colours.to_vec(),len,primary),&self.inner.background)
-    }
+    pub fn geometry(&self) -> &PenGeometry { &self.geometry }
+    pub fn colours(&self) -> &EachOrEvery<DirectColour> { &self.colours }
+    pub fn background(&self) -> &Option<DirectColour> { &self.background }
 
     pub fn filter(&self, filter: &EachOrEveryFilter) -> Pen {
-        Pen::new_real(&self.inner.geometry,&filter.filter_clone(&self.inner.colours),&self.inner.background)
+        Pen::new_real(&self.geometry,&self.colours.filter(filter),&self.background)
     }
-
-    pub fn group_hash(&self) -> u64 { self.inner.geometry.hash }
 }
 
 #[derive(Clone)]

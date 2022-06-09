@@ -1,12 +1,12 @@
 use wasm_bindgen::{JsCast, JsValue, prelude::Closure};
 use web_sys::{CanvasRenderingContext2d, Document, HtmlCanvasElement, HtmlImageElement };
-use peregrine_data::{ Pen, DirectColour };
+use peregrine_data::{ Pen, DirectColour, PenGeometry };
 use super::{bindery::SelfManagedWebGlTexture, canvasstore::HtmlFlatCanvas, pngcache::PngCache, weave::CanvasWeave};
 use crate::util::{message::Message};
 use super::canvasstore::CanvasStore;
 use peregrine_toolkit::{js::exception::js_result_to_option_console };
 
-fn pen_to_font(pen: &Pen, bitmap_multiplier: f64) -> String {
+fn pen_to_font(pen: &PenGeometry, bitmap_multiplier: f64) -> String {
     format!("{}px {}",(pen.size_in_webgl() * bitmap_multiplier).round(),pen.name())
 }
 
@@ -60,7 +60,7 @@ impl Flat {
     pub(crate) fn set_gl_texture(&mut self, texture: Option<SelfManagedWebGlTexture>) { self.gl_texture = texture; }
     pub(crate) fn is_active(&mut self) -> &mut bool { &mut self.is_active }
 
-    pub(crate) fn set_font(&mut self, pen: &Pen) -> Result<(),Message> {
+    pub(crate) fn set_font(&mut self, pen: &PenGeometry) -> Result<(),Message> {
         if self.discarded { return Err(Message::CodeInvariantFailed(format!("set_font on discarded flat canvas"))); }
         let new_font = pen_to_font(pen,self.bitmap_multiplier);
         if let Some(old_font) = &self.font {

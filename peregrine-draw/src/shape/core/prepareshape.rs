@@ -117,11 +117,11 @@ pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingTool
             Shape::Text(shape) => {
                 let depth = shape.position().allotments().map(|x| x.depth);
                 let drawing_text = tools.text();
-                let colours_iter = shape.pen().colours().iter().cycle();
                 let background = shape.pen().background();
                 let texts = shape.iter_texts().collect::<Vec<_>>();
+                let colours_iter = shape.pen().colours().iter(texts.len()).unwrap();
                 let handles : Vec<_> = texts.iter().zip(colours_iter).map(|(text,colour)| {
-                    drawing_text.add_text(&shape.pen(),text,colour,background)
+                    drawing_text.add_text(&shape.pen().geometry(),text,colour,background)
                 }).collect();
                 out.push(GLShape::Text(shape.position().clone(),handles,depth,draw_group));
             },
