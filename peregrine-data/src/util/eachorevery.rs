@@ -56,6 +56,8 @@ impl<X> EachOrEvery<X> {
         }
     }
 
+    pub fn space(&self) -> usize { self.data.len() }
+
     pub fn get(&self, pos: usize) -> Option<&X> {
         match &self.index {
             EachOrEveryIndex::Unindexed => self.data.get(pos),
@@ -64,7 +66,7 @@ impl<X> EachOrEvery<X> {
         }
     }
 
-    pub fn demerge<F,K: Hash+PartialEq+Eq>(&self, len: usize, cb: F) -> Vec<(K,EachOrEveryFilter)> where F: Fn(&X) -> K {
+    pub fn demerge<F,K: Clone+Hash+Eq>(&self, len: usize, cb: F) -> Vec<(K,EachOrEveryFilter)> where F: Fn(&X) -> K {
         match &self.index {
             EachOrEveryIndex::Unindexed => {
                 let mut out = HashMap::new();
@@ -75,8 +77,9 @@ impl<X> EachOrEvery<X> {
             },
             EachOrEveryIndex::Indexed(index) => {
                 let mut out = HashMap::new();
+                let dest = self.data.iter().map(cb).collect::<Vec<_>>();
                 for (i,value) in index.iter().enumerate() {
-                    out.entry(cb(&self.data[*value])).or_insert_with(|| EachOrEveryFilterBuilder::new()).set(i);
+                    out.entry(dest[*value].clone()).or_insert_with(|| EachOrEveryFilterBuilder::new()).set(i);
                 }
                 out.drain().map(|(key,filter)| (key,filter.make(len))).collect::<Vec<_>>()
             },
@@ -121,15 +124,6 @@ impl<X> EachOrEvery<X> {
         Ok(EachOrEvery {
             index: self.index.clone(),
             data: Arc::new(data)
-        })
-    }
-
-    pub fn fullmap_results<F,Y,E>(&self, mut f: F) -> Result<EachOrEvery<Y>,E> where F: FnMut(&X) -> Result<Y,E> {
-        Ok(if let Some(len) = self.len() {
-            let out = self.iter(len).unwrap().map(|x| f(x)).collect::<Result<Vec<_>,_>>()?;
-            EachOrEvery::each(out)
-        } else {
-            EachOrEvery::every(f(&self.data[0])?)
         })
     }
 
@@ -260,6 +254,50 @@ impl<X> EachOrEvery<X> {
             if self_len != len { return false; }
         }
         true
+    }
+}
+
+impl<X: Clone> EachOrEvery<X> {
+    /* For the data array of this EachOrEvery, merge equivalent values and return a list
+     * of indexes and data. This can be used directly by unindexed EoEs. For Indexed EoEs,
+     * the "index" returned maps *old* index values to *new* ones.
+     */
+    fn squash<F,Z>(&self, cb: F) -> (Vec<usize>,Vec<X>) where F: Fn(&X) -> Z, Z: Eq+Hash {
+        let mut index = vec![];
+        let mut data = vec![];
+        let mut map = HashMap::new();
+        for item in self.data.iter() {
+            let x = cb(item);
+            if let Some(pos) = map.get(&x).copied() {
+                index.push(pos);
+            } else {
+                index.push(data.len());
+                map.insert(x,data.len());
+                data.push(item.clone());
+            }
+        }
+        (index,data)
+    }
+
+    pub fn index<F,Z>(&self, cb: F) -> EachOrEvery<X> where F: Fn(&X) -> Z, Z: Eq+Hash {
+        match &self.index {
+            EachOrEveryIndex::Unindexed => {
+                let (index,data) = self.squash(cb);
+                EachOrEvery {
+                    index: EachOrEveryIndex::Indexed(Arc::new(index)),
+                    data: Arc::new(data)
+                }
+            },
+            EachOrEveryIndex::Indexed(old_index) => {
+                let (old_to_new,data) = self.squash(cb);
+                let index : Vec<_> = old_index.iter().map(|old| old_to_new[*old]).collect();
+                EachOrEvery {
+                    index: EachOrEveryIndex::Indexed(Arc::new(index)),
+                    data: Arc::new(data)
+                }
+            },
+            EachOrEveryIndex::Every => { self.clone() }
+        }
     }
 }
 

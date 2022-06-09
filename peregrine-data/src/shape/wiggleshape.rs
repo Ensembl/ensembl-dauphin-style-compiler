@@ -55,7 +55,7 @@ fn draw_wiggle(input: &[Option<f64>], height: f64) -> Vec<Option<f64>> {
 }
 
 impl<A> WiggleShape<A> {
-    pub fn map_new_allotment<F,B>(&self, cb: F) -> WiggleShape<B> where F: Fn(&A) -> B {
+    pub fn map_new_allotment<F,B>(&self, cb: F) -> WiggleShape<B> where F: FnMut(&A) -> B {
         WiggleShape {
             x_limits: self.x_limits.clone(),
             values: self.values.clone(),
@@ -126,7 +126,7 @@ impl<A: Clone> WiggleShape<A> {
 }
 
 impl WiggleShape<LeafStyle> {
-    pub fn demerge<T: Hash + PartialEq + Eq,D>(self, cat: &D) -> Vec<(T,WiggleShape<LeafStyle>)> where D: ShapeDemerge<X=T> {
+    pub fn demerge<T: Hash + Clone + Eq,D>(self, cat: &D) -> Vec<(T,WiggleShape<LeafStyle>)> where D: ShapeDemerge<X=T> {
         let demerge = self.allotments.demerge(1,|a| cat.categorise(&a.coord_system));
         let mut out = vec![];
         for (draw_group,mut filter) in demerge {

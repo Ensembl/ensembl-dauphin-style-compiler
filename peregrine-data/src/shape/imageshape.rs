@@ -8,7 +8,7 @@ pub struct ImageShape<A> {
 }
 
 impl<A> ImageShape<A> {
-    pub fn map_new_allotment<F,B>(&self, cb: F) -> ImageShape<B> where F: Fn(&A) -> B {
+    pub fn map_new_allotment<F,B>(&self, cb: F) -> ImageShape<B> where F: FnMut(&A) -> B {
         ImageShape {
             position: self.position.map_allotments(cb),
             names: self.names.clone()
@@ -80,7 +80,7 @@ impl ImageShape<LeafRequest> {
 }
 
 impl ImageShape<LeafStyle> {
-    pub fn demerge<T: Hash + PartialEq + Eq,D>(self, cat: &D) -> Vec<(T,ImageShape<LeafStyle>)> where D: ShapeDemerge<X=T> {
+    pub fn demerge<T: Hash + Clone + Eq,D>(self, cat: &D) -> Vec<(T,ImageShape<LeafStyle>)> where D: ShapeDemerge<X=T> {
         let demerge = self.position.allotments().demerge(self.position.len(),|x| {
             cat.categorise(&x.coord_system)
         });

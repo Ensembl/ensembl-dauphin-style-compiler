@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use anyhow::anyhow as err;
 use peregrine_toolkit::lock;
 use crate::simple_interp_command;
-use peregrine_data::{Builder, SpaceBaseArea, PartialSpaceBase, DataMessage, ProgramShapesBuilder};
+use peregrine_data::{SpaceBaseArea, PartialSpaceBase, DataMessage, ProgramShapesBuilder};
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register };
 use serde_cbor::Value as CborValue;
@@ -31,18 +31,13 @@ impl InterpCommand for RectangleInterpCommand {
             let patina = geometry.patina(patina_id[0] as u32)?.as_ref().clone();
             let allotments = allotment_id.map_results::<_,_,anyhow::Error>(|id| {
                 Ok(geometry.allotment(*id as u32)?.as_ref().clone())
-            })?;
+            })?.index(|a| a.name().clone());
             let zoo = get_instance::<Arc<Mutex<Option<ProgramShapesBuilder>>>>(context,"out")?;
             if allotments.len() != Some(0) {
                 let area = SpaceBaseArea::new(
                     PartialSpaceBase::from_spacebase(top_left),
                     PartialSpaceBase::from_spacebase(bottom_right)).ok_or_else(|| err!("sb1"))?;
-                let mut allotments_iter = allotments.iter(area.len()).ok_or_else(|| err!("sb2"))?;
-                let mut allotments_iter2 = allotments.iter(area.len()).ok_or_else(|| err!("sb2"))?;
-                let area = area.fullmap_allotments_results::<_,_,_,DataMessage>(
-                    move |_| Ok(allotments_iter.next().unwrap().clone()),
-                    move |_| Ok(allotments_iter2.next().unwrap().clone())
-                )?;
+                let area = area.replace_allotments(allotments);
                 lock!(zoo).as_mut().unwrap().add_rectangle(area,patina,None)?;
             }
         }
@@ -65,11 +60,10 @@ impl InterpCommand for Text2InterpCommand {
             let pen = geometry.pen(pen_id[0] as u32)?.as_ref().clone();
             let allotments = allotment_id.map_results(|id| {
                 geometry.allotment(*id as u32).map(|x| x.as_ref().clone())
-            })?;
+            })?.index(|a| a.name().clone());
             let zoo = get_instance::<Arc<Mutex<Option<ProgramShapesBuilder>>>>(context,"out")?;
             if text.len() != Some(0) || allotments.len() != Some(0) {
-                let mut allotments_iter = allotments.iter(spacebase.len()).ok_or_else(|| err!("sb2"))?;
-                let spacebase = spacebase.fullmap_allotments_results::<_,_,DataMessage>(move |_| Ok(allotments_iter.next().unwrap().clone()))?;
+                let spacebase = spacebase.replace_allotments(allotments);
                 lock!(zoo).as_mut().unwrap().add_text(spacebase,pen,text)?;
             }
         }
@@ -90,10 +84,9 @@ impl InterpCommand for ImageInterpCommand {
         if spacebase.len() > 0 {
             let allotments = allotment_id.map_results(|id| {
                 geometry.allotment(*id as u32).map(|x| x.as_ref().clone())
-            })?;
+            })?.index(|a| a.name().clone());
             if images.len() != Some(0) && allotments.len() != Some(0) {
-                let mut allotments_iter = allotments.iter(spacebase.len()).ok_or_else(|| err!("sb2"))?;
-                let spacebase = spacebase.fullmap_allotments_results::<_,_,DataMessage>(move |_| Ok(allotments_iter.next().unwrap().clone()))?;
+                let spacebase = spacebase.replace_allotments(allotments);
                 let zoo = get_instance::<Arc<Mutex<Option<ProgramShapesBuilder>>>>(context,"out")?;
                 lock!(zoo).as_mut().unwrap().add_image(spacebase,images)?;
             }
@@ -137,18 +130,13 @@ impl InterpCommand for EmptyInterpCommand {
             let bottom_right = geometry.spacebase(bottom_right_id[0] as u32)?.as_ref().clone();
             let allotments = allotment_id.map_results::<_,_,anyhow::Error>(|id| {
                 Ok(geometry.allotment(*id as u32)?.as_ref().clone())
-            })?;
+            })?.index(|a| a.name().clone());
             let zoo = get_instance::<Arc<Mutex<Option<ProgramShapesBuilder>>>>(context,"out")?;
             if allotments.len() != Some(0) {
                 let area = SpaceBaseArea::new(
                     PartialSpaceBase::from_spacebase(top_left),
                     PartialSpaceBase::from_spacebase(bottom_right)).ok_or_else(|| err!("sb1"))?;
-                let mut allotments_iter = allotments.iter(area.len()).ok_or_else(|| err!("sb2"))?;
-                let mut allotments_iter2 = allotments.iter(area.len()).ok_or_else(|| err!("sb2"))?;
-                let area = area.fullmap_allotments_results::<_,_,_,DataMessage>(
-                    move |_| Ok(allotments_iter.next().unwrap().clone()),
-                    move |_| Ok(allotments_iter2.next().unwrap().clone())
-                )?;
+                let area = area.replace_allotments(allotments);
                 lock!(zoo).as_mut().unwrap().add_empty(area)?;
             }
         }

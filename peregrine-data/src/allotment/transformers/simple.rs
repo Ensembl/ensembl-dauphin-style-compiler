@@ -33,9 +33,9 @@ impl SpaceBaseTransformer for SimpleTransformerHolder {
         output.update_tangent_from_allotment(|t,a| { 
             *t += a.as_ref().map(|x| x.0.indent() as f64).unwrap_or(0.)
         });
-        output.fullmap_allotments_results::<_,_,LeafStyle>(|x| {
-            Ok(x.as_ref().map(|x| x.0.get_style().clone()).unwrap_or_else(|| LeafStyle::dustbin()))
-        }).ok().unwrap()    
+        output.into_new_allotment(|x| {
+            x.as_ref().map(|x| x.0.get_style().clone()).unwrap_or_else(|| LeafStyle::dustbin())
+        })
     }
 }
 

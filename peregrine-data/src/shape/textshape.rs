@@ -9,7 +9,7 @@ pub struct TextShape<A> {
 }
 
 impl<A> TextShape<A> {
-    pub fn map_new_allotment<F,B>(&self, cb: F) -> TextShape<B> where F: Fn(&A) -> B {
+    pub fn map_new_allotment<F,B>(&self, cb: F) -> TextShape<B> where F: FnMut(&A) -> B {
         TextShape {
             position: self.position.map_allotments(cb),
             pen: self.pen.clone(),
@@ -63,7 +63,7 @@ impl TextShape<LeafRequest> {
 }
 
 impl TextShape<LeafStyle> {
-    pub fn demerge<T: Hash + PartialEq + Eq,D>(self,  cat: &D) -> Vec<(T,TextShape<LeafStyle>)> where D: ShapeDemerge<X=T> {
+    pub fn demerge<T: Hash + Clone + Eq,D>(self,  cat: &D) -> Vec<(T,TextShape<LeafStyle>)> where D: ShapeDemerge<X=T> {
         let demerge = self.position.allotments().demerge(self.position.len(),|a| cat.categorise(&a.coord_system));
         let mut out = vec![];
         for (draw_group,mut filter) in demerge {

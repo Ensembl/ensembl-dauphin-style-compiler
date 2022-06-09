@@ -1,6 +1,6 @@
 use std::{sync::{Arc, Mutex}};
-use peregrine_toolkit::{puzzle::{StaticAnswer}, lock};
-use crate::{ShapeRequestGroup, DataMessage, CarriageExtent, shape::shape::{DrawingShape, UnplacedShape, AbstractShape} };
+use peregrine_toolkit::{puzzle::{StaticAnswer}, lock, timer_start, timer_end, log};
+use crate::{ShapeRequestGroup, DataMessage, CarriageExtent, shape::shape::{DrawingShape, UnplacedShape, AbstractShape}, allotment::{core::allotmentname::allotmentname_hashmap, transformers::transformers::Transformer} };
 use super::{leaflist::LeafList, trainstate::{CarriageTrainStateSpec}};
 
 struct AbstractCarriageBuilder {
@@ -82,8 +82,19 @@ impl AbstractCarriage {
 
     pub fn make_drawing_shapes(&self, answer: &mut StaticAnswer) -> Result<Vec<DrawingShape>,DataMessage> {
         let mut out = vec![];
+        let mut transformer_cache = allotmentname_hashmap::<Arc<dyn Transformer>>();
         for input in lock!(self.0).ready()?.shapes.iter() {
-            out.append(&mut input.map_new_allotment(|x| x.make(answer)).make());
+            timer_start!("make_drawing_shapes");
+            let z = input.map_new_allotment(|x| {
+                if let Some(value) = transformer_cache.get(x.name()) {
+                    value.clone()
+                } else {
+                    transformer_cache.insert(x.name().clone(),x.make(answer));
+                    transformer_cache.get(x.name()).unwrap().clone()
+                }
+            });
+            out.append(&mut z.make());
+            timer_end!("make_drawing_shapes");
         }
         Ok(out)
     }

@@ -99,11 +99,12 @@ impl Stackable for FloatingLeaf {
         if let Some(top_setter) = &self.top_setter {
             top_setter.set(value.clone());
         }
-        
     }
 }
 
 impl Transformable for FloatingLeaf {
+    fn name(&self) -> &AllotmentName { &self.name }
+
     fn cloned(&self) -> Arc<dyn Transformable> {
         Arc::new(self.clone())
     }

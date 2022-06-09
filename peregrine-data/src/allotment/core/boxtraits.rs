@@ -40,6 +40,7 @@ pub(crate) trait Stackable : Coordinated {
 }
 
 pub trait Transformable {
+    fn name(&self) -> &AllotmentName;
     fn cloned(&self) -> Arc<dyn Transformable>;
     fn make(&self, solution: &StaticAnswer) -> Arc<dyn Transformer>;
     fn get_style(&self) -> &LeafStyle;

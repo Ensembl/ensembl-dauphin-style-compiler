@@ -60,7 +60,7 @@ impl<A> Clone for Shape<A> where A: Clone {
 }
 
 impl<A> Shape<A> {
-    pub fn map_new_allotment<F,B>(&self, cb: F) -> Shape<B> where F: Fn(&A) -> B {
+    pub fn map_new_allotment<F,B>(&self, cb: F) -> Shape<B> where F: FnMut(&A) -> B {
         match self {
             Self::Text(arg0) => Shape::<B>::Text(arg0.map_new_allotment(cb)),
             Self::Image(arg0) => Shape::<B>::Image(arg0.map_new_allotment(cb)),
@@ -106,7 +106,7 @@ impl Shape<LeafRequest> {
 }
 
 impl Shape<LeafStyle> {
-    pub fn demerge<T: Hash + PartialEq + Eq,D>(self, cat: &D) -> Vec<(T,Shape<LeafStyle>)> where D: ShapeDemerge<X=T> {
+    pub fn demerge<T: Hash + Clone + Eq,D>(self, cat: &D) -> Vec<(T,Shape<LeafStyle>)> where D: ShapeDemerge<X=T> {
         match self {
             Shape::Wiggle(shape) => {
                 return shape.demerge(cat).drain(..).map(|(x,details)| 

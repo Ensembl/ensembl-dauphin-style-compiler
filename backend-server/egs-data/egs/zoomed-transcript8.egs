@@ -12,6 +12,7 @@ import "file:common8.egs"; use "common8";
  * startos/endos -- start/end but truncated to only part in current panel (ie on screen)
  * text -- some text
  * al -- an allotment
+ * aln -- an allotment name
  * pt -- a patina
  * num -- how many
  * idx_X_in_Y -- the nth X in Y (ie enumeration, zero based)
@@ -233,23 +234,21 @@ thick_id_gn_by_ex := id_gn_by_ex#[thick_exons];
 
 use_allotment_names(root_allotment_names,enabled_tracks,potential_tracks);
 
-base_allotment_names := [append_group(index(allotment_idx,root_allotment_names),gene_id)];
+aln_base := [append_group(index(allotment_idx,root_allotment_names),gene_id)];
 base_transcript_allotment_names := [append_group(index(transcript_allotment_idx,root_allotment_names),id_gn_by_tr)];
 base_thick_exon_allotment_names := [append_group(index(thick_exon_allotment_idx,root_allotment_names),thick_id_gn_by_ex)];
 
-allotment_names := [append_group(base_allotment_names[],["diagram"][])];
+allotment_names := [append_group(aln_base[],["diagram"][])];
 transcript_allotment_names := [append_group(base_transcript_allotment_names[],["diagram"][])];
 thick_exon_allotment_names := [append_group(base_thick_exon_allotment_names[],["diagram"][])];
 
-al_over_by_gn := use_allotment(append_group(allotment_names[],["over"][]));
 al_over_by_tr := use_allotment(append_group(transcript_allotment_names[],["over"][]));
-al_far_over_by_gn := use_allotment(append_group(allotment_names[],["far-over"][]));
 al_far_over_by_tr := use_allotment(append_group(transcript_allotment_names[],["far-over"][]));
 
 al_far_under_by_gn := use_allotment(append_group(allotment_names[],["far-under"][]));
 al_far_under_by_tr := use_allotment(append_group(transcript_allotment_names[],["far-under"][]));
 
-al_text_by_gn := use_allotment(append_group(base_allotment_names[],["text"][]));
+al_text_by_gn := use_allotment(append_group(aln_base[],["text"][]));
 
 /*
  * What colour? What font? etc
