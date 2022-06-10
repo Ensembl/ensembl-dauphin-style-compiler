@@ -304,7 +304,17 @@ enabled_labels := get_switch([
     ["track","focus","label"],
 ][]);
 
+enabled_labels_tr := get_switch([
+    ["track","gene-other-rev","transcript-label"],
+    ["track","gene-pc-rev","transcript-label"],
+    ["track","gene-other-fwd","transcript-label"],
+    ["track","gene-pc-fwd","transcript-label"],
+    ["track","focus","transcript-label"],
+][]);
+
 enabled_gene_labels := index(allotment_idx,[enabled_labels]);
+transcript_allotment_idx := index(which_gn_by_tr,[allotment_idx]);
+enabled_tr_labels := index(transcript_allotment_idx,[enabled_labels_tr]);
 
 al_text_by_gn#[enabled_gene_labels==false] := use_allotment("");
 al_text_by_gn#[get_switch(["scale","no-labels"])] := use_allotment("");
@@ -314,6 +324,8 @@ al_trtext_by_gn#[enabled_gene_labels==false] := use_allotment("");
 al_trtext_by_tr := index(which_gn_by_tr,[al_trtext_by_gn]);
 
 al_trtext_by_tr#[bool_show_tr==false] := use_allotment("");
+al_trtext_by_tr#[enabled_tr_labels==false] := use_allotment("");
+al_text_by_tr#[get_switch(["scale","no-labels"])] := use_allotment("");
 
 track_name := index(allotment_idx,potential_tracks);
 transcript_allotment_idx := index(which_gn_by_tr,[allotment_idx]);
@@ -344,9 +356,12 @@ pt_hollow_by_ex := patina_hollow(index(exon_allotment_colour_idx,[non_pc_colour,
 pt_white := patina_filled(simple_colour(direct_colour(255,255,255,255)));
 pt_thick_by_thex := patina_filled(index(exon_allotment_colour_idx#[thick_exons],[non_pc_colour,pc_colour,non_pc_colour,pc_colour,focus_colour]));
 text_colour := direct_colour(111,129,144,255);
+blue_text_colour := direct_colour(111,129,255,255);
 text_size := 10;
 
 textpen := pen("'Lato', sans-serif",text_size,text_colour,[][]);
+textpen_blue := pen("'Lato', sans-serif",text_size,blue_text_colour,[][]);
+
 
 /*
  * prepare the zmenus
@@ -416,13 +431,13 @@ e := spacebase(end_tr,c+20,0);
 rectangle(w,e,pt_zmenu_tr,al_far_under_by_tr);
 
 /* gene label */
-text2(spacebase(start_gn,drawn_tr_by_gn*20-12,0),textpen,gene_name,al_text_by_gn);
+text2(spacebase(start_gn,8,0),textpen,gene_name,al_text_by_gn);
 
 /* transcript label */
 c := idx_tr_in_gn * 20;
 start_gn_by_tr := index(which_gn_by_tr,[start_gn]);
 pos := spacebase(start_gn_by_tr,c+8,100);
-text2(pos,textpen,transcript_id,al_trtext_by_tr);
+text2(pos,textpen_blue,transcript_id,al_trtext_by_tr);
 
 chevron_spacing := [
     0.00,0.025,0.05,0.075,

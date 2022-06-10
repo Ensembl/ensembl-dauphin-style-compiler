@@ -66,6 +66,9 @@
           "zoom.goto.v": "0.003",
         });
         var labels = {};
+        var tr_labels = {};
+        var sv_labels = {};
+        var nm_labels = {};
         var tracks_on = {};
         function toggle_track(track_name) {
           let cur = tracks_on[track_name];
@@ -89,11 +92,22 @@
             genome_browser.clear_switch(["track",track_name,"label"]);
           }
         }
+        function toggle_tr_label(track_name) {
+          let cur = tr_labels[track_name];
+          if(cur!==true && cur!==false) { cur = false; }
+          let value = !cur;
+          tr_labels[track_name] = value;
+          if(value) {
+            genome_browser.set_switch(["track",track_name,"transcript-label"]);
+          } else {
+            genome_browser.clear_switch(["track",track_name,"transcript-label"]);
+          }
+        }
         function toggle_name(track_name) {
-          let cur = labels[track_name];
+          let cur = nm_labels[track_name];
           if(cur!==true && cur!==false) { cur = true; }
           let value = !cur;
-          labels[track_name] = value;
+          nm_labels[track_name] = value;
           if(value) {
             genome_browser.set_switch(["track",track_name,"name"]);
           } else {
@@ -101,10 +115,10 @@
           }
         }
         function toggle_several(track_name) {
-          let cur = labels[track_name];
+          let cur = sv_labels[track_name];
           if(cur!==true && cur!==false) { cur = false; }
           let value = !cur;
-          labels[track_name] = value;
+          sv_labels[track_name] = value;
           if(value) {
             genome_browser.set_switch(["track",track_name,"several"]);
           } else {
@@ -143,13 +157,16 @@
                   tr.appendChild(td);
                 }
                 let td1 = document.createElement("td");
-                td1.innerHTML = "<a href='#''>trck</a>";
+                td1.innerHTML = "<a href='#''>trk</a>";
                 td1.onclick = function() { toggle_track(track['switch-id']) };
                 let td2 = document.createElement("td");
+                let td2b = document.createElement("td");
                 let td4 = document.createElement("td");
                 if(track["has-labels"]) {
-                  td2.innerHTML = "<a href='#''>lbl</a>";
+                  td2.innerHTML = "<a href='#''>glb</a>";
                   td2.onclick = function() { toggle_label(track['switch-id']) };
+                  td2b.innerHTML = "<a href='#''>tlb</a>";
+                  td2b.onclick = function() { toggle_tr_label(track['switch-id']) };
                   td4.innerHTML = "<a href='#''>1/5</a>";
                   td4.onclick = function() { toggle_several(track['switch-id']) };
                 }
@@ -158,6 +175,7 @@
                 td3.onclick = function() { toggle_name(track['switch-id']) };
                 tr.appendChild(td1);
                 tr.appendChild(td2);
+                tr.appendChild(td2b);
                 tr.appendChild(td3);
                 tr.appendChild(td4);
                 tbody.appendChild(tr);
@@ -173,7 +191,7 @@
         genome_browser.set_switch(["track","focus"]);
         genome_browser.set_switch(["track","focus","label"]);
         genome_browser.set_switch(["track","gene-pc-fwd"]);
-        genome_browser.set_switch(["track","gene-pc-rev"]);
+        genome_browser.set_switch(["track","gene-pc-rev"]);        
         genome_browser.set_switch(["track","gene-pc-fwd","label"]);
         genome_browser.set_switch(["track","gene-pc-fwd","name"]);
         genome_browser.set_switch(["track","gene-pc-rev","label"]);
