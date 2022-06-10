@@ -1,7 +1,7 @@
 use std::sync::{ Arc, Mutex, Weak };
 use commander::{ cdr_timer };
 use peregrine_toolkit::lock;
-use peregrine_toolkit::sync::needed::{Needed};
+use peregrine_toolkit_async::sync::needed::{Needed};
 use crate::integration::pgcommander::PgCommanderWeb;
 use crate::util::message::Message;
 

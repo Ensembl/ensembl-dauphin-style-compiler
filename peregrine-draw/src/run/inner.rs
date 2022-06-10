@@ -7,13 +7,13 @@ use std::sync::{ Mutex, Arc };
 use crate::util::message::{ Message, message_register_callback, routed_message, message_register_default };
 use crate::input::translate::targetreporter::TargetReporter;
 use js_sys::Date;
-use peregrine_data::{Assets, Commander, PeregrineCore};
+use peregrine_data::{Assets, Commander, PeregrineCore, PeregrineApiQueue};
 use peregrine_dauphin::peregrine_dauphin;
 use peregrine_message::MessageKind;
 use peregrine_toolkit::log;
 use peregrine_toolkit::plumbing::distributor::Distributor;
-use peregrine_toolkit::sync::blocker::Blocker;
-use peregrine_toolkit::sync::needed::Needed;
+use peregrine_toolkit_async::sync::blocker::Blocker;
+use peregrine_toolkit_async::sync::needed::Needed;
 use super::report::Report;
 use super::sound::Sound;
 use super::{PgPeregrineConfig, globalconfig::CreatedPeregrineConfigs};
@@ -132,19 +132,20 @@ impl PeregrineInnerAPI {
         message_register_callback(Some(commander_id),move |message| {
             message_sender2.add(message);
         });
-        let webgl = Arc::new(Mutex::new(WebGlGlobal::new(&dom,&config.draw)?));
+        let webgl = Arc::new(Mutex::new(WebGlGlobal::new(&commander,&dom,&config.draw)?));
         let redraw_needed = Needed::new();
         let stage = Arc::new(Mutex::new(Stage::new(&redraw_needed)));
-        let trainset = GlRailway::new(&commander,&config.draw,&stage.lock().unwrap())?;
         let report = Report::new(&config.draw,&message_sender)?;
         let target_reporter = TargetReporter::new(&commander,&config.draw,&report)?;
         let mut input = Input::new(queue_blocker);
+        let api_queue = PeregrineApiQueue::new(queue_blocker);
+        let trainset = GlRailway::new(&api_queue,&commander,&config.draw,&stage.lock().unwrap())?;
         let integration = Box::new(PgIntegration::new(PgChannel::new(),trainset.clone(),&input,webgl.clone(),&stage,&dom,&report));
-        let sound = Sound::new(&config.draw,&commander,integration.assets(),&mut messages)?;
         let assets = integration.assets().clone();
+        let sound = Sound::new(&config.draw,&commander,integration.assets(),&mut messages)?;
         let mut core = PeregrineCore::new(integration,commander.clone(),move |e| {
             routed_message(Some(commander_id),Message::DataError(e))
-        },queue_blocker,&redraw_needed).map_err(|e| Message::DataError(e))?;
+        },&api_queue,&redraw_needed).map_err(|e| Message::DataError(e))?;
         peregrine_dauphin(Box::new(PgDauphinIntegrationWeb()),&core);
         report.run(&commander);
         core.application_ready();

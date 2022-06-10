@@ -1,4 +1,4 @@
-use peregrine_data::{ Colour, DrawnType, Patina, RectangleShape, Shape, ShapeDemerge, CoordinateSystem, HollowEdge2, EachOrEvery, LeafStyle };
+use peregrine_data::{ Colour, DrawnType, Patina, RectangleShape, Shape, ShapeDemerge, CoordinateSystem, HollowEdge2, EachOrEvery, LeafStyle, DrawingShape };
 use super::super::layers::layer::{ Layer };
 use crate::shape::core::drawshape::{SimpleShapePatina};
 use crate::shape::heraldry::heraldry::{Heraldry, HeraldryCanvasesUsed};
@@ -104,10 +104,11 @@ impl ShapeDemerge for GLCategoriser {
     }
 }
 
-pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingToolsBuilder, shape: Shape<LeafStyle>) -> Result<Vec<GLShape>,Message> {
+pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingToolsBuilder, shape: DrawingShape) -> Result<Vec<GLShape>,Message> {
     let mut out = vec![];
     let demerge = shape.demerge(&GLCategoriser());
     for (draw_group,shape) in demerge {
+        if draw_group.coord_system().is_dustbin() { continue; }
         match shape {
             Shape::Empty(_) => {},
             Shape::Wiggle(shape) => {
@@ -116,11 +117,11 @@ pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingTool
             Shape::Text(shape) => {
                 let depth = shape.position().allotments().map(|x| x.depth);
                 let drawing_text = tools.text();
-                let colours_iter = shape.pen().colours().iter().cycle();
                 let background = shape.pen().background();
                 let texts = shape.iter_texts().collect::<Vec<_>>();
+                let colours_iter = shape.pen().colours().iter(texts.len()).unwrap();
                 let handles : Vec<_> = texts.iter().zip(colours_iter).map(|(text,colour)| {
-                    drawing_text.add_text(&shape.pen(),text,colour,background)
+                    drawing_text.add_text(&shape.pen().geometry(),text,colour,background)
                 }).collect();
                 out.push(GLShape::Text(shape.position().clone(),handles,depth,draw_group));
             },

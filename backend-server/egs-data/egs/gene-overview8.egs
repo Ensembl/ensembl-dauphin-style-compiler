@@ -121,7 +121,7 @@ use_allotments(allotments_trackname,enabled_tracks,[
 allotment_idx := len([start]) (*) 0;
 allotment_idx#[strand > 0] (+=) 2;
 allotment_idx#[in(gene_biotype,["protein_coding"])] (+=) 1;
-allotment := index(allotment_idx,allotment_names);
+allotment := index(allotment_idx,[use_allotment(allotment_names[])]);
 
 /* Focus region */
 focus_allotment_idx := len([focus_start]) (*) 0;
@@ -136,9 +136,9 @@ focus_allotment := use_allotment(index(focus_allotment_idx,allotment_names));
  * (driven by allotment for gene)
  */
 
-non_pc_colour := spot_colour(direct_colour(200,200,200,255));
-pc_colour := spot_colour(direct_colour(128,128,128,255));
-focus_colour := spot_colour(direct_colour(39,154,252,255));
+non_pc_colour := simple_colour(direct_colour(200,200,200,255));
+pc_colour := simple_colour(direct_colour(128,128,128,255));
+focus_colour := simple_colour(direct_colour(39,154,252,255));
 patina := index(allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour,focus_colour]);
 focus_patina := patina_filled(index(focus_allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour,focus_colour]));
 
@@ -172,8 +172,8 @@ right_allotment := allotment#[members];
  * draw everything!
  */
 
-rectangle(spacebase(left_start,0,-0.5),spacebase(left_end,5,0.5),patina_filled(left_patina),use_allotment(left_allotment));
-rectangle(spacebase(right_start,0,-0.5),spacebase(right_end,5,0.5),patina_filled(right_patina),use_allotment(right_allotment));
+rectangle(spacebase(left_start,0,-0.5),spacebase(left_end,5,0.5),patina_filled(left_patina),left_allotment);
+rectangle(spacebase(right_start,0,-0.5),spacebase(right_end,5,0.5),patina_filled(right_patina),right_allotment);
 rectangle(spacebase(focus_start,0,-0.5),spacebase(focus_end,5,0.5),focus_patina,focus_allotment);
 
 chevron_spacing := [0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0][];

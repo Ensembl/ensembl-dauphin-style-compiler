@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
-use peregrine_toolkit::{puzzle::{cache_constant, derived, DelayedSetter, delayed, compose, compose_slice, StaticValue, commute_clonable, cache_constant_clonable }};
+use peregrine_toolkit::{puzzle::{ derived, DelayedSetter, delayed, compose, compose_slice, StaticValue, commute_clonable, cache_constant_clonable, compose_slice_vec, short_memoized_arc, short_memoized, cache_constant_arc }};
 
-use crate::{allotment::{style::{style::{ContainerAllotmentStyle}}, core::{carriageoutput::BoxPositionContext, allotmentname::{AllotmentNamePart, AllotmentName}, boxtraits::{Stackable, BuildSize, ContainerSpecifics, Coordinated}}}, CoordinateSystem};
+use crate::{allotment::{style::{style::{ContainerAllotmentStyle}}, core::{allotmentname::{AllotmentNamePart, AllotmentName}, boxtraits::{Stackable, BuildSize, ContainerSpecifics, Coordinated}, boxpositioncontext::BoxPositionContext}}, CoordinateSystem};
 
 use super::{container::{Container}};
 
@@ -33,9 +33,9 @@ fn child_tops<'a>(children: &[AddedChild]) -> (StaticValue<Arc<Vec<f64>>>,Static
     /* calculate our own height */
     let self_height = commute_clonable(&heights,0.,|a,b| *a+*b);
     /* collate child heights */
-    let heights = compose_slice(&heights,|x| x.to_vec());
+    let heights = compose_slice_vec(&heights);
     /* set relative tops */
-    let relative_tops = cache_constant(derived(heights,move |heights| {
+    let relative_tops = cache_constant_arc(short_memoized(derived(heights,move |heights| {
         let mut tops = vec![];
         let mut top = 0.;
         for height in &*heights {
@@ -47,21 +47,21 @@ fn child_tops<'a>(children: &[AddedChild]) -> (StaticValue<Arc<Vec<f64>>>,Static
             out[*pos] = tops[i];
         }
         out
-    }));
+    })));
     (relative_tops,self_height)
 }
 
 #[derive(Clone)]
 struct UnpaddedStacker {
     relative_tops: StaticValue<Option<Arc<Vec<f64>>>>,
-    relative_tops_setter: DelayedSetter<'static,'static,Arc<Vec<f64>>>
+    relative_tops_setter: DelayedSetter<'static,'static,Arc<Vec<f64>>>,
 }
 
 impl UnpaddedStacker {
     fn new() -> UnpaddedStacker {
         let (relative_tops_setter,relative_tops) = delayed();
         UnpaddedStacker {
-            relative_tops_setter, relative_tops
+            relative_tops_setter, relative_tops,
         }
     }
 }

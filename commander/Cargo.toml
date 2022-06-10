@@ -15,3 +15,7 @@ lazy_static="*"
 [dependencies.identitynumber]
 version="0.0.0"
 path="../identitynumber"
+
+[dependencies.peregrine_toolkit]
+version="*"
+path="../peregrine-toolkit"

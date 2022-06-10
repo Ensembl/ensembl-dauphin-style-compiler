@@ -1,6 +1,6 @@
 use std::{future::Future, pin::Pin, sync::{Arc, Mutex}};
 use commander::{FusePromise, PromiseFuture};
-use crate::lock;
+use peregrine_toolkit::lock;
 
 enum AsyncOnceData<T: Clone> {
     Unstarted(Option<Pin<Box<dyn Future<Output=T> + 'static>>>),

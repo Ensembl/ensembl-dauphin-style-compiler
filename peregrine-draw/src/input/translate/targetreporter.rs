@@ -1,6 +1,7 @@
 use std::sync::{Arc, Mutex};
 use peregrine_data::DataMessage;
-use peregrine_toolkit::{lock, sync::{blocker::{Blocker, Lockout}, needed::Needed}};
+use peregrine_toolkit_async::sync::{blocker::{Blocker, Lockout}, needed::Needed};
+use peregrine_toolkit::lock;
 use crate::{Message, PgCommanderWeb, run::{PgConfigKey, PgPeregrineConfig, report::Report}, util::debounce::Debounce};
 
 /* Lockable, debounced intention reoprting */

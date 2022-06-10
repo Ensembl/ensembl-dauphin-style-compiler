@@ -1,19 +1,24 @@
-use std::cell::RefCell;
+use std::collections::HashMap;
 use std::rc::Rc;
-use crate::util::enummap::{Enumerable, EnumerableKey, EnumerableMap, enumerable_compose };
+use std::sync::{Arc, Mutex};
+use crate::PgCommanderWeb;
 use crate::webgl::{ProcessBuilder, ProgramBuilder, SourceInstrs};
 use super::geometry::{GeometryProcessName, GeometryAdder, GeometryProgramName};
 use super::patina::{PatinaProcessName, PatinaAdder, PatinaProgramName};
 use super::shapeprogram::ShapeProgram;
 use crate::stage::stage::get_stage_source;
 use crate::util::message::Message;
+use enum_iterator::{Sequence, all};
+use peregrine_toolkit::{lock, log, debug_log, log_extra};
 
-
-#[derive(Clone)]
+#[cfg_attr(debug_assertions,derive(Debug))]
+#[derive(Clone,PartialEq,Eq,Hash,Sequence)]
 struct ProgramIndex(GeometryProgramName,PatinaProgramName);
 
-impl EnumerableKey for ProgramIndex {
-    fn enumerable(&self) -> Enumerable { enumerable_compose(&self.0,&self.1) }
+impl ProgramIndex {
+    fn all_programs() -> impl Iterator<Item=ProgramIndex> {
+        all::<ProgramIndex>()
+    }
 }
 
 pub(crate) struct ProgramStoreEntry {
@@ -42,13 +47,13 @@ impl ProgramStoreEntry {
 }
 
 struct ProgramStoreData {
-    programs: EnumerableMap<ProgramIndex,ProgramStoreEntry>
+    programs: HashMap<ProgramIndex,ProgramStoreEntry>
 }
 
 impl ProgramStoreData {
     fn new() -> Result<ProgramStoreData,Message> {
         Ok(ProgramStoreData {
-            programs: EnumerableMap::new()
+            programs: HashMap::new()
         })
     }
 
@@ -72,14 +77,32 @@ impl ProgramStoreData {
 }
 
 #[derive(Clone)]
-pub struct ProgramStore(Rc<RefCell<ProgramStoreData>>);
+pub struct ProgramStore(Arc<Mutex<ProgramStoreData>>);
 
 impl ProgramStore {
-    pub(crate) fn new() -> Result<ProgramStore,Message> {
-        Ok(ProgramStore(Rc::new(RefCell::new(ProgramStoreData::new()?))))
+    async fn async_background_load(&self) -> Result<(),Message> {
+        for program in ProgramIndex::all_programs() {
+            debug_log!("preload {:?}",program);
+            lock!(self.0).get_program(program.0,program.1).ok(); // ok to discard result
+        }
+        log_extra!("program preloading done");
+        Ok(())
+    }
+
+    fn background_load(&self, commander: &PgCommanderWeb) {
+        let self2 = self.clone();
+        commander.add("program preload", 10, None, None, Box::pin(async move {
+            self2.async_background_load().await
+        }));
+    }
+
+    pub(crate) fn new(commander: &PgCommanderWeb) -> Result<ProgramStore,Message> {
+        let out = ProgramStore(Arc::new(Mutex::new(ProgramStoreData::new()?)));
+        out.background_load(commander);
+        Ok(out)
     }
 
     pub(super) fn get_shape_program(&self, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> Result<ShapeProgram,Message> {
-        self.0.borrow_mut().get_program(geometry.get_program_name(),patina.get_program_name())?.make_shape_program(geometry)
+        lock!(self.0).get_program(geometry.get_program_name(),patina.get_program_name())?.make_shape_program(geometry)
     }
 }

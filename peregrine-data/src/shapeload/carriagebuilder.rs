@@ -1,37 +1,40 @@
 use std::sync::{Mutex, Arc};
 
-use peregrine_toolkit::{sync::needed::Needed, lock};
+use peregrine_toolkit_async::{sync::needed::Needed};
+use peregrine_toolkit::lock;
 
-use crate::{switch::trackconfiglist::TrainTrackConfigList, api::MessageSender, ShapeRequestGroup, PeregrineCoreBase, ShapeStore, DataMessage, allotment::core::{carriageoutput::CarriageOutput}, train::carriageextent::CarriageExtent};
+use crate::{switch::trackconfiglist::TrainTrackConfigList, api::MessageSender, ShapeRequestGroup, PeregrineCoreBase, ShapeStore, DataMessage, allotment::core::{abstractcarriage::AbstractCarriage}, PeregrineApiQueue};
 
+use crate::train::model::carriageextent::CarriageExtent;
 use super::loadshapes::{LoadMode, load_carriage_shape_list};
 
 #[derive(Clone)]
-pub(crate) struct CarriageProcess {
-    try_lifecycle: Option<Needed>,
+pub(crate) struct CarriageBuilder {
+    api_queue: PeregrineApiQueue,
     extent: CarriageExtent,
     config: TrainTrackConfigList,
     messages: Option<MessageSender>,
-    shapes2: Arc<Mutex<Option<CarriageOutput>>>,
+    output: Arc<Mutex<Option<AbstractCarriage>>>,
     warm: bool
 }
 
-impl CarriageProcess {
-    pub(crate) fn new(extent: &CarriageExtent, try_lifecycle: Option<&Needed>, configs: &TrainTrackConfigList, messages: Option<&MessageSender>, warm: bool) -> CarriageProcess {
-        CarriageProcess {
-            try_lifecycle: try_lifecycle.cloned(),
+impl CarriageBuilder {
+    pub(crate) fn new(api_queue: &PeregrineApiQueue, extent: &CarriageExtent, configs: &TrainTrackConfigList, messages: Option<&MessageSender>, warm: bool) -> CarriageBuilder {
+        CarriageBuilder {
+            api_queue: api_queue.clone(),
             extent: extent.clone(),
             config: configs.clone(),
             messages: messages.cloned(),
-            shapes2: Arc::new(Mutex::new(None)),
+            output: Arc::new(Mutex::new(None)),
             warm
         }
     }
 
+    #[cfg(debug_trains)]
     pub fn extent(&self) -> &CarriageExtent { &self.extent }
     
-    pub fn get_shapes2(&self) -> Option<CarriageOutput> {
-        lock!(self.shapes2).as_ref().map(|x| x.clone())
+    pub fn get_carriage_output(&self) -> Option<AbstractCarriage> {
+        lock!(self.output).as_ref().map(|x| x.clone())
     }
 
     fn make_shape_requests(&self) -> ShapeRequestGroup {
@@ -50,18 +53,16 @@ impl CarriageProcess {
     pub(crate) async fn load(&mut self, base: &PeregrineCoreBase, result_store: &ShapeStore, mode: LoadMode) -> Result<(),DataMessage> {
         let shape_requests = self.make_shape_requests();
         let shapes = 
-            load_carriage_shape_list(base,result_store,self.messages.as_ref(),shape_requests,&mode).await
+            load_carriage_shape_list(base,result_store,self.messages.as_ref(),shape_requests,Some(&self.extent),&mode).await
             .map_err(|errors| {
-               DataMessage::CarriageUnavailable(self.extent.train().clone(),self.extent.index() as usize,errors)
+               DataMessage::CarriageUnavailable(errors)
             })?;
         match mode {
             LoadMode::Network => { return Ok(()); },
             _ => {}
         }
-        *lock!(self.shapes2) = Some(shapes);
-        if let Some(lifecycle) = &self.try_lifecycle {
-            lifecycle.set();
-        }
+        *lock!(self.output) = Some(shapes);
+        self.api_queue.ping();
         Ok(())
     }
 }

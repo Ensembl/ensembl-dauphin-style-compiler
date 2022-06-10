@@ -16,15 +16,6 @@ from ncd import NCDRead
 
 BLOCKS_PER_PANEL = 1000
 
-# HACK should use correct codes in the first place
-def munge_designation(s):
-    s = re.sub(r'_',' ',s)
-    if s == 'mane select':
-        s = "MANE Select"
-    elif s == 'canonical':
-        s = "Selected"
-    return s
-
 def transcript_grade(designation: str, transcript_biotype: str) -> str:
     if designation == "mane_select":
         return 3

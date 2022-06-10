@@ -22,8 +22,7 @@ fn pad(z: (u32,u32)) -> (u32,u32) {
     (z.0+PAD,z.1+PAD)
 }
 
-fn stripe_stamp(canvas: &Flat, t: (u32,u32), m: (u32,u32), a: &DirectColour, b: &DirectColour, p: u32) -> Result<(),Message> {
-    canvas.rectangle(m,(STAMP,STAMP),&DirectColour(0,0,0,255),true)?;
+fn stripe_stamp(canvas: &Flat, t: (u32,u32), a: &DirectColour, b: &DirectColour, p: u32) -> Result<(),Message> {
     canvas.rectangle(t,(STAMP,STAMP),b,true)?;
     canvas.path(t,&[
         (0,    0),
@@ -118,20 +117,19 @@ impl FlatDrawingItem for Heraldry {
         Some(hasher.finish())
     }
 
-    fn build(&mut self, canvas: &mut Flat, text_origin: (u32,u32), mask_origin: (u32,u32), size: (u32,u32)) -> Result<(),Message> {
+    fn build(&mut self, canvas: &mut Flat, text_origin: (u32,u32), size: (u32,u32)) -> Result<(),Message> {
         match self {
             Heraldry::Stripe(a,b,prop,count) => {
                 let p = STAMP * (*prop) / 100;
                 for y in 0..count.1 {
                     for x in 0..count.0 {
                         let t = (text_origin.0+x*STAMP,text_origin.1+y*STAMP);
-                        let m = (mask_origin.0+x*STAMP,mask_origin.1+y*STAMP);
-                        stripe_stamp(canvas,pad(t),pad(m),a,b,p)?;
+                        stripe_stamp(canvas,pad(t),a,b,p)?;
                     }
                 }
             },
             Heraldry::BarDots(dots) => {
-                dots.draw(canvas,text_origin,mask_origin,size)?;
+                dots.draw(canvas,text_origin,size)?;
             },
         }
         Ok(())

@@ -4,9 +4,9 @@
  * 
  * Each "value" has two parts, a *local* value, the value for that carriage, and a
  * *global* value, the value for this particular train state. Local values are set
- * to puzzle answers (closures) during creation of the CarriageProcess. Note that it
+ * to puzzle answers (closures) during creation of the CarriageBuilder. Note that it
  * is only the *value* of a global value which is global, for lifetime management 
- * reasons, there is a global variable for each CarriageProcess.
+ * reasons, there is a global variable for each CarriageBuilder.
  * 
  * Globals are potentially called upon at the time of creation of a DrawingCarriage. 
  * Therefore the resolution process must "fit" between these two endpoints.

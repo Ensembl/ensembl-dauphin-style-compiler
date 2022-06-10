@@ -40,6 +40,20 @@ impl std::fmt::Debug for LeafRequest {
     }
 }
 
+impl PartialEq for LeafRequest {
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name
+    }
+}
+
+impl Eq for LeafRequest {}
+
+impl std::hash::Hash for LeafRequest {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.name.hash(state);
+    }
+}
+
 impl LeafRequest {
     pub fn new(name: &AllotmentName) -> LeafRequest {
         LeafRequest {

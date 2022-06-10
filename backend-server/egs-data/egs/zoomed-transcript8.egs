@@ -12,6 +12,7 @@ import "file:common8.egs"; use "common8";
  * startos/endos -- start/end but truncated to only part in current panel (ie on screen)
  * text -- some text
  * al -- an allotment
+ * aln -- an allotment name
  * pt -- a patina
  * num -- how many
  * idx_X_in_Y -- the nth X in Y (ie enumeration, zero based)
@@ -233,23 +234,21 @@ thick_id_gn_by_ex := id_gn_by_ex#[thick_exons];
 
 use_allotment_names(root_allotment_names,enabled_tracks,potential_tracks);
 
-base_allotment_names := [append_group(index(allotment_idx,root_allotment_names),gene_id)];
+aln_base := [append_group(index(allotment_idx,root_allotment_names),gene_id)];
 base_transcript_allotment_names := [append_group(index(transcript_allotment_idx,root_allotment_names),id_gn_by_tr)];
 base_thick_exon_allotment_names := [append_group(index(thick_exon_allotment_idx,root_allotment_names),thick_id_gn_by_ex)];
 
-allotment_names := [append_group(base_allotment_names[],["diagram"][])];
+allotment_names := [append_group(aln_base[],["diagram"][])];
 transcript_allotment_names := [append_group(base_transcript_allotment_names[],["diagram"][])];
 thick_exon_allotment_names := [append_group(base_thick_exon_allotment_names[],["diagram"][])];
 
-al_over_by_gn := use_allotment(append_group(allotment_names[],["over"][]));
 al_over_by_tr := use_allotment(append_group(transcript_allotment_names[],["over"][]));
-al_far_over_by_gn := use_allotment(append_group(allotment_names[],["far-over"][]));
 al_far_over_by_tr := use_allotment(append_group(transcript_allotment_names[],["far-over"][]));
 
 al_far_under_by_gn := use_allotment(append_group(allotment_names[],["far-under"][]));
 al_far_under_by_tr := use_allotment(append_group(transcript_allotment_names[],["far-under"][]));
 
-al_text_by_gn := use_allotment(append_group(base_allotment_names[],["text"][]));
+al_text_by_gn := use_allotment(append_group(aln_base[],["text"][]));
 
 /*
  * What colour? What font? etc
@@ -271,8 +270,8 @@ focus_thick_colour := direct_colour(39,154,252,255);
 
 thick_colour := index(allotment_idx,[normal_thick_colour,normal_thick_colour,normal_thick_colour,normal_thick_colour,focus_thick_colour]);
 
-thick_seq_colour := spot_colour(thick_colour);
-thin_seq_colour := spot_colour(text_colour);
+thick_seq_colour := simple_colour(thick_colour);
+thin_seq_colour := simple_colour(text_colour);
 thick_seq_patina := patina_filled(thick_seq_colour);
 thin_seq_patina := patina_hollow(thin_seq_colour,1);
 
@@ -322,7 +321,7 @@ thick_textpen := pen("'Lato', sans-serif",text_size,thick_text_colour,thick_colo
 
 /* exon blocks */
 
-thick_seq_colour := spot_colour(thick_colour);
+thick_seq_colour := simple_colour(thick_colour);
 thick_seq_patina := patina_filled(thick_seq_colour);
 
 c := idx_tr_in_gn_by_thseq * 20;
@@ -366,9 +365,10 @@ c := idx_tr_in_gn_by_seq * 20;
 text_colour := index(index(which_gn_by_seq,[allotment_idx]),[normal_text_colour,normal_text_colour,normal_text_colour,normal_text_colour,focus_text_colour]);
 thin_textpen := pen("'Lato', sans-serif",text_size,text_colour,[][]);
 pos := spacebase(pos_seq+0.5,c+1,-4);
+thin_seq_allotment_over := index(which_tr_by_seq,[al_over_by_tr]);
 thin_seq_allotment_far_over := index(which_tr_by_seq,[al_far_over_by_tr]);
 
-text2(pos,thin_textpen,draw_seq_letter,thin_seq_allotment_far_over);
+text2(pos,thin_textpen,draw_seq_letter,thin_seq_allotment_over);
 
 /* track names */
 draw_track_names(gene_track_names,gene_name_switches,allotments_trackname);
@@ -398,8 +398,9 @@ enabled_labels := get_switch([
 enabled_gene_labels := index(allotment_idx,[enabled_labels]);
 al_text_by_gn#[enabled_gene_labels==false] := use_allotment("");
 al_text_by_gn#[get_switch(["scale","no-labels"])] := use_allotment("");
+text_colour := index(allotment_idx,[normal_text_colour,normal_text_colour,normal_text_colour,normal_text_colour,focus_text_colour]);
 textpen := pen("'Lato', sans-serif",text_size,text_colour,[][]);
-text2(spacebase(start_gn,drawn_tr_by_gn*20-5,0),textpen,gene_name,al_text_by_gn);
+text2(spacebase(start_gn,drawn_tr_by_gn*20-12,0),textpen,gene_name,al_text_by_gn);
 
 /* zmenu areas */
 /* type and gene zmenus */

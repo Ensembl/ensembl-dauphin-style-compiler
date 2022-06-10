@@ -2,6 +2,8 @@ import "lib:std"; use "std";
 import "lib:peregrine"; use "peregrine";
 import "file:common8.egs"; use "common8";
 
+halt(only_warm(),[]);
+
 min_max := bp_range();
 min := [min_max][@==0];
 max := [min_max][@==1];
@@ -26,7 +28,7 @@ style("**/ruler/background/overlay",["depth"][],["58"][]);
 style("window-top/",["system","priority","type"][],["window","-1000","overlay"][]);
 style("window-bottom/",["system","direction","priority","type"][],["window","reverse","-1000","overlay"][]);
 
-marker_patina := patina_hollow(spot_colour(direct_colour(120,120,120,255)),1);
+marker_patina := patina_hollow(simple_colour(direct_colour(120,120,120,255)),1);
 
 /* top and bottom separators */
 rectangle(spacebase(0,16,0),spacebase(1,16,0),marker_patina,allotment_window_top);

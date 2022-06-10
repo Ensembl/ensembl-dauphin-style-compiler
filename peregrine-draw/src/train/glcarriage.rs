@@ -1,18 +1,18 @@
-use peregrine_data::{Assets, DrawingCarriage, CarriageExtent};
+use peregrine_data::{Assets, DrawingCarriage, CarriageExtent, PeregrineCore, PeregrineApiQueue};
 use peregrine_toolkit::{lock, warn, error };
-use peregrine_toolkit::sync::asynconce::AsyncOnce;
-use peregrine_toolkit::sync::needed::Needed;
+use peregrine_toolkit_async::sync::asynconce::AsyncOnce;
+use peregrine_toolkit_async::sync::needed::Needed;
 use crate::shape::layers::drawingzmenus::HotspotEntryDetails;
 use crate::{PgCommanderWeb};
 use crate::shape::layers::drawing::{ Drawing };
 use crate::webgl::DrawingSession;
 use crate::webgl::global::WebGlGlobal;
-use std::hash::{ Hash, Hasher };
 use std::sync::{Arc, Mutex};
 use crate::stage::stage::ReadStage;
 use crate::util::message::Message;
 
 struct GLCarriageData {
+    data_api: PeregrineApiQueue,
     commander: PgCommanderWeb,
     extent: CarriageExtent,
     opacity: Mutex<f64>,
@@ -42,36 +42,22 @@ impl GLCarriageData {
 #[derive(Clone)]
 pub(crate) struct GLCarriage(Arc<Mutex<GLCarriageData>>);
 
-impl PartialEq for GLCarriage {
-    fn eq(&self, other: &Self) -> bool {
-        if Arc::ptr_eq(&self.0,&other.0) { return true; }
-        lock!(self.0).extent == lock!(other.0).extent
-    }
-}
-
-impl Eq for GLCarriage {}
-
-impl Hash for GLCarriage {
-    fn hash<H: Hasher>(&self, hasher: &mut H) {
-        lock!(self.0).extent.hash(hasher);
-    }
-}
-
 impl GLCarriage {
-    pub fn new(redraw_needed: &Needed, commander: &PgCommanderWeb, carriage: &DrawingCarriage, gl: &Arc<Mutex<WebGlGlobal>>, assets: &Assets) -> Result<GLCarriage,Message> {
+    pub fn new(data_api: &PeregrineApiQueue, redraw_needed: &Needed, commander: &PgCommanderWeb, carriage: &DrawingCarriage, gl: &Arc<Mutex<WebGlGlobal>>, assets: &Assets) -> Result<GLCarriage,Message> {
         let carriage2 = carriage.clone();
         let gl = gl.clone();
         let assets = assets.clone();
         let redraw_needed = redraw_needed.clone();
         let our_carriage = GLCarriage(Arc::new(Mutex::new(GLCarriageData {
             commander: commander.clone(),
+            data_api: data_api.clone(),
             extent: carriage.extent().clone(),
             opacity: Mutex::new(1.),
             preflight_done: false,
             discarded: false,
             drawing: AsyncOnce::new(async move {
                 let carriage = carriage2;
-                let scale = carriage.extent().train().scale();
+                let scale = carriage.extent().scale();
                 let shapes = carriage.shapes().clone();
                 let drawing = Drawing::new(Some(scale),shapes,&gl,carriage.extent().left_right().0,&assets,&carriage.relevancy()).await;
                 redraw_needed.set();
@@ -92,7 +78,8 @@ impl GLCarriage {
             error!("{}",e);
         }
         lock!(self.0).preflight_done = true;
-        carriage.set_ready();
+        let api = lock!(self.0).data_api.clone();
+        api.carriage_ready(&carriage);
         Ok(())
     }
 
@@ -100,7 +87,7 @@ impl GLCarriage {
         let self2 = self.clone();
         let commander = lock!(self.0).commander.clone();
         let carriage = carriage.clone();
-        commander.add::<Message>("load", 0, None, None, Box::pin(async move {
+        commander.add::<Message>("load", 2, None, None, Box::pin(async move {
             self2.preflight(&carriage).await
         }));
     }

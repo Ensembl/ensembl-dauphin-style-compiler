@@ -1,4 +1,4 @@
-use crate::{DataMessage, ShapeStore, PeregrineCoreBase, PgCommanderTaskSpec, add_task, api::MessageSender,  shape::{CarriageShapesBuilder}, ShapeRequestGroup, allotment::core::carriageoutput::CarriageOutput };
+use crate::{DataMessage, ShapeStore, PeregrineCoreBase, PgCommanderTaskSpec, add_task, api::MessageSender,  shape::{AbstractShapesContainer}, ShapeRequestGroup, allotment::core::abstractcarriage::AbstractCarriage, CarriageExtent };
 
 #[derive(Clone)]
 pub enum LoadMode {
@@ -23,7 +23,7 @@ impl LoadMode {
     }
 }
 
-pub(crate) async fn load_carriage_shape_list(base: &PeregrineCoreBase, result_store: &ShapeStore, messages: Option<&MessageSender>, shape_requests: ShapeRequestGroup, mode: &LoadMode) -> Result<CarriageOutput,Vec<DataMessage>> {
+pub(crate) async fn load_carriage_shape_list(base: &PeregrineCoreBase, result_store: &ShapeStore, messages: Option<&MessageSender>, shape_requests: ShapeRequestGroup, extent: Option<&CarriageExtent>, mode: &LoadMode) -> Result<AbstractCarriage,Vec<DataMessage>> {
     let mut errors = vec![];
     let lane_store = result_store.clone();
     let tracks : Vec<_> = shape_requests.iter().map(|request|{
@@ -31,7 +31,7 @@ pub(crate) async fn load_carriage_shape_list(base: &PeregrineCoreBase, result_st
         let mode = mode.clone();
         let lane_store = lane_store.clone();
         add_task(&base.commander,PgCommanderTaskSpec {
-            name: format!("data program"),
+            name: format!("data program {}",if mode.high_priority() { "high" } else { "low" }),
             prio: if mode.high_priority() { 2 } else { 5 },
             slot: None,
             timeout: None,
@@ -42,12 +42,12 @@ pub(crate) async fn load_carriage_shape_list(base: &PeregrineCoreBase, result_st
         })
     }).collect();
     if !mode.build_shapes() { return Err(errors); }
-    let mut new_shapes = CarriageShapesBuilder::empty();
+    let mut new_shapes = vec![];
     for future in tracks {
         future.finish_future().await;
-        match future.take_result().as_ref().unwrap() {
+        match future.take_result().unwrap() {
             Ok(zoo) => {
-                new_shapes = new_shapes.union(&zoo);
+                new_shapes.push(zoo.clone());
             },
             Err(e) => {
                 if let Some(messages) = &messages {
@@ -57,5 +57,6 @@ pub(crate) async fn load_carriage_shape_list(base: &PeregrineCoreBase, result_st
             }
         }
     }
-    Ok(new_shapes.to_universe(Some(&shape_requests)))
+    let new_shapes = AbstractShapesContainer::merge(new_shapes);
+    Ok(new_shapes.build_abstract_carriage(Some(&shape_requests),extent))
 }

@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 use std::{collections::HashMap};
 use commander::cdr_tick;
 use peregrine_toolkit::log_extra;
-use peregrine_toolkit::sync::retainer::RetainTest;
+use peregrine_toolkit_async::sync::retainer::RetainTest;
 
 use crate::shape::layers::patina::PatinaProcess;
 use crate::webgl::{ ProcessBuilder, Process, DrawingAllFlats };
@@ -30,7 +30,7 @@ TODO hollowwidth
 TODO intersection cache
 */
 
-#[derive(Clone,Debug,PartialEq,Eq,Hash,PartialOrd,Ord)]
+#[derive(Clone,Debug,PartialEq,Eq,Hash)]
 pub(crate) struct ProgramCharacter(pub GeometryProcessName, pub PatinaProcessName);
 
 impl ProgramCharacter {
@@ -75,10 +75,8 @@ impl Layer {
 
     pub(super) async fn build(mut self, gl: &Arc<Mutex<WebGlGlobal>>, canvases: &DrawingAllFlats, retain: &RetainTest) -> Result<Option<Vec<Process>>,Message> {
         let mut processes = vec![];
-        let mut characters = self.store.keys().cloned().collect::<Vec<_>>();
-        characters.sort();
+        let characters = self.store.keys().cloned().collect::<Vec<_>>();
         for character in &characters {
-            //console::log_1(&format!("ch {:?}",character).into());
             let mut prog = self.store.remove(&character).unwrap();
             match character {
                 ProgramCharacter(_,PatinaProcessName::Texture(flat_id)) |

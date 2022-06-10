@@ -1,5 +1,5 @@
 use std::sync::{ Arc, Mutex };
-use peregrine_toolkit::sync::blocker::Lockout;
+use peregrine_toolkit_async::sync::blocker::Lockout;
 
 use crate::Message;
 use crate::input::low::lowlevel::LowLevelState;

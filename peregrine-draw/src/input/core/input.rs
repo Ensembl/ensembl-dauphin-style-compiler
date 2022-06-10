@@ -1,6 +1,6 @@
 use std::sync::{ Arc, Mutex };
 use peregrine_data::{PeregrineCore};
-use peregrine_toolkit::sync::blocker::{Blocker, Lockout};
+use peregrine_toolkit_async::sync::blocker::{Blocker, Lockout};
 
 use crate::PeregrineInnerAPI;
 use crate::input::translate::targetreporter::TargetReporter;

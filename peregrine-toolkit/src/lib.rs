@@ -1,13 +1,7 @@
 pub mod js {
     pub mod exception;
 }
-pub mod sync {
-    pub mod asynconce;
-    pub mod blocker;
-    pub mod needed;
-    pub mod pacer;
-    pub mod retainer;
-}
+
 pub mod plumbing {
     pub mod distributor;
     pub mod onchange;
@@ -28,7 +22,7 @@ pub mod puzzle {
 
     pub use answer::{ Answer, StaticAnswer, AnswerAllocator };
     pub use commute::{ commute, commute_arc, commute_clonable, DelayedCommuteBuilder, build_commute };
-    pub use compose::{ derived, compose, compose_slice };
+    pub use compose::{ derived, compose, compose_slice, compose_slice_vec };
     pub use constant::{ constant, cache_constant, cache_constant_arc, cache_constant_clonable };
     pub use delayed::{ DelayedSetter, delayed, promise_delayed };
     pub use memoized::{ short_memoized, short_memoized_arc, short_memoized_clonable };
@@ -47,6 +41,7 @@ pub mod boom;
 pub mod cbor;
 pub mod console;
 pub mod refs;
+pub mod sample;
 pub mod time;
 pub mod url;
 pub mod skyline;

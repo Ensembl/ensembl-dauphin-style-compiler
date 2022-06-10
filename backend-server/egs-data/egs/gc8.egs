@@ -33,5 +33,5 @@ draw_track_names(["%GC"],[["track","gc","name"]],[allotment_track_name]);
 draw_track_category("G",[allotment_letter]);
 
 /* horizontal line */
-line_patina := patina_hollow(spot_colour(direct_colour(208,208,208,255)),1);
+line_patina := patina_hollow(simple_colour(direct_colour(208,208,208,255)),1);
 rectangle(spacebase(0,16,0),spacebase(1,16,0),line_patina,allotment_track_background);

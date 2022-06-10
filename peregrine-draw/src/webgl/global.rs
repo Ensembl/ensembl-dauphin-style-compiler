@@ -1,4 +1,4 @@
-use crate::{run::{ PgPeregrineConfig, PgConfigKey }, shape::layers::programstore::ProgramStore, util::fonts::Fonts};
+use crate::{run::{ PgPeregrineConfig, PgConfigKey }, shape::layers::programstore::ProgramStore, util::fonts::Fonts, PgCommanderWeb};
 use crate::webgl::{ FlatStore, TextureBindery };
 use js_sys::Float32Array;
 use web_sys::Document;
@@ -18,7 +18,8 @@ pub struct WebGlGlobal {
     canvas_size: Option<(u32,u32)>,
     gpuspec: GPUSpec,
     aux_array: Float32Array,
-    fonts: Fonts
+    fonts: Fonts,
+    dpr: f32
 }
 
 pub(crate) struct WebGlGlobalRefs<'a> {
@@ -34,13 +35,13 @@ pub(crate) struct WebGlGlobalRefs<'a> {
 }
 
 impl WebGlGlobal {
-    pub(crate) fn new(dom: &PeregrineDom, config: &PgPeregrineConfig) -> Result<WebGlGlobal,Message> {
+    pub(crate) fn new(commander: &PgCommanderWeb, dom: &PeregrineDom, config: &PgPeregrineConfig) -> Result<WebGlGlobal,Message> {
         let context = dom.canvas()
             .get_context("webgl").map_err(|_| Message::WebGLFailure(format!("cannot get webgl context")))?
             .unwrap()
             .dyn_into::<WebGlRenderingContext>().map_err(|_| Message::WebGLFailure(format!("cannot get webgl context")))?;
         let gpuspec = GPUSpec::new(&context)?;
-        let program_store = ProgramStore::new()?;
+        let program_store = ProgramStore::new(commander)?;
         let fonts = Fonts::new()?;
         let canvas_store = FlatStore::new(dom.device_pixel_ratio());
         let bindery = TextureBindery::new(&gpuspec);
@@ -53,9 +54,12 @@ impl WebGlGlobal {
             canvas_size: None,
             gpuspec,
             fonts,
-            aux_array: Float32Array::new_with_length(config.get_size(&PgConfigKey::AuxBufferSize)? as u32)
+            aux_array: Float32Array::new_with_length(config.get_size(&PgConfigKey::AuxBufferSize)? as u32),
+            dpr: dom.device_pixel_ratio()
         })
     }
+
+    pub fn device_pixel_ratio(&self) -> f32 { self.dpr }
 
     pub(crate) fn refs<'a>(&'a mut self) -> WebGlGlobalRefs<'a> {
         WebGlGlobalRefs {

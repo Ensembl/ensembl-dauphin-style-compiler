@@ -136,7 +136,6 @@ mod train {
 
 mod util {
     pub(crate) mod ajax;
-    pub(crate) mod enummap;
     pub(crate) mod error;
     pub(crate) mod message;
     pub(crate) mod monostable;

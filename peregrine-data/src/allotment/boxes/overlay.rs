@@ -1,5 +1,5 @@
 use peregrine_toolkit::{puzzle::{StaticValue, commute_clonable}};
-use crate::{allotment::{core::{ carriageoutput::BoxPositionContext, allotmentname::{AllotmentNamePart, AllotmentName}, boxtraits::{ContainerSpecifics, BuildSize, Stackable, Coordinated}}, style::{style::{ContainerAllotmentStyle}}}, CoordinateSystem};
+use crate::{allotment::{core::{ allotmentname::{AllotmentNamePart, AllotmentName}, boxtraits::{ContainerSpecifics, BuildSize, Stackable, Coordinated}, boxpositioncontext::BoxPositionContext}, style::{style::{ContainerAllotmentStyle}}}, CoordinateSystem};
 use super::{container::{Container}};
 
 #[derive(Clone)]

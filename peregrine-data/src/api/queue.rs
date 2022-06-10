@@ -1,4 +1,5 @@
-use crate::api::PeregrineCore;
+use std::sync::{Arc, Mutex};
+
 use crate::core::channel::Channel;
 use crate::core::pixelsize::PixelSize;
 use crate::core::{ StickId, Viewport };
@@ -6,13 +7,53 @@ use crate::request::core::request::{BackendRequest, RequestVariant};
 use crate::request::messages::metricreq::MetricReport;
 use crate::run::{add_task};
 use crate::run::bootstrap::bootstrap;
-use crate::{Assets, PgCommanderTaskSpec};
+use crate::shapeload::carriagebuilder::CarriageBuilder;
+use crate::train::main::datatasks::{load_stick, load_carriage};
+use crate::train::main::train::StickData;
+use crate::train::model::trainextent::TrainExtent;
+use crate::{Assets, PgCommanderTaskSpec, DrawingCarriage};
 use commander::{CommanderStream, PromiseFuture};
-use peregrine_toolkit::sync::blocker::{Blocker, Lockout};
+use peregrine_toolkit::log;
+use peregrine_toolkit_async::sync::blocker::{Blocker, Lockout};
 use crate::util::message::DataMessage;
+use super::pgcore::PeregrineCore;
 
-//#[cfg_attr(debug_assertions,derive(Debug))]
-pub enum ApiMessage {
+/* Messages fall into broad categories:
+ *
+ *  Updating viewport or switches to be transfered to the railway on the next raf:
+ *    SetPosition
+ *    SetBpPerScreen
+ *    SetMinPxPerCarriage
+ *    SetSwitch
+ *    ClearSwitch
+ *    RadioSwitch
+ *    RegenerateTrackConfig
+ *    SetStick
+ *
+ * Feedback from input/graphics to be fed to the railway immediately:
+ *    Sketchy
+ *    CarriageLoaded
+ *    TransitionComplete
+ *    Invalidate
+ *    PingTrains
+ * 
+ * Retrieve information immediately from cache/backend:
+ *    LoadCarriage
+ *    LoadStick
+ *    Jump
+ * 
+ * Metric reports to be sent to backend on a when-possible basis:
+ *    ReportMetric
+ *    GeneralMetric
+ *
+ * During boot:
+ *    Bootstrap
+ *    SetAssets
+ *    Ready
+ *
+ */
+
+ pub(crate) enum ApiMessage {
     Ready,
     TransitionComplete,
     SetPosition(f64),
@@ -23,14 +64,17 @@ pub enum ApiMessage {
     SetSwitch(Vec<String>),
     ClearSwitch(Vec<String>),
     RadioSwitch(Vec<String>,bool),
-    RegeneraateTrackConfig,
+    RegenerateTrackConfig,
     Jump(String,PromiseFuture<Option<(StickId,f64,f64)>>),
     ReportMetric(Channel,MetricReport),
     GeneralMetric(String,Vec<(String,String)>,Vec<(String,f64)>),
     SetAssets(Assets),
     PingTrains,
     Sketchy(bool),
-    Invalidate
+    CarriageLoaded(DrawingCarriage),
+    Invalidate,
+    LoadStick(TrainExtent,Arc<Mutex<StickData>>),
+    LoadCarriage(CarriageBuilder)
 }
 
 struct ApiQueueCampaign {
@@ -49,9 +93,15 @@ impl ApiQueueCampaign {
             ApiMessage::Ready => {
                 data.dauphin_ready();
             },
+            ApiMessage::LoadStick(extent,output) => {
+                load_stick(&mut data.base,&data.agent_store.stick_store,&extent,&output);
+            },
+            ApiMessage::LoadCarriage(builder) => {
+                load_carriage(&mut data.base, &data.agent_store.lane_store,&builder);
+            }
             ApiMessage::TransitionComplete => {
                 let train_set = data.train_set.clone();
-                train_set.transition_complete(&mut data.base);
+                train_set.transition_complete();
             },
             ApiMessage::SetPosition(pos) =>{
                 self.viewport = self.viewport.set_position(pos);
@@ -75,6 +125,9 @@ impl ApiQueueCampaign {
                     }
                 }
             },
+            ApiMessage::CarriageLoaded(carriage) => {
+                carriage.set_ready();
+            },
             ApiMessage::Bootstrap(identity,channel) => {
                 bootstrap(&data.base,&data.agent_store,channel,identity);
             },
@@ -90,7 +143,7 @@ impl ApiQueueCampaign {
                 data.switches.radio_switch(&path.iter().map(|x| x.as_str()).collect::<Vec<_>>(),yn);
                 self.viewport = self.viewport.set_track_config_list(&data.switches.get_track_config_list());
             },
-            ApiMessage::RegeneraateTrackConfig => {
+            ApiMessage::RegenerateTrackConfig => {
                 self.viewport = self.viewport.set_track_config_list(&data.switches.get_track_config_list());
             },
             ApiMessage::ReportMetric(channel,metric) => {
@@ -144,11 +197,9 @@ impl PeregrineApiQueue {
         }
     }
 
-    fn bootstrap(&mut self, data: &mut PeregrineCore, channel: Channel, identity: u64) {
-        bootstrap(&data.base,&data.agent_store,channel,identity)
-    }
+    pub(crate) fn visual_blocker(&self) -> &Blocker { &self.visual_blocker }
 
-    pub fn run(&self, data: &mut PeregrineCore) {
+    pub(crate) fn run(&self, data: &mut PeregrineCore) {
         let mut self2 = self.clone();
         let mut data2 = data.clone();
         add_task::<Result<(),DataMessage>>(&data.base.commander,PgCommanderTaskSpec {
@@ -166,6 +217,7 @@ impl PeregrineApiQueue {
                         lockouts.push(lockout);
                     }
                     self2.update_viewport(&mut data2,campaign.viewport().clone());
+                    data2.train_set.ping();
                     drop(lockouts);
                 }
             }),
@@ -173,7 +225,31 @@ impl PeregrineApiQueue {
         });
     }
 
-    pub fn push(&self, message: ApiMessage) {
+    pub(crate) fn push(&self, message: ApiMessage) {
         self.queue.add((message,self.visual_blocker.lock()));
+    }
+
+    pub fn carriage_ready(&self, drawing_carriage: &DrawingCarriage) {
+        self.push(ApiMessage::CarriageLoaded(drawing_carriage.clone()));
+    }
+
+    pub(crate) fn regenerate_track_config(&self) {
+        self.push(ApiMessage::RegenerateTrackConfig);
+    }
+
+    pub(crate) fn set_assets(&self, assets: &Assets) {
+        self.push(ApiMessage::SetAssets(assets.clone()));
+    }
+
+    pub(crate) fn load_stick(&self, extent: &TrainExtent, output: &Arc<Mutex<StickData>>) {
+        self.push(ApiMessage::LoadStick(extent.clone(),output.clone()));
+    }
+
+    pub(crate) fn load_carriage(&self, builder: &CarriageBuilder) {
+        self.push(ApiMessage::LoadCarriage(builder.clone()));
+    }
+
+    pub(crate) fn ping(&self) {
+        self.push(ApiMessage::PingTrains);
     }
 }

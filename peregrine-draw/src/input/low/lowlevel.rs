@@ -16,7 +16,7 @@ use super::mapping::InputMap;
 use js_sys::Date;
 use peregrine_data::{Commander };
 use peregrine_toolkit::plumbing::distributor::Distributor;
-use peregrine_toolkit::sync::needed::Needed;
+use peregrine_toolkit_async::sync::needed::Needed;
 use super::pointer::cursor::{ Cursor, CursorHandle };
 use crate::run::CursorCircumstance;
 

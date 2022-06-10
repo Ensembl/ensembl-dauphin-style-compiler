@@ -113,7 +113,7 @@ fn apply_hollow(area: &SpaceBaseArea<f64,LeafStyle>, edge: &Option<HollowEdge2<f
 fn area_to_rectangle(area: &SpaceBaseArea<f64,LeafStyle>,  wobble: &Option<SpaceBaseArea<Observable<'static,f64>,()>>, edge: &Option<HollowEdge2<f64>>) -> Result<SpaceBaseArea<f64,LeafStyle>,Message> {
     if let Some(wobble) = wobble {
         let top_left = apply_wobble(area.top_left(),wobble.top_left());
-        let bottom_right = apply_wobble(area.bottom_right(),wobble.bottom_right());    
+        let bottom_right = apply_wobble(area.bottom_right(),wobble.bottom_right());
         let wobbled = SpaceBaseArea::new(PartialSpaceBase::from_spacebase(top_left),PartialSpaceBase::from_spacebase(bottom_right));
         if let Some(wobbled) = wobbled {
             return Ok(apply_hollow(&wobbled,edge));

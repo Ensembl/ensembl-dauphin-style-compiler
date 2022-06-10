@@ -5,14 +5,13 @@ use crate::core::{ Viewport };
 use crate::request::core::manager::RequestManager;
 use crate::request::messages::metricreq::MetricReport;
 use crate::api::PeregrineIntegration;
-use crate::train::Railway;
+use crate::train::main::railway::Railway;
 use commander::PromiseFuture;
 use peregrine_dauphin_queue::{ PgDauphinQueue };
 use peregrine_message::PeregrineMessage;
 use peregrine_toolkit::{lock};
 use peregrine_toolkit::puzzle::AnswerAllocator;
-use peregrine_toolkit::sync::blocker::Blocker;
-use peregrine_toolkit::sync::needed::Needed;
+use peregrine_toolkit_async::sync::needed::Needed;
 use std::sync::{ Arc, Mutex };
 use crate::{AllBackends, Assets, Commander, CountingPromise, PgCommander, PgDauphin};
 use crate::api::PeregrineApiQueue;
@@ -60,13 +59,13 @@ pub struct PeregrineCoreBase {
 pub struct PeregrineCore {
     pub base: PeregrineCoreBase,
     pub agent_store: AgentStore,
-    pub train_set: Railway,
+    pub train_set: Railway, // XXX into AgentStore
     pub viewport: Viewport,
     pub switches: Switches,
 }
 
 impl PeregrineCore {
-    pub fn new<M,F>(integration: Box<dyn PeregrineIntegration>, commander: M, messages: F, visual_blocker: &Blocker, redraw_needed: &Needed) -> Result<PeregrineCore,DataMessage> 
+    pub fn new<M,F>(integration: Box<dyn PeregrineIntegration>, commander: M, messages: F, queue: &PeregrineApiQueue, redraw_needed: &Needed) -> Result<PeregrineCore,DataMessage> 
                 where M: Commander + 'static, F: FnMut(DataMessage) + 'static + Send {
         let integration = Arc::new(Mutex::new(integration));
         let graphics = Graphics::new(&integration);
@@ -91,14 +90,14 @@ impl PeregrineCore {
             all_backends,
             graphics,
             integration,
-            queue: PeregrineApiQueue::new(visual_blocker),
+            queue: queue.clone(),
             identity: Arc::new(Mutex::new(0)),
             assets: Arc::new(Mutex::new(Assets::empty())),
             version,
             redraw_needed: redraw_needed.clone()
         };
         let agent_store = AgentStore::new(&base);
-        let train_set = Railway::new(&base,&agent_store.lane_store,&agent_store.stick_store,visual_blocker);
+        let train_set = Railway::new(&base,&agent_store.lane_store,queue.visual_blocker());
         Ok(PeregrineCore {
             base,
             agent_store,
@@ -120,17 +119,6 @@ impl PeregrineCore {
     pub fn bootstrap(&mut self, identity: u64, channel: Channel) {
         self.base.metrics.bootstrap(&channel,identity,&self.base.manager);
         self.base.queue.push(ApiMessage::Bootstrap(identity,channel));
-    }
-
-    /* from api */
-    pub fn ready(&self, mut core: PeregrineCore) {
-        self.base.queue.run(&mut core);
-        self.base.queue.push(ApiMessage::Ready);
-    }
-
-    /* called after some programs to refresh state in-case tracks appeared */
-    pub(crate) fn regenerate_track_config(&self) {
-        self.base.queue.push(ApiMessage::RegeneraateTrackConfig);
     }
 
     pub fn transition_complete(&self) {

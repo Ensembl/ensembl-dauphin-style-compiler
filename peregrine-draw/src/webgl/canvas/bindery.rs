@@ -37,7 +37,7 @@ use crate::util::message::Message;
 fn apply_weave(context: &WebGlRenderingContext,weave: &CanvasWeave) -> Result<(),Message> {
     let (minf,magf,wraps,wrapt) = match weave {
         CanvasWeave::Crisp =>
-            (WebGlRenderingContext::LINEAR,WebGlRenderingContext::LINEAR,
+            (WebGlRenderingContext::NEAREST,WebGlRenderingContext::NEAREST,
                 WebGlRenderingContext::REPEAT,WebGlRenderingContext::REPEAT),
         CanvasWeave::Fuzzy =>
             (WebGlRenderingContext::LINEAR,WebGlRenderingContext::LINEAR,

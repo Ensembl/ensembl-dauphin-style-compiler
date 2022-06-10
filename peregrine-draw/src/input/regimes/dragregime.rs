@@ -1,5 +1,5 @@
 use crate::input::translate::{axisphysics::{AxisPhysics, AxisPhysicsConfig}, measure::Measure};
-use super::regime::{TickResult, RegimeCreator, RegimeTrait};
+use super::regime::{TickResult, RegimeCreator, RegimeTrait, TickUpdate};
 
 pub(super) struct DragRegimeCreator(pub AxisPhysicsConfig, pub AxisPhysicsConfig);
 
@@ -85,6 +85,6 @@ impl RegimeTrait for DragRegime {
         }
         /**/
         self.update_settings(measure);
-        TickResult::Update(new_x,new_bp,false)
+        TickResult::Update(TickUpdate { x: new_x, bp: new_bp, force_fade: false })
     }
 }

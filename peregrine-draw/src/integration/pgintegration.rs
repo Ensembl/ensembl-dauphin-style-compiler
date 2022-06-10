@@ -1,7 +1,7 @@
 use std::sync::{ Arc, Mutex };
 use peregrine_data::{
     Assets, CarriageSpeed, ChannelIntegration, PeregrineIntegration, 
-    Viewport, TrainExtent, DrawingCarriage, GlobalAllotmentMetadata, PlayingField
+    Viewport, DrawingCarriage, GlobalAllotmentMetadata, PlayingField, TrainIdentity
 };
 use peregrine_toolkit::lock;
 use super::pgchannel::PgChannel;
@@ -28,11 +28,11 @@ impl PeregrineIntegration for PgIntegration {
         self.assets.add(&mut assets);
     }
 
-    fn create_train(&mut self, train: &TrainExtent) {
+    fn create_train(&mut self, train: &TrainIdentity) {
         self.trainset.create_train(train);
     }
 
-    fn drop_train(&mut self, train: &TrainExtent) {
+    fn drop_train(&mut self, train: &TrainIdentity) {
         self.trainset.drop_train(train,&self.webgl);
     }
 
@@ -44,7 +44,7 @@ impl PeregrineIntegration for PgIntegration {
         self.trainset.drop_carriage(carriage);
     }
 
-    fn set_carriages(&mut self, train: &TrainExtent, carriages: &[DrawingCarriage]) -> Result<(),DataMessage> {
+    fn set_carriages(&mut self, train: &TrainIdentity, carriages: &[DrawingCarriage]) -> Result<(),DataMessage> {
         self.trainset.set_carriages(train,carriages);
         Ok(())
     }
@@ -57,7 +57,7 @@ impl PeregrineIntegration for PgIntegration {
         Box::new(self.channel.clone())
     }
 
-    fn start_transition(&mut self, extent: &TrainExtent, max: u64, speed: CarriageSpeed) ->Result<(),DataMessage> {
+    fn start_transition(&mut self, extent: &TrainIdentity, max: u64, speed: CarriageSpeed) ->Result<(),DataMessage> {
         self.input.set_limit(max as f64);
         self.trainset.start_fade(extent,max,speed)
             .map_err(|e| DataMessage::TunnelError(Arc::new(Mutex::new(e))))?;

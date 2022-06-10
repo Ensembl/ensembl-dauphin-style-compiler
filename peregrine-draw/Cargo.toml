@@ -22,6 +22,7 @@ async-trait="*"
 url="*"
 console_error_panic_hook="*"
 css-color-parser="*"
+enum-iterator="*"
 
 [dependencies.wasm-bindgen]
 version="*"
@@ -40,6 +41,10 @@ path="../peregrine-message"
 [dependencies.peregrine_toolkit]
 version="*"
 path="../peregrine-toolkit"
+
+[dependencies.peregrine_toolkit_async]
+version="*"
+path="../peregrine-toolkit-async"
 
 [dependencies.web-sys]
 version = "*"

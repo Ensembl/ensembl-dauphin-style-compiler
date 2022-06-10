@@ -1,5 +1,5 @@
 use crate::input::translate::measure::Measure;
-use super::regime::{RegimeCreator, RegimeTrait, TickResult};
+use super::regime::{RegimeCreator, RegimeTrait, TickResult, TickUpdate};
 
 /* See Wijk and Nuij, IEEE Trans. Vis. Comput. Graph. 10(4), for algorithm, symbol meanings, and motivation.
  * The unsusual single letter variable names are per that paper.
@@ -137,7 +137,7 @@ impl GotoInstance {
         let s = self.t_seen * self.v;
         let (x,bp,force_fade) = self.algorithm.tick(s.min(self.s));
         let finished = s >= self.s;
-        (TickResult::Update(Some(x),Some(bp),force_fade),finished)
+        (TickResult::Update(TickUpdate { x: Some(x), bp: Some(bp), force_fade }),finished)
     }
 }
 

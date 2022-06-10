@@ -1,5 +1,5 @@
 use std::collections::VecDeque;
-use peregrine_toolkit::sync::blocker::Lockout;
+use peregrine_toolkit_async::sync::blocker::Lockout;
 
 use crate::run::{PgConfigKey, PgPeregrineConfig};
 use crate::run::report::Report;

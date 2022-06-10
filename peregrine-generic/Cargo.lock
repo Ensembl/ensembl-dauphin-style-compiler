@@ -93,6 +93,7 @@ dependencies = [
  "lazy_static 1.4.0",
  "ordered-float",
  "owning_ref",
+ "peregrine_toolkit",
 ]
 
 [[package]]
@@ -155,6 +156,26 @@ dependencies = [
  "hashbrown 0.12.0",
  "serde_cbor",
  "web-sys",
+]
+
+[[package]]
+name = "enum-iterator"
+version = "1.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3a7cbade83f72b1330fa58dc6203176f374e61eb3682055b6d3df05f56723f85"
+dependencies = [
+ "enum-iterator-derive",
+]
+
+[[package]]
+name = "enum-iterator-derive"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3a375a452d20c4dbbaa397e84cdfaa2712b4b3d22bf49426e9c8725d10fef005"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -491,6 +512,7 @@ dependencies = [
  "commander",
  "dauphin_interp",
  "futures",
+ "hashbrown 0.11.2",
  "identitynumber",
  "js-sys",
  "keyed",
@@ -501,6 +523,7 @@ dependencies = [
  "peregrine_dauphin_queue",
  "peregrine_message",
  "peregrine_toolkit",
+ "peregrine_toolkit_async",
  "serde",
  "serde_cbor",
  "serde_derive",
@@ -543,6 +566,7 @@ dependencies = [
  "console_error_panic_hook",
  "css-color-parser",
  "dauphin_interp",
+ "enum-iterator",
  "hostname",
  "js-sys",
  "keyed",
@@ -553,6 +577,7 @@ dependencies = [
  "peregrine_dauphin_queue",
  "peregrine_message",
  "peregrine_toolkit",
+ "peregrine_toolkit_async",
  "serde_cbor",
  "serde_json",
  "url",
@@ -573,7 +598,6 @@ name = "peregrine_toolkit"
 version = "0.0.0"
 dependencies = [
  "anyhow",
- "commander",
  "identitynumber",
  "js-sys",
  "lazy_static 1.4.0",
@@ -582,6 +606,14 @@ dependencies = [
  "serde_derive",
  "wasm-bindgen",
  "web-sys",
+]
+
+[[package]]
+name = "peregrine_toolkit_async"
+version = "0.0.0"
+dependencies = [
+ "commander",
+ "peregrine_toolkit",
 ]
 
 [[package]]

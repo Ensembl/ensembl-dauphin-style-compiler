@@ -1,5 +1,5 @@
 use std::{ops::{Add, Div, Sub}};
-use crate::{util::{eachorevery::{EachOrEveryGroupCompatible, EachOrEveryFilter}}};
+use crate::{util::{eachorevery::{EachOrEveryGroupCompatible, EachOrEveryFilter}}, EachOrEvery};
 use super::{spacebase::{SpaceBase, SpaceBaseIterator, SpaceBasePointRef, PartialSpaceBase}};
 use std::hash::Hash;
 
@@ -44,13 +44,12 @@ impl<X: Clone, Y: Clone> SpaceBaseArea<X,Y> {
         other.iter().cycle().take(len)
     }
 
-    pub fn fullmap_allotments_results<F,G,A: Clone,E>(&self, cb: F, cb2: G) -> Result<SpaceBaseArea<X,A>,E> 
-                where F: FnMut(&Y) -> Result<A,E>, G: FnMut(&Y) -> Result<A,E> {
-        Ok(SpaceBaseArea(
-            self.0.fullmap_allotments_results(cb)?,
-            self.1.fullmap_allotments_results(cb2)?,
+    pub fn replace_allotments<A>(&self, allotment: EachOrEvery<A>) -> SpaceBaseArea<X,A> {
+        SpaceBaseArea(
+            self.0.replace_allotments(allotment.clone()),
+            self.1.replace_allotments(allotment),
             self.2
-        ))
+        )
     }
 
     pub fn bottom_left(&self) -> SpaceBase<X,Y> { self.0.replace_normal(&self.1).unwrap() }
@@ -70,12 +69,12 @@ impl<X: Clone + Add<Output=X> + Div<f64,Output=X>, Y: Clone> SpaceBaseArea<X,Y> 
 impl<X,Y> SpaceBaseArea<X,Y> {
     pub fn len(&self) -> usize { self.2 }
 
-    pub fn demerge_by_allotment<F,K>(&self, cb: F) -> Vec<(K,EachOrEveryFilter)> where F: Fn(&Y) -> K, K: Hash+PartialEq+Eq {
+    pub fn demerge_by_allotment<F,K: Clone>(&self, cb: F) -> Vec<(K,EachOrEveryFilter)> where F: Fn(&Y) -> K, K: Hash+PartialEq+Eq {
         self.0.allotment.demerge(self.2,cb)
     }
 
-    pub fn map_allotments<F,A>(&self, cb: F) -> SpaceBaseArea<X,A> where F: Fn(&Y) -> A {
-        SpaceBaseArea(self.0.map_allotments(&cb),self.1.map_allotments(cb),self.2)
+    pub fn map_allotments<F,A>(&self, mut cb: F) -> SpaceBaseArea<X,A> where F: FnMut(&Y) -> A {
+        SpaceBaseArea(self.0.map_allotments(&mut cb),self.1.map_allotments(cb),self.2)
     }
 }
 

@@ -18,8 +18,8 @@ allotment_letter := use_allotment("tracks/track/contig/title/letter/content");
 
 style("tracks/track/contig/",["min-height","priority","report"][],["40","0","track;switch-id=contig"][]);
 
-neg_colour := spot_colour(direct_colour(128,128,128,255));
-pos_colour := spot_colour(direct_colour(200,200,200,255));
+neg_colour := simple_colour(direct_colour(128,128,128,255));
+pos_colour := simple_colour(direct_colour(200,200,200,255));
 patina := patina_filled(index(sense,[neg_colour,pos_colour]));
 
 top_left := spacebase(start,10,0);

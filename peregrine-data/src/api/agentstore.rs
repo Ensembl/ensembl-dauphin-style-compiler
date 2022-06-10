@@ -20,7 +20,7 @@ impl AgentStore {
         let program_loader = ProgramLoader::new(&base);
         let stick_authority_store = AuthorityStore::new(&base,&program_loader);
         let stick_store = StickStore::new(&base,&stick_authority_store);
-        let lane_store = ShapeStore::new(1024,&base,&program_loader);
+        let lane_store = ShapeStore::new(4096,&base,&program_loader);
         let jump_store = JumpStore::new(&base,&stick_authority_store);
         AgentStore {
             program_loader, stick_authority_store, stick_store, jump_store, lane_store, data_store

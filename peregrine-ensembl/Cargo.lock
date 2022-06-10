@@ -10,12 +10,6 @@ checksum = "aae1277d39aeec15cb388266ecc24b11c80469deae6067e17a1a7aa9e5c1f234"
 
 [[package]]
 name = "ahash"
-version = "0.4.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "739f4a8db6605981345c5654f3a85b056ce52f37a39d34da03f25bf2151ea16e"
-
-[[package]]
-name = "ahash"
 version = "0.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fcb51a0695d8f838b1ee009b3fbf66bda078cd64590202a864a8f3e8c4315c47"
@@ -100,11 +94,12 @@ version = "0.0.1"
 dependencies = [
  "binary-heap-plus",
  "futures",
- "hashbrown 0.9.1",
+ "hashbrown",
  "identitynumber",
  "lazy_static 1.4.0",
  "ordered-float",
  "owning_ref",
+ "peregrine_toolkit",
 ]
 
 [[package]]
@@ -164,9 +159,29 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "dauphin_interp",
- "hashbrown 0.9.1",
+ "hashbrown",
  "serde_cbor",
  "web-sys",
+]
+
+[[package]]
+name = "enum-iterator"
+version = "1.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3a7cbade83f72b1330fa58dc6203176f374e61eb3682055b6d3df05f56723f85"
+dependencies = [
+ "enum-iterator-derive",
+]
+
+[[package]]
+name = "enum-iterator-derive"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3a375a452d20c4dbbaa397e84cdfaa2712b4b3d22bf49426e9c8725d10fef005"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -290,20 +305,11 @@ checksum = "62aca2aba2d62b4a7f5b33f3712cb1b0692779a56fb510499d5c0aa594daeaf3"
 
 [[package]]
 name = "hashbrown"
-version = "0.9.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d7afe4a420e3fe79967a00898cc1f4db7c8a49a9333a29f8a4bd76a253d5cd04"
-dependencies = [
- "ahash 0.4.7",
-]
-
-[[package]]
-name = "hashbrown"
 version = "0.11.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ab5ef0d4909ef3724cc8cce6ccc8572c5c817592e9285f5464f8e86f8bd3726e"
 dependencies = [
- "ahash 0.7.6",
+ "ahash",
 ]
 
 [[package]]
@@ -399,7 +405,7 @@ version = "0.7.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fcb87f3080f6d1d69e8c564c0fcfde1d7aa8cc451ce40cae89479111f03bc0eb"
 dependencies = [
- "hashbrown 0.11.2",
+ "hashbrown",
 ]
 
 [[package]]
@@ -506,6 +512,7 @@ dependencies = [
  "commander",
  "dauphin_interp",
  "futures",
+ "hashbrown",
  "identitynumber",
  "js-sys",
  "keyed",
@@ -516,6 +523,7 @@ dependencies = [
  "peregrine_dauphin_queue",
  "peregrine_message",
  "peregrine_toolkit",
+ "peregrine_toolkit_async",
  "serde",
  "serde_cbor",
  "serde_derive",
@@ -558,6 +566,7 @@ dependencies = [
  "console_error_panic_hook",
  "css-color-parser",
  "dauphin_interp",
+ "enum-iterator",
  "hostname",
  "js-sys",
  "keyed",
@@ -568,6 +577,7 @@ dependencies = [
  "peregrine_dauphin_queue",
  "peregrine_message",
  "peregrine_toolkit",
+ "peregrine_toolkit_async",
  "serde_cbor",
  "serde_json",
  "url",
@@ -588,7 +598,6 @@ name = "peregrine_toolkit"
 version = "0.0.0"
 dependencies = [
  "anyhow",
- "commander",
  "identitynumber",
  "js-sys",
  "lazy_static 1.4.0",
@@ -597,6 +606,14 @@ dependencies = [
  "serde_derive",
  "wasm-bindgen",
  "web-sys",
+]
+
+[[package]]
+name = "peregrine_toolkit_async"
+version = "0.0.0"
+dependencies = [
+ "commander",
+ "peregrine_toolkit",
 ]
 
 [[package]]

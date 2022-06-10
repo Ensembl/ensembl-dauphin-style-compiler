@@ -3,26 +3,59 @@ from .species import Species
 from util.string import split_all
 from model.datalocator import AccessItem
 
+
 class DataModel(object):
+    """
+    Args:
+        data_accessor ():
+    """
     def __init__(self, data_accessor):
+
         self._species = {}
         self._species_aliases = {}
         self._load_species(data_accessor)
 
     def stick(self, data_accessor, alias):
-        for (prefix,_) in split_all(":",alias):
+        """
+
+        Args:
+            data_accessor ():
+            alias ():
+
+        Returns:
+
+        """
+        for (prefix, _) in split_all(":", alias):
             species_name = self._species_aliases.get(prefix)
-            if species_name != None:
-                return self._species[species_name].chromosome(data_accessor,alias)
+            if species_name is not None:
+                return self._species[species_name].chromosome(data_accessor, alias)
         return None
 
-    def _get_species_list(self, resolver):
+    @staticmethod
+    def _get_species_list(resolver):
+        """
+
+        Args:
+            resolver ():
+
+        Returns:
+            String
+        """
         item = AccessItem("species-list")
         accessor = resolver.get(item)
         values = accessor.get().decode("utf-8")
         return values.splitlines()
 
     def _load_species(self, resolver):
+        """
+
+        Args:
+            resolver ():
+
+        Returns:
+            None
+
+        """
         species_list = self._get_species_list(resolver)
         for species_name in species_list:
             try:

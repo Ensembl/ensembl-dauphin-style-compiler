@@ -13,6 +13,7 @@ use crate::DataMessage;
 use crate::DrawnType;
 use crate::LeafRequest;
 use crate::SpaceBaseArea;
+use crate::allotment::core::boxtraits::Transformable;
 use crate::allotment::style::style::LeafStyle;
 use crate::allotment::transformers::transformers::Transformer;
 use crate::allotment::util::rangeused::RangeUsed;
@@ -37,6 +38,15 @@ pub enum Shape<A> {
     Empty(EmptyShape<A>)
 }
 
+/* A shape without reference to its surroundings re placement -> */
+pub(crate) type UnplacedShape = Shape<LeafRequest>;
+
+/* -> A shape with reference only to the surroundings of its own carriage -> */
+pub(crate) type AbstractShape = Shape<Arc<dyn Transformable>>;
+
+/* -> A completely placed shape, ready to draw */
+pub type DrawingShape = Shape<LeafStyle>;
+
 impl<A> Clone for Shape<A> where A: Clone {
     fn clone(&self) -> Self {
         match self {
@@ -50,7 +60,7 @@ impl<A> Clone for Shape<A> where A: Clone {
 }
 
 impl<A> Shape<A> {
-    pub fn map_new_allotment<F,B>(&self, cb: F) -> Shape<B> where F: Fn(&A) -> B {
+    pub fn map_new_allotment<F,B>(&self, cb: F) -> Shape<B> where F: FnMut(&A) -> B {
         match self {
             Self::Text(arg0) => Shape::<B>::Text(arg0.map_new_allotment(cb)),
             Self::Image(arg0) => Shape::<B>::Image(arg0.map_new_allotment(cb)),
@@ -96,7 +106,7 @@ impl Shape<LeafRequest> {
 }
 
 impl Shape<LeafStyle> {
-    pub fn demerge<T: Hash + PartialEq + Eq,D>(self, cat: &D) -> Vec<(T,Shape<LeafStyle>)> where D: ShapeDemerge<X=T> {
+    pub fn demerge<T: Hash + Clone + Eq,D>(self, cat: &D) -> Vec<(T,Shape<LeafStyle>)> where D: ShapeDemerge<X=T> {
         match self {
             Shape::Wiggle(shape) => {
                 return shape.demerge(cat).drain(..).map(|(x,details)| 
@@ -160,7 +170,7 @@ impl Shape<LeafRequest> {
                 register_space_area(area.area());
             },
             Shape::Text(shape) => {
-                let size = shape.pen().size_in_webgl();
+                let size = shape.pen().geometry().size_in_webgl();
                 for (position,text) in shape.position().iter().zip(shape.iter_texts()) {
                     position.allotment.update_drawing_info(|allotment| {
                         allotment.merge_base_range(&RangeUsed::Part(*position.base,*position.base+1.));

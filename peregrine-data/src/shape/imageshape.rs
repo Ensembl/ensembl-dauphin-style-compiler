@@ -8,7 +8,7 @@ pub struct ImageShape<A> {
 }
 
 impl<A> ImageShape<A> {
-    pub fn map_new_allotment<F,B>(&self, cb: F) -> ImageShape<B> where F: Fn(&A) -> B {
+    pub fn map_new_allotment<F,B>(&self, cb: F) -> ImageShape<B> where F: FnMut(&A) -> B {
         ImageShape {
             position: self.position.map_allotments(cb),
             names: self.names.clone()
@@ -48,6 +48,12 @@ impl ImageShape<LeafRequest> {
         let details = ImageShape::new_details(position,names.clone())?;
         Ok(Shape::Image(details))
     }
+
+    pub fn base_filter(&self, min: f64, max: f64) -> ImageShape<LeafRequest> {
+        let non_tracking = self.position.allotments().make_filter(self.position.len(),|a| !a.leaf_style().coord_system.is_tracking());
+        let filter = self.position.make_base_filter(min,max);
+        self.filter(&filter.or(&non_tracking))
+    }
 }
 
 impl<A: Clone> ImageShape<A> {
@@ -71,16 +77,8 @@ impl ImageShape<Arc<dyn Transformer>> {
     }
 }
 
-impl ImageShape<LeafRequest> {
-    pub fn base_filter(&self, min: f64, max: f64) -> ImageShape<LeafRequest> {
-        let non_tracking = self.position.allotments().make_filter(self.position.len(),|a| !a.leaf_style().coord_system.is_tracking());
-        let filter = self.position.make_base_filter(min,max);
-        self.filter(&filter.or(&non_tracking))
-    }
-}
-
 impl ImageShape<LeafStyle> {
-    pub fn demerge<T: Hash + PartialEq + Eq,D>(self, cat: &D) -> Vec<(T,ImageShape<LeafStyle>)> where D: ShapeDemerge<X=T> {
+    pub fn demerge<T: Hash + Clone + Eq,D>(self, cat: &D) -> Vec<(T,ImageShape<LeafStyle>)> where D: ShapeDemerge<X=T> {
         let demerge = self.position.allotments().demerge(self.position.len(),|x| {
             cat.categorise(&x.coord_system)
         });

@@ -1,6 +1,7 @@
 use std::rc::Rc;
 use std::sync::Mutex;
 use commander::PromiseFuture;
+use peregrine_toolkit::lock;
 
 struct BlockerData {
     locks: i32,
@@ -79,7 +80,7 @@ impl Blocker {
 
     pub async fn wait(&self) {
         loop {
-            let mut r = self.0.lock().unwrap();
+            let mut r = lock!(self.0);
             let promise = r.maybe_blocked();
             drop(r);
             if let Some(promise) = promise {
@@ -87,6 +88,32 @@ impl Blocker {
             } else {
                 return;
             }
+        }
+    }
+}
+
+pub struct LockoutBool {
+    blocker: Blocker,
+    #[allow(unused)]
+    lockout: Mutex<Option<Lockout>>
+}
+
+impl LockoutBool {
+    pub fn new(blocker: &Blocker) -> LockoutBool {
+        LockoutBool {
+            blocker: blocker.clone(),
+            lockout: Mutex::new(None),
+        }
+    }
+
+    pub fn set(&self, yn: bool) {
+        let mut lockout = lock!(self.lockout);
+        if yn {
+            if lockout.is_none() {
+                *lockout = Some(self.blocker.lock());
+            }
+        } else {
+            *lockout = None;
         }
     }
 }

@@ -5,7 +5,7 @@ use crate::ProgramShapesBuilder;
 use crate::core::channel::PacketPriority;
 use std::any::Any;
 use std::sync::{ Arc };
-use crate::shape::{CarriageShapesBuilder};
+use crate::shape::{AbstractShapesContainer};
 use super::programloader::ProgramLoader;
 use super::loadshapes::LoadMode;
 use super::shaperequest::ShapeRequest;
@@ -14,9 +14,9 @@ use crate::util::memoized::{ Memoized, MemoizedType };
 use crate::api::{ PeregrineCoreBase };
 use crate::run::{ PgDauphinTaskSpec };
 use crate::shapeload::programdata::ProgramData;
-use peregrine_toolkit::lock;
+use peregrine_toolkit::{lock};
 
-async fn make_unfiltered_shapes(base: PeregrineCoreBase, program_loader: ProgramLoader, request: ShapeRequest, mode: LoadMode) -> Result<Arc<CarriageShapesBuilder>,DataMessage> {
+async fn make_unfiltered_shapes(base: PeregrineCoreBase, program_loader: ProgramLoader, request: ShapeRequest, mode: LoadMode) -> Result<Arc<AbstractShapesContainer>,DataMessage> {
     base.booted.wait().await;
     let priority = if mode.high_priority() { PacketPriority::RealTime } else { PacketPriority::Batch };
     let mut payloads = HashMap::new();
@@ -39,11 +39,11 @@ async fn make_unfiltered_shapes(base: PeregrineCoreBase, program_loader: Program
     let took_ms = cdr_current_time() - start;
     let net_time_ms = *net_ms.lock().unwrap();
     base.metrics.program_run(&request.track().track().program_name().1,request.region().scale().get_index(),!mode.build_shapes(),net_time_ms,took_ms);
-    let shapes = CarriageShapesBuilder::from_program_shapes(lock!(shapes).take().unwrap());
+    let shapes = lock!(shapes).take().unwrap().to_abstract_shapes_container();
     Ok(Arc::new(shapes))
 }
 
-fn make_unfiltered_cache(kind: MemoizedType, base: &PeregrineCoreBase, program_loader: &ProgramLoader, mode: LoadMode) -> Memoized<ShapeRequest,Result<Arc<CarriageShapesBuilder>,DataMessage>> {
+fn make_unfiltered_cache(kind: MemoizedType, base: &PeregrineCoreBase, program_loader: &ProgramLoader, mode: LoadMode) -> Memoized<ShapeRequest,Result<Arc<AbstractShapesContainer>,DataMessage>> {
     let base2 = base.clone();
     let program_loader = program_loader.clone();
     let mode = mode.clone();
@@ -58,7 +58,7 @@ fn make_unfiltered_cache(kind: MemoizedType, base: &PeregrineCoreBase, program_l
     })
 }
 
-async fn make_filtered_shapes(unfiltered_shapes_cache: Memoized<ShapeRequest,Result<Arc<CarriageShapesBuilder>,DataMessage>>, shape_request: ShapeRequest) -> Result<Arc<CarriageShapesBuilder>,DataMessage> {
+async fn make_filtered_shapes(unfiltered_shapes_cache: Memoized<ShapeRequest,Result<Arc<AbstractShapesContainer>,DataMessage>>, shape_request: ShapeRequest) -> Result<Arc<AbstractShapesContainer>,DataMessage> {
     let better_shape_request = shape_request.better_request();
     let unfiltered_shapes = unfiltered_shapes_cache.get(&better_shape_request).await;
     let unfiltered_shapes = unfiltered_shapes.as_ref().as_ref().map_err(|e| {
@@ -69,7 +69,7 @@ async fn make_filtered_shapes(unfiltered_shapes_cache: Memoized<ShapeRequest,Res
     Ok(Arc::new(filtered_shapes))
 }
 
-fn make_filtered_cache(kind: MemoizedType, unfiltered_shapes_cache: Memoized<ShapeRequest,Result<Arc<CarriageShapesBuilder>,DataMessage>>) -> Memoized<ShapeRequest,Result<Arc<CarriageShapesBuilder>,DataMessage>> {
+fn make_filtered_cache(kind: MemoizedType, unfiltered_shapes_cache: Memoized<ShapeRequest,Result<Arc<AbstractShapesContainer>,DataMessage>>) -> Memoized<ShapeRequest,Result<Arc<AbstractShapesContainer>,DataMessage>> {
     let unfiltered_shapes_cache = unfiltered_shapes_cache.clone();
     Memoized::new(kind,move |_,request: &ShapeRequest| {
         let unfiltered_shapes_cache = unfiltered_shapes_cache.clone();
@@ -82,9 +82,9 @@ fn make_filtered_cache(kind: MemoizedType, unfiltered_shapes_cache: Memoized<Sha
 
 #[derive(Clone)]
 pub struct ShapeStore {
-    realtime: Memoized<ShapeRequest,Result<Arc<CarriageShapesBuilder>,DataMessage>>,
-    batch: Memoized<ShapeRequest,Result<Arc<CarriageShapesBuilder>,DataMessage>>,
-    network: Memoized<ShapeRequest,Result<Arc<CarriageShapesBuilder>,DataMessage>>
+    realtime: Memoized<ShapeRequest,Result<Arc<AbstractShapesContainer>,DataMessage>>,
+    batch: Memoized<ShapeRequest,Result<Arc<AbstractShapesContainer>,DataMessage>>,
+    network: Memoized<ShapeRequest,Result<Arc<AbstractShapesContainer>,DataMessage>>
 }
 
 impl ShapeStore {
@@ -103,7 +103,7 @@ impl ShapeStore {
         }
     }
 
-    pub async fn run(&self, lane: &ShapeRequest, mode: &LoadMode) -> Arc<Result<Arc<CarriageShapesBuilder>,DataMessage>> {
+    pub async fn run(&self, lane: &ShapeRequest, mode: &LoadMode) -> Arc<Result<Arc<AbstractShapesContainer>,DataMessage>> {
         match mode {
             LoadMode::RealTime => {
                 self.realtime.get(lane).await

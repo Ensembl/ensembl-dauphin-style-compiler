@@ -1,6 +1,6 @@
 use std::{sync::{Arc}};
 use peregrine_toolkit::{puzzle::{DelayedSetter, constant, derived, StaticValue, StaticAnswer, promise_delayed, cache_constant_clonable, delayed }};
-use crate::{CoordinateSystem, allotment::{core::{carriageoutput::BoxPositionContext, allotmentname::{AllotmentName, AllotmentNamePart}, boxtraits::{Stackable, BuildSize, Transformable, Coordinated}}, transformers::{transformers::{Transformer, TransformerVariety}, simple::{SimpleTransformerHolder, SimpleTransformer}, drawinginfo::DrawingInfo}, style::{style::{LeafStyle, Indent}}, util::{rangeused::RangeUsed, bppxconverter::BpPxConverter}, globals::playingfield::PlayingFieldEdge}};
+use crate::{CoordinateSystem, allotment::{core::{allotmentname::{AllotmentName, AllotmentNamePart}, boxtraits::{Stackable, BuildSize, Transformable, Coordinated}, boxpositioncontext::BoxPositionContext}, transformers::{transformers::{Transformer, TransformerVariety}, simple::{SimpleTransformerHolder, SimpleTransformer}, drawinginfo::DrawingInfo}, style::{style::{LeafStyle, Indent}}, util::{rangeused::RangeUsed, bppxconverter::BpPxConverter}, globals::playingfield::PlayingFieldEdge}};
 
 // TODO ranged bppxconverter
 fn full_range_piece(coord_system: &CoordinateSystem, base_range: &RangeUsed<f64>, pixel_range: &RangeUsed<f64>, bp_px_converter: &StaticValue<Arc<BpPxConverter>>) -> StaticValue<RangeUsed<f64>> {
@@ -99,11 +99,12 @@ impl Stackable for FloatingLeaf {
         if let Some(top_setter) = &self.top_setter {
             top_setter.set(value.clone());
         }
-        
     }
 }
 
 impl Transformable for FloatingLeaf {
+    fn name(&self) -> &AllotmentName { &self.name }
+
     fn cloned(&self) -> Arc<dyn Transformable> {
         Arc::new(self.clone())
     }

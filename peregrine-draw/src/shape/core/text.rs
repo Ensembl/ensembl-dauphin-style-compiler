@@ -1,6 +1,6 @@
-use peregrine_data::{ Pen, DirectColour };
+use peregrine_data::{ DirectColour, PenGeometry };
 use keyed::keyed_handle;
-use peregrine_toolkit::{log, lock};
+use peregrine_toolkit::lock;
 use crate::util::fonts::Fonts;
 use crate::webgl::canvas::flatplotallocator::FlatPositionManager;
 use crate::webgl::{ CanvasWeave, Flat };
@@ -22,19 +22,19 @@ fn pad(x: (u32,u32)) -> (u32,u32) {
 }
 
 // XXX dedup from flat: generally move all text stuff into here
-fn pen_to_font(pen: &Pen, bitmap_multiplier: f64) -> String {
+fn pen_to_font(pen: &PenGeometry, bitmap_multiplier: f64) -> String {
     format!("{}px {}",(pen.size_in_webgl() * bitmap_multiplier).round(),pen.name())
 }
 
 pub(crate) struct Text {
-    pen: Pen,
+    pen: PenGeometry,
     text: String,
     colour: DirectColour,
     background: Option<DirectColour>
 }
 
 impl Text {
-    fn new(pen: &Pen, text: &str, colour: &DirectColour, background: &Option<DirectColour>) -> Text {
+    fn new(pen: &PenGeometry, text: &str, colour: &DirectColour, background: &Option<DirectColour>) -> Text {
         Text { pen: pen.clone(), text: text.to_string(), colour: colour.clone(), background: background.clone() }
     }
 
@@ -67,15 +67,10 @@ impl FlatDrawingItem for Text {
         Some(self.pen.group_hash())
     }
 
-    fn build(&mut self, canvas: &mut Flat, text_origin: (u32,u32), mask_origin: (u32,u32), size: (u32,u32)) -> Result<(),Message> {
+    fn build(&mut self, canvas: &mut Flat, text_origin: (u32,u32), size: (u32,u32)) -> Result<(),Message> {
         canvas.set_font(&self.pen)?;
-        let background = self.background.clone().unwrap_or_else(|| DirectColour(255,255,255,255));
+        let background = self.background.clone().unwrap_or_else(|| DirectColour(255,255,255,0));
         canvas.text(&self.text,pad(text_origin),size,&self.colour,&background)?;
-        if self.background.is_some() {
-            canvas.rectangle(pad(mask_origin),size, &DirectColour(0,0,0,255),false)?;
-        } else{
-            canvas.text(&self.text,pad(mask_origin),size,&DirectColour(0,0,0,255),&DirectColour(255,255,255,255))?;
-        }
         Ok(())
     }
 }
@@ -87,7 +82,7 @@ impl DrawingText {
         DrawingText(FlatDrawingManager::new(),fonts.clone(),bitmap_multiplier)
     }
 
-    pub fn add_text(&mut self, pen: &Pen, text: &str, colour: &DirectColour, background: &Option<DirectColour>) -> TextHandle {
+    pub fn add_text(&mut self, pen: &PenGeometry, text: &str, colour: &DirectColour, background: &Option<DirectColour>) -> TextHandle {
         self.0.add(Text::new(pen,text,colour,background))
     }
 

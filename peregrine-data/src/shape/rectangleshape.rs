@@ -16,7 +16,7 @@ impl<A> RectangleShape<A> {
         })
     }
 
-    pub fn map_new_allotment<F,B>(&self, cb: F) -> RectangleShape<B> where F: Fn(&A) -> B {
+    pub fn map_new_allotment<F,B>(&self, cb: F) -> RectangleShape<B> where F: FnMut(&A) -> B {
         RectangleShape {
             area: self.area.map_allotments(cb),
             patina: self.patina.clone(),
@@ -61,7 +61,7 @@ impl<A: Clone> RectangleShape<A> {
 }
 
 impl RectangleShape<LeafStyle> {
-    pub fn demerge<T: Hash + PartialEq + Eq,D>(self, cat: &D) -> Vec<(T,RectangleShape<LeafStyle>)> where D: ShapeDemerge<X=T> {
+    pub fn demerge<T: Hash + Clone + Eq,D>(self, cat: &D) -> Vec<(T,RectangleShape<LeafStyle>)> where D: ShapeDemerge<X=T> {
         let demerge = match &self.patina {
             Patina::Drawn(drawn_type,colours) => {
                 let allotments_and_colours = self.area.top_left().allotments().zip(&colours,|x,y| (x.clone(),y.clone()));
@@ -92,9 +92,7 @@ impl RectangleShape<Arc<dyn Transformer>> {
         }
         out
     }
-}
 
-impl RectangleShape<Arc<dyn Transformer>> {
     pub fn make(&self) -> Vec<RectangleShape<LeafStyle>> {
         let mut out = vec![];
         for ((variety,coord_system),rectangles) in self.demerge_by_variety() {

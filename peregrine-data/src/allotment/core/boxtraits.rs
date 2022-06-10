@@ -2,7 +2,9 @@ use std::sync::Arc;
 
 use peregrine_toolkit::{puzzle::{StaticValue, StaticAnswer, compose}};
 
-use crate::{allotment::{transformers::transformers::{Transformer}, style::{style::{LeafStyle}}, util::rangeused::RangeUsed, core::{carriageoutput::BoxPositionContext, allotmentname::AllotmentName}}, CoordinateSystem};
+use crate::{allotment::{transformers::transformers::{Transformer}, style::{style::{LeafStyle}}, util::rangeused::RangeUsed, core::{allotmentname::AllotmentName}}, CoordinateSystem};
+
+use super::boxpositioncontext::BoxPositionContext;
 
 pub trait Coordinated {
     fn coordinate_system(&self) -> &CoordinateSystem;
@@ -38,6 +40,7 @@ pub(crate) trait Stackable : Coordinated {
 }
 
 pub trait Transformable {
+    fn name(&self) -> &AllotmentName;
     fn cloned(&self) -> Arc<dyn Transformable>;
     fn make(&self, solution: &StaticAnswer) -> Arc<dyn Transformer>;
     fn get_style(&self) -> &LeafStyle;

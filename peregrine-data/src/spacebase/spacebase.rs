@@ -51,7 +51,7 @@ pub struct SpaceBase<X,Y> {
 }
 
 impl<X,Y> SpaceBase<X,Y> {
-    pub fn demerge_by_allotment<F,K: Hash+PartialEq+Eq>(&self, cb: F) -> Vec<(K,EachOrEveryFilter)> where F: Fn(&Y) -> K {
+    pub fn demerge_by_allotment<F,K: Hash+Clone+Eq>(&self, cb: F) -> Vec<(K,EachOrEveryFilter)> where F: Fn(&Y) -> K {
         self.allotment.demerge(self.len,cb)
     }
 }
@@ -113,7 +113,7 @@ impl<X: Clone, Y: Clone> PartialSpaceBase<X,Y> {
 }
 
 impl<X,Y> SpaceBase<X,Y> {
-    pub fn map_allotments<F,A>(&self, cb: F) -> SpaceBase<X,A> where F: Fn(&Y) -> A {
+    pub fn map_allotments<F,A>(&self, cb: F) -> SpaceBase<X,A> where F: FnMut(&Y) -> A {
         SpaceBase {
             base: self.base.clone(),
             normal: self.normal.clone(),
@@ -218,22 +218,18 @@ impl<X: Clone, Y: Clone> SpaceBase<X,Y> {
         })
     }
 
-    pub fn fullmap_allotments_results<F,A: Clone,E>(&self, mut cb: F) -> Result<SpaceBase<X,A>,E> 
-                where F: FnMut(&Y) -> Result<A,E> {
-        let allotment = if self.len>0 {
-            self.allotment.to_each(self.len).unwrap().fullmap_results(&mut cb)?
-        } else {
-            EachOrEvery::each(vec![])
-        };
-        Ok(SpaceBase {
+    pub fn replace_allotments<A>(&self, allotment: EachOrEvery<A>) -> SpaceBase<X,A> {
+        if !allotment.compatible(self.len()) {
+            panic!("replacing allotment with wrong size {:?} vs {:?}",allotment.len(),self.len());
+        }
+        SpaceBase {
             base: self.base.clone(),
             tangent: self.tangent.clone(),
             normal: self.normal.clone(),
             allotment,
             len: self.len
-        })
+        }
     }
-    // XXX not bool, result.
 
     pub fn update_tangent_from_allotment<'a,F>(&mut self, cb: F) where F: Fn(&mut X,&Y) {
         self.tangent = self.tangent.zip(&self.allotment,|t,a| {

@@ -12,20 +12,19 @@ pub(crate) trait FlatDrawingItem {
     fn group_hash(&self) -> Option<u64> { None }
     fn calc_size(&mut self, gl: &mut WebGlGlobal) -> Result<(u32,u32),Message>;
     fn padding(&mut self, _gl: &mut WebGlGlobal) -> Result<(u32,u32),Message> { Ok((0,0)) }
-    fn build(&mut self, canvas: &mut Flat, text_origin: (u32,u32), mask_origin: (u32,u32), size: (u32,u32)) -> Result<(),Message>;
+    fn build(&mut self, canvas: &mut Flat, text_origin: (u32,u32), size: (u32,u32)) -> Result<(),Message>;
 }
 
 /* here, size and origins are inclusive of padding */
 pub(crate) struct FlatBoundary {
     text_origin: Option<(u32,u32)>,
-    mask_origin: Option<(u32,u32)>,
     size: Option<(u32,u32)>,
     padding: (u32,u32)
 }
 
 impl FlatBoundary {
     fn new() -> FlatBoundary {
-        FlatBoundary { text_origin: None, mask_origin: None, size: None, padding: (0,0) }
+        FlatBoundary { text_origin: None, size: None, padding: (0,0) }
     }
 
     fn size_without_padding(&self) -> Result<(u32,u32),Message> {
@@ -46,9 +45,8 @@ impl FlatBoundary {
         self.padding = padding;
     }
 
-    fn set_origin(&mut self, text: (u32,u32), mask: (u32,u32)) {
+    fn set_origin(&mut self, text: (u32,u32)) {
         self.text_origin = Some(text);
-        self.mask_origin = Some(mask);
     }
 
     fn pad(&self, v: (u32,u32)) -> (u32,u32) {
@@ -58,7 +56,6 @@ impl FlatBoundary {
     fn get_texture_areas_on_bitmap(&self) -> Result<CanvasTextureArea,Message> {
         Ok(CanvasTextureArea::new(
             self.pad(unpack(&self.text_origin)?),
-            self.pad(unpack(&self.mask_origin)?),
             unpack(&self.size)?
         ))
     }
@@ -121,10 +118,7 @@ impl<H: KeyedHandle+Clone,T: FlatDrawingItem> FlatDrawingManager<H,T> {
         self.calc_sizes(gl)?;
         let mut sizes = vec![];
         for (_,boundary) in self.texts.values_mut() {
-            let size = boundary.size_with_padding()?;
-            /* mask and text */
-            sizes.push(size);
-            sizes.push(size);
+            sizes.push(boundary.size_with_padding()?);
         }
         self.request = Some(allocator.insert(&sizes));
         Ok(())
@@ -139,14 +133,12 @@ impl<H: KeyedHandle+Clone,T: FlatDrawingItem> FlatDrawingManager<H,T> {
         if let Some(canvas_id) = &self.canvas_id {
             let canvas = store.get_mut(canvas_id)?;
             for (text,boundary) in self.texts.values_mut() {
-                let mask_origin = origins_iter.next().unwrap();
                 let text_origin = origins_iter.next().unwrap();
-                let _size = sizes_iter.next().unwrap();
                 let size = sizes_iter.next().unwrap(); // XXX assumes always the same
-                boundary.set_origin(text_origin,mask_origin);
+                boundary.set_origin(text_origin);
                 boundary.update_padded_size(size);
                 let size = boundary.size_with_padding()?;
-                text.build(canvas,text_origin,mask_origin,size)?;
+                text.build(canvas,text_origin,size)?;
             }
         }
         Ok(())

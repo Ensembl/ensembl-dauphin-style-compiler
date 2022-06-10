@@ -39,7 +39,7 @@ impl HtmlFlatCanvas {
 
     pub fn context(&self) -> Result<CanvasRenderingContext2d,Message> {
         let context_options = Map::new();
-        context_options.set(&JsValue::from_str("alpha"),&Boolean::from(JsValue::FALSE));
+        context_options.set(&JsValue::from_str("alpha"),&Boolean::from(JsValue::TRUE));
         context_options.set(&JsValue::from_str("desynchronized"),&Boolean::from(JsValue::TRUE));
         self.element
             .get_context_with_context_options("2d",&context_options)
@@ -50,8 +50,7 @@ impl HtmlFlatCanvas {
 
     fn clear(&self) -> Result<(),Message> {
         let context = self.context()?;
-        context.set_fill_style(&JsValue::from_str("rgb(255,255,255)"));
-        context.fill_rect(0.,0.,self.size.0 as f64,self.size.1 as f64);
+        context.clear_rect(0.,0.,self.size.0 as f64,self.size.1 as f64);
         Ok(())
     }
 }

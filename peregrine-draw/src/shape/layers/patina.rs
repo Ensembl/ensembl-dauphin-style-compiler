@@ -1,9 +1,9 @@
+use enum_iterator::Sequence;
 use peregrine_data::DirectColour;
 
 use super::super::core::directcolourdraw::{ DirectColourDraw, DirectProgram };
 use super::super::core::texture::{ TextureDraw, TextureProgram };
 use crate::shape::core::spotcolourdraw::{SpotColourDraw, SpotProgram};
-use crate::util::enummap::{Enumerable, EnumerableKey};
 use crate::webgl::{FlatId, SetFlag};
 use crate::webgl::{ SourceInstrs, UniformProto, AttributeProto, GLArity, Varying, Statement, ProgramBuilder, TextureProto };
 use super::consts::{ PR_LOW, PR_DEF };
@@ -27,7 +27,7 @@ impl PatinaAdder {
     }
 }
 
-#[derive(Clone,Debug,Hash,PartialEq,Eq)]
+#[derive(Clone,Debug,Hash,PartialEq,Eq,Sequence)]
 pub(crate) enum PatinaProgramName { Direct, Spot, Texture, FreeTexture }
 
 impl PatinaProgramName {
@@ -40,17 +40,6 @@ pub(crate) trait PatinaYielder {
     fn name(&self) -> &PatinaProcessName;
     fn make(&mut self, builder: &ProgramBuilder) -> Result<PatinaAdder,Message>;
     fn set(&mut self, program: &PatinaProcess) -> Result<(),Message>;
-}
-
-impl EnumerableKey for PatinaProgramName {
-    fn enumerable(&self) -> Enumerable {
-        Enumerable(match self {
-            PatinaProgramName::Direct => 0,
-            PatinaProgramName::Texture => 1,
-            PatinaProgramName::FreeTexture => 2,
-            PatinaProgramName::Spot => 3,
-        },4)
-    }
 }
 
 impl PatinaProgramName {
@@ -81,23 +70,17 @@ impl PatinaProgramName {
                 PatinaProgramName::Texture => vec![
                     TextureProto::new("uSampler","uSamplerSize","uSamplerScale"),
                     AttributeProto::new(PR_DEF,GLArity::Vec2,"aTextureCoord"),
-                    AttributeProto::new(PR_DEF,GLArity::Vec2,"aMaskCoord"),
                     Varying::new(PR_DEF,GLArity::Vec2,"vTextureCoord"),
-                    Varying::new(PR_DEF,GLArity::Vec2,"vMaskCoord"),
                     Statement::new_vertex("vTextureCoord = aTextureCoord"),
-                    Statement::new_vertex("vMaskCoord = aMaskCoord"),
                     Statement::new_fragment("gl_FragColor = texture2D(uSampler,vTextureCoord)"),
                     Statement::new_fragment("gl_FragColor.a = gl_FragColor.a * uOpacity"),
-                    Statement::new_fragment("if(texture2D(uSampler,vMaskCoord).r > 0.995) discard")
                 ],
                 PatinaProgramName::FreeTexture => vec![
                     TextureProto::new("uSampler","uSamplerSize","uSamplerScale"),
                     AttributeProto::new(PR_DEF,GLArity::Vec2,"aTextureCoord"),
-                    AttributeProto::new(PR_DEF,GLArity::Vec2,"aMaskCoord"),
                     Varying::new(PR_DEF,GLArity::Vec2,"vTextureCoord"),
                     Varying::new(PR_DEF,GLArity::Vec2,"vMaskCoord"),
                     Statement::new_vertex("vTextureCoord = aTextureCoord"),
-                    Statement::new_vertex("vMaskCoord = aMaskCoord"),
                     Statement::new_fragment("gl_FragColor = texture2D(uSampler,vec2(
                             (gl_FragCoord.x/uSamplerScale.x-vOrigin.x)/uSamplerSize.x+vTextureCoord.x,
                             (vOrigin.y-gl_FragCoord.y/uSamplerScale.y)/uSamplerSize.y+vTextureCoord.y))"),
@@ -106,7 +89,6 @@ impl PatinaProgramName {
                         (gl_FragCoord.x/uSamplerScale.x-vOrigin.x)/uSamplerSize.x+vMaskCoord.x,
                         (vOrigin.y-gl_FragCoord.y/uSamplerScale.y)/uSamplerSize.y+vMaskCoord.y))"),
                     Statement::new_fragment("gl_FragColor.a = gl_FragColor.a * uOpacity"),
-                    Statement::new_fragment("if(mask.r > 0.995) discard")
                 ]
             }
         )
@@ -134,17 +116,5 @@ impl PatinaProcessName {
             PatinaProcessName::Texture(_) => PatinaProgramName::Texture,
             PatinaProcessName::FreeTexture(_) => PatinaProgramName::FreeTexture
         }
-    }
-}
-
-impl PartialOrd for PatinaProcessName {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.get_program_name().enumerable().partial_cmp(&other.get_program_name().enumerable())
-    }
-}
-
-impl Ord for PatinaProcessName  {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.partial_cmp(other).unwrap()
     }
 }

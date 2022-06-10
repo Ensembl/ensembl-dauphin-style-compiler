@@ -1,8 +1,8 @@
 use std::sync::{Arc};
 
-use peregrine_toolkit::{puzzle::{derived, DelayedSetter, compose, StaticValue, compose_slice, promise_delayed }};
+use peregrine_toolkit::{puzzle::{derived, DelayedSetter, compose, StaticValue, compose_slice, promise_delayed, cache_constant_arc, short_memoized_arc, compose_slice_vec }};
 
-use crate::{allotment::{core::{carriageoutput::BoxPositionContext, allotmentname::{AllotmentNamePart, AllotmentName}, boxtraits::{Stackable, BuildSize, ContainerSpecifics, Coordinated}}, style::{style::{ContainerAllotmentStyle}}, collision::{collisionalgorithm::{BumpRequestSet, BumpRequest, BumpResponses}}}, CoordinateSystem};
+use crate::{allotment::{core::{allotmentname::{AllotmentNamePart, AllotmentName}, boxtraits::{Stackable, BuildSize, ContainerSpecifics, Coordinated}, boxpositioncontext::BoxPositionContext}, style::{style::{ContainerAllotmentStyle}}, collision::{collisionalgorithm::{BumpRequestSet, BumpRequest, BumpResponses}}}, CoordinateSystem};
 
 use super::{container::{Container}};
 
@@ -57,18 +57,17 @@ impl ContainerSpecifics for UnpaddedBumper {
         for (_,size) in children {
             items.push(size.to_value());
         }
-        let items = compose_slice(&items,|x| x.to_vec());
+        let items = compose_slice_vec(&items);
         /* build the ConcreteRequests for this container */
         let factory = prep.bumper_factory.clone();
         let concrete_req = derived(items,move |items| {
             let mut builder = factory.builder();
             for (name,height,range) in &items {
-                //log!("{:?} has child of size {:?} called {:?}",self_name,range,name.sequence());
                 builder.add(BumpRequest::new(name,range,*height));
             }
             Arc::new(BumpRequestSet::new(builder))
         });
-        //let concrete_req = cache_constant_arc(short_memoized_arc(concrete_req));
+        let concrete_req = cache_constant_arc(short_memoized_arc(concrete_req));
         prep.state_request.bump_mut().set(&self.name,&concrete_req);
         self.results_setter.set(prep.state_request.bump_mut().global(&self.name).clone());
         derived(self.results.clone(),|c| c.height() as f64)

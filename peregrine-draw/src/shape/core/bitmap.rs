@@ -1,4 +1,4 @@
-use peregrine_data::{Asset, Assets, DirectColour };
+use peregrine_data::{Asset, Assets };
 use keyed::keyed_handle;
 use peregrine_toolkit::lock;
 use crate::webgl::canvas::flatplotallocator::FlatPositionManager;
@@ -51,9 +51,14 @@ impl Bitmap {
     }
 }
 
+fn dpr_round(size: u32, dpr: f32, scale: u32) -> u32 {
+    ( ((size*100/scale) as f32) * dpr ).round() as u32
+}
+
 impl FlatDrawingItem for Bitmap {
-    fn calc_size(&mut self, _gl: &mut WebGlGlobal) -> Result<(u32,u32),Message> {
-        Ok((self.width*self.scale/100,self.height*self.scale/100))
+    fn calc_size(&mut self, gl: &mut WebGlGlobal) -> Result<(u32,u32),Message> {
+        let dpr = gl.device_pixel_ratio();
+        Ok((dpr_round(self.width,dpr,self.scale),dpr_round(self.height,dpr,self.scale)))
     }
 
     fn padding(&mut self, _: &mut WebGlGlobal) -> Result<(u32,u32),Message> { Ok((PAD,PAD)) }
@@ -64,8 +69,7 @@ impl FlatDrawingItem for Bitmap {
         Some(hasher.finish())
     }
 
-    fn build(&mut self, canvas: &mut Flat, text_origin: (u32,u32), mask_origin: (u32,u32), size: (u32,u32)) -> Result<(),Message> {
-        canvas.rectangle(pad(mask_origin),size,&DirectColour(0,0,0,255),false)?;
+    fn build(&mut self, canvas: &mut Flat, text_origin: (u32,u32), size: (u32,u32)) -> Result<(),Message> {
         canvas.draw_png(Some(self.name.clone()),pad(text_origin),size,&self.bytes)?;
         Ok(())
     }

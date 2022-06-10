@@ -37,7 +37,7 @@
   * implementation. It is also accessible by Switcher's manager() and manager_mut()
   * so can include any instance-specific functionality.
   */
-pub(super) trait SwitcherManager {
+pub(crate) trait SwitcherManager {
     type Type: SwitcherObject;
     type Extent: SwitcherExtent;
     type Error;
@@ -45,11 +45,11 @@ pub(super) trait SwitcherManager {
     /* create an instance Tk from a spec xk */ 
     fn create(&mut self, extent: &Self::Extent) -> Result<Self::Type,Self::Error>;
 
-    /* callback to the manager when the Party is busy, ie crating or transitioning. */
+    /* callback to the manager when the Party is busy, ie creating or transitioning. */
     fn busy(&self, yn: bool);
 }
 
-pub(super) trait SwitcherExtent : Eq {
+pub(crate) trait SwitcherExtent : Eq {
     type Type: SwitcherObject;
     type Extent: SwitcherExtent;
 
@@ -60,7 +60,7 @@ pub(super) trait SwitcherExtent : Eq {
     fn is_milestone_for(&self, what: &Self::Extent) -> bool;
 }
 
-pub(super) trait SwitcherObject {
+pub(crate) trait SwitcherObject {
     type Extent: SwitcherExtent;
     type Type;
     type Speed;
@@ -95,7 +95,7 @@ pub(super) trait SwitcherObject {
     fn dead(&mut self);
 }
 
-pub(super) struct Switcher<M: SwitcherManager<Extent=X,Type=T,Error=E>,
+pub(crate) struct Switcher<M: SwitcherManager<Extent=X,Type=T,Error=E>,
                            X: SwitcherExtent<Extent=X,Type=T>+Clone,
                            T: SwitcherObject<Extent=X,Type=T>,
                            E> {
@@ -112,7 +112,7 @@ impl<M:SwitcherManager<Extent=X,Type=T,Error=E>,
      X:SwitcherExtent<Extent=X,Type=T>+Clone, 
      T:SwitcherObject<Extent=X,Type=T>,
      E> Switcher<M,X,T,E> {
-    pub(super) fn new(manager: M) -> Switcher<M,X,T,E> {
+    pub(crate) fn new(manager: M) -> Switcher<M,X,T,E> {
         Switcher {
             current: None, future: None, wanted: None, target: None,
             was_busy: false, sketchy: false, 
@@ -123,29 +123,22 @@ impl<M:SwitcherManager<Extent=X,Type=T,Error=E>,
     /* The quiescent object is the object which, barring this and any future changes will
      * ultimately become current.
      */
-    pub(super) fn quiescent(&self) -> Option<&T> {
+    pub(crate) fn quiescent(&self) -> Option<&T> {
         if let Some(wanted) = &self.wanted { return Some(wanted); }
         if let Some(future) = &self.future { return Some(future); }
         if let Some(current) = &self.current { return Some(current); }
         None
     }
 
-    /* Currently displayed object, incoming if tie. */
-    pub(super) fn displayed(&self) -> Option<&T> {
-        if let Some(future) = &self.future { return Some(future); }
-        if let Some(current) = &self.current { return Some(current); }
-        None
-    }
-
     /* Call given callback on all objects currently displayed or being prepared. */
-    pub(super) fn each_mut<F>(&mut self, cb: &F) where F: Fn(&mut T) {
+    pub(crate) fn each_mut<F>(&mut self, cb: &F) where F: Fn(&mut T) {
         if let Some(wanted) = &mut self.wanted { cb(wanted); }
         if let Some(future) = &mut self.future { cb(future); }
         if let Some(current) = &mut self.current { cb(current); }
     }
 
     /* Call given callback on all objects currently displayed. */
-    pub(super) fn each_displayed_mut<F>(&mut self, cb: &F) where F: Fn(&mut T) {
+    pub(crate) fn each_displayed_mut<F>(&mut self, cb: &F) where F: Fn(&mut T) {
         if let Some(future) = &mut self.future { cb(future); }
         if let Some(current) = &mut self.current { cb(current); }
     }
@@ -180,7 +173,7 @@ impl<M:SwitcherManager<Extent=X,Type=T,Error=E>,
         /* Exit if we are happy with the way things are */
         if self.target_matches_wanted() { return Ok(()); }
         let target = self.target.as_ref().unwrap();
-        /* Where do we ain: direct, or to milestone? We aim for milestones if
+        /* Where do we aim: direct, or to milestone? We aim for milestones if
          * there is already something in wanted which we are evicting (thrashing) or if
          * the user has set "sketchy" to indicate there is a great deal of interaction
          * going on.
@@ -220,7 +213,7 @@ impl<M:SwitcherManager<Extent=X,Type=T,Error=E>,
     /* Call periodically on a clock "beat" to cause Switcher to act. See the
      * comments on the individual try_* methods for a secription of the process.
      */
-    pub(super) fn ping(&mut self) -> Result<(),E> {
+    pub(crate) fn ping(&mut self) -> Result<(),E> {
         /* try wanted->future in case that is required for target->wanted */
         self.try_wanted_to_future();
         self.try_target_to_wanted()?;
@@ -237,10 +230,10 @@ impl<M:SwitcherManager<Extent=X,Type=T,Error=E>,
 
     /* Utility method for an external caller to see the current target (which they will
      * have set with set_target()) */
-    pub(super) fn get_target(&self) -> Option<&X> { self.target.as_ref() }
+    pub(crate) fn get_target(&self) -> Option<&X> { self.target.as_ref() }
 
     /* Set a new current target */
-    pub(super) fn set_target(&mut self, extent: &X) -> Result<(),E> {
+    pub(crate) fn set_target(&mut self, extent: &X) -> Result<(),E> {
         if self.target.is_none() || self.target.as_ref().unwrap() != extent {
             self.target = Some(extent.clone());
             self.ping()?;
@@ -248,10 +241,10 @@ impl<M:SwitcherManager<Extent=X,Type=T,Error=E>,
         Ok(())
     }
 
-    /* *Called by the object_being made current to indicate that this process is now
+    /* Called by the object_being made current to indicate that this process is now
      * complete.
      */
-    pub(super) fn live_done(&mut self) -> Result<(),E> {
+    pub(crate) fn live_done(&mut self) -> Result<(),E> {
         /* retire current and make future current */
         if let Some(mut current) = self.current.take() {
             current.dead();
@@ -262,14 +255,14 @@ impl<M:SwitcherManager<Extent=X,Type=T,Error=E>,
     }
 
     /* Set "sketchy" mode which is a teporary mode whereby milestones are preferred */
-    pub(super) fn set_sketchy(&mut self, yn: bool) -> Result<(),E> {
+    pub(crate) fn set_sketchy(&mut self, yn: bool) -> Result<(),E> {
         self.sketchy = yn;
         self.ping()
     }
 
     /* Retrieve manager reference for implementation-specific calls */
-    pub(super) fn manager(&self) -> &M { &self.manager }
+    pub(crate) fn manager(&self) -> &M { &self.manager }
 
     /* Retrieve mutable manager reference  for implementation-specific calls */
-    pub(super) fn manager_mut(&mut self) -> &mut M { &mut self.manager }
+    pub(crate) fn manager_mut(&mut self) -> &mut M { &mut self.manager }
 }

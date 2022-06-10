@@ -1,7 +1,7 @@
 /*
 
-These calls /manage/ the size of a CANVAS. They do this by /observing/ the size of its CONATINER. They are called in
-three circumstances:
+These calls /manage/ the size of a CANVAS. They do this by /observing/ the size of its 
+CONATINER. They are called in three circumstances:
 
 1. on each frame to:
    a. do any necessary resizing of the CANVAS.
@@ -16,28 +16,33 @@ three circumstances:
 1. On each frame tick() is called. 
 
 1a. The assessment of the correct canvas size is performed by test_update_canvas_size().
-If this returns Some(x,y) then the canvas needs to be resized. This is performed by update_canvas_size.
+If this returns Some(x,y) then the canvas needs to be resized. This is performed by 
+update_canvas_size.
 
-1b. take_pending_drawable_size retrieves any updates to the drawable area noted in paths 2 and 3 and applies the update.
+1b. take_pending_drawable_size retrieves any updates to the drawable area noted in paths
+2 and 3 and applies the update.
 
-2. On a resize of the container being obeserved check_contaier_size() is called. This updates the container_size
-internally and also sets the pending_container_size. This will allow the drawable to be updated on the next tick. If
-this method confirms that the container was resized, container_was_resized is called which sets the monostable (2b) and
+2. On a resize of the container being obeserved check_contaier_size() is called. This
+updates the container_size internally and also sets the pending_container_size. This will
+allow the drawable to be updated on the next tick. If this method confirms that the
+container was resized, container_was_resized is called which sets the monostable (2b) and
 sets the redraw_needed flag (to ensure that we get a tick).
 
-3. On the monostable expiring, redraw_needed is fired again which will cause a tick. The expiry of themomostable will
-be noted in the test_update_canvas_size call.
+3. On the monostable expiring, redraw_needed is fired again which will cause a tick. The 
+expiry of themomostable will be noted in the test_update_canvas_size call.
 
 */
 
 use std::sync::{ Arc, Mutex };
 use crate::util::{message::Message };
-use peregrine_toolkit::log_important;
-use peregrine_toolkit::sync::needed::Needed;
+use commander::{cdr_tick, cdr_timer};
+use peregrine_data::{PeregrineCoreBase, PgCommanderTaskSpec, add_task, async_complete_task};
+use peregrine_toolkit::{log_extra, lock, log};
+use peregrine_toolkit_async::sync::needed::Needed;
 use web_sys::{ WebGlRenderingContext, window };
 use super::{dom::PeregrineDom, inner::LockedPeregrineInnerAPI };
 use crate::util::resizeobserver::PgResizeObserver;
-use crate::PeregrineInnerAPI;
+use crate::{PeregrineInnerAPI, PgCommanderWeb};
 use crate::util::monostable::Monostable;
 
 fn screen_size() -> (u32,u32) {
@@ -59,7 +64,7 @@ impl SizeManagerState {
         let size = self.dom.canvas_frame().get_bounding_client_rect();
         let (x,y) = (size.width().round() as u32,size.height().round() as u32);
         if x == 0 || y == 0 {
-            log_important!("browser disappeared XXX signal this");
+            log_extra!("browser disappeared XXX signal this");
             return false;
         }
         let out = self.container_size.map(|(old_x,old_y)| {
@@ -172,7 +177,7 @@ impl SizeManager {
         Ok(())
     }
 
-    pub(crate) fn tick(&self, draw: &mut LockedPeregrineInnerAPI) -> Result<(),Message> {
+    pub(crate) fn prepare_for_draw(&self, draw: &mut LockedPeregrineInnerAPI) -> Result<(),Message> {
         let active = self.activity_monostable.get();
         let resize = self.state.lock().unwrap().test_update_canvas_size(active); // to drop lock immediately
         if let Some((resize_x,resize_y)) = resize {
@@ -188,5 +193,26 @@ impl SizeManager {
             state.set_booted();
         }
         Ok(())
+    }
+
+    async fn run_async(&self, api: &PeregrineInnerAPI) -> Result<(),Message> {
+        let mut api = api.clone();
+        let self2 = self.clone();
+        loop {
+            let mut locked_api = api.lock().await;
+            self2.prepare_for_draw(&mut locked_api)?;
+            drop(locked_api);
+            cdr_timer(1000.).await;
+        }
+    }
+
+    pub(crate) fn run_backup(&self, commander: &PgCommanderWeb, api: &PeregrineInnerAPI) {
+        let self2 = self.clone();
+        let api = api.clone();
+        commander.add::<Message>("size manager",1,None,None, Box::pin(async move {
+            self2.run_async(&api).await;
+            Ok(())
+        }));
+    
     }
 }

@@ -1,13 +1,15 @@
-use std::{collections::HashMap};
+use std::{collections::{HashMap, HashSet}};
 
-use super::{core::{ Patina, Pen, Plotter }, imageshape::ImageShape, rectangleshape::RectangleShape, textshape::TextShape, wiggleshape::WiggleShape, emptyshape::EmptyShape};
-use crate::{Shape, LeafRequest, CarriageShapesBuilder, allotment::core::leaflist::LeafList};
+use peregrine_toolkit::{timer_start, timer_end, log};
+
+use super::{core::{ Patina, Pen, Plotter }, imageshape::ImageShape, rectangleshape::RectangleShape, textshape::TextShape, wiggleshape::WiggleShape, emptyshape::EmptyShape, shape::UnplacedShape};
+use crate::{LeafRequest, AbstractShapesContainer, allotment::core::leaflist::LeafList};
 use crate::{Assets, DataMessage, SpaceBaseArea, reactive::Observable, SpaceBase, allotment::{stylespec::{stylegroup::AllotmentStyleGroup, styletreebuilder::StyleTreeBuilder, styletree::StyleTree}}, EachOrEvery };
 
 pub struct ProgramShapesBuilder {
     assets: Assets,
-    shapes: Vec<Shape<LeafRequest>>,
-    leafs: Vec<LeafRequest>,
+    shapes: Vec<UnplacedShape>,
+    leafs: HashSet<LeafRequest>,
     carriage_universe: LeafList,
     style: StyleTreeBuilder
 }
@@ -16,7 +18,7 @@ impl ProgramShapesBuilder {
     pub fn new(assets: &Assets) -> ProgramShapesBuilder {
         ProgramShapesBuilder {
             shapes: vec![],
-            leafs: vec![],
+            leafs: HashSet::new(),
             carriage_universe: LeafList::new(),
             style: StyleTreeBuilder::new(),
             assets: assets.clone()
@@ -25,7 +27,7 @@ impl ProgramShapesBuilder {
 
     pub fn use_allotment(&mut self, spec: &str) -> &LeafRequest {
         let leaf = self.carriage_universe.pending_leaf(spec);
-        self.leafs.push(leaf.clone());
+        self.leafs.insert(leaf.clone());
         leaf
     }
 
@@ -35,7 +37,7 @@ impl ProgramShapesBuilder {
 
     pub fn len(&self) -> usize { self.shapes.len() }
 
-    fn push_shape(&mut self, shape: Shape<LeafRequest>) {
+    fn push_shape(&mut self, shape: UnplacedShape) {
         shape.register_space(&self.assets);
         self.shapes.push(shape);
     }
@@ -65,12 +67,14 @@ impl ProgramShapesBuilder {
         Ok(())
     }
 
-    /* Only to be called during adding to CarriageShapes */
-    pub(super) fn to_carriage_shapes_builder(self) -> CarriageShapesBuilder {
+    pub fn to_abstract_shapes_container(self) -> AbstractShapesContainer {
         let style = AllotmentStyleGroup::new(StyleTree::new(self.style));
+        if self.leafs.len() > 1000 {
+            log!("many leafs! {}",self.leafs.len());
+        }
         for leaf in self.leafs {
             leaf.set_style(&style);
         }
-        CarriageShapesBuilder::build(self.shapes,self.carriage_universe)
+        AbstractShapesContainer::build(self.shapes,self.carriage_universe)
     }
 }

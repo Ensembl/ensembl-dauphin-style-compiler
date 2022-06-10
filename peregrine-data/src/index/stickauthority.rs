@@ -6,7 +6,6 @@ use crate::core::{ StickId, Stick };
 use crate::run::{ PgDauphin, PgDauphinTaskSpec };
 use std::any::Any;
 use crate::util::message::DataMessage;
-use crate::api::{ ApiMessage };
 use crate::shapeload::programname::ProgramName;
 use crate::util::builder::Builder;
 
@@ -37,7 +36,7 @@ impl Authority {
             program_name: self.startup_program_name.clone(),
             payloads: None
         }).await?;
-        base.queue.push(ApiMessage::RegeneraateTrackConfig);
+        base.queue.regenerate_track_config();
         Ok(())
     }
 

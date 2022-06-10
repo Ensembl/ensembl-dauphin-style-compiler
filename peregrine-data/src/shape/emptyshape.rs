@@ -10,7 +10,7 @@ impl<A> EmptyShape<A> {
         Ok(EmptyShape(area))
     }
 
-    pub fn map_new_allotment<F,B>(&self, cb: F) -> EmptyShape<B> where F: Fn(&A) -> B {
+    pub fn map_new_allotment<F,B>(&self, cb: F) -> EmptyShape<B> where F: FnMut(&A) -> B {
         EmptyShape(self.0.map_allotments(cb))
     }
 
@@ -42,7 +42,7 @@ impl<A> Clone for EmptyShape<A> where A: Clone {
 }
 
 impl EmptyShape<LeafStyle> {
-    pub fn demerge<T: Hash + PartialEq + Eq,D>(self, cat: &D) -> Vec<(T,EmptyShape<LeafStyle>)> where D: ShapeDemerge<X=T> {
+    pub fn demerge<T: Hash + Clone + Eq,D>(self, cat: &D) -> Vec<(T,EmptyShape<LeafStyle>)> where D: ShapeDemerge<X=T> {
         let demerge = self.0.top_left().allotments().demerge(self.0.len(),|a| cat.categorise(&a.coord_system));
         let mut out = vec![];
         for (draw_group,filter) in demerge {
