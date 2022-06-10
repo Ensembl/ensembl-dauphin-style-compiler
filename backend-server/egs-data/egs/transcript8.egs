@@ -412,8 +412,14 @@ w := spacebase(start_tr,c,0);
 e := spacebase(end_tr,c+20,0);
 rectangle(w,e,pt_zmenu_tr,al_far_under_by_tr);
 
-/* label */
+/* gene label */
 text2(spacebase(start_gn,drawn_tr_by_gn*20-12,0),textpen,gene_labels,al_text_by_gn);
+
+/* transcript label */
+c := idx_tr_in_gn * 20;
+start_gn_by_tr := index(which_gn_by_tr,[start_gn]);
+pos := spacebase(start_gn_by_tr,c+8,100);
+text2(pos,textpen,transcript_id,al_under_by_tr);
 
 chevron_spacing := [
     0.00,0.025,0.05,0.075,
