@@ -1,3 +1,24 @@
+# 0.3.1
+  * Fix image size bug (chevrons)
+  * Multiple transcripts
+    * show transcript ids (incorrectly laid out)
+    * "several" flipping for lozenges (disabled in release)
+  * Speed improvements
+    * In-code documetnation
+    * Performance sampler to test speed issues
+    * Improved debugging of train transitions
+    * Improve anticipation algorithm
+    * Bugfixes (speed) in train code
+    * Refactor inout code (tidy and speed up)
+    * Flashes-of-white bugfix
+    * Refactor railway code
+    * Optimise style-compiler programs
+    * Fix unit tests
+    * Preload wgsl
+    * Fix resizer
+    * EachOrEvery fixes for indexed vectors
+    * Replace mask with alpha in 2d backing bitmaps
+
 # 0.3.0
   * Gene bumping
     * Add "functional" puzzle systm for inter-carriage dependencies
