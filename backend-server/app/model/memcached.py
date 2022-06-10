@@ -194,6 +194,7 @@ class Memcached(object):
         Returns:
             None
         """
+    def set_jump(self, name: str, stick: str, start: int, end: int, version):
         if not self._is_available():
             return
         key = self.hashed_key(["jump",name],version)
