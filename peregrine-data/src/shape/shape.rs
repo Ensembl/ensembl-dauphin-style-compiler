@@ -66,7 +66,7 @@ impl<A> Shape<A> {
             Self::Image(arg0) => Shape::<B>::Image(arg0.map_new_allotment(cb)),
             Self::Wiggle(arg0) => Shape::<B>::Wiggle(arg0.map_new_allotment(cb)),
             Self::SpaceBaseRect(arg0) => Shape::<B>::SpaceBaseRect(arg0.map_new_allotment(cb)),
-            Self::Empty(arg0) => Shape::<B>::Empty(arg0.map_new_allotment(cb)),
+            Self::Empty(arg0) => Shape::<B>::Empty(arg0.map_new_allotment(cb))
         }
     }
 

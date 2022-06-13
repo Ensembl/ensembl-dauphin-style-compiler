@@ -180,6 +180,7 @@ mod shape {
     mod core;
     pub mod emptyshape;
     mod imageshape;
+    pub(crate) mod metadata;
     pub mod rectangleshape;
     mod textshape;
     pub(crate) mod shape;

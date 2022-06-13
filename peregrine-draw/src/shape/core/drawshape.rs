@@ -28,7 +28,8 @@ pub(crate) enum SimpleShapePatina {
     Hollow(EachOrEvery<DirectColour>),
     SolidSpot(DirectColour),
     HollowSpot(DirectColour),
-    Hotspot(Hotspot)
+    Hotspot(Hotspot),
+    None
 }
 
 fn simplify_colours(colours: &EachOrEvery<Colour>) -> Result<EachOrEvery<DirectColour>,Message> {
@@ -51,6 +52,7 @@ impl SimpleShapePatina {
                 }
             },
             Patina::Hotspot(hotspot) => { SimpleShapePatina::Hotspot(hotspot.clone()) }
+            Patina::Metadata(_,_) => { SimpleShapePatina::None }
         })
     }
 
@@ -62,7 +64,8 @@ impl SimpleShapePatina {
                     DrawnType::Fill => SimpleShapePatina::SolidSpot(colour.clone()),
                 }
             },
-            Patina::Hotspot(hotspot) => { SimpleShapePatina::Hotspot(hotspot.clone()) }
+            Patina::Hotspot(hotspot) => { SimpleShapePatina::Hotspot(hotspot.clone()) },
+            Patina::Metadata(_,_) => { SimpleShapePatina::None }
         })
     }
 
@@ -72,7 +75,8 @@ impl SimpleShapePatina {
             SimpleShapePatina::Hollow(c) => DrawingShapePatina::Hollow(DirectYielder::new(),c.clone()),
             SimpleShapePatina::SolidSpot(c) => DrawingShapePatina::SolidSpot(SpotColourYielder::new(c)),
             SimpleShapePatina::HollowSpot(c) => DrawingShapePatina::HollowSpot(SpotColourYielder::new(c)),
-            SimpleShapePatina::Hotspot(hotspot) => DrawingShapePatina::Hotspot(hotspot.clone())
+            SimpleShapePatina::Hotspot(hotspot) => DrawingShapePatina::Hotspot(hotspot.clone()),
+            SimpleShapePatina::None => DrawingShapePatina::None
         }
     }
 }
@@ -82,12 +86,14 @@ enum DrawingShapePatina {
     Hollow(DirectYielder,EachOrEvery<DirectColour>),
     SolidSpot(SpotColourYielder),
     HollowSpot(SpotColourYielder),
-    Hotspot(Hotspot)
+    Hotspot(Hotspot),
+    None
 }
 
 enum PatinaTarget<'a> {
     Visual(&'a mut dyn PatinaYielder),
-    HotSpot(Hotspot)
+    HotSpot(Hotspot),
+    None
 }
 
 impl DrawingShapePatina {
@@ -97,7 +103,8 @@ impl DrawingShapePatina {
             DrawingShapePatina::Hollow(dc,_) => PatinaTarget::Visual(dc),
             DrawingShapePatina::SolidSpot(dc) => PatinaTarget::Visual(dc),
             DrawingShapePatina::HollowSpot(dc) => PatinaTarget::Visual(dc),
-            DrawingShapePatina::Hotspot(hotspot) => PatinaTarget::HotSpot(hotspot.clone())
+            DrawingShapePatina::Hotspot(hotspot) => PatinaTarget::HotSpot(hotspot.clone()),
+            DrawingShapePatina::None => PatinaTarget::None
         }
     }
 }
@@ -243,6 +250,9 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &mut WebGlGlobal, tools:
                 },
                 PatinaTarget::HotSpot(hotspot) => {
                     Ok(ShapeToAdd::Hotspot(area,hotspot))
+                },
+                PatinaTarget::None => {
+                    Ok(ShapeToAdd::None)
                 }
             }
         }

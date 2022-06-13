@@ -1,6 +1,6 @@
 use std::{sync::{Arc, Mutex}};
-use peregrine_toolkit::{puzzle::{StaticAnswer}, lock, timer_start, timer_end, log};
-use crate::{ShapeRequestGroup, DataMessage, CarriageExtent, shape::shape::{DrawingShape, UnplacedShape, AbstractShape}, allotment::{core::allotmentname::allotmentname_hashmap, transformers::transformers::Transformer} };
+use peregrine_toolkit::{puzzle::{StaticAnswer}, lock, timer_start, timer_end };
+use crate::{ShapeRequestGroup, DataMessage, CarriageExtent, shape::{shape::{DrawingShape, UnplacedShape, AbstractShape}, metadata::AbstractMetadataBuilder}, allotment::{core::allotmentname::allotmentname_hashmap, transformers::transformers::Transformer} };
 use super::{leaflist::LeafList, trainstate::{CarriageTrainStateSpec}};
 
 struct AbstractCarriageBuilder {
@@ -11,7 +11,11 @@ struct AbstractCarriageBuilder {
 
 impl AbstractCarriageBuilder {
     fn build(&mut self) -> Result<AbstractCarriageState,DataMessage> {
-        let (prep,spec) = self.builder.position_boxes(self.shape_request_group.as_ref())?;
+        /* Extract metadata */
+        let mut metadata = AbstractMetadataBuilder::new();
+        metadata.add_shapes(&self.shapes);
+        let metadata = metadata.build();
+        let (prep,spec) = self.builder.position_boxes(self.shape_request_group.as_ref(),&metadata)?;
         /* update leafs to reflect container position */
         let shapes = self.shapes.iter().map(|x| 
                 x.map_new_allotment(|r| prep.plm.transformable(r.name()).cloned())

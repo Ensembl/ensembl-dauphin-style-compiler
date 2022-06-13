@@ -46,7 +46,8 @@ fn split_spacebaserect(tools: &mut DrawingToolsBuilder, shape: &RectangleShape<L
         },
         Patina::Hotspot(hotspot) => {
             out.push(GLShape::SpaceBaseRect(shape.area().clone(),SimpleShapePatina::Hotspot(hotspot.clone()),depth,draw_group.clone(),None));
-        }
+        },
+        Patina::Metadata(_,_) => {}
     }
     Ok(out)
 }

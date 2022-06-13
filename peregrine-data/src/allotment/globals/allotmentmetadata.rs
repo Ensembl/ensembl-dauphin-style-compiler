@@ -1,13 +1,15 @@
 use std::{collections::{HashMap, hash_map::DefaultHasher}, sync::Arc, hash::{Hash, Hasher}};
 use peregrine_toolkit::{puzzle::{ StaticValue, StaticAnswer }};
 
-use crate::allotment::core::allotmentname::AllotmentName;
+use crate::{allotment::core::allotmentname::AllotmentName, shape::metadata::AbstractMetadata};
 
 pub struct LocalAllotmentMetadataBuilder(HashMap<(AllotmentName,String),StaticValue<String>>);
 
 impl LocalAllotmentMetadataBuilder {
-    pub(crate) fn new() -> LocalAllotmentMetadataBuilder {
-        LocalAllotmentMetadataBuilder(HashMap::new())
+    pub(crate) fn new(metadata: &AbstractMetadata) -> LocalAllotmentMetadataBuilder {
+        let mut out = LocalAllotmentMetadataBuilder(HashMap::new());
+        metadata.populate_state(&mut out);
+        out
     }
 
     pub(crate) fn set(&mut self, allotment: &AllotmentName, key: &str, value: StaticValue<String>) {

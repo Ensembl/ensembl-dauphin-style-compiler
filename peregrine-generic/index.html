@@ -141,6 +141,7 @@
               console.log("endstops: " + more[0])
           } else if(kind=="track_summary") {
             let tbody = document.getElementById("track-metadata");
+            console.log(more[0]);
             for(const track of more[0].summary) {
                 if(track.type != "track") { continue; } /* don't care */
                 all_tracks[track["switch-id"]] = track;

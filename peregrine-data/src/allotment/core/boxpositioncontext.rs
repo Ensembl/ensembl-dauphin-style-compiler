@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{allotment::{util::bppxconverter::BpPxConverter, boxes::root::Root, collision::collisionalgorithm::BumpRequestSetFactory}, ShapeRequestGroup};
+use crate::{allotment::{util::bppxconverter::BpPxConverter, boxes::root::Root, collision::collisionalgorithm::BumpRequestSetFactory}, ShapeRequestGroup, shape::metadata::AbstractMetadata};
 
 use super::{leafrequest::LeafTransformableMap, trainstate::CarriageTrainStateRequest};
 
@@ -13,14 +13,14 @@ pub(crate) struct BoxPositionContext {
 }
 
 impl BoxPositionContext {
-    pub(crate) fn new(extent: Option<&ShapeRequestGroup>) -> BoxPositionContext {
+    pub(crate) fn new(extent: Option<&ShapeRequestGroup>, metadata: &AbstractMetadata) -> BoxPositionContext {
         let index = extent.map(|x| x.region().index()).unwrap_or(0);
         let bumper_factory = BumpRequestSetFactory::new(index as usize);
         BoxPositionContext {
             bp_px_converter: Arc::new(BpPxConverter::new(extent)),
             root: Root::new(),
             plm: LeafTransformableMap::new(),
-            state_request: CarriageTrainStateRequest::new(),
+            state_request: CarriageTrainStateRequest::new(metadata),
             bumper_factory
         }
     }

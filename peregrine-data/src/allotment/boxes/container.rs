@@ -31,8 +31,6 @@ impl Clone for Container {
             priority: self.priority.clone(),
             top: self.top.clone(),
             top_setter: self.top_setter.clone(),
-            //height: self.height.clone(),
-            //height_setter: self.height_setter.clone(),
             name: self.name.clone(),
             style: self.style.clone()
         }
@@ -112,7 +110,6 @@ impl Stackable for Container {
             let arc_height = derived(height.clone(),|x| Arc::new(x));
             add_report(prep.state_request.metadata_mut(),&self.name,report,&self.top,&arc_height);
         }
-        //self.height_setter.set(cache_constant(short_memoized_clonable(height.clone())));
         let range = commute_arc(&ranges,Arc::new(RangeUsed::None), Arc::new(|x,y| (*x).merge(&*y))).dearc();
         BuildSize {
             name: self.name.clone(),

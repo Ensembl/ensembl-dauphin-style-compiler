@@ -1,6 +1,6 @@
-use std::{sync::{Arc, Mutex}, collections::{HashMap, hash_map::DefaultHasher, HashSet}, fmt, hash::{Hash, Hasher}};
+use std::{sync::{Arc, Mutex}, collections::{HashMap, hash_map::DefaultHasher }, fmt, hash::{Hash, Hasher}};
 use peregrine_toolkit::{puzzle::{StaticAnswer, AnswerAllocator}, lock };
-use crate::{allotment::{globals::{heighttracker::{LocalHeightTrackerBuilder, LocalHeightTracker, GlobalHeightTracker, GlobalHeightTrackerBuilder}, playingfield::{LocalPlayingFieldBuilder, LocalPlayingField, GlobalPlayingField, GlobalPlayingFieldBuilder}, aligner::{LocalAlignerBuilder, LocalAligner, GlobalAligner, GlobalAlignerBuilder}, allotmentmetadata::{LocalAllotmentMetadataBuilder, LocalAllotmentMetadata, GlobalAllotmentMetadata, GlobalAllotmentMetadataBuilder}, bumping::{LocalBumpBuilder, GlobalBump, GlobalBumpBuilder, LocalBump}, trainpersistent::TrainPersistent}}};
+use crate::{allotment::{globals::{heighttracker::{LocalHeightTrackerBuilder, LocalHeightTracker, GlobalHeightTracker, GlobalHeightTrackerBuilder}, playingfield::{LocalPlayingFieldBuilder, LocalPlayingField, GlobalPlayingField, GlobalPlayingFieldBuilder}, aligner::{LocalAlignerBuilder, LocalAligner, GlobalAligner, GlobalAlignerBuilder}, allotmentmetadata::{LocalAllotmentMetadataBuilder, LocalAllotmentMetadata, GlobalAllotmentMetadata, GlobalAllotmentMetadataBuilder}, bumping::{LocalBumpBuilder, GlobalBump, GlobalBumpBuilder, LocalBump}, trainpersistent::TrainPersistent}}, shape::metadata::AbstractMetadata};
 
 use lazy_static::lazy_static;
 use identitynumber::identitynumber;
@@ -21,12 +21,12 @@ pub struct CarriageTrainStateRequest {
 }
 
 impl CarriageTrainStateRequest {
-    pub fn new() -> CarriageTrainStateRequest {
+    pub(crate) fn new(metadata: &AbstractMetadata) -> CarriageTrainStateRequest {
         CarriageTrainStateRequest {
             height_tracker: LocalHeightTrackerBuilder::new(),
             playing_field: LocalPlayingFieldBuilder::new(),
             aligner: LocalAlignerBuilder::new(),
-            metadata: LocalAllotmentMetadataBuilder::new(),
+            metadata: LocalAllotmentMetadataBuilder::new(metadata),
             bumper: LocalBumpBuilder::new()
         }
     }

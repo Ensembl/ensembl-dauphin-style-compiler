@@ -1,7 +1,7 @@
 use anyhow::anyhow as err;
-use peregrine_toolkit::{lock, log};
+use peregrine_toolkit::lock;
 use crate::simple_interp_command;
-use peregrine_data::{Builder, Colour, DataMessage, DirectColour, DrawnType, EachOrEvery, Patina, Pen, Plotter, ShapeRequest, ZMenu, SpaceBase, ProgramShapesBuilder, Hotspot};
+use peregrine_data::{Colour, DirectColour, DrawnType, EachOrEvery, Patina, Pen, Plotter, ShapeRequest, ZMenu, SpaceBase, ProgramShapesBuilder, Hotspot};
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
 use serde_cbor::Value as CborValue;
@@ -27,6 +27,7 @@ simple_interp_command!(SpotColourInterpCommand,SpotColourDeserializer,46,2,(0,1)
 simple_interp_command!(PpcInterpCommand,PpcDeserializer,49,1,(0));
 simple_interp_command!(StyleInterpCommand,StyleDeserializer,50,3,(0,1,2));
 simple_interp_command!(PatinaSwitchInterpCommand,PatinaSwitchDeserializer,51,3,(0,1,2));
+simple_interp_command!(PatinaMetadataInterpCommand,PatinaMetadataDeserializer,54,3,(0,1,2));
 
 impl InterpCommand for BpRangeInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
@@ -407,6 +408,24 @@ impl InterpCommand for StyleInterpCommand {
         }
         let zoo = get_instance::<Arc<Mutex<Option<ProgramShapesBuilder>>>>(context,"out")?;
         lock!(zoo).as_mut().unwrap().add_style(&spec,props);
-        Ok(CommandResult::SyncResult())       
+        Ok(CommandResult::SyncResult())
+    }
+}
+
+impl InterpCommand for PatinaMetadataInterpCommand {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+        let registers = context.registers_mut();
+        let key = registers.get_strings(&self.1)?[0].to_string();
+        let values_in = registers.get_strings(&self.2)?;
+        let values = EachOrEvery::each(values_in.to_vec());
+        drop(registers);
+        let peregrine = get_peregrine(context)?;
+        let geometry_builder = peregrine.geometry_builder();
+        let patina = Patina::Metadata(key,values);
+        let payload = geometry_builder.add_patina(patina) as usize;
+        drop(peregrine);
+        let registers = context.registers_mut();
+        registers.write(&self.0,InterpValue::Indexes(vec![payload]));
+        Ok(CommandResult::SyncResult())
     }
 }

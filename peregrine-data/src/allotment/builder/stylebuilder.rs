@@ -106,7 +106,7 @@ mod test {
 
     use peregrine_toolkit::{puzzle::{AnswerAllocator}};
 
-    use crate::{allotment::{core::{allotmentname::AllotmentName, boxpositioncontext::BoxPositionContext, trainstate::CarriageTrainStateSpec}, stylespec::{stylegroup::AllotmentStyleGroup, styletreebuilder::StyleTreeBuilder, styletree::StyleTree}, util::{bppxconverter::BpPxConverter, rangeused::RangeUsed}, globals::{allotmentmetadata::{LocalAllotmentMetadata, GlobalAllotmentMetadataBuilder, GlobalAllotmentMetadata}, bumping::{GlobalBumpBuilder, GlobalBump}, trainpersistent::TrainPersistent}, builder::stylebuilder::make_transformable}, LeafRequest};
+    use crate::{allotment::{core::{allotmentname::AllotmentName, boxpositioncontext::BoxPositionContext, trainstate::CarriageTrainStateSpec}, stylespec::{stylegroup::AllotmentStyleGroup, styletreebuilder::StyleTreeBuilder, styletree::StyleTree}, util::{bppxconverter::BpPxConverter, rangeused::RangeUsed}, globals::{allotmentmetadata::{LocalAllotmentMetadata, GlobalAllotmentMetadataBuilder, GlobalAllotmentMetadata}, bumping::{GlobalBumpBuilder, GlobalBump}, trainpersistent::TrainPersistent}, builder::stylebuilder::make_transformable}, LeafRequest, shape::metadata::{AbstractMetadata, AbstractMetadataBuilder}};
 
     fn make_pendings(names: &[&str], heights: &[f64], pixel_range: &[RangeUsed<f64>], style: &AllotmentStyleGroup) -> Vec<LeafRequest> {
         let heights = if heights.len() > 0 {
@@ -152,7 +152,7 @@ mod test {
         add_style(&mut tree, "z/a/1", &[("depth","10"),("coordinate-system","window")]);
         let style_group = AllotmentStyleGroup::new(StyleTree::new(tree));
         let pending = make_pendings(&["z/a/1","z/a/2","z/a/3","z/b/1","z/b/2","z/b/3"],&[1.,2.,3.],&[],&style_group);
-        let mut prep = BoxPositionContext::new(None);
+        let mut prep = BoxPositionContext::new(None,&AbstractMetadataBuilder::new().build());
         assert!(make_transformable(&mut prep,&mut pending.iter()).ok().is_some());
         let mut aia = AnswerAllocator::new();
         let answer_index = aia.get();
@@ -182,7 +182,7 @@ mod test {
         add_style(&mut tree, "z/a/1", &[("depth","10"),("coordinate-system","window")]);
         let style_group = AllotmentStyleGroup::new(StyleTree::new(tree));
         let pending = make_pendings(&["z/a/1","z/a/2","z/a/3","z/b/1","z/b/2","z/b/3"],&[1.,2.,3.],&[],&style_group);
-        let mut prep = BoxPositionContext::new(None);
+        let mut prep = BoxPositionContext::new(None,&AbstractMetadataBuilder::new().build());
         assert!(make_transformable(&mut prep,&mut pending.iter()).ok().is_some());
         let mut aia = AnswerAllocator::new();
         let answer_index = aia.get();
@@ -221,7 +221,7 @@ mod test {
         add_style(&mut tree, "**", &[("system","tracking")]);
         let style_group = AllotmentStyleGroup::new(StyleTree::new(tree));
         let pending = make_pendings(&["z/a/1","z/a/2","z/a/3","z/b/1","z/b/2","z/b/3"],&[1.,2.,3.],&ranges,&style_group);
-        let mut prep = BoxPositionContext::new(None);
+        let mut prep = BoxPositionContext::new(None,&AbstractMetadataBuilder::new().build());
         prep.bp_px_converter = Arc::new(BpPxConverter::new_test());
         assert!(make_transformable(&mut prep,&mut pending.iter()).ok().is_some());
         let metadata = prep.state_request.metadata();
