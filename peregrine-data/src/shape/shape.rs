@@ -1,7 +1,7 @@
 use std::hash::Hash;
 use std::sync::Arc;
 
-use peregrine_toolkit::eachorevery::eachorevery::EachOrEveryFilter;
+use peregrine_toolkit::eachorevery::EachOrEveryFilter;
 
 use super::emptyshape::EmptyShape;
 use super::imageshape::ImageShape;

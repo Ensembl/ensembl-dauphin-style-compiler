@@ -4,7 +4,7 @@ use std::rc::Rc;
 
 use super::zmenu::{ ZMenu, ZMenuBlock, ZMenuSequence, ZMenuText, ZMenuItem };
 use keyed::{ keyed_handle, KeyedValues };
-use peregrine_toolkit::eachorevery::eachorevery::EachOrEvery;
+use peregrine_toolkit::eachorevery::EachOrEvery;
 use serde_json::Number;
 use serde_json::Value as JSONValue;
 use serde_json::Map as JSONMap;

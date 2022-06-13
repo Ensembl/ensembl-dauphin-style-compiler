@@ -1,6 +1,6 @@
 use std::hash::Hash;
 use std::sync::Arc;
-use peregrine_toolkit::eachorevery::eachorevery::EachOrEveryFilter;
+use peregrine_toolkit::eachorevery::EachOrEveryFilter;
 
 use crate::{SpaceBaseArea, DataMessage, LeafRequest, Shape, allotment::transformers::transformers::{Transformer, TransformerVariety}, CoordinateSystem, LeafStyle, ShapeDemerge};
 

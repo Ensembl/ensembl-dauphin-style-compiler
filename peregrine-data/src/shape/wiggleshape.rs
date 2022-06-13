@@ -1,4 +1,4 @@
-use peregrine_toolkit::eachorevery::eachorevery::{EachOrEveryFilter, EachOrEvery};
+use peregrine_toolkit::eachorevery::{EachOrEveryFilter, EachOrEvery};
 
 use crate::{DataMessage, Plotter, ShapeDemerge, Shape, allotment::{transformers::transformers::Transformer, style::{style::LeafStyle}}, LeafRequest};
 use std::{cmp::{max, min}, hash::Hash, sync::Arc};

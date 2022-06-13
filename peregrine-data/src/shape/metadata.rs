@@ -1,6 +1,6 @@
 use std::{sync::Arc, collections::HashMap};
 
-use peregrine_toolkit::{puzzle::constant, eachorevery::eachorevery::EachOrEvery};
+use peregrine_toolkit::{puzzle::constant, eachorevery::EachOrEvery};
 
 use crate::{allotment::{core::allotmentname::AllotmentName, globals::allotmentmetadata::LocalAllotmentMetadataBuilder}, Shape, Patina, LeafRequest};
 use super::shape::UnplacedShape;

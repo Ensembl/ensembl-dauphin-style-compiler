@@ -1,5 +1,9 @@
 pub mod eachorevery {
-    pub mod eachorevery;
+    mod eoefilter;
+    mod eachorevery;
+
+    pub use eachorevery::{ EachOrEvery, EachOrEveryGroupCompatible };
+    pub use eoefilter::{ EachOrEveryFilter, EachOrEveryFilterBuilder };
 }
 
 pub mod js {

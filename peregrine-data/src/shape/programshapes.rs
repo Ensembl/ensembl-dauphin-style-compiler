@@ -1,6 +1,6 @@
 use std::{collections::{HashMap, HashSet}};
 
-use peregrine_toolkit::{timer_start, timer_end, log, eachorevery::eachorevery::EachOrEvery};
+use peregrine_toolkit::{timer_start, timer_end, log, eachorevery::EachOrEvery};
 
 use super::{core::{ Patina, Pen, Plotter }, imageshape::ImageShape, rectangleshape::RectangleShape, textshape::TextShape, wiggleshape::WiggleShape, emptyshape::EmptyShape, shape::UnplacedShape};
 use crate::{LeafRequest, AbstractShapesContainer, allotment::core::leaflist::LeafList};

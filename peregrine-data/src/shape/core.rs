@@ -1,5 +1,5 @@
 use std::{collections::{hash_map::DefaultHasher}, hash::{Hash, Hasher}, sync::Arc};
-use peregrine_toolkit::eachorevery::eachorevery::{EachOrEveryFilter, EachOrEvery};
+use peregrine_toolkit::eachorevery::{EachOrEveryFilter, EachOrEvery};
 use super::zmenu::ZMenu;
 
 pub(super) fn bulk<T>(b: Vec<T>, a_len: usize, primary: bool) -> Vec<T> where T: Clone {

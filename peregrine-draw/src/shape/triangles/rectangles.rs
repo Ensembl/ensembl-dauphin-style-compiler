@@ -9,7 +9,7 @@ use crate::shape::util::iterators::eoe_throw;
 use crate::webgl::{ ProcessStanzaElements };
 use peregrine_data::reactive::{Observable, Observer};
 use peregrine_data::{ SpaceBaseArea, SpaceBase, PartialSpaceBase, HollowEdge2, SpaceBasePoint, LeafStyle };
-use peregrine_toolkit::eachorevery::eachorevery::EachOrEvery;
+use peregrine_toolkit::eachorevery::EachOrEvery;
 use peregrine_toolkit::lock;
 use super::drawgroup::DrawGroup;
 use super::triangleadder::TriangleAdder;
