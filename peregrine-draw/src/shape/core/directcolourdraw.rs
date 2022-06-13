@@ -1,5 +1,6 @@
 use crate::{shape::{layers::patina::{PatinaProcess, PatinaProcessName, PatinaAdder, PatinaYielder}, util::iterators::eoe_throw}, webgl::{ AttribHandle, ProcessStanzaAddable, ProgramBuilder }};
-use peregrine_data::{DirectColour, EachOrEvery};
+use peregrine_data::{DirectColour};
+use peregrine_toolkit::eachorevery::eachorevery::EachOrEvery;
 use super::super::util::arrayutil::scale_colour;
 use crate::util::message::Message;
 

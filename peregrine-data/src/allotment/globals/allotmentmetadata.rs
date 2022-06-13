@@ -1,6 +1,5 @@
 use std::{collections::{HashMap, hash_map::DefaultHasher}, sync::Arc, hash::{Hash, Hasher}};
 use peregrine_toolkit::{puzzle::{ StaticValue, StaticAnswer }};
-
 use crate::{allotment::core::allotmentname::AllotmentName, shape::metadata::AbstractMetadata};
 
 pub struct LocalAllotmentMetadataBuilder(HashMap<(AllotmentName,String),StaticValue<String>>);

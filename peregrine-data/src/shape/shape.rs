@@ -1,6 +1,8 @@
 use std::hash::Hash;
 use std::sync::Arc;
 
+use peregrine_toolkit::eachorevery::eachorevery::EachOrEveryFilter;
+
 use super::emptyshape::EmptyShape;
 use super::imageshape::ImageShape;
 use super::rectangleshape::RectangleShape;
@@ -17,7 +19,6 @@ use crate::allotment::core::boxtraits::Transformable;
 use crate::allotment::style::style::LeafStyle;
 use crate::allotment::transformers::transformers::Transformer;
 use crate::allotment::util::rangeused::RangeUsed;
-use crate::util::eachorevery::EachOrEveryFilter;
 
 pub trait ShapeDemerge {
     type X: Hash + PartialEq + Eq;

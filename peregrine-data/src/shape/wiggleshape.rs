@@ -1,4 +1,6 @@
-use crate::{DataMessage, Plotter, ShapeDemerge, Shape, util::{eachorevery::EachOrEveryFilter}, allotment::{transformers::transformers::Transformer, style::{style::LeafStyle}}, EachOrEvery, LeafRequest};
+use peregrine_toolkit::eachorevery::eachorevery::{EachOrEveryFilter, EachOrEvery};
+
+use crate::{DataMessage, Plotter, ShapeDemerge, Shape, allotment::{transformers::transformers::Transformer, style::{style::LeafStyle}}, LeafRequest};
 use std::{cmp::{max, min}, hash::Hash, sync::Arc};
 
 const SCALE : i64 = 200; // XXX configurable

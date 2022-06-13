@@ -1,6 +1,6 @@
 use std::{collections::{hash_map::DefaultHasher}, hash::{Hash, Hasher}, sync::Arc};
+use peregrine_toolkit::eachorevery::eachorevery::{EachOrEveryFilter, EachOrEvery};
 use super::zmenu::ZMenu;
-use crate::{ util::{eachorevery::EachOrEveryFilter}, EachOrEvery};
 
 pub(super) fn bulk<T>(b: Vec<T>, a_len: usize, primary: bool) -> Vec<T> where T: Clone {
     if b.len() < a_len && (b.len() > 1 || primary) {

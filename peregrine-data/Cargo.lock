@@ -357,6 +357,7 @@ name = "peregrine_toolkit"
 version = "0.0.0"
 dependencies = [
  "anyhow",
+ "hashbrown 0.8.2",
  "identitynumber",
  "js-sys",
  "lazy_static",

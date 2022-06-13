@@ -12,6 +12,7 @@ serde="*"
 serde_cbor="*"
 serde_derive="*"
 lazy_static="*"
+hashbrown="*"
 
 [dependencies.identitynumber]
 version="*"

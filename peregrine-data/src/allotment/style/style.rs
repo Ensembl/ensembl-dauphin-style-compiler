@@ -1,6 +1,6 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap};
 
-use crate::{CoordinateSystem, CoordinateSystemVariety, allotment::stylespec::specifiedstyle::InheritableStyle};
+use crate::{CoordinateSystem, CoordinateSystemVariety, allotment::stylespec::specifiedstyle::InheritableStyle, shape::metadata::MetadataStyle};
 
 #[cfg_attr(any(test,debug_assertions),derive(Debug))]
 #[derive(Clone,PartialEq,Eq,Hash)]
@@ -71,28 +71,13 @@ impl ContainerAllotmentType {
     }
 }
 
-fn parse_report_value(input: &str) -> Option<Arc<HashMap<String,String>>> {
-    let parts = input.split(";").collect::<Vec<_>>();
-    let mut out = HashMap::new();
-    for item in &parts {
-        let (key,value) = if let Some(eq_at) = item.find("=") {
-            let (k,v) = item.split_at(eq_at);
-            (k,&v[1..])
-        } else {
-            ("type",*item)
-        };
-        out.insert(key.to_string(),value.to_string());
-    }
-    Some(Arc::new(out))
-}
-
 #[cfg_attr(debug_assertions,derive(Debug))]
 #[derive(Clone)]
 pub struct Padding {
     pub padding_top: f64,
     pub padding_bottom: f64,
     pub min_height: f64,
-    pub report: Option<Arc<HashMap<String,String>>>
+    pub(crate) report: Option<MetadataStyle>
 }
 
 impl Padding {
@@ -112,7 +97,7 @@ impl Padding {
         let padding_bottom = padding_bottom.parse::<f64>().ok().unwrap_or(0.);
         let min_height = spec.get("min-height").map(|x| x.as_str()).unwrap_or("0");
         let min_height = min_height.parse::<f64>().ok().unwrap_or(0.);
-        let report = spec.get("report").and_then(|r| parse_report_value(r));
+        let report = spec.get("report").map(|r| MetadataStyle::new(r));
         Padding {padding_top, padding_bottom, min_height, report }
     }
 }

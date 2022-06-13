@@ -1,4 +1,6 @@
-use crate::{DataMessage, Pen, ShapeDemerge, Shape, util::{eachorevery::EachOrEveryFilter}, SpaceBase, allotment::{transformers::transformers::{Transformer, TransformerVariety}, style::{style::LeafStyle}}, EachOrEvery, CoordinateSystem, LeafRequest};
+use peregrine_toolkit::eachorevery::eachorevery::{EachOrEveryFilter, EachOrEvery};
+
+use crate::{DataMessage, Pen, ShapeDemerge, Shape, SpaceBase, allotment::{transformers::transformers::{Transformer, TransformerVariety}, style::{style::LeafStyle}}, CoordinateSystem, LeafRequest};
 use std::{hash::Hash, sync::Arc};
 
 #[cfg_attr(debug_assertions,derive(Debug))]

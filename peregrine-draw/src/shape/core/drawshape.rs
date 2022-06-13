@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
 use peregrine_data::reactive::Observable;
-use peregrine_data::{ Colour, DirectColour, DrawnType, Patina, Plotter, SpaceBaseArea, HollowEdge2, SpaceBase, EachOrEvery, EachOrEveryFilterBuilder, LeafStyle, Hotspot };
+use peregrine_data::{ Colour, DirectColour, DrawnType, Patina, Plotter, SpaceBaseArea, HollowEdge2, SpaceBase, LeafStyle, Hotspot };
+use peregrine_toolkit::eachorevery::eachorevery::{EachOrEvery, EachOrEveryFilterBuilder};
 use super::directcolourdraw::DirectYielder;
 use super::spotcolourdraw::SpotColourYielder;
 use super::text::TextHandle;

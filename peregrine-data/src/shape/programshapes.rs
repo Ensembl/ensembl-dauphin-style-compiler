@@ -1,10 +1,10 @@
 use std::{collections::{HashMap, HashSet}};
 
-use peregrine_toolkit::{timer_start, timer_end, log};
+use peregrine_toolkit::{timer_start, timer_end, log, eachorevery::eachorevery::EachOrEvery};
 
 use super::{core::{ Patina, Pen, Plotter }, imageshape::ImageShape, rectangleshape::RectangleShape, textshape::TextShape, wiggleshape::WiggleShape, emptyshape::EmptyShape, shape::UnplacedShape};
 use crate::{LeafRequest, AbstractShapesContainer, allotment::core::leaflist::LeafList};
-use crate::{Assets, DataMessage, SpaceBaseArea, reactive::Observable, SpaceBase, allotment::{stylespec::{stylegroup::AllotmentStyleGroup, styletreebuilder::StyleTreeBuilder, styletree::StyleTree}}, EachOrEvery };
+use crate::{Assets, DataMessage, SpaceBaseArea, reactive::Observable, SpaceBase, allotment::{stylespec::{stylegroup::AllotmentStyleGroup, styletreebuilder::StyleTreeBuilder, styletree::StyleTree}}};
 
 pub struct ProgramShapesBuilder {
     assets: Assets,

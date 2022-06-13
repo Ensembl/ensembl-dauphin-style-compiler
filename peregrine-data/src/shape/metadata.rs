@@ -1,8 +1,8 @@
-use std::sync::Arc;
+use std::{sync::Arc, collections::HashMap};
 
-use peregrine_toolkit::puzzle::constant;
+use peregrine_toolkit::{puzzle::constant, eachorevery::eachorevery::EachOrEvery};
 
-use crate::{allotment::{core::allotmentname::AllotmentName, globals::allotmentmetadata::LocalAllotmentMetadataBuilder}, Shape, Patina, EachOrEvery, LeafRequest};
+use crate::{allotment::{core::allotmentname::AllotmentName, globals::allotmentmetadata::LocalAllotmentMetadataBuilder}, Shape, Patina, LeafRequest};
 use super::shape::UnplacedShape;
 
 struct AllotmentMetadataEntry {
@@ -82,5 +82,37 @@ impl AbstractMetadata {
         for item in self.data.iter() {
             item.add(state);
         }
+    }
+}
+
+fn parse_report_value(input: &str) -> Arc<HashMap<String,String>> {
+    let parts = input.split(";").collect::<Vec<_>>();
+    let mut out = HashMap::new();
+    for item in &parts {
+        let (key,value) = if let Some(eq_at) = item.find("=") {
+            let (k,v) = item.split_at(eq_at);
+            (k,&v[1..])
+        } else {
+            ("type",*item)
+        };
+        out.insert(key.to_string(),value.to_string());
+    }
+    Arc::new(out)
+}
+
+#[cfg_attr(debug_assertions,derive(Debug))]
+#[derive(Clone)]
+pub(crate) struct MetadataStyle {
+    values: Arc<HashMap<String,String>>
+}
+
+impl MetadataStyle {
+    pub(crate) fn new(spec: &str) -> MetadataStyle {
+        let values = parse_report_value(spec);
+        MetadataStyle { values }
+    }
+
+    pub(crate) fn iter(&self) -> impl Iterator<Item=(&String,&String)> {
+        self.values.iter()
     }
 }
