@@ -5,9 +5,14 @@ pub mod eachorevery {
         mod eoestruct;
         mod expand;
         mod separatorvisitor;
-        mod eoestructformat;   
         mod eoejson;
         mod templatetree; 
+
+        #[cfg(debug_assertions)]
+        mod eoestructformat;
+
+        pub use eoejson::{ struct_to_json, struct_from_json };
+        pub use templatetree::{ StructTemplate };
     }
 
     mod eoefilter;

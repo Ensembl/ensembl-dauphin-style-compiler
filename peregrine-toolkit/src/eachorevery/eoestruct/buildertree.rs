@@ -1,8 +1,9 @@
 use std::sync::Arc;
-
 use crate::eachorevery::EachOrEveryGroupCompatible;
+use super::{eoestruct::{VariableSystem, StructVarValue, Struct, StructValueId, StructConst, StructVisitor}, templatetree::{TemplateVars, StructVar}, buildstack::{BuildStack, IdentityBuildStackTransformer}, expand::StructBuilt};
 
-use super::{eoestruct::{VariableSystem, StructVarValue, Struct, StructValueId, StructConst, StructVisitor}, eoestructformat::VariableSystemFormatter, templatetree::{TemplateVars, StructVar}, buildstack::{BuildStack, IdentityBuildStackTransformer}};
+#[cfg(debug_assertions)]
+use super::eoestructformat::VariableSystemFormatter;
 
 #[derive(Clone)]
 pub struct BuiltVars;
@@ -11,13 +12,16 @@ impl VariableSystem for BuiltVars {
     type Declare = Arc<StructVarValue>;
     type Use = (usize,usize);
 
+    #[cfg(debug_assertions)]
     fn build_formatter() -> Box<dyn VariableSystemFormatter<Self>> {
         Box::new(BuiltVarsFortmatter)
     }    
 }
 
+#[cfg(debug_assertions)]
 struct BuiltVarsFortmatter;
 
+#[cfg(debug_assertions)]
 impl VariableSystemFormatter<BuiltVars> for BuiltVarsFortmatter {
     fn format_declare_start(&mut self, vars: &[Arc<StructVarValue>]) -> String {
         format!("A[{}].( ",vars.iter().map(|x| format!("{:?}",x)).collect::<Vec<_>>().join(""))
@@ -54,7 +58,7 @@ fn check_compatible(vars: &[Arc<StructVarValue>]) {
 
 pub(super) struct TemplateBuildVisitor {
     all_depth: usize,
-    build: BuildStack<Struct<BuiltVars>,Struct<BuiltVars>>,
+    build: BuildStack<StructBuilt,StructBuilt>,
     bindings: Vec<Binding>
 }
 
@@ -67,7 +71,7 @@ impl TemplateBuildVisitor {
         }
     }
 
-    pub(super) fn get(mut self) -> Struct<BuiltVars> { self.build.get() }
+    pub(super) fn get(self) -> StructBuilt { self.build.get() }
 }
 
 // XXX panics

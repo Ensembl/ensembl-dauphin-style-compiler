@@ -1,5 +1,6 @@
 use super::{eoestruct::{VariableSystem, Struct, StructVisitor, StructConst}, separatorvisitor::{SeparatedStructAdaptor, SeparatorVisitor}};
 
+#[cfg(debug_assertions)]
 pub trait VariableSystemFormatter<T: VariableSystem> {
     fn format_declare_start(&mut self, var: &[T::Declare]) -> String;
     fn format_declare_end(&mut self, var: &[T::Declare]) -> String;

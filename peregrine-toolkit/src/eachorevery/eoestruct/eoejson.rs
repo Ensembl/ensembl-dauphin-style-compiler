@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use crate::eachorevery::EachOrEvery;
 
-use super::{eoestruct::{StructConst, Struct, StructPair}, buildstack::{BuildStack, BuildStackTransformer}, buildertree::BuiltVars, templatetree::{TemplateVars, StructVar}};
+use super::{eoestruct::{StructConst, Struct, StructPair}, buildstack::{BuildStack, BuildStackTransformer}, templatetree::StructVar, StructTemplate, expand::StructBuilt};
 use serde_json::{Value as JsonValue, Number, Map};
 
 struct JsonTransformer;
@@ -26,7 +26,7 @@ impl BuildStackTransformer<StructConst,JsonValue> for JsonTransformer {
     }
 }
 
-pub fn eoestruct_json(input: Struct<BuiltVars>) -> JsonValue {
+pub fn struct_to_json(input: StructBuilt) -> JsonValue {
     let mut stack = BuildStack::new(JsonTransformer);
     input.expand(&mut stack);
     stack.get()
@@ -74,7 +74,7 @@ struct EoeFromJson {
 }
 
 impl EoeFromJson {
-    fn new(mut specs: Vec<String>, json: &JsonValue) -> Struct<TemplateVars> {
+    fn new(mut specs: Vec<String>, json: &JsonValue) -> StructTemplate {
         let mut obj = EoeFromJson{
             specs: specs.drain(..).collect(),
             vars: vec![]
@@ -82,7 +82,7 @@ impl EoeFromJson {
         obj.build(json)
     }
 
-    fn to_all(&mut self, map: &Map<String,JsonValue>) -> Option<Struct<TemplateVars>> {
+    fn to_all(&mut self, map: &Map<String,JsonValue>) -> Option<StructTemplate> {
         let mut expr = None;
         for key in map.keys() {
             if self.specs.contains(key) { expr = Some(key); break; }
@@ -102,7 +102,7 @@ impl EoeFromJson {
         Some(Struct::new_all(&vars,expr))
     }
 
-    fn build(&mut self, json: &JsonValue) -> Struct<TemplateVars> {
+    fn build(&mut self, json: &JsonValue) -> StructTemplate {
         match json {
             JsonValue::Null => Struct::new_null(),
             JsonValue::Bool(x) => Struct::new_boolean(x.clone()),
@@ -131,6 +131,6 @@ impl EoeFromJson {
     }
 }
 
-pub fn eoe_from_json(specs: Vec<String>, json: &JsonValue) -> Struct<TemplateVars> {
+pub fn struct_from_json(specs: Vec<String>, json: &JsonValue) -> StructTemplate {
     EoeFromJson::new(specs,json)
 }

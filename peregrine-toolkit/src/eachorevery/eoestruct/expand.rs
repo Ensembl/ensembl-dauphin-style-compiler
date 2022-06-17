@@ -1,5 +1,8 @@
 use std::sync::Arc;
-use super::{eoestruct::{Struct, StructVisitor, StructConst, StructVarValue, VariableSystem}, buildertree::BuiltVars, eoestructformat::VariableSystemFormatter, separatorvisitor::SeparatorVisitor};
+use super::{eoestruct::{Struct, StructVisitor, StructConst, StructVarValue, VariableSystem}, buildertree::BuiltVars, separatorvisitor::SeparatorVisitor};
+
+#[cfg(debug_assertions)]
+use super::eoestructformat::VariableSystemFormatter;
 
 pub trait DataVisitor {
     fn visit_const(&mut self, _input: &StructConst) {}
@@ -38,13 +41,16 @@ impl VariableSystem for NullVars {
     type Use = ();
     type Declare = ();
 
+    #[cfg(debug_assertions)]
     fn build_formatter() -> Box<dyn VariableSystemFormatter<Self>> {
         Box::new(NullVarsFormatter)
     }
 }
 
+#[cfg(debug_assertions)]
 pub struct NullVarsFormatter;
 
+#[cfg(debug_assertions)]
 impl VariableSystemFormatter<NullVars> for NullVarsFormatter {
     fn format_declare_start(&mut self, _var: &[()]) -> String {
         "<var!".to_string()
@@ -92,7 +98,9 @@ impl ExpandData {
     }
 }
 
-impl Struct<BuiltVars> {
+pub type StructBuilt = Struct<BuiltVars>;
+
+impl StructBuilt {
     fn split(&self, output: &mut dyn StructVisitor<NullVars>, data: &mut ExpandData) {
         match self {
             Struct::Var((depth,width)) => {

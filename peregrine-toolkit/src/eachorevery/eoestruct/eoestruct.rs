@@ -1,8 +1,10 @@
 use std::{sync::Arc };
 use crate::eachorevery::{EachOrEvery, EachOrEveryGroupCompatible};
-use super::{eoestructformat::{VariableSystemFormatter}};
 use identitynumber::{ identitynumber };
 use lazy_static::lazy_static;
+
+#[cfg(debug_assertions)]
+use super::{eoestructformat::{VariableSystemFormatter}};
 
 /* EoeStructs use a number of different tree types during processing:
  *   TemplateTree -- defined by the user and includes EoE arrays. Composable.
@@ -122,6 +124,7 @@ pub trait VariableSystem {
     type Declare;
     type Use;
 
+    #[cfg(debug_assertions)]
     fn build_formatter() -> Box<dyn VariableSystemFormatter<Self>>;
 }
 
@@ -182,10 +185,8 @@ impl<T: Clone+VariableSystem> Struct<T> {
 mod test {
     use std::str::FromStr;
 
-    use crate::{eachorevery::eoestruct::{templatetree::StructVar, eoejson::{eoestruct_json, eoe_from_json}}, cbor::cbor_into_vec};
+    use crate::{eachorevery::eoestruct::{eoejson::{struct_to_json, struct_from_json}}};
     use serde_json::{Value as JsonValue, Number};
-
-    use super::*;
 
     fn json_fix_numbers(json: &JsonValue) -> JsonValue {
         match json {
@@ -217,9 +218,9 @@ mod test {
         let parts = json_array(value);
         println!("ruuning {}\n",json_string(&parts[0]));
         let vars = json_array(&parts[1]).iter().map(|x| json_string(x)).collect::<Vec<_>>();
-        let template = eoe_from_json(vars,&parts[2]);
+        let template = struct_from_json(vars,&parts[2]);
         let debug = format!("{:?}",template);
-        let output = eoestruct_json(template.build());
+        let output = struct_to_json(template.build());
         let output = JsonValue::from_str(&output.to_string()).ok().unwrap();
         assert_eq!(debug,json_string(&parts[3]));
         assert_eq!(json_fix_numbers(&output),json_fix_numbers(&parts[4]));

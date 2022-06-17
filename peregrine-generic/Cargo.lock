@@ -605,6 +605,7 @@ dependencies = [
  "serde",
  "serde_cbor",
  "serde_derive",
+ "serde_json",
  "wasm-bindgen",
  "web-sys",
 ]

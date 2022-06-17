@@ -1,8 +1,9 @@
 use std::{collections::HashMap, sync::Arc};
-
 use crate::eachorevery::EachOrEvery;
+use super::{eoestruct::{StructConst, Struct, StructPair, StructValueId, VariableSystem, StructVarValue}, buildertree::TemplateBuildVisitor, expand::StructBuilt};
 
-use super::{eoestruct::{StructConst, Struct, StructPair, StructValueId, VariableSystem, StructVarValue}, eoestructformat::VariableSystemFormatter, buildertree::{TemplateBuildVisitor, BuiltVars}};
+#[cfg(debug_assertions)]
+use super::eoestructformat::VariableSystemFormatter;
 
 #[derive(Clone)]
 pub struct StructVar {
@@ -43,21 +44,24 @@ impl VariableSystem for TemplateVars {
     type Declare = StructValueId;
     type Use = StructVar;
 
+    #[cfg(debug_assertions)]
     fn build_formatter() -> Box<dyn VariableSystemFormatter<Self>> {
         Box::new(TemplateVarsFormatter::new())
     }    
 }
 
 impl StructPair<TemplateVars> {
-    pub fn new(key: &str, value: Struct<TemplateVars>) -> StructPair<TemplateVars> {
+    pub fn new(key: &str, value: StructTemplate) -> StructPair<TemplateVars> {
         StructPair(key.to_string(),value)
     }
 }
 
+#[cfg(debug_assertions)]
 struct TemplateVarsFormatter {
     name: HashMap<StructValueId,usize>
 }
 
+#[cfg(debug_assertions)]
 impl TemplateVarsFormatter {
     pub(super) fn new() -> TemplateVarsFormatter {
         TemplateVarsFormatter {
@@ -76,6 +80,7 @@ impl TemplateVarsFormatter {
     }
 }
 
+#[cfg(debug_assertions)]
 impl VariableSystemFormatter<TemplateVars> for TemplateVarsFormatter {
     fn format_declare_start(&mut self, vars: &[StructValueId]) -> String {
         format!("A{}.( ",vars.iter().map(|x| self.get(x)).collect::<Vec<_>>().join(""))
@@ -90,8 +95,10 @@ impl VariableSystemFormatter<TemplateVars> for TemplateVarsFormatter {
     }
 }
 
-impl Struct<TemplateVars> {
-    pub fn new_var(input: StructVar) -> Struct<TemplateVars> {
+pub type StructTemplate = Struct<TemplateVars>;
+
+impl StructTemplate {
+    pub fn new_var(input: StructVar) -> StructTemplate {
         if let Some(c) = input.to_const() {
             Struct::Const(c)
         } else {
@@ -99,37 +106,37 @@ impl Struct<TemplateVars> {
         }
     }
 
-    pub fn new_all(vars: &[StructVar], expr: Struct<TemplateVars>) -> Struct<TemplateVars> {
+    pub fn new_all(vars: &[StructVar], expr: StructTemplate) -> StructTemplate {
         Self::All(vars.iter().map(|x| x.id).collect::<Vec<_>>(),Arc::new(expr))
     }
 
-    pub fn build(&self) -> Struct<BuiltVars> {
+    pub fn build(&self) -> StructBuilt {
         let mut builder = TemplateBuildVisitor::new();
         self.visit(&mut builder);
         builder.get()
     }
 
-    pub fn new_number(input: f64) -> Struct<TemplateVars> {
+    pub fn new_number(input: f64) -> StructTemplate {
         Self::Const(StructConst::Number(input))
     }
 
-    pub fn new_string(input: String) -> Struct<TemplateVars> {
+    pub fn new_string(input: String) -> StructTemplate {
         Self::Const(StructConst::String(input))
     }
 
-    pub fn new_boolean(input: bool) -> Struct<TemplateVars> {
+    pub fn new_boolean(input: bool) -> StructTemplate {
         Self::Const(StructConst::Boolean(input))
     }
 
-    pub fn new_null() -> Struct<TemplateVars> {
+    pub fn new_null() -> StructTemplate {
         Self::Const(StructConst::Null)
     }
 
-    pub fn new_array(input: Vec<Struct<TemplateVars>>) -> Struct<TemplateVars> {
+    pub fn new_array(input: Vec<StructTemplate>) -> StructTemplate {
         Self::Array(Arc::new(input))
     }
 
-    pub fn new_object(input: Vec<StructPair<TemplateVars>>) -> Struct<TemplateVars> {
+    pub fn new_object(input: Vec<StructPair<TemplateVars>>) -> StructTemplate {
         Self::Object(Arc::new(input))
     }
 }
