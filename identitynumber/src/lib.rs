@@ -94,7 +94,7 @@ macro_rules! identitynumber {
 /// Implements `PartialEq`, `Eq`, and `Hash` for you on a field in your type.
 #[macro_export]
 macro_rules! hashable {
-    ($type: ident, $field: ident) => {
+    ($type: ident, $field: tt) => {
         impl PartialEq for $type {
             fn eq(&self, other: &Self) -> bool {
                 self.$field == other.$field
@@ -114,7 +114,7 @@ macro_rules! hashable {
 /// Implements `Ord` for you on a field in your type.
 #[macro_export]
 macro_rules! orderable {
-    ($type: ident, $field: ident) => {
+    ($type: ident, $field: tt) => {
         impl PartialOrd for $type {
             fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
                 self.$field.partial_cmp(&other.$field)
