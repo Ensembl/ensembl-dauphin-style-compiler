@@ -1,10 +1,12 @@
 pub mod eachorevery {
     pub mod eoestruct {
+        mod buildstack;
         mod buildertree;
         mod eoestruct;
         mod expand;
         mod separatorvisitor;
         mod eoestructformat;   
+        mod eoejson;
         mod templatetree; 
     }
 

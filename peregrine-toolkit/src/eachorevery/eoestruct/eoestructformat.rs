@@ -1,4 +1,4 @@
-use super::{eoestruct::{VariableSystem, Struct, StructConstVisitor, StructVisitor, StructConst, StructValueId}, separatorvisitor::{SeparatedStructAdaptor, SeparatorVisitor}};
+use super::{eoestruct::{VariableSystem, Struct, StructVisitor, StructConst}, separatorvisitor::{SeparatedStructAdaptor, SeparatorVisitor}};
 
 pub trait VariableSystemFormatter<T: VariableSystem> {
     fn format_declare_start(&mut self, var: &[T::Declare]) -> String;
@@ -46,21 +46,21 @@ impl<T: VariableSystem+Clone> StructDebug<T> {
 }
 
 #[cfg(debug_assertions)]
-impl<T: VariableSystem+Clone> StructConstVisitor for StructDebug<T> {
-    fn visit_number(&mut self, value: f64) { self.add(&format!("{:?}",value)); }
-    fn visit_string(&mut self, value: &str) { self.add(&format!("{:?}",value)); }
-    fn visit_boolean(&mut self, value: bool) { self.add(&format!("{:?}",value)); }
-    fn visit_null(&mut self) { self.add("null"); }
-}
-
-#[cfg(debug_assertions)]
 impl<T: VariableSystem+Clone> SeparatorVisitor<T> for StructDebug<T> {
     fn visit_separator(&mut self) { self.add(","); }
 }
 
 #[cfg(debug_assertions)]
 impl<T: VariableSystem+Clone> StructVisitor<T> for StructDebug<T> {
-    fn visit_const(&mut self, input: &StructConst) { input.visit(self) }
+    fn visit_const(&mut self, input: &StructConst) {
+        self.add(&match input {
+            StructConst::Number(value) => format!("{:?}",value),
+            StructConst::String(value) => format!("{:?}",value),
+            StructConst::Boolean(value) => format!("{:?}",value),
+            StructConst::Null => format!("null")
+        });
+    }
+
     fn visit_array_start(&mut self) { self.add("["); }
     fn visit_array_end(&mut self) { self.add("]"); }
     fn visit_object_start(&mut self) { self.add("{"); }

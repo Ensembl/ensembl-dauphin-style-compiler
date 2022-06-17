@@ -1,5 +1,35 @@
 use std::sync::Arc;
-use super::{eoestruct::{Struct, StructVisitor, StructConst, StructVarValue, VariableSystem}, buildertree::BuiltVars, eoestructformat::VariableSystemFormatter};
+use super::{eoestruct::{Struct, StructVisitor, StructConst, StructVarValue, VariableSystem}, buildertree::BuiltVars, eoestructformat::VariableSystemFormatter, separatorvisitor::SeparatorVisitor};
+
+pub trait DataVisitor {
+    fn visit_const(&mut self, _input: &StructConst) {}
+    fn visit_separator(&mut self) {}
+    fn visit_array_start(&mut self) {}
+    fn visit_array_end(&mut self) {}
+    fn visit_object_start(&mut self) {}
+    fn visit_object_end(&mut self) {}
+    fn visit_pair_start(&mut self, _key: &str) {}
+    fn visit_pair_end(&mut self, _key: &str) {}
+}
+
+struct DataVisitorAdaptor<'a>(&'a mut dyn DataVisitor);
+
+impl<'a,T: VariableSystem+Clone> StructVisitor<T> for DataVisitorAdaptor<'a> {
+    fn visit_const(&mut self, input: &StructConst) { self.0.visit_const(input) }
+    fn visit_var(&mut self, _input: &T::Use) {}
+    fn visit_array_start(&mut self) { self.0.visit_array_start() }
+    fn visit_array_end(&mut self) { self.0.visit_array_end() }
+    fn visit_object_start(&mut self) { self.0.visit_object_start() }
+    fn visit_object_end(&mut self) { self.0.visit_object_end() }
+    fn visit_pair_start(&mut self, key: &str) { self.0.visit_pair_start(key) }
+    fn visit_pair_end(&mut self, key: &str) { self.0.visit_pair_end(key) }
+    fn visit_all_start(&mut self, _id: &[T::Declare]) {}
+    fn visit_all_end(&mut self, _id: &[T::Declare]) {}
+}
+
+impl<'a,T: VariableSystem+Clone> SeparatorVisitor<T> for DataVisitorAdaptor<'a> {
+    fn visit_separator(&mut self) { self.0.visit_separator() }
+}
 
 #[derive(Clone)]
 pub struct NullVars;
@@ -103,7 +133,11 @@ impl Struct<BuiltVars> {
         }
     }
 
-    pub fn expand(&self, output: &mut dyn StructVisitor<NullVars>) {
+    pub(super) fn expand_struct(&self, output: &mut dyn StructVisitor<NullVars>) {
         self.split(output,&mut ExpandData::new())
+    }
+
+    pub fn expand(&self, output: &mut dyn DataVisitor) {
+        self.expand_struct(&mut DataVisitorAdaptor(output));
     }
 }

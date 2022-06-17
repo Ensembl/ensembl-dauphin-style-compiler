@@ -1,9 +1,23 @@
-use std::{sync::Arc, collections::HashMap };
+use std::{sync::Arc };
 use crate::eachorevery::{EachOrEvery, EachOrEveryGroupCompatible};
-
-use super::{eoestructformat::{VariableSystemFormatter, StructDebug}, buildertree::{BuiltVars, TemplateBuildVisitor}};
+use super::{eoestructformat::{VariableSystemFormatter}};
 use identitynumber::{ identitynumber };
 use lazy_static::lazy_static;
+
+/* EoeStructs use a number of different tree types during processing:
+ *   TemplateTree -- defined by the user and includes EoE arrays. Composable.
+ *   BuilderTree -- built from a template tree and ready to expand. Read-only.
+ *   NullTree -- an output tree.
+ * 
+ * This file contains definitions not specific to any of the particular tree types.
+ * StructValueId -- a singleton allowing matching of variable decls and use.
+ * StructConst -- a primitive atomic value (number/string/boolean/null).
+ * StructVarvalue -- an EoE of a primitive atomic value (number/string/boolean/null).
+ * StructPair -- key value pair for objects.
+ * VariableSystem -- a trait declaring the types of the Var and All nodes for any given tree type.
+ * Struct -- a tree
+ * StructVisitor -- a visitor trait for a Struct
+ */
 
 identitynumber!(IDS);
 
@@ -21,24 +35,6 @@ pub enum StructConst {
     String(String),
     Boolean(bool),
     Null
-}
-
-pub trait StructConstVisitor {
-    fn visit_number(&mut self, value: f64);
-    fn visit_string(&mut self, value: &str);
-    fn visit_boolean(&mut self, value: bool);
-    fn visit_null(&mut self);
-}
-
-impl StructConst {
-    pub(super) fn visit(&self, visitor: &mut dyn StructConstVisitor) {
-        match self {
-            StructConst::Number(input) => visitor.visit_number(*input),
-            StructConst::String(input) => visitor.visit_string(input),
-            StructConst::Boolean(input) => visitor.visit_boolean(*input),
-            StructConst::Null => visitor.visit_null()
-        }
-    }
 }
 
 #[derive(Clone)]
@@ -184,7 +180,7 @@ impl<T: Clone+VariableSystem> Struct<T> {
 
 #[cfg(test)]
 mod test {
-    use crate::eachorevery::eoestruct::templatetree::StructVar;
+    use crate::eachorevery::eoestruct::{templatetree::StructVar, eoestructformat::StructDebug, expand::{NullVars}};
 
     use super::*;
 
@@ -209,10 +205,10 @@ mod test {
         ]);
         println!("{:?}",outer);
         assert_eq!("[1.0,2.0,Aa.( Ab.( [a=<10.0,11.0>,b=<20.0,21.0,22.0>,30.0] ) )]",&format!("{:?}",outer));
-        let splitter = outer.splitter();
+        let splitter = outer.build();
         println!("{:?}",splitter);
-        let mut expander = StructDebug::new();
-        splitter.expand(&mut expander.visitor());
+        let mut expander: StructDebug<NullVars> = StructDebug::new();
+        splitter.expand_struct(&mut expander.visitor());
         println!("{}",expander.out());
         // [ 1,2, Aa,b: ( { "a:" a=<10,11,12>, "b": b=<20,21,22>, "c": 30 } ) ]
         let a = StructVar::new_number(EachOrEvery::each(vec![10.,11.,12.]));
@@ -233,10 +229,10 @@ mod test {
         ]);
         println!("{:?}",outer);
         assert_eq!("[1.0,2.0,Aab.( {\"a\": a=<10.0,11.0,12.0>,\"b\": b=<20.0,21.0,22.0>,\"c\": 30.0} )]",&format!("{:?}",outer));
-        let splitter = outer.splitter();
+        let splitter = outer.build();
         println!("{:?}",splitter);
         let mut expander = StructDebug::new();
-        splitter.expand(&mut expander.visitor());
+        splitter.expand_struct(&mut expander.visitor());
         println!("{}",expander.out());
     } 
 }

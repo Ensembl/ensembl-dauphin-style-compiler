@@ -107,7 +107,7 @@ impl Struct<TemplateVars> {
         Self::All(vars.iter().map(|x| x.id).collect::<Vec<_>>(),Arc::new(expr))
     }
 
-    pub fn splitter(&self) -> Struct<BuiltVars> {
+    pub fn build(&self) -> Struct<BuiltVars> {
         let mut builder = TemplateBuildVisitor::new();
         self.visit(&mut builder);
         builder.get()

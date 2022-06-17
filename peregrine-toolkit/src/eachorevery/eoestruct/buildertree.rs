@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::eachorevery::EachOrEveryGroupCompatible;
 
-use super::{eoestruct::{VariableSystem, StructVarValue, Struct, StructPair, StructValueId, StructConst, StructVisitor}, eoestructformat::VariableSystemFormatter, templatetree::{TemplateVars, StructVar}};
+use super::{eoestruct::{VariableSystem, StructVarValue, Struct, StructValueId, StructConst, StructVisitor}, eoestructformat::VariableSystemFormatter, templatetree::{TemplateVars, StructVar}, buildstack::{BuildStack, IdentityBuildStackTransformer}};
 
 #[derive(Clone)]
 pub(super) struct BuiltVars;
@@ -32,12 +32,6 @@ impl VariableSystemFormatter<BuiltVars> for BuiltVarsFortmatter {
     }
 }
 
-enum TemplateBuildStackEntry {
-    Node(Option<Struct<BuiltVars>>),
-    Array(Vec<Struct<BuiltVars>>),
-    Object(Vec<StructPair<BuiltVars>>)
-}
-
 struct Binding {
     id: StructValueId,
     pos: (usize,usize),
@@ -50,10 +44,17 @@ impl Binding {
     }
 }
 
+fn check_compatible(vars: &[Arc<StructVarValue>]) {
+    let mut compat = EachOrEveryGroupCompatible::new(None);
+    for var in vars {
+        var.check_compatible(&mut compat);
+    }
+
+}
+
 pub(super) struct TemplateBuildVisitor {
     all_depth: usize,
-    stack: Vec<TemplateBuildStackEntry>,
-    keys: Vec<String>,
+    build: BuildStack<Struct<BuiltVars>,Struct<BuiltVars>>,
     bindings: Vec<Binding>
 }
 
@@ -61,98 +62,38 @@ impl TemplateBuildVisitor {
     pub(super) fn new() -> TemplateBuildVisitor {
         TemplateBuildVisitor {
             all_depth: 0,
-            stack: vec![TemplateBuildStackEntry::Node(None)],
-            keys: vec![],
+            build: BuildStack::new(IdentityBuildStackTransformer),
             bindings: vec![]
         }
     }
 
-    pub(super) fn get(mut self) -> Struct<BuiltVars> {
-        if let TemplateBuildStackEntry::Node(Some(n) )= self.stack.pop().unwrap() {
-            n
-        } else {
-            panic!("inocorrect stack size");
-        }
-    }
-
-    fn add(&mut self, item: Struct<BuiltVars>) {
-        match self.stack.last_mut().unwrap() {
-            TemplateBuildStackEntry::Array(entries) => {
-                entries.push(item);
-            },
-            TemplateBuildStackEntry::Object(entries) => {
-                let key = self.keys.pop().unwrap();
-                entries.push(StructPair(key,item));
-            },
-            TemplateBuildStackEntry::Node(value) => {
-                *value = Some(item);
-            }
-        }
-    }
-
-    fn pop(&mut self) -> Struct<BuiltVars> {
-        match self.stack.pop().unwrap() {
-            TemplateBuildStackEntry::Array(entries) => {
-                Struct::Array(Arc::new(entries))
-            },
-            TemplateBuildStackEntry::Object(entries) => {
-                Struct::Object(Arc::new(entries))
-            },
-            TemplateBuildStackEntry::Node(node) => {
-                node.expect("unset")
-            }
-        }
-    }
-
-    fn check_compatible(&self, vars: &[Arc<StructVarValue>]) {
-        let mut compat = EachOrEveryGroupCompatible::new(None);
-        for var in vars {
-            var.check_compatible(&mut compat);
-        }
-
-    }
+    pub(super) fn get(mut self) -> Struct<BuiltVars> { self.build.get() }
 }
 
 // XXX panics
 impl StructVisitor<TemplateVars> for TemplateBuildVisitor {
     fn visit_const(&mut self, input: &StructConst) {
-        self.add(Struct::Const(input.clone()));
+        self.build.add_atom(Struct::Const(input.clone()));
     }
 
     fn visit_var(&mut self, input: &StructVar) {
         let index = self.bindings.iter().position(|id| id.id == input.id);
         let index = if let Some(x) = index { x } else { panic!("free"); };
         self.bindings[index].value = Some(input.value.clone());
-        self.add(Struct::Var(self.bindings[index].pos));
+        self.build.add_atom(Struct::Var(self.bindings[index].pos));
     }
 
-    fn visit_array_start(&mut self) {
-        self.stack.push(TemplateBuildStackEntry::Array(vec![]));
-    }
-
-    fn visit_array_end(&mut self) {
-        let obj = self.pop();
-        self.add(obj);
-    }
-
-    fn visit_object_start(&mut self) {
-        self.stack.push(TemplateBuildStackEntry::Object(vec![]));
-    }
-
-    fn visit_object_end(&mut self) {
-        let obj = self.pop();
-        self.add(obj);
-    }
-
-    fn visit_pair_start(&mut self, key: &str) {
-        self.keys.push(key.to_string());
-    }
+    fn visit_array_start(&mut self) { self.build.push_array(); }
+    fn visit_array_end(&mut self) { self.build.pop(|x| x); }
+    fn visit_object_start(&mut self) { self.build.push_object(); }
+    fn visit_object_end(&mut self) { self.build.pop(|x| x); }
+    fn visit_pair_start(&mut self, key: &str) { self.build.push_key(key); }
 
     fn visit_all_start(&mut self, ids: &[StructValueId]) {
         for (i,id) in ids.iter().enumerate() {
             self.bindings.push(Binding::new(id,self.all_depth,i));
         }
-        self.stack.push(TemplateBuildStackEntry::Node(None));
+        self.build.push_singleton();
         self.all_depth += 1;
     }
 
@@ -162,9 +103,10 @@ impl StructVisitor<TemplateVars> for TemplateBuildVisitor {
         let removed = removed.iter().map(|binding| {
             Arc::new(binding.value.clone().expect("unset"))
         }).collect::<Vec<_>>();
-        let obj = self.pop();
-        self.check_compatible(&removed);
-        self.add(Struct::All(removed,Arc::new(obj)));
+        self.build.pop(|obj| {
+            check_compatible(&removed);
+            Struct::All(removed,Arc::new(obj))
+        });
         self.all_depth -= 1;
     }
 }
