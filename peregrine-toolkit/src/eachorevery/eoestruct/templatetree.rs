@@ -10,10 +10,6 @@ pub struct StructVar {
     pub(super) id: StructValueId
 }
 
-pub(super) trait Visitable<T> {
-    fn visit(&mut self, value: &T);
-}
-
 impl StructVar {
     fn to_const(&self) -> Option<StructConst> { self.value.to_const() }
 
@@ -41,7 +37,7 @@ impl std::fmt::Debug for StructVar {
 }
 
 #[derive(Clone)]
-pub(super) struct TemplateVars;
+pub struct TemplateVars;
 
 impl VariableSystem for TemplateVars {
     type Declare = StructValueId;
@@ -123,6 +119,10 @@ impl Struct<TemplateVars> {
 
     pub fn new_boolean(input: bool) -> Struct<TemplateVars> {
         Self::Const(StructConst::Boolean(input))
+    }
+
+    pub fn new_null() -> Struct<TemplateVars> {
+        Self::Const(StructConst::Null)
     }
 
     pub fn new_array(input: Vec<Struct<TemplateVars>>) -> Struct<TemplateVars> {

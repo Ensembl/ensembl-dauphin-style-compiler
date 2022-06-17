@@ -5,7 +5,7 @@ use crate::eachorevery::EachOrEveryGroupCompatible;
 use super::{eoestruct::{VariableSystem, StructVarValue, Struct, StructValueId, StructConst, StructVisitor}, eoestructformat::VariableSystemFormatter, templatetree::{TemplateVars, StructVar}, buildstack::{BuildStack, IdentityBuildStackTransformer}};
 
 #[derive(Clone)]
-pub(super) struct BuiltVars;
+pub struct BuiltVars;
 
 impl VariableSystem for BuiltVars {
     type Declare = Arc<StructVarValue>;

@@ -23,7 +23,7 @@ identitynumber!(IDS);
 
 #[derive(Copy,Clone,PartialEq,Eq,Hash)]
 #[cfg_attr(debug_assertions,derive(Debug))]
-pub(super) struct StructValueId(pub(super) u64);
+pub struct StructValueId(pub(super) u64);
 
 impl StructValueId {
     pub(super) fn new() -> StructValueId { StructValueId(IDS.next()) }
@@ -39,7 +39,7 @@ pub enum StructConst {
 
 #[derive(Clone)]
 /* Guarantee: all EachOrEverys in here will be Each after construction */
-pub(super) enum StructVarValue {
+pub enum StructVarValue {
     Number(EachOrEvery<f64>),
     String(EachOrEvery<String>),
     Boolean(EachOrEvery<bool>),
@@ -116,7 +116,7 @@ impl StructVarValue {
     }
 }
 
-pub struct StructPair<T: VariableSystem+Clone>(pub(super) String,pub(super) Struct<T>);
+pub struct StructPair<T: VariableSystem+Clone>(pub String,pub Struct<T>);
 
 pub trait VariableSystem {
     type Declare;
@@ -135,16 +135,16 @@ pub enum Struct<T: VariableSystem+Clone> {
 }
 
 pub(super) trait StructVisitor<T: VariableSystem+Clone> {
-    fn visit_const(&mut self, input: &StructConst) {}
-    fn visit_var(&mut self, input: &T::Use) {}
+    fn visit_const(&mut self, _input: &StructConst) {}
+    fn visit_var(&mut self, _input: &T::Use) {}
     fn visit_array_start(&mut self) {}
     fn visit_array_end(&mut self) {}
     fn visit_object_start(&mut self) {}
     fn visit_object_end(&mut self) {}
-    fn visit_pair_start(&mut self, key: &str) {}
-    fn visit_pair_end(&mut self, key: &str) {}
-    fn visit_all_start(&mut self, id: &[T::Declare]) {}
-    fn visit_all_end(&mut self, id: &[T::Declare]) {}
+    fn visit_pair_start(&mut self, _key: &str) {}
+    fn visit_pair_end(&mut self, _key: &str) {}
+    fn visit_all_start(&mut self, _id: &[T::Declare]) {}
+    fn visit_all_end(&mut self, _id: &[T::Declare]) {}
 }
 
 impl<T: Clone+VariableSystem> Struct<T> {
@@ -180,59 +180,58 @@ impl<T: Clone+VariableSystem> Struct<T> {
 
 #[cfg(test)]
 mod test {
-    use crate::eachorevery::eoestruct::{templatetree::StructVar, eoestructformat::StructDebug, expand::{NullVars}};
+    use std::str::FromStr;
+
+    use crate::{eachorevery::eoestruct::{templatetree::StructVar, eoejson::{eoestruct_json, eoe_from_json}}, cbor::cbor_into_vec};
+    use serde_json::{Value as JsonValue, Number};
 
     use super::*;
 
+    fn json_fix_numbers(json: &JsonValue) -> JsonValue {
+        match json {
+            JsonValue::Null => JsonValue::Null,
+            JsonValue::Bool(x) => JsonValue::Bool(*x),
+            JsonValue::Number(n) => JsonValue::Number(Number::from_f64(n.as_f64().unwrap()).unwrap()),
+            JsonValue::String(s) => JsonValue::String(s.to_string()),
+            JsonValue::Array(x) => JsonValue::Array(x.iter().map(|x| json_fix_numbers(x)).collect()),
+            JsonValue::Object(x) => JsonValue::Object(x.iter().map(|(k,v)| (k.to_string(),json_fix_numbers(v))).collect()),
+        }
+    }
+
+    macro_rules! json_get {
+        ($name:ident,$var:tt,$typ:ty) => {
+            fn $name(value: &JsonValue) -> $typ {
+                match value {
+                    JsonValue::$var(v) => v.clone(),
+                    _ => panic!("malformatted test data")
+                }
+            }
+                    
+        };
+    }
+
+    json_get!(json_array,Array,Vec<JsonValue>);
+    json_get!(json_string,String,String);
+
+    fn run_case(value: &JsonValue) {
+        let parts = json_array(value);
+        println!("ruuning {}\n",json_string(&parts[0]));
+        let vars = json_array(&parts[1]).iter().map(|x| json_string(x)).collect::<Vec<_>>();
+        let template = eoe_from_json(vars,&parts[2]);
+        let debug = format!("{:?}",template);
+        let output = eoestruct_json(template.build());
+        let output = JsonValue::from_str(&output.to_string()).ok().unwrap();
+        assert_eq!(debug,json_string(&parts[3]));
+        assert_eq!(json_fix_numbers(&output),json_fix_numbers(&parts[4]));
+        println!("{:?}\n",template);
+        println!("{:?}\n",json_fix_numbers(&output));
+    }
+
     #[test]
     fn test_eoestruct_smoke() {
-        // [ 1,2, Aa: ( Ab: ( [a=<10,11>,b=<20,21,22>,30] )) ]
-        let a = StructVar::new_number(EachOrEvery::each(vec![10.,11.]));
-        let b = StructVar::new_number(EachOrEvery::each(vec![20.,21.,22.]));
-        let c = StructVar::new_number(EachOrEvery::every(30.));
-        let abc = Struct::new_array(vec![
-            Struct::new_var(a.clone()),
-            Struct::new_var(b.clone()),
-            Struct::new_var(c)
-        ]);
-        let all = Struct::new_all(&[a],Struct::new_all(&[b],abc));
-        let out1 = StructVar::new_number(EachOrEvery::every(1.));
-        let out2 = Struct::new_number(2.);
-        let outer = Struct::new_array(vec![
-            Struct::new_var(out1),
-            out2,
-            all
-        ]);
-        println!("{:?}",outer);
-        assert_eq!("[1.0,2.0,Aa.( Ab.( [a=<10.0,11.0>,b=<20.0,21.0,22.0>,30.0] ) )]",&format!("{:?}",outer));
-        let splitter = outer.build();
-        println!("{:?}",splitter);
-        let mut expander: StructDebug<NullVars> = StructDebug::new();
-        splitter.expand_struct(&mut expander.visitor());
-        println!("{}",expander.out());
-        // [ 1,2, Aa,b: ( { "a:" a=<10,11,12>, "b": b=<20,21,22>, "c": 30 } ) ]
-        let a = StructVar::new_number(EachOrEvery::each(vec![10.,11.,12.]));
-        let b = StructVar::new_number(EachOrEvery::each(vec![20.,21.,22.]));
-        let c = StructVar::new_number(EachOrEvery::every(30.));
-        let abc = Struct::new_object(vec![
-            StructPair::new("a",Struct::new_var(a.clone())),
-            StructPair::new("b",Struct::new_var(b.clone())),
-            StructPair::new("c",Struct::new_var(c)),
-        ]);
-        let all = Struct::new_all(&[a,b],abc);
-        let out1 = StructVar::new_number(EachOrEvery::every(1.));
-        let out2 = Struct::new_number(2.);
-        let outer = Struct::new_array(vec![
-            Struct::new_var(out1),
-            out2,
-            all
-        ]);
-        println!("{:?}",outer);
-        assert_eq!("[1.0,2.0,Aab.( {\"a\": a=<10.0,11.0,12.0>,\"b\": b=<20.0,21.0,22.0>,\"c\": 30.0} )]",&format!("{:?}",outer));
-        let splitter = outer.build();
-        println!("{:?}",splitter);
-        let mut expander = StructDebug::new();
-        splitter.expand_struct(&mut expander.visitor());
-        println!("{}",expander.out());
+        let data = JsonValue::from_str(include_str!("eoe-smoke.json")).ok().unwrap();
+        for testcase in json_array(&data).iter() {
+            run_case(&testcase);
+        }
     } 
 }
