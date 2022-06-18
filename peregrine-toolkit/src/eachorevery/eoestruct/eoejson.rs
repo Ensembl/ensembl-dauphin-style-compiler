@@ -97,7 +97,7 @@ impl EoeFromJson {
             var_names.insert(key.clone(),var);
         }
         self.vars.push(var_names);
-        let expr = self.build(map.get(expr).unwrap())?;
+        let expr = self.build(map.get(expr).unwrap())?; // expr guranteed in map during setting
         self.vars.pop();
         Ok(Some(Struct::new_all(&vars,expr)))
     }

@@ -63,7 +63,7 @@ pub enum StructVarValue {
 
 fn to_const<X>(input: &EachOrEvery<X>) -> Option<&X> {
     if input.len().is_none() {
-        Some(input.get(0).unwrap())
+        Some(input.get(0).unwrap()) // EoE every is guaranteed to be Some
     } else {
         None
     }
@@ -73,14 +73,14 @@ fn format<X: std::fmt::Debug>(value: &EachOrEvery<X>, f: &mut std::fmt::Formatte
     if let Some(len) = value.len() {
         let mut sep = false;
         write!(f,"<")?;
-        for value in value.iter(len).unwrap() {
+        for value in value.iter(len).unwrap() { // guaranteed by outer conditional
             if sep { write!(f,",")?; }
             write!(f,"{:?}",value)?;
             sep = true;
         }
         write!(f,">")?;
     } else {
-        let value = value.iter(1).unwrap().next().unwrap();
+        let value = value.iter(1).unwrap().next().unwrap(); // EoE every is guaranteed to be Some
         write!(f,"{:?}",value)?;
     }
     Ok(())
@@ -201,9 +201,9 @@ impl<T: Clone+VariableSystem> Struct<T> {
 #[cfg(test)]
 mod test {
     use std::str::FromStr;
-
-    use crate::{eachorevery::eoestruct::{eoejson::{struct_to_json, struct_from_json}}};
+    use crate::{eachorevery::{eoestruct::{eoejson::{struct_to_json, struct_from_json}, templatetree::StructVar}, EachOrEvery}};
     use serde_json::{Value as JsonValue, Number};
+    use super::Struct;
 
     fn json_fix_numbers(json: &JsonValue) -> JsonValue {
         match json {
@@ -288,5 +288,18 @@ mod test {
         for testcase in json_array(&data).iter() {
             run_case_parsefail(&testcase);
         }
-    } 
+    }
+
+    #[test]
+    fn test_eoestruct_free() {
+        /* corner case not testable with the available harnesses */
+        let template = Struct::new_array(vec![
+            Struct::new_boolean(true),
+            Struct::new_var(StructVar::new_boolean(EachOrEvery::each(vec![false,true])))
+        ]);
+        match template.build() {
+            Ok(r) => { eprintln!("unexpected success: {:?}",r); assert!(false); },
+            Err(e) => assert_eq!(e,"free variable in template")
+        }
+    }
 }

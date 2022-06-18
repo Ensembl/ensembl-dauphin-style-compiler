@@ -15,7 +15,7 @@ impl<'a,T: VariableSystem+Clone> SeparatedStructAdaptor<'a,T> {
     }
 
     fn sep(&mut self) {
-        let first = self.first.last_mut().unwrap();
+        let first = self.first.last_mut().unwrap(); // unchecked because guaranteed by visito invariant
         if *first {
             *first = false;
         } else {

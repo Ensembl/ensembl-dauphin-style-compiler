@@ -16,5 +16,14 @@
             "!": []
         },
         "no variables specified"
+    ],
+    [
+        "unset",
+        ["!a"],
+        {
+            "?a": [1,2,3],
+            "!a": 4
+        },
+        "all over missing variable"
     ]
 ]

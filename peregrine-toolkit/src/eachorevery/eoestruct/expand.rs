@@ -73,7 +73,7 @@ impl AllState {
     }
 
     fn get(&self, width: usize) -> StructConst {
-        self.vars[width].get(self.index-1).unwrap()
+        self.vars[width].get(self.index-1).unwrap() // guaranteed by build process
     }
 
     fn row(&mut self) -> bool {
@@ -114,7 +114,7 @@ impl StructBuilt {
                 data.push(all);
                 output.visit_array_start()?;
                 loop {
-                    let top = data.last_mut().unwrap();
+                    let top = data.last_mut().unwrap(); // data only manipulated here and just pushed
                     if !top.row() { break; }
                     drop(top);
                     expr.split(output,data)?;

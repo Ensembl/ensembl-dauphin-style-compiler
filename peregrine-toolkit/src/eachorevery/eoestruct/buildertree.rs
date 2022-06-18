@@ -80,8 +80,6 @@ impl TemplateBuildVisitor {
     pub(super) fn get(self) -> StructBuilt { self.build.get() }
 }
 
-// XXX free and unknown
-// XXX panics
 impl StructVisitor<TemplateVars> for TemplateBuildVisitor {
     fn visit_const(&mut self, input: &StructConst) -> StructResult {
         self.build.add_atom(Struct::Const(input.clone()))?;
@@ -90,7 +88,7 @@ impl StructVisitor<TemplateVars> for TemplateBuildVisitor {
 
     fn visit_var(&mut self, input: &StructVar) -> StructResult {
         let index = self.bindings.iter().position(|id| id.id == input.id);
-        let index = if let Some(x) = index { x } else { panic!("free"); };
+        let index = index.ok_or_else(|| struct_error("free variable in template"))?;
         self.bindings[index].value = Some(input.value.clone());
         self.build.add_atom(Struct::Var(self.bindings[index].pos))
     }
@@ -114,8 +112,8 @@ impl StructVisitor<TemplateVars> for TemplateBuildVisitor {
         let keep_len = self.bindings.len()-ids.len();
         let removed = self.bindings.split_off(keep_len);
         let removed = removed.iter().map(|binding| {
-            Arc::new(binding.value.clone().expect("unset"))
-        }).collect::<Vec<_>>();
+            binding.value.clone().map(|x| Arc::new(x))
+        }).collect::<Option<Vec<_>>>().ok_or_else(|| struct_error("all over missing variable"))?;
         self.build.pop(|obj| {
             check_compatible(&removed)?;
             Ok(Struct::All(removed,Arc::new(obj)))

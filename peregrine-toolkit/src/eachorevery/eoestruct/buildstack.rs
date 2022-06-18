@@ -43,10 +43,10 @@ impl<T,X> BuildStack<T,X> {
     }
 
     pub(super) fn get(mut self) -> X {
-        if let TemplateBuildStackEntry::Node(Some(n) )= self.stack.pop().unwrap() {
+        if let Some(TemplateBuildStackEntry::Node(Some(n))) = self.stack.pop() {
             n
         } else {
-            panic!("inocorrect stack size");
+            panic!("inocorrect stack size at completion"); // we require this ofcallers
         }
     }
 
@@ -67,12 +67,12 @@ impl<T,X> BuildStack<T,X> {
     }
 
     fn add(&mut self, item: X) {
-        match self.stack.last_mut().unwrap() {
+        match self.stack.last_mut().unwrap() { // guranteed by visitor invariant/caller
             TemplateBuildStackEntry::Array(entries) => {
                 entries.push(item);
             },
             TemplateBuildStackEntry::Object(entries) => {
-                let key = self.keys.pop().unwrap();
+                let key = self.keys.pop().unwrap(); // guranteed by visitor invariant
                 entries.push((key,item));
             },
             TemplateBuildStackEntry::Node(value) => {
