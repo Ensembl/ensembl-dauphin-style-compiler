@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use super::{eoestruct::{StructPair, Struct, VariableSystem, StructConst}, expand::DataVisitor};
+use super::{eoestruct::{StructPair, Struct, VariableSystem, StructConst, StructResult, StructError}, expand::DataVisitor};
 
 pub trait BuildStackTransformer<T,X> {
     fn make_singleton(&mut self, value: T) -> X;
@@ -81,35 +81,37 @@ impl<T,X> BuildStack<T,X> {
         }
     }
 
-    pub(super) fn add_atom(&mut self, item: T) {
+    pub(super) fn add_atom(&mut self, item: T) -> StructResult {
         let item = self.transformer.make_singleton(item);
         self.add(item);
+        Ok(())
     }
 
-    pub(super) fn pop<F>(&mut self, cb: F) where F: FnOnce(X) -> X {
-        match self.stack.pop().unwrap() {
+    pub(super) fn pop<F>(&mut self, cb: F) -> StructResult where F: FnOnce(X) -> Result<X,StructError> {
+        match self.stack.pop().expect("struct invariant violated: build stack musused and underflowed") {
             TemplateBuildStackEntry::Array(entries) => {
-                let item = cb(self.transformer.make_array(entries));
+                let item = cb(self.transformer.make_array(entries))?;
                 self.add(item);
             },
             TemplateBuildStackEntry::Object(entries) => {
-                let item = cb(self.transformer.make_object(entries));
+                let item = cb(self.transformer.make_object(entries))?;
                 self.add(item);
             },
             TemplateBuildStackEntry::Node(node) => {
-                self.add(cb(node.expect("unset")));
+                self.add(cb(node.expect("unset"))?);
             }
-        };
+        }
+        Ok(())
     }
 }
 
 impl<X> DataVisitor for BuildStack<StructConst,X> {
-    fn visit_const(&mut self, input: &StructConst) { self.add_atom(input.clone()); }
+    fn visit_const(&mut self, input: &StructConst) -> StructResult { self.add_atom(input.clone()) }
     fn visit_separator(&mut self) {}
-    fn visit_array_start(&mut self) { self.push_array(); }
-    fn visit_array_end(&mut self) { self.pop(|x| x); }
-    fn visit_object_start(&mut self) { self.push_object(); }
-    fn visit_object_end(&mut self) { self.pop(|x| x); }
-    fn visit_pair_start(&mut self, key: &str) { self.push_key(key); }
-    fn visit_pair_end(&mut self, _key: &str) {}
+    fn visit_array_start(&mut self) -> StructResult { self.push_array(); Ok(()) }
+    fn visit_array_end(&mut self) -> StructResult { self.pop(|x| Ok(x)) }
+    fn visit_object_start(&mut self) -> StructResult { self.push_object(); Ok(()) }
+    fn visit_object_end(&mut self) -> StructResult { self.pop(|x| Ok(x)) }
+    fn visit_pair_start(&mut self, key: &str) -> StructResult { self.push_key(key); Ok(()) }
+    fn visit_pair_end(&mut self, _key: &str) -> StructResult { Ok(()) }
 }

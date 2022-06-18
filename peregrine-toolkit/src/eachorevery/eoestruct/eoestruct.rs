@@ -23,6 +23,20 @@ use super::{eoestructformat::{VariableSystemFormatter}};
 
 identitynumber!(IDS);
 
+#[cfg(debug_assertions)]
+pub type StructError = String;
+
+#[cfg(debug_assertions)]
+pub(super) fn struct_error(msg: &str) -> StructError { msg.to_string() }
+
+#[cfg(not(debug_assertions))]
+pub type StructError = ();
+
+#[cfg(not(debug_assertions))]
+pub(super) fn struct_error(msg: &str) -> StructError { () }
+
+pub type StructResult = Result<(),StructError>;
+
 #[derive(Copy,Clone,PartialEq,Eq,Hash)]
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub struct StructValueId(pub(super) u64);
@@ -57,10 +71,12 @@ fn to_const<X>(input: &EachOrEvery<X>) -> Option<&X> {
  
 fn format<X: std::fmt::Debug>(value: &EachOrEvery<X>, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     if let Some(len) = value.len() {
-        let mut sep = "<";
+        let mut sep = false;
+        write!(f,"<")?;
         for value in value.iter(len).unwrap() {
-            write!(f,"{}{:?}",sep,value)?;
-            sep = ",";
+            if sep { write!(f,",")?; }
+            write!(f,"{:?}",value)?;
+            sep = true;
         }
         write!(f,">")?;
     } else {
@@ -138,46 +154,47 @@ pub enum Struct<T: VariableSystem+Clone> {
 }
 
 pub(super) trait StructVisitor<T: VariableSystem+Clone> {
-    fn visit_const(&mut self, _input: &StructConst) {}
-    fn visit_var(&mut self, _input: &T::Use) {}
-    fn visit_array_start(&mut self) {}
-    fn visit_array_end(&mut self) {}
-    fn visit_object_start(&mut self) {}
-    fn visit_object_end(&mut self) {}
-    fn visit_pair_start(&mut self, _key: &str) {}
-    fn visit_pair_end(&mut self, _key: &str) {}
-    fn visit_all_start(&mut self, _id: &[T::Declare]) {}
-    fn visit_all_end(&mut self, _id: &[T::Declare]) {}
+    fn visit_const(&mut self, _input: &StructConst) -> StructResult { Ok(()) }
+    fn visit_var(&mut self, _input: &T::Use) -> StructResult { Ok(()) }
+    fn visit_array_start(&mut self) -> StructResult { Ok(()) }
+    fn visit_array_end(&mut self) -> StructResult { Ok(()) }
+    fn visit_object_start(&mut self) -> StructResult { Ok(()) }
+    fn visit_object_end(&mut self) -> StructResult { Ok(()) }
+    fn visit_pair_start(&mut self, _key: &str) -> StructResult { Ok(()) }
+    fn visit_pair_end(&mut self, _key: &str) -> StructResult { Ok(()) }
+    fn visit_all_start(&mut self, _id: &[T::Declare]) -> StructResult { Ok(()) }
+    fn visit_all_end(&mut self, _id: &[T::Declare]) -> StructResult { Ok(()) }
 }
 
 impl<T: Clone+VariableSystem> Struct<T> {
-    pub(super) fn visit(&self, visitor: &mut dyn StructVisitor<T>) {
+    pub(super) fn visit(&self, visitor: &mut dyn StructVisitor<T>) -> StructResult {
         match self {
-            Struct::Const(input) => visitor.visit_const(input),
-            Struct::Var(input) => visitor.visit_var(input),
+            Struct::Const(input) => visitor.visit_const(input)?,
+            Struct::Var(input) => visitor.visit_var(input)?,
             Struct::Array(input) => {
-                visitor.visit_array_start();
+                visitor.visit_array_start()?;
                 for value in input.iter() {
-                    value.visit(visitor);
+                    value.visit(visitor)?;
                 }
-                visitor.visit_array_end();
+                visitor.visit_array_end()?;
             },
             Struct::Object(input) => {
-                visitor.visit_object_start();
+                visitor.visit_object_start()?;
                 for value in input.iter() {
-                    visitor.visit_pair_start(&value.0);
-                    value.1.visit(visitor);
-                    visitor.visit_pair_end(&value.0);
+                    visitor.visit_pair_start(&value.0)?;
+                    value.1.visit(visitor)?;
+                    visitor.visit_pair_end(&value.0)?;
                 }
-                visitor.visit_object_end();
+                visitor.visit_object_end()?;
 
             },
             Struct::All(vars, expr) => {
-                visitor.visit_all_start(vars);
-                expr.visit(visitor);
-                visitor.visit_all_end(vars);
+                visitor.visit_all_start(vars)?;
+                expr.visit(visitor)?;
+                visitor.visit_all_end(vars)?;
             }
         }
+        Ok(())
     }
 }
 
@@ -218,9 +235,9 @@ mod test {
         let parts = json_array(value);
         println!("ruuning {}\n",json_string(&parts[0]));
         let vars = json_array(&parts[1]).iter().map(|x| json_string(x)).collect::<Vec<_>>();
-        let template = struct_from_json(vars,&parts[2]);
+        let template = struct_from_json(vars,&parts[2]).ok().unwrap();
         let debug = format!("{:?}",template);
-        let output = struct_to_json(template.build());
+        let output = struct_to_json(template.build().ok().expect("unexpected error")).ok().unwrap();
         let output = JsonValue::from_str(&output.to_string()).ok().unwrap();
         assert_eq!(debug,json_string(&parts[3]));
         assert_eq!(json_fix_numbers(&output),json_fix_numbers(&parts[4]));
@@ -228,11 +245,48 @@ mod test {
         println!("{:?}\n",json_fix_numbers(&output));
     }
 
+    fn run_case_buildfail(value: &JsonValue) {
+        let parts = json_array(value);
+        println!("ruuning {}\n",json_string(&parts[0]));
+        let vars = json_array(&parts[1]).iter().map(|x| json_string(x)).collect::<Vec<_>>();
+        let template = struct_from_json(vars,&parts[2]).ok().unwrap();
+        match template.build() {
+            Ok(r) => { eprintln!("unexpected success: {:?}",r); assert!(false); },
+            Err(e) => assert_eq!(e,json_string(&parts[3]))
+        }
+    }
+
+    fn run_case_parsefail(value: &JsonValue) {
+        let parts = json_array(value);
+        println!("ruuning {}\n",json_string(&parts[0]));
+        let vars = json_array(&parts[1]).iter().map(|x| json_string(x)).collect::<Vec<_>>();
+        match struct_from_json(vars,&parts[2]) {
+            Ok(r) => { eprintln!("unexpected success: {:?}",r); assert!(false); },
+            Err(e) => assert_eq!(e,json_string(&parts[3]))
+        }
+    }
+
     #[test]
     fn test_eoestruct_smoke() {
-        let data = JsonValue::from_str(include_str!("eoe-smoke.json")).ok().unwrap();
+        let data = JsonValue::from_str(include_str!("test-eoe-smoke.json")).ok().unwrap();
         for testcase in json_array(&data).iter() {
             run_case(&testcase);
+        }
+    } 
+
+    #[test]
+    fn test_eoestruct_buildfail() {
+        let data = JsonValue::from_str(include_str!("test-eoe-buildfail.json")).ok().unwrap();
+        for testcase in json_array(&data).iter() {
+            run_case_buildfail(&testcase);
+        }
+    } 
+
+    #[test]
+    fn test_eoestruct_parsefail() {
+        let data = JsonValue::from_str(include_str!("test-eoe-parsefail.json")).ok().unwrap();
+        for testcase in json_array(&data).iter() {
+            run_case_parsefail(&testcase);
         }
     } 
 }

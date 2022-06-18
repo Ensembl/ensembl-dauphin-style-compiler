@@ -1,6 +1,6 @@
 use std::sync::Arc;
 use crate::eachorevery::EachOrEveryGroupCompatible;
-use super::{eoestruct::{VariableSystem, StructVarValue, Struct, StructValueId, StructConst, StructVisitor}, templatetree::{TemplateVars, StructVar}, buildstack::{BuildStack, IdentityBuildStackTransformer}, expand::StructBuilt};
+use super::{eoestruct::{VariableSystem, StructVarValue, Struct, StructValueId, StructConst, StructVisitor, StructResult, StructError, struct_error}, templatetree::{TemplateVars, StructVar}, buildstack::{BuildStack, IdentityBuildStackTransformer}, expand::StructBuilt};
 
 #[cfg(debug_assertions)]
 use super::eoestructformat::VariableSystemFormatter;
@@ -31,8 +31,8 @@ impl VariableSystemFormatter<BuiltVars> for BuiltVarsFortmatter {
         " )".to_string()
     }
 
-    fn format_use(&mut self, var: &(usize,usize)) -> String {
-        format!("D({},{})",var.0,var.1)
+    fn format_use(&mut self, var: &(usize,usize)) -> Result<String,StructError> {
+        Ok(format!("D({},{})",var.0,var.1))
     }
 }
 
@@ -48,12 +48,18 @@ impl Binding {
     }
 }
 
-fn check_compatible(vars: &[Arc<StructVarValue>]) {
+fn check_compatible(vars: &[Arc<StructVarValue>]) -> StructResult {
+    if vars.len() == 0 {
+        return Err(struct_error("no variables specified"));
+    }
     let mut compat = EachOrEveryGroupCompatible::new(None);
     for var in vars {
         var.check_compatible(&mut compat);
     }
-
+    if !compat.compatible() {
+        return Err(struct_error("bindings of differing length"));
+    }
+    Ok(())
 }
 
 pub(super) struct TemplateBuildVisitor {
@@ -74,43 +80,47 @@ impl TemplateBuildVisitor {
     pub(super) fn get(self) -> StructBuilt { self.build.get() }
 }
 
+// XXX free and unknown
 // XXX panics
 impl StructVisitor<TemplateVars> for TemplateBuildVisitor {
-    fn visit_const(&mut self, input: &StructConst) {
-        self.build.add_atom(Struct::Const(input.clone()));
+    fn visit_const(&mut self, input: &StructConst) -> StructResult {
+        self.build.add_atom(Struct::Const(input.clone()))?;
+        Ok(())
     }
 
-    fn visit_var(&mut self, input: &StructVar) {
+    fn visit_var(&mut self, input: &StructVar) -> StructResult {
         let index = self.bindings.iter().position(|id| id.id == input.id);
         let index = if let Some(x) = index { x } else { panic!("free"); };
         self.bindings[index].value = Some(input.value.clone());
-        self.build.add_atom(Struct::Var(self.bindings[index].pos));
+        self.build.add_atom(Struct::Var(self.bindings[index].pos))
     }
 
-    fn visit_array_start(&mut self) { self.build.push_array(); }
-    fn visit_array_end(&mut self) { self.build.pop(|x| x); }
-    fn visit_object_start(&mut self) { self.build.push_object(); }
-    fn visit_object_end(&mut self) { self.build.pop(|x| x); }
-    fn visit_pair_start(&mut self, key: &str) { self.build.push_key(key); }
+    fn visit_array_start(&mut self) -> StructResult { self.build.push_array(); Ok(()) }
+    fn visit_array_end(&mut self) -> StructResult { self.build.pop(|x| Ok(x)) }
+    fn visit_object_start(&mut self) -> StructResult { self.build.push_object(); Ok(()) }
+    fn visit_object_end(&mut self) -> StructResult { self.build.pop(|x| Ok(x)) }
+    fn visit_pair_start(&mut self, key: &str) -> StructResult { self.build.push_key(key); Ok(()) }
 
-    fn visit_all_start(&mut self, ids: &[StructValueId]) {
+    fn visit_all_start(&mut self, ids: &[StructValueId]) -> StructResult {
         for (i,id) in ids.iter().enumerate() {
             self.bindings.push(Binding::new(id,self.all_depth,i));
         }
         self.build.push_singleton();
         self.all_depth += 1;
+        Ok(())
     }
 
-    fn visit_all_end(&mut self, ids: &[StructValueId]) {
+    fn visit_all_end(&mut self, ids: &[StructValueId]) -> StructResult {
         let keep_len = self.bindings.len()-ids.len();
         let removed = self.bindings.split_off(keep_len);
         let removed = removed.iter().map(|binding| {
             Arc::new(binding.value.clone().expect("unset"))
         }).collect::<Vec<_>>();
         self.build.pop(|obj| {
-            check_compatible(&removed);
-            Struct::All(removed,Arc::new(obj))
-        });
+            check_compatible(&removed)?;
+            Ok(Struct::All(removed,Arc::new(obj)))
+        })?;
         self.all_depth -= 1;
+        Ok(())
     }
 }
