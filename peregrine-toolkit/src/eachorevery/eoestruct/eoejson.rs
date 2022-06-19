@@ -2,12 +2,11 @@ use std::collections::{HashMap, HashSet};
 
 use crate::eachorevery::EachOrEvery;
 
-use super::{eoestruct::{StructConst, Struct, StructPair, StructError, struct_error}, buildstack::{BuildStack, BuildStackTransformer}, templatetree::StructVar, StructTemplate, expand::StructBuilt};
+use super::{eoestruct::{StructConst, Struct, StructPair, StructError, struct_error}, templatetree::StructVar, StructTemplate, expand::StructBuilt, buildstack::{DataStackTransformer, DataStack}};
 use serde_json::{Value as JsonValue, Number, Map};
-
 struct JsonTransformer;
 
-impl BuildStackTransformer<StructConst,JsonValue> for JsonTransformer {
+impl DataStackTransformer<StructConst,JsonValue> for JsonTransformer {
     fn make_singleton(&mut self, value: StructConst) -> JsonValue {
         match value {
             StructConst::Number(input) => JsonValue::Number(Number::from_f64(input).unwrap()),
@@ -27,7 +26,7 @@ impl BuildStackTransformer<StructConst,JsonValue> for JsonTransformer {
 }
 
 pub fn struct_to_json(input: StructBuilt) -> Result<JsonValue,StructError> {
-    let mut stack = BuildStack::new(JsonTransformer);
+    let mut stack = DataStack::new(JsonTransformer);
     input.expand(&mut stack)?;
     Ok(stack.get())
 }

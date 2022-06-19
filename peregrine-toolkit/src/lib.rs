@@ -4,7 +4,6 @@ pub mod eachorevery {
         mod buildertree;
         mod eoestruct;
         mod expand;
-        mod separatorvisitor;
         mod eoejson;
         mod templatetree; 
 

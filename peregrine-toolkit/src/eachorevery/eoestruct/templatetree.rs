@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 use crate::eachorevery::EachOrEvery;
-use super::{eoestruct::{StructConst, Struct, StructPair, StructValueId, VariableSystem, StructVarValue, StructError}, buildertree::TemplateBuildVisitor, expand::StructBuilt};
+use super::{eoestruct::{StructConst, Struct, StructPair, StructValueId, VariableSystem, StructVarValue, StructError}};
 
 #[cfg(debug_assertions)]
 use super::eoestructformat::VariableSystemFormatter;
@@ -108,12 +108,6 @@ impl StructTemplate {
 
     pub fn new_all(vars: &[StructVar], expr: StructTemplate) -> StructTemplate {
         Self::All(vars.iter().map(|x| x.id).collect::<Vec<_>>(),Arc::new(expr))
-    }
-
-    pub fn build(&self) -> Result<StructBuilt,StructError> {
-        let mut builder = TemplateBuildVisitor::new();
-        self.visit(&mut builder)?;
-        Ok(builder.get())
     }
 
     pub fn new_number(input: f64) -> StructTemplate {

@@ -153,51 +153,6 @@ pub enum Struct<T: VariableSystem+Clone> {
     All(Vec<T::Declare>,Arc<Struct<T>>)
 }
 
-pub(super) trait StructVisitor<T: VariableSystem+Clone> {
-    fn visit_const(&mut self, _input: &StructConst) -> StructResult { Ok(()) }
-    fn visit_var(&mut self, _input: &T::Use) -> StructResult { Ok(()) }
-    fn visit_array_start(&mut self) -> StructResult { Ok(()) }
-    fn visit_array_end(&mut self) -> StructResult { Ok(()) }
-    fn visit_object_start(&mut self) -> StructResult { Ok(()) }
-    fn visit_object_end(&mut self) -> StructResult { Ok(()) }
-    fn visit_pair_start(&mut self, _key: &str) -> StructResult { Ok(()) }
-    fn visit_pair_end(&mut self, _key: &str) -> StructResult { Ok(()) }
-    fn visit_all_start(&mut self, _id: &[T::Declare]) -> StructResult { Ok(()) }
-    fn visit_all_end(&mut self, _id: &[T::Declare]) -> StructResult { Ok(()) }
-}
-
-impl<T: Clone+VariableSystem> Struct<T> {
-    pub(super) fn visit(&self, visitor: &mut dyn StructVisitor<T>) -> StructResult {
-        match self {
-            Struct::Const(input) => visitor.visit_const(input)?,
-            Struct::Var(input) => visitor.visit_var(input)?,
-            Struct::Array(input) => {
-                visitor.visit_array_start()?;
-                for value in input.iter() {
-                    value.visit(visitor)?;
-                }
-                visitor.visit_array_end()?;
-            },
-            Struct::Object(input) => {
-                visitor.visit_object_start()?;
-                for value in input.iter() {
-                    visitor.visit_pair_start(&value.0)?;
-                    value.1.visit(visitor)?;
-                    visitor.visit_pair_end(&value.0)?;
-                }
-                visitor.visit_object_end()?;
-
-            },
-            Struct::All(vars, expr) => {
-                visitor.visit_all_start(vars)?;
-                expr.visit(visitor)?;
-                visitor.visit_all_end(vars)?;
-            }
-        }
-        Ok(())
-    }
-}
-
 #[cfg(test)]
 mod test {
     use std::str::FromStr;

@@ -1,4 +1,4 @@
-use super::{eoestruct::{VariableSystem, Struct, StructVisitor, StructConst, StructResult, StructError}, separatorvisitor::{SeparatedStructAdaptor, SeparatorVisitor}};
+use super::{eoestruct::{VariableSystem, Struct, StructConst, StructResult, StructError}};
 
 #[cfg(debug_assertions)]
 pub trait VariableSystemFormatter<T: VariableSystem> {
@@ -10,81 +10,66 @@ pub trait VariableSystemFormatter<T: VariableSystem> {
 #[cfg(debug_assertions)]
 impl<T: VariableSystem+Clone> std::fmt::Debug for Struct<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f,"{}",StructDebug::format(self).unwrap_or_else(|x| format!("*error-formatting-struct*({})",x)))
+        write!(f,"{}",self.format().unwrap_or_else(|x| format!("*error-formatting-struct*({})",x)))
     }
 }
 
+// XXX test serial at DataVisitor
 #[cfg(debug_assertions)]
-pub struct StructDebug<T: VariableSystem> {
-    output: String,
-    formatter: Box<dyn VariableSystemFormatter<T>>
+fn comma_separate<'a,F,X,Y>(it: X, mut cb: F, output: &mut String) -> StructResult
+        where X: Iterator<Item=Y>,
+              F: FnMut(Y,&mut String) -> StructResult {
+    let mut first = true;
+    for item in it {
+        if !first { output.push_str(","); }
+        cb(item,output)?;
+        first = false;
+    }
+    Ok(())
 }
 
-#[cfg(debug_assertions)]
-impl<T: VariableSystem+Clone> StructDebug<T> {
-    pub(super) fn format(input: &Struct<T>) -> Result<String,StructError> {
-        let mut visitor = StructDebug::new();
-        input.visit(&mut visitor.visitor())?;
-        Ok(visitor.out())
+impl<T: VariableSystem+Clone> Struct<T> {
+    pub(super) fn format(&self) -> Result<String,StructError> {
+        let mut output = String::new();
+        let mut formatter = T::build_formatter();
+        self.format_level(&mut formatter,&mut output)?;
+        Ok(output)
     }
 
-    pub(super) fn new() -> StructDebug<T> {
-        StructDebug {
-            output: String::new(),
-            formatter: T::build_formatter()
+    fn format_level(&self, formatter: &mut Box<dyn VariableSystemFormatter<T>>, output: &mut String) -> StructResult {
+        match self {
+            Struct::Var(var) => {
+                output.push_str(&formatter.format_use(var)?);
+            },
+            Struct::Const(val) => {
+                output.push_str(&match val {
+                    StructConst::Number(value) => format!("{:?}",value),
+                    StructConst::String(value) => format!("{:?}",value),
+                    StructConst::Boolean(value) => format!("{:?}",value),
+                    StructConst::Null => format!("null")
+                });
+            },
+            Struct::Array(values) => {
+                output.push_str("[");
+                comma_separate(values.iter(),|item,output| {
+                    item.format_level(formatter,output)
+                },output)?;
+                output.push_str("]");
+            },
+            Struct::Object(object) => {
+                output.push_str("{");
+                comma_separate(object.iter(),|item,output| {
+                    output.push_str(&format!("{:?}: ",item.0));
+                    item.1.format_level(formatter,output)
+                }, output)?;
+                output.push_str("}");
+            },
+            Struct::All(ids, expr) => {
+                output.push_str(&formatter.format_declare_start(ids));
+                expr.format_level(formatter,output)?;                
+                output.push_str(&formatter.format_declare_end(ids));
+            },
         }
-    }
-
-    pub(super) fn visitor(&mut self) -> SeparatedStructAdaptor<T> {
-        SeparatedStructAdaptor::new(self)
-    }
-
-    fn add(&mut self, value: &str) {
-        self.output.push_str(value);
-    }
-
-    pub(super) fn out(self) -> String { self.output }
-}
-
-#[cfg(debug_assertions)]
-impl<T: VariableSystem+Clone> SeparatorVisitor<T> for StructDebug<T> {
-    fn visit_separator(&mut self) { self.add(","); }
-}
-
-#[cfg(debug_assertions)]
-impl<T: VariableSystem+Clone> StructVisitor<T> for StructDebug<T> {
-    fn visit_const(&mut self, input: &StructConst) -> StructResult {
-        self.add(&match input {
-            StructConst::Number(value) => format!("{:?}",value),
-            StructConst::String(value) => format!("{:?}",value),
-            StructConst::Boolean(value) => format!("{:?}",value),
-            StructConst::Null => format!("null")
-        });
-        Ok(())
-    }
-
-    fn visit_array_start(&mut self) -> StructResult { self.add("["); Ok(()) }
-    fn visit_array_end(&mut self) -> StructResult { self.add("]"); Ok(()) }
-    fn visit_object_start(&mut self) -> StructResult { self.add("{"); Ok(()) }
-    fn visit_object_end(&mut self) -> StructResult { self.add("}"); Ok(()) }
-    fn visit_pair_start(&mut self, key: &str) -> StructResult { self.add(&format!("{:?}: ",key)); Ok(()) }
-    fn visit_pair_end(&mut self, _key: &str) -> StructResult { Ok(()) }
-
-    fn visit_var(&mut self, input: &T::Use)  -> StructResult {
-        let value = self.formatter.format_use(input)?;
-        self.add(&value);
-        Ok(())
-    }
-
-    fn visit_all_start(&mut self, ids: &[T::Declare]) -> StructResult {
-        let value = self.formatter.format_declare_start(ids);
-        self.add(&value);
-        Ok(())
-    }
-
-    fn visit_all_end(&mut self, ids: &[T::Declare]) -> StructResult {
-        let value = self.formatter.format_declare_end(ids);
-        self.add(&value);
         Ok(())
     }
 }

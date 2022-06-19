@@ -1,49 +1,34 @@
-use std::sync::Arc;
-use super::{eoestruct::{StructPair, Struct, VariableSystem, StructConst, StructResult, StructError}, expand::DataVisitor};
+use super::{eoestruct::{StructConst, StructResult, StructError}, expand::DataVisitor};
 
-pub trait BuildStackTransformer<T,X> {
+pub trait DataStackTransformer<T,X> {
     fn make_singleton(&mut self, value: T) -> X;
     fn make_array(&mut self, value: Vec<X>) -> X;
     fn make_object(&mut self, value: Vec<(String,X)>) -> X;
 }
 
-pub(super) struct IdentityBuildStackTransformer;
-
-impl<T: VariableSystem+Clone> BuildStackTransformer<Struct<T>,Struct<T>> for IdentityBuildStackTransformer {
-    fn make_singleton(&mut self, value: Struct<T>) -> Struct<T> { value }
-    
-    fn make_array(&mut self, value: Vec<Struct<T>>) -> Struct<T> {
-        Struct::Array(Arc::new(value))
-    }
-
-    fn make_object(&mut self, mut value: Vec<(String,Struct<T>)>) -> Struct<T> {
-        Struct::Object(Arc::new(value.drain(..).map(|(k,v)| StructPair(k,v)).collect()))
-    }
-}
-
-enum TemplateBuildStackEntry<X> {
+enum DataStackEntry<X> {
     Node(Option<X>),
     Array(Vec<X>),
     Object(Vec<(String,X)>)
 }
 
-pub(super) struct BuildStack<T,X> {
-    stack: Vec<TemplateBuildStackEntry<X>>,
+pub(super) struct DataStack<T,X> {
+    stack: Vec<DataStackEntry<X>>,
     keys: Vec<String>,
-    transformer: Box<dyn BuildStackTransformer<T,X>>
+    transformer: Box<dyn DataStackTransformer<T,X>>
 }
 
-impl<T,X> BuildStack<T,X> {
-    pub(super) fn new<F>(transformer: F) -> BuildStack<T,X> where F: BuildStackTransformer<T,X> + 'static {
-        BuildStack {
-            stack: vec![TemplateBuildStackEntry::Node(None)],
+impl<T,X> DataStack<T,X> {
+    pub(super) fn new<F>(transformer: F) -> DataStack<T,X> where F: DataStackTransformer<T,X> + 'static {
+        DataStack {
+            stack: vec![DataStackEntry::Node(None)],
             keys: vec![],
             transformer: Box::new(transformer)
         }
     }
 
     pub(super) fn get(mut self) -> X {
-        if let Some(TemplateBuildStackEntry::Node(Some(n))) = self.stack.pop() {
+        if let Some(DataStackEntry::Node(Some(n))) = self.stack.pop() {
             n
         } else {
             panic!("inocorrect stack size at completion"); // we require this ofcallers
@@ -51,15 +36,11 @@ impl<T,X> BuildStack<T,X> {
     }
 
     pub(super) fn push_array(&mut self) {
-        self.stack.push(TemplateBuildStackEntry::Array(vec![]));
+        self.stack.push(DataStackEntry::Array(vec![]));
     }
 
     pub(super) fn push_object(&mut self) {
-        self.stack.push(TemplateBuildStackEntry::Object(vec![]));
-    }
-
-    pub(super) fn push_singleton(&mut self) {
-        self.stack.push(TemplateBuildStackEntry::Node(None));
+        self.stack.push(DataStackEntry::Object(vec![]));
     }
 
     pub(super) fn push_key(&mut self, key: &str) {
@@ -68,14 +49,14 @@ impl<T,X> BuildStack<T,X> {
 
     fn add(&mut self, item: X) {
         match self.stack.last_mut().unwrap() { // guranteed by visitor invariant/caller
-            TemplateBuildStackEntry::Array(entries) => {
+            DataStackEntry::Array(entries) => {
                 entries.push(item);
             },
-            TemplateBuildStackEntry::Object(entries) => {
+            DataStackEntry::Object(entries) => {
                 let key = self.keys.pop().unwrap(); // guranteed by visitor invariant
                 entries.push((key,item));
             },
-            TemplateBuildStackEntry::Node(value) => {
+            DataStackEntry::Node(value) => {
                 *value = Some(item);
             }
         }
@@ -89,15 +70,15 @@ impl<T,X> BuildStack<T,X> {
 
     pub(super) fn pop<F>(&mut self, cb: F) -> StructResult where F: FnOnce(X) -> Result<X,StructError> {
         match self.stack.pop().expect("struct invariant violated: build stack musused and underflowed") {
-            TemplateBuildStackEntry::Array(entries) => {
+            DataStackEntry::Array(entries) => {
                 let item = cb(self.transformer.make_array(entries))?;
                 self.add(item);
             },
-            TemplateBuildStackEntry::Object(entries) => {
+            DataStackEntry::Object(entries) => {
                 let item = cb(self.transformer.make_object(entries))?;
                 self.add(item);
             },
-            TemplateBuildStackEntry::Node(node) => {
+            DataStackEntry::Node(node) => {
                 self.add(cb(node.expect("unset"))?);
             }
         }
@@ -105,9 +86,9 @@ impl<T,X> BuildStack<T,X> {
     }
 }
 
-impl<X> DataVisitor for BuildStack<StructConst,X> {
+impl<X> DataVisitor for DataStack<StructConst,X> {
     fn visit_const(&mut self, input: &StructConst) -> StructResult { self.add_atom(input.clone()) }
-    fn visit_separator(&mut self) {}
+    fn visit_separator(&mut self) -> StructResult { Ok(()) }
     fn visit_array_start(&mut self) -> StructResult { self.push_array(); Ok(()) }
     fn visit_array_end(&mut self) -> StructResult { self.pop(|x| Ok(x)) }
     fn visit_object_start(&mut self) -> StructResult { self.push_object(); Ok(()) }
