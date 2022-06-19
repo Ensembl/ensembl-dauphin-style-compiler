@@ -1,16 +1,20 @@
 use std::sync::Arc;
-use super::{eoestruct::{StructConst, StructVarValue, StructResult}, eoestructdata::DataVisitor, builttree::StructBuilt};
+use crate::eachorevery::EachOrEvery;
+use super::{eoestruct::{StructConst, StructVarValue, StructResult, struct_error}, eoestructdata::DataVisitor, builttree::StructBuilt};
 
-fn separate<'a,F,X,Y>(it: X, mut cb: F, visitor: &mut dyn DataVisitor) -> StructResult
-        where X: Iterator<Item=Y>,
-              F: FnMut(Y,&mut dyn DataVisitor) -> StructResult {
+fn separate<'a,F,Y>(input: &EachOrEvery<Y>, mut cb: F, visitor: &mut dyn DataVisitor) -> StructResult
+        where F: FnMut(&Y,&mut dyn DataVisitor) -> StructResult {
     let mut first = true;
-    for item in it {
-        if !first { visitor.visit_separator()?; }
-        cb(item,visitor)?;
-        first = false;
+    if let Some(len) = input.len() {
+        for item in input.iter(len).unwrap() {
+            if !first { visitor.visit_separator()?; }
+            cb(item,visitor)?;
+            first = false;
+        }
+    } else {
+        return Err(struct_error("expanding infinitely"));
     }
-    Ok(())
+    Ok(())        
 }
 
 struct AllState {
@@ -44,14 +48,14 @@ impl StructBuilt {
             },
             StructBuilt::Array(values) => {
                 output.visit_array_start()?;
-                separate(values.iter(),|value,visitor| {
+                separate(&values,|value,visitor| {
                     value.split(visitor,data)
                 },output)?;
                 output.visit_array_end()?;
             }
             StructBuilt::Object(values) => {
                 output.visit_object_start()?;
-                separate(values.iter(), |kv,visitor| {
+                separate(&values, |kv,visitor| {
                     visitor.visit_pair_start(&kv.0)?;
                     kv.1.split(visitor,data)?;
                     visitor.visit_pair_end(&kv.0)

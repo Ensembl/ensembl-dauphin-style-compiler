@@ -1,17 +1,21 @@
 use std::collections::HashMap;
-
+use crate::eachorevery::EachOrEvery;
 use super::{eoestruct::{StructResult, StructError, StructConst, StructValueId}, StructTemplate, builttree::StructBuilt};
 
 // XXX test serial at DataVisitor
 #[cfg(debug_assertions)]
-pub(super) fn comma_separate<'a,F,X,Y>(it: X, mut cb: F, output: &mut String) -> StructResult
-        where X: Iterator<Item=Y>,
-              F: FnMut(Y,&mut String) -> StructResult {
+pub(super) fn comma_separate<'a,F,Y>(input: &EachOrEvery<Y>, mut cb: F, output: &mut String) -> StructResult
+        where F: FnMut(&Y,&mut String) -> StructResult {
     let mut first = true;
-    for item in it {
-        if !first { output.push_str(","); }
-        cb(item,output)?;
-        first = false;
+    if let Some(len) = input.len() {
+        for item in input.iter(len).unwrap() {
+            if !first { output.push_str(","); }
+            cb(item,output)?;
+            first = false;
+        }
+    } else {
+        let value = cb(input.iter(1).unwrap().next().unwrap(),output)?;
+        output.push_str("...");
     }
     Ok(())
 }
@@ -72,14 +76,14 @@ impl StructTemplate {
             },
             StructTemplate::Array(values) => {
                 output.push_str("[");
-                comma_separate(values.iter(),|item,output| {
+                comma_separate(&values,|item,output| {
                     item.format_level(formatter,output)
                 },output)?;
                 output.push_str("]");
             },
             StructTemplate::Object(object) => {
                 output.push_str("{");
-                comma_separate(object.iter(),|item,output| {
+                comma_separate(&object,|item,output| {
                     output.push_str(&format!("{:?}: ",item.0));
                     item.1.format_level(formatter,output)
                 }, output)?;
@@ -125,14 +129,14 @@ impl StructBuilt {
             },
             StructBuilt::Array(values) => {
                 output.push_str("[");
-                comma_separate(values.iter(),|item,output| {
+                comma_separate(&values,|item,output| {
                     item.format_level(output)
                 },output)?;
                 output.push_str("]");
             },
             StructBuilt::Object(object) => {
                 output.push_str("{");
-                comma_separate(object.iter(),|item,output| {
+                comma_separate(&object,|item,output| {
                     output.push_str(&format!("{:?}: ",item.0));
                     item.1.format_level(output)
                 }, output)?;

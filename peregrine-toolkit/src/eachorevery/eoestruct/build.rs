@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use crate::eachorevery::EachOrEveryGroupCompatible;
+use crate::eachorevery::{EachOrEveryGroupCompatible, EachOrEvery};
 use super::{eoestruct::{StructVarValue, StructValueId, StructResult, StructError, struct_error}, StructTemplate, builttree::StructBuilt};
 
 struct Binding {
@@ -40,16 +40,19 @@ impl StructTemplate {
             },
             StructTemplate::Const(c) => { StructBuilt::Const(c.clone()) }
             StructTemplate::Array(v) => {
+                if v.len().is_none() {
+                    return Err(struct_error("no infinite arrays in json"));
+                }
                 StructBuilt::Array(Arc::new(
-                    v.iter().map(|x| 
-                        x.make(bindings,all_depth)
-                    ).collect::<Result<_,_>>()?
+                    v.map_results(|x| x.make(bindings,all_depth))?
                 ))
             },
             StructTemplate::Object(v) => {
-                StructBuilt::Object(Arc::new(v.iter().map(|x| 
-                        Ok((x.0.clone(),x.1.make(bindings,all_depth)?))
-                    ).collect::<Result<Vec<_>,String>>()?
+                if v.len().is_none() {
+                    return Err(struct_error("no infinite objects in json"));
+                }
+                StructBuilt::Object(Arc::new(
+                    v.map_results::<_,_,StructError>(|x| Ok((x.0.clone(),x.1.make(bindings,all_depth)?)))?
                 ))
             },
             StructTemplate::All(ids, expr) => {
@@ -63,7 +66,7 @@ impl StructTemplate {
                     binding.value.clone().map(|x| Arc::new(x))
                 }).collect::<Vec<_>>();
                 if removed.is_empty() {
-                    StructBuilt::Array(Arc::new(vec![obj]))
+                    StructBuilt::Array(Arc::new(EachOrEvery::each(vec![obj])))
                 } else {
                     check_compatible(&removed)?;
                     StructBuilt::All(removed,Arc::new(obj))

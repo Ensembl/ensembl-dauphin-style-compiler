@@ -118,7 +118,7 @@ impl StructVarValue {
 #[cfg(test)]
 mod test {
     use std::str::FromStr;
-    use crate::{eachorevery::{eoestruct::{eoejson::{struct_to_json, struct_from_json}, templatetree::StructVar, StructTemplate}, EachOrEvery}};
+    use crate::{eachorevery::{eoestruct::{eoejson::{struct_to_json, struct_from_json}, templatetree::{StructVar, StructPair}, StructTemplate}, EachOrEvery}};
     use serde_json::{Value as JsonValue, Number};
 
     fn json_fix_numbers(json: &JsonValue) -> JsonValue {
@@ -209,10 +209,10 @@ mod test {
     #[test]
     fn test_eoestruct_free() {
         /* corner case not testable with the available harnesses */
-        let template = StructTemplate::new_array(vec![
+        let template = StructTemplate::new_array(EachOrEvery::each(vec![
             StructTemplate::new_boolean(true),
             StructTemplate::new_var(StructVar::new_boolean(EachOrEvery::each(vec![false,true])))
-        ]);
+        ]));
         match template.build() {
             Ok(r) => { eprintln!("unexpected success: {:?}",r); assert!(false); },
             Err(e) => assert_eq!(e,"free variable in template")
@@ -223,15 +223,63 @@ mod test {
     fn test_eoestruct_every() {
         let every = StructVar::new_boolean(EachOrEvery::every(false));
         let template = StructTemplate::new_all(&[every.clone()],
-        StructTemplate::new_array(vec![
+        StructTemplate::new_array(EachOrEvery::each(vec![
             StructTemplate::new_boolean(true),
             StructTemplate::new_var(every)
-            ])
+            ]))
         );
         let debug = format!("{:?}",template);
         assert_eq!("Aa.( [true,false] )",debug);
         let output = struct_to_json(&template.build().ok().expect("unexpected error")).ok().unwrap();
         let wanted = JsonValue::from_str("[[true,false]]").ok().unwrap();
         assert_eq!(&wanted,&output);
+    }
+
+    #[test]
+    fn test_infinite_array() {
+        let template = StructTemplate::new_object(EachOrEvery::each(vec![
+            StructPair::new("a",StructTemplate::new_number(42.)),
+            StructPair::new("b",StructTemplate::new_array(EachOrEvery::every(StructTemplate::new_number(77.))))
+        ]));
+        match template.build() {
+            Ok(r) => { eprintln!("unexpected success: {:?}",r); assert!(false); },
+            Err(e) => assert_eq!(e,"no infinite arrays in json")
+        }
+    }
+
+    #[test]
+    fn test_infinite_object() {
+        let template = StructTemplate::new_object(EachOrEvery::every(
+            StructPair::new("a",StructTemplate::new_number(42.)),
+        ));
+        match template.build() {
+            Ok(r) => { eprintln!("unexpected success: {:?}",r); assert!(false); },
+            Err(e) => assert_eq!(e,"no infinite objects in json")
+        }
+    }
+
+    #[test]
+    fn test_eoe_smoke_array() {
+        let pattern = vec![0,1,2,3,1,2,3,1,2,1];
+        let start = EachOrEvery::each(pattern.clone()).index(|x| *x);
+        let options = vec![
+            StructTemplate::new_number(0.),
+            StructTemplate::new_string("1".to_string()),
+            StructTemplate::new_boolean(true),
+            StructTemplate::new_null(),
+        ];
+        let output_options = vec![
+            JsonValue::Number(Number::from_f64(0.).unwrap()),
+            JsonValue::String("1".to_string()),
+            JsonValue::Bool(true),
+            JsonValue::Null
+        ];
+        let cmp = JsonValue::Array(
+            pattern.iter().map(|x| output_options[*x].clone()).collect::<Vec<_>>()
+        );
+        let template = StructTemplate::new_array(start.map(|x| { options[*x].clone() }));
+        let output = struct_to_json(&template.build().ok().expect("unexpected error")).ok().unwrap();
+        println!("{}",output.to_string());
+        assert_eq!(json_fix_numbers(&output),json_fix_numbers(&cmp));
     }
 }

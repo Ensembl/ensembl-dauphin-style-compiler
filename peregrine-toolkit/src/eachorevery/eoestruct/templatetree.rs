@@ -28,6 +28,7 @@ impl StructVar {
     }
 }
 
+#[derive(Clone)]
 pub struct StructPair(pub String,pub StructTemplate);
 
 impl StructPair {
@@ -40,8 +41,8 @@ impl StructPair {
 pub enum StructTemplate {
     Var(StructVar),
     Const(StructConst),
-    Array(Arc<Vec<StructTemplate>>),
-    Object(Arc<Vec<StructPair>>),
+    Array(Arc<EachOrEvery<StructTemplate>>),
+    Object(Arc<EachOrEvery<StructPair>>),
     All(Vec<StructValueId>,Arc<StructTemplate>)
 }
 
@@ -75,11 +76,11 @@ impl StructTemplate {
         Self::Const(StructConst::Null)
     }
 
-    pub fn new_array(input: Vec<StructTemplate>) -> StructTemplate {
+    pub fn new_array(input: EachOrEvery<StructTemplate>) -> StructTemplate {
         Self::Array(Arc::new(input))
     }
 
-    pub fn new_object(input: Vec<StructPair>) -> StructTemplate {
+    pub fn new_object(input: EachOrEvery<StructPair>) -> StructTemplate {
         Self::Object(Arc::new(input))
     }
 }
