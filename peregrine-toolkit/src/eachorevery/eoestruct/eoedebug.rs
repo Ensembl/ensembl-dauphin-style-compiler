@@ -1,22 +1,10 @@
-use super::{eoestruct::{VariableSystem, Struct, StructConst, StructResult, StructError}};
+use std::collections::HashMap;
 
-#[cfg(debug_assertions)]
-pub trait VariableSystemFormatter<T: VariableSystem> {
-    fn format_declare_start(&mut self, var: &[T::Declare]) -> String;
-    fn format_declare_end(&mut self, var: &[T::Declare]) -> String;
-    fn format_use(&mut self, var: &T::Use) -> Result<String,StructError>;
-}
-
-#[cfg(debug_assertions)]
-impl<T: VariableSystem+Clone> std::fmt::Debug for Struct<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f,"{}",self.format().unwrap_or_else(|x| format!("*error-formatting-struct*({})",x)))
-    }
-}
+use super::{eoestruct::{StructResult, StructError, StructConst, StructValueId}, StructTemplate, builttree::StructBuilt};
 
 // XXX test serial at DataVisitor
 #[cfg(debug_assertions)]
-fn comma_separate<'a,F,X,Y>(it: X, mut cb: F, output: &mut String) -> StructResult
+pub(super) fn comma_separate<'a,F,X,Y>(it: X, mut cb: F, output: &mut String) -> StructResult
         where X: Iterator<Item=Y>,
               F: FnMut(Y,&mut String) -> StructResult {
     let mut first = true;
@@ -28,20 +16,53 @@ fn comma_separate<'a,F,X,Y>(it: X, mut cb: F, output: &mut String) -> StructResu
     Ok(())
 }
 
-impl<T: VariableSystem+Clone> Struct<T> {
+#[cfg(debug_assertions)]
+struct TemplateVarsFormatter {
+    name: HashMap<StructValueId,usize>
+}
+
+#[cfg(debug_assertions)]
+impl TemplateVarsFormatter {
+    pub(super) fn new() -> TemplateVarsFormatter {
+        TemplateVarsFormatter {
+            name: HashMap::new()
+        }
+    }
+
+    fn get(&mut self, value: &StructValueId) -> String {
+        let len = self.name.len();
+        let index = *self.name.entry(*value).or_insert(len);
+        let vars = ('a'..'z').collect::<String>();
+        let series = index / (vars.len());
+        let series = if series > 0 { format!("{}",series) } else { "".to_string() };
+        let offset = index % (vars.len());
+        format!("{}{}",series,vars.chars().nth(offset).unwrap())
+    }
+}
+
+impl std::fmt::Debug for StructTemplate {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let out = self.format().ok().unwrap_or_else(|| "*unprintable*".to_string());
+        write!(f,"{}",out)
+    }
+}
+
+impl StructTemplate {
+    #[cfg(debug_assertions)]
     pub(super) fn format(&self) -> Result<String,StructError> {
         let mut output = String::new();
-        let mut formatter = T::build_formatter();
-        self.format_level(&mut formatter,&mut output)?;
+        let mut formatter = TemplateVarsFormatter::new();
+        self.format_level(&mut formatter, &mut output)?;
         Ok(output)
     }
 
-    fn format_level(&self, formatter: &mut Box<dyn VariableSystemFormatter<T>>, output: &mut String) -> StructResult {
+    #[cfg(debug_assertions)]
+    fn format_level(&self, formatter: &mut TemplateVarsFormatter, output: &mut String) -> StructResult {
         match self {
-            Struct::Var(var) => {
-                output.push_str(&formatter.format_use(var)?);
+            StructTemplate::Var(var) => {
+                output.push_str(&format!("{}={:?}",formatter.get(&var.id),var.value));
             },
-            Struct::Const(val) => {
+            StructTemplate::Const(val) => {
                 output.push_str(&match val {
                     StructConst::Number(value) => format!("{:?}",value),
                     StructConst::String(value) => format!("{:?}",value),
@@ -49,14 +70,14 @@ impl<T: VariableSystem+Clone> Struct<T> {
                     StructConst::Null => format!("null")
                 });
             },
-            Struct::Array(values) => {
+            StructTemplate::Array(values) => {
                 output.push_str("[");
                 comma_separate(values.iter(),|item,output| {
                     item.format_level(formatter,output)
                 },output)?;
                 output.push_str("]");
             },
-            Struct::Object(object) => {
+            StructTemplate::Object(object) => {
                 output.push_str("{");
                 comma_separate(object.iter(),|item,output| {
                     output.push_str(&format!("{:?}: ",item.0));
@@ -64,10 +85,63 @@ impl<T: VariableSystem+Clone> Struct<T> {
                 }, output)?;
                 output.push_str("}");
             },
-            Struct::All(ids, expr) => {
-                output.push_str(&formatter.format_declare_start(ids));
-                expr.format_level(formatter,output)?;                
-                output.push_str(&formatter.format_declare_end(ids));
+            StructTemplate::All(vars, expr) => {
+                output.push_str(&format!("A{}.( ",vars.iter().map(|x| formatter.get(x)).collect::<Vec<_>>().join("")));
+                expr.format_level(formatter,output)?;
+                output.push_str(" )");
+            },
+        }
+        Ok(())
+    }    
+}
+
+#[cfg(debug_assertions)]
+impl std::fmt::Debug for StructBuilt {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let out = self.format().ok().unwrap_or_else(|| "*unprintable*".to_string());
+        write!(f,"{}",out)
+    }
+}
+
+impl StructBuilt {
+    pub(super) fn format(&self) -> Result<String,StructError> {
+        let mut output = String::new();
+        self.format_level(&mut output)?;
+        Ok(output)
+    }
+
+    pub(super) fn format_level(&self, output: &mut String) -> StructResult {
+        match self {
+            StructBuilt::Var(depth,width) => {
+                output.push_str(&format!("D({},{})",depth,width));
+            },
+            StructBuilt::Const(val) => {
+                output.push_str(&match val {
+                    StructConst::Number(value) => format!("{:?}",value),
+                    StructConst::String(value) => format!("{:?}",value),
+                    StructConst::Boolean(value) => format!("{:?}",value),
+                    StructConst::Null => format!("null")
+                });
+            },
+            StructBuilt::Array(values) => {
+                output.push_str("[");
+                comma_separate(values.iter(),|item,output| {
+                    item.format_level(output)
+                },output)?;
+                output.push_str("]");
+            },
+            StructBuilt::Object(object) => {
+                output.push_str("{");
+                comma_separate(object.iter(),|item,output| {
+                    output.push_str(&format!("{:?}: ",item.0));
+                    item.1.format_level(output)
+                }, output)?;
+                output.push_str("}");
+            },
+            StructBuilt::All(vars, expr) => {
+                output.push_str(&format!("A[{}].( ",vars.iter().map(|x| format!("{:?}",x)).collect::<Vec<_>>().join("")));
+                expr.format_level(output)?;                
+                output.push_str(")");
             },
         }
         Ok(())

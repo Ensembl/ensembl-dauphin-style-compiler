@@ -1,40 +1,6 @@
 use std::sync::Arc;
 use crate::eachorevery::EachOrEveryGroupCompatible;
-use super::{eoestruct::{VariableSystem, StructVarValue, Struct, StructValueId, StructResult, StructError, struct_error, StructPair}, expand::StructBuilt, StructTemplate};
-
-#[cfg(debug_assertions)]
-use super::eoedebug::VariableSystemFormatter;
-
-#[derive(Clone)]
-pub struct BuiltVars;
-
-impl VariableSystem for BuiltVars {
-    type Declare = Arc<StructVarValue>;
-    type Use = (usize,usize);
-
-    #[cfg(debug_assertions)]
-    fn build_formatter() -> Box<dyn VariableSystemFormatter<Self>> {
-        Box::new(BuiltVarsFortmatter)
-    }
-}
-
-#[cfg(debug_assertions)]
-struct BuiltVarsFortmatter;
-
-#[cfg(debug_assertions)]
-impl VariableSystemFormatter<BuiltVars> for BuiltVarsFortmatter {
-    fn format_declare_start(&mut self, vars: &[Arc<StructVarValue>]) -> String {
-        format!("A[{}].( ",vars.iter().map(|x| format!("{:?}",x)).collect::<Vec<_>>().join(""))
-    }
-
-    fn format_declare_end(&mut self, _var: &[Arc<StructVarValue>]) -> String {
-        " )".to_string()
-    }
-
-    fn format_use(&mut self, var: &(usize,usize)) -> Result<String,StructError> {
-        Ok(format!("D({},{})",var.0,var.1))
-    }
-}
+use super::{eoestruct::{StructVarValue, StructValueId, StructResult, StructError, struct_error}, StructTemplate, builttree::StructBuilt};
 
 struct Binding {
     id: StructValueId,
@@ -65,27 +31,28 @@ fn check_compatible(vars: &[Arc<StructVarValue>]) -> StructResult {
 impl StructTemplate {
     fn make(&self, bindings: &mut Vec<Binding>, all_depth: usize) -> Result<StructBuilt,StructError> {
         Ok(match self {
-            Struct::Var(var) => {
+            StructTemplate::Var(var) => {
                 let index = bindings.iter().position(|id| id.id == var.id);
                 let index = index.ok_or_else(|| struct_error("free variable in template"))?;
                 bindings[index].value = Some(var.value.clone());
-                Struct::Var(bindings[index].pos)
+                let pos = bindings[index].pos;
+                StructBuilt::Var(pos.0,pos.1)
             },
-            Struct::Const(c) => { Struct::Const(c.clone()) }
-            Struct::Array(v) => {
-                Struct::Array(Arc::new(
+            StructTemplate::Const(c) => { StructBuilt::Const(c.clone()) }
+            StructTemplate::Array(v) => {
+                StructBuilt::Array(Arc::new(
                     v.iter().map(|x| 
                         x.make(bindings,all_depth)
                     ).collect::<Result<_,_>>()?
                 ))
             },
-            Struct::Object(v) => {
-                Struct::Object(Arc::new(v.iter().map(|x| 
-                        Ok(StructPair(x.0.clone(),x.1.make(bindings,all_depth)?))
+            StructTemplate::Object(v) => {
+                StructBuilt::Object(Arc::new(v.iter().map(|x| 
+                        Ok((x.0.clone(),x.1.make(bindings,all_depth)?))
                     ).collect::<Result<Vec<_>,String>>()?
                 ))
             },
-            Struct::All(ids, expr) => {
+            StructTemplate::All(ids, expr) => {
                 for (i,id) in ids.iter().enumerate() {
                     bindings.push(Binding::new(id,all_depth,i));
                 }
@@ -96,10 +63,10 @@ impl StructTemplate {
                     binding.value.clone().map(|x| Arc::new(x))
                 }).collect::<Vec<_>>();
                 if removed.is_empty() {
-                    Struct::Array(Arc::new(vec![obj]))
+                    StructBuilt::Array(Arc::new(vec![obj]))
                 } else {
                     check_compatible(&removed)?;
-                    Struct::All(removed,Arc::new(obj))
+                    StructBuilt::All(removed,Arc::new(obj))
                 }
             }
         })

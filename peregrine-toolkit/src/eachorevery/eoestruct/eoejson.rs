@@ -1,9 +1,8 @@
 use std::collections::{HashMap, HashSet};
-
 use crate::eachorevery::EachOrEvery;
-
-use super::{eoestruct::{StructConst, Struct, StructPair, StructError, struct_error}, templatetree::StructVar, StructTemplate, expand::StructBuilt, eoestructdata::{DataStackTransformer, eoestack_run}};
+use super::{eoestruct::{StructConst, StructError, struct_error}, templatetree::{StructVar, StructPair}, StructTemplate, eoestructdata::{DataStackTransformer, eoestack_run}, builttree::StructBuilt};
 use serde_json::{Value as JsonValue, Number, Map};
+
 struct JsonTransformer;
 
 impl DataStackTransformer<StructConst,JsonValue> for JsonTransformer {
@@ -95,32 +94,32 @@ impl EoeFromJson {
         self.vars.push(var_names);
         let expr = self.build(map.get(expr).unwrap())?; // expr guranteed in map during setting
         self.vars.pop();
-        Ok(Some(Struct::new_all(&vars,expr)))
+        Ok(Some(StructTemplate::new_all(&vars,expr)))
     }
 
     fn build(&mut self, json: &JsonValue) ->  Result<StructTemplate,StructError> {
         Ok(match json {
-            JsonValue::Null => Struct::new_null(),
-            JsonValue::Bool(x) => Struct::new_boolean(x.clone()),
-            JsonValue::Number(x) => Struct::new_number(x.as_f64().unwrap()),
+            JsonValue::Null => StructTemplate::new_null(),
+            JsonValue::Bool(x) => StructTemplate::new_boolean(x.clone()),
+            JsonValue::Number(x) => StructTemplate::new_number(x.as_f64().unwrap()),
             JsonValue::String(x) => {
                 for map in self.vars.iter().rev() {
                     if let Some(var) = map.get(x) {
-                        return Ok(Struct::new_var(var.clone()));
+                        return Ok(StructTemplate::new_var(var.clone()));
                     }
                 }
-                Struct::new_string(x.clone())
+                StructTemplate::new_string(x.clone())
             },
             JsonValue::Array(x) => {
                 let values = x.iter().map(|x| self.build(x)).collect::<Result<_,_>>()?;
-                Struct::new_array(values)
+                StructTemplate::new_array(values)
             },
             JsonValue::Object(x) => {
                 if let Some(all) = self.to_all(&x)? {
                     all
                 } else {
-                    Struct::new_object(x.iter().map(|(k,v)|{
-                        Ok::<StructPair<_>,StructError>(StructPair(k.to_string(),self.build(v)?))
+                    StructTemplate::new_object(x.iter().map(|(k,v)|{
+                        Ok::<StructPair,StructError>(StructPair(k.to_string(),self.build(v)?))
                     }).collect::<Result<_,_>>()?)
                 }
             }

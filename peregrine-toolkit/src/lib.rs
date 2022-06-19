@@ -1,7 +1,8 @@
 pub mod eachorevery {
     pub mod eoestruct {
         mod eoestructdata;
-        mod buildertree;
+        mod builttree;
+        mod build;
         mod eoestruct;
         mod expand;
         mod eoejson;

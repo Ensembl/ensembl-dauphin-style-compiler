@@ -1,9 +1,6 @@
-use std::{collections::HashMap, sync::Arc};
+use std::sync::Arc;
 use crate::eachorevery::EachOrEvery;
-use super::{eoestruct::{StructConst, Struct, StructPair, StructValueId, VariableSystem, StructVarValue, StructError}};
-
-#[cfg(debug_assertions)]
-use super::eoedebug::VariableSystemFormatter;
+use super::{eoestruct::{StructConst, StructValueId, StructVarValue}};
 
 #[derive(Clone)]
 pub struct StructVar {
@@ -31,78 +28,30 @@ impl StructVar {
     }
 }
 
-impl std::fmt::Debug for StructVar {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f,"{}={:?}",self.id.0,self.value)
-    }
-}
+pub struct StructPair(pub String,pub StructTemplate);
 
-#[derive(Clone)]
-pub struct TemplateVars;
-
-impl VariableSystem for TemplateVars {
-    type Declare = StructValueId;
-    type Use = StructVar;
-
-    #[cfg(debug_assertions)]
-    fn build_formatter() -> Box<dyn VariableSystemFormatter<Self>> {
-        Box::new(TemplateVarsFormatter::new())
-    }    
-}
-
-impl StructPair<TemplateVars> {
-    pub fn new(key: &str, value: StructTemplate) -> StructPair<TemplateVars> {
+impl StructPair {
+    pub fn new(key: &str, value: StructTemplate) -> StructPair {
         StructPair(key.to_string(),value)
     }
 }
 
-#[cfg(debug_assertions)]
-struct TemplateVarsFormatter {
-    name: HashMap<StructValueId,usize>
+#[derive(Clone)]
+pub enum StructTemplate {
+    Var(StructVar),
+    Const(StructConst),
+    Array(Arc<Vec<StructTemplate>>),
+    Object(Arc<Vec<StructPair>>),
+    All(Vec<StructValueId>,Arc<StructTemplate>)
 }
 
-#[cfg(debug_assertions)]
-impl TemplateVarsFormatter {
-    pub(super) fn new() -> TemplateVarsFormatter {
-        TemplateVarsFormatter {
-            name: HashMap::new()
-        }
-    }
-
-    fn get(&mut self, value: &StructValueId) -> String {
-        let len = self.name.len();
-        let index = *self.name.entry(*value).or_insert(len);
-        let vars = ('a'..'z').collect::<String>();
-        let series = index / (vars.len());
-        let series = if series > 0 { format!("{}",series) } else { "".to_string() };
-        let offset = index % (vars.len());
-        format!("{}{}",series,vars.chars().nth(offset).unwrap())
-    }
-}
-
-#[cfg(debug_assertions)]
-impl VariableSystemFormatter<TemplateVars> for TemplateVarsFormatter {
-    fn format_declare_start(&mut self, vars: &[StructValueId]) -> String {
-        format!("A{}.( ",vars.iter().map(|x| self.get(x)).collect::<Vec<_>>().join(""))
-    }
-
-    fn format_declare_end(&mut self, _vars: &[StructValueId]) -> String {
-        " )".to_string()
-    }
-
-    fn format_use(&mut self, var: &StructVar) -> Result<String,StructError> {
-        Ok(format!("{}={:?}",self.get(&var.id),var.value))
-    }
-}
-
-pub type StructTemplate = Struct<TemplateVars>;
 
 impl StructTemplate {
     pub fn new_var(input: StructVar) -> StructTemplate {
         if let Some(c) = input.to_const() {
-            Struct::Const(c)
+            StructTemplate::Const(c)
         } else {
-            Struct::Var(input)
+            StructTemplate::Var(input)
         }
     }
 
@@ -130,7 +79,7 @@ impl StructTemplate {
         Self::Array(Arc::new(input))
     }
 
-    pub fn new_object(input: Vec<StructPair<TemplateVars>>) -> StructTemplate {
+    pub fn new_object(input: Vec<StructPair>) -> StructTemplate {
         Self::Object(Arc::new(input))
     }
 }

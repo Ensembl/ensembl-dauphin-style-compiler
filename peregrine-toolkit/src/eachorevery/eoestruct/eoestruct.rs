@@ -1,25 +1,6 @@
-use std::{sync::Arc };
 use crate::eachorevery::{EachOrEvery, EachOrEveryGroupCompatible};
 use identitynumber::{ identitynumber };
 use lazy_static::lazy_static;
-
-#[cfg(debug_assertions)]
-use super::{eoedebug::{VariableSystemFormatter}};
-
-/* EoeStructs use a number of different tree types during processing:
- *   TemplateTree -- defined by the user and includes EoE arrays. Composable.
- *   BuilderTree -- built from a template tree and ready to expand. Read-only.
- *   NullTree -- an output tree.
- * 
- * This file contains definitions not specific to any of the particular tree types.
- * StructValueId -- a singleton allowing matching of variable decls and use.
- * StructConst -- a primitive atomic value (number/string/boolean/null).
- * StructVarvalue -- an EoE of a primitive atomic value (number/string/boolean/null).
- * StructPair -- key value pair for objects.
- * VariableSystem -- a trait declaring the types of the Var and All nodes for any given tree type.
- * Struct -- a tree
- * StructVisitor -- a visitor trait for a Struct
- */
 
 identitynumber!(IDS);
 
@@ -134,31 +115,11 @@ impl StructVarValue {
     }
 }
 
-pub struct StructPair<T: VariableSystem+Clone>(pub String,pub Struct<T>);
-
-pub trait VariableSystem {
-    type Declare;
-    type Use;
-
-    #[cfg(debug_assertions)]
-    fn build_formatter() -> Box<dyn VariableSystemFormatter<Self>>;
-}
-
-#[derive(Clone)]
-pub enum Struct<T: VariableSystem+Clone> {
-    Var(T::Use),
-    Const(StructConst),
-    Array(Arc<Vec<Struct<T>>>),
-    Object(Arc<Vec<StructPair<T>>>),
-    All(Vec<T::Declare>,Arc<Struct<T>>)
-}
-
 #[cfg(test)]
 mod test {
     use std::str::FromStr;
-    use crate::{eachorevery::{eoestruct::{eoejson::{struct_to_json, struct_from_json}, templatetree::StructVar}, EachOrEvery}};
+    use crate::{eachorevery::{eoestruct::{eoejson::{struct_to_json, struct_from_json}, templatetree::StructVar, StructTemplate}, EachOrEvery}};
     use serde_json::{Value as JsonValue, Number};
-    use super::Struct;
 
     fn json_fix_numbers(json: &JsonValue) -> JsonValue {
         match json {
@@ -248,9 +209,9 @@ mod test {
     #[test]
     fn test_eoestruct_free() {
         /* corner case not testable with the available harnesses */
-        let template = Struct::new_array(vec![
-            Struct::new_boolean(true),
-            Struct::new_var(StructVar::new_boolean(EachOrEvery::each(vec![false,true])))
+        let template = StructTemplate::new_array(vec![
+            StructTemplate::new_boolean(true),
+            StructTemplate::new_var(StructVar::new_boolean(EachOrEvery::each(vec![false,true])))
         ]);
         match template.build() {
             Ok(r) => { eprintln!("unexpected success: {:?}",r); assert!(false); },
@@ -261,10 +222,10 @@ mod test {
     #[test]
     fn test_eoestruct_every() {
         let every = StructVar::new_boolean(EachOrEvery::every(false));
-        let template = Struct::new_all(&[every.clone()],
-            Struct::new_array(vec![
-                Struct::new_boolean(true),
-                Struct::new_var(every)
+        let template = StructTemplate::new_all(&[every.clone()],
+        StructTemplate::new_array(vec![
+            StructTemplate::new_boolean(true),
+            StructTemplate::new_var(every)
             ])
         );
         let debug = format!("{:?}",template);

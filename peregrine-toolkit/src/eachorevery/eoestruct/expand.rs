@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use super::{eoestruct::{Struct, StructConst, StructVarValue, StructResult}, buildertree::BuiltVars, eoestructdata::DataVisitor};
+use super::{eoestruct::{StructConst, StructVarValue, StructResult}, eoestructdata::DataVisitor, builttree::StructBuilt};
 
 fn separate<'a,F,X,Y>(it: X, mut cb: F, visitor: &mut dyn DataVisitor) -> StructResult
         where X: Iterator<Item=Y>,
@@ -33,25 +33,23 @@ impl AllState {
     }
 }
 
-pub type StructBuilt = Struct<BuiltVars>;
-
 impl StructBuilt {
     fn split(&self, output: &mut dyn DataVisitor, data: &mut Vec<AllState>) -> StructResult {
         match self {
-            Struct::Var((depth,width)) => {
+            StructBuilt::Var(depth,width) => {
                 output.visit_const(&data[*depth].get(*width))?;
             },
-            Struct::Const(value) => {
+            StructBuilt::Const(value) => {
                 output.visit_const(value)?;
             },
-            Struct::Array(values) => {
+            StructBuilt::Array(values) => {
                 output.visit_array_start()?;
                 separate(values.iter(),|value,visitor| {
                     value.split(visitor,data)
                 },output)?;
                 output.visit_array_end()?;
             }
-            Struct::Object(values) => {
+            StructBuilt::Object(values) => {
                 output.visit_object_start()?;
                 separate(values.iter(), |kv,visitor| {
                     visitor.visit_pair_start(&kv.0)?;
@@ -60,7 +58,7 @@ impl StructBuilt {
                 },output)?;
                 output.visit_object_end()?;
             },
-            Struct::All(vars,expr) => {
+            StructBuilt::All(vars,expr) => {
                 let all = AllState::new(vars.to_vec());
                 data.push(all);
                 output.visit_array_start()?;
@@ -77,11 +75,7 @@ impl StructBuilt {
         Ok(())
     }
 
-    pub(super) fn expand_struct(&self, output: &mut dyn DataVisitor) -> StructResult {
-        self.split(output,&mut vec![])
-    }
-
     pub fn expand(&self, output: &mut dyn DataVisitor) -> StructResult {
-        self.expand_struct(output)
+        self.split(output,&mut vec![])
     }
 }

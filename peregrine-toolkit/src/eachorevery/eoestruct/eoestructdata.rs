@@ -1,4 +1,4 @@
-use super::{eoestruct::{StructConst, StructResult, StructError}, expand::StructBuilt};
+use super::{eoestruct::{StructConst, StructResult, StructError}, builttree::StructBuilt};
 
 pub trait DataVisitor {
     fn visit_const(&mut self, _input: &StructConst) -> StructResult { Ok(()) }
