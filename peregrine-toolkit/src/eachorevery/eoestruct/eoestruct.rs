@@ -26,6 +26,7 @@ impl StructValueId {
     pub(super) fn new() -> StructValueId { StructValueId(IDS.next()) }
 }
 
+#[cfg_attr(debug_assertions,derive(Debug))]
 #[derive(Clone)]
 pub enum StructConst {
     Number(f64),
@@ -165,11 +166,14 @@ mod test {
         let ifs = json_array(&parts[2]).iter().map(|x| json_string(x)).collect::<Vec<_>>();
         let template = struct_from_json(vars,ifs,&parts[3]).ok().unwrap();
         let debug = format!("{:?}",template);
+        if !parts[4].is_null() {
+            assert_eq!(debug,json_string(&parts[4]));
+        }
+        println!("{:?}\n",template);
+        println!("{:?}\n",template.build());
         let output = struct_to_json(&template.build().ok().expect("unexpected error")).ok().unwrap();
         let output = JsonValue::from_str(&output.to_string()).ok().unwrap();
-        assert_eq!(debug,json_string(&parts[4]));
         assert_eq!(json_fix_numbers(&output),json_fix_numbers(&parts[5]));
-        println!("{:?}\n",template);
         println!("{:?}\n",json_fix_numbers(&output));
     }
 
