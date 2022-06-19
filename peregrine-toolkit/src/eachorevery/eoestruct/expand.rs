@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use super::{eoestruct::{Struct, StructConst, StructVarValue, StructResult}, buildertree::BuiltVars};
+use super::{eoestruct::{Struct, StructConst, StructVarValue, StructResult}, buildertree::BuiltVars, eoestructdata::DataVisitor};
 
 fn separate<'a,F,X,Y>(it: X, mut cb: F, visitor: &mut dyn DataVisitor) -> StructResult
         where X: Iterator<Item=Y>,
@@ -11,17 +11,6 @@ fn separate<'a,F,X,Y>(it: X, mut cb: F, visitor: &mut dyn DataVisitor) -> Struct
         first = false;
     }
     Ok(())
-}
-
-pub trait DataVisitor {
-    fn visit_const(&mut self, _input: &StructConst) -> StructResult { Ok(()) }
-    fn visit_separator(&mut self) -> StructResult { Ok(()) }
-    fn visit_array_start(&mut self) -> StructResult { Ok(()) }
-    fn visit_array_end(&mut self) -> StructResult { Ok(()) }
-    fn visit_object_start(&mut self) -> StructResult { Ok(()) }
-    fn visit_object_end(&mut self) -> StructResult { Ok(()) }
-    fn visit_pair_start(&mut self, _key: &str) -> StructResult { Ok(()) }
-    fn visit_pair_end(&mut self, _key: &str) -> StructResult { Ok(()) }
 }
 
 struct AllState {

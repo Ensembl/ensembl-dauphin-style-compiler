@@ -1,4 +1,15 @@
-use super::{eoestruct::{StructConst, StructResult, StructError}, expand::DataVisitor};
+use super::{eoestruct::{StructConst, StructResult, StructError}, expand::StructBuilt};
+
+pub trait DataVisitor {
+    fn visit_const(&mut self, _input: &StructConst) -> StructResult { Ok(()) }
+    fn visit_separator(&mut self) -> StructResult { Ok(()) }
+    fn visit_array_start(&mut self) -> StructResult { Ok(()) }
+    fn visit_array_end(&mut self) -> StructResult { Ok(()) }
+    fn visit_object_start(&mut self) -> StructResult { Ok(()) }
+    fn visit_object_end(&mut self) -> StructResult { Ok(()) }
+    fn visit_pair_start(&mut self, _key: &str) -> StructResult { Ok(()) }
+    fn visit_pair_end(&mut self, _key: &str) -> StructResult { Ok(()) }
+}
 
 pub trait DataStackTransformer<T,X> {
     fn make_singleton(&mut self, value: T) -> X;
@@ -12,14 +23,14 @@ enum DataStackEntry<X> {
     Object(Vec<(String,X)>)
 }
 
-pub(super) struct DataStack<T,X> {
+struct DataStack<T,X> {
     stack: Vec<DataStackEntry<X>>,
     keys: Vec<String>,
     transformer: Box<dyn DataStackTransformer<T,X>>
 }
 
 impl<T,X> DataStack<T,X> {
-    pub(super) fn new<F>(transformer: F) -> DataStack<T,X> where F: DataStackTransformer<T,X> + 'static {
+    fn new<F>(transformer: F) -> DataStack<T,X> where F: DataStackTransformer<T,X> + 'static {
         DataStack {
             stack: vec![DataStackEntry::Node(None)],
             keys: vec![],
@@ -27,7 +38,7 @@ impl<T,X> DataStack<T,X> {
         }
     }
 
-    pub(super) fn get(mut self) -> X {
+    fn get(mut self) -> X {
         if let Some(DataStackEntry::Node(Some(n))) = self.stack.pop() {
             n
         } else {
@@ -35,15 +46,15 @@ impl<T,X> DataStack<T,X> {
         }
     }
 
-    pub(super) fn push_array(&mut self) {
+    fn push_array(&mut self) {
         self.stack.push(DataStackEntry::Array(vec![]));
     }
 
-    pub(super) fn push_object(&mut self) {
+    fn push_object(&mut self) {
         self.stack.push(DataStackEntry::Object(vec![]));
     }
 
-    pub(super) fn push_key(&mut self, key: &str) {
+    fn push_key(&mut self, key: &str) {
         self.keys.push(key.to_string());
     }
 
@@ -62,13 +73,13 @@ impl<T,X> DataStack<T,X> {
         }
     }
 
-    pub(super) fn add_atom(&mut self, item: T) -> StructResult {
+    fn add_atom(&mut self, item: T) -> StructResult {
         let item = self.transformer.make_singleton(item);
         self.add(item);
         Ok(())
     }
 
-    pub(super) fn pop<F>(&mut self, cb: F) -> StructResult where F: FnOnce(X) -> Result<X,StructError> {
+    fn pop<F>(&mut self, cb: F) -> StructResult where F: FnOnce(X) -> Result<X,StructError> {
         match self.stack.pop().expect("struct invariant violated: build stack musused and underflowed") {
             DataStackEntry::Array(entries) => {
                 let item = cb(self.transformer.make_array(entries))?;
@@ -95,4 +106,10 @@ impl<X> DataVisitor for DataStack<StructConst,X> {
     fn visit_object_end(&mut self) -> StructResult { self.pop(|x| Ok(x)) }
     fn visit_pair_start(&mut self, key: &str) -> StructResult { self.push_key(key); Ok(()) }
     fn visit_pair_end(&mut self, _key: &str) -> StructResult { Ok(()) }
+}
+
+pub fn eoestack_run<F,X>(input: &StructBuilt, transformer: F) -> Result<X,StructError> where F: DataStackTransformer<StructConst,X> + 'static {
+    let mut stack = DataStack::new(transformer);
+    input.expand(&mut stack)?;
+    Ok(stack.get())
 }

@@ -3,7 +3,7 @@ use crate::eachorevery::EachOrEveryGroupCompatible;
 use super::{eoestruct::{VariableSystem, StructVarValue, Struct, StructValueId, StructResult, StructError, struct_error, StructPair}, expand::StructBuilt, StructTemplate};
 
 #[cfg(debug_assertions)]
-use super::eoestructformat::VariableSystemFormatter;
+use super::eoedebug::VariableSystemFormatter;
 
 #[derive(Clone)]
 pub struct BuiltVars;

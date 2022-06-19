@@ -1,6 +1,6 @@
 pub mod eachorevery {
     pub mod eoestruct {
-        mod buildstack;
+        mod eoestructdata;
         mod buildertree;
         mod eoestruct;
         mod expand;
@@ -8,7 +8,7 @@ pub mod eachorevery {
         mod templatetree; 
 
         #[cfg(debug_assertions)]
-        mod eoestructformat;
+        mod eoedebug;
 
         pub use eoejson::{ struct_to_json, struct_from_json };
         pub use templatetree::{ StructTemplate };

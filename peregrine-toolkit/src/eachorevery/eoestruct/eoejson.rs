@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use crate::eachorevery::EachOrEvery;
 
-use super::{eoestruct::{StructConst, Struct, StructPair, StructError, struct_error}, templatetree::StructVar, StructTemplate, expand::StructBuilt, buildstack::{DataStackTransformer, DataStack}};
+use super::{eoestruct::{StructConst, Struct, StructPair, StructError, struct_error}, templatetree::StructVar, StructTemplate, expand::StructBuilt, eoestructdata::{DataStackTransformer, eoestack_run}};
 use serde_json::{Value as JsonValue, Number, Map};
 struct JsonTransformer;
 
@@ -25,10 +25,8 @@ impl DataStackTransformer<StructConst,JsonValue> for JsonTransformer {
     }
 }
 
-pub fn struct_to_json(input: StructBuilt) -> Result<JsonValue,StructError> {
-    let mut stack = DataStack::new(JsonTransformer);
-    input.expand(&mut stack)?;
-    Ok(stack.get())
+pub fn struct_to_json(input: &StructBuilt) -> Result<JsonValue,StructError> {
+    eoestack_run(input,JsonTransformer)
 }
 
 fn to_var_type<F,X>(input: &[JsonValue], cb: F) -> Result<EachOrEvery<X>,StructError> where F: Fn(&JsonValue) -> Option<X> {

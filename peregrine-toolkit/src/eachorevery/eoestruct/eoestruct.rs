@@ -4,7 +4,7 @@ use identitynumber::{ identitynumber };
 use lazy_static::lazy_static;
 
 #[cfg(debug_assertions)]
-use super::{eoestructformat::{VariableSystemFormatter}};
+use super::{eoedebug::{VariableSystemFormatter}};
 
 /* EoeStructs use a number of different tree types during processing:
  *   TemplateTree -- defined by the user and includes EoE arrays. Composable.
@@ -192,7 +192,7 @@ mod test {
         let vars = json_array(&parts[1]).iter().map(|x| json_string(x)).collect::<Vec<_>>();
         let template = struct_from_json(vars,&parts[2]).ok().unwrap();
         let debug = format!("{:?}",template);
-        let output = struct_to_json(template.build().ok().expect("unexpected error")).ok().unwrap();
+        let output = struct_to_json(&template.build().ok().expect("unexpected error")).ok().unwrap();
         let output = JsonValue::from_str(&output.to_string()).ok().unwrap();
         assert_eq!(debug,json_string(&parts[3]));
         assert_eq!(json_fix_numbers(&output),json_fix_numbers(&parts[4]));
@@ -269,7 +269,7 @@ mod test {
         );
         let debug = format!("{:?}",template);
         assert_eq!("Aa.( [true,false] )",debug);
-        let output = struct_to_json(template.build().ok().expect("unexpected error")).ok().unwrap();
+        let output = struct_to_json(&template.build().ok().expect("unexpected error")).ok().unwrap();
         let wanted = JsonValue::from_str("[[true,false]]").ok().unwrap();
         assert_eq!(&wanted,&output);
     }
