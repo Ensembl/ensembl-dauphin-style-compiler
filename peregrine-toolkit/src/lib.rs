@@ -1,18 +1,18 @@
 pub mod eachorevery {
     pub mod eoestruct {
         mod eoestructdata;
-        mod builttree;
+        mod structbuilt;
         mod build;
         mod eoestruct;
         mod expand;
         mod eoejson;
-        mod templatetree; 
+        mod structtemplate; 
 
         #[cfg(debug_assertions)]
         mod eoedebug;
 
         pub use eoejson::{ struct_to_json, struct_from_json };
-        pub use templatetree::{ StructTemplate };
+        pub use structtemplate::{ StructTemplate };
     }
 
     mod eoefilter;

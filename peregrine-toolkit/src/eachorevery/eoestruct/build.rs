@@ -1,6 +1,6 @@
 use std::sync::Arc;
 use crate::eachorevery::{EachOrEveryGroupCompatible, EachOrEvery};
-use super::{eoestruct::{StructVarValue, StructValueId, StructResult, StructError, struct_error}, StructTemplate, builttree::StructBuilt};
+use super::{eoestruct::{StructVarValue, StructValueId, StructResult, StructError, struct_error}, StructTemplate, structbuilt::StructBuilt};
 
 struct Binding {
     id: StructValueId,
@@ -71,6 +71,14 @@ impl StructTemplate {
                     check_compatible(&removed)?;
                     StructBuilt::All(removed,Arc::new(obj))
                 }
+            }
+            StructTemplate::Condition(var,expr) => {
+                let index = bindings.iter().position(|id| id.id == var.id);
+                let index = index.ok_or_else(|| struct_error("free variable in template"))?;
+                bindings[index].value = Some(var.value.clone());
+                let pos = bindings[index].pos;
+                let expr = expr.make(bindings,all_depth)?;
+                StructBuilt::Condition(pos.0,pos.1,Arc::new(expr))
             }
         })
     }

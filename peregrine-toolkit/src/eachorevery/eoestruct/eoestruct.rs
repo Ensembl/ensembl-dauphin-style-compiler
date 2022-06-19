@@ -34,6 +34,17 @@ pub enum StructConst {
     Null
 }
 
+impl StructConst {
+    pub(super) fn truthy(&self) -> bool {
+        match self {
+            StructConst::Number(_) => true,
+            StructConst::String(_) => true,
+            StructConst::Boolean(b) => *b,
+            StructConst::Null => false
+        }
+    }
+}
+
 #[derive(Clone)]
 /* Guarantee: all EachOrEverys in here will be Each after construction */
 pub enum StructVarValue {
@@ -118,7 +129,7 @@ impl StructVarValue {
 #[cfg(test)]
 mod test {
     use std::str::FromStr;
-    use crate::{eachorevery::{eoestruct::{eoejson::{struct_to_json, struct_from_json}, templatetree::{StructVar, StructPair}, StructTemplate}, EachOrEvery}};
+    use crate::{eachorevery::{eoestruct::{eoejson::{struct_to_json, struct_from_json}, structtemplate::{StructVar, StructPair}, StructTemplate}, EachOrEvery}};
     use serde_json::{Value as JsonValue, Number};
 
     fn json_fix_numbers(json: &JsonValue) -> JsonValue {
@@ -151,12 +162,13 @@ mod test {
         let parts = json_array(value);
         println!("ruuning {}\n",json_string(&parts[0]));
         let vars = json_array(&parts[1]).iter().map(|x| json_string(x)).collect::<Vec<_>>();
-        let template = struct_from_json(vars,&parts[2]).ok().unwrap();
+        let ifs = json_array(&parts[2]).iter().map(|x| json_string(x)).collect::<Vec<_>>();
+        let template = struct_from_json(vars,ifs,&parts[3]).ok().unwrap();
         let debug = format!("{:?}",template);
         let output = struct_to_json(&template.build().ok().expect("unexpected error")).ok().unwrap();
         let output = JsonValue::from_str(&output.to_string()).ok().unwrap();
-        assert_eq!(debug,json_string(&parts[3]));
-        assert_eq!(json_fix_numbers(&output),json_fix_numbers(&parts[4]));
+        assert_eq!(debug,json_string(&parts[4]));
+        assert_eq!(json_fix_numbers(&output),json_fix_numbers(&parts[5]));
         println!("{:?}\n",template);
         println!("{:?}\n",json_fix_numbers(&output));
     }
@@ -165,10 +177,11 @@ mod test {
         let parts = json_array(value);
         println!("ruuning {}\n",json_string(&parts[0]));
         let vars = json_array(&parts[1]).iter().map(|x| json_string(x)).collect::<Vec<_>>();
-        let template = struct_from_json(vars,&parts[2]).ok().unwrap();
+        let ifs = json_array(&parts[2]).iter().map(|x| json_string(x)).collect::<Vec<_>>();
+        let template = struct_from_json(vars,ifs,&parts[3]).ok().unwrap();
         match template.build() {
             Ok(r) => { eprintln!("unexpected success: {:?}",r); assert!(false); },
-            Err(e) => assert_eq!(e,json_string(&parts[3]))
+            Err(e) => assert_eq!(e,json_string(&parts[4]))
         }
     }
 
@@ -176,9 +189,10 @@ mod test {
         let parts = json_array(value);
         println!("ruuning {}\n",json_string(&parts[0]));
         let vars = json_array(&parts[1]).iter().map(|x| json_string(x)).collect::<Vec<_>>();
-        match struct_from_json(vars,&parts[2]) {
+        let ifs = json_array(&parts[2]).iter().map(|x| json_string(x)).collect::<Vec<_>>();
+        match struct_from_json(vars,ifs,&parts[3]) {
             Ok(r) => { eprintln!("unexpected success: {:?}",r); assert!(false); },
-            Err(e) => assert_eq!(e,json_string(&parts[3]))
+            Err(e) => assert_eq!(e,json_string(&parts[4]))
         }
     }
 

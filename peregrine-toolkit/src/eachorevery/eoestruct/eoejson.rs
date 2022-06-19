@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 use crate::eachorevery::EachOrEvery;
-use super::{eoestruct::{StructConst, StructError, struct_error}, templatetree::{StructVar, StructPair}, StructTemplate, eoestructdata::{DataStackTransformer, eoestack_run}, builttree::StructBuilt};
+use super::{eoestruct::{StructConst, StructError, struct_error}, structtemplate::{StructVar, StructPair}, StructTemplate, eoestructdata::{DataStackTransformer, eoestack_run}, structbuilt::StructBuilt};
 use serde_json::{Value as JsonValue, Number, Map};
 
 struct JsonTransformer;
@@ -32,8 +32,7 @@ fn to_var_type<F,X>(input: &[JsonValue], cb: F) -> Result<EachOrEvery<X>,StructE
     let values = input.iter().map(cb).collect::<Option<Vec<_>>>();
     values.map(|x| EachOrEvery::each(x)).ok_or(struct_error("non-homogenous variable"))
 }
-// XXX conditionals
-// XXX any iter
+
 fn to_var(input: &JsonValue) -> Result<StructVar,StructError> {
     let values = match input {
         JsonValue::Array(x) => x.as_slice(),
@@ -65,13 +64,15 @@ fn to_var(input: &JsonValue) -> Result<StructVar,StructError> {
 
 struct EoeFromJson {
     specs: HashSet<String>,
+    ifs: HashSet<String>,
     vars: Vec<HashMap<String,StructVar>>
 }
 
 impl EoeFromJson {
-    fn new(mut specs: Vec<String>, json: &JsonValue) ->  Result<StructTemplate,StructError> {
+    fn new(mut specs: Vec<String>, mut ifs: Vec<String>, json: &JsonValue) ->  Result<StructTemplate,StructError> {
         let mut obj = EoeFromJson{
             specs: specs.drain(..).collect(),
+            ifs: ifs.drain(..).collect(),
             vars: vec![]
         };
         obj.build(json)
@@ -97,6 +98,21 @@ impl EoeFromJson {
         Ok(Some(StructTemplate::new_all(&vars,expr)))
     }
 
+    fn to_condition(&mut self, map: &Map<String,JsonValue>) -> Result<Option<StructTemplate>,StructError> {
+        let mut expr = None;
+        for key in map.keys() {
+            if self.ifs.contains(key) { expr = Some(key); break; }
+        }
+        let expr = if let Some(expr) = expr { expr } else { return Ok(None); };
+        let value = self.build(map.get(expr).unwrap())?; // expr guranteed in map during setting
+        for map in self.vars.iter().rev() {
+            if let Some(var) = map.get(expr) { // XXX nested ifs test like alls
+                return Ok(Some(StructTemplate::new_condition(var.clone(),value)));
+            }
+        }
+        Ok(None)
+    }
+
     fn build(&mut self, json: &JsonValue) ->  Result<StructTemplate,StructError> {
         Ok(match json {
             JsonValue::Null => StructTemplate::new_null(),
@@ -117,6 +133,8 @@ impl EoeFromJson {
             JsonValue::Object(x) => {
                 if let Some(all) = self.to_all(&x)? {
                     all
+                } else if let Some(cond) = self.to_condition(&x)? {
+                    cond
                 } else {
                     StructTemplate::new_object(EachOrEvery::each(x.iter().map(|(k,v)|{
                         Ok::<StructPair,StructError>(StructPair(k.to_string(),self.build(v)?))
@@ -127,6 +145,6 @@ impl EoeFromJson {
     }
 }
 
-pub fn struct_from_json(specs: Vec<String>, json: &JsonValue) -> Result<StructTemplate,StructError> {
-    EoeFromJson::new(specs,json)
+pub fn struct_from_json(alls: Vec<String>, ifs: Vec<String>, json: &JsonValue) -> Result<StructTemplate,StructError> {
+    EoeFromJson::new(alls,ifs,json)
 }

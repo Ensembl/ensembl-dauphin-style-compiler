@@ -1,6 +1,6 @@
 use std::sync::Arc;
 use crate::eachorevery::EachOrEvery;
-use super::{eoestruct::{StructConst, StructVarValue, StructResult, struct_error}, eoestructdata::DataVisitor, builttree::StructBuilt};
+use super::{eoestruct::{StructConst, StructVarValue, StructResult, struct_error}, eoestructdata::DataVisitor, structbuilt::StructBuilt};
 
 fn separate<'a,F,Y>(input: &EachOrEvery<Y>, mut cb: F, visitor: &mut dyn DataVisitor) -> StructResult
         where F: FnMut(&Y,&mut dyn DataVisitor) -> StructResult {
@@ -74,6 +74,11 @@ impl StructBuilt {
                 }
                 output.visit_array_end()?;
                 data.pop();
+            }
+            StructBuilt::Condition(depth,width,expr) => {
+                if data[*depth].get(*width).truthy() {
+                    expr.split(output,data)?;
+                }
             }
         }
         Ok(())

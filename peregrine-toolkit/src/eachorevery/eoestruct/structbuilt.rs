@@ -10,5 +10,6 @@ pub enum StructBuilt {
     Const(StructConst),
     Array(Arc<EachOrEvery<StructBuilt>>),
     Object(Arc<EachOrEvery<(String,StructBuilt)>>),
-    All(Vec<Arc<StructVarValue>>,Arc<StructBuilt>)
+    All(Vec<Arc<StructVarValue>>,Arc<StructBuilt>),
+    Condition(usize,usize,Arc<StructBuilt>)
 }

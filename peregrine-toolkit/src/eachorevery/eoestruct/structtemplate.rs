@@ -43,9 +43,9 @@ pub enum StructTemplate {
     Const(StructConst),
     Array(Arc<EachOrEvery<StructTemplate>>),
     Object(Arc<EachOrEvery<StructPair>>),
-    All(Vec<StructValueId>,Arc<StructTemplate>)
+    All(Vec<StructValueId>,Arc<StructTemplate>),
+    Condition(StructVar,Arc<StructTemplate>)
 }
-
 
 impl StructTemplate {
     pub fn new_var(input: StructVar) -> StructTemplate {
@@ -82,5 +82,9 @@ impl StructTemplate {
 
     pub fn new_object(input: EachOrEvery<StructPair>) -> StructTemplate {
         Self::Object(Arc::new(input))
+    }
+
+    pub fn new_condition(input: StructVar, expr: StructTemplate) -> StructTemplate {
+        Self::Condition(input,Arc::new(expr))
     }
 }

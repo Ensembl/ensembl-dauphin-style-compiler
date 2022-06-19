@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use crate::eachorevery::EachOrEvery;
-use super::{eoestruct::{StructResult, StructError, StructConst, StructValueId}, StructTemplate, builttree::StructBuilt};
+use super::{eoestruct::{StructResult, StructError, StructConst, StructValueId}, StructTemplate, structbuilt::StructBuilt};
 
 // XXX test serial at DataVisitor
 #[cfg(debug_assertions)]
@@ -14,7 +14,7 @@ pub(super) fn comma_separate<'a,F,Y>(input: &EachOrEvery<Y>, mut cb: F, output: 
             first = false;
         }
     } else {
-        let value = cb(input.iter(1).unwrap().next().unwrap(),output)?;
+        cb(input.iter(1).unwrap().next().unwrap(),output)?;
         output.push_str("...");
     }
     Ok(())
@@ -94,6 +94,11 @@ impl StructTemplate {
                 expr.format_level(formatter,output)?;
                 output.push_str(" )");
             },
+            StructTemplate::Condition(var, expr) => {
+                output.push_str(&format!("Q[{}={:?}] (",formatter.get(&var.id),var.value));
+                expr.format_level(formatter,output)?;
+                output.push_str(" )");
+            }
         }
         Ok(())
     }    
@@ -147,6 +152,11 @@ impl StructBuilt {
                 expr.format_level(output)?;                
                 output.push_str(")");
             },
+            StructBuilt::Condition(depth,width,expr) => {
+                output.push_str(&format!("Q[{},{}].( ",depth,width));
+                expr.format_level(output)?;                
+                output.push_str(")");
+            }
         }
         Ok(())
     }
