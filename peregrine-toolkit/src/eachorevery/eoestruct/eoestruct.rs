@@ -302,4 +302,20 @@ mod test {
             Err(e) => assert_eq!(e,"free variable in template")
         }
     }
+
+    #[test]
+    fn test_eoestruct_every() {
+        let every = StructVar::new_boolean(EachOrEvery::every(false));
+        let template = Struct::new_all(&[every.clone()],
+            Struct::new_array(vec![
+                Struct::new_boolean(true),
+                Struct::new_var(every)
+            ])
+        );
+        let debug = format!("{:?}",template);
+        assert_eq!("Aa.( [true,false] )",debug);
+        let output = struct_to_json(template.build().ok().expect("unexpected error")).ok().unwrap();
+        let wanted = JsonValue::from_str("[[true,false]]").ok().unwrap();
+        assert_eq!(&wanted,&output);
+    }
 }

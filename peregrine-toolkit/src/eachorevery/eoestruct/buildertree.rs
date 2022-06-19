@@ -111,12 +111,18 @@ impl StructVisitor<TemplateVars> for TemplateBuildVisitor {
     fn visit_all_end(&mut self, ids: &[StructValueId]) -> StructResult {
         let keep_len = self.bindings.len()-ids.len();
         let removed = self.bindings.split_off(keep_len);
-        let removed = removed.iter().map(|binding| {
+        let removed = removed.iter().filter_map(|binding| {
             binding.value.clone().map(|x| Arc::new(x))
-        }).collect::<Option<Vec<_>>>().ok_or_else(|| struct_error("all over missing variable"))?;
+        }).collect::<Vec<_>>();
         self.build.pop(|obj| {
-            check_compatible(&removed)?;
-            Ok(Struct::All(removed,Arc::new(obj)))
+            Ok(if removed.is_empty() {
+                println!("empty");
+                Struct::Array(Arc::new(vec![obj]))
+            } else {
+                check_compatible(&removed)?;
+                println!("compat={:?}",check_compatible(&removed)?);
+                Struct::All(removed,Arc::new(obj))
+            })
         })?;
         self.all_depth -= 1;
         Ok(())

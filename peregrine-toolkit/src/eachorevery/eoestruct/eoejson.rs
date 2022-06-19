@@ -36,7 +36,6 @@ fn to_var_type<F,X>(input: &[JsonValue], cb: F) -> Result<EachOrEvery<X>,StructE
     let values = input.iter().map(cb).collect::<Option<Vec<_>>>();
     values.map(|x| EachOrEvery::each(x)).ok_or(struct_error("non-homogenous variable"))
 }
-
 // XXX conditionals
 // XXX any iter
 fn to_var(input: &JsonValue) -> Result<StructVar,StructError> {
