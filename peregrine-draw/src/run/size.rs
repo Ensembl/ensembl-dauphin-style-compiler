@@ -35,8 +35,7 @@ expiry of themomostable will be noted in the test_update_canvas_size call.
 
 use std::sync::{ Arc, Mutex };
 use crate::util::{message::Message };
-use commander::{cdr_tick, cdr_timer};
-use peregrine_data::{PeregrineCoreBase, PgCommanderTaskSpec, add_task, async_complete_task};
+use commander::{cdr_timer};
 use peregrine_toolkit::{log_extra, lock, log};
 use peregrine_toolkit_async::sync::needed::Needed;
 use web_sys::{ WebGlRenderingContext, window };
@@ -84,6 +83,10 @@ impl SizeManagerState {
     fn canvas_size(&self) -> (u32,u32) {
         let size = self.dom.canvas().get_bounding_client_rect();
         (size.width().round() as u32,size.height().round() as u32)
+    }
+
+    fn still_exists(&self) -> bool {
+        self.dom.canvas_frame().is_connected()
     }
 
     fn booted(&self) -> bool { self.booted }
@@ -195,6 +198,8 @@ impl SizeManager {
         Ok(())
     }
 
+    fn still_exists(&self) -> bool { lock!(self.state).still_exists() }
+
     async fn run_async(&self, api: &PeregrineInnerAPI) -> Result<(),Message> {
         let mut api = api.clone();
         let self2 = self.clone();
@@ -203,7 +208,9 @@ impl SizeManager {
             self2.prepare_for_draw(&mut locked_api)?;
             drop(locked_api);
             cdr_timer(1000.).await;
+            if !self.still_exists() { break; }
         }
+        Ok(())
     }
 
     pub(crate) fn run_backup(&self, commander: &PgCommanderWeb, api: &PeregrineInnerAPI) {

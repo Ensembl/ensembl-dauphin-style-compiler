@@ -116,3 +116,6 @@ backend-server/metric.log
 .cfg
 .config.prev
 .buildkit-config.prev
+
+# egb build artefact
+egb.tar.gz

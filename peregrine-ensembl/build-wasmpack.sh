@@ -8,5 +8,5 @@ SCRIPTPATH=$(dirname "$SCRIPT")
 # 2. go one directory up
 cd $SCRIPTPATH/..
 
-DOCKER_BUILDKIT=1 docker build -f peregrine-ensembl/Dockerfile-wasmpack .
+DOCKER_BUILDKIT=1 docker build -t wasmpack -f peregrine-ensembl/Dockerfile-wasmpack .
 

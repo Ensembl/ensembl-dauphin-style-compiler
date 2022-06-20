@@ -1,3 +1,6 @@
+# 0.3.2
+  * Failed unload bugfix
+
 # 0.3.1
   * Fix image size bug (chevrons)
   * Multiple transcripts

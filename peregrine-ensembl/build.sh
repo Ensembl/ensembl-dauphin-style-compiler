@@ -19,6 +19,9 @@ FLAGS=""
 if [ "x$CFG_DEBUG_WEB_GL" = "xyes" ] ; then
   FLAGS="$FLAGS --cfg=debug_webgl"
 fi
+if [ "x$CFG_DEBUG_SAMPLER" = "xyes" ] ; then
+  FLAGS="$FLAGS --cfg debug_sampler"
+fi
 
 case "$CFG_CONSOLE" in
   noisy)

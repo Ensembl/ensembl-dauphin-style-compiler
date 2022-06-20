@@ -1,7 +1,6 @@
 # syntax=docker/dockerfile:1.2
 
 #### Build wasm-pack
-FROM rust:1.57 AS rust-builder
+FROM rust:1.61 AS rust-builder
 
 RUN curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh 
-
