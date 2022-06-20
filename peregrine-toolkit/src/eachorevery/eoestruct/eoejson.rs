@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 use crate::eachorevery::EachOrEvery;
-use super::{eoestruct::{StructConst, StructError, struct_error}, structtemplate::{StructVar, StructPair}, StructTemplate, eoestructdata::{DataStackTransformer, eoestack_run}, structbuilt::StructBuilt};
+use super::{eoestruct::{StructConst, StructError, struct_error, StructVarGroup}, structtemplate::{StructVar, StructPair}, StructTemplate, eoestructdata::{DataStackTransformer, eoestack_run}, structbuilt::StructBuilt};
 use serde_json::{Value as JsonValue, Number, Map};
 
 struct JsonTransformer;
@@ -33,7 +33,7 @@ fn to_var_type<F,X>(input: &[JsonValue], cb: F) -> Result<EachOrEvery<X>,StructE
     values.map(|x| EachOrEvery::each(x)).ok_or(struct_error("non-homogenous variable"))
 }
 
-fn to_var(input: &JsonValue) -> Result<StructVar,StructError> {
+fn to_var(group: &mut StructVarGroup, input: &JsonValue) -> Result<StructVar,StructError> {
     let values = match input {
         JsonValue::Array(x) => x.as_slice(),
         _ => &[]
@@ -41,24 +41,24 @@ fn to_var(input: &JsonValue) -> Result<StructVar,StructError> {
     Ok(if let Some(first) = values.first() {
         match first {
             JsonValue::Bool(_) => {
-                StructVar::new_boolean(to_var_type(values,|x| {
+                StructVar::new_boolean(group,to_var_type(values,|x| {
                     if let JsonValue::Bool(x) = x { Some(*x) } else { None }
                 })?)
             },
             JsonValue::Number(_) => {
-                StructVar::new_number(to_var_type(values,|x| {
+                StructVar::new_number(group,to_var_type(values,|x| {
                     if let JsonValue::Number(x) = x { Some(x.as_f64().unwrap()) } else { None }
                 })?)
             },
             JsonValue::String(_) => {
-                StructVar::new_string(to_var_type(values,|x| {
+                StructVar::new_string(group,to_var_type(values,|x| {
                     if let JsonValue::String(x) = x { Some(x.to_string()) } else { None }
                 })?)
             },
-            _ => StructVar::new_boolean(EachOrEvery::each(vec![]))
+            _ => StructVar::new_boolean(group,EachOrEvery::each(vec![]))
         }
     } else {
-        StructVar::new_boolean(EachOrEvery::each(vec![]))
+        StructVar::new_boolean(group,EachOrEvery::each(vec![]))
     })
 }
 
@@ -79,6 +79,7 @@ impl EoeFromJson {
     }
 
     fn to_all(&mut self, map: &Map<String,JsonValue>) -> Result<Option<StructTemplate>,StructError> {
+        let mut group = StructVarGroup::new();
         let mut expr = None;
         for key in map.keys() {
             if self.specs.contains(key) { expr = Some(key); break; }
@@ -88,14 +89,14 @@ impl EoeFromJson {
         let mut var_names = HashMap::new();
         for (key,value) in map.iter() {
             if key == expr { continue; }
-            let var = to_var(&value)?;
+            let var = to_var(&mut group,&value)?;
             vars.push(var.clone());
             var_names.insert(key.clone(),var);
         }
         self.vars.push(var_names);
         let expr = self.build(map.get(expr).unwrap())?; // expr guranteed in map during setting
         self.vars.pop();
-        Ok(Some(StructTemplate::new_all(&vars,expr)))
+        Ok(Some(StructTemplate::new_all(group,expr)))
     }
 
     fn to_condition(&mut self, map: &Map<String,JsonValue>) -> Result<Option<StructTemplate>,StructError> {

@@ -26,6 +26,12 @@ impl StructValueId {
     pub(super) fn new() -> StructValueId { StructValueId(IDS.next()) }
 }
 
+pub struct StructVarGroup(pub(super) Vec<StructValueId>);
+
+impl StructVarGroup {
+    pub fn new() -> StructVarGroup { StructVarGroup(vec![]) }
+}
+
 #[cfg_attr(debug_assertions,derive(Debug))]
 #[derive(Clone)]
 pub enum StructConst {
@@ -130,10 +136,10 @@ impl StructVarValue {
 #[cfg(test)]
 mod test {
     use std::str::FromStr;
-    use crate::{eachorevery::{eoestruct::{eoejson::{struct_to_json, struct_from_json}, structtemplate::{StructVar, StructPair}, StructTemplate, eoestructdata::{DataVisitor, eoestack_run}}, EachOrEvery}};
+    use crate::{eachorevery::{eoestruct::{eoejson::{struct_to_json, struct_from_json}, structtemplate::{StructVar, StructPair}, StructTemplate, eoestructdata::{DataVisitor}}, EachOrEvery}};
     use serde_json::{Value as JsonValue, Number};
 
-    use super::{StructResult, StructConst};
+    use super::{StructResult, StructConst, StructVarGroup};
 
     fn json_fix_numbers(json: &JsonValue) -> JsonValue {
         match json {
@@ -229,9 +235,10 @@ mod test {
     #[test]
     fn test_eoestruct_free() {
         /* corner case not testable with the available harnesses */
+        let mut group = StructVarGroup::new();
         let template = StructTemplate::new_array(EachOrEvery::each(vec![
             StructTemplate::new_boolean(true),
-            StructTemplate::new_var(StructVar::new_boolean(EachOrEvery::each(vec![false,true])))
+            StructTemplate::new_var(StructVar::new_boolean(&mut group,EachOrEvery::each(vec![false,true])))
         ]));
         match template.build() {
             Ok(r) => { eprintln!("unexpected success: {:?}",r); assert!(false); },
@@ -241,9 +248,10 @@ mod test {
 
     #[test]
     fn test_eoestruct_every() {
-        let every = StructVar::new_boolean(EachOrEvery::every(false));
-        let each = StructVar::new_number(EachOrEvery::each(vec![1.,2.]));
-        let template = StructTemplate::new_all(&[every.clone(),each.clone()],
+        let mut group = StructVarGroup::new();
+        let every = StructVar::new_boolean(&mut group,EachOrEvery::every(false));
+        let each = StructVar::new_number(&mut group,EachOrEvery::each(vec![1.,2.]));
+        let template = StructTemplate::new_all(group,
         StructTemplate::new_array(EachOrEvery::each(vec![
             StructTemplate::new_boolean(true),
             StructTemplate::new_var(every),
@@ -307,7 +315,8 @@ mod test {
 
     #[test]
     fn test_eoestruct_notopcond() {
-        let template = StructTemplate::new_condition(StructVar::new_boolean(EachOrEvery::each(vec![true])),
+        let mut group = StructVarGroup::new();
+        let template = StructTemplate::new_condition(StructVar::new_boolean(&mut group,EachOrEvery::each(vec![true])),
             StructTemplate::new_number(42.)
         );
         match template.build() {

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 use crate::eachorevery::EachOrEvery;
-use super::{eoestruct::{StructConst, StructValueId, StructVarValue}};
+use super::{eoestruct::{StructConst, StructValueId, StructVarValue, StructVarGroup}};
 
 #[derive(Clone)]
 pub struct StructVar {
@@ -11,20 +11,22 @@ pub struct StructVar {
 impl StructVar {
     fn to_const(&self) -> Option<StructConst> { self.value.to_const() }
 
-    fn new(value: StructVarValue) -> StructVar {
-        StructVar { value, id: StructValueId::new() }
+    fn new(group:&mut StructVarGroup, value: StructVarValue) -> StructVar {
+        let id = StructValueId::new();
+        group.0.push(id.clone());
+        StructVar { value, id }
     }
 
-    pub fn new_number(input: EachOrEvery<f64>) -> StructVar {
-        Self::new(StructVarValue::Number(input))
+    pub fn new_number(group:&mut StructVarGroup, input: EachOrEvery<f64>) -> StructVar {
+        Self::new(group,StructVarValue::Number(input))
     }
 
-    pub fn new_string(input: EachOrEvery<String>) -> StructVar {
-        Self::new(StructVarValue::String(input))
+    pub fn new_string(group:&mut StructVarGroup, input: EachOrEvery<String>) -> StructVar {
+        Self::new(group,StructVarValue::String(input))
     }
 
-    pub fn new_boolean(input: EachOrEvery<bool>) -> StructVar {
-        Self::new(StructVarValue::Boolean(input))
+    pub fn new_boolean(group:&mut StructVarGroup, input: EachOrEvery<bool>) -> StructVar {
+        Self::new(group,StructVarValue::Boolean(input))
     }
 }
 
@@ -56,8 +58,8 @@ impl StructTemplate {
         }
     }
 
-    pub fn new_all(vars: &[StructVar], expr: StructTemplate) -> StructTemplate {
-        Self::All(vars.iter().map(|x| x.id).collect::<Vec<_>>(),Arc::new(expr))
+    pub fn new_all(vars: StructVarGroup, expr: StructTemplate) -> StructTemplate {
+        Self::All(vars.0.clone(),Arc::new(expr))
     }
 
     pub fn new_number(input: f64) -> StructTemplate {
