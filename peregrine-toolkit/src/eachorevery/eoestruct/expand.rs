@@ -18,22 +18,24 @@ fn separate<'a,F,Y>(input: &EachOrEvery<Y>, mut cb: F, visitor: &mut dyn DataVis
 }
 
 struct AllState {
-    vars: Vec<Arc<StructVarValue>>,
-    index: usize
+    vars: Vec<Option<Arc<StructVarValue>>>,
+    index: usize,
+    first: usize
 }
 
 impl AllState {
-    fn new(vars: Vec<Arc<StructVarValue>>) -> AllState {
-        AllState { vars, index: 0 }
+    fn new(vars: Vec<Option<Arc<StructVarValue>>>) -> AllState {
+        let first = vars.iter().position(|x| x.is_some()).unwrap();
+        AllState { vars, index: 0, first }
     }
 
     fn get(&self, width: usize) -> StructConst {
-        self.vars[width].get(self.index-1).unwrap() // guaranteed by build process
+        self.vars[width].as_ref().unwrap().get(self.index-1).unwrap() // guaranteed by build process
     }
 
     fn row(&mut self) -> bool {
         self.index += 1;
-        self.vars[0].get(self.index-1).is_some()
+        self.vars[self.first].as_ref().unwrap().get(self.index-1).is_some()
     }
 }
 

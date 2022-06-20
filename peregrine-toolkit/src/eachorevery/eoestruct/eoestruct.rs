@@ -240,17 +240,19 @@ mod test {
     #[test]
     fn test_eoestruct_every() {
         let every = StructVar::new_boolean(EachOrEvery::every(false));
-        let template = StructTemplate::new_all(&[every.clone()],
+        let each = StructVar::new_number(EachOrEvery::each(vec![1.,2.]));
+        let template = StructTemplate::new_all(&[every.clone(),each.clone()],
         StructTemplate::new_array(EachOrEvery::each(vec![
             StructTemplate::new_boolean(true),
-            StructTemplate::new_var(every)
-            ]))
+            StructTemplate::new_var(every),
+            StructTemplate::new_var(each)
+        ]))
         );
         let debug = format!("{:?}",template);
-        assert_eq!("Aa.( [true,false] )",debug);
+        assert_eq!("Aab.( [true,false,b=<1.0,2.0>] )",debug);
         let output = struct_to_json(&template.build().ok().expect("unexpected error")).ok().unwrap();
-        let wanted = JsonValue::from_str("[[true,false]]").ok().unwrap();
-        assert_eq!(&wanted,&output);
+        let wanted = JsonValue::from_str("[[true,false,1],[true,false,2]]").ok().unwrap();
+        assert_eq!(&json_fix_numbers(&wanted),&json_fix_numbers(&output));
     }
 
     #[test]

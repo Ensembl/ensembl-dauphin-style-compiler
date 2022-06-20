@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use crate::eachorevery::EachOrEvery;
 use super::{eoestruct::{StructResult, StructError, StructConst, StructValueId}, StructTemplate, structbuilt::StructBuilt};
 
+// XXX missing at top unit test
 // XXX test serial at DataVisitor
 #[cfg(debug_assertions)]
 pub(super) fn comma_separate<'a,F,Y>(input: &EachOrEvery<Y>, mut cb: F, output: &mut String) -> StructResult

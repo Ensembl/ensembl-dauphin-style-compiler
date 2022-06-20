@@ -14,7 +14,8 @@ impl Binding {
     }
 }
 
-fn check_compatible(vars: &[Arc<StructVarValue>]) -> StructResult {
+fn check_compatible(vars: &[Option<Arc<StructVarValue>>]) -> StructResult {
+    let vars = vars.iter().filter_map(|x| x.as_ref()).collect::<Vec<_>>();
     if vars.len() == 0 {
         return Err(struct_error("no variables specified"));
     }
@@ -62,7 +63,7 @@ impl StructTemplate {
                 let obj = expr.make(bindings,all_depth+1)?;
                 let keep_len = bindings.len()-ids.len();
                 let removed = bindings.split_off(keep_len);
-                let removed = removed.iter().filter_map(|binding| {
+                let removed = removed.iter().map(|binding| {
                     binding.value.clone().map(|x| Arc::new(x))
                 }).collect::<Vec<_>>();
                 if removed.is_empty() {
