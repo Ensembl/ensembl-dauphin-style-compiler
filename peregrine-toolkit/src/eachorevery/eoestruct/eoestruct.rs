@@ -130,8 +130,10 @@ impl StructVarValue {
 #[cfg(test)]
 mod test {
     use std::str::FromStr;
-    use crate::{eachorevery::{eoestruct::{eoejson::{struct_to_json, struct_from_json}, structtemplate::{StructVar, StructPair}, StructTemplate}, EachOrEvery}};
+    use crate::{eachorevery::{eoestruct::{eoejson::{struct_to_json, struct_from_json}, structtemplate::{StructVar, StructPair}, StructTemplate, eoestructdata::{DataVisitor, eoestack_run}}, EachOrEvery}};
     use serde_json::{Value as JsonValue, Number};
+
+    use super::{StructResult, StructConst};
 
     fn json_fix_numbers(json: &JsonValue) -> JsonValue {
         match json {
@@ -302,4 +304,56 @@ mod test {
         println!("{}",output.to_string());
         assert_eq!(json_fix_numbers(&output),json_fix_numbers(&cmp));
     }
+
+    #[test]
+    fn test_eoestruct_notopcond() {
+        let template = StructTemplate::new_condition(StructVar::new_boolean(EachOrEvery::each(vec![true])),
+            StructTemplate::new_number(42.)
+        );
+        match template.build() {
+            Ok(r) => { eprintln!("unexpected success: {:?}",r); assert!(false); },
+            Err(e) => assert_eq!(e,"conditionals banned at top level")
+        }
+    }
+
+    struct TestVisitor(String);
+
+    impl DataVisitor for TestVisitor {
+        fn visit_const(&mut self, _input: &StructConst) -> StructResult { self.0.push('c'); Ok(()) }
+        fn visit_separator(&mut self) -> StructResult { self.0.push(','); Ok(())}
+        fn visit_array_start(&mut self) -> StructResult { self.0.push('['); Ok(()) }
+        fn visit_array_end(&mut self) -> StructResult { self.0.push(']'); Ok(()) }
+        fn visit_object_start(&mut self) -> StructResult { self.0.push('{'); Ok(()) }
+        fn visit_object_end(&mut self) -> StructResult { self.0.push('}'); Ok(()) }
+        fn visit_pair_start(&mut self, key: &str) -> StructResult { self.0.push_str(&format!("<{}>",key)); Ok(()) }
+        fn visit_pair_end(&mut self, key: &str) -> StructResult { self.0.push_str(&format!("</{}>",key)); Ok(()) }
+    }
+
+    fn visitor_case(value: &JsonValue) {
+        let parts = json_array(value);
+        println!("ruuning {}\n",json_string(&parts[0]));
+        let vars = json_array(&parts[1]).iter().map(|x| json_string(x)).collect::<Vec<_>>();
+        let ifs = json_array(&parts[2]).iter().map(|x| json_string(x)).collect::<Vec<_>>();
+        let template = struct_from_json(vars,ifs,&parts[3]).ok().unwrap();
+        let debug = format!("{:?}",template);
+        if !parts[4].is_null() {
+            assert_eq!(debug,json_string(&parts[4]));
+        }
+        println!("{:?}\n",template);
+        println!("{:?}\n",template.build());
+        let mut visitor = TestVisitor(String::new());
+        template.build().ok().expect("unexpected error").expand(&mut visitor).ok().expect("visitor failed");
+        println!("{:?}",visitor.0);
+        assert_eq!(&parts[5],&visitor.0)
+    }
+
+    #[test]
+    fn test_eoestruct_visitor() {
+        let data = JsonValue::from_str(include_str!("test-visitor.json")).ok().unwrap();
+        for testcase in json_array(&data).iter() {
+            visitor_case(&testcase);
+        }
+
+    }
+
 }

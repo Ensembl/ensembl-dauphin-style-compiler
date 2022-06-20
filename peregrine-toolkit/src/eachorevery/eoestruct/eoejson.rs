@@ -106,7 +106,7 @@ impl EoeFromJson {
         let expr = if let Some(expr) = expr { expr } else { return Ok(None); };
         let value = self.build(map.get(expr).unwrap())?; // expr guranteed in map during setting
         for map in self.vars.iter().rev() {
-            if let Some(var) = map.get(expr) { // XXX nested ifs test like alls
+            if let Some(var) = map.get(expr) {
                 return Ok(Some(StructTemplate::new_condition(var.clone(),value)));
             }
         }

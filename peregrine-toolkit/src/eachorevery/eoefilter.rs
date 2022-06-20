@@ -47,7 +47,7 @@ impl<'a> NumIterator<'a> {
     }
 }
 
-// XXX const conditionals
+
 // XXX run-length
 pub struct EachOrEveryFilterBuilder(Vec<(usize,usize)>,usize);
 

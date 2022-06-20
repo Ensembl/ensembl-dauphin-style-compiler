@@ -68,11 +68,13 @@ impl StructBuilt {
                 let all = AllState::new(vars.to_vec());
                 data.push(all);
                 output.visit_array_start()?;
+                let mut first = true;
                 loop {
                     let top = data.last_mut().unwrap(); // data only manipulated here and just pushed
                     if !top.row() { break; }
-                    drop(top);
+                    if !first { output.visit_separator()?; }
                     expr.split(output,data)?;
+                    first = false;
                 }
                 output.visit_array_end()?;
                 data.pop();

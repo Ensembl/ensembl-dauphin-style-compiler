@@ -30,7 +30,7 @@ fn check_compatible(vars: &[Option<Arc<StructVarValue>>]) -> StructResult {
 }
 
 impl StructTemplate {
-    fn make(&self, bindings: &mut Vec<Binding>, all_depth: usize) -> Result<StructBuilt,StructError> {
+    fn make(&self, bindings: &mut Vec<Binding>, all_depth: usize, first: bool) -> Result<StructBuilt,StructError> {
         Ok(match self {
             StructTemplate::Var(var) => {
                 let index = bindings.iter().position(|id| id.id == var.id);
@@ -45,7 +45,7 @@ impl StructTemplate {
                     return Err(struct_error("no infinite arrays in json"));
                 }
                 StructBuilt::Array(Arc::new(
-                    v.map_results(|x| x.make(bindings,all_depth))?
+                    v.map_results(|x| x.make(bindings,all_depth,false))?
                 ))
             },
             StructTemplate::Object(v) => {
@@ -53,14 +53,14 @@ impl StructTemplate {
                     return Err(struct_error("no infinite objects in json"));
                 }
                 StructBuilt::Object(Arc::new(
-                    v.map_results::<_,_,StructError>(|x| Ok((x.0.clone(),x.1.make(bindings,all_depth)?)))?
+                    v.map_results::<_,_,StructError>(|x| Ok((x.0.clone(),x.1.make(bindings,all_depth,false)?)))?
                 ))
             },
             StructTemplate::All(ids, expr) => {
                 for (i,id) in ids.iter().enumerate() {
                     bindings.push(Binding::new(id,all_depth,i));
                 }
-                let obj = expr.make(bindings,all_depth+1)?;
+                let obj = expr.make(bindings,all_depth+1,false)?;
                 let keep_len = bindings.len()-ids.len();
                 let removed = bindings.split_off(keep_len);
                 let removed = removed.iter().map(|binding| {
@@ -74,17 +74,20 @@ impl StructTemplate {
                 }
             }
             StructTemplate::Condition(var,expr) => {
+                if first {
+                    return Err(struct_error("conditionals banned at top level"));
+                }
                 let index = bindings.iter().position(|id| id.id == var.id);
                 let index = index.ok_or_else(|| struct_error("free variable in template"))?;
                 bindings[index].value = Some(var.value.clone());
                 let pos = bindings[index].pos;
-                let expr = expr.make(bindings,all_depth)?;
+                let expr = expr.make(bindings,all_depth,false)?;
                 StructBuilt::Condition(pos.0,pos.1,Arc::new(expr))
             }
         })
     }
 
     pub fn build(&self) -> Result<StructBuilt,StructError> {
-        self.make(&mut vec![],0)
+        self.make(&mut vec![],0,true)
     }
 }
