@@ -74,6 +74,10 @@ case "$CFG_CONSOLE" in
     ;;
 esac
 
+if [ "x$CFG_DEBUG_SAMPLER" = "xyes" ] ; then
+  CFG_RUSTFLAGS="$CFG_RUSTFLAGS --cfg debug_sampler"
+fi
+
 # clear cache
 if [ "x$CFG_CLEAR" == "xyes" ] ; then
   docker builder prune --filter type=exec.cachemount -f

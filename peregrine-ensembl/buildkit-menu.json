@@ -10,6 +10,11 @@
         "options": ["default","quiet","noisy"]
     },
     {
+        "key": "CFG_DEBUG_SAMPLER",
+        "question": "Use performance sampler",
+        "options": ["no","yes"]
+    },
+    {
         "key": "CFG_EGB",
         "question": "ensembl-genome-browser code",
         "options": ["github","local"]
