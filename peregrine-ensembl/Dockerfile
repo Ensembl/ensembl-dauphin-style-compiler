@@ -3,7 +3,7 @@
 
 
 #### FIRST BUILDER CONTAINER: BUILD WASM FROM RUST ####
-FROM rust:1.57 AS rust-builder
+FROM rust:1.61 AS rust-builder
 
 COPY . /peregrine-build
 
@@ -13,8 +13,6 @@ WORKDIR /peregrine-build/peregrine-ensembl
 RUN curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh && \
     cargo build && \
     RUSTFLAGS="--cfg=console" wasm-pack build --target web --release
-
-
 
 #### SECOND BUILDER CONTAINER: BUILD THE JAVASCRIPT CODE ####
 FROM node:16.13.0 AS node-builder
