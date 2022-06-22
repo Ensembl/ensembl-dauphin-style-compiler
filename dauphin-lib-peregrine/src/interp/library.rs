@@ -9,6 +9,7 @@ use super::decompress::{
     ClassifyDeserializer, SplitStringDeserializer, BaseFlipDeserializer
 };
 
+use super::eoes::{EoesVarNumberDeserializer, EoesVarStringDeserializer, EoesVarBooleanDeserializer, EoesNullDeserializer, EoesArrayDeserializer, EoesPairDeserializer, EoesObjectDeserializer, EoesConditionDeserializer, EoesGroupDeserializer, EoesAllDeserializer, EoesVarDeserializer, EoesNumberDeserializer, EoesStringDeserializer, EoesBooleanDeserializer};
 use super::track::{ 
     NewLaneDeserializer, AddTagDeserializer, AddTriggerDeserializer, DataSourceDeserializer, AddSwitchDeserializer,
     SetSwitchDeserializer, ClearSwitchDeserializer, AppendGroupDeserializer, AppendDepthDeserializer
@@ -87,5 +88,19 @@ pub fn make_peregrine_interp() -> InterpLibRegister {
     set.push(RequestScopeDeserializer());
     set.push(EmptyDeserializer());
     set.push(PatinaMetadataDeserializer());
+    set.push(EoesVarNumberDeserializer());
+    set.push(EoesVarStringDeserializer());
+    set.push(EoesVarBooleanDeserializer());
+    set.push(EoesNullDeserializer());
+    set.push(EoesArrayDeserializer());
+    set.push(EoesPairDeserializer());
+    set.push(EoesObjectDeserializer());
+    set.push(EoesConditionDeserializer());
+    set.push(EoesGroupDeserializer());
+    set.push(EoesAllDeserializer());
+    set.push(EoesVarDeserializer());
+    set.push(EoesNumberDeserializer());
+    set.push(EoesStringDeserializer());
+    set.push(EoesBooleanDeserializer());
     set
 }

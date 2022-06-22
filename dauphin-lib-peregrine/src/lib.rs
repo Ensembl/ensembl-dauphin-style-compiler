@@ -21,6 +21,7 @@ mod interp {
     mod boot;
     mod data;
     mod decompress;
+    mod eoes;
     mod geometry;
     mod track;
     mod switch;
@@ -44,6 +45,7 @@ mod compile {
     mod boot;
     mod data;
     mod decompress;
+    mod eoes;
     mod geometry;
     mod track;
     mod shape;

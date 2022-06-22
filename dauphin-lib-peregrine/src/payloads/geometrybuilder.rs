@@ -3,7 +3,7 @@ use core::f64;
 use std::sync::{ Arc, Mutex };
 use peregrine_data::{Colour, DirectColour, Patina, Pen, Plotter, ZMenu, SpaceBase, LeafRequest, DataRequest};
 use owning_ref::ArcRef;
-use peregrine_toolkit::lock;
+use peregrine_toolkit::{lock, eachorevery::eoestruct::{StructVarGroup, StructTemplate, StructVar, StructPair}};
 
 #[derive(Clone)]
 enum GeometryBuilderEntry {
@@ -15,7 +15,11 @@ enum GeometryBuilderEntry {
     Plotter(Arc<Plotter>),
     LeafRequest(Arc<LeafRequest>),
     SpaceBase(Arc<SpaceBase<f64,()>>),
-    DataRequest(Arc<DataRequest>)
+    DataRequest(Arc<DataRequest>),
+    StructGroup(Arc<Mutex<StructVarGroup>>),
+    StructTmpl(Arc<StructTemplate>),
+    StructVar(Arc<StructVar>),
+    StructPair(Arc<StructPair>)
 }
 
 impl GeometryBuilderEntry {
@@ -29,7 +33,11 @@ impl GeometryBuilderEntry {
             GeometryBuilderEntry::Plotter(_) => "plotter",
             GeometryBuilderEntry::LeafRequest(_) => "allotment",
             GeometryBuilderEntry::SpaceBase(_) => "spacebase",
-            GeometryBuilderEntry::DataRequest(_) => "datarequest"
+            GeometryBuilderEntry::DataRequest(_) => "datarequest",
+            GeometryBuilderEntry::StructGroup(_) => "eoegroup",
+            GeometryBuilderEntry::StructTmpl(_) => "eoetmpl",
+            GeometryBuilderEntry::StructVar(_) => "eoevar",
+            GeometryBuilderEntry::StructPair(_) => "eoepair",
         }
     }
 }
@@ -96,4 +104,8 @@ impl GeometryBuilder {
     builder_type!(allotment,add_allotment,LeafRequest,LeafRequest,"allotment");
     builder_type!(spacebase,add_spacebase,SpaceBase,SpaceBase<f64,()>,"spacebase");
     builder_type!(request,add_request,DataRequest,DataRequest,"datarequest");
+    builder_type!(eoegroup,add_eoegroup,StructGroup,Mutex<StructVarGroup>,"group");
+    builder_type!(eoetmpl,add_eoetmpl,StructTmpl,StructTemplate,"template");
+    builder_type!(eoevar,add_eoevar,StructVar,StructVar,"variable");
+    builder_type!(eoepair,add_eoepair,StructPair,StructPair,"pair");
 }

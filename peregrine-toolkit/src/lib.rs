@@ -11,8 +11,9 @@ pub mod eachorevery {
         #[cfg(debug_assertions)]
         mod eoedebug;
 
+        pub use eoestruct::{ StructVarGroup };
         pub use eoejson::{ struct_to_json, struct_from_json };
-        pub use structtemplate::{ StructTemplate };
+        pub use structtemplate::{ StructTemplate, StructVar, StructPair };
     }
 
     mod eoefilter;

@@ -96,7 +96,7 @@ impl EoeFromJson {
         self.vars.push(var_names);
         let expr = self.build(map.get(expr).unwrap())?; // expr guranteed in map during setting
         self.vars.pop();
-        Ok(Some(StructTemplate::new_all(group,expr)))
+        Ok(Some(StructTemplate::new_all(&mut group,expr)))
     }
 
     fn to_condition(&mut self, map: &Map<String,JsonValue>) -> Result<Option<StructTemplate>,StructError> {
@@ -122,7 +122,7 @@ impl EoeFromJson {
             JsonValue::String(x) => {
                 for map in self.vars.iter().rev() {
                     if let Some(var) = map.get(x) {
-                        return Ok(StructTemplate::new_var(var.clone()));
+                        return Ok(StructTemplate::new_var(var));
                     }
                 }
                 StructTemplate::new_string(x.clone())

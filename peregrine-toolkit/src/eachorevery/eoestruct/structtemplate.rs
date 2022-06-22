@@ -50,15 +50,15 @@ pub enum StructTemplate {
 }
 
 impl StructTemplate {
-    pub fn new_var(input: StructVar) -> StructTemplate {
+    pub fn new_var(input: &StructVar) -> StructTemplate {
         if let Some(c) = input.to_const() {
             StructTemplate::Const(c)
         } else {
-            StructTemplate::Var(input)
+            StructTemplate::Var(input.clone())
         }
     }
 
-    pub fn new_all(vars: StructVarGroup, expr: StructTemplate) -> StructTemplate {
+    pub fn new_all(vars: &mut StructVarGroup, expr: StructTemplate) -> StructTemplate {
         Self::All(vars.0.clone(),Arc::new(expr))
     }
 

@@ -1,0 +1,20 @@
+use crate::simple_command;
+use dauphin_compile::command::{ Command, CommandType, CommandSchema, CommandTrigger, Instruction };
+use dauphin_interp::command::{ Identifier };
+use dauphin_interp::runtime::{ Register };
+use serde_cbor::Value as CborValue;
+
+simple_command!(EoesVarNumberCommand,EoesVarNumberCommandType,"peregrine","eoes_var_number",3,(0,1,2));
+simple_command!(EoesVarStringCommand,EoesVarStringCommandType,"peregrine","eoes_var_string",3,(0,1,2));
+simple_command!(EoesVarBooleanCommand,EoesVarBooleanCommandType,"peregrine","eoes_var_boolean",3,(0,1,2));
+simple_command!(EoesNullCommand,EoesNullCommandType,"peregrine","eoes_null",1,(0));
+simple_command!(EoesArrayCommand,EoesArrayCommandType,"peregrine","eoes_array",2,(0,1));
+simple_command!(EoesPairCommand,EoesPairCommandType,"peregrine","eoes_pair",3,(0,1,2));
+simple_command!(EoesObjectCommand,EoesObjectCommandType,"peregrine","eoes_object",2,(0,1));
+simple_command!(EoesConditionCommand,EoesConditionCommandType,"peregrine","eoes_condition",3,(0,1,2));
+simple_command!(EoesGroupCommand,EoesGroupCommandType,"peregrine","eoes_group",1,(0));
+simple_command!(EoesAllCommand,EoesAllCommandType,"peregrine","eoes_all",3,(0,1,2));
+simple_command!(EoesVarCommand,EoesVarCommandType,"peregrine","eoes_var",2,(0,1));
+simple_command!(EoesNumberCommand,EoesNumberCommandType,"peregrine","eoes_number",2,(0,1));
+simple_command!(EoesStringCommand,EoesStringCommandType,"peregrine","eoes_string",2,(0,1));
+simple_command!(EoesBooleanCommand,EoesBooleanCommandType,"peregrine","eoes_boolean",2,(0,1));

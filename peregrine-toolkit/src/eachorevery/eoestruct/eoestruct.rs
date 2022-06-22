@@ -238,7 +238,7 @@ mod test {
         let mut group = StructVarGroup::new();
         let template = StructTemplate::new_array(EachOrEvery::each(vec![
             StructTemplate::new_boolean(true),
-            StructTemplate::new_var(StructVar::new_boolean(&mut group,EachOrEvery::each(vec![false,true])))
+            StructTemplate::new_var(&StructVar::new_boolean(&mut group,EachOrEvery::each(vec![false,true])))
         ]));
         match template.build() {
             Ok(r) => { eprintln!("unexpected success: {:?}",r); assert!(false); },
@@ -251,11 +251,11 @@ mod test {
         let mut group = StructVarGroup::new();
         let every = StructVar::new_boolean(&mut group,EachOrEvery::every(false));
         let each = StructVar::new_number(&mut group,EachOrEvery::each(vec![1.,2.]));
-        let template = StructTemplate::new_all(group,
+        let template = StructTemplate::new_all(&mut group,
         StructTemplate::new_array(EachOrEvery::each(vec![
             StructTemplate::new_boolean(true),
-            StructTemplate::new_var(every),
-            StructTemplate::new_var(each)
+            StructTemplate::new_var(&every),
+            StructTemplate::new_var(&each)
         ]))
         );
         let debug = format!("{:?}",template);

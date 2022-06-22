@@ -95,6 +95,26 @@ proc text2(spacebaseid,penspec,string,allotment);
 proc wiggle(number,number,plotterspec,number,boolean,allotment);
 proc draw_image(spacebaseid,string,allotment);
 
+struct eoesgroupid { value: number };
+struct eoesvarid { value: number };
+struct eoestmplid { value: number };
+struct eoespairid { value: number };
+
+func eoes_var_number(eoesgroupid,number) becomes eoesvarid;
+func eoes_var_string(eoesgroupid,string) becomes eoesvarid;
+func eoes_var_boolean(eoesgroupid,boolean) becomes eoesvarid;
+func eoes_null() becomes eoestmplid;
+func eoes_array(eoestmplid) becomes eoestmplid;
+func eoes_pair(string,eoestmplid) becomes eoespairid;
+func eoes_object(eoespairid) becomes eoestmplid;
+func eoes_condition(eoesvarid,eoestmplid) becomes eoestmplid;
+func eoes_group() becomes eoesgroupid;
+func eoes_all(eoesgroupid,eoestmplid);
+func eoes_var(eoesvarid) becomes eoestmplid;
+func eoes_number(number) becomes eoesvarid;
+func eoes_string(string) becomes eoesvarid;
+func eoes_boolean(boolean) becomes eoesvarid;
+
 stmt text_underneath(x,y,penspec,writing,allt) {
     text2(spacebase(x,y,0),penspec,writing,allt);
 }

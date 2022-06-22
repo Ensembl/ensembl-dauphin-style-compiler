@@ -16,6 +16,7 @@ use super::decompress::{
     InflateBytesCommandType, InflateStringCommandType, Lesqlite2CommandType, ZigzagCommandType, DeltaCommandType,
     ClassifyCommandType, SplitStringCommandType, BaseFlipCommandType
 };
+use super::eoes::{EoesVarNumberCommandType, EoesVarStringCommandType, EoesVarBooleanCommandType, EoesNullCommandType, EoesArrayCommandType, EoesPairCommandType, EoesObjectCommandType, EoesConditionCommandType, EoesGroupCommandType, EoesAllCommandType, EoesVarCommandType, EoesNumberCommandType, EoesStringCommandType, EoesBooleanCommandType};
 use super::track::{ 
     NewLaneCommandType, AddTagCommandType, AddTrackCommandType, DataSourceCommandType,
     AddSwitchCommandType, SetSwitchCommandType, ClearSwitchCommandType, AppendGroupCommandType, AppendDepthCommandType
@@ -89,6 +90,20 @@ pub fn make_peregrine() -> CompLibRegister {
     set.push("request_scope",Some(52),RequestScopeCommandType());
     set.push("empty",Some(53),EmptyCommandType());
     set.push("patina_metadata",Some(54),PatinaMetadataCommandType());
+    set.push("eoes_var_number",Some(55),EoesVarNumberCommandType());
+    set.push("eoes_var_string",Some(56),EoesVarStringCommandType());
+    set.push("eoes_var_boolean",Some(57),EoesVarBooleanCommandType());
+    set.push("eoes_null",Some(58),EoesNullCommandType());
+    set.push("eoes_array",Some(59),EoesArrayCommandType());
+    set.push("eoes_pair",Some(60),EoesPairCommandType());
+    set.push("eoes_object",Some(61),EoesObjectCommandType());
+    set.push("eoes_condition",Some(62),EoesConditionCommandType());
+    set.push("eoes_group",Some(63),EoesGroupCommandType());
+    set.push("eoes_all",Some(64),EoesAllCommandType());
+    set.push("eoes_var",Some(65),EoesVarCommandType());
+    set.push("eoes_number",Some(66),EoesNumberCommandType());
+    set.push("eoes_string",Some(67),EoesStringCommandType());
+    set.push("eoes_boolean",Some(68),EoesBooleanCommandType());
     set.add_header("peregrine",include_str!("header.egs"));
     set
 }
