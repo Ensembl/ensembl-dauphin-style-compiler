@@ -154,13 +154,23 @@ impl StructVarValue {
         })
     }
 
-    pub(super) fn check_compatible(&self, compat: &mut EachOrEveryGroupCompatible) {
+    pub(super) fn check_build_compatible(&self, compat: &mut EachOrEveryGroupCompatible) {
         match self {
             StructVarValue::Number(input) => { compat.add(input); },
             StructVarValue::String(input) => { compat.add(input); },
             StructVarValue::Boolean(input) => { compat.add(input); },
-            StructVarValue::Late(_) => {} // XXX compatibility at expand time for late
+            StructVarValue::Late(_) => {}
         };
+    }
+
+    pub(super) fn check_compatible(&self, lates: Option<&LateValues>, compat: &mut EachOrEveryGroupCompatible) -> StructResult {
+        match self.resolve(lates)? {
+            StructVarValue::Number(input) => { compat.add(input); },
+            StructVarValue::String(input) => { compat.add(input); },
+            StructVarValue::Boolean(input) => { compat.add(input); },
+            StructVarValue::Late(_) => panic!("invariant error: late after resolve()")
+        };
+        Ok(())
     }
 
     pub(super) fn get<'a>(&'a self, lates: Option<&LateValues>, index: usize) -> Result<StructConst,StructError> {
@@ -273,6 +283,25 @@ mod test {
         }
     }
 
+    fn run_case_expandfail(value: &JsonValue) {
+        let parts = json_array(value);
+        println!("ruuning {}\n",json_string(&parts[0]));
+        let vars = json_array(&parts[1]).iter().map(|x| json_string(x)).collect::<Vec<_>>();
+        let ifs = json_array(&parts[2]).iter().map(|x| json_string(x)).collect::<Vec<_>>();
+        let (template,lates) = build_json(vars,ifs,&parts[3],Some(&parts[6]));
+        let debug = format!("{:?}",template);
+        if !parts[4].is_null() {
+            assert_eq!(debug,json_string(&parts[4]));
+        }
+        println!("{:?}\n",template);
+        println!("{:?}\n",template.build());
+        let output = struct_to_json(&template.build().ok().expect("unexpected error"),Some(&lates));
+        match output {
+            Ok(r) => { eprintln!("unexpected success: {:?}",r); assert!(false); },
+            Err(e) => assert_eq!(e,json_string(&parts[5]))
+        }
+    }
+
     fn run_case_parsefail(value: &JsonValue) {
         let parts = json_array(value);
         println!("ruuning {}\n",json_string(&parts[0]));
@@ -297,6 +326,14 @@ mod test {
         let data = JsonValue::from_str(include_str!("test-eoe-buildfail.json")).ok().unwrap();
         for testcase in json_array(&data).iter() {
             run_case_buildfail(&testcase);
+        }
+    } 
+
+    #[test]
+    fn test_eoestruct_expandfail() {
+        let data = JsonValue::from_str(include_str!("test-eoe-expandfail.json")).ok().unwrap();
+        for testcase in json_array(&data).iter() {
+            run_case_expandfail(&testcase);
         }
     } 
 
@@ -350,6 +387,26 @@ mod test {
         match template.build() {
             Ok(r) => { eprintln!("unexpected success: {:?}",r); assert!(false); },
             Err(e) => assert_eq!(e,"no infinite arrays in json")
+        }
+    }
+
+    #[test]
+    fn test_late_infinite_array() {
+        let mut group = StructVarGroup::new();
+        let late = StructVar::new_late(&mut group);
+        let infinite = StructVar::new_number(&mut group,EachOrEvery::every(77.));
+        let template = 
+            StructTemplate::new_all(&mut group,
+                StructTemplate::new_object(EachOrEvery::each(vec![
+                    StructPair::new("a",StructTemplate::new_number(42.)),
+                    StructPair::new("b",StructTemplate::new_var(&late))
+                ])));
+        let mut lates = LateValues::new();
+        lates.add(&late,&infinite).ok().unwrap();
+        let output = struct_to_json(&template.build().ok().expect("unexpected error"),Some(&lates));
+        match output {
+            Ok(r) => { eprintln!("unexpected success: {:?}",r); assert!(false); },
+            Err(e) => assert_eq!(e,"no infinite recursion allowed")
         }
     }
 

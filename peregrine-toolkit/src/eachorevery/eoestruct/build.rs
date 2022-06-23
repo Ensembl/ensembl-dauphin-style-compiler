@@ -14,14 +14,14 @@ impl Binding {
     }
 }
 
-fn check_compatible(vars: &[Option<Arc<StructVarValue>>]) -> StructResult {
+fn check_build_compatible(vars: &[Option<Arc<StructVarValue>>]) -> StructResult {
     let vars = vars.iter().filter_map(|x| x.as_ref()).collect::<Vec<_>>();
     if vars.len() == 0 {
         return Err(struct_error("no variables specified"));
     }
     let mut compat = EachOrEveryGroupCompatible::new(None);
     for var in vars {
-        var.check_compatible(&mut compat);
+        var.check_build_compatible(&mut compat);
     }
     if !compat.compatible() {
         return Err(struct_error("bindings of differing length"));
@@ -69,7 +69,7 @@ impl StructTemplate {
                 if removed.is_empty() {
                     StructBuilt::Array(Arc::new(EachOrEvery::each(vec![obj])))
                 } else {
-                    check_compatible(&removed)?;
+                    check_build_compatible(&removed)?;
                     StructBuilt::All(removed,Arc::new(obj))
                 }
             }

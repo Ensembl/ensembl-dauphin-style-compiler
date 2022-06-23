@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use crate::eachorevery::EachOrEvery;
+use crate::eachorevery::{EachOrEvery, EachOrEveryGroupCompatible};
 use super::{eoestruct::{StructConst, StructVarValue, StructResult, struct_error, StructError, LateValues}, eoestructdata::DataVisitor, structbuilt::StructBuilt};
 
 fn separate<'a,F,Y>(input: &EachOrEvery<Y>, mut cb: F, visitor: &mut dyn DataVisitor) -> StructResult
@@ -28,8 +28,20 @@ struct GlobalState<'a> {
     alls: Vec<AllState>
 }
 
+fn check_compatible(vars: &[Option<Arc<StructVarValue>>], lates: Option<&LateValues>) -> StructResult {
+    let mut compat = EachOrEveryGroupCompatible::new(None);
+    for item in vars.iter().filter_map(|x| x.as_deref()) {
+        item.check_compatible(lates, &mut compat)?;
+    }
+    if !compat.compatible() {
+        return Err(struct_error("late variables incompatible with earlies"));
+    }
+    Ok(())
+}
+
 impl AllState {
     fn new(vars: Vec<Option<Arc<StructVarValue>>>, lates: Option<&LateValues>) -> Result<AllState,StructError> {
+        check_compatible(&vars,lates)?;
         let first = vars.iter().position(|x| 
             x.as_ref().map(|x| x.is_finite(lates).ok().unwrap_or(false)).unwrap_or(false)
         ).ok_or_else(|| struct_error("no infinite recursion allowed"))?;
