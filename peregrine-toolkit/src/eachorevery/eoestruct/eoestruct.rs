@@ -110,6 +110,14 @@ impl StructVarValue {
         }
     }
 
+    pub(super) fn is_finite(&self) -> bool {
+        match self {
+            StructVarValue::Number(x) => x.len().is_some(),
+            StructVarValue::String(x) => x.len().is_some(),
+            StructVarValue::Boolean(x) => x.len().is_some(),
+        }
+    }
+
     pub(super) fn check_compatible(&self, compat: &mut EachOrEveryGroupCompatible) {
         match self {
             StructVarValue::Number(input) => compat.add(input),
@@ -118,16 +126,30 @@ impl StructVarValue {
         };
     }
 
-    pub(super) fn get<'a>(&'a self, index: usize) -> Option<StructConst> {
+    pub(super) fn get<'a>(&'a self, index: usize) -> StructConst {
         match self {
             StructVarValue::Number(input) => {
-                input.get(index).map(|x| StructConst::Number(*x))
+                StructConst::Number(*input.get(index).unwrap())
             },
             StructVarValue::String(input) => {
-                input.get(index).map(|x| StructConst::String(x.to_string()))
+                StructConst::String(input.get(index).unwrap().clone())
             },
             StructVarValue::Boolean(input) => {
-                input.get(index).map(|x| StructConst::Boolean(*x))
+                StructConst::Boolean(*input.get(index).unwrap())
+            }
+        }
+    }
+
+    pub(super) fn exists<'a>(&'a self, index: usize) -> bool {
+        match self {
+            StructVarValue::Number(input) => {
+                input.get(index).is_some()
+            },
+            StructVarValue::String(input) => {
+                input.get(index).is_some()
+            },
+            StructVarValue::Boolean(input) => {
+                input.get(index).is_some()
             }
         }
     }
@@ -286,6 +308,20 @@ mod test {
             Ok(r) => { eprintln!("unexpected success: {:?}",r); assert!(false); },
             Err(e) => assert_eq!(e,"no infinite objects in json")
         }
+    }
+
+    #[test]
+    fn test_infinite_all() {
+        // XXX reenable when late-binding implemented
+        /*
+        let mut group = StructVarGroup::new();
+        let var = StructVar::new_boolean(&mut group,EachOrEvery::every(false));
+        let template = StructTemplate::new_all(&mut group,
+            StructTemplate::new_var(&var)
+        );
+        let output = struct_to_json(&template.build().ok().expect("unexpected error")).err().unwrap();
+        assert_eq!("no infinite recursion allowed",output);
+        */
     }
 
     #[test]

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 use crate::eachorevery::EachOrEvery;
-use super::{eoestruct::{StructConst, StructVarValue, StructResult, struct_error}, eoestructdata::DataVisitor, structbuilt::StructBuilt};
+use super::{eoestruct::{StructConst, StructVarValue, StructResult, struct_error, StructError}, eoestructdata::DataVisitor, structbuilt::StructBuilt};
 
 fn separate<'a,F,Y>(input: &EachOrEvery<Y>, mut cb: F, visitor: &mut dyn DataVisitor) -> StructResult
         where F: FnMut(&Y,&mut dyn DataVisitor) -> StructResult {
@@ -24,18 +24,20 @@ struct AllState {
 }
 
 impl AllState {
-    fn new(vars: Vec<Option<Arc<StructVarValue>>>) -> AllState {
-        let first = vars.iter().position(|x| x.is_some()).unwrap();
-        AllState { vars, index: 0, first }
+    fn new(vars: Vec<Option<Arc<StructVarValue>>>) -> Result<AllState,StructError> {
+        let first = vars.iter().position(|x| 
+            x.as_ref().map(|x| x.is_finite()).unwrap_or(false)
+        ).ok_or_else(|| struct_error("no infinite recursion allowed"))?;
+        Ok(AllState { vars, index: 0, first })
     }
 
     fn get(&self, width: usize) -> StructConst {
-        self.vars[width].as_ref().unwrap().get(self.index-1).unwrap() // guaranteed by build process
+        self.vars[width].as_ref().unwrap().get(self.index-1)
     }
 
     fn row(&mut self) -> bool {
         self.index += 1;
-        self.vars[self.first].as_ref().unwrap().get(self.index-1).is_some()
+        self.vars[self.first].as_ref().unwrap().exists(self.index-1)
     }
 }
 
@@ -65,7 +67,7 @@ impl StructBuilt {
                 output.visit_object_end()?;
             },
             StructBuilt::All(vars,expr) => {
-                let all = AllState::new(vars.to_vec());
+                let all = AllState::new(vars.to_vec())?;
                 data.push(all);
                 output.visit_array_start()?;
                 let mut first = true;
