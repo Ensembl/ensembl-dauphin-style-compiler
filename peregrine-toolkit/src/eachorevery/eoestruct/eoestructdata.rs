@@ -1,4 +1,4 @@
-use super::{eoestruct::{StructConst, StructResult, StructError}, structbuilt::StructBuilt};
+use super::{eoestruct::{StructConst, StructResult, StructError, LateValues}, structbuilt::StructBuilt};
 
 pub trait DataVisitor {
     fn visit_const(&mut self, _input: &StructConst) -> StructResult { Ok(()) }
@@ -108,8 +108,8 @@ impl<X> DataVisitor for DataStack<StructConst,X> {
     fn visit_pair_end(&mut self, _key: &str) -> StructResult { Ok(()) }
 }
 
-pub fn eoestack_run<F,X>(input: &StructBuilt, transformer: F) -> Result<X,StructError> where F: DataStackTransformer<StructConst,X> + 'static {
+pub fn eoestack_run<F,X>(input: &StructBuilt, lates: Option<&LateValues>, transformer: F) -> Result<X,StructError> where F: DataStackTransformer<StructConst,X> + 'static {
     let mut stack = DataStack::new(transformer);
-    input.expand(&mut stack)?;
+    input.expand(lates,&mut stack)?;
     Ok(stack.get())
 }

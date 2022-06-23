@@ -28,6 +28,12 @@ impl StructVar {
     pub fn new_boolean(group:&mut StructVarGroup, input: EachOrEvery<bool>) -> StructVar {
         Self::new(group,StructVarValue::Boolean(input))
     }
+
+    pub fn new_late(group:&mut StructVarGroup) -> StructVar {
+        let id = StructValueId::new();
+        group.0.push(id.clone());
+        StructVar { value: StructVarValue::Late(id), id }
+    }
 }
 
 #[derive(Clone)]

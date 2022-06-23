@@ -1,6 +1,6 @@
 use std::sync::Arc;
 use crate::eachorevery::EachOrEvery;
-use super::{eoestruct::{StructConst, StructVarValue, StructResult, struct_error, StructError}, eoestructdata::DataVisitor, structbuilt::StructBuilt};
+use super::{eoestruct::{StructConst, StructVarValue, StructResult, struct_error, StructError, LateValues}, eoestructdata::DataVisitor, structbuilt::StructBuilt};
 
 fn separate<'a,F,Y>(input: &EachOrEvery<Y>, mut cb: F, visitor: &mut dyn DataVisitor) -> StructResult
         where F: FnMut(&Y,&mut dyn DataVisitor) -> StructResult {
@@ -23,29 +23,34 @@ struct AllState {
     first: usize
 }
 
+struct GlobalState<'a> {
+    lates: Option<&'a LateValues>,
+    alls: Vec<AllState>
+}
+
 impl AllState {
-    fn new(vars: Vec<Option<Arc<StructVarValue>>>) -> Result<AllState,StructError> {
+    fn new(vars: Vec<Option<Arc<StructVarValue>>>, lates: Option<&LateValues>) -> Result<AllState,StructError> {
         let first = vars.iter().position(|x| 
-            x.as_ref().map(|x| x.is_finite()).unwrap_or(false)
+            x.as_ref().map(|x| x.is_finite(lates).ok().unwrap_or(false)).unwrap_or(false)
         ).ok_or_else(|| struct_error("no infinite recursion allowed"))?;
         Ok(AllState { vars, index: 0, first })
     }
 
-    fn get(&self, width: usize) -> StructConst {
-        self.vars[width].as_ref().unwrap().get(self.index-1)
+    fn get(&self, lates: Option<&LateValues>, width: usize) -> Result<StructConst,StructError> {
+        self.vars[width].as_ref().unwrap().get(lates,self.index-1)
     }
 
-    fn row(&mut self) -> bool {
+    fn row(&mut self, lates: Option<&LateValues>) -> Result<bool,StructError> {
         self.index += 1;
-        self.vars[self.first].as_ref().unwrap().exists(self.index-1)
+        self.vars[self.first].as_ref().unwrap().exists(lates,self.index-1)
     }
 }
 
 impl StructBuilt {
-    fn split(&self, output: &mut dyn DataVisitor, data: &mut Vec<AllState>) -> StructResult {
+    fn split(&self, output: &mut dyn DataVisitor, data: &mut GlobalState) -> StructResult {
         match self {
             StructBuilt::Var(depth,width) => {
-                output.visit_const(&data[*depth].get(*width))?;
+                output.visit_const(&data.alls[*depth].get(data.lates,*width)?)?;
             },
             StructBuilt::Const(value) => {
                 output.visit_const(value)?;
@@ -67,22 +72,22 @@ impl StructBuilt {
                 output.visit_object_end()?;
             },
             StructBuilt::All(vars,expr) => {
-                let all = AllState::new(vars.to_vec())?;
-                data.push(all);
+                let all = AllState::new(vars.to_vec(),data.lates)?;
+                data.alls.push(all);
                 output.visit_array_start()?;
                 let mut first = true;
                 loop {
-                    let top = data.last_mut().unwrap(); // data only manipulated here and just pushed
-                    if !top.row() { break; }
+                    let top = data.alls.last_mut().unwrap(); // data only manipulated here and just pushed
+                    if !top.row(data.lates)? { break; }
                     if !first { output.visit_separator()?; }
                     expr.split(output,data)?;
                     first = false;
                 }
                 output.visit_array_end()?;
-                data.pop();
+                data.alls.pop();
             }
             StructBuilt::Condition(depth,width,expr) => {
-                if data[*depth].get(*width).truthy() {
+                if data.alls[*depth].get(data.lates,*width)?.truthy() {
                     expr.split(output,data)?;
                 }
             }
@@ -90,7 +95,7 @@ impl StructBuilt {
         Ok(())
     }
 
-    pub fn expand(&self, output: &mut dyn DataVisitor) -> StructResult {
-        self.split(output,&mut vec![])
+    pub fn expand(&self, lates: Option<&LateValues>, output: &mut dyn DataVisitor) -> StructResult {
+        self.split(output,&mut GlobalState { alls: vec![], lates })
     }
 }
