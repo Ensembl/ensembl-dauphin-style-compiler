@@ -1,5 +1,7 @@
 use commander::{ cdr_timer, cdr_tick };
 use peregrine_data::Commander;
+use peregrine_toolkit::log_extra;
+use peregrine_toolkit::plumbing::oneshot::OneShot;
 use std::sync::{ Arc, Mutex, Weak };
 use wasm_bindgen::prelude::*;
 use crate::util::message::Message;
@@ -47,7 +49,7 @@ impl ROPolyfillElement {
     }
 }
 
-async fn ropolyfill_loop(elements: Weak<Mutex<Vec<ROPolyfillElement>>>, cb: Arc<dyn Fn(&Element)>) {
+async fn ropolyfill_loop(elements: Weak<Mutex<Vec<ROPolyfillElement>>>, shutdown: OneShot, cb: Arc<dyn Fn(&Element)>) {
     let productive_ticks = 120;
     let mut productive_timer = 0;
     loop {
@@ -73,7 +75,9 @@ async fn ropolyfill_loop(elements: Weak<Mutex<Vec<ROPolyfillElement>>>, cb: Arc<
         } else {
             cdr_timer(500.).await; // XXX configurable
         }
+        if shutdown.poll() { break; }
     }
+    log_extra!("ropolyfill_loop finished");
 }
 
 #[derive(Clone)]
@@ -82,11 +86,13 @@ struct ROPolyfill {
 }
 
 impl ROPolyfill {
-    fn new(web: &mut PeregrineInnerAPI, cb: Arc<dyn Fn(&Element)>) -> ROPolyfill {
+    async fn new(web: &mut PeregrineInnerAPI, cb: Arc<dyn Fn(&Element)>) -> ROPolyfill {
         let elements =  Arc::new(Mutex::new(vec![]));
         let elements2 = elements.clone();
-        web.commander().add_task("resize-polyfill",10,None,None,Box::pin(async move {
-            ropolyfill_loop(Arc::downgrade(&elements2),cb).await;
+        let commander = web.commander().clone();
+        let shutdown = web.lock().await.dom.shutdown().clone();
+        commander.add_task("resize-polyfill",10,None,None,Box::pin(async move {
+            ropolyfill_loop(Arc::downgrade(&elements2),shutdown,cb).await;
             Ok(())
         }));        
         ROPolyfill {
@@ -114,7 +120,7 @@ impl PgResizeObserver {
         ResizeObserver::new(closure.as_ref().unchecked_ref()).ok()
     }
 
-    pub(crate) fn new<F>(web: &mut PeregrineInnerAPI, cb: F) -> Result<PgResizeObserver,Message> where F: Fn(&Element) + 'static {
+    pub(crate) async fn new<F>(web: &mut PeregrineInnerAPI, cb: F) -> Result<PgResizeObserver,Message> where F: Fn(&Element) + 'static {
         let cb = Arc::new(cb);
         let cb2 = cb.clone();
         let closure = Closure::wrap(Box::new(move |entries: JsValue,_observer| {
@@ -128,7 +134,7 @@ impl PgResizeObserver {
         Ok(PgResizeObserver(if let Some(resize_observer) = Self::try_get_resizeobserver(&closure) {
             ROImpl::RealImpl(resize_observer,closure)
         } else {
-            ROImpl::PolyfillImpl(ROPolyfill::new(web,cb2))
+            ROImpl::PolyfillImpl(ROPolyfill::new(web,cb2).await)
         }))
 
     }

@@ -116,6 +116,11 @@ impl Input {
         self.state(|state| state.low_level.pointer_last_seen())
     }
 
+    pub(crate) fn create_fake_mouse_move(&self) {
+        let waiter = self.state(|state| state.low_level.get_mouse_move_waiter());
+        waiter.set();
+    }
+
     pub(crate) async fn wait_for_mouse_move(&self) {
         let waiter = self.state(|state| state.low_level.get_mouse_move_waiter());
         waiter.wait_until_needed().await;

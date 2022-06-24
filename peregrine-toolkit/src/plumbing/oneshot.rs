@@ -29,4 +29,6 @@ impl OneShot {
             }
         }
     }
+
+    pub fn poll(&self) -> bool { lock!(self.callbacks).is_none() }
 }

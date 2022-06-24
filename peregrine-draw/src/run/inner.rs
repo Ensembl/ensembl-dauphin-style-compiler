@@ -136,7 +136,7 @@ impl PeregrineInnerAPI {
         let redraw_needed = Needed::new();
         let stage = Arc::new(Mutex::new(Stage::new(&redraw_needed)));
         let report = Report::new(&config.draw,&message_sender)?;
-        let target_reporter = TargetReporter::new(&commander,&config.draw,&report)?;
+        let target_reporter = TargetReporter::new(&commander,dom.shutdown(),&config.draw,&report)?;
         let mut input = Input::new(queue_blocker);
         let api_queue = PeregrineApiQueue::new(queue_blocker);
         let trainset = GlRailway::new(&api_queue,&commander,&config.draw,&stage.lock().unwrap())?;
