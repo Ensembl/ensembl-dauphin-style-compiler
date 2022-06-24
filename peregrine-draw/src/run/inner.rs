@@ -142,7 +142,7 @@ impl PeregrineInnerAPI {
         let trainset = GlRailway::new(&api_queue,&commander,&config.draw,&stage.lock().unwrap())?;
         let integration = Box::new(PgIntegration::new(PgChannel::new(),trainset.clone(),&input,webgl.clone(),&stage,&dom,&report));
         let assets = integration.assets().clone();
-        let sound = Sound::new(&config.draw,&commander,integration.assets(),&mut messages)?;
+        let sound = Sound::new(&config.draw,&commander,integration.assets(),&mut messages,dom.shutdown())?;
         let mut core = PeregrineCore::new(integration,commander.clone(),move |e| {
             routed_message(Some(commander_id),Message::DataError(e))
         },&api_queue,&redraw_needed).map_err(|e| Message::DataError(e))?;

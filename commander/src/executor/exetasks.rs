@@ -8,11 +8,16 @@ use super::taskcontainer::TaskContainer;
 use super::taskcontainerhandle::TaskContainerHandle;
 use super::timings::ExecutorTimings;
 
+#[cfg(debug_unregister)]
+use peregrine_toolkit::log;
+
 pub(crate) struct ExecutorTasks {
     tasks: TaskContainer,
     runnable: Runnable,
     slot_queue: HashMap<RunSlot,Vec<TaskContainerHandle>>,
-    handle_slot: HashMap<TaskContainerHandle,RunSlot>
+    handle_slot: HashMap<TaskContainerHandle,RunSlot>,
+    #[cfg(debug_unregister)]
+    registered: i32
 }
 
 impl ExecutorTasks {
@@ -21,7 +26,17 @@ impl ExecutorTasks {
             tasks: TaskContainer::new(),
             runnable: Runnable::new(),
             slot_queue: HashMap::new(),
-            handle_slot: HashMap::new()
+            handle_slot: HashMap::new(),
+            #[cfg(debug_unregister)]
+            registered: 0
+        }
+    }
+
+    fn debug_unregister(&mut self, delta: i32) {
+        #[cfg(debug_unregister)]
+        {
+            self.registered += delta;
+            log!("{} processes registered",self.registered);
         }
     }
 
@@ -98,6 +113,7 @@ impl ExecutorTasks {
         self.runnable.remove(&self.tasks,handle);
         self.remove_from_slot_queue(handle);
         self.handle_slot.remove(&handle);
+        self.debug_unregister(-1);
         self.tasks.remove(&handle);
     }
 
@@ -110,6 +126,7 @@ impl ExecutorTasks {
     }
 
     pub(crate) fn create_handle(&mut self, agent: &Agent, handle: Box<dyn ExecutorTaskHandle>, id: (u64,u64)) -> TaskContainerHandle {
+        self.debug_unregister(1);
         let container_handle = self.tasks.allocate();
         agent.run_agent().register(&container_handle,id);
         handle.set_identity(container_handle.identity());

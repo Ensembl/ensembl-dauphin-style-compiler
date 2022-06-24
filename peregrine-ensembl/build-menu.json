@@ -13,5 +13,10 @@
         "key": "CFG_CONSOLE",
         "question": "Console verbosity",
         "options": ["default","quiet","noisy"]
+    },
+    {
+        "key": "CFG_DEBUG_CLEANUP",
+        "question": "Debug cleanup",
+        "options": ["no","yes"]
     }
 ]

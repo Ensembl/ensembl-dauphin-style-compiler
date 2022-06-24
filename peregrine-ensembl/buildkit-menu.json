@@ -35,6 +35,11 @@
         "options": ["proxy","local","staging","aws"]
     },
     {
+        "key": "CFG_DEBUG_CLEANUP",
+        "question": "Debug cleanup",
+        "options": ["no","yes"]
+    },
+    {
         "key": "CFG_PROGRESS",
         "question": "buildkit console format",
         "options": ["fancy","plain"]

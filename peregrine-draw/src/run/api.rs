@@ -227,6 +227,7 @@ impl PeregrineAPI {
 
     pub fn run(&self, config: PeregrineConfig, dom: PeregrineDom) -> Result<PgCommanderWeb,Message> {
         let commander = PgCommanderWeb::new()?;
+        dom.run_shutdown_detector(&commander);
         commander.start();
         set_printer(|severity,message| {
             match severity {

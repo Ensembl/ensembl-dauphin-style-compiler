@@ -1,5 +1,8 @@
+use commander::cdr_timer;
+use peregrine_toolkit::{plumbing::oneshot::OneShot, log_extra};
+use peregrine_toolkit_async::sync::retainer::Retainer;
 use web_sys::{Document, Element, HtmlCanvasElement, HtmlElement};
-use crate::util::message::Message;
+use crate::{util::message::Message, PgCommanderWeb};
 use wasm_bindgen::JsCast;
 use std::ops::Index;
 use js_sys::Math::{ random };
@@ -86,7 +89,30 @@ pub struct PeregrineDom {
     canvas_container: HtmlElement,
     document: Document,
     body: HtmlElement,
-    device_pixel_ratio: f32
+    device_pixel_ratio: f32,
+    shutdown: OneShot
+}
+
+async fn check_for_shutdown(oneshot: &OneShot, element: &HtmlElement) -> Result<bool,Message> {
+    if !element.is_connected() {
+        log_extra!("shutting down");
+        oneshot.run();
+        Ok(true)
+    } else {
+        Ok(false)
+    }
+}
+
+fn run_shutdown_detector(commander: &PgCommanderWeb, oneshot: &OneShot, element: &HtmlElement) ->Result<(),Message> {
+    let oneshot = oneshot.clone();
+    let element = element.clone();
+    commander.add::<Message>("shutdown detector",20,None,None,Box::pin(async move {
+        while !check_for_shutdown(&oneshot,&element).await? {
+            cdr_timer(5000.).await;
+        }
+        Ok(())
+    }));
+    Ok(())
 }
 
 impl PeregrineDom {
@@ -98,15 +124,24 @@ impl PeregrineDom {
             None => parent(&canvas)?
         };
         let device_pixel_ratio = web_sys::window().unwrap().device_pixel_ratio() as f32;
+        let shutdown = OneShot::new();
+        let canvas_frame = to_html(canvas_frame)?;
         Ok(PeregrineDom {
             document: get_document(&canvas)?,
             body: get_body(&canvas)?,
             canvas: to_canvas(canvas)?,
             canvas_container: to_html(container)?,
-            canvas_frame: to_html(canvas_frame)?,
-            device_pixel_ratio
+            canvas_frame,
+            device_pixel_ratio,
+            shutdown
         })
     }
+
+    pub(crate) fn run_shutdown_detector(&self, commander:& PgCommanderWeb) {
+        run_shutdown_detector(commander, &self.shutdown,&self.canvas_frame);
+    }
+
+    pub(crate) fn shutdown(&self) -> &OneShot { &self.shutdown }
 
     pub(crate) fn canvas(&self) -> &HtmlCanvasElement { &self.canvas }
     pub(crate) fn canvas_frame(&self) -> &HtmlElement { &self.canvas_frame }
