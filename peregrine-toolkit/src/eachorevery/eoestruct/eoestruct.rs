@@ -63,11 +63,11 @@ impl LateValues {
     pub fn add(&mut self, var: &StructVar, val: &StructVar) -> StructResult {
         let id = match &var.value {
             StructVarValue::Late(id) => id.clone(),
-            _ => { return Err(struct_error("can only bind to late variables")) } // XXX test
+            _ => { return Err(struct_error("can only bind to late variables")) }
         };
         if let StructVarValue::Late(_) = &val.value {
             return Err(struct_error("cannot bind late variables to late variables")) 
-        } // XXX test
+        }
         self.0.insert(id,val.value.clone());
         Ok(())
     }
@@ -139,7 +139,7 @@ impl StructVarValue {
             StructVarValue::Late(id) => {
                 lates.and_then(|lates| lates.0.get(id))
                      .ok_or_else(|| struct_error("missing late value"))?
-                     .resolve(lates) // XXX test missing late
+                     .resolve(lates)
             },
             x => Ok(x)
         }
@@ -210,7 +210,7 @@ mod test {
     use crate::{eachorevery::{eoestruct::{eoejson::{struct_to_json, struct_from_json, array_to_var }, structtemplate::{StructVar, StructPair}, StructTemplate, eoestructdata::{DataVisitor}}, EachOrEvery}};
     use serde_json::{Value as JsonValue, Number, Map as JsonMap };
 
-    use super::{StructResult, StructConst, StructVarGroup, LateValues, StructError};
+    use super::{StructResult, StructConst, StructVarGroup, LateValues };
 
     fn json_fix_numbers(json: &JsonValue) -> JsonValue {
         match json {
@@ -468,6 +468,36 @@ mod test {
         match template.build() {
             Ok(r) => { eprintln!("unexpected success: {:?}",r); assert!(false); },
             Err(e) => assert_eq!(e,"conditionals banned at top level")
+        }
+    }
+
+    #[test]
+    fn test_bind_late_to_late() {
+        let mut lates = LateValues::new();
+        let mut group = StructVarGroup::new();
+        let late1 = StructVar::new_late(&mut group);
+        let late2 = StructVar::new_late(&mut group);
+        assert_eq!("cannot bind late variables to late variables",lates.add(&late1,&late2).err().unwrap());
+    }
+
+    #[test]
+    fn test_bind_to_early() {
+        let mut lates = LateValues::new();
+        let mut group = StructVarGroup::new();
+        let early = StructVar::new_boolean(&mut group,EachOrEvery::every(false));
+        let late = StructVar::new_late(&mut group);
+        assert_eq!("can only bind to late variables",lates.add(&early,&late).err().unwrap());
+    }
+
+    #[test]
+    fn test_missing_late() {
+        let mut group = StructVarGroup::new();
+        let template = StructTemplate::new_array(EachOrEvery::each(vec![
+            StructTemplate::new_var(&StructVar::new_late(&mut group))
+        ]));
+        match template.build() {
+            Ok(r) => { eprintln!("unexpected success: {:?}",r); assert!(false); },
+            Err(e) => assert_eq!(e,"free variable in template")
         }
     }
 

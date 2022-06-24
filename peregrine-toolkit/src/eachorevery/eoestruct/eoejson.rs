@@ -28,35 +28,42 @@ pub fn struct_to_json(input: &StructBuilt, lates: Option<&LateValues>) -> Result
     eoestack_run(input,lates,JsonTransformer)
 }
 
-fn to_var_type<F,X>(input: &[JsonValue], cb: F) -> Result<EachOrEvery<X>,StructError> where F: Fn(&JsonValue) -> Option<X> {
+fn to_var_type<F,G,X>(input: &[JsonValue], cb: F, cb2: G) -> Result<StructVar,StructError>
+        where F: Fn(&JsonValue) -> Option<X>, G: FnOnce(EachOrEvery<X>) -> StructVar {
     let values = input.iter().map(cb).collect::<Option<Vec<_>>>();
-    values.map(|x| EachOrEvery::each(x)).ok_or(struct_error("non-homogenous variable"))
+    Ok(cb2(values.map(|x| EachOrEvery::each(x)).ok_or(struct_error("non-homogenous variable"))?))
 }
 
 pub(super) fn array_to_var(group: &mut StructVarGroup, values: &[JsonValue]) -> Result<StructVar,StructError> {
-    Ok(if let Some(first) = values.first() {
+    if let Some(first) = values.first() {
         match first {
             JsonValue::Bool(_) => {
-                StructVar::new_boolean(group,to_var_type(values,|x| {
+                to_var_type(values, |x| {
                     if let JsonValue::Bool(x) = x { Some(*x) } else { None }
-                })?)
+                }, |x| {
+                    StructVar::new_boolean(group,x)
+                })
             },
             JsonValue::Number(_) => {
-                StructVar::new_number(group,to_var_type(values,|x| {
+                to_var_type(values, |x| {
                     if let JsonValue::Number(x) = x { Some(x.as_f64().unwrap()) } else { None }
-                })?)
+                }, |x| {
+                    StructVar::new_number(group,x)
+                })
             },
             JsonValue::String(_) => {
-                StructVar::new_string(group,to_var_type(values,|x| {
+                to_var_type(values, |x| {
                     if let JsonValue::String(x) = x { Some(x.to_string()) } else { None }
-                })?)
+                }, |x| {
+                    StructVar::new_string(group,x)
+                })
             },
-            _ => StructVar::new_boolean(group,EachOrEvery::each(vec![])) // XXX error
+            _ =>  Err(struct_error("var in json of unknown type"))
         }
     } else {
-        StructVar::new_boolean(group,EachOrEvery::each(vec![])) // XXX error
-    })
-
+        /* zero-length is fine */
+        Ok(StructVar::new_boolean(group,EachOrEvery::each(vec![])))
+    }
 }
 
 struct EoeFromJson {
