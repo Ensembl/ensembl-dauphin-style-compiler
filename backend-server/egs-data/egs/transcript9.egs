@@ -195,6 +195,18 @@ use_allotments(allotments_letter,enabled_tracks,[
 
 use_allotments(allotments_wallpaper,enabled_tracks,potential_tracks_wallpaper);
 
+potential_tracks_base := [
+    "tracks/track/gene-other-rev",
+    "tracks/track/gene-pc-rev",
+    "tracks/track/gene-other-fwd",
+    "tracks/track/gene-pc-fwd",
+    "tracks/track/focus",
+    ""
+];
+
+potential_background_tracks := [append_group(potential_tracks_base[],["background"][])];
+use_allotment_names(background_allotment_names,enabled_tracks,potential_background_tracks);
+
 expanded_genes := list_switch(["buttons","gene","expand"]);
 
 /*
@@ -495,3 +507,6 @@ blue_hotspot_patina := patina_switch(expand_switches,sense);
 
 // DISABLED FOR 0.3.1
 rectangle(blue_top_left,blue_bottom_right,blue_hotspot_patina,button_allotment);
+
+/* report transcripts shown */
+report_shown(bool_show_tr,transcript_allotment_idx,transcript_id,use_allotment([background_allotment_names[@==4]][]));

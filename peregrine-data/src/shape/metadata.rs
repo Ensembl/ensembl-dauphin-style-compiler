@@ -1,6 +1,5 @@
 use std::{sync::Arc, collections::HashMap};
-
-use peregrine_toolkit::{puzzle::constant, eachorevery::{EachOrEvery, eoestruct::StructTemplate}};
+use peregrine_toolkit::{puzzle::constant, eachorevery::{EachOrEvery, eoestruct::StructTemplate}, log};
 
 use crate::{allotment::{core::allotmentname::AllotmentName, globals::allotmentmetadata::LocalAllotmentMetadataBuilder}, Shape, Patina, LeafRequest};
 use super::shape::UnplacedShape;
@@ -21,7 +20,7 @@ impl AllotmentMetadataEntry {
     }
 
     fn add(&self, state: &mut LocalAllotmentMetadataBuilder) {
-        state.set(&self.allotment,&self.key,constant(self.value.clone()))
+        state.set(&self.allotment,&self.key,constant(self.value.clone()),true)
     }
 }
 
@@ -30,8 +29,8 @@ pub(crate) struct AbstractMetadataBuilder {
 }
 
 fn allotment_and_value<'a>(allotments: &'a EachOrEvery<LeafRequest>, values: &'a EachOrEvery<StructTemplate>) -> Option<impl Iterator<Item=(&'a LeafRequest,&'a StructTemplate)>> {
-    let len = if let Some(len) = allotments.len() { len } else { return None };
-    if !values.compatible(len) { return None; } // XXX proper error without length match
+    let len = if let Some(len) = values.len() { len } else { return None };
+    if !allotments.compatible(len) { return None; } // XXX proper error without length match
     let iter = allotments.iter(len).unwrap().zip(values.iter(len).unwrap());
     Some(iter)
 }
@@ -85,34 +84,39 @@ impl AbstractMetadata {
     }
 }
 
-fn parse_report_value(input: &str) -> Arc<HashMap<String,String>> {
+fn parse_report_value(input: &str) -> (Arc<HashMap<String,String>>,bool) {
     let parts = input.split(";").collect::<Vec<_>>();
-    let mut out = HashMap::new();
+    let mut values = HashMap::new();
+    let mut reports = false;
     for item in &parts {
-        let (key,value) = if let Some(eq_at) = item.find("=") {
+        if let Some(eq_at) = item.find("=") {
             let (k,v) = item.split_at(eq_at);
-            (k,&v[1..])
+            values.insert(k.to_string(),v[1..].to_string());
+        } else if *item == "!boxes" {
+            reports = true;
         } else {
-            ("type",*item)
-        };
-        out.insert(key.to_string(),value.to_string());
+            values.insert("type".to_string(),item.to_string());
+        }
     }
-    Arc::new(out)
+    (Arc::new(values),reports)
 }
 
 #[cfg_attr(debug_assertions,derive(Debug))]
 #[derive(Clone)]
 pub(crate) struct MetadataStyle {
-    values: Arc<HashMap<String,String>>
+    values: Arc<HashMap<String,String>>,
+    report: bool
 }
 
 impl MetadataStyle {
     pub(crate) fn new(spec: &str) -> MetadataStyle {
-        let values = parse_report_value(spec);
-        MetadataStyle { values }
+        let (values,report) = parse_report_value(spec);
+        MetadataStyle { values,report }
     }
 
     pub(crate) fn iter(&self) -> impl Iterator<Item=(&String,&String)> {
         self.values.iter()
     }
+
+    pub(crate) fn reporting(&self) -> bool { self.report }
 }

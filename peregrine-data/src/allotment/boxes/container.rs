@@ -38,11 +38,14 @@ impl Clone for Container {
 }
 
 fn add_report(metadata: &mut LocalAllotmentMetadataBuilder, name: &AllotmentName, in_values: &MetadataStyle, top: &StaticValue<f64>, height: &StaticValue<Arc<f64>>) {
-    metadata.set(name,"offset",derived(top.clone(),|v| StructTemplate::new_string(v.to_string())));
-    metadata.set(name,"height",derived(height.clone(),|v| StructTemplate::new_string(v.to_string())));
+    metadata.set(name,"offset",derived(top.clone(),|v| StructTemplate::new_number(v)),false);
+    metadata.set(name,"height",derived(height.clone(),|v| StructTemplate::new_number(*v)),false);
     for (key,value) in in_values.iter() {
         let value = constant(StructTemplate::new_string(value.to_string()));
-        metadata.set(name,key,value);
+        metadata.set(name,key,value,false);
+    }
+    if in_values.reporting() {
+        metadata.set_reporting(name);
     }
 }
 

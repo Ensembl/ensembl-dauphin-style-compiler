@@ -1,9 +1,10 @@
 use std::sync::Mutex;
 
 use crate::simple_interp_command;
-use crate::util::{get_peregrine, vec_to_eoe};
+use crate::util::{get_peregrine};
 use dauphin_interp::runtime::{ Register, InterpContext, InterpValue };
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult };
+use peregrine_toolkit::eachorevery::EachOrEvery;
 use peregrine_toolkit::eachorevery::eoestruct::{StructVarGroup, StructTemplate, StructVar, StructPair};
 use peregrine_toolkit::lock;
 use serde_cbor::Value as CborValue;
@@ -28,7 +29,7 @@ impl InterpCommand for EoesVarNumberInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         let registers = context.registers();
         let group_id = registers.get_numbers(&self.1)?.get(0).cloned().unwrap_or(0.) as u32;
-        let number = vec_to_eoe(registers.get_numbers(&self.2)?.to_vec());
+        let number = EachOrEvery::each(registers.get_numbers(&self.2)?.to_vec());
         drop(registers);
         let peregrine = get_peregrine(context)?;
         let geometry_builder = peregrine.geometry_builder();
@@ -45,7 +46,7 @@ impl InterpCommand for EoesVarStringInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         let registers = context.registers();
         let group_id = registers.get_numbers(&self.1)?.get(0).cloned().unwrap_or(0.) as u32;
-        let strings = vec_to_eoe(registers.get_strings(&self.2)?.to_vec());
+        let strings = EachOrEvery::each(registers.get_strings(&self.2)?.to_vec());
         drop(registers);
         let peregrine = get_peregrine(context)?;
         let geometry_builder = peregrine.geometry_builder();
@@ -62,7 +63,7 @@ impl InterpCommand for EoesVarBooleanInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         let registers = context.registers();
         let group_id = registers.get_numbers(&self.1)?.get(0).cloned().unwrap_or(0.) as u32;
-        let booleans = vec_to_eoe(registers.get_boolean(&self.2)?.to_vec());
+        let booleans = EachOrEvery::each(registers.get_boolean(&self.2)?.to_vec());
         drop(registers);
         let peregrine = get_peregrine(context)?;
         let geometry_builder = peregrine.geometry_builder();
@@ -90,7 +91,7 @@ impl InterpCommand for EoesNullInterpCommand {
 impl InterpCommand for EoesArrayInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         let registers = context.registers();
-        let inner_ids = vec_to_eoe(registers.get_numbers(&self.1)?.iter().map(|x| *x as u32).collect::<Vec<_>>());
+        let inner_ids = EachOrEvery::each(registers.get_numbers(&self.1)?.iter().map(|x| *x as u32).collect::<Vec<_>>());
         drop(registers);
         let peregrine = get_peregrine(context)?;
         let geometry_builder = peregrine.geometry_builder();
@@ -123,7 +124,7 @@ impl InterpCommand for EoesPairInterpCommand {
 impl InterpCommand for EoesObjectInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         let registers = context.registers();
-        let inner_ids = vec_to_eoe(registers.get_numbers(&self.1)?.iter().map(|x| *x as u32).collect::<Vec<_>>());
+        let inner_ids = EachOrEvery::each(registers.get_numbers(&self.1)?.iter().map(|x| *x as u32).collect::<Vec<_>>());
         drop(registers);
         let peregrine = get_peregrine(context)?;
         let geometry_builder = peregrine.geometry_builder();

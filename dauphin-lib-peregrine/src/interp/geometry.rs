@@ -421,7 +421,7 @@ impl InterpCommand for PatinaMetadataInterpCommand {
         drop(registers);
         let peregrine = get_peregrine(context)?;
         let geometry_builder = peregrine.geometry_builder();
-        let values = vec_to_eoe(value_ids.iter().map(|request| {
+        let values = EachOrEvery::each(value_ids.iter().map(|request| {
             geometry_builder.eoetmpl(*request as u32).map(|x| x.as_ref().clone())
         }).collect::<Result<Vec<_>,_>>()?);
         let patina = Patina::Metadata(key,values);
