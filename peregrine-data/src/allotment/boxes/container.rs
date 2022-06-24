@@ -1,5 +1,5 @@
 use std::{collections::HashMap, sync::{Arc, Mutex}};
-use peregrine_toolkit::{lock, puzzle::{DelayedSetter, derived, cache_constant, commute_arc, constant, StaticValue, promise_delayed, short_memoized_clonable, cache_constant_clonable }};
+use peregrine_toolkit::{lock, puzzle::{DelayedSetter, derived, cache_constant, commute_arc, constant, StaticValue, promise_delayed, short_memoized_clonable, cache_constant_clonable }, eachorevery::eoestruct::StructTemplate};
 use crate::{allotment::{core::{allotmentname::{AllotmentName, AllotmentNamePart}, boxtraits::{ContainerSpecifics, Coordinated, BuildSize, Stackable}, boxpositioncontext::BoxPositionContext}, style::{style::{ContainerAllotmentStyle}}, util::rangeused::RangeUsed, globals::allotmentmetadata::LocalAllotmentMetadataBuilder}, CoordinateSystem, shape::metadata::MetadataStyle};
 
 fn internal_height(child_height: &StaticValue<f64>, min_height: f64, padding_top: f64, padding_bottom: f64) -> StaticValue<f64> {
@@ -38,10 +38,10 @@ impl Clone for Container {
 }
 
 fn add_report(metadata: &mut LocalAllotmentMetadataBuilder, name: &AllotmentName, in_values: &MetadataStyle, top: &StaticValue<f64>, height: &StaticValue<Arc<f64>>) {
-    metadata.set(name,"offset",derived(top.clone(),|v| v.to_string()));
-    metadata.set(name,"height",derived(height.clone(),|v| v.to_string()));
+    metadata.set(name,"offset",derived(top.clone(),|v| StructTemplate::new_string(v.to_string())));
+    metadata.set(name,"height",derived(height.clone(),|v| StructTemplate::new_string(v.to_string())));
     for (key,value) in in_values.iter() {
-        let value = constant(value.to_string());
+        let value = constant(StructTemplate::new_string(value.to_string()));
         metadata.set(name,key,value);
     }
 }
@@ -49,7 +49,6 @@ fn add_report(metadata: &mut LocalAllotmentMetadataBuilder, name: &AllotmentName
 impl Container {
     pub(crate) fn new<F>(name: &AllotmentNamePart, style: &ContainerAllotmentStyle, specifics: F) -> Container where F: ContainerSpecifics + 'static {
         let (top_setter,top) = promise_delayed();
-        //let (height_setter,height) = promise_delayed();
         Container {
             name: AllotmentName::from_part(name),
             specifics: Box::new(specifics),
@@ -57,7 +56,6 @@ impl Container {
             coord_system: style.coord_system.clone(),
             priority: style.priority,
             top_setter, top,
-            //height_setter, height,
             style: Arc::new(style.clone())
         }
     }

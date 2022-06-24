@@ -1,8 +1,7 @@
 use std::{collections::HashMap, sync::{ Arc, Mutex }};
 use std::fmt::Debug;
 mod standalonedom;
-use js_sys::Reflect;
-use js_sys::Array;
+use js_sys::{ Reflect, Array, JSON };
 use standalonedom::make_dom_from_element;
 use wasm_bindgen::{prelude::*, JsCast};
 use peregrine_draw::{Endstop, Message, PeregrineAPI, PeregrineConfig, PgCommanderWeb};
@@ -11,6 +10,7 @@ use peregrine_message::{MessageKind, PeregrineMessage};
 use peregrine_toolkit::{url::Url, log, warn, error_important};
 use web_sys::{ Element };
 use serde::{Serialize, Deserialize};
+use serde_json::{ Map as JsonMap, Value as JsonValue };
 
 thread_local!{
     pub static CLOSURE : Arc<Mutex<Vec<Option<js_sys::Function>>>> = Arc::new(Mutex::new(vec![]));
@@ -268,10 +268,11 @@ impl GenomeBrowser {
                                 Message::Ready => {},
                                 Message::AllotmentMetadataReport(metadata) => {
                                     let args = Array::new();
+                                    let mut summary = JsonMap::new();
+                                    summary.insert("summary".to_string(),metadata.summarize_json());
+                                    let js_summary = JSON::parse(&JsonValue::Object(summary).to_string()).unwrap(); // Yuk!
                                     args.set(0,JsValue::from("track_summary"));
-                                    args.set(1,JsValue::from(js_throw(JsValue::from_serde(&TrackMetadata {
-                                        summary: metadata.summarize().to_vec()
-                                    }))));
+                                    args.set(1,js_summary);
                                     let _ = closure.apply(&this,&args);
                                 },
                                 Message::ZMenuEvent(x,y,zmenus) => {

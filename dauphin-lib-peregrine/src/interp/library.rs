@@ -9,7 +9,7 @@ use super::decompress::{
     ClassifyDeserializer, SplitStringDeserializer, BaseFlipDeserializer
 };
 
-use super::eoes::{EoesVarNumberDeserializer, EoesVarStringDeserializer, EoesVarBooleanDeserializer, EoesNullDeserializer, EoesArrayDeserializer, EoesPairDeserializer, EoesObjectDeserializer, EoesConditionDeserializer, EoesGroupDeserializer, EoesAllDeserializer, EoesVarDeserializer, EoesNumberDeserializer, EoesStringDeserializer, EoesBooleanDeserializer};
+use super::eoes::{EoesVarNumberDeserializer, EoesVarStringDeserializer, EoesVarBooleanDeserializer, EoesNullDeserializer, EoesArrayDeserializer, EoesPairDeserializer, EoesObjectDeserializer, EoesConditionDeserializer, EoesGroupDeserializer, EoesAllDeserializer, EoesVarDeserializer, EoesNumberDeserializer, EoesStringDeserializer, EoesBooleanDeserializer, EoesLateDeserializer};
 use super::track::{ 
     NewLaneDeserializer, AddTagDeserializer, AddTriggerDeserializer, DataSourceDeserializer, AddSwitchDeserializer,
     SetSwitchDeserializer, ClearSwitchDeserializer, AppendGroupDeserializer, AppendDepthDeserializer
@@ -28,7 +28,7 @@ use super::switch::{
 };
 
 pub fn std_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(51,0),0xA6BD2CCD09C72076)
+    CommandSetId::new("peregrine",(51,0),0x2DB96F165DC64106)
 }
 
 pub fn make_peregrine_interp() -> InterpLibRegister {
@@ -102,5 +102,6 @@ pub fn make_peregrine_interp() -> InterpLibRegister {
     set.push(EoesNumberDeserializer());
     set.push(EoesStringDeserializer());
     set.push(EoesBooleanDeserializer());
+    set.push(EoesLateDeserializer());
     set
 }

@@ -1,6 +1,6 @@
 use core::panic;
 use hashbrown::HashMap;
-use std::hash::Hash;
+use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 
 use super::eoefilter::{EachOrEveryFilterBuilder, EachOrEveryFilter};

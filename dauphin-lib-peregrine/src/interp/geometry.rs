@@ -5,7 +5,7 @@ use crate::simple_interp_command;
 use peregrine_data::{Colour, DirectColour, DrawnType, Patina, Pen, Plotter, ShapeRequest, ZMenu, SpaceBase, ProgramShapesBuilder, Hotspot};
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
-use serde_cbor::Value as CborValue;
+use serde_cbor::{Value as CborValue, value};
 use std::cmp::max;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -417,11 +417,13 @@ impl InterpCommand for PatinaMetadataInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         let registers = context.registers_mut();
         let key = registers.get_strings(&self.1)?[0].to_string();
-        let values_in = registers.get_strings(&self.2)?;
-        let values = EachOrEvery::each(values_in.to_vec());
+        let value_ids = registers.get_numbers(&self.2)?;
         drop(registers);
         let peregrine = get_peregrine(context)?;
         let geometry_builder = peregrine.geometry_builder();
+        let values = vec_to_eoe(value_ids.iter().map(|request| {
+            geometry_builder.eoetmpl(*request as u32).map(|x| x.as_ref().clone())
+        }).collect::<Result<Vec<_>,_>>()?);
         let patina = Patina::Metadata(key,values);
         let payload = geometry_builder.add_patina(patina) as usize;
         drop(peregrine);

@@ -109,11 +109,12 @@ func eoes_pair(string,eoestmplid) becomes eoespairid;
 func eoes_object(eoespairid) becomes eoestmplid;
 func eoes_condition(eoesvarid,eoestmplid) becomes eoestmplid;
 func eoes_group() becomes eoesgroupid;
-func eoes_all(eoesgroupid,eoestmplid);
+func eoes_all(eoesgroupid,eoestmplid) becomes eoestmplid;
 func eoes_var(eoesvarid) becomes eoestmplid;
 func eoes_number(number) becomes eoesvarid;
 func eoes_string(string) becomes eoesvarid;
 func eoes_boolean(boolean) becomes eoesvarid;
+func eoes_late() becomes eoestmplid;
 
 stmt text_underneath(x,y,penspec,writing,allt) {
     text2(spacebase(x,y,0),penspec,writing,allt);
@@ -167,4 +168,4 @@ expr positive_seq(stream,name) lesqlite2(inflate_bytes(data_stream(stream,name))
 expr classified_seq(stream,keys,values) classify(string_seq(stream,keys),positive_seq(stream,values));
 expr bool_seq(stream,name) std::bytes_to_bool(inflate_bytes(data_stream(stream,name)));
 
-func patina_metadata(string,string) becomes patina;
+func patina_metadata(string,eoestmplid) becomes patina;

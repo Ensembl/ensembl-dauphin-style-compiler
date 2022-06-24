@@ -16,7 +16,7 @@ use super::decompress::{
     InflateBytesCommandType, InflateStringCommandType, Lesqlite2CommandType, ZigzagCommandType, DeltaCommandType,
     ClassifyCommandType, SplitStringCommandType, BaseFlipCommandType
 };
-use super::eoes::{EoesVarNumberCommandType, EoesVarStringCommandType, EoesVarBooleanCommandType, EoesNullCommandType, EoesArrayCommandType, EoesPairCommandType, EoesObjectCommandType, EoesConditionCommandType, EoesGroupCommandType, EoesAllCommandType, EoesVarCommandType, EoesNumberCommandType, EoesStringCommandType, EoesBooleanCommandType};
+use super::eoes::{EoesVarNumberCommandType, EoesVarStringCommandType, EoesVarBooleanCommandType, EoesNullCommandType, EoesArrayCommandType, EoesPairCommandType, EoesObjectCommandType, EoesConditionCommandType, EoesGroupCommandType, EoesAllCommandType, EoesVarCommandType, EoesNumberCommandType, EoesStringCommandType, EoesBooleanCommandType, EoesLateCommandType};
 use super::track::{ 
     NewLaneCommandType, AddTagCommandType, AddTrackCommandType, DataSourceCommandType,
     AddSwitchCommandType, SetSwitchCommandType, ClearSwitchCommandType, AppendGroupCommandType, AppendDepthCommandType
@@ -30,7 +30,7 @@ use super::shape::{ WiggleCommandType, RectangleCommandType, Text2CommandType, I
 use super::switch::{ GetSwitchCommandType, ListSwitchCommandType };
 
 pub fn peregrine_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(51,0),0xA6BD2CCD09C72076)
+    CommandSetId::new("peregrine",(51,0),0x2DB96F165DC64106)
 }
 
 pub fn make_peregrine() -> CompLibRegister {
@@ -104,6 +104,7 @@ pub fn make_peregrine() -> CompLibRegister {
     set.push("eoes_number",Some(66),EoesNumberCommandType());
     set.push("eoes_string",Some(67),EoesStringCommandType());
     set.push("eoes_boolean",Some(68),EoesBooleanCommandType());
+    set.push("eoes_late",Some(69),EoesLateCommandType());
     set.add_header("peregrine",include_str!("header.egs"));
     set
 }

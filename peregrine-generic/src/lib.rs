@@ -2,7 +2,7 @@ use std::{collections::HashMap, sync::{ Arc, Mutex }};
 use std::fmt::Debug;
 mod standalonedom;
 use js_sys::Reflect;
-use js_sys::Array;
+use js_sys::{ Array, JSON };
 use standalonedom::make_dom_from_element;
 use wasm_bindgen::{prelude::*, JsCast};
 use peregrine_draw::{Endstop, Message, PeregrineAPI, PeregrineConfig, PgCommanderWeb};
@@ -11,6 +11,7 @@ use peregrine_message::{MessageKind, PeregrineMessage};
 use peregrine_toolkit::{url::Url, error_important, warn, log};
 use web_sys::{ Element };
 use serde::{Serialize, Deserialize};
+use serde_json::{ Map as JsonMap, Value as JsonValue };
 
 thread_local!{
     pub static CLOSURE : Arc<Mutex<Vec<Option<js_sys::Function>>>> = Arc::new(Mutex::new(vec![]));
@@ -32,11 +33,6 @@ pub fn js_throw<T,E: Debug>(e: Result<T,E>) -> T {
 
 fn jserror_to_message<T>(e: Result<T,JsValue>) -> Result<T,Message> {
     e.map_err(|f| Message::ConfusedWebBrowser(format!("bad config parameter: {}",f.as_string().unwrap_or_else(|| "*anon*".to_string()))))
-}
-
-#[derive(Serialize, Deserialize)]
-struct TrackMetadata {
-    summary: Vec<HashMap<String,String>>
 }
 
 #[derive(Serialize, Deserialize)]
@@ -273,10 +269,11 @@ impl GenomeBrowser {
                                 Message::Ready => {},
                                 Message::AllotmentMetadataReport(metadata) => {
                                     let args = Array::new();
+                                    let mut summary = JsonMap::new();
+                                    summary.insert("summary".to_string(),metadata.summarize_json());
+                                    let js_summary = JSON::parse(&JsonValue::Object(summary).to_string()).unwrap(); // Yuk!
                                     args.set(0,JsValue::from("track_summary"));
-                                    args.set(1,JsValue::from(js_throw(JsValue::from_serde(&TrackMetadata {
-                                        summary: metadata.summarize().to_vec()
-                                    }))));
+                                    args.set(1,js_summary);
                                     let _ = closure.apply(&this,&args);
                                 },
                                 Message::ZMenuEvent(x,y,zmenus) => {

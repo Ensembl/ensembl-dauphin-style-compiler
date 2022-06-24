@@ -1,5 +1,5 @@
 use std::{collections::{hash_map::DefaultHasher}, hash::{Hash, Hasher}, sync::Arc};
-use peregrine_toolkit::eachorevery::{EachOrEveryFilter, EachOrEvery};
+use peregrine_toolkit::eachorevery::{EachOrEveryFilter, EachOrEvery, eoestruct::StructTemplate};
 use super::zmenu::ZMenu;
 
 pub(super) fn bulk<T>(b: Vec<T>, a_len: usize, primary: bool) -> Vec<T> where T: Clone {
@@ -139,7 +139,7 @@ impl Hotspot {
 pub enum Patina {
     Drawn(DrawnType,EachOrEvery<Colour>),
     Hotspot(Hotspot),
-    Metadata(String,EachOrEvery<String>)
+    Metadata(String,EachOrEvery<StructTemplate>)
 }
 
 impl Patina {

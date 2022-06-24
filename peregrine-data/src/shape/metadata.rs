@@ -1,6 +1,6 @@
 use std::{sync::Arc, collections::HashMap};
 
-use peregrine_toolkit::{puzzle::constant, eachorevery::EachOrEvery};
+use peregrine_toolkit::{puzzle::constant, eachorevery::{EachOrEvery, eoestruct::StructTemplate}};
 
 use crate::{allotment::{core::allotmentname::AllotmentName, globals::allotmentmetadata::LocalAllotmentMetadataBuilder}, Shape, Patina, LeafRequest};
 use super::shape::UnplacedShape;
@@ -8,15 +8,15 @@ use super::shape::UnplacedShape;
 struct AllotmentMetadataEntry {
     allotment: AllotmentName,
     key: String,
-    value: String
+    value: StructTemplate
 }
 
 impl AllotmentMetadataEntry {
-    fn new(allotment: &AllotmentName, key: &str, value: &str) -> AllotmentMetadataEntry {
+    fn new(allotment: &AllotmentName, key: &str, value: &StructTemplate) -> AllotmentMetadataEntry {
         AllotmentMetadataEntry {
             allotment: allotment.clone(),
             key: key.to_string(),
-            value: value.to_string()
+            value: value.clone()
         }
     }
 
@@ -29,7 +29,7 @@ pub(crate) struct AbstractMetadataBuilder {
     data: Vec<AllotmentMetadataEntry>
 }
 
-fn allotment_and_value<'a>(allotments: &'a EachOrEvery<LeafRequest>, values: &'a EachOrEvery<String>) -> Option<impl Iterator<Item=(&'a LeafRequest,&'a String)>> {
+fn allotment_and_value<'a>(allotments: &'a EachOrEvery<LeafRequest>, values: &'a EachOrEvery<StructTemplate>) -> Option<impl Iterator<Item=(&'a LeafRequest,&'a StructTemplate)>> {
     let len = if let Some(len) = allotments.len() { len } else { return None };
     if !values.compatible(len) { return None; } // XXX proper error without length match
     let iter = allotments.iter(len).unwrap().zip(values.iter(len).unwrap());
@@ -41,7 +41,7 @@ impl AbstractMetadataBuilder {
         AbstractMetadataBuilder { data: vec![] }
     }
 
-    fn add_shape(&mut self, allotments: &EachOrEvery<LeafRequest>, key: &str, values: &EachOrEvery<String>) {
+    fn add_shape(&mut self, allotments: &EachOrEvery<LeafRequest>, key: &str, values: &EachOrEvery<StructTemplate>) {
         let iter = allotment_and_value(allotments,values);
         let iter = if let Some(iter) = iter { iter } else { return; };
         for (request,value) in iter {

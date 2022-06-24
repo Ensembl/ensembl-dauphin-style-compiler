@@ -71,15 +71,15 @@ impl GeometryBuilderData {
         out
     }
 
-    fn get(&self, id: u32) -> anyhow::Result<GeometryBuilderEntry> {
-        Ok(self.geometry.get(munge(id) as usize).ok_or(err!("bad lane id"))?.clone())
+    fn get(&self, id: u32, name: &str) -> anyhow::Result<GeometryBuilderEntry> {
+        Ok(self.geometry.get(munge(id) as usize).ok_or(err!("no such {} id",name))?.clone())
     }
 }
 
 macro_rules! builder_type {
     ($read:ident,$write:ident,$branch:tt,$typ:ty,$type_name:expr) => {
         pub fn $read(&self, id: u32) -> Result<ArcRef<$typ>,anyhow::Error> {
-            entry_branch!(lock!(self.0).get(id)?,$branch,$type_name)
+            entry_branch!(lock!(self.0).get(id,$type_name)?,$branch,$type_name)
         }
 
         pub fn $write(&self, item: $typ) -> u32 {

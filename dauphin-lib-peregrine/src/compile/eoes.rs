@@ -18,3 +18,4 @@ simple_command!(EoesVarCommand,EoesVarCommandType,"peregrine","eoes_var",2,(0,1)
 simple_command!(EoesNumberCommand,EoesNumberCommandType,"peregrine","eoes_number",2,(0,1));
 simple_command!(EoesStringCommand,EoesStringCommandType,"peregrine","eoes_string",2,(0,1));
 simple_command!(EoesBooleanCommand,EoesBooleanCommandType,"peregrine","eoes_boolean",2,(0,1));
+simple_command!(EoesLateCommand,EoesLateCommandType,"peregrine","eoes_late",2,(0,1));

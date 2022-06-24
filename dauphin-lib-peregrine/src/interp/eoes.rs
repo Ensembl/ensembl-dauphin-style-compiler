@@ -22,6 +22,7 @@ simple_interp_command!(EoesVarInterpCommand,EoesVarDeserializer,65,2,(0,1));
 simple_interp_command!(EoesNumberInterpCommand,EoesNumberDeserializer,66,2,(0,1));
 simple_interp_command!(EoesStringInterpCommand,EoesStringDeserializer,67,2,(0,1));
 simple_interp_command!(EoesBooleanInterpCommand,EoesBooleanDeserializer,68,2,(0,1));
+simple_interp_command!(EoesLateInterpCommand,EoesLateDeserializer,69,2,(0,1));
 
 impl InterpCommand for EoesVarNumberInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
@@ -241,6 +242,23 @@ impl InterpCommand for EoesBooleanInterpCommand {
         drop(peregrine);
         let registers = context.registers_mut();
         registers.write(&self.0,InterpValue::Indexes(vec![id as usize]));    
+        Ok(CommandResult::SyncResult())
+    }
+}
+
+impl InterpCommand for EoesLateInterpCommand {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+        let registers = context.registers();
+        let group_id = registers.get_numbers(&self.1)?.get(0).cloned().unwrap_or(0.) as u32;
+        drop(registers);
+        let peregrine = get_peregrine(context)?;
+        let geometry_builder = peregrine.geometry_builder();
+        let group = geometry_builder.eoegroup(group_id)?;
+        let late = StructTemplate::new_var(&StructVar::new_late(&mut *lock!(group)));
+        let id = geometry_builder.add_eoetmpl(late);
+        drop(peregrine);
+        let registers = context.registers_mut();
+        registers.write(&self.0,InterpValue::Indexes(vec![id as usize]));
         Ok(CommandResult::SyncResult())
     }
 }
