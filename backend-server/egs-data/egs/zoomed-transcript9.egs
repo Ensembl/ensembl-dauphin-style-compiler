@@ -1,6 +1,6 @@
 import "lib:std"; use "std";
 import "lib:peregrine"; use "peregrine";
-import "file:common8.egs"; use "common8";
+import "file:common9.egs"; use "common9";
 
 /* This program uses a *lot* of confusingly similar variables which are named
  * systematically for precision.
@@ -136,14 +136,21 @@ style("**/main/main/*/diagram/thick-over",["depth"][],["4"][]);
 style("**/main/main/*/diagram/thick-far-over",["depth"][],["5"][]);
 style("**/main/background/content",["depth","padding-top"][],["-10","32"][]);
 
-potential_tracks := [
-    "tracks/track/gene-other-rev/main/main",
-    "tracks/track/gene-pc-rev/main/main",
-    "tracks/track/gene-other-fwd/main/main",
-    "tracks/track/gene-pc-fwd/main/main",
-    "tracks/track/focus/main/main",
+potential_tracks_base := [
+    "tracks/track/gene-other-rev",
+    "tracks/track/gene-pc-rev",
+    "tracks/track/gene-other-fwd",
+    "tracks/track/gene-pc-fwd",
+    "tracks/track/focus",
     ""
 ];
+
+tracks_used_base := ["","","","",""];
+tracks_used_base[enabled_tracks] := potential_tracks_base[enabled_tracks];
+
+potential_tracks := [append_group(potential_tracks_base[],["main"][])];
+potential_background_tracks := [append_group(potential_tracks_base[],["background"][])];
+potential_tracks := [append_group(potential_tracks[],["main"][])];
 
 use_allotments(allotments_trackname,enabled_tracks,[
     "tracks/track/gene-other-rev/title/content",
@@ -233,6 +240,7 @@ thick_exon_allotment_idx := exon_allotment_idx#[thick_exons];
 thick_id_gn_by_ex := id_gn_by_ex#[thick_exons];
 
 use_allotment_names(root_allotment_names,enabled_tracks,potential_tracks);
+use_allotment_names(background_allotment_names,enabled_tracks,potential_background_tracks);
 
 aln_base := [append_group(index(allotment_idx,root_allotment_names),gene_id)];
 base_transcript_allotment_names := [append_group(index(transcript_allotment_idx,root_allotment_names),id_gn_by_tr)];
@@ -424,3 +432,12 @@ draw_focus_swatch(allotments_letter[@==4]);
 /* red-dotted lines */
 dots_allotment := use_allotment(["","dots/content"][(@==1)==(get_switch(["track","focus"]))]);
 red_dotted(focus_start,focus_end,dots_allotment);
+
+/* report transcripts shown */
+al_bgd_by_tk := use_allotment(background_allotment_names[]);
+//al_bgd_by_gn := index(tk_by_gn,[al_bgd_by_tk]);
+//al_bgd_by_drawn_tr := index(drawn_tr_by_gn,[al_bgd_by_gn]);
+tr_group := eoes_group();
+shown_transcripts := eoes_all(tr_group,eoes_var(eoes_var_string(tr_group,transcript_id#[bool_show_tr])));
+trans_patina := patina_metadata("transcripts-shown",shown_transcripts);
+rectangle(spacebase(len([al_bgd_by_tk]) (*) 0,0,0),spacebase(len([al_bgd_by_tk]) (*) 1,0,0),trans_patina,al_bgd_by_tk);

@@ -32,8 +32,8 @@ boot="boot"
 
 [begs.render9]
 zoomed-seq8="zoomed-seq"
-zoomed-transcript8="zoomed-transcript"
-transcript8="transcript"
+zoomed-transcript9="zoomed-transcript"
+transcript9="transcript"
 gene8="gene"
 gene-overview8="gene-overview"
 gc8="gc"
