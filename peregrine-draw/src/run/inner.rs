@@ -12,6 +12,7 @@ use peregrine_dauphin::peregrine_dauphin;
 use peregrine_message::MessageKind;
 use peregrine_toolkit::log;
 use peregrine_toolkit::plumbing::distributor::Distributor;
+use peregrine_toolkit::plumbing::oneshot::OneShot;
 use peregrine_toolkit_async::sync::blocker::Blocker;
 use peregrine_toolkit_async::sync::needed::Needed;
 use super::report::Report;
@@ -34,7 +35,7 @@ use js_sys::Math::random;
 pub struct PeregrineInnerAPI {
     config: Arc<PgPeregrineConfig>,
     messages: Distributor<Message>,
-    message_sender: CommanderStream<Message>,
+    message_sender: CommanderStream<Option<Message>>,
     lock: Lock,
     commander: PgCommanderWeb,
     data_api: PeregrineCore,
@@ -56,7 +57,7 @@ pub struct LockedPeregrineInnerAPI<'t> {
     pub trainset: &'t mut GlRailway,
     pub webgl: &'t mut Arc<Mutex<WebGlGlobal>>,
     pub stage: &'t mut Arc<Mutex<Stage>>,
-    pub message_sender: &'t mut CommanderStream<Message>,
+    pub message_sender: &'t mut CommanderStream<Option<Message>>,
     pub dom: &'t mut PeregrineDom,
     pub(crate) spectre_manager: &'t mut SpectreManager,
     pub report: &'t Report,
@@ -70,15 +71,17 @@ pub struct LockedPeregrineInnerAPI<'t> {
 /* There's a separate message sending task so that there's no problems with recursive message sending.
  * their_callback is synchronous so cannot cause this loop to run recursively even if it issues API commands.
  */
-async fn message_sending_task(our_queue: CommanderStream<Message>, distributor: Distributor<Message>) -> Result<(),Message> {
-    loop {
-        let message = our_queue.get().await;
+async fn message_sending_task(our_queue: CommanderStream<Option<Message>>, distributor: Distributor<Message>) -> Result<(),Message> {
+    while let Some(message) = our_queue.get().await {
         distributor.send(message);
     }
+    Ok(())
 }
 
-fn setup_message_sending_task(commander: &PgCommanderWeb, distributor: Distributor<Message>) -> CommanderStream<Message> {
+fn setup_message_sending_task(commander: &PgCommanderWeb, distributor: Distributor<Message>, shutdown: &OneShot) -> CommanderStream<Option<Message>> {
     let stream = CommanderStream::new();
+    let stream2 = stream.clone();
+    shutdown.add(move || { stream2.add(None); });
     commander.add("message-sender",7,None,None,Box::pin(message_sending_task(stream.clone(),distributor)));
     // TODO failure handling
     stream
@@ -125,12 +128,12 @@ impl PeregrineInnerAPI {
         let commander = commander.clone();
         // XXX change commander init to allow message init to move to head
         let mut messages = Distributor::new();
-        let message_sender = setup_message_sending_task(&commander, messages.clone());
+        let message_sender = setup_message_sending_task(&commander, messages.clone(),dom.shutdown());
         let commander_id = commander.identity();
         message_register_default(commander_id);
         let message_sender2 = message_sender.clone();
         message_register_callback(Some(commander_id),move |message| {
-            message_sender2.add(message);
+            message_sender2.add(Some(message));
         });
         let webgl = Arc::new(Mutex::new(WebGlGlobal::new(&commander,&dom,&config.draw)?));
         let redraw_needed = Needed::new();
@@ -149,7 +152,7 @@ impl PeregrineInnerAPI {
         peregrine_dauphin(Box::new(PgDauphinIntegrationWeb()),&core);
         report.run(&commander,&dom.shutdown());
         core.application_ready();
-        message_sender.add(Message::Ready);
+        message_sender.add(Some(Message::Ready));
         let out = PeregrineInnerAPI {
             config: config.draw.clone(),
             lock: commander.make_lock(),
@@ -167,7 +170,7 @@ impl PeregrineInnerAPI {
             target_reporter: target_reporter.clone()
         };
         input.set_api(dom,&config.draw,&out,&commander,&target_reporter)?;
-        message_sender.add(Message::Ready);
+        message_sender.add(Some(Message::Ready));
         dom.shutdown().add(move || {
             api_queue.shutdown();
         });
@@ -207,7 +210,7 @@ impl PeregrineInnerAPI {
 
     pub(super) fn set_message_reporter(&mut self, callback: Box<dyn FnMut(&Message) + 'static>) {
         self.messages.add(callback);
-        self.message_sender.add(Message::Ready);
+        self.message_sender.add(Some(Message::Ready));
     }
 
     pub(crate) fn invalidate(&mut self) {

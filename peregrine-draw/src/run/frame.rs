@@ -53,7 +53,7 @@ async fn animation_tick_loop(mut web: PeregrineInnerAPI, input: Input, size_mana
         let next = cdr_current_time();
         let r = animation_tick(&mut web.lock().await,&input,size_manager,next-start);
         if let Err(e) = r { 
-            web.lock().await.message_sender.add(e);
+            web.lock().await.message_sender.add(Some(e));
         }
         cdr_tick(1).await;
         redraw.wait_until_needed().await;

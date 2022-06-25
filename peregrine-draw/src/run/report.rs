@@ -72,12 +72,12 @@ struct ReportData {
     stick: Changed<String>,
     target_stick: Changed<String>,
     endstop: Changed<Vec<Endstop>>,
-    messages: CommanderStream<Message>,
+    messages: CommanderStream<Option<Message>>,
     needed: Needed
 }
 
 impl ReportData {
-    fn new(messages: &CommanderStream<Message>, needed: &Needed) -> ReportData {
+    fn new(messages: &CommanderStream<Option<Message>>, needed: &Needed) -> ReportData {
         ReportData {
             x_bp: Changed::new(),
             bp_per_screen: Changed::new(),
@@ -105,7 +105,7 @@ impl ReportData {
     fn set_endstops(&mut self, value: &[Endstop]) { self.endstop.set(value.to_vec(),&self.needed); }
 
     fn zmenu_event(&self, x: f64, y: f64, event: Vec<ZMenuFixed>) {
-        self.messages.add(Message::ZMenuEvent(x,y,event));
+        self.messages.add(Some(Message::ZMenuEvent(x,y,event)));
     }
 
     fn build_messages(&mut self, fast: bool) -> Vec<Message> {
@@ -127,12 +127,12 @@ impl ReportData {
     }
 
     fn set_allotter_metadata(&self, metadata: &GlobalAllotmentMetadata) {
-        self.messages.add(Message::AllotmentMetadataReport(metadata.clone()));
+        self.messages.add(Some(Message::AllotmentMetadataReport(metadata.clone())));
     }
 
     fn report_step(&mut self, fast: bool) -> Result<(),Message> {
         for message in self.build_messages(fast) {
-            self.messages.add(message);
+            self.messages.add(Some(message));
         }
         Ok(())
     }
@@ -167,7 +167,7 @@ impl Report {
         Ok(())
     }
 
-    pub(crate) fn new(config: &PgPeregrineConfig, messages: &CommanderStream<Message>, shutdown: &OneShot) -> Result<Report,Message> {
+    pub(crate) fn new(config: &PgPeregrineConfig, messages: &CommanderStream<Option<Message>>, shutdown: &OneShot) -> Result<Report,Message> {
         let needed = Needed::new();
         let needed2 = needed.clone();
         shutdown.add(move || {
