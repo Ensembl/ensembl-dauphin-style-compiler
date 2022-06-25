@@ -24,10 +24,10 @@ gene_name_switches := [
 ];
 
 gene_track_names := [
-    "Genes and transcripts -- Other, Reverse strand",
-    "Genes and transcripts -- Protein coding, Reverse strand",
-    "Genes and transcripts -- Other, Forward strand",
-    "Genes and transcripts -- Protein coding, Forward strand",
+    "Genes and transcripts — Other, Reverse strand",
+    "Genes and transcripts — Protein coding, Reverse strand",
+    "Genes and transcripts — Other, Forward strand",
+    "Genes and transcripts — Protein coding, Forward strand",
     ""
 ];
 
