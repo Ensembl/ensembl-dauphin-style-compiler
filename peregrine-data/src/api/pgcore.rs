@@ -9,6 +9,7 @@ use crate::train::main::railway::Railway;
 use commander::PromiseFuture;
 use peregrine_dauphin_queue::{ PgDauphinQueue };
 use peregrine_message::PeregrineMessage;
+use peregrine_toolkit::plumbing::oneshot::OneShot;
 use peregrine_toolkit::{lock};
 use peregrine_toolkit::puzzle::AnswerAllocator;
 use peregrine_toolkit_async::sync::needed::Needed;
@@ -52,7 +53,8 @@ pub struct PeregrineCoreBase {
     pub integration: Arc<Mutex<Box<dyn PeregrineIntegration>>>,
     pub assets: Arc<Mutex<Assets>>,
     pub version: VersionMetadata,
-    pub redraw_needed: Needed
+    pub redraw_needed: Needed,
+    pub shutdown: OneShot
 }
 
 #[derive(Clone)]
@@ -67,15 +69,16 @@ pub struct PeregrineCore {
 impl PeregrineCore {
     pub fn new<M,F>(integration: Box<dyn PeregrineIntegration>, commander: M, messages: F, queue: &PeregrineApiQueue, redraw_needed: &Needed) -> Result<PeregrineCore,DataMessage> 
                 where M: Commander + 'static, F: FnMut(DataMessage) + 'static + Send {
+        let shutdown = OneShot::new();
         let integration = Arc::new(Mutex::new(integration));
         let graphics = Graphics::new(&integration);
         let commander = PgCommander::new(Box::new(commander));
-        let metrics = MetricCollector::new(&commander);
+        let metrics = MetricCollector::new(&commander,&shutdown);
         let messages = MessageSender::new(messages);
-        let dauphin_queue = PgDauphinQueue::new();
+        let dauphin_queue = PgDauphinQueue::new(&shutdown);
         let dauphin = PgDauphin::new(&dauphin_queue).map_err(|e| DataMessage::DauphinIntegrationError(format!("could not create: {}",e)))?;
         let version = VersionMetadata::new();
-        let manager = RequestManager::new(lock!(integration).channel(),&commander,&messages,&version);
+        let manager = RequestManager::new(lock!(integration).channel(),&commander,&shutdown,&messages,&version);
         let all_backends = AllBackends::new(&manager,&metrics,&messages);
         let booted = CountingPromise::new();
         let base = PeregrineCoreBase {
@@ -94,7 +97,8 @@ impl PeregrineCore {
             identity: Arc::new(Mutex::new(0)),
             assets: Arc::new(Mutex::new(Assets::empty())),
             version,
-            redraw_needed: redraw_needed.clone()
+            redraw_needed: redraw_needed.clone(),
+            shutdown
         };
         let agent_store = AgentStore::new(&base);
         let train_set = Railway::new(&base,&agent_store.lane_store,queue.visual_blocker());
@@ -106,6 +110,8 @@ impl PeregrineCore {
             switches: Switches::new()
         })
     }
+
+    pub(crate) fn shutdown(&mut self) -> &OneShot { &self.base.shutdown }
 
     pub fn dauphin_ready(&mut self) {
         self.base.manager.add_receiver(Box::new(self.base.dauphin.clone()));

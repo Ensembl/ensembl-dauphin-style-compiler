@@ -1,5 +1,6 @@
 use std::{sync::{Arc, Mutex}};
 use commander::CommanderStream;
+use peregrine_toolkit::log_extra;
 use crate::{DataMessage, ShapeStore, PeregrineCoreBase, PgCommanderTaskSpec, Scale, add_task, core::{Layout, pixelsize::PixelSize}, shapeload::loadshapes::LoadMode, switch::trackconfiglist::TrainTrackConfigList, CarriageExtent, train::model::trainextent::TrainExtent, PeregrineApiQueue };
 use crate::shapeload::carriagebuilder::CarriageBuilder;
 
@@ -43,6 +44,13 @@ fn run_anticipator(base: &PeregrineCoreBase, result_store: &ShapeStore, stream: 
     let stream = stream.clone();
     let base2 = base.clone();
     let result_store = result_store.clone();
+    let stream2 = stream.clone();
+    base2.shutdown.add(move || {
+        stream2.add(AnticipateTask {
+            carriages: vec![],
+            batch: true
+        });
+    });
     add_task::<()>(&base.commander,PgCommanderTaskSpec {
         name: format!("anticipator"),
         prio: 9,
@@ -50,9 +58,11 @@ fn run_anticipator(base: &PeregrineCoreBase, result_store: &ShapeStore, stream: 
         timeout: None,
         stats: false,
         task: Box::pin(async move {
-            loop {
+            while !base2.shutdown.poll() {
                 stream.get().await.run(&base2,&result_store).await?;
             }
+            log_extra!("anticipator finishing");
+            Ok(())
         })
     });
 }

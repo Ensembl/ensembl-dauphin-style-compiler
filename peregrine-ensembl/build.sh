@@ -22,6 +22,9 @@ fi
 if [ "x$CFG_DEBUG_SAMPLER" = "xyes" ] ; then
   FLAGS="$FLAGS --cfg debug_sampler"
 fi
+if [ "x$CFG_DEBUG_CLEANUP" = "xyes" ] ; then
+  FLAGS="$FLAGS --cfg debug_unregister"
+fi
 
 case "$CFG_CONSOLE" in
   noisy)

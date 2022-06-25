@@ -13,7 +13,7 @@ use crate::train::main::train::StickData;
 use crate::train::model::trainextent::TrainExtent;
 use crate::{Assets, PgCommanderTaskSpec, DrawingCarriage};
 use commander::{CommanderStream, PromiseFuture};
-use peregrine_toolkit::log;
+use peregrine_toolkit::{log, log_extra};
 use peregrine_toolkit_async::sync::blocker::{Blocker, Lockout};
 use crate::util::message::DataMessage;
 use super::pgcore::PeregrineCore;
@@ -46,10 +46,11 @@ use super::pgcore::PeregrineCore;
  *    ReportMetric
  *    GeneralMetric
  *
- * During boot:
+ * During boot.shutdown:
  *    Bootstrap
  *    SetAssets
  *    Ready
+ *    Shutdown
  *
  */
 
@@ -74,7 +75,8 @@ use super::pgcore::PeregrineCore;
     CarriageLoaded(DrawingCarriage),
     Invalidate,
     LoadStick(TrainExtent,Arc<Mutex<StickData>>),
-    LoadCarriage(CarriageBuilder)
+    LoadCarriage(CarriageBuilder),
+    Shutdown
 }
 
 struct ApiQueueCampaign {
@@ -163,6 +165,10 @@ impl ApiQueueCampaign {
             },
             ApiMessage::Invalidate => {
                  data.train_set.invalidate();
+            },
+            ApiMessage::Shutdown => {
+                log_extra!("data module shutdown!");
+                data.shutdown().run();
             }
         }
     }
@@ -202,7 +208,7 @@ impl PeregrineApiQueue {
     pub(crate) fn run(&self, data: &mut PeregrineCore) {
         let mut self2 = self.clone();
         let mut data2 = data.clone();
-        add_task::<Result<(),DataMessage>>(&data.base.commander,PgCommanderTaskSpec {
+        add_task::<()>(&data.base.commander,PgCommanderTaskSpec {
             name: format!("api message runner"),
             prio: 0,
             slot: None,
@@ -219,7 +225,10 @@ impl PeregrineApiQueue {
                     self2.update_viewport(&mut data2,campaign.viewport().clone());
                     data2.train_set.ping();
                     drop(lockouts);
+                    if data2.base.shutdown.poll() { break; }
                 }
+                log_extra!("data api runner shutdown");
+                Ok(())
             }),
             stats: false
         });
@@ -247,6 +256,10 @@ impl PeregrineApiQueue {
 
     pub(crate) fn load_carriage(&self, builder: &CarriageBuilder) {
         self.push(ApiMessage::LoadCarriage(builder.clone()));
+    }
+
+    pub fn shutdown(&self) {
+        self.push(ApiMessage::Shutdown);
     }
 
     pub(crate) fn ping(&self) {

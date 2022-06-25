@@ -1,5 +1,6 @@
 use std::sync::Arc;
 use crate::{run::PgPeregrineConfig };
+use peregrine_toolkit::plumbing::oneshot::OneShot;
 use peregrine_toolkit_async::sync::needed::Needed;
 use web_sys::{Event, MouseEvent, PointerEvent, WheelEvent};
 use crate::util::{ Message };
@@ -72,9 +73,9 @@ pub(super) struct MouseEventHandler {
 }
 
 impl MouseEventHandler {
-    fn new(config: Arc<PointerConfig>, lowlevel: &LowLevelState) -> MouseEventHandler {
+    fn new(config: Arc<PointerConfig>, lowlevel: &LowLevelState, shutdown: &OneShot) -> MouseEventHandler {
         MouseEventHandler {
-            pointer: Pointer::new(lowlevel,&config),
+            pointer: Pointer::new(lowlevel,&config,shutdown),
             lowlevel: lowlevel.clone(),
             primary: Finger::new(),
             secondary: Finger::new(),
@@ -145,7 +146,7 @@ pub(super) fn mouse_events(config: &PgPeregrineConfig, state: &LowLevelState, mo
     let mouse_config = Arc::new(PointerConfig::new(config)?);
     let dom = state.dom();
     let canvas = dom.canvas();
-    let mut events = EventSystem::new(MouseEventHandler::new(mouse_config,state));
+    let mut events = EventSystem::new(MouseEventHandler::new(mouse_config,state,dom.shutdown()));
     confused_browser(canvas.style().set_property("touch-action","none"))?;
     let mouse_moved2 = mouse_moved.clone();
     events.add(canvas,"pointerdown", move |handler,event: &PointerEvent| {

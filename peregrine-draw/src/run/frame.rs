@@ -2,7 +2,8 @@ use super::inner::{ PeregrineInnerAPI, LockedPeregrineInnerAPI };
 use super::size::{SizeManager, self};
 use commander::{ cdr_tick, cdr_current_time };
 use peregrine_data::{Commander, Assets, PeregrineCoreBase};
-use peregrine_toolkit::{lock, timer_end, timer_start};
+use peregrine_toolkit::plumbing::oneshot::OneShot;
+use peregrine_toolkit::{lock, timer_end, timer_start, log_extra};
 use crate::input::Input;
 use crate::stage::stage::ReadStage;
 use crate::util::message::Message;
@@ -39,26 +40,33 @@ fn animation_tick(lweb: &mut LockedPeregrineInnerAPI, input: &Input, size_manage
     Ok(())
 }
 
-async fn animation_tick_loop(mut web: PeregrineInnerAPI, input: Input, size_manager: &SizeManager) {
+async fn animation_tick_loop(mut web: PeregrineInnerAPI, input: Input, size_manager: &SizeManager, shutdown: OneShot) {
     let mut start = cdr_current_time();
     let lweb = web.lock().await;
     let redraw = lock!(lweb.stage).redraw_needed().clone();
+    let redraw2 = redraw.clone();
+    shutdown.add(move || {
+        redraw2.set();
+    });
     drop(lweb);
     loop {
         let next = cdr_current_time();
         let r = animation_tick(&mut web.lock().await,&input,size_manager,next-start);
         if let Err(e) = r { 
-            web.lock().await.message_sender.add(e);
+            web.lock().await.message_sender.add(Some(e));
         }
         cdr_tick(1).await;
         redraw.wait_until_needed().await;
+        if shutdown.poll() { break; }
         start = next;
     }
+    log_extra!("animation loop quit");
 }
 
 pub fn run_animations(web: &mut PeregrineInnerAPI, dom: &PeregrineDom) -> Result<(),Message> {
     let mut other = web.clone();
     let dom = dom.clone();
+    let shutdown = dom.shutdown().clone();
     web.commander().add_task("animator",0,None,None,Box::pin(async move {
         // TODO factor this pattern
         let size_manager = SizeManager::new(&mut other,&dom).await.ok().unwrap(); // XXX
@@ -66,7 +74,7 @@ pub fn run_animations(web: &mut PeregrineInnerAPI, dom: &PeregrineDom) -> Result
         let lweb = other.lock().await;
         let input = lweb.input.clone();
         drop(lweb);
-        animation_tick_loop(other,input,&size_manager).await;
+        animation_tick_loop(other,input,&size_manager,shutdown).await;
         Ok(())
     }));
     Ok(())

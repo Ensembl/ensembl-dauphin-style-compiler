@@ -190,19 +190,19 @@ impl MessageCatcher {
 }
 
 lazy_static! {
-    static ref message_catcher : Arc<Mutex<MessageCatcher>> = Arc::new(Mutex::new(MessageCatcher::new()));
+    static ref MESSAGE_CATCHER : Arc<Mutex<MessageCatcher>> = Arc::new(Mutex::new(MessageCatcher::new()));
 }    
 
 pub(crate) fn message_register_default(id: u64) {
-    message_catcher.lock().unwrap().default(id);
+    MESSAGE_CATCHER.lock().unwrap().default(id);
 }
 
 pub(crate) fn message_register_callback<F>(id: Option<u64>,cb: F) where F: FnMut(Message) + 'static + Send {
-    message_catcher.lock().unwrap().add(id,cb);
+    MESSAGE_CATCHER.lock().unwrap().add(id,cb);
 }
 
 pub(crate) fn routed_message(id: Option<u64>, message: Message) {
-    message_catcher.lock().unwrap().call(id,message);    
+    MESSAGE_CATCHER.lock().unwrap().call(id,message);    
 }
 
 pub(crate) fn message(message: Message) {

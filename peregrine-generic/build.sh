@@ -30,6 +30,9 @@ fi
 if [ "x$CFG_NO_FLANK" = "xyes" ] ; then
   FLAGS="$FLAGS --cfg no_flank"
 fi
+if [ "x$CFG_DEBUG_CLEANUP" = "xyes" ] ; then
+  FLAGS="$FLAGS --cfg debug_unregister"
+fi
 
 case "$CFG_CONSOLE" in
   noisy)

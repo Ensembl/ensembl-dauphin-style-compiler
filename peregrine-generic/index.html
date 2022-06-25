@@ -27,6 +27,7 @@
         <button id="jump-no-bug">jump no bug</button>
         <button id="jump-no-bug-zoom">jump no bug zoom</button>
         <button id="create-error">create error</button>
+        <button id="unload">unload</button>
         <br/>
         <div style="width: 200px; word-break: break-all;">current: <span id="current"></span></div>
         <div style="width: 200px; word-break: break-all;">target: <span id="target"></span></div>
@@ -291,6 +292,9 @@
           //genome_browser.jump("focus:none");
           genome_browser.set_stick("");
           //yygenome_browser.wait();
+        };
+        document.getElementById("unload").onclick = function() {
+          document.getElementById("browser").remove();
         };
         document.getElementById("clock-button").onclick = function() {
           let clock = document.getElementById("clock");

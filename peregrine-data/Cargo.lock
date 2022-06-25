@@ -342,6 +342,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "commander",
+ "peregrine_toolkit",
  "serde_cbor",
 ]
 

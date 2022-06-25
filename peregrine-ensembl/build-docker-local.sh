@@ -77,6 +77,9 @@ esac
 if [ "x$CFG_DEBUG_SAMPLER" = "xyes" ] ; then
   CFG_RUSTFLAGS="$CFG_RUSTFLAGS --cfg debug_sampler"
 fi
+if [ "x$CFG_DEBUG_CLEANUP" = "xyes" ] ; then
+  CFG_RUSTFLAGS="$CFG_RUSTFLAGS --cfg debug_unregister"
+fi
 
 # clear cache
 if [ "x$CFG_CLEAR" == "xyes" ] ; then

@@ -3,6 +3,7 @@ use commander::{ RunSlot, CommanderStream };
 use serde_cbor::Value as CborValue;
 use std::any::Any;
 use std::collections::HashMap;
+use peregrine_toolkit::plumbing::oneshot::OneShot;
 
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub struct PgDauphinRunTaskSpec {
@@ -22,7 +23,8 @@ pub struct PgDauphinLoadTaskSpec {
 
 pub enum PgDauphinTaskSpec {
     Run(PgDauphinRunTaskSpec),
-    Load(PgDauphinLoadTaskSpec)
+    Load(PgDauphinLoadTaskSpec),
+    Quit
 }
 
 pub struct PgDauphinQueueEntry {
@@ -36,33 +38,36 @@ pub struct PgDauphinQueue {
 }
 
 impl PgDauphinQueue {
-    pub fn new() -> PgDauphinQueue {
+    pub fn new(shutdown: &OneShot) -> PgDauphinQueue {
+        let queue = CommanderStream::new();
+        let queue2 = queue.clone();
+        shutdown.add(move || {
+            queue2.add(PgDauphinQueueEntry {
+                task: PgDauphinTaskSpec::Quit,
+                channel: CommanderStream::new()
+            });
+        });
         PgDauphinQueue {
-            queue: CommanderStream::new()
+            queue
         }
     }
 
     pub async fn load(&self, task: PgDauphinLoadTaskSpec) -> anyhow::Result<()> {
-        let bundle_name = task.bundle_name.clone();
         let waiter = CommanderStream::new();
         self.queue.add(PgDauphinQueueEntry {
             task: PgDauphinTaskSpec::Load(task),
             channel: waiter.clone()
         });
-        let out = waiter.get().await;
-        out
+        waiter.get().await
     }
 
     pub async fn run(&self, task: PgDauphinRunTaskSpec) -> anyhow::Result<()> {
-        let bundle_name = task.bundle_name.clone();
-        let in_bundle_name = task.in_bundle_name.clone();
         let waiter = CommanderStream::new();
         self.queue.add(PgDauphinQueueEntry {
             task: PgDauphinTaskSpec::Run(task),
             channel: waiter.clone()
         });
-        let out = waiter.get().await;
-        out
+        waiter.get().await
     }
 
     pub async fn get(&self) -> PgDauphinQueueEntry {

@@ -1,14 +1,15 @@
 use peregrine_data::Asset;
 use peregrine_data::Assets;
+use peregrine_toolkit::log_extra;
 use peregrine_toolkit::plumbing::distributor::Distributor;
+use peregrine_toolkit::plumbing::oneshot::OneShot;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::Mutex;
-use js_sys::{ Promise, Uint8Array};
+use js_sys::{ Uint8Array};
 use wasm_bindgen::{JsCast, JsValue, prelude::Closure};
 use web_sys::{ AudioContext, AudioBufferSourceNode, AudioBuffer, AudioContextState };
 use commander::{CommanderStream, PromiseFuture};
-
 use crate::util::promise::promise_to_future;
 use crate::{Message, PgCommanderWeb };
 
@@ -19,7 +20,8 @@ use super::PgPeregrineConfig;
 struct PromiseBgd(Arc<Mutex<Option<(Closure<dyn FnMut(JsValue)>,Closure<dyn FnMut(JsValue)>)>>>);
 
 enum SoundQueueItem {
-    Play(String)
+    Play(String),
+    Shutdown
 }
 
 struct SoundState {
@@ -136,22 +138,29 @@ impl Sound {
             match self.queue.get().await {
                 SoundQueueItem::Play(asset) => {
                     state.play(&asset).await;
-                }
+                },
+                SoundQueueItem::Shutdown => { break; }
             }
         }
+        log_extra!("sound queue shutdown");
+        Ok(())
     }
 
     pub(crate) fn play(&mut self, sound: &str) {
         self.queue.add(SoundQueueItem::Play(sound.to_string()))
     }
 
-    pub(crate) fn new(config: &PgPeregrineConfig, commander: &PgCommanderWeb, assets: &Assets, messages: &mut Distributor<Message>) -> Result<Sound,Message> {
+    pub(crate) fn new(config: &PgPeregrineConfig, commander: &PgCommanderWeb, assets: &Assets, messages: &mut Distributor<Message>, shutdown: &OneShot) -> Result<Sound,Message> {
         let queue = CommanderStream::new();
         let state = SoundState {
             assets: assets.clone(),
             audio_context: None,
             samples: HashMap::new()
         };
+        let queue2 = queue.clone();
+        shutdown.add(move || {
+            queue2.add(SoundQueueItem::Shutdown);
+        });
         let out = Sound { queue };
         let mut out2 = out.clone();
         commander.add("sound",15,None,None,Box::pin(async move { out2.run_loop(state).await }));

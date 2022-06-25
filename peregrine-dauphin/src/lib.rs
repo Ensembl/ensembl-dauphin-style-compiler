@@ -6,6 +6,8 @@ use peregrine_dauphin_queue::{ PgDauphinTaskSpec, PgDauphinRunTaskSpec, PgDauphi
 use dauphin_interp::{ Dauphin, CommandInterpretSuite, InterpretInstance, make_core_interp, PayloadFactory };
 use dauphin_lib_std::make_std_interp;
 use dauphin_lib_peregrine::{ make_peregrine_interp, add_peregrine_payloads };
+use peregrine_toolkit::log_extra;
+use peregrine_toolkit::plumbing::oneshot::OneShot;
 use std::any::Any;
 use std::collections::HashMap;
 
@@ -80,9 +82,12 @@ async fn main_loop(integration: Box<dyn PgDauphinIntegration>, core: PeregrineCo
         let e = core.base.dauphin_queue.get().await;
         match e.task {
             PgDauphinTaskSpec::Load(p) => load(&mut dauphin,p,e.channel),
-            PgDauphinTaskSpec::Run(r) => run(&mut dauphin,&core.base.commander,r,e.channel)
+            PgDauphinTaskSpec::Run(r) => run(&mut dauphin,&core.base.commander,r,e.channel),
+            PgDauphinTaskSpec::Quit => { break; }
         }
     }
+    log_extra!("dauphin runner quit");
+    Ok(())
 }
 
 pub fn peregrine_dauphin(integration: Box<dyn PgDauphinIntegration>, core: &PeregrineCore) {

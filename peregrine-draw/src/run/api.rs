@@ -18,7 +18,7 @@ use std::sync::{ Arc, Mutex };
 
 #[derive(Clone)]
 struct DrawMessageQueue {
-    queue: CommanderStream<DrawMessage>,
+    queue: CommanderStream<Option<DrawMessage>>,
     syncer: Blocker
 }
 
@@ -34,11 +34,11 @@ impl DrawMessageQueue {
 
     fn syncer(&self) -> &Blocker { &self.syncer }
 
-    fn add(&self, message: DrawMessage) {
+    fn add(&self, message: Option<DrawMessage>) {
         self.queue.add(message);
     }
 
-    async fn get(&self) -> DrawMessage {
+    async fn get(&self) -> Option<DrawMessage> {
         let message = self.queue.get().await;
         self.syncer.wait().await;
         self.syncer.set_freewheel(true);
@@ -164,69 +164,75 @@ impl PeregrineAPI {
     }
 
     pub fn bootstrap(&self, channel: &Channel) {
-        self.queue.add(DrawMessage::Bootstrap(channel.clone()));
+        self.queue.add(Some(DrawMessage::Bootstrap(channel.clone())));
     }
 
     pub fn set_y(&self, y: f64) {
-        self.queue.add(DrawMessage::SetY(y));
+        self.queue.add(Some(DrawMessage::SetY(y)));
     }
 
     pub fn goto(&self, left: f64, right: f64) {
         let (left,right) = (left.min(right),left.max(right));
-        self.queue.add(DrawMessage::Goto((left+right)/2.,right-left));
+        self.queue.add(Some(DrawMessage::Goto((left+right)/2.,right-left)));
     }
 
     pub fn jump(&self, location: &str) {
-        self.queue.add(DrawMessage::Jump(location.to_string()));
+        self.queue.add(Some(DrawMessage::Jump(location.to_string())));
     }
 
     pub fn wait(&self) {
-        self.queue.add(DrawMessage::Sync());
+        self.queue.add(Some(DrawMessage::Sync()));
     }
 
     pub fn set_switch(&self, path: &[&str]) {
-        self.queue.add(DrawMessage::SetSwitch(path.iter().map(|x| x.to_string()).collect()));
+        self.queue.add(Some(DrawMessage::SetSwitch(path.iter().map(|x| x.to_string()).collect())));
     }
 
     pub fn clear_switch(&self, path: &[&str]) {
-        self.queue.add(DrawMessage::ClearSwitch(path.iter().map(|x| x.to_string()).collect()));
+        self.queue.add(Some(DrawMessage::ClearSwitch(path.iter().map(|x| x.to_string()).collect())));
     }
 
     pub fn radio_switch(&self, path: &[&str], yn: bool) {
-        self.queue.add(DrawMessage::RadioSwitch(path.iter().map(|x| x.to_string()).collect(),yn));
+        self.queue.add(Some(DrawMessage::RadioSwitch(path.iter().map(|x| x.to_string()).collect(),yn)));
     }
 
     pub fn set_stick(&self, stick: &StickId) {
         *self.stick.lock().unwrap() = Some(stick.get_id().to_string()); // XXX not really true yet: have proper ro status via data
-        self.queue.add(DrawMessage::SetStick(stick.clone()));
+        self.queue.add(Some(DrawMessage::SetStick(stick.clone())));
     }
 
     pub fn set_message_reporter(&self, callback: Box<dyn FnMut(&Message) + 'static + Send>) {
-        self.queue.add(DrawMessage::SetMessageReporter(callback));
+        self.queue.add(Some(DrawMessage::SetMessageReporter(callback)));
     }
 
     pub fn debug_action(&self, index:u8) {
-        self.queue.add(DrawMessage::DebugAction(index));
+        self.queue.add(Some(DrawMessage::DebugAction(index)));
+    }
+
+    pub fn shutdown(&self) {
+        self.queue.add(None);
     }
 
     pub fn stick(&self) -> Option<String> { self.stick.lock().unwrap().as_ref().cloned() }
 
     pub fn set_artificial(&self, name: &str, start: bool) {
-        self.queue.add(DrawMessage::SetArtificial(name.to_string(),start));
+        self.queue.add(Some(DrawMessage::SetArtificial(name.to_string(),start)));
     }
 
     async fn step(&self, mut draw: PeregrineInnerAPI) -> Result<(),Message> {
         log_important!("version {} {} {}.",GIT_TAG,GIT_BUILD_DATE,env!("BUILD_TIME"));
         #[cfg(debug_assertions)]
         dev_warning();
-        loop {
-            let message = self.queue.get().await;
+        while let Some(message) = self.queue.get().await{
             message.run(&mut draw,&self.queue.syncer())?;
         }
+        log_extra!("draw-api quit");
+        Ok(())
     }
 
     pub fn run(&self, config: PeregrineConfig, dom: PeregrineDom) -> Result<PgCommanderWeb,Message> {
         let commander = PgCommanderWeb::new()?;
+        dom.run_shutdown_detector(&commander);
         commander.start();
         set_printer(|severity,message| {
             match severity {
@@ -241,6 +247,8 @@ impl PeregrineAPI {
         run_mouse_move(&mut inner,&dom)?;
         let self2 = self.clone();
         commander.add("draw-api",0,None,None,Box::pin(async move { self2.step(inner).await }));
+        let queue = self.queue.clone();
+        dom.shutdown().add(move || queue.add(None));
         Ok(commander)
     }
 }
