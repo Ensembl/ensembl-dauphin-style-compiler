@@ -1,5 +1,6 @@
 use std::sync::{ Arc, Mutex, Weak };
 use commander::{ cdr_timer };
+use peregrine_toolkit::plumbing::oneshot::OneShot;
 use peregrine_toolkit_async::sync::needed::{Needed, NeededLock};
 use crate::integration::pgcommander::PgCommanderWeb;
 use crate::util::message::Message;
@@ -11,8 +12,10 @@ struct MonostableState {
     lock: Option<NeededLock>
 }
 
-async fn monostable_agent(weak_state: Weak<Mutex<MonostableState>>, needed: Needed, period_ms: f64, cb: Arc<Box<dyn Fn() + 'static>>) -> Result<(),Message> {
-    loop {
+async fn monostable_agent(weak_state: Weak<Mutex<MonostableState>>, needed: Needed, period_ms: f64, shutdown: OneShot, cb: Arc<Box<dyn Fn() + 'static>>) -> Result<(),Message> {
+    let needed2 = needed.clone();
+    shutdown.add(move || { needed2.set(); });
+    while !shutdown.poll() {
         if let Some(state_lock) = weak_state.upgrade() {
             let mut state = state_lock.lock().unwrap();
             if state.current && !state.future {
@@ -36,7 +39,7 @@ pub(crate) struct Monostable(Arc<Mutex<MonostableState>>);
 
 // XXX run level audit
 impl Monostable {
-    pub(crate) fn new<F>(commander: &PgCommanderWeb, period_ms: f64, cb: F) -> Monostable where F: Fn() + 'static {
+    pub(crate) fn new<F>(commander: &PgCommanderWeb, period_ms: f64, shutdown: &OneShot, cb: F) -> Monostable where F: Fn() + 'static {
         let needed = Needed::new();
         let state = Arc::new(Mutex::new(MonostableState {
             lock: None,
@@ -46,7 +49,8 @@ impl Monostable {
         }));
         let weak_state = Arc::downgrade(&state);
         let callback : Arc<Box<dyn Fn() + 'static>> = Arc::new(Box::new(cb));
-        commander.add("monostable",6,None,None,Box::pin(monostable_agent(weak_state,needed,period_ms,callback)));
+        let shutdown = shutdown.clone();
+        commander.add("monostable",6,None,None,Box::pin(monostable_agent(weak_state,needed,period_ms,shutdown,callback)));
         Monostable(state)
     }
 

@@ -3,6 +3,7 @@ use crate::{input::low::modifiers::Modifiers, run::CursorCircumstance, util::{ M
 use crate::util::monostable::Monostable;
 use crate::input::low::lowlevel::{ LowLevelState };
 use js_sys::Date;
+use peregrine_toolkit::plumbing::oneshot::OneShot;
 use super::{drag::DragState };
 use crate::run::{ PgConfigKey, PgPeregrineConfig };
 use crate::input::InputEventKind;
@@ -108,7 +109,7 @@ pub struct Pointer {
 }
 
 impl Pointer {
-    pub(crate) fn new(lowlevel: &LowLevelState, config: &PointerConfig) -> Pointer {
+    pub(crate) fn new(lowlevel: &LowLevelState, config: &PointerConfig, shutdown: &OneShot) -> Pointer {
         let wheel_cursor = Arc::new(Mutex::new(None));
         let wheel_cursor2 = wheel_cursor.clone();
         Pointer {
@@ -117,7 +118,7 @@ impl Pointer {
             start: (0.,0.),
             modifiers: lowlevel.modifiers(),
             wheel_cursor,
-            wheel_monostable: Monostable::new(lowlevel.commander(), config.wheel_timeout, move || {
+            wheel_monostable: Monostable::new(lowlevel.commander(), config.wheel_timeout,shutdown, move || {
                 wheel_cursor2.lock().unwrap().take();
             })
         }

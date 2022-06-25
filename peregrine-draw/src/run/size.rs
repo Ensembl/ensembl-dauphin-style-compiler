@@ -144,7 +144,7 @@ impl SizeManager {
                 booted: false
             })),
             redraw_needed,
-            activity_monostable: Monostable::new(&commander,5000., move || {
+            activity_monostable: Monostable::new(&commander,5000.,&dom.shutdown(), move || {
                 redraw_needed2.set();
             }), // XXX configurable
             dom: dom.clone()
