@@ -54,7 +54,7 @@ impl CharSource for StringCharSource {
 
     fn advance(&mut self, num: usize) -> String {
         let out = self.peek(num);
-        self.index += out.len();
+        self.index += out.chars().count();
         out
     }
 
