@@ -168,6 +168,9 @@ impl PeregrineInnerAPI {
         };
         input.set_api(dom,&config.draw,&out,&commander,&target_reporter)?;
         message_sender.add(Message::Ready);
+        dom.shutdown().add(move || {
+            api_queue.shutdown();
+        });
         Ok(out)
     }
 

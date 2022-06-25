@@ -1,4 +1,5 @@
 use hashbrown::HashMap;
+use crate::TaskHandle;
 use crate::agent::agent::Agent;
 use crate::task::slot::RunSlot;
 use crate::task::task::TaskSummary;
@@ -10,6 +11,8 @@ use super::timings::ExecutorTimings;
 
 #[cfg(debug_unregister)]
 use peregrine_toolkit::log;
+#[cfg(debug_unregister)]
+use std::collections::HashSet;
 
 pub(crate) struct ExecutorTasks {
     tasks: TaskContainer,
@@ -17,7 +20,7 @@ pub(crate) struct ExecutorTasks {
     slot_queue: HashMap<RunSlot,Vec<TaskContainerHandle>>,
     handle_slot: HashMap<TaskContainerHandle,RunSlot>,
     #[cfg(debug_unregister)]
-    registered: i32
+    registered: HashSet<String>
 }
 
 impl ExecutorTasks {
@@ -28,15 +31,16 @@ impl ExecutorTasks {
             slot_queue: HashMap::new(),
             handle_slot: HashMap::new(),
             #[cfg(debug_unregister)]
-            registered: 0
+            registered: HashSet::new()
         }
     }
 
-    fn debug_unregister(&mut self, delta: i32) {
+    fn debug_register(&mut self, handle: &TaskContainerHandle, yn: bool) {
         #[cfg(debug_unregister)]
         {
-            self.registered += delta;
-            log!("{} processes registered",self.registered);
+            let name = self.summarize(handle).map(|x| x.get_name().to_string()).unwrap_or("???".to_string());
+            if yn { self.registered.insert(name); } else { self.registered.remove(&name); }
+            log!("registered ({}) {}",self.registered.len(),self.registered.iter().cloned().collect::<Vec<_>>().join(", "));
         }
     }
 
@@ -113,7 +117,7 @@ impl ExecutorTasks {
         self.runnable.remove(&self.tasks,handle);
         self.remove_from_slot_queue(handle);
         self.handle_slot.remove(&handle);
-        self.debug_unregister(-1);
+        self.debug_register(&handle,false);
         self.tasks.remove(&handle);
     }
 
@@ -126,11 +130,11 @@ impl ExecutorTasks {
     }
 
     pub(crate) fn create_handle(&mut self, agent: &Agent, handle: Box<dyn ExecutorTaskHandle>, id: (u64,u64)) -> TaskContainerHandle {
-        self.debug_unregister(1);
         let container_handle = self.tasks.allocate();
         agent.run_agent().register(&container_handle,id);
         handle.set_identity(container_handle.identity());
         self.tasks.set(&container_handle,handle);
+        self.debug_register(&container_handle,true);
         container_handle
     }
 

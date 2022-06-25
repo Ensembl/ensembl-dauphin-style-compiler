@@ -12,6 +12,9 @@ use crate::request::core::request::BackendRequest;
 use crate::request::messages::metricreq::MetricReport;
 use commander::cdr_timer;
 use peregrine_toolkit::lock;
+use peregrine_toolkit::log;
+use peregrine_toolkit::log_extra;
+use peregrine_toolkit::plumbing::oneshot::OneShot;
 use std::sync::Mutex;
 use std::sync::Arc;
 use crate::{PgCommander, PgCommanderTaskSpec, add_task };
@@ -84,7 +87,7 @@ pub struct MetricCollector {
 }
 
 impl MetricCollector {
-    async fn run(&mut self) {
+    async fn run(&mut self, shutdown: &OneShot) {
         loop {
             let mut manager_and_channel = self.data.lock().unwrap().manager_and_channel();
             if let Some((manager,channel)) = &mut manager_and_channel {
@@ -93,14 +96,20 @@ impl MetricCollector {
                     manager.execute(channel.clone(),PacketPriority::Batch,message).await.ok(); 
                 }
             }
-            cdr_timer(60000.).await;
+            for _ in 0..60 {
+                cdr_timer(1000.).await;
+                if shutdown.poll() { break; }
+            }
+            if shutdown.poll() { break; }
         }
+        log_extra!("metric reporter quitting");
     }
 
-    pub fn new(commander: &PgCommander) -> MetricCollector {
+    pub fn new(commander: &PgCommander, shutdown: &OneShot) -> MetricCollector {
         let out = MetricCollector {
             data: Arc::new(Mutex::new(MetricCollectorData::new())),
         };
+        let shutdown = shutdown.clone();
         let mut out2 = out.clone();
         add_task(commander,PgCommanderTaskSpec {
             name: "metric-sender".to_string(),
@@ -108,7 +117,7 @@ impl MetricCollector {
             timeout: None,
             slot: None,
             task: Box::pin(async move { 
-                out2.run().await;
+                out2.run(&shutdown).await;
                 Ok(())
             }),
             stats: false

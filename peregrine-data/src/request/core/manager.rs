@@ -1,5 +1,6 @@
 use peregrine_toolkit::lock;
 use commander::{ CommanderStream };
+use peregrine_toolkit::plumbing::oneshot::OneShot;
 use peregrine_toolkit_async::sync::blocker::Blocker;
 use std::collections::HashMap;
 use std::future::Future;
@@ -49,6 +50,7 @@ pub struct RequestManagerData {
     version: VersionMetadata,
     receiver: PayloadReceiverCollection,
     commander: PgCommander,
+    shutdown: OneShot,
     next_id: u64,
     queues: HashMap<(Channel,PacketPriority),QueueValue>,
     real_time_lock: Blocker,
@@ -56,11 +58,12 @@ pub struct RequestManagerData {
 }
 
 impl RequestManagerData {
-    pub fn new(integration: Box<dyn ChannelIntegration>, commander: &PgCommander, messages: &MessageSender, version: &VersionMetadata) -> RequestManagerData {
+    pub fn new(integration: Box<dyn ChannelIntegration>, commander: &PgCommander, shutdown: &OneShot, messages: &MessageSender, version: &VersionMetadata) -> RequestManagerData {
         RequestManagerData {
             integration: Rc::new(integration),
             receiver: PayloadReceiverCollection(Arc::new(Mutex::new(vec![]))),
             commander: commander.clone(),
+            shutdown: shutdown.clone(),
             next_id: 0,
             queues: HashMap::new(),
             real_time_lock: Blocker::new(),
@@ -109,6 +112,10 @@ impl RequestManagerData {
                         queue.set_realtime_check(&self.real_time_lock);
                     }
                 }
+                let mut queue2 = queue.clone();
+                self.shutdown.add(move || {
+                    queue2.shutdown();
+                });
                 self.queues.insert(key.clone(),QueueValue::Queue(queue));
             }
             match self.queues.get_mut(&key).unwrap() {
@@ -153,8 +160,8 @@ impl RequestManagerData {
 pub struct RequestManager(Arc<Mutex<RequestManagerData>>);
 
 impl RequestManager {
-    pub fn new(integration: Box<dyn ChannelIntegration>, commander: &PgCommander, messages: &MessageSender, version: &VersionMetadata) -> RequestManager {
-        RequestManager(Arc::new(Mutex::new(RequestManagerData::new(integration,commander,messages,version))))
+    pub fn new(integration: Box<dyn ChannelIntegration>, commander: &PgCommander, shutdown: &OneShot, messages: &MessageSender, version: &VersionMetadata) -> RequestManager {
+        RequestManager(Arc::new(Mutex::new(RequestManagerData::new(integration,commander,shutdown,messages,version))))
     }
 
     pub fn set_supported_versions(&self, support: Option<&[u32]>, version: u32) {

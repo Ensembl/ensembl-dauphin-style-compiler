@@ -13,3 +13,7 @@ serde_cbor="*"
 [dependencies.commander]
 version="*"
 path="../commander"
+
+[dependencies.peregrine_toolkit]
+version="*"
+path="../peregrine-toolkit"

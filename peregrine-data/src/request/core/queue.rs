@@ -1,6 +1,6 @@
 use commander::cdr_timer;
 use peregrine_toolkit_async::sync::blocker::{Blocker, Lockout};
-use peregrine_toolkit::lock;
+use peregrine_toolkit::{lock, log_extra};
 use commander::{ CommanderStream, cdr_add_timer };
 use peregrine_toolkit_async::sync::pacer::Pacer;
 use std::collections::HashMap;
@@ -25,7 +25,7 @@ use super::response::BackendResponse;
 struct RequestQueueData {
     version: VersionMetadata,
     receiver: PayloadReceiverCollection,
-    pending_send: CommanderStream<(BackendRequestAttempt,CommanderStream<BackendResponse>)>,
+    pending_send: CommanderStream<Option<(BackendRequestAttempt,CommanderStream<BackendResponse>)>>,
     integration: Rc<Box<dyn ChannelIntegration>>,
     channel: Channel,
     priority: PacketPriority,
@@ -110,7 +110,7 @@ impl RequestQueue {
     }
 
     pub(crate) fn queue_command(&mut self, request: BackendRequestAttempt, stream: CommanderStream<BackendResponse>) {
-        lock!(self.0).pending_send.add((request,stream));
+        lock!(self.0).pending_send.add(Some((request,stream)));
     }
 
     fn start(&self, commander: &PgCommander, prio: u8) -> Result<(),DataMessage> {
@@ -129,7 +129,7 @@ impl RequestQueue {
         Ok(())
     }
 
-    async fn build_packet(&self) -> (RequestPacket,HashMap<u64,CommanderStream<BackendResponse>>) {
+    async fn build_packet(&self) -> (Option<RequestPacket>,HashMap<u64,CommanderStream<BackendResponse>>) {
         let data = lock!(self.0);
         let pending = data.pending_send.clone();
         let priority = data.priority.clone();
@@ -138,18 +138,22 @@ impl RequestQueue {
         drop(data);
         let mut requests = match priority {
             PacketPriority::RealTime => { pending.get_multi(None).await },
-            PacketPriority::Batch => { pending.get_multi(Some(100)).await }
+            PacketPriority::Batch => { pending.get_multi(Some(20)).await }
         };
         let mut packet = RequestPacketBuilder::new(&channel);
         let mut streams = HashMap::new();
         let mut timeouts = vec![];
-        for (r,c) in requests.drain(..) {
-            streams.insert(r.message_id(),c.clone());
-            timeouts.push((r.to_failure(),c));
-            packet.add(r);
+        for data in requests.drain(..) {
+            if let Some((r,c)) = data {
+                streams.insert(r.message_id(),c.clone());
+                timeouts.push((r.to_failure(),c));
+                packet.add(r);
+            } else {
+                return (None,streams);
+            }
         }
         lock!(self.0).timeout(timeouts);
-        (RequestPacket::new(packet,&version),streams)
+        (Some(RequestPacket::new(packet,&version)),streams)
     }
 
     fn get_blocker(&self) -> Option<Blocker> {
@@ -214,10 +218,20 @@ impl RequestQueue {
         lock!(self.0).set_timeout(timeout);
     }
 
+    pub(crate) fn shutdown(&mut self) {
+        lock!(self.0).pending_send.add(None);
+    }
+
     async fn main_loop(self) -> Result<(),DataMessage> {
         loop {
-            let (mut request,mut streams) = self.build_packet().await;
-            self.process_request(&mut request,&mut streams).await;
+            let (request,mut streams) = self.build_packet().await;
+            if let Some(mut request) = request {
+                self.process_request(&mut request,&mut streams).await;
+            } else {
+                break;
+            }
         }
+        log_extra!("connection manager shutting down");
+        Ok(())
     }
 }

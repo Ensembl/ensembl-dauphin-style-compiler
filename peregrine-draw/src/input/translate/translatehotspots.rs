@@ -29,23 +29,27 @@ fn process_hotspot_event(api: &LockedPeregrineInnerAPI, x: f64, y: f64) -> Resul
     Ok(())
 }
 
-fn process_event(messages: &CommanderStream<(f64,f64)>, event: &InputEvent) -> Result<(),Message> {
+fn process_event(messages: &CommanderStream<Option<(f64,f64)>>, event: &InputEvent) -> Result<(),Message> {
     match event.details {
         InputEventKind::ZMenu => {
             let x = *event.amount.get(0).unwrap_or(&0.);
             let y = *event.amount.get(1).unwrap_or(&0.);
-            messages.add((x,y));
+            messages.add(Some((x,y)));
         },
         _ => {}
     }
     Ok(())
 }
 
-async fn hotspots_loop(inner_api: &mut PeregrineInnerAPI, messages: CommanderStream<(f64,f64)>) -> Result<(),Message> {
-    loop {
-        let message = messages.get().await;
+async fn hotspots_loop(inner_api: &mut PeregrineInnerAPI, messages: CommanderStream<Option<(f64,f64)>>) -> Result<(),Message> {
+    let messages2 = messages.clone();
+    inner_api.lock().await.dom.shutdown().add(move || {
+        messages2.add(None);
+    });
+    while let Some(message) = messages.get().await {
         process_hotspot_event(&inner_api.lock().await,message.0,message.1)?;
     }
+    Ok(())
 }
 
 pub(crate) fn translate_hotspots(low_level: &mut LowLevelInput, commander: &PgCommanderWeb, inner_api: &PeregrineInnerAPI) {

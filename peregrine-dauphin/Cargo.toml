@@ -14,6 +14,10 @@ serde_cbor="*"
 version="*"
 path="../commander"
 
+[dependencies.peregrine_toolkit]
+version="*"
+path="../peregrine-toolkit"
+
 [dependencies.peregrine_dauphin_queue]
 version="*"
 path="../peregrine-dauphin-queue"
