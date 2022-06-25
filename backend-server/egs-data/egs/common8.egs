@@ -42,7 +42,7 @@ stmt draw_track_names(track_names,switch_names,allotments) {
     label_track_names := track_names;
     label_track_names[switches==false] := "";
 
-    textpen_trackname := pen("'Lato', sans-serif",name_text_size,name_text_colour,[][]);
+    textpen_trackname := pen("'IBM Plex Mono', sans-serif",name_text_size,name_text_colour,[][]);
     text2(spacebase(len(track_names) (*) 0,0,8),textpen_trackname,label_track_names[],label_allotments[]);
 }
 
@@ -50,7 +50,7 @@ stmt draw_track_category(category,allotments) {
     cat_text_size := 10;
     cat_text_colour := direct_colour(0,0,0,255);
 
-    textpen_cat := pen("'Lato', sans-serif",cat_text_size,cat_text_colour,[][]);
+    textpen_cat := pen("'IBM Plex Mono', sans-serif",cat_text_size,cat_text_colour,[][]);
     text2(spacebase(len(allotments) (*) 0,0,16),textpen_cat,category,allotments[]);
 }
 

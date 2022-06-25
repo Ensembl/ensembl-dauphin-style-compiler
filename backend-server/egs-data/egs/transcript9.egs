@@ -371,8 +371,8 @@ text_colour := direct_colour(111,129,144,255);
 blue_text_colour := direct_colour(111,129,255,255);
 text_size := 10;
 
-textpen := pen("'Lato', sans-serif",text_size,text_colour,[][]);
-textpen_blue := pen("'Lato', sans-serif",text_size,blue_text_colour,[][]);
+textpen := pen("'IBM Plex Mono', sans-serif",text_size,text_colour,[][]);
+textpen_blue := pen("'IBM Plex Mono', sans-serif",text_size,blue_text_colour,[][]);
 
 
 /*

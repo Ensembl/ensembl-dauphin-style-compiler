@@ -35,7 +35,7 @@ rectangle(spacebase(0,16,0),spacebase(1,16,0),marker_patina,allotment_window_top
 rectangle(spacebase(0,16,0),spacebase(1,16,0),marker_patina,allotment_window_bottom);
 
 /* text */
-textpen := pen("'Lato', sans-serif",12,direct_colour(120,120,120,255),[][]);
+textpen := pen("'IBM Plex Mono', sans-serif",12,direct_colour(120,120,120,255),[][]);
 text2(spacebase(markings,2,4),textpen,comma_format(markings),allotment_top);
 text2(spacebase(markings,2,4),textpen,comma_format(markings),allotment_bottom);
 

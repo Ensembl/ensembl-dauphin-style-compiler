@@ -26,7 +26,7 @@ patina := patina_hollow(seq_colour,1);
 
 text_colour := direct_colour(39,154,252,255);
 text_size := 10;
-textpen := pen("'Lato', sans-serif",text_size,text_colour,[][]);
+textpen := pen("'IBM Plex Mono', sans-serif",text_size,text_colour,[][]);
 allotment := use_allotment("track:contig");
 
 allotment := use_allotment("tracks/track/contig/main/main/content");

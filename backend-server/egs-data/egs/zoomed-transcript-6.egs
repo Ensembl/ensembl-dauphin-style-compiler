@@ -179,8 +179,8 @@ thin_seq_colour := spot_colour(text_colour);
 thick_seq_patina := patina_filled(thick_seq_colour);
 thin_seq_patina := patina_hollow(thin_seq_colour,1);
 
-thick_textpen := pen("'Lato', sans-serif",text_size,thick_text_colour,thick_colour);
-thin_textpen := pen("'Lato', sans-serif",text_size,thick_colour,[][]);
+thick_textpen := pen("'IBM Plex Mono', sans-serif",text_size,thick_text_colour,thick_colour);
+thin_textpen := pen("'IBM Plex Mono', sans-serif",text_size,thick_colour,[][]);
 
 /*
  * prepare the zmenus
