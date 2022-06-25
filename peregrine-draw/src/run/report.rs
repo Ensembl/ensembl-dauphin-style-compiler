@@ -1,6 +1,7 @@
 use std::{sync::{Arc, Mutex}};
 use commander::{CommanderStream, cdr_tick, cdr_timer };
 use peregrine_data::{ZMenuFixed, GlobalAllotmentMetadata};
+use peregrine_toolkit::plumbing::oneshot::OneShot;
 use peregrine_toolkit_async::sync::needed::{Needed, NeededLock};
 use crate::{Message, PgCommanderWeb, util::message::Endstop};
 use super::{PgConfigKey, PgPeregrineConfig};
@@ -141,33 +142,41 @@ impl ReportData {
 pub struct Report {
     data: Arc<Mutex<ReportData>>,
     needed: Needed,
-    update_freq: f64
+    update_freq: f64,
+    shutdown: OneShot
 }
 
 impl Report {
     async fn report_loop(&self) -> Result<(),Message> {
-        loop {
+        while !self.shutdown.poll() {
             self.data.lock().unwrap().report_step(false)?;
             cdr_timer(self.update_freq).await;
             self.needed.wait_until_needed().await;
         }
-
+        self.needed.set(); // make sure other thread wakes up
+        Ok(())
     }
 
     async fn fast_report_loop(&self) -> Result<(),Message> {
-        loop {
+        while !self.shutdown.poll() {
             self.data.lock().unwrap().report_step(true)?;
             cdr_tick(1).await;
             self.needed.wait_until_needed().await;
         }
-
+        self.needed.set(); // make sure other thread wakes up
+        Ok(())
     }
 
-    pub(crate) fn new(config: &PgPeregrineConfig, messages: &CommanderStream<Message>) -> Result<Report,Message> {
+    pub(crate) fn new(config: &PgPeregrineConfig, messages: &CommanderStream<Message>, shutdown: &OneShot) -> Result<Report,Message> {
         let needed = Needed::new();
+        let needed2 = needed.clone();
+        shutdown.add(move || {
+            needed2.set();
+        });
         Ok(Report {
             data: Arc::new(Mutex::new(ReportData::new(messages,&needed))),
             update_freq: config.get_f64(&PgConfigKey::ReportUpdateFrequency)?,
+            shutdown: shutdown.clone(),
             needed
         })
     }
@@ -188,7 +197,7 @@ impl Report {
         self.data.lock().unwrap().zmenu_event(x,y,event);
     }
 
-    pub(crate) fn run(&self, commander: &PgCommanderWeb) {
+    pub(crate) fn run(&self, commander: &PgCommanderWeb, shutdown: &OneShot) {
         let self2 = self.clone();
         commander.add("report", 0, None, None, Box::pin(async move { self2.report_loop().await }));
         let self2 = self.clone();

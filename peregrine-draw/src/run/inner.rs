@@ -135,7 +135,7 @@ impl PeregrineInnerAPI {
         let webgl = Arc::new(Mutex::new(WebGlGlobal::new(&commander,&dom,&config.draw)?));
         let redraw_needed = Needed::new();
         let stage = Arc::new(Mutex::new(Stage::new(&redraw_needed)));
-        let report = Report::new(&config.draw,&message_sender)?;
+        let report = Report::new(&config.draw,&message_sender,&dom.shutdown())?;
         let target_reporter = TargetReporter::new(&commander,dom.shutdown(),&config.draw,&report)?;
         let mut input = Input::new(queue_blocker);
         let api_queue = PeregrineApiQueue::new(queue_blocker);
@@ -147,7 +147,7 @@ impl PeregrineInnerAPI {
             routed_message(Some(commander_id),Message::DataError(e))
         },&api_queue,&redraw_needed).map_err(|e| Message::DataError(e))?;
         peregrine_dauphin(Box::new(PgDauphinIntegrationWeb()),&core);
-        report.run(&commander);
+        report.run(&commander,&dom.shutdown());
         core.application_ready();
         message_sender.add(Message::Ready);
         let out = PeregrineInnerAPI {

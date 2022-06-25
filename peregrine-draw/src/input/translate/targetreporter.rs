@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 use peregrine_data::DataMessage;
-use peregrine_toolkit_async::sync::{blocker::{Blocker, Lockout}, needed::Needed};
+use peregrine_toolkit_async::sync::{blocker::{Blocker, Lockout, self}, needed::Needed};
 use peregrine_toolkit::{lock, plumbing::oneshot::OneShot};
 use crate::{Message, PgCommanderWeb, run::{PgConfigKey, PgPeregrineConfig, report::Report}, util::debounce::Debounce};
 
@@ -52,9 +52,15 @@ struct TargetReporterState {
 pub struct TargetReporter(Arc<Mutex<TargetReporterState>>);
 
 impl TargetReporter {
-    async fn report_loop(&self) -> Result<(),DataMessage> {
+    async fn report_loop(&self, shutdown: OneShot) -> Result<(),DataMessage> {
         let needed = lock!(self.0).needed.clone();
-        loop {
+        let needed2 = needed.clone();
+        let blocker = lock!(self.0).blocker.clone();
+        shutdown.add(move || { 
+            needed2.set();
+            blocker.set_freewheel(true);
+        });
+        while !shutdown.poll() {
             needed.wait_until_needed().await;
             let state = lock!(self.0);
             let blocker = state.blocker.clone();
@@ -69,13 +75,14 @@ impl TargetReporter {
             }
             drop(state);
         }
+        Ok(())
     }
 
     pub fn new(commander: &PgCommanderWeb, shutdown: &OneShot, config: &PgPeregrineConfig, report: &Report) -> Result<TargetReporter,Message> {
         let out_stage :Arc<Mutex<TargetLocation>> = Arc::new(Mutex::new(TargetLocation::empty()));
         let out_stage2 = out_stage.clone();
         let report2 = report.clone();
-        let debounce = Debounce::new(commander,config.get_f64(&PgConfigKey::TargetReportTime)?, shutdown,move || { // XXX configurable
+        let debounce = Debounce::new(commander,config.get_f64(&PgConfigKey::TargetReportTime)?, &shutdown.clone(),move || { // XXX configurable
             lock!(out_stage2).make_report(&report2);
         });
         let out = TargetReporter(Arc::new(Mutex::new(TargetReporterState {
@@ -89,7 +96,10 @@ impl TargetReporter {
             debounce,
         })));
         let out2 = out.clone();
-        commander.add("target-reporter", 0, None, None, Box::pin(async move { out2.report_loop().await }));
+        let shutdown = shutdown.clone();
+        commander.add("target-reporter", 0, None, None, Box::pin(async move { 
+            out2.report_loop(shutdown).await
+        }));
         Ok(out)
     }
 

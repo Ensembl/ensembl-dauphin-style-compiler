@@ -246,13 +246,17 @@ impl InputTranslator {
 
     async fn physics_loop(&self, inner: &mut PeregrineInnerAPI) -> Result<(),Message> {
         let lweb = inner.lock().await;
+        let shutdown = lweb.dom.shutdown().clone();
+        let needed = self.physics_needed.clone();
+        shutdown.add(move || { needed.set(); });
         let mut report = lweb.report.clone();
         drop(lweb);
-        loop {
+        while !shutdown.poll() {
             self.state.lock().unwrap().physics_step(inner,&mut report)?;
             cdr_tick(1).await;
             self.physics_needed.wait_until_needed().await;
         }
+        Ok(())
     }
 
     pub fn new(config: &PgPeregrineConfig, low_level: &mut LowLevelInput, inner: &PeregrineInnerAPI, commander: &PgCommanderWeb, queue_blocker: &Blocker, target_reporter: &TargetReporter) -> Result<InputTranslator,Message> {
@@ -266,7 +270,9 @@ impl InputTranslator {
         low_level.distributor_mut().add(move |e| { out2.incoming_event(&mut inner2,e).ok(); }); // XXX error distribution
         let out2 = out.clone();
         let mut inner2 = inner.clone();
-        commander.add("translate input", 0, None, None, Box::pin(async move { out2.physics_loop(&mut inner2).await }));
+        commander.add("translate input", 0, None, None, Box::pin(async move { 
+            out2.physics_loop(&mut inner2).await 
+        }));
         Ok(out)
     }
 
