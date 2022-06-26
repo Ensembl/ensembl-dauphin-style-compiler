@@ -1,4 +1,5 @@
 use std::sync::{ Arc, Mutex };
+use peregrine_toolkit::lock;
 use peregrine_toolkit_async::sync::blocker::Lockout;
 
 use crate::Message;
@@ -8,6 +9,7 @@ use crate::input::translate::targetreporter::TargetReporter;
 use crate::shape::core::spectre::AreaVariables2;
 use crate::shape::core::spectre::Spectre;
 use crate::shape::core::spectremanager::SpectreHandle;
+use crate::webgl::global::WebGlGlobal;
 use super::pinch::PinchManager;
 use super::pinch::PinchManagerFactory;
 use super::pointer::{ PointerConfig, PointerAction };
@@ -96,6 +98,7 @@ pub struct DragStateData {
     alive: bool,
     hold_vars2: AreaVariables2<'static>,
     min_hold_drag_size: f64,
+    gl: Arc<Mutex<WebGlGlobal>>,
     #[allow(unused)] // keep as guard
     cursor: Option<CursorHandle>,
     #[allow(unused)] // keep as guard
@@ -106,7 +109,7 @@ pub struct DragStateData {
 }
 
 impl DragStateData {
-    fn new(lowlevel: &LowLevelState, config: &PointerConfig, primary: (f64,f64), secondary: Option<(f64,f64)>, target_reporter: &TargetReporter) -> Result<DragStateData,Message> {
+    fn new(lowlevel: &LowLevelState, gl: &Arc<Mutex<WebGlGlobal>>, config: &PointerConfig, primary: (f64,f64), secondary: Option<(f64,f64)>, target_reporter: &TargetReporter) -> Result<DragStateData,Message> {
         let mut out = DragStateData {
             lowlevel: lowlevel.clone(),
             modifiers: lowlevel.modifiers(),
@@ -120,16 +123,17 @@ impl DragStateData {
             cursor: None,
             spectre: None,
             intention_lockout: Some(target_reporter.lock_updates()),
-            target_reporter: target_reporter.clone()
+            target_reporter: target_reporter.clone(),
+            gl: gl.clone()
         };
         out.check_secondary(primary,secondary)?;
         Ok(out)
     }
 
-    fn update_spectre(&mut self) -> Result<(),Message> {
+    fn update_spectre(&mut self, gl: &WebGlGlobal) -> Result<(),Message> {
         if self.spectre.is_some() {
             self.hold_vars2.update(self.make_ants());
-            self.lowlevel.spectre_manager().update()?;
+            self.lowlevel.spectre_manager().update(gl)?;
         }
         Ok(())
     }
@@ -184,7 +188,7 @@ impl DragStateData {
         )
     }
 
-    fn hold_timer_expired(&mut self) -> Result<(),Message> {
+    fn hold_timer_expired(&mut self, gl: &WebGlGlobal) -> Result<(),Message> {
         if !self.alive { return Ok(()); }
         if self.mode == DragMode::Unknown {
             self.set_mode(DragMode::Hold);
@@ -195,9 +199,9 @@ impl DragStateData {
             ]);
             self.spectre = Some(self.lowlevel.add_spectre(spectre));
             self.hold_vars2.update(ants);
-            self.lowlevel.spectre_manager().update()?;
-            self.update_spectre()?;
-            self.lowlevel.spectre_manager().update()?;
+            self.lowlevel.spectre_manager().update(gl)?;
+            self.update_spectre(gl)?;
+            self.lowlevel.spectre_manager().update(gl)?;
             self.emit(&PointerAction::SwitchToHold(self.modifiers.clone(),self.primary.start()),true);
         }
         Ok(())
@@ -232,7 +236,8 @@ impl DragStateData {
         self.primary.set(primary);
         self.check_secondary(primary,secondary)?;
         self.check_dragged(config);
-        self.update_spectre()?;
+        let gl = self.gl.clone();
+        self.update_spectre(&*lock!(gl))?;
         let delta_p = self.primary.delta();
         self.send_drag(delta_p,true);
         Ok(())
@@ -261,7 +266,8 @@ impl DragStateData {
         self.primary.set(primary);
         self.check_secondary(primary,secondary)?;
         self.check_dragged(config);
-        self.update_spectre()?;
+        let gl = self.gl.clone();
+        self.update_spectre(&*lock!(gl))?;
         let delta = self.primary.delta();
         self.send_drag(delta,true);
         self.alive = false;
@@ -298,13 +304,14 @@ impl DragStateData {
 pub struct DragState(Arc<Mutex<DragStateData>>);
 
 impl DragState {
-    pub(super) fn new(config: &PointerConfig, lowlevel: &LowLevelState, primary: (f64,f64), secondary: Option<(f64,f64)>, target_reporter: &TargetReporter) -> Result<DragState,Message> {
-        let inner = Arc::new(Mutex::new(DragStateData::new(lowlevel,config,primary,secondary,target_reporter)?));
+    pub(super) fn new(config: &PointerConfig, lowlevel: &LowLevelState, gl: &Arc<Mutex<WebGlGlobal>>, primary: (f64,f64), secondary: Option<(f64,f64)>, target_reporter: &TargetReporter) -> Result<DragState,Message> {
+        let inner = Arc::new(Mutex::new(DragStateData::new(lowlevel,gl,config,primary,secondary,target_reporter)?));
         let inner2 = inner.clone();
         let hold_time = config.hold_delay;
         let drag_cursor_delay = config.drag_cursor_delay;
+        let gl2 = gl.clone();
         lowlevel.timer(hold_time, move || {
-            inner2.lock().unwrap().hold_timer_expired();
+            inner2.lock().unwrap().hold_timer_expired(&*lock!(gl2));
         });
         let inner2 = inner.clone();
         lowlevel.timer(drag_cursor_delay, move || {

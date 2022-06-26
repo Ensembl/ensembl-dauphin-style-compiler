@@ -413,7 +413,7 @@ rectangle(ne, se, pt_hollow_by_tr,       al_far_under_by_tr); // right stop
 /* draw solid line the extent of the transcript */
 c := idx_tr_in_gn * 20;
 w := spacebase(start_tr,c+3,0);
-e := spacebase(end_tr,c+4,0);
+e := spacebase(end_tr,c+3,0);
 rectangle(w,e,pt_under_by_tr,al_under_by_tr);
 
 /* draw hollow and blanking exons */

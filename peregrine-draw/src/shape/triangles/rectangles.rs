@@ -6,6 +6,7 @@ use crate::shape::layers::layer::Layer;
 use crate::shape::layers::patina::PatinaYielder;
 use crate::shape::util::arrayutil::{rectangle4};
 use crate::shape::util::iterators::eoe_throw;
+use crate::webgl::global::WebGlGlobal;
 use crate::webgl::{ ProcessStanzaElements };
 use peregrine_data::reactive::{Observable, Observer};
 use peregrine_data::{ SpaceBaseArea, SpaceBase, PartialSpaceBase, HollowEdge2, SpaceBasePoint, LeafStyle };
@@ -249,7 +250,7 @@ impl RectanglesData {
         };
         Ok(RectanglesData {
             elements, left,
-            width: if hollow { Some(1.) } else { None },
+            width: if hollow { Some(0.) } else { None },
             program: adder.clone(),
             location,
             kind: kind.clone()
@@ -262,13 +263,13 @@ impl RectanglesData {
         self.location.any_dynamic()
     }
 
-    fn recompute(&mut self) -> Result<(),Message> {
+    fn recompute(&mut self, gl: &WebGlGlobal) -> Result<(),Message> {
         let area = self.location.wobbled_location();
         let depth_in = self.location.depths();
-        let (data,depth) = add_spacebase_area4(&area,&depth_in,&self.kind,self.left,self.width)?;
+        let (data,depth) = add_spacebase_area4(&area,&depth_in,&self.kind,self.left,self.width,gl.device_pixel_ratio())?;
         self.program.add_data4(&mut self.elements,data,depth)?;
         if self.program.origin_coords.is_some() {
-            let (data,_)= add_spacebase4(&PartialSpaceBase::from_spacebase(area.middle_base()),&depth_in,&self.kind,self.left,self.width)?;
+            let (data,_)= add_spacebase4(&PartialSpaceBase::from_spacebase(area.middle_base()),&depth_in,&self.kind,self.left,self.width,gl.device_pixel_ratio())?;
             self.program.add_origin_data4(&mut self.elements,data)?;
         }
         Ok(())
@@ -281,7 +282,7 @@ pub(crate) struct Rectangles {
 }
 
 impl Rectangles {
-    pub(crate) fn new(data: RectanglesData) -> Rectangles {
+    pub(crate) fn new(data: RectanglesData, gl: &WebGlGlobal) -> Rectangles {
         let data = Arc::new(Mutex::new(data));
         let wobble_cb = lock!(data).location.wobble();
         let wobble = wobble_cb.map(|cb| Observer::new_boxed(cb));
@@ -292,21 +293,27 @@ impl Rectangles {
         if let Some(wobble) = &mut out.wobble {
             lock!(out.data).location.watch(wobble);
         }
-        out.recompute();
+        out.recompute(gl);
         out
     }
 }
 
-fn add_spacebase4(point: &PartialSpaceBase<f64,LeafStyle>,depth: &EachOrEvery<i8>, group: &DrawGroup, left: f64, width: Option<f64>) -> Result<(Vec<f32>,Vec<f32>),Message> {
+fn add_spacebase4(point: &PartialSpaceBase<f64,LeafStyle>,depth: &EachOrEvery<i8>, group: &DrawGroup, left: f64, width: Option<f64>, dpr: f32) -> Result<(Vec<f32>,Vec<f32>),Message> {
     let area = eoe_throw("as1",SpaceBaseArea::new(point.clone(),point.clone()))?;
-    add_spacebase_area4(&area,depth,group,left,width)
+    add_spacebase_area4(&area,depth,group,left,width,dpr)
 }
 
-fn add_spacebase_area4(area: &SpaceBaseArea<f64,LeafStyle>, depth: &EachOrEvery<i8>, group: &DrawGroup, left: f64, width: Option<f64>)-> Result<(Vec<f32>,Vec<f32>),Message> {
+fn add_spacebase_area4(area: &SpaceBaseArea<f64,LeafStyle>, depth: &EachOrEvery<i8>, group: &DrawGroup, left: f64, width: Option<f64>, dpr: f32)-> Result<(Vec<f32>,Vec<f32>),Message> {
     let mut data = vec![];
     let mut depths = vec![];
+    let width = width.map(|width| {
+        if width == 0. { (1./dpr) as f64 } else { width }
+    });
     for ((top_left,bottom_right),depth) in area.iter().zip(eoe_throw("t",depth.iter(area.len()))?) {
         let (t_0,t_1,mut n_0,mut n_1) = (*top_left.tangent,*bottom_right.tangent,*top_left.normal,*bottom_right.normal);
+        if n_0 == n_1 { /* finest lines */
+            n_1 += (1./dpr) as f64;
+        }
         let (mut b_0,mut b_1) = (*top_left.base,*bottom_right.base);
         /* 
          * All coordinate systems have a principal direction. This is almost always horizontal however for things drawn
@@ -372,7 +379,7 @@ impl DynamicShape for Rectangles {
         lock!(self.data).any_dynamic()
     }
 
-    fn recompute(&mut self) -> Result<(),Message> {
-        lock!(self.data).recompute()
+    fn recompute(&mut self, gl: &WebGlGlobal) -> Result<(),Message> {
+        lock!(self.data).recompute(gl)
     }
 }

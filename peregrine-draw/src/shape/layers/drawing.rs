@@ -20,7 +20,7 @@ use peregrine_toolkit::log_extra;
 
 pub(crate) trait DynamicShape {
     fn any_dynamic(&self) -> bool;
-    fn recompute(&mut self) -> Result<(),Message>;
+    fn recompute(&mut self, gl: &WebGlGlobal) -> Result<(),Message>;
 }
 
 pub(crate) struct DrawingBuilder {
@@ -78,7 +78,7 @@ impl DrawingBuilder {
         let processes = self.main_layer.build(gl,&flats,retain_test).await?;
         Ok(if let Some(processes) = processes {
             let tools = self.tools.build();
-            Some(Drawing::new_real(processes,flats,tools.zmenus,self.dynamic_shapes)?)
+            Some(Drawing::new_real(processes,flats,tools.zmenus,self.dynamic_shapes,&*lock!(gl))?)
         } else {
             None
         })
@@ -128,7 +128,7 @@ impl Drawing {
         drawing.build(gl,retain_test).await
     }
 
-    fn new_real(processes: Vec<Process>, canvases: DrawingAllFlats, zmenus: DrawingHotspots, dynamic_shapes: Vec<Box<dyn DynamicShape>>) -> Result<Drawing,Message> {
+    fn new_real(processes: Vec<Process>, canvases: DrawingAllFlats, zmenus: DrawingHotspots, dynamic_shapes: Vec<Box<dyn DynamicShape>>, gl: &WebGlGlobal) -> Result<Drawing,Message> {
         let mut out = Drawing(Arc::new(Mutex::new(DrawingData {
             processes,
             canvases,
@@ -136,7 +136,7 @@ impl Drawing {
             dynamic_shapes,
             recompute: Needed::new()
         })));
-        out.recompute()?;
+        out.recompute(gl)?;
         Ok(out)
     }
 
@@ -160,12 +160,12 @@ impl Drawing {
         Ok(())
     }
 
-    pub(crate) fn recompute(&mut self) -> Result<(),Message> {
+    pub(crate) fn recompute(&mut self, gl: &WebGlGlobal) -> Result<(),Message> {
         let mut state = lock!(self.0);
         let mut any = false;
         for shape in &mut state.dynamic_shapes {
             any |= shape.any_dynamic();
-            shape.recompute()?;
+            shape.recompute(gl)?;
         }
         if any {
             state.recompute.set();

@@ -123,6 +123,6 @@ impl SpectreManager {
         self.drawing.draw(&mut *lock!(gl),stage,session)
     }
 
-    pub(crate) fn update(&self) -> Result<(),Message> { self.drawing.update() }
+    pub(crate) fn update(&self, gl: &WebGlGlobal) -> Result<(),Message> { self.drawing.update(gl) }
     pub(crate) fn reactive(&self) -> &Reactive<'static> { self.drawing.reactive() }
 }

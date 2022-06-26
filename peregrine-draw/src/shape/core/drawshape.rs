@@ -154,7 +154,7 @@ fn draw_area_from_canvas(layer: &mut Layer, gl: &mut WebGlGlobal, draw_group: &D
     let gl_ref = gl.refs();
     patina_yielder.draw()?.add_rectangle(campaign,&canvas,&dims,gl_ref.flat_store)?;
     campaign.close()?;
-    Ok(Box::new(Rectangles::new(rectangles)))
+    Ok(Box::new(Rectangles::new(rectangles,gl)))
 }
 
 fn draw_points_from_canvas2(layer: &mut Layer, gl: &mut WebGlGlobal, draw_group: &DrawGroup, points: &SpaceBase<f64,LeafStyle>, x_sizes: Vec<f64>, y_sizes:Vec<f64>, depth: &EachOrEvery<i8>, canvas: &FlatId, dims: &[CanvasTextureArea], free: bool, wobble: Option<SpaceBase<Observable<'static,f64>,()>>) -> Result<Box<dyn DynamicShape>,Message> {
@@ -166,7 +166,7 @@ fn draw_points_from_canvas2(layer: &mut Layer, gl: &mut WebGlGlobal, draw_group:
     let gl_ref = gl.refs();
     patina_yielder.draw()?.add_rectangle(campaign,&canvas,&dims,gl_ref.flat_store)?;
     campaign.close()?;
-    Ok(Box::new(Rectangles::new(rectangles)))
+    Ok(Box::new(Rectangles::new(rectangles,gl)))
 }
 
 fn draw_heraldry_canvas(layer: &mut Layer, gl: &mut WebGlGlobal, tools: &mut DrawingToolsBuilder, kind: &DrawGroup, area_a: &SpaceBaseArea<f64,LeafStyle>, handles: &EachOrEvery<HeraldryHandle>, depth: &EachOrEvery<i8>, heraldry_canvas: &HeraldryCanvas, scale: &HeraldryScale, edge: &Option<HollowEdge2<f64>>, count: usize, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>) -> Result<Option<Box<dyn DynamicShape>>,Message> {
@@ -247,7 +247,7 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &mut WebGlGlobal, tools:
                     let campaign = rectangles.elements_mut();
                     add_colour(campaign,&drawing_shape_patina,area.len())?;
                     campaign.close()?;
-                    Ok(ShapeToAdd::Dynamic(Box::new(Rectangles::new(rectangles))))
+                    Ok(ShapeToAdd::Dynamic(Box::new(Rectangles::new(rectangles,&gl))))
                 },
                 PatinaTarget::HotSpot(hotspot) => {
                     Ok(ShapeToAdd::Hotspot(area,hotspot))

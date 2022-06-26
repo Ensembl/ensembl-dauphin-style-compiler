@@ -1,4 +1,5 @@
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
+use crate::webgl::global::WebGlGlobal;
 use crate::{run::PgPeregrineConfig };
 use peregrine_toolkit::plumbing::oneshot::OneShot;
 use peregrine_toolkit_async::sync::needed::Needed;
@@ -69,17 +70,19 @@ pub(super) struct MouseEventHandler {
     lowlevel: LowLevelState,
     primary: Finger,
     secondary: Finger,
-    config: Arc<PointerConfig>
+    config: Arc<PointerConfig>,
+    gl: Arc<Mutex<WebGlGlobal>>
 }
 
 impl MouseEventHandler {
-    fn new(config: Arc<PointerConfig>, lowlevel: &LowLevelState, shutdown: &OneShot) -> MouseEventHandler {
+    fn new(config: Arc<PointerConfig>, lowlevel: &LowLevelState, gl: &Arc<Mutex<WebGlGlobal>>, shutdown: &OneShot) -> MouseEventHandler {
         MouseEventHandler {
-            pointer: Pointer::new(lowlevel,&config,shutdown),
+            pointer: Pointer::new(lowlevel,&config,gl,shutdown),
             lowlevel: lowlevel.clone(),
             primary: Finger::new(),
             secondary: Finger::new(),
-            config
+            config,
+            gl: gl.clone()
         }
     }
 
@@ -90,7 +93,7 @@ impl MouseEventHandler {
             None
         };
         // XXX handle errors
-        self.pointer.process_event(&self.config,&self.lowlevel,self.primary.position(),secondary,&kind);
+        self.pointer.process_event(&self.config,&self.lowlevel,&self.gl,self.primary.position(),secondary,&kind);
     }
 
     fn abandon(&mut self, event: &PointerEvent) {
@@ -142,11 +145,11 @@ impl MouseEventHandler {
     }
 }
 
-pub(super) fn mouse_events(config: &PgPeregrineConfig, state: &LowLevelState, mouse_moved: &Needed) -> Result<EventSystem<MouseEventHandler>,Message> {
+pub(super) fn mouse_events(config: &PgPeregrineConfig, state: &LowLevelState, gl: &Arc<Mutex<WebGlGlobal>>, mouse_moved: &Needed) -> Result<EventSystem<MouseEventHandler>,Message> {
     let mouse_config = Arc::new(PointerConfig::new(config)?);
     let dom = state.dom();
     let canvas = dom.canvas();
-    let mut events = EventSystem::new(MouseEventHandler::new(mouse_config,state,dom.shutdown()));
+    let mut events = EventSystem::new(MouseEventHandler::new(mouse_config,state,gl,dom.shutdown()));
     confused_browser(canvas.style().set_property("touch-action","none"))?;
     let mouse_moved2 = mouse_moved.clone();
     events.add(canvas,"pointerdown", move |handler,event: &PointerEvent| {

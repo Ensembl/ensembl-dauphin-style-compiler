@@ -21,7 +21,7 @@ async fn draw_spectres(gl: &Arc<Mutex<WebGlGlobal>>, assets: &Assets, spectres: 
 async fn draw(gl: &Arc<Mutex<WebGlGlobal>>, assets: &Assets, spectres: &[Spectre]) -> Result<(Drawing,Retainer),Message> {
     let (retainer,retain_test) = retainer();
     let mut drawing = draw_spectres(gl,assets,spectres,&retain_test).await?;
-    drawing.recompute()?;
+    drawing.recompute(&*lock!(gl))?;
     Ok((drawing,retainer))
 }
 
@@ -70,9 +70,9 @@ impl SpectralDrawing {
 
     pub(crate) fn reactive(&self) -> &Reactive<'static> { &self.reactive }
 
-    pub(crate) fn update(&self) -> Result<(),Message> {
+    pub(crate) fn update(&self, gl: &WebGlGlobal) -> Result<(),Message> {
         if let Some((drawing,_)) = lock!(self.drawing).as_mut() {
-            drawing.recompute()?;
+            drawing.recompute(gl)?;
         }
         self.reactive.run_observers();
         Ok(())

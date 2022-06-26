@@ -1,5 +1,5 @@
 use std::sync::{ Arc, Mutex };
-use crate::{input::low::modifiers::Modifiers, run::CursorCircumstance, util::{ Message }};
+use crate::{input::low::modifiers::Modifiers, run::CursorCircumstance, util::{ Message }, webgl::global::WebGlGlobal};
 use crate::util::monostable::Monostable;
 use crate::input::low::lowlevel::{ LowLevelState };
 use js_sys::Date;
@@ -105,11 +105,12 @@ pub struct Pointer {
     modifiers: Modifiers,
     drag: Option<DragState>,
     wheel_monostable: Monostable,
-    wheel_cursor: Arc<Mutex<Option<(CursorHandle,CursorCircumstance)>>>
+    wheel_cursor: Arc<Mutex<Option<(CursorHandle,CursorCircumstance)>>>,
+    gl: Arc<Mutex<WebGlGlobal>>
 }
 
 impl Pointer {
-    pub(crate) fn new(lowlevel: &LowLevelState, config: &PointerConfig, shutdown: &OneShot) -> Pointer {
+    pub(crate) fn new(lowlevel: &LowLevelState, config: &PointerConfig, gl: &Arc<Mutex<WebGlGlobal>>, shutdown: &OneShot) -> Pointer {
         let wheel_cursor = Arc::new(Mutex::new(None));
         let wheel_cursor2 = wheel_cursor.clone();
         Pointer {
@@ -120,7 +121,8 @@ impl Pointer {
             wheel_cursor,
             wheel_monostable: Monostable::new(lowlevel.commander(), config.wheel_timeout,shutdown, move || {
                 wheel_cursor2.lock().unwrap().take();
-            })
+            }),
+            gl: gl.clone()
         }
     }
 
@@ -154,10 +156,10 @@ impl Pointer {
         }
     }
 
-    pub(crate) fn process_event(&mut self, config: &PointerConfig, lowlevel: &LowLevelState, primary: (f64,f64), secondary: Option<(f64,f64)>, kind: &PointerEventKind) -> Result<(),Message> {
+    pub(crate) fn process_event(&mut self, config: &PointerConfig, lowlevel: &LowLevelState, gl: &Arc<Mutex<WebGlGlobal>>, primary: (f64,f64), secondary: Option<(f64,f64)>, kind: &PointerEventKind) -> Result<(),Message> {
         match (&mut self.drag,kind) {
             (None,PointerEventKind::Down) => {
-                self.drag = Some(DragState::new(config,lowlevel,primary,secondary,lowlevel.target_reporter())?);
+                self.drag = Some(DragState::new(config,lowlevel,gl,primary,secondary,lowlevel.target_reporter())?);
                 self.start = primary;
                 self.modifiers = lowlevel.modifiers();
             },

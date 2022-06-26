@@ -5,6 +5,7 @@ use crate::input::translate::targetreporter::TargetReporter;
 use crate::shape::core::spectre::Spectre;
 use crate::shape::core::spectremanager::{SpectreHandle, SpectreManager};
 use crate::stage::stage::ReadStage;
+use crate::webgl::global::WebGlGlobal;
 use crate::{PeregrineDom, PgCommanderWeb, run::PgPeregrineConfig};
 use crate::util::Message;
 use super::modifiers::Modifiers;
@@ -122,11 +123,11 @@ pub struct LowLevelInput {
 }
 
 impl LowLevelInput {
-    pub(crate) fn new(dom: &PeregrineDom, commander: &PgCommanderWeb, spectres: &SpectreManager, config: &PgPeregrineConfig, target_reporter: &TargetReporter) -> Result<LowLevelInput,Message> {
+    pub(crate) fn new(dom: &PeregrineDom, commander: &PgCommanderWeb, spectres: &SpectreManager, config: &PgPeregrineConfig, gl: &Arc<Mutex<WebGlGlobal>>, target_reporter: &TargetReporter) -> Result<LowLevelInput,Message> {
         let mouse_moved = Needed::new();
         let (state,distributor) = LowLevelState::new(dom,commander,spectres,config,target_reporter)?;
         let keyboard = keyboard_events(&state)?;
-        let mouse = mouse_events(config,&state,&mouse_moved)?;
+        let mouse = mouse_events(config,&state,gl,&mouse_moved)?;
         Ok(LowLevelInput { keyboard, mouse, distributor, state, mouse_moved, hotspot_cursor_handle: None })
     }
 
