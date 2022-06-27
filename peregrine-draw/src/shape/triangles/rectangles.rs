@@ -311,7 +311,7 @@ fn add_spacebase_area4(area: &SpaceBaseArea<f64,LeafStyle>, depth: &EachOrEvery<
     });
     for ((top_left,bottom_right),depth) in area.iter().zip(eoe_throw("t",depth.iter(area.len()))?) {
         let (t_0,t_1,mut n_0,mut n_1) = (*top_left.tangent,*bottom_right.tangent,*top_left.normal,*bottom_right.normal);
-        if n_0 == n_1 { /* finest lines */
+        if n_0 == n_1 && width.is_none() { /* finest lines. When hollow, fixed elsewhere */
             n_1 += (1./dpr) as f64;
         }
         let (mut b_0,mut b_1) = (*top_left.base,*bottom_right.base);
