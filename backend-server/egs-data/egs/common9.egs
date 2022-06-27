@@ -65,7 +65,7 @@ stmt red_dotted(pstart,pend,pallotment) {
     rectangle(spacebase(pend,-1,0),spacebase(pend,0,0),dots_patina,pallotment);
 }
 
-style("dots/",["system","depth"][],["tracking-special","56"][]);
+style("dots/",["system","depth","depth"][],["tracking-special","56","-10"][]);
 style("tracks/",["padding-top","priority"][],["16","0"][]);
 style("tracks/track/*/",["padding-top","padding-bottom","height-adjust"][],["4","4","tracking"][]);
 style("tracks/track/*/title/",["system","type","indent","padding-top","padding-bottom","priority"][],["window","overlay","left","2","2","-1000"][]);
