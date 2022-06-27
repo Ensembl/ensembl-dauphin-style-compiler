@@ -32,7 +32,7 @@ gene_track_names := [
 ];
 
 stmt draw_track_names(track_names,switch_names,allotments) {
-    name_text_size := 10;
+    name_text_size := 12;
     name_text_colour := direct_colour(111,129,144,255);
     good_track_names := [[track_names][@<5]][];
 
@@ -47,10 +47,10 @@ stmt draw_track_names(track_names,switch_names,allotments) {
 }
 
 stmt draw_track_category(category,allotments) {
-    cat_text_size := 10;
+    cat_text_size := 12;
     cat_text_colour := direct_colour(0,0,0,255);
 
-    textpen_cat := pen("'IBM Plex Mono', sans-serif",cat_text_size,cat_text_colour,[][]);
+    textpen_cat := pen("'Lato', sans-serif",cat_text_size,cat_text_colour,[][]);
     text2(spacebase(len(allotments) (*) 0,0,16),textpen_cat,category,allotments[]);
 }
 
