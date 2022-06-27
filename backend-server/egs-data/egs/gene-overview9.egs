@@ -1,0 +1,213 @@
+import "lib:std"; use "std";
+import "lib:peregrine"; use "peregrine";
+import "file:common9.egs"; use "common9";
+
+focus_gene := list_switch(["focus","gene"]);
+
+/* 
+ * actually get the data from the server
+ */
+
+/* main data */
+req := make_request("self()","gene-overview",get_region());
+data := get_data(req);
+/* location of focus gene */
+req2 := make_request("self()","gene-location",get_region());
+req2 := request_scope(req2,"id",focus_gene);
+focus_data := get_data(req2);
+halt(only_warm(),[data,focus_data]);
+
+focus_range := [positive_seq(focus_data,"location")];
+
+/*
+ * undo the compression applied by the server basically by applying
+ * the transforms applied there in reverse order.
+ */
+
+/* To the main data */
+start := delta_seq(data,"starts");
+end := start + delta_seq(data,"lengths");
+gene_biotype := classified_seq(data,"gene_biotypes_keys","gene_biotypes_values");
+strand := positive_seq(data,"strands");
+
+/* To the focus region data */
+focus_start := delta_seq(focus_data,"starts");
+focus_end := focus_start + delta_seq(focus_data,"lengths");
+focus_gene_biotype := classified_seq(focus_data,"gene_biotypes_keys","gene_biotypes_values");
+focus_strand := positive_seq(focus_data,"strands");
+focus_id := string_seq(focus_data,"focus_ids");
+
+/* 
+ * What are the current track settings?
+ */
+
+enabled_tracks := get_switch([
+    ["track","gene-other-rev"],
+    ["track","gene-pc-rev"],
+    ["track","gene-other-fwd"],
+    ["track","gene-pc-fwd"],
+    ["track","focus","label"],
+    ["track","focus"]
+][]);
+
+/*
+
+/ <- stack
+title/ <- track title
+main/ <- overlay
+main/background/ <- chevrons (WINDOW)
+main/main/ <- overlay (! note this is a bumper at more zoomed-in scales)
+main/main/<id>/ <- stacker
+main/main/<id>/blocks/ <- blocks
+main/main/<id>/text/ <- label
+
+*/
+
+gene_track_styles();
+
+style("**/main/main/",["type"][],["overlay",][]); /* ! */
+style("**/main/main/*/",["type"][],["overlay"][]);
+style("**/main/main/*/blocks/",["depth"][],["4"][]);
+style("**/main/background/content",["depth","padding-top"][],["-10","32"][]);
+
+potential_tracks := [
+    "tracks/track/gene-other-rev/main/main/content",
+    "tracks/track/gene-pc-rev/main/main/content",
+    "tracks/track/gene-other-fwd/main/main/content",
+    "tracks/track/gene-pc-fwd/main/main/content",
+    "tracks/track/focus/main/main/content"
+];
+
+use_allotment_names(allotment_names,enabled_tracks,potential_tracks);
+
+potential_tracks_bgd := [
+    "tracks/track/gene-other-rev/main/background/content",
+    "tracks/track/gene-pc-rev/main/background/content",
+    "tracks/track/gene-other-fwd/main/background/content",
+    "tracks/track/gene-pc-fwd/main/background/content",
+    "tracks/track/focus/main/background/content"
+];
+
+use_allotments(allotments_bgd,enabled_tracks,potential_tracks_bgd);
+
+use_allotments(allotments_letter,enabled_tracks,[
+    "tracks/track/gene-other-rev/main/letter/content",
+    "tracks/track/gene-pc-rev/main/letter/content",
+    "tracks/track/gene-other-fwd/main/letter/content",
+    "tracks/track/gene-pc-fwd/main/letter/content",
+    "tracks/track/focus/main/letter/content",
+]);
+
+use_allotments(allotments_trackname,enabled_tracks,[
+    "tracks/track/gene-other-rev/title/content",
+    "tracks/track/gene-pc-rev/title/content",
+    "tracks/track/gene-other-fwd/title/content",
+    "tracks/track/gene-pc-fwd/title/content",
+    "tracks/track/focus/title/content",
+]);
+
+/*
+ * Which allotment and track does data go into?
+ *
+ * There are separate allotments for protein_coding and non-protein_coding
+ * and also for forward and reverse strand. As usual there is a fifth 
+ * allotment for a focus-feature.
+ *
+ * For the data on each allotment there are currently two tracks: the
+ * main data and the labels.
+ */
+
+/* Main region */
+allotment_idx := len([start]) (*) 0;
+allotment_idx#[strand > 0] (+=) 2;
+allotment_idx#[in(gene_biotype,["protein_coding"])] (+=) 1;
+allotment := index(allotment_idx,[use_allotment(allotment_names[])]);
+
+/* Focus region */
+focus_allotment_idx := len([focus_start]) (*) 0;
+focus_allotment_idx#[focus_strand > 0] (+=) 2;
+focus_allotment_idx#[in(focus_gene_biotype,["protein_coding"])] (+=) 1;
+focus_allotment_idx#[focus_id==focus_gene] := 4;
+focus_allotment := use_allotment(index(focus_allotment_idx,allotment_names));
+
+/*
+ * What colour? What font? etc
+ *
+ * (driven by allotment for gene)
+ */
+
+non_pc_colour := simple_colour(direct_colour(200,200,200,255));
+pc_colour := simple_colour(direct_colour(128,128,128,255));
+focus_colour := simple_colour(direct_colour(39,154,252,255));
+patina := index(allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour,focus_colour]);
+focus_patina := patina_filled(index(focus_allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour,focus_colour]));
+
+/*
+ * Don't draw data in focus region
+ */
+
+/* pretend focus is at (0,0) if missing, for simplicity */
+clip_start := 0;
+clip_start#[len(focus_range)>0] := focus_range[@==0];
+clip_end := 0;
+clip_end#[len(focus_range)>0] := focus_range[@==1];
+
+/* Things which start to left of focus region */
+members := start<clip_start;
+left_start := start#[members];
+left_end := end#[members];
+left_end#[left_end>(clip_start-1)] := clip_start; // clip
+left_patina := patina#[members];
+left_allotment := allotment#[members];
+
+/* Things which start to right of focus region */
+members := end>clip_end;
+right_start := start#[members];
+right_end := end#[members];
+right_end#[right_start<clip_end] := clip_end; // clip
+right_patina := patina#[members];
+right_allotment := allotment#[members];
+
+/*
+ * draw everything!
+ */
+
+rectangle(spacebase(left_start,0,-0.5),spacebase(left_end,5,0.5),patina_filled(left_patina),left_allotment);
+rectangle(spacebase(right_start,0,-0.5),spacebase(right_end,5,0.5),patina_filled(right_patina),right_allotment);
+rectangle(spacebase(focus_start,0,-0.5),spacebase(focus_end,5,0.5),focus_patina,focus_allotment);
+
+chevron_spacing := [
+    0.00,0.025,0.05,0.075,
+    0.10,0.125,0.15,0.175,
+    0.20,0.225,0.25,0.275,
+    0.30,0.325,0.35,0.375,
+    0.40,0.425,0.45,0.475,
+
+    0.50,0.525,0.55,0.575,
+    0.60,0.625,0.65,0.675,
+    0.70,0.725,0.75,0.775,
+    0.80,0.825,0.85,0.875,
+    0.90,0.925,0.95,0.975,
+][];
+
+image_underneath(chevron_spacing,0,"chevron-left",allotments_bgd[@==0]);
+image_underneath(chevron_spacing,0,"chevron-left",allotments_bgd[@==1]);
+image_underneath(chevron_spacing,0,"chevron-right",allotments_bgd[@==2]);
+image_underneath(chevron_spacing,0,"chevron-right",allotments_bgd[@==3]);
+
+/* focus */
+focus_strand := focus_range[@==2];
+image_underneath(chevron_spacing,0,["chevron-left","chevron-right"][@==focus_strand],allotments_bgd[@==4]);
+
+/* track names */
+draw_track_names(gene_track_names,gene_name_switches,allotments_trackname);
+
+/* track category */
+draw_track_category("G",allotments_letter);
+
+/* focus swatch */
+draw_focus_swatch(allotments_letter[@==4]);
+
+/* red-dotted lines */
+dots_allotment := use_allotment(["","dots/content"][(@==1)==(get_switch(["track","focus"]))]);
+red_dotted(focus_range[@==0],focus_range[@==1],dots_allotment);

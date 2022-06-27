@@ -56,7 +56,7 @@ stmt draw_track_category(category,allotments) {
 
 stmt draw_focus_swatch(allotment_value) {
     swatch_patina := patina_filled(simple_colour(direct_colour(88,168,249,255)));
-    rectangle(spacebase(0,-9,0),spacebase(0,20,5),swatch_patina,allotment_value);
+    rectangle(spacebase(0,-14,0),spacebase(0,25,5),swatch_patina,allotment_value);
 }
 
 stmt red_dotted(pstart,pend,pallotment) {
@@ -67,8 +67,8 @@ stmt red_dotted(pstart,pend,pallotment) {
 
 style("dots/",["system","depth","depth"][],["tracking-special","56","-10"][]);
 style("tracks/",["padding-top","priority"][],["16","0"][]);
-style("tracks/track/*/",["padding-top","padding-bottom","height-adjust"][],["4","4","tracking"][]);
-style("tracks/track/*/title/",["system","type","indent","padding-top","padding-bottom","priority"][],["window","overlay","left","2","2","-1000"][]);
+style("tracks/track/*/",["padding-top","padding-bottom","height-adjust"][],["4","12","tracking"][]);
+style("tracks/track/*/title/",["system","type","indent","padding-top","padding-bottom","priority"][],["window","overlay","left","2","10","-1000"][]);
 style("tracks/track/*/main/",["type","priority"][],["overlay","0"][]);
 style("tracks/track/*/main/letter/",["system","indent","depth"][],["window","datum(pad-left)","60"][]);
 style("tracks/track/*/title/letter/",["system","indent","depth"][],["window","datum(pad-left)","60"][]);
@@ -80,7 +80,7 @@ stmt gene_track_styles() {
     style("tracks/track/gene-pc-rev/",["priority","report","min-height"][],["100","track;switch-id=gene-pc-rev;has-labels=true;!boxes","92"][]);
     style("tracks/track/gene-other-fwd/",["priority","report","min-height"][],["-110","track;switch-id=gene-other-fwd;has-labels=true;!boxes","92"][]);
     style("tracks/track/gene-pc-fwd/",["priority","report","min-height"][],["-100","track;switch-id=gene-pc-fwd;has-labels=true;!boxes","92"][]);
-    style("tracks/track/focus/",["priority","report"][],["-900","track;switch-id=focus;has-labels=true;!boxes"][]);
+    style("tracks/track/focus/",["priority","report","min-height"][],["-900","track;switch-id=focus;has-labels=true;!boxes","100"][]);
 }
 
 stmt report_shown(rs_bool_show_tr,rs_transcript_allotment_idx,rs_transcript_id,rs_al_focus_bgd) {

@@ -161,11 +161,11 @@ use_allotments(allotments_trackname,enabled_tracks,[
 ]);
 
 use_allotments(allotments_letter,enabled_tracks,[
-    "tracks/track/gene-other-rev/title/letter/content",
-    "tracks/track/gene-pc-rev/title/letter/content",
-    "tracks/track/gene-other-fwd/title/letter/content",
-    "tracks/track/gene-pc-fwd/title/letter/content",
-    "tracks/track/focus/title/letter/content",
+    "tracks/track/gene-other-rev/main/letter/content",
+    "tracks/track/gene-pc-rev/main/letter/content",
+    "tracks/track/gene-other-fwd/main/letter/content",
+    "tracks/track/gene-pc-fwd/main/letter/content",
+    "tracks/track/focus/main/letter/content",
 ]);
 
 /* apply solidity in thick region ... */

@@ -14,7 +14,7 @@ sense := positive_seq(data,"sense");
 
 allotment := use_allotment("tracks/track/contig/main/main/content");
 allotment_track_name := use_allotment("tracks/track/contig/title/content");
-allotment_letter := use_allotment("tracks/track/contig/title/letter/content");
+allotment_letter := use_allotment("tracks/track/contig/main/letter/content");
 
 style("tracks/track/contig/",["min-height","priority","report"][],["40","0","track;switch-id=contig"][]);
 

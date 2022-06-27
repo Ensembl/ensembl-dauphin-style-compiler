@@ -11,7 +11,7 @@ x_range := [positive_seq(data,"range")];
 
 allotment := use_allotment("tracks/track/variant/main/main/content");
 allotment_track_name := use_allotment("tracks/track/variant/title/content");
-allotment_letter := use_allotment("tracks/track/variant/title/letter/content");
+allotment_letter := use_allotment("tracks/track/variant/main/letter/content");
 
 style("tracks/track/variant/",["priority","report"][],["1000","track;switch-id=variant"][]);
 

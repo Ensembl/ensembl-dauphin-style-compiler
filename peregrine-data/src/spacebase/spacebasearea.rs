@@ -99,13 +99,13 @@ impl<X: Clone + Add<Output=X> + Sub<Output=X>, Y: Clone> SpaceBaseArea<X,Y> {
             },
             HollowEdge2::Right(w) => {
                 out.0.base = out.1.base.clone();
-                out.0.tangent = out.1.tangent.map(|x| x.clone()-w.clone());
+                out.0.tangent = out.1.tangent.map(|x| x.clone()+w.clone());
             },
             HollowEdge2::Top(w) => {
                 out.1.normal = out.0.normal.map(|x| x.clone()+w.clone());
             },
             HollowEdge2::Bottom(w) => {
-                out.0.normal = out.1.normal.map(|x| x.clone()-w.clone());
+                out.0.normal = out.1.normal.map(|x| x.clone()+w.clone());
             }
         }
         out

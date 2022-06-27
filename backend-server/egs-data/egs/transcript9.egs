@@ -186,11 +186,11 @@ use_allotments(al_label_by_tk,enabled_tracks,[
 ]);
 
 use_allotments(allotments_letter,enabled_tracks,[
-    "tracks/track/gene-other-rev/title/letter/content",
-    "tracks/track/gene-pc-rev/title/letter/content",
-    "tracks/track/gene-other-fwd/title/letter/content",
-    "tracks/track/gene-pc-fwd/title/letter/content",
-    "tracks/track/focus/title/letter/content",
+    "tracks/track/gene-other-rev/main/letter/content",
+    "tracks/track/gene-pc-rev/main/letter/content",
+    "tracks/track/gene-other-fwd/main/letter/content",
+    "tracks/track/gene-pc-fwd/main/letter/content",
+    "tracks/track/focus/main/letter/content",
 ]);
 
 use_allotments(allotments_wallpaper,enabled_tracks,potential_tracks_wallpaper);
@@ -406,7 +406,7 @@ w  := spacebase(start_gn_by_tr, c+3, 0);
 sw := spacebase(start_gn_by_tr, c+6, 0);
 
 ne := spacebase(end_gn_by_tr,   c,   0);
-e  := spacebase(end_gn_by_tr,   c+3, 0);
+e  := spacebase(end_gn_by_tr,   c+4, 0);
 se := spacebase(end_gn_by_tr,   c+6, 0);
 
 rectangle(w,  e,  pt_under_dotted_by_tr, al_far_under_by_tr); // dotted
@@ -416,7 +416,7 @@ rectangle(ne, se, pt_hollow_by_tr,       al_endstop_by_tr); // right stop
 /* draw solid line the extent of the transcript */
 c := idx_tr_in_gn * 20;
 w := spacebase(start_tr,c+3,0);
-e := spacebase(end_tr,c+3,0);
+e := spacebase(end_tr,c+4,0);
 rectangle(w,e,pt_under_by_tr,al_under_by_tr);
 
 /* draw hollow and blanking exons */

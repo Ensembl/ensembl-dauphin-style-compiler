@@ -13,7 +13,7 @@ halt(only_warm(),[data]);
 allotment := use_allotment("tracks/track/gc/main/main/content");
 allotment_track_name := use_allotment("tracks/track/gc/title/content");
 allotment_track_background := use_allotment("tracks/track/gc/main/background/content");
-allotment_letter := use_allotment("tracks/track/gc/title/letter/content");
+allotment_letter := use_allotment("tracks/track/gc/main/letter/content");
 
 style("tracks/track/gc/",["priority","report"][],["900","track;switch-id=gc"][]);
 
