@@ -378,8 +378,6 @@ idx_tr_in_gn_by_seqb := index(which_tr_by_seqb,[idx_tr_in_gn]);
 which_gn_by_seqb := index(which_tr_by_seqb,[which_gn_by_tr]);
 thin_seq_allotment_overb := index(which_tr_by_seqb,[al_over_by_tr]);
 
-notice(format([[len([which_tr_by_seq])],[len([which_tr_by_seqb])],[len([idx_tr_in_gn_by_seqb])]]));
-
 /* intron rectangles */
 c := idx_tr_in_gn_by_seqb * 20;
 w := spacebase(pos_seqb,c,1);
