@@ -59,11 +59,7 @@ fn colour_to_heraldry(colour: &Colour, hollow: bool) -> Option<Heraldry> {
             Some(Heraldry::Stripe(a.clone(),b.clone(),50,*c))
         },
         Colour::Bar(a,b,c,prop) => {
-            if hollow {
-                Some(Heraldry::new_dots(a,b,(prop*100.) as u32,*c,false))
-            } else {
-                Some(Heraldry::new_bar(a,b,(prop*100.) as u32,*c,false))
-            }
+            Some(Heraldry::new_dots(a,b,(prop*100.) as u32,*c,false))
         },
         _ => None
     }

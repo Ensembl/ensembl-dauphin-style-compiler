@@ -358,8 +358,6 @@ pc_colour := simple_colour(base_pc_colour);
 focus_colour := simple_colour(base_focus_colour);
 
 pt_under_by_tr := patina_filled(index(transcript_allotment_colour_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour,focus_colour]));
-
-pt_under_dotted_by_tr := patina_hollow(index(transcript_allotment_colour_idx,[dotted_non_pc_colour,dotted_pc_colour,dotted_non_pc_colour,dotted_pc_colour,dotted_focus_colour]),0);
 pt_hollow_by_tr := patina_hollow(index(transcript_allotment_colour_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour,focus_colour]),1);
 pt_hollow_by_ex := patina_hollow(index(exon_allotment_colour_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour,focus_colour]),1);
 pt_white := patina_filled(simple_colour(direct_colour(255,255,255,255)));
@@ -393,9 +391,6 @@ pt_zmenu_gn := patina_zmenu(zmenu_tmpl,["symbol","id","track","type"],[[gene_nam
  * draw everything!
  */
 
-al_endstop_by_tr := al_under_by_tr;
-al_endstop_by_tr#[transcript_allotment_idx==4] := use_allotment("");
-
 /* Central dotted line */
 gaps(dotted_start,dotted_end,dotted_idx,
     start_gn_by_tr,end_gn_by_tr,
@@ -404,7 +399,7 @@ gaps(dotted_start,dotted_end,dotted_idx,
 dotted_al := index(dotted_idx,[al_under_by_tr]);
 idx_dotted_in_gn := index(dotted_idx,[idx_tr_in_gn]);
 dotted_tr_colour_idx := index(dotted_idx,[transcript_allotment_colour_idx]);
-pt_dotted := patina_hollow(index(dotted_tr_colour_idx,[dotted_non_pc_colour,dotted_pc_colour,dotted_non_pc_colour,dotted_pc_colour,dotted_focus_colour]),0);
+pt_dotted := patina_filled(index(dotted_tr_colour_idx,[dotted_non_pc_colour,dotted_pc_colour,dotted_non_pc_colour,dotted_pc_colour,dotted_focus_colour]));
 
 c := idx_dotted_in_gn * 20;
 w  := spacebase(dotted_start, c+3, 0);
@@ -412,6 +407,9 @@ e  := spacebase(dotted_end,   c+4, 0);
 rectangle(w,  e,  pt_dotted, dotted_al); // dotted
 
 /* Endstops */
+al_endstop_by_tr := al_under_by_tr;
+al_endstop_by_tr#[transcript_allotment_idx==4] := use_allotment("");
+
 c := idx_tr_in_gn * 20;
 nw := spacebase(start_gn_by_tr, c,   0);
 sw := spacebase(start_gn_by_tr, c+6, 0);
@@ -509,7 +507,7 @@ button_colour#[in(gene_id,[expanded_genes])] := green_colour;
 button_patina := patina_filled(button_colour);
 
 // DISABLED FOR 0.3.1
-rectangle(blue_top_left,blue_bottom_right,button_patina,button_allotment);
+//rectangle(blue_top_left,blue_bottom_right,button_patina,button_allotment);
 
 sense := len([expand_switches]) (*) true;
 sense#[in(gene_id,[expanded_genes])] := false;
@@ -517,7 +515,7 @@ sense#[in(gene_id,[expanded_genes])] := false;
 blue_hotspot_patina := patina_switch(expand_switches,sense);
 
 // DISABLED FOR 0.3.1
-rectangle(blue_top_left,blue_bottom_right,blue_hotspot_patina,button_allotment);
+//rectangle(blue_top_left,blue_bottom_right,blue_hotspot_patina,button_allotment);
 
 /* report transcripts shown */
 report_shown(bool_show_tr,transcript_allotment_idx,transcript_id,use_allotment([background_allotment_names[@==4]][]));
