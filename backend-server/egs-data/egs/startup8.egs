@@ -37,10 +37,18 @@ track_apply(p);
 
 
 /* GENES & TRANSCRIPTS */
+
+
 /* exon-structure; labels ; zmenus; sequence blocks */
-p := track_new("self()","zoomed-transcript",0,sequence_scale,sequence_scale);
+p := track_new("self()","zoomed-transcript",0,6,6);
 track_add_tag(p,"local");
 gene_std(p);
+track_apply(p);
+/* exon-structure; labels ; zmenus; sequence blocks */
+p := track_new("self()","zoomed-transcript",6,9,3);
+track_add_tag(p,"local");
+gene_std(p);
+track_set_switch(p,["scale","no-letters"]);
 track_apply(p);
 /* exon-structure; labels ; zmenus; no sequence blocks */
 p := track_new("self()","transcript",sequence_scale,19,6);

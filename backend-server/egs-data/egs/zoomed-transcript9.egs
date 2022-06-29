@@ -37,6 +37,7 @@ import "file:common9.egs"; use "common9";
  * idx_tr_in_gn_by_ex: for each exon, it is in the 1st, 2nd, 3rd, etc transcript of its gene
  */
 
+no_letters := get_switch(["scale","no-letters"]);
 
 /* 
  * actually get the data from the server
@@ -250,6 +251,7 @@ allotment_names := [append_group(aln_base[],["diagram"][])];
 transcript_allotment_names := [append_group(base_transcript_allotment_names[],["diagram"][])];
 thick_exon_allotment_names := [append_group(base_thick_exon_allotment_names[],["diagram"][])];
 
+al_under_by_tr := use_allotment(append_group(transcript_allotment_names[],["under"][]));
 al_over_by_tr := use_allotment(append_group(transcript_allotment_names[],["over"][]));
 al_far_over_by_tr := use_allotment(append_group(transcript_allotment_names[],["far-over"][]));
 
@@ -368,7 +370,6 @@ all_endos_thex := all_end_thex;
 all_startos_thex#[all_start_thex<bp[@==0]] := bp[@==0];
 all_endos_thex#[all_end_thex>bp[@==1]] := bp[@==1];
 
-
 gaps(start_itb,end_itb,which_tr_by_itb,
      all_startos_thex,all_endos_thex,
      start_thex, end_thex, which_tr_by_thex);
@@ -378,6 +379,14 @@ which_tr_by_seqb := index(which_it_by_seqb,[which_tr_by_it]);
 idx_tr_in_gn_by_seqb := index(which_tr_by_seqb,[idx_tr_in_gn]);
 which_gn_by_seqb := index(which_tr_by_seqb,[which_gn_by_tr]);
 thin_seq_allotment_overb := index(which_tr_by_seqb,[al_over_by_tr]);
+
+/* utr line if no letters */
+c := idx_tr_in_gn * 20;
+w := spacebase(start_gn_by_tr,c+7,0);
+e := spacebase(all_start_thex,c+8,0);
+al_utr_line := al_under_by_tr;
+al_utr_line#[no_letters==false] := use_allotment("");
+rectangle(w,e,patina_filled(thick_seq_colour),al_utr_line);
 
 /* intron rectangles */
 c := idx_tr_in_gn_by_seqb * 20;
@@ -401,7 +410,10 @@ pos := spacebase(pos_seq+0.5,c+1,-4);
 thin_seq_allotment_over := index(which_tr_by_seq,[al_over_by_tr]);
 thin_seq_allotment_far_over := index(which_tr_by_seq,[al_far_over_by_tr]);
 
-text2(pos,thin_textpen,draw_seq_letter,thin_seq_allotment_over);
+intron_letter_allotments := thin_seq_allotment_over;
+intron_letter_allotments#[no_letters] := use_allotment("");
+
+text2(pos,thin_textpen,draw_seq_letter,intron_letter_allotments);
 
 /* track names */
 draw_track_names(gene_track_names,gene_name_switches,allotments_trackname);

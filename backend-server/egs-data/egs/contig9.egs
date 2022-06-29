@@ -16,7 +16,7 @@ allotment := use_allotment("tracks/track/contig/main/main/content");
 allotment_track_name := use_allotment("tracks/track/contig/title/content");
 allotment_letter := use_allotment("tracks/track/contig/main/letter/content");
 
-style("tracks/track/contig/",["min-height","priority","report"][],["40","0","track;switch-id=contig"][]);
+style("tracks/track/contig/",["min-height","priority","report"][],["50","0","track;switch-id=contig"][]);
 
 neg_colour := simple_colour(direct_colour(128,128,128,255));
 pos_colour := simple_colour(direct_colour(200,200,200,255));
