@@ -161,7 +161,6 @@ enabled_labels := get_switch([
 enabled_gene_labels := index(allotment_idx,[enabled_labels]);
 
 text_allotment#[enabled_gene_labels==false] := use_allotment("");
-text_allotment#[get_switch(["scale","no-labels"])] := use_allotment("");
 
 gene_labels := if(get_switch(["track","gene-pc-fwd","label","id"]),gene_id,gene_name);
 
