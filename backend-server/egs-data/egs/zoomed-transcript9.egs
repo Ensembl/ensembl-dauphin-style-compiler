@@ -78,8 +78,8 @@ end_gn_by_tr := index(which_gn_by_tr,[end_gn]);
 id_gn_by_tr := index(which_gn_by_tr,[gene_id]);
 
 /* exon stuff */
-start_thex := delta_seq(data,"thicks_starts");
-end_thex := start_thex + delta_seq(data,"thicks_lengths");
+all_start_thex := delta_seq(data,"thicks_starts");
+all_end_thex := all_start_thex + delta_seq(data,"thicks_lengths");
 
 which_tr_by_ex := derun(delta_seq(data,"transcript_exon_counts"));
 which_gn_by_ex := index(which_tr_by_ex,[which_gn_by_tr]);
@@ -171,8 +171,8 @@ use_allotments(allotments_letter,enabled_tracks,[
 /* apply solidity in thick region ... */
 /* ... find thick limits for each exon */
 
-exon_thick_limit_start := index(which_tr_by_ex,[start_thex]);
-exon_thick_limit_end := index(which_tr_by_ex,[end_thex]);
+exon_thick_limit_start := index(which_tr_by_ex,[all_start_thex]);
+exon_thick_limit_end := index(which_tr_by_ex,[all_end_thex]);
 trunc_left := exon_thick_limit_start>start_ex;
 trunc_right := exon_thick_limit_end<end_ex;
 
@@ -344,6 +344,12 @@ text2(pos,thick_textpen,draw_thseq_letter,thick_seq_allotment_far_over);
 
 /* INTRONS */
 
+/* Given containing intervals (startos_tr,endos_tr), and given blocks within them 
+ * (start_thex,end_thex) being in containing interval which_tr_by_thex, what are the
+ * gaps: their interval (start_it,end_it) and for which containing interval?
+ */
+
+/* where we draw letters, ie not in exons */
 gaps(start_it, end_it, which_tr_by_it,
      startos_tr, endos_tr,
      start_thex, end_thex, which_tr_by_thex);
@@ -354,11 +360,31 @@ idx_tr_in_gn_by_seq := index(which_tr_by_seq,[idx_tr_in_gn]);
 which_gn_by_seq := index(which_tr_by_seq,[which_gn_by_tr]);
 thin_seq_allotment_over := index(which_tr_by_seq,[al_over_by_tr]);
 
+/* where we draw boxes, ie not in exons *or* UTRs */
+
+all_startos_thex := all_start_thex;
+all_endos_thex := all_end_thex;
+all_startos_thex#[all_start_thex<bp[@==0]] := bp[@==0];
+all_endos_thex#[all_end_thex>bp[@==1]] := bp[@==1];
+
+
+gaps(start_itb,end_itb,which_tr_by_itb,
+     all_startos_thex,all_endos_thex,
+     start_thex, end_thex, which_tr_by_thex);
+range(pos_seqb,which_it_by_seqb, start_itb,end_itb);
+
+which_tr_by_seqb := index(which_it_by_seqb,[which_tr_by_it]);
+idx_tr_in_gn_by_seqb := index(which_tr_by_seqb,[idx_tr_in_gn]);
+which_gn_by_seqb := index(which_tr_by_seqb,[which_gn_by_tr]);
+thin_seq_allotment_overb := index(which_tr_by_seqb,[al_over_by_tr]);
+
+notice(format([[len([which_tr_by_seq])],[len([which_tr_by_seqb])],[len([idx_tr_in_gn_by_seqb])]]));
+
 /* intron rectangles */
-c := idx_tr_in_gn_by_seq * 20;
-w := spacebase(pos_seq,c,1);
-e := spacebase(pos_seq+1,c+12,-1);
-rectangle(w,e,thin_seq_patina,thin_seq_allotment_over);
+c := idx_tr_in_gn_by_seqb * 20;
+w := spacebase(pos_seqb,c,1);
+e := spacebase(pos_seqb+1,c+12,-1);
+rectangle(w,e,thin_seq_patina,thin_seq_allotment_overb);
 
 /* intron letters */
 seq_letter_pos := pos_seq - sequence_start;
