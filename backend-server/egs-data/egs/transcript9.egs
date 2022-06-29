@@ -363,11 +363,14 @@ pt_hollow_by_ex := patina_hollow(index(exon_allotment_colour_idx,[non_pc_colour,
 pt_white := patina_filled(simple_colour(direct_colour(255,255,255,255)));
 pt_thick_by_thex := patina_filled(index(exon_allotment_colour_idx#[thick_exons],[non_pc_colour,pc_colour,non_pc_colour,pc_colour,focus_colour]));
 text_colour := direct_colour(111,129,144,255);
+white_text_colour := direct_colour(255,255,255,255);
 blue_text_colour := direct_colour(111,129,255,255);
 text_size := 10;
 
 textpen := pen("'IBM Plex Mono', sans-serif",text_size,text_colour,[][]);
 textpen_blue := pen("'IBM Plex Mono', sans-serif",text_size,blue_text_colour,[][]);
+blue_text_bgd := background(blue_text_colour,true);
+textpen_lozenge := pen("'IBM Plex Mono', sans-serif",text_size*1.2,white_text_colour,blue_text_bgd);
 
 
 /*
@@ -498,7 +501,7 @@ red_dotted(start_focus,end_focus,al_dots);
 
 /* blue button */
 blue_top_left := spacebase(start_gn,drawn_tr_by_gn*20+6,0);
-blue_bottom_right := spacebase(start_gn,drawn_tr_by_gn*20+14,12);
+blue_bottom_right := spacebase(start_gn,drawn_tr_by_gn*20+32,32);
 blue_colour := simple_colour(direct_colour(239,154,52,255));
 green_colour := simple_colour(direct_colour(154,239,52,255));
 
@@ -507,7 +510,7 @@ button_colour#[in(gene_id,[expanded_genes])] := green_colour;
 button_patina := patina_filled(button_colour);
 
 // DISABLED FOR 0.3.1
-//rectangle(blue_top_left,blue_bottom_right,button_patina,button_allotment);
+text2(blue_top_left,textpen_lozenge," + ",button_allotment);
 
 sense := len([expand_switches]) (*) true;
 sense#[in(gene_id,[expanded_genes])] := false;
@@ -515,7 +518,7 @@ sense#[in(gene_id,[expanded_genes])] := false;
 blue_hotspot_patina := patina_switch(expand_switches,sense);
 
 // DISABLED FOR 0.3.1
-//rectangle(blue_top_left,blue_bottom_right,blue_hotspot_patina,button_allotment);
+rectangle(blue_top_left,blue_bottom_right,blue_hotspot_patina,button_allotment);
 
 /* report transcripts shown */
 report_shown(bool_show_tr,transcript_allotment_idx,transcript_id,use_allotment([background_allotment_names[@==4]][]));

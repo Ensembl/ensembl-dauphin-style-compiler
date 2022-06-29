@@ -190,7 +190,8 @@ mod shape {
     mod wiggleshape;
 
     pub use self::core::{ 
-        Patina, Pen, Colour, DirectColour, Plotter, DrawnType, Hotspot, PenGeometry
+        Patina, Pen, Colour, DirectColour, Plotter, DrawnType, Hotspot, PenGeometry,
+        Background
     };
     pub use self::shape::{ ShapeDemerge, Shape };
     pub use self::zmenu::ZMenu;
@@ -271,7 +272,7 @@ pub use self::request::core::packet::{ RequestPacket, ResponsePacket };
 pub use self::request::core::backend::{ AllBackends, Backend };
 pub use self::shape::shape::DrawingShape;
 pub use self::shape::{ 
-    Patina, Colour, DirectColour, DrawnType, Shape, Hotspot, PenGeometry,
+    Patina, Colour, DirectColour, DrawnType, Shape, Hotspot, PenGeometry, Background,
     ZMenu, Pen, Plotter, ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator,
     ZMenuProxy, zmenu_fixed_vec_to_json, ShapeDemerge, zmenu_to_json,
     ProgramShapesBuilder, AbstractShapesContainer

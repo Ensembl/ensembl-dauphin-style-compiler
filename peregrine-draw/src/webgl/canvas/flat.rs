@@ -1,10 +1,15 @@
+use std::{char::MAX, f64::consts::PI};
+
 use wasm_bindgen::{JsCast, JsValue, prelude::Closure};
 use web_sys::{CanvasRenderingContext2d, Document, HtmlCanvasElement, HtmlImageElement };
-use peregrine_data::{ Pen, DirectColour, PenGeometry };
+use peregrine_data::{ Pen, DirectColour, PenGeometry, Background };
 use super::{bindery::SelfManagedWebGlTexture, canvasstore::HtmlFlatCanvas, pngcache::PngCache, weave::CanvasWeave};
 use crate::util::{message::Message};
 use super::canvasstore::CanvasStore;
 use peregrine_toolkit::{js::exception::js_result_to_option_console };
+
+const MIN_ROUNDING_SIZE: u32 = 8; // px :should be configurable in Background object if anyone wants it
+const MAX_ROUNDING_SIZE: u32 = 16; // px :should be configurable in Background object if anyone wants it
 
 fn pen_to_font(pen: &PenGeometry, bitmap_multiplier: f64) -> String {
     format!("{}px {}",(pen.size_in_webgl() * bitmap_multiplier).round(),pen.name())
@@ -18,6 +23,8 @@ fn draw_png_onload(context: CanvasRenderingContext2d, el: HtmlImageElement, orig
     context.draw_image_with_html_image_element_and_dw_and_dh(&el,origin.0 as f64,origin.1 as f64,size.0 as f64,size.1 as f64)?;
     Ok(())
 }
+
+fn sub(a: u32, b: u32) -> u32 { a.max(b) - b } // avoiding underflow
 
 pub(crate) struct Flat {
     bitmap_multiplier: f64,
@@ -76,7 +83,6 @@ impl Flat {
         if self.discarded { return Err(Message::CodeInvariantFailed(format!("set_font on discarded flat canvas"))); }
         let width = self.context.as_ref().unwrap().measure_text(text).map_err(|e| Message::Canvas2DFailure(format!("cannot measure text: {:?}",e)))?.width();
         let height = self.font_height.ok_or_else(|| Message::CodeInvariantFailed("no font set before measure".to_string()))?;
-//        log!("width of {:?} is {:?} (canvas is {:?} font {:?} fh {:?})",text,width,self.size.0,self.font,self.font_height);
         Ok((width as u32,height as u32))
     }
 
@@ -87,6 +93,19 @@ impl Flat {
         let bitmap_multiplier = if multiply { self.bitmap_multiplier } else { 1. };
         context.fill_rect(origin.0 as f64 * bitmap_multiplier, origin.1 as f64 * bitmap_multiplier,
             size.0 as f64 * bitmap_multiplier, size.1 as f64 * bitmap_multiplier);
+        Ok(())
+    }
+
+    pub(crate) fn circle(&self, origin: (u32,u32), radius: u32, colour: &DirectColour, multiply: bool) -> Result<(),Message> {
+        if self.discarded { return Err(Message::CodeInvariantFailed(format!("circle on discarded flat canvas"))); }
+        let multiplier = if multiply { self.bitmap_multiplier } else { 1. };
+        let origin = (origin.0 as f64 * multiplier, origin.1 as f64 * multiplier);
+        let radius = radius as f64 * multiplier;
+        let context = self.context()?;
+        context.begin_path();
+        context.arc(origin.0,origin.1,radius-1.,0.,2.*PI).map_err(|x| Message::Canvas2DFailure("cannot draw arc".to_string()))?;
+        context.set_fill_style(&colour_to_css(colour).into());
+        context.fill();
         Ok(())
     }
 
@@ -139,10 +158,31 @@ impl Flat {
         Ok(())
     }
 
+    fn background(&self, origin: (u32,u32), size: (u32,u32), background: &Background, multiply: bool) -> Result<(),Message> {
+        if background.round {
+            let d = (size.0/2).min(size.1/2).min(MAX_ROUNDING_SIZE).max(MIN_ROUNDING_SIZE);
+            let d = 16;
+            self.rectangle((origin.0+d,origin.1),(sub(size.0,2*d+1),size.1),&background.colour,multiply)?;
+            self.rectangle((origin.0,origin.1+d),(size.0,sub(size.1,2*d+1)),&background.colour,multiply)?;
+            let nw = (origin.0 + d,origin.1 + d);
+            let ne = (sub(nw.0 + size.0, 2*d+1),nw.1);
+            let sw = (nw.0, sub(nw.1 + size.1,2*d+1));
+            let se = (ne.0,sw.1);
+
+            self.circle(nw,d,&background.colour,multiply)?;
+            self.circle(ne,d,&background.colour,multiply)?;
+            self.circle(sw,d,&background.colour,multiply)?;
+            self.circle(se,d,&background.colour,multiply)?;
+        } else {
+            self.rectangle(origin,size,&background.colour,multiply)?;
+        }
+        Ok(())
+    }
+
     // TODO white-bgd canvas
-    pub(crate) fn text(&self, text: &str, origin: (u32,u32), size: (u32,u32), colour: &DirectColour, background: &DirectColour) -> Result<(),Message> {
+    pub(crate) fn text(&self, text: &str, origin: (u32,u32), size: (u32,u32), colour: &DirectColour, background: &Background) -> Result<(),Message> {
         if self.discarded { return Err(Message::CodeInvariantFailed(format!("set_font on discarded flat canvas"))); }
-        self.rectangle(origin,size,background,false)?;
+        self.background(origin,size,background,false)?;
         let context = self.context()?;
         context.set_text_baseline("top");
         context.set_fill_style(&colour_to_css(&colour).into());

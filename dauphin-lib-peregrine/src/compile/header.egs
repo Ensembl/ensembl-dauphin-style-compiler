@@ -43,6 +43,7 @@ struct plotterspec { value: number };
 struct allotment { value: number };
 struct spacebaseid { value: number };
 struct request { value: number };
+struct backgroundid { value: number };
 
 struct region {
     stick: string,
@@ -67,7 +68,7 @@ proc track_set_max_scale_jump(laneid,number);
 proc track_apply(laneid);
 
 func spacebase(number,number,number) becomes spacebaseid;
-
+func background(directcolour,boolean) becomes backgroundid;
 func use_allotment(string) becomes allotment;
 func direct_colour(number,number,number,number) becomes directcolour;
 func simple_colour(directcolour) becomes colour;
@@ -79,7 +80,7 @@ func patina_filled(colour) becomes patina;
 func patina_hollow(colour,number) becomes patina;
 func patina_zmenu(zmenutmpl, vec(string), vec(string)) becomes patina;
 func patina_switch(string,boolean) becomes patina;
-func pen(string,number,directcolour,directcolour) becomes penspec;
+func pen(string,number,directcolour,backgroundid) becomes penspec;
 func plotter(number,directcolour) becomes plotterspec;
 func make_request(string,string,region) becomes request;
 func request_scope(request,string,string) becomes request;

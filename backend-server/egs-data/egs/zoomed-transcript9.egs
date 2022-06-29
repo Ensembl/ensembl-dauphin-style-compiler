@@ -283,7 +283,8 @@ thin_seq_colour := simple_colour(text_colour);
 thick_seq_patina := patina_filled(thick_seq_colour);
 thin_seq_patina := patina_hollow(thin_seq_colour,1);
 
-thick_textpen := pen("'IBM Plex Mono', sans-serif",text_size,thick_text_colour,thick_colour);
+thick_background := background(thick_colour,false);
+thick_textpen := pen("'IBM Plex Mono', sans-serif",text_size,thick_text_colour,thick_background);
 
 /******/
 
@@ -325,7 +326,7 @@ thick_seq_allotment_over := index(which_tr_by_seq,[al_over_by_tr]);
 thick_seq_allotment_far_over := index(which_tr_by_seq,[al_far_over_by_tr]);
 
 thick_colour := index(which_tk_by_thseq,[normal_thick_colour,normal_thick_colour,normal_thick_colour,normal_thick_colour,focus_thick_colour]);
-thick_textpen := pen("'IBM Plex Mono', sans-serif",text_size,thick_text_colour,thick_colour);
+//thick_textpen := pen("'IBM Plex Mono', sans-serif",text_size,thick_text_colour,thick_colour);
 
 /* exon blocks */
 

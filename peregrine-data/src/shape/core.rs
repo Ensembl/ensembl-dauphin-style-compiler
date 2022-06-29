@@ -16,6 +16,22 @@ pub(super) fn bulk<T>(b: Vec<T>, a_len: usize, primary: bool) -> Vec<T> where T:
 #[derive(Clone,Debug,PartialEq,Eq,Hash)]
 pub struct DirectColour(pub u8,pub u8,pub u8,pub u8);
 
+#[derive(Clone)]
+#[cfg_attr(debug_assertions,derive(Debug))]
+pub struct Background {
+    pub colour: DirectColour,
+    pub round: bool
+}
+
+impl Background {
+    pub fn none() -> Background {
+        Background {
+            colour: DirectColour(255,255,255,0),
+            round: false
+        }
+    }
+}
+
 #[derive(Clone,Debug,PartialEq,Eq,Hash)]
 pub struct PenGeometry {
     name: String,
@@ -46,11 +62,11 @@ impl PenGeometry {
 pub struct Pen {
     geometry: Arc<PenGeometry>,
     colours: EachOrEvery<DirectColour>,
-    background: Option<DirectColour>
+    background: Option<Background>
 }
 
 impl Pen {
-    fn new_real(geometry: &Arc<PenGeometry>, colours: &EachOrEvery<DirectColour>, background: &Option<DirectColour>) -> Pen {
+    fn new_real(geometry: &Arc<PenGeometry>, colours: &EachOrEvery<DirectColour>, background: &Option<Background>) -> Pen {
         Pen {
             geometry: geometry.clone(),
             colours: colours.clone(),
@@ -58,7 +74,7 @@ impl Pen {
         }
     }
 
-    pub fn new(name: &str, size: u32, colours: &[DirectColour], background: &Option<DirectColour>) -> Pen {
+    pub fn new(name: &str, size: u32, colours: &[DirectColour], background: &Option<Background>) -> Pen {
         let colours = if colours.len() == 1 {
             EachOrEvery::every(colours[0].clone())
         } else {
@@ -69,7 +85,7 @@ impl Pen {
 
     pub fn geometry(&self) -> &PenGeometry { &self.geometry }
     pub fn colours(&self) -> &EachOrEvery<DirectColour> { &self.colours }
-    pub fn background(&self) -> &Option<DirectColour> { &self.background }
+    pub fn background(&self) -> &Option<Background> { &self.background }
 
     pub fn filter(&self, filter: &EachOrEveryFilter) -> Pen {
         Pen::new_real(&self.geometry,&self.colours.filter(filter),&self.background)

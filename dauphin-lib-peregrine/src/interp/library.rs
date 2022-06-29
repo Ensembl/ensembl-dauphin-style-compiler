@@ -17,7 +17,7 @@ use super::track::{
 use super::geometry::{
     PatinaFilledDeserializer, PatinaHollowDeserializer, DirectColourDeserializer, ZMenuDeserializer, PatinaZMenuDeserializer,
     PenDeserializer, PlotterDeserializer, UseAllotmentDeserializer, SpaceBaseDeserializer, SimpleColourDeserializer,
-    StripedDeserializer, BarredDeserializer, BpRangeDeserializer, SpotColourDeserializer, PpcDeserializer, StyleDeserializer, PatinaSwitchDeserializer, PatinaMetadataDeserializer
+    StripedDeserializer, BarredDeserializer, BpRangeDeserializer, SpotColourDeserializer, PpcDeserializer, StyleDeserializer, PatinaSwitchDeserializer, PatinaMetadataDeserializer, BackgroundDeserializer
 };
 use super::shape::{
     WiggleDeserializer, RectangleDeserializer, Text2Deserializer, ImageDeserializer, EmptyDeserializer,
@@ -28,7 +28,7 @@ use super::switch::{
 };
 
 pub fn std_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(51,0),0x2DB96F165DC64106)
+    CommandSetId::new("peregrine",(51,0),0x8DFCA9DD8E936130)
 }
 
 pub fn make_peregrine_interp() -> InterpLibRegister {
@@ -103,5 +103,6 @@ pub fn make_peregrine_interp() -> InterpLibRegister {
     set.push(EoesStringDeserializer());
     set.push(EoesBooleanDeserializer());
     set.push(EoesLateDeserializer());
+    set.push(BackgroundDeserializer());
     set
 }

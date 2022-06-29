@@ -2,7 +2,7 @@ use anyhow::anyhow as err;
 use peregrine_toolkit::eachorevery::EachOrEvery;
 use peregrine_toolkit::lock;
 use crate::simple_interp_command;
-use peregrine_data::{Colour, DirectColour, DrawnType, Patina, Pen, Plotter, ShapeRequest, ZMenu, SpaceBase, ProgramShapesBuilder, Hotspot};
+use peregrine_data::{Colour, DirectColour, DrawnType, Patina, Pen, Plotter, ShapeRequest, ZMenu, SpaceBase, ProgramShapesBuilder, Hotspot, Background};
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
 use serde_cbor::{Value as CborValue, value};
@@ -29,6 +29,7 @@ simple_interp_command!(PpcInterpCommand,PpcDeserializer,49,1,(0));
 simple_interp_command!(StyleInterpCommand,StyleDeserializer,50,3,(0,1,2));
 simple_interp_command!(PatinaSwitchInterpCommand,PatinaSwitchDeserializer,51,3,(0,1,2));
 simple_interp_command!(PatinaMetadataInterpCommand,PatinaMetadataDeserializer,54,3,(0,1,2));
+simple_interp_command!(BackgroundInterpCommand,BackgroundDeserializer,70,3,(0,1,2));
 
 impl InterpCommand for BpRangeInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
@@ -368,7 +369,7 @@ impl InterpCommand for PenInterpCommand {
         let geometry_builder = peregrine.geometry_builder();
         let colours : anyhow::Result<Vec<_>> = colour_ids.iter().map(|id| geometry_builder.direct_colour(*id as u32)).collect();
         let colours : Vec<DirectColour> = colours?.iter().map(|x| x.as_ref().clone()).collect();
-        let background = background_id.map(|id| geometry_builder.direct_colour(id as u32)).transpose()?.map(|x| x.as_ref().clone());
+        let background = background_id.map(|id| geometry_builder.background(id as u32)).transpose()?.map(|x| x.as_ref().clone());
         let pen = Pen::new(&font,size as u32,&colours,&background);
         let id = geometry_builder.add_pen(pen);
         drop(peregrine);
@@ -429,6 +430,30 @@ impl InterpCommand for PatinaMetadataInterpCommand {
         drop(peregrine);
         let registers = context.registers_mut();
         registers.write(&self.0,InterpValue::Indexes(vec![payload]));
+        Ok(CommandResult::SyncResult())
+    }
+}
+
+impl InterpCommand for BackgroundInterpCommand {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+        let registers = context.registers_mut();
+        let colours = registers.get_indexes(&self.1)?;
+        let rounded = registers.get_boolean(&self.2)?[0];
+        drop(registers);
+        let peregrine = get_peregrine(context)?;
+        let geometry_builder = peregrine.geometry_builder();
+        let colours : anyhow::Result<Vec<_>> = colours.iter().map(|id| geometry_builder.direct_colour(*id as u32)).collect();
+        let colours : Vec<DirectColour> = colours?.iter().map(|x| x.as_ref().clone()).collect();
+        let ids = colours.iter().map(|colour| {
+            let bgd = Background {
+                colour: colour.clone(),
+                round: rounded
+            };
+            geometry_builder.add_background(bgd) as usize
+        }).collect::<Vec<_>>();
+        drop(peregrine);
+        let registers = context.registers_mut();
+        registers.write(&self.0,InterpValue::Indexes(ids));
         Ok(CommandResult::SyncResult())
     }
 }

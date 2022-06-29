@@ -1,7 +1,7 @@
 use anyhow::{ anyhow as err, bail };
 use core::f64;
 use std::sync::{ Arc, Mutex };
-use peregrine_data::{Colour, DirectColour, Patina, Pen, Plotter, ZMenu, SpaceBase, LeafRequest, DataRequest};
+use peregrine_data::{Colour, DirectColour, Patina, Pen, Plotter, ZMenu, SpaceBase, LeafRequest, DataRequest, Background};
 use owning_ref::ArcRef;
 use peregrine_toolkit::{lock, eachorevery::eoestruct::{StructVarGroup, StructTemplate, StructVar, StructPair}};
 
@@ -19,7 +19,8 @@ enum GeometryBuilderEntry {
     StructGroup(Arc<Mutex<StructVarGroup>>),
     StructTmpl(Arc<StructTemplate>),
     StructVar(Arc<StructVar>),
-    StructPair(Arc<StructPair>)
+    StructPair(Arc<StructPair>),
+    Background(Arc<Background>)
 }
 
 impl GeometryBuilderEntry {
@@ -38,6 +39,7 @@ impl GeometryBuilderEntry {
             GeometryBuilderEntry::StructTmpl(_) => "eoetmpl",
             GeometryBuilderEntry::StructVar(_) => "eoevar",
             GeometryBuilderEntry::StructPair(_) => "eoepair",
+            GeometryBuilderEntry::Background(_) => "background",
         }
     }
 }
@@ -108,4 +110,5 @@ impl GeometryBuilder {
     builder_type!(eoetmpl,add_eoetmpl,StructTmpl,StructTemplate,"template");
     builder_type!(eoevar,add_eoevar,StructVar,StructVar,"variable");
     builder_type!(eoepair,add_eoepair,StructPair,StructPair,"pair");
+    builder_type!(background,add_background,Background,Background,"background");
 }

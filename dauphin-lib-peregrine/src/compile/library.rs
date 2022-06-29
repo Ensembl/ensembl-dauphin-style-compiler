@@ -24,13 +24,13 @@ use super::track::{
 use super::geometry:: {
     PatinaFilledCommandType, PatinaHollowCommandType, DirectColourCommandType, ZMenuCommandType, PatinaZMenuCommandType, PenCommandType,
     PlotterCommandType, UseAllotmentCommandType, SpaceBaseCommandType, SimpleColourCommandType, StripedCommandType,
-    BarCommandType, BpRangeCommandType, SpotColourCommandType, PpcCommandType, StyleCommandType, PatinaSwitchCommandType, PatinaMetadataCommandType
+    BarCommandType, BpRangeCommandType, SpotColourCommandType, PpcCommandType, StyleCommandType, PatinaSwitchCommandType, PatinaMetadataCommandType, BackgroundCommandType
 };
 use super::shape::{ WiggleCommandType, RectangleCommandType, Text2CommandType, ImageCommandType, EmptyCommandType };
 use super::switch::{ GetSwitchCommandType, ListSwitchCommandType };
 
 pub fn peregrine_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(51,0),0x2DB96F165DC64106)
+    CommandSetId::new("peregrine",(51,0),0x8DFCA9DD8E936130)
 }
 
 pub fn make_peregrine() -> CompLibRegister {
@@ -105,6 +105,7 @@ pub fn make_peregrine() -> CompLibRegister {
     set.push("eoes_string",Some(67),EoesStringCommandType());
     set.push("eoes_boolean",Some(68),EoesBooleanCommandType());
     set.push("eoes_late",Some(69),EoesLateCommandType());
+    set.push("background",Some(70),BackgroundCommandType());
     set.add_header("peregrine",include_str!("header.egs"));
     set
 }

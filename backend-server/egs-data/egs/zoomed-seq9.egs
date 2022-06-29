@@ -1,0 +1,65 @@
+import "lib:std"; use "std";
+import "lib:peregrine"; use "peregrine";
+import "file:common9.egs"; use "common9";
+
+req := make_request("self()","zoomed-seq",get_region());
+data := get_data(req);
+halt(only_warm(),[data]);
+
+sequence := [letter_string(data,"sequence")];
+sequence_rev := [base_flip(sequence[])];
+sequence_start := [positive_seq(data,"sequence_start")][@==0];
+
+bp := [bp_range()];
+range(pos_seq,seq_idx,bp[@==0],bp[@==1]);
+
+seq_letter_pos := pos_seq - sequence_start;
+seq_letter := index(seq_letter_pos,sequence);
+seq_rev_letter := index(seq_letter_pos,sequence_rev);
+
+three_bonds := len([seq_letter]) (*) false;
+three_bonds#[seq_letter=="C"] := true;
+three_bonds#[seq_letter=="G"] := true;
+
+seq_colour := simple_colour(direct_colour(111,129,144,255));
+patina := patina_hollow(seq_colour,1);
+
+text_colour := direct_colour(111,129,144,255);
+text_size := 10;
+textpen := pen("'IBM Plex Mono', sans-serif",text_size,text_colour,[][]);
+allotment := use_allotment("track:contig");
+
+allotment := use_allotment("tracks/track/contig/main/main/content");
+allotment_track_name := use_allotment("tracks/track/contig/title/content");
+allotment_letter := use_allotment("tracks/track/contig/main/letter/content");
+
+style("tracks/track/contig/",["min-height","priority","report"][],["40","0","track;switch-id=contig"][]);
+
+height := 10;
+
+stmt seq_rectangle(start,source,offset) {
+    top_left := spacebase(start,offset,1);
+    bottom_right := spacebase(start+1,offset+height,-1);
+    rectangle(top_left,bottom_right,patina,allotment);
+    coords := spacebase(start + 0.5,offset+1,-3.5);
+    text2(coords,textpen,source,allotment);
+}
+
+stmt bond(start,offset) {
+    top_left := spacebase(start+offset,height,0);
+    bottom_right := spacebase(start+offset,height+4,0);
+    rectangle(top_left,bottom_right,patina,allotment);
+}
+
+/* track names */
+draw_track_names(["Sequence"],[["track","contig","name"]],[allotment_track_name]);
+
+seq_rectangle(pos_seq,seq_letter,0);
+seq_rectangle(pos_seq,seq_rev_letter,14);
+
+bond(pos_seq,0.3);
+bond(pos_seq,0.7);
+bond(pos_seq#[three_bonds],0.5);
+
+/* track category */
+draw_track_category("G",[allotment_letter]);

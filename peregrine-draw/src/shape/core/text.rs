@@ -1,4 +1,4 @@
-use peregrine_data::{ DirectColour, PenGeometry };
+use peregrine_data::{ DirectColour, PenGeometry, Background };
 use keyed::keyed_handle;
 use peregrine_toolkit::lock;
 use crate::util::fonts::Fonts;
@@ -21,6 +21,10 @@ fn pad(x: (u32,u32)) -> (u32,u32) {
     (x.0+PAD,x.1+PAD)
 }
 
+fn half_pad(x: (u32,u32)) -> (u32,u32) {
+    (x.0+PAD/2,x.1+PAD/2)
+}
+
 // XXX dedup from flat: generally move all text stuff into here
 fn pen_to_font(pen: &PenGeometry, bitmap_multiplier: f64) -> String {
     format!("{}px {}",(pen.size_in_webgl() * bitmap_multiplier).round(),pen.name())
@@ -30,11 +34,11 @@ pub(crate) struct Text {
     pen: PenGeometry,
     text: String,
     colour: DirectColour,
-    background: Option<DirectColour>
+    background: Option<Background>
 }
 
 impl Text {
-    fn new(pen: &PenGeometry, text: &str, colour: &DirectColour, background: &Option<DirectColour>) -> Text {
+    fn new(pen: &PenGeometry, text: &str, colour: &DirectColour, background: &Option<Background>) -> Text {
         Text { pen: pen.clone(), text: text.to_string(), colour: colour.clone(), background: background.clone() }
     }
 
@@ -69,8 +73,8 @@ impl FlatDrawingItem for Text {
 
     fn build(&mut self, canvas: &mut Flat, text_origin: (u32,u32), size: (u32,u32)) -> Result<(),Message> {
         canvas.set_font(&self.pen)?;
-        let background = self.background.clone().unwrap_or_else(|| DirectColour(255,255,255,0));
-        canvas.text(&self.text,pad(text_origin),size,&self.colour,&background)?;
+        let background = self.background.clone().unwrap_or_else(|| Background::none());
+        canvas.text(&self.text,half_pad(text_origin),size,&self.colour,&background)?;
         Ok(())
     }
 }
@@ -82,7 +86,7 @@ impl DrawingText {
         DrawingText(FlatDrawingManager::new(),fonts.clone(),bitmap_multiplier)
     }
 
-    pub fn add_text(&mut self, pen: &PenGeometry, text: &str, colour: &DirectColour, background: &Option<DirectColour>) -> TextHandle {
+    pub fn add_text(&mut self, pen: &PenGeometry, text: &str, colour: &DirectColour, background: &Option<Background>) -> TextHandle {
         self.0.add(Text::new(pen,text,colour,background))
     }
 
