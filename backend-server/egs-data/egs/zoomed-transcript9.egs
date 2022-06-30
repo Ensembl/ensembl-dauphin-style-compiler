@@ -252,6 +252,7 @@ transcript_allotment_names := [append_group(base_transcript_allotment_names[],["
 thick_exon_allotment_names := [append_group(base_thick_exon_allotment_names[],["diagram"][])];
 
 al_under_by_tr := use_allotment(append_group(transcript_allotment_names[],["under"][]));
+al_under_by_tr_tmp :=append_group(transcript_allotment_names[],["under"][]);
 al_over_by_tr := use_allotment(append_group(transcript_allotment_names[],["over"][]));
 al_far_over_by_tr := use_allotment(append_group(transcript_allotment_names[],["far-over"][]));
 
@@ -296,6 +297,12 @@ endos_tr := end_tr;
 startos_tr#[start_tr<bp[@==0]] := bp[@==0];
 endos_tr#[end_tr>bp[@==1]] := bp[@==1];
 
+startos_ex := start_ex;
+endos_ex := end_ex;
+startos_ex#[start_ex<bp[@==0]] := bp[@==0];
+endos_ex#[end_ex>bp[@==1]] := bp[@==1];
+startos_ex#[startos_ex>endos_ex] := endos_ex#[startos_ex>endos_ex];
+
 startos_thex := start_thex;
 endos_thex := end_thex;
 startos_thex#[start_thex<bp[@==0]] := bp[@==0];
@@ -308,7 +315,7 @@ w := spacebase(start_tr,c,0);
 e := spacebase(end_tr,c+20,0);
 empty(w,e,al_far_under_by_tr);
 
-/* EXONS */
+/* NON-UTR EXONS */
 
 range(pos_seq,which_thex_by_seq, startos_thex,endos_thex);
 which_tr_by_seq := index(which_thex_by_seq,[which_tr_by_thex]);
@@ -328,7 +335,6 @@ thick_seq_allotment_over := index(which_tr_by_seq,[al_over_by_tr]);
 thick_seq_allotment_far_over := index(which_tr_by_seq,[al_far_over_by_tr]);
 
 thick_colour := index(which_tk_by_thseq,[normal_thick_colour,normal_thick_colour,normal_thick_colour,normal_thick_colour,focus_thick_colour]);
-//thick_textpen := pen("'IBM Plex Mono', sans-serif",text_size,thick_text_colour,thick_colour);
 
 /* exon blocks */
 
@@ -337,15 +343,80 @@ thick_seq_patina := patina_filled(thick_seq_colour);
 
 c := idx_tr_in_gn_by_thseq * 20;
 w := spacebase(pos_seq,c,1);
-e := spacebase(pos_seq+1,c+12,-1);
+e := spacebase(pos_seq+1,c+14,-1);
 rectangle(w,e,thick_seq_patina,thick_seq_allotment_over);
 
 /* exon letters */
 c := idx_tr_in_gn_by_thseq * 20;
-pos := spacebase(pos_seq+0.5,c+0.5,-4);
+pos := spacebase(pos_seq+0.5,c+2,-3);
 text2(pos,thick_textpen,draw_thseq_letter,thick_seq_allotment_far_over);
 
+/* UTR EXON BOXES */
+
+/* to left */
+
+left_utr_start := startos_ex;
+left_utr_end := endos_ex;
+trunc_left := left_utr_start > exon_thick_limit_start;
+left_utr_start#[trunc_left] := exon_thick_limit_start#[trunc_left];
+trunc_right := left_utr_end > exon_thick_limit_start;
+left_utr_end#[trunc_right] := exon_thick_limit_start#[trunc_right];
+empty_test := left_utr_end<left_utr_start;
+left_utr_end#[empty_test] := left_utr_start#[empty_test];
+
+range(pos_seq_left,which_ex_by_seq_left,left_utr_start,left_utr_end);
+which_tr_by_seq_left := index(which_ex_by_seq_left,[which_tr_by_ex]);
+
+/* to right */
+
+right_utr_start := startos_ex;
+right_utr_end := endos_ex;
+trunc_left := right_utr_start < exon_thick_limit_end;
+right_utr_start#[trunc_left] := exon_thick_limit_end#[trunc_left];
+trunc_right := right_utr_end < exon_thick_limit_end;
+right_utr_end#[trunc_right] := exon_thick_limit_end#[trunc_right];
+right_utr_end#[right_utr_end<right_utr_start] := right_utr_start;
+
+range(pos_seq_right,which_ex_by_seq_right,right_utr_start,right_utr_end);
+which_tr_by_seq_right := index(which_ex_by_seq_right,[which_tr_by_ex]);
+
+/* both left and right */
+
+pos_seq := pos_seq_left (+) pos_seq_right;
+which_tr_by_seq := which_tr_by_seq_left (+) which_tr_by_seq_right;
+
+c := index(which_tr_by_seq,[idx_tr_in_gn]) * 20;
+w := spacebase(pos_seq,c,1);
+e := spacebase(pos_seq+1,c+14,-1);
+thin_seq_allotment_over := index(which_tr_by_seq,[al_over_by_tr]);
+rectangle(w,e,thin_seq_patina,thin_seq_allotment_over);
+
+letters_pos := pos_seq;
+letters_which_tr_by_seq := which_tr_by_seq;
+
 /* INTRONS */
+
+/* intron lines */
+gaps(start_it_line,end_it_line,which_tr_by_it,
+     startos_tr,endos_tr,
+     start_ex,end_ex,which_tr_by_ex);
+
+idx_tr_in_gn_by_line := index(which_tr_by_it,[idx_tr_in_gn]);
+
+c := idx_tr_in_gn_by_line * 20;
+w := spacebase(start_it_line,c+7,0);
+e := spacebase(end_it_line,c+8,0);
+al_utr_line := index(which_tr_by_it,[al_under_by_tr]);
+al_utr_line#[no_letters==false] := use_allotment("");
+
+line_colour := index(which_tr_by_it,[normal_thick_colour,normal_thick_colour,normal_thick_colour,normal_thick_colour,focus_thick_colour]);
+rectangle(w,e,patina_filled(simple_colour(line_colour)),al_utr_line);
+
+range(intron_letters_pos,intron_letters_which_line_by_seq,start_it_line,end_it_line);
+intron_letters_which_tr_by_seq := index(intron_letters_which_line_by_seq,[which_tr_by_it]);
+
+letters_pos := letters_pos (+) intron_letters_pos;
+letters_which_tr_by_seq := letters_which_tr_by_seq (+) intron_letters_which_tr_by_seq;
 
 /* Given containing intervals (startos_tr,endos_tr), and given blocks within them 
  * (start_thex,end_thex) being in containing interval which_tr_by_thex, what are the
@@ -356,6 +427,7 @@ text2(pos,thick_textpen,draw_thseq_letter,thick_seq_allotment_far_over);
 gaps(start_it, end_it, which_tr_by_it,
      startos_tr, endos_tr,
      start_thex, end_thex, which_tr_by_thex);
+
 range(pos_seq,which_it_by_seq, start_it,end_it);
 
 which_tr_by_seq := index(which_it_by_seq,[which_tr_by_it]);
@@ -380,35 +452,25 @@ idx_tr_in_gn_by_seqb := index(which_tr_by_seqb,[idx_tr_in_gn]);
 which_gn_by_seqb := index(which_tr_by_seqb,[which_gn_by_tr]);
 thin_seq_allotment_overb := index(which_tr_by_seqb,[al_over_by_tr]);
 
-/* utr line if no letters */
-c := idx_tr_in_gn * 20;
-w := spacebase(start_gn_by_tr,c+7,0);
-e := spacebase(all_start_thex,c+8,0);
-al_utr_line := al_under_by_tr;
-al_utr_line#[no_letters==false] := use_allotment("");
-rectangle(w,e,patina_filled(thick_seq_colour),al_utr_line);
+/* INTRON/UTR LETTERS */
 
-/* intron rectangles */
-c := idx_tr_in_gn_by_seqb * 20;
-w := spacebase(pos_seqb,c,1);
-e := spacebase(pos_seqb+1,c+12,-1);
-rectangle(w,e,thin_seq_patina,thin_seq_allotment_overb);
-
-/* intron letters */
-seq_letter_pos := pos_seq - sequence_start;
+seq_letter_pos := letters_pos - sequence_start;
 seq_letter := index(seq_letter_pos,sequence);
 rev_seq_letter := index(seq_letter_pos,sequence_rev);
 
 draw_seq_letter := seq_letter;
-seq_strand := index(which_gn_by_seq,[strand]);
+letters_which_gn_by_seq := index(letters_which_tr_by_seq,[which_gn_by_tr]);
+seq_strand := index(letters_which_gn_by_seq,[strand]);
 draw_seq_letter#[seq_strand<1] := rev_seq_letter#[seq_strand<1];
 
+idx_tr_in_gn_by_seq := index(letters_which_tr_by_seq,[idx_tr_in_gn]);
 c := idx_tr_in_gn_by_seq * 20;
-text_colour := index(index(which_gn_by_seq,[allotment_idx]),[normal_text_colour,normal_text_colour,normal_text_colour,normal_text_colour,focus_text_colour]);
+text_colour := index(index(letters_which_gn_by_seq,[allotment_idx]),[normal_text_colour,normal_text_colour,normal_text_colour,normal_text_colour,focus_text_colour]);
 thin_textpen := pen("'IBM Plex Mono', sans-serif",text_size,text_colour,[][]);
-pos := spacebase(pos_seq+0.5,c+1,-4);
-thin_seq_allotment_over := index(which_tr_by_seq,[al_over_by_tr]);
-thin_seq_allotment_far_over := index(which_tr_by_seq,[al_far_over_by_tr]);
+
+pos := spacebase(letters_pos+0.5,c+2,-2);
+thin_seq_allotment_over := index(letters_which_tr_by_seq,[al_over_by_tr]);
+thin_seq_allotment_far_over := index(letters_which_tr_by_seq,[al_far_over_by_tr]);
 
 intron_letter_allotments := thin_seq_allotment_over;
 intron_letter_allotments#[no_letters] := use_allotment("");

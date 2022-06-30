@@ -405,8 +405,8 @@ dotted_tr_colour_idx := index(dotted_idx,[transcript_allotment_colour_idx]);
 pt_dotted := patina_filled(index(dotted_tr_colour_idx,[dotted_non_pc_colour,dotted_pc_colour,dotted_non_pc_colour,dotted_pc_colour,dotted_focus_colour]));
 
 c := idx_dotted_in_gn * 20;
-w  := spacebase(dotted_start, c+3, 0);
-e  := spacebase(dotted_end,   c+4, 0);
+w  := spacebase(dotted_start, c+5, 0);
+e  := spacebase(dotted_end,   c+6, 0);
 rectangle(w,  e,  pt_dotted, dotted_al); // dotted
 
 /* Endstops */
@@ -414,31 +414,31 @@ al_endstop_by_tr := al_under_by_tr;
 al_endstop_by_tr#[transcript_allotment_idx==4] := use_allotment("");
 
 c := idx_tr_in_gn * 20;
-nw := spacebase(start_gn_by_tr, c,   0);
-sw := spacebase(start_gn_by_tr, c+6, 0);
-ne := spacebase(end_gn_by_tr,   c,   0);
-se := spacebase(end_gn_by_tr,   c+6, 0);
+nw := spacebase(start_gn_by_tr, c+2,   0);
+sw := spacebase(start_gn_by_tr, c+8, 0);
+ne := spacebase(end_gn_by_tr,   c+2,   0);
+se := spacebase(end_gn_by_tr,   c+8, 0);
 
 rectangle(nw, sw, pt_hollow_by_tr,       al_endstop_by_tr); // left stop
 rectangle(ne, se, pt_hollow_by_tr,       al_endstop_by_tr); // right stop
 
 /* draw solid line the extent of the transcript */
 c := idx_tr_in_gn * 20;
-w := spacebase(start_tr,c+3,0);
-e := spacebase(end_tr,c+4,0);
+w := spacebase(start_tr,c+5,0);
+e := spacebase(end_tr,c+6,0);
 rectangle(w,e,pt_under_by_tr,al_under_by_tr);
 
 /* draw hollow and blanking exons */
 c := idx_tr_in_gn_by_ex * 20;
-a := spacebase(start_ex,c,0);
-b := spacebase(end_ex,c+6,0);
+a := spacebase(start_ex,c+2,0);
+b := spacebase(end_ex,c+8,0);
 rectangle(a,b,pt_hollow_by_ex,al_over_by_ex);
 rectangle(a,b,pt_white,al_blanking_by_ex);
 
 /* draw solid exons */
 c := idx_tr_in_gn_by_thex * 20;
-a := spacebase(start_thex,c,0);
-b := spacebase(end_thex,c+6,0);
+a := spacebase(start_thex,c+2,0);
+b := spacebase(end_thex,c+8,0);
 rectangle(a,b,pt_thick_by_thex,al_far_over_by_thex);
 
 /* zmenu areas */
