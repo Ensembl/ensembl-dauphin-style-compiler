@@ -50,11 +50,20 @@ impl TextureDraw {
 
     fn add_rectangle_one(&self, addable: &mut dyn ProcessStanzaAddable, attrib: &AttribHandle, dims: &mut dyn Iterator<Item=((u32,u32),(u32,u32))>, csize: &(u32,u32)) -> Result<(),Message> {
         let mut data = vec![];
-        for (origin,size) in dims {
-            push(&mut data, origin.0,origin.1,&csize);
-            push(&mut data, origin.0,origin.1+size.1-1,&csize);
-            push(&mut data, origin.0+size.0-1,origin.1,&csize);
-            push(&mut data, origin.0+size.0-1,origin.1+size.1-1,&csize);
+        if self.1 {
+            for (origin,size) in dims {
+                push(&mut data, origin.0,origin.1,&csize);
+                push(&mut data, origin.0,origin.1,&csize);
+                push(&mut data, origin.0,origin.1,&csize);
+                push(&mut data, origin.0,origin.1,&csize);
+            }
+        } else {
+            for (origin,size) in dims {
+                push(&mut data, origin.0,origin.1,&csize);
+                push(&mut data, origin.0,origin.1+size.1-1,&csize);
+                push(&mut data, origin.0+size.0-1,origin.1,&csize);
+                push(&mut data, origin.0+size.0-1,origin.1+size.1-1,&csize);
+            }
         }
         addable.add_n(attrib,data,2)?;
         Ok(())

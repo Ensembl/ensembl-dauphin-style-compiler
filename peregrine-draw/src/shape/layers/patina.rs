@@ -80,10 +80,10 @@ impl PatinaProgramName {
                     AttributeProto::new(PR_DEF,GLArity::Vec2,"aTextureCoord"),
                     Varying::new(PR_DEF,GLArity::Vec2,"vTextureCoord"),
                     Statement::new_vertex("vTextureCoord = aTextureCoord"),
-                    Statement::new_fragment("gl_FragColor = texture2D(uSampler,vec2(
-                            (gl_FragCoord.x/uSamplerScale.x-vOrigin.x)/uSamplerSize.x+vTextureCoord.x,
-                            (vOrigin.y-gl_FragCoord.y/uSamplerScale.y)/uSamplerSize.y+vTextureCoord.y))"),
                     SetFlag::new("need-origin"),
+                    Statement::new_fragment("gl_FragColor = texture2D(uSampler,vec2(
+                            (gl_FragCoord.x-vOrigin.x)/uSamplerSize.x+vTextureCoord.x,
+                            (gl_FragCoord.y-vOrigin.y)/uSamplerSize.y+vTextureCoord.y))"),
                     Statement::new_fragment("gl_FragColor.a = gl_FragColor.a * uOpacity"),
                 ]
             }
