@@ -191,7 +191,7 @@
           }
         });
         //genome_browser.set_stick("triticum_aestivum_GCA_900519105_1:1D");
-        genome_browser.set_stick("homo_sapiens_GCA_000001405_28:1");
+        genome_browser.set_stick("homo_sapiens_GCA_000001405_28:13");
         genome_browser.set_switch(["track","focus"]);
         genome_browser.set_switch(["track","focus","label"]);
         genome_browser.set_switch(["track","gene-pc-fwd"]);
@@ -213,9 +213,11 @@
         genome_browser.set_switch(["track","variant"]);
         genome_browser.set_switch(["track","variant","name"]);
         genome_browser.set_switch(["ruler"]);
-        genome_browser.goto(2000000,3000000);
+        //genome_browser.goto(2000000,3000000);
         //genome_browser.goto(6140000,6240000);
-        genome_browser.goto(6186500,6187000);
+        genome_browser.goto(32314449,32316274);
+        genome_browser.set_switch(["focus","gene"]);
+        genome_browser.set_switch(["focus","gene","ENSG00000139618"]);
 
         function flipper(path,go) {
             let flip = false;

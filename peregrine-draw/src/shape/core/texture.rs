@@ -52,9 +52,9 @@ impl TextureDraw {
         let mut data = vec![];
         for (origin,size) in dims {
             push(&mut data, origin.0,origin.1,&csize);
-            push(&mut data, origin.0,origin.1+size.1,&csize);
-            push(&mut data, origin.0+size.0,origin.1,&csize);
-            push(&mut data, origin.0+size.0,origin.1+size.1,&csize);
+            push(&mut data, origin.0,origin.1+size.1-1,&csize);
+            push(&mut data, origin.0+size.0-1,origin.1,&csize);
+            push(&mut data, origin.0+size.0-1,origin.1+size.1-1,&csize);
         }
         addable.add_n(attrib,data,2)?;
         Ok(())
