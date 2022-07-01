@@ -11,7 +11,7 @@ use crate::webgl::{ ProcessStanzaElements };
 use peregrine_data::reactive::{Observable, Observer};
 use peregrine_data::{ SpaceBaseArea, SpaceBase, PartialSpaceBase, HollowEdge2, SpaceBasePoint, LeafStyle };
 use peregrine_toolkit::eachorevery::EachOrEvery;
-use peregrine_toolkit::lock;
+use peregrine_toolkit::{lock, log};
 use super::drawgroup::DrawGroup;
 use super::triangleadder::TriangleAdder;
 use crate::util::message::Message;
@@ -266,10 +266,10 @@ impl RectanglesData {
     fn recompute(&mut self, gl: &WebGlGlobal) -> Result<(),Message> {
         let area = self.location.wobbled_location();
         let depth_in = self.location.depths();
-        let (data,depth) = add_spacebase_area4(&area,&depth_in,&self.kind,self.left,self.width,gl.device_pixel_ratio())?;
+        let (data,depth) = add_spacebase_area4(&area,&depth_in,&self.kind,self.left,self.width,Some(gl.device_pixel_ratio()))?;
         self.program.add_data4(&mut self.elements,data,depth)?;
         if self.program.origin_coords.is_some() {
-            let (data,_)= add_spacebase4(&PartialSpaceBase::from_spacebase(area.middle_base()),&depth_in,&self.kind,self.left,self.width,gl.device_pixel_ratio())?;
+            let (data,_)= add_spacebase4(&PartialSpaceBase::from_spacebase(area.top_left().clone()),&depth_in,&self.kind,self.left,None,None)?;
             self.program.add_origin_data4(&mut self.elements,data)?;
         }
         Ok(())
@@ -298,21 +298,25 @@ impl Rectangles {
     }
 }
 
-fn add_spacebase4(point: &PartialSpaceBase<f64,LeafStyle>,depth: &EachOrEvery<i8>, group: &DrawGroup, left: f64, width: Option<f64>, dpr: f32) -> Result<(Vec<f32>,Vec<f32>),Message> {
+fn add_spacebase4(point: &PartialSpaceBase<f64,LeafStyle>,depth: &EachOrEvery<i8>, group: &DrawGroup, left: f64, width: Option<f64>, dpr: Option<f32>) -> Result<(Vec<f32>,Vec<f32>),Message> {
     let area = eoe_throw("as1",SpaceBaseArea::new(point.clone(),point.clone()))?;
     add_spacebase_area4(&area,depth,group,left,width,dpr)
 }
 
-fn add_spacebase_area4(area: &SpaceBaseArea<f64,LeafStyle>, depth: &EachOrEvery<i8>, group: &DrawGroup, left: f64, width: Option<f64>, dpr: f32)-> Result<(Vec<f32>,Vec<f32>),Message> {
+fn add_spacebase_area4(area: &SpaceBaseArea<f64,LeafStyle>, depth: &EachOrEvery<i8>, group: &DrawGroup, left: f64, mut width: Option<f64>, dpr: Option<f32>)-> Result<(Vec<f32>,Vec<f32>),Message> {
     let mut data = vec![];
     let mut depths = vec![];
-    let width = width.map(|width| {
-        if width == 0. { (1./dpr) as f64 } else { width }
-    });
+    if let Some(dpr) = dpr {
+        width = width.map(|width| {
+            if width == 0. { (1./dpr) as f64 } else { width }
+        });
+    }
     for ((top_left,bottom_right),depth) in area.iter().zip(eoe_throw("t",depth.iter(area.len()))?) {
         let (t_0,t_1,mut n_0,mut n_1) = (*top_left.tangent,*bottom_right.tangent,*top_left.normal,*bottom_right.normal);
-        if n_0 == n_1 && width.is_none() { /* finest lines. When hollow, fixed elsewhere */
-            n_1 += (1./dpr) as f64;
+        if let Some(dpr) = dpr {
+            if n_0 == n_1 && width.is_none() { /* finest lines. When hollow, fixed elsewhere */
+                n_1 += (1./dpr) as f64;
+            }    
         }
         let (mut b_0,mut b_1) = (*top_left.base,*bottom_right.base);
         /* 
