@@ -7,7 +7,6 @@ use super::heraldry::{HeraldryHandleType, HeraldryScale};
  */
 
 const BAR_WIDTH : u32 = 32;
-const DOTS_REPEAT : u32 = 4;
 const PAD : u32 = 8;
 
 #[cfg_attr(debug_assertions, derive(Debug))]
@@ -15,15 +14,6 @@ const PAD : u32 = 8;
 enum Variety {
     Bar,
     Dots
-}
-
-fn round_down_pow_two(mut num: f64) -> u32 {
-    let mut out = 1;
-    while num >= 2. {
-        out *= 2;
-        num /= 2.;
-    }
-    out
 }
 
 #[cfg_attr(debug_assertions, derive(Debug))]
@@ -60,12 +50,7 @@ impl HeraldryBarDots {
         }
     }
 
-    pub(super) fn padding(&mut self) -> (u32,u32) {
-        match self.variety {
-            Variety::Bar => (PAD,PAD),
-            Variety::Dots => (0,0),
-        }
-    }
+    pub(super) fn padding(&mut self) -> (u32,u32) { (PAD,PAD) }
 
     pub(super) fn rotate(&self) -> HeraldryBarDots {
         let mut out = self.clone();
@@ -75,23 +60,12 @@ impl HeraldryBarDots {
     }
 
     fn unit_size(&self, bitmap_multiplier: f64) -> (u32,u32) {
-        let rounded_bitmap_multiplier = round_down_pow_two(bitmap_multiplier);
-        match self.variety {
-            Variety::Bar =>   (BAR_WIDTH,BAR_WIDTH),
-            Variety::Dots =>  if !self.dir {
-                (self.number.0*rounded_bitmap_multiplier,self.number.1*rounded_bitmap_multiplier)
-            } else {
-                (self.number.1*rounded_bitmap_multiplier,self.number.0*rounded_bitmap_multiplier)
-            }
-        }
+        (BAR_WIDTH,BAR_WIDTH)
     }
 
     pub(super) fn size(&self, bitmap_multiplier: f64) -> (u32,u32) {
         let unit = self.unit_size(bitmap_multiplier);
-        let mut out = match self.variety {
-            Variety::Bar => (unit.0*self.number.0,unit.1),
-            Variety::Dots => (self.number.0*DOTS_REPEAT*2,self.number.1*2)
-        };
+        let mut out = (unit.0*self.number.0,unit.1);
         if self.dir { out = (out.1,out.0); }
         out
     }
