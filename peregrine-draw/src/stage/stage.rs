@@ -41,7 +41,7 @@ impl ProgramStage {
         ])
     }
 
-    pub fn apply(&self, stage: &ReadStage, left: f64, opacity: f64, process: &mut Process) -> Result<(),Message> {
+    pub fn apply(&self, stage: &ReadStage, left: f64, opacity: f64, dpr: f64, process: &mut Process) -> Result<(),Message> {
         /*
         use web_sys::console;
         let size = (stage.x.size()?,stage.y.size()?);
@@ -71,7 +71,7 @@ impl ProgramStage {
         let size = (stage.x.drawable_size()?,stage.y.drawable_size()?);
         let full_size = (stage.x.container_size()?,stage.y.container_size()?);
         process.set_uniform(&self.size,&[(size.0/2.) as f32,(size.1/2.) as f32])?;
-        process.set_uniform(&self.full_size,&[(full_size.0/2.) as f32,(full_size.1/2.) as f32])?;
+        process.set_uniform(&self.full_size,&[(full_size.0*dpr/2.) as f32,(full_size.1*dpr/2.) as f32])?;
         process.set_uniform(&self.opacity,&[opacity as f32])?;
         process.set_uniform(&self.model, &self.model_matrix(stage)?)?;
         Ok(())

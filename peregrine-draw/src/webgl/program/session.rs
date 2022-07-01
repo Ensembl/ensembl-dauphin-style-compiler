@@ -67,7 +67,7 @@ impl DrawingSession {
 
     pub(crate) fn run_process(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage, process: &mut Process, opacity: f64) -> Result<(),Message> {
         self.metric.add_process(process.number_of_buffers());
-        process.draw(gl,stage,opacity,&mut self.metric)
+        process.draw(gl,stage,opacity,gl.device_pixel_ratio().into(),&mut self.metric)
     }
 
     pub(crate) fn begin(&mut self, gl: &mut WebGlGlobal) -> Result<(),Message> {

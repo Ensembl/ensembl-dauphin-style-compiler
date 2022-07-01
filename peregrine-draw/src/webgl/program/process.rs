@@ -112,11 +112,11 @@ impl Process {
         self.uniforms.get_mut(handle).set_value(values)
     }
 
-    pub(super) fn draw(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage, opacity: f64, stats: &mut SessionMetric) -> Result<(),Message> {
+    pub(super) fn draw(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage, opacity: f64, dpr: f64, stats: &mut SessionMetric) -> Result<(),Message> {
         let mut gl = gl.refs();
         gl.bindery.clear(gl.flat_store)?;
         let program_stage = self.program_stage.clone();
-        program_stage.apply(stage,self.left,opacity,self)?;
+        program_stage.apply(stage,self.left,opacity,dpr,self)?;
         self.program.select_program(gl.context)?;
         for stanza in self.stanzas.iter() {
             stanza.activate(gl.context)?;
