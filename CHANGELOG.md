@@ -1,3 +1,23 @@
+# 0.4.0
+  * Failed unload bug fix (again)
+  * Multiple transcript reporting
+    * Flexible data-types in reporting
+    * Unit testing
+    * Metadata report object
+  * Visual fixes
+    * make lozenges blue and round corners
+    * reduce overwhelming chevron opacity to a point people don't notice it in advance of design review
+    * Lato -> Plex
+    * Correct, ultra-fine line thickness
+    * Open out focus track somewhat
+    * Fix wonky blue lhs swatch so doesn't become too noticeable in advance of design review
+    * Pick off some inter-scale spacing-fix tasks: no bumping labelless view
+    * remove endcaps for focus genes
+    * em-dashes not dash-dash.
+    * unboxed letters for UTRs.
+    * grey sequence
+    * Don't show letters until more zoomed in.
+
 # 0.3.2
   * Failed unload bugfix
 
