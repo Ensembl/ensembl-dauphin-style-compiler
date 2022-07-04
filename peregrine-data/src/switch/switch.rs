@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use peregrine_toolkit::eachorevery::eoestruct::{StructBuilt, StructTemplate};
 use super::switchoverlay::SwitchOverlay;
 use super::trackconfig::TrackConfigNode;
 use crate::switch::track::Track;
@@ -6,19 +7,22 @@ use crate::switch::track::Track;
 pub(crate) struct Switch {
     kids: HashMap<String,Switch>,
     radio: bool,
-    value: bool,
+    value: StructBuilt,
     tracks: Vec<Track>,
-    triggers: Vec<Track>
+    triggers: Vec<Track>,
+    null: StructBuilt, // Convenience
 }
 
 impl Switch {
     pub(super) fn new() -> Switch {
+        let null = StructTemplate::new_null().build().ok().unwrap();
         Switch {
             kids: HashMap::new(),
-            value: false,
+            value: null.clone(),
             radio: false,
             tracks: vec![],
-            triggers: vec![]
+            triggers: vec![],
+            null
         }
     }
 
@@ -36,8 +40,8 @@ impl Switch {
         }
     }
 
-    pub(super) fn set(&mut self, yn: bool) {
-        self.value = yn;
+    pub(super) fn set(&mut self, value: StructBuilt) {
+        self.value = value;
     }
 
     pub(super) fn set_radio(&mut self, yn: bool) { self.radio = yn; }
@@ -57,12 +61,12 @@ impl Switch {
 
     fn unset_kids(&mut self) {
         for kid in self.kids.values_mut() {
-            kid.value = false;
+            kid.value = self.null.clone();
         }
     }
 
     pub(super) fn get_triggered(&self, out: &mut Vec<Track>) {
-        if !self.value { return; }
+        if !self.value.truthy() { return; }
         out.extend(self.triggers.iter().cloned());
         for kid in self.kids.values() {
             kid.get_triggered(out);
@@ -75,7 +79,7 @@ impl Switch {
         let kids = self.kids.iter();
         for (kid_name,kid) in kids {
             path.push(kid_name);
-            if kid.value {
+            if kid.value.truthy() {
                 kid.build_track_config_list(want_track,out,path,active,overlay);
             }
             path.pop();

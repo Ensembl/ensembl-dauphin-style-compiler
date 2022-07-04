@@ -50,8 +50,7 @@ impl Switches {
 
     pub fn switch(&self, path: &[&str], value: StructBuilt) {
         let mut data = self.0.lock().unwrap();
-        let truthy = value.truthy();
-        if truthy {
+        if value.truthy() {
             /* unset radio siblings */
             if path.len() > 0 {
                 let parent = data.root.get_target(&path[0..(path.len()-1)]);
@@ -59,7 +58,7 @@ impl Switches {
             }
         }
         let target = data.root.get_target(path);
-        target.set(truthy);
+        target.set(value);
         data.track_config_list = None;
     }
 
