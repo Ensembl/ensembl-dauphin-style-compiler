@@ -1,5 +1,5 @@
 use commander::CommanderStream;
-use peregrine_toolkit::log;
+use peregrine_toolkit::{log, eachorevery::eoestruct::StructTemplate};
 
 use crate::{Message, PeregrineInnerAPI, PgCommanderWeb, input::{InputEvent, InputEventKind, low::lowlevel::LowLevelInput}, run::inner::LockedPeregrineInnerAPI, shape::layers::drawingzmenus::HotspotEntryDetails};
 
@@ -16,9 +16,11 @@ fn process_hotspot_event(api: &LockedPeregrineInnerAPI, x: f64, y: f64) -> Resul
                 let path = path.iter().map(|x| x.as_str()).collect::<Vec<_>>();
                 log!("switch hotspot {:?}",value.value());
                 if yn {
-                    api.data_api.set_switch(&path);
+                    let tmpl_true = StructTemplate::new_boolean(true).build().ok().unwrap();
+                    api.data_api.switch(&path,tmpl_true);
                 } else {
-                    api.data_api.clear_switch(&path);
+                    let tmpl_false = StructTemplate::new_boolean(false).build().ok().unwrap();
+                    api.data_api.switch(&path,tmpl_false);
                 }
             }
         }

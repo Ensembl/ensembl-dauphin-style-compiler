@@ -2,6 +2,8 @@ use std::hash::{ Hash, Hasher };
 use std::collections::hash_map::DefaultHasher;
 use std::sync::{ Arc, Mutex };
 use std::collections::{ HashMap, HashSet };
+use peregrine_toolkit::eachorevery::eoestruct::{StructBuilt, StructTemplate};
+
 use super::trackconfig::TrackConfigNode;
 use super::trackconfiglist::TrackConfigList;
 use crate::switch::track::Track;
@@ -151,27 +153,25 @@ impl Switches {
             root: Switch::new(),
             track_config_list: None
         })));
-        out.set_switch(&[]);
+        let tmpl_true = StructTemplate::new_boolean(true).build().ok().unwrap();
+        out.switch(&[],tmpl_true);
         out
     }
 
-    pub fn set_switch(&self, path: &[&str]) {
+    pub fn switch(&self, path: &[&str], value: StructBuilt) {
         let mut data = self.0.lock().unwrap();
-        if path.len() > 0 {
-            let parent = data.root.get_target(&path[0..(path.len()-1)]);
-            if parent.radio {
-                parent.unset_kids();
+        let truthy = value.truthy();
+        if truthy {
+            /* unset radio siblings */
+            if path.len() > 0 {
+                let parent = data.root.get_target(&path[0..(path.len()-1)]);
+                if parent.radio {
+                    parent.unset_kids();
+                }
             }
         }
         let target = data.root.get_target(path);
-        target.set = true;
-        data.track_config_list = None;
-    }
-
-    pub fn clear_switch(&self, path: &[&str]) {
-        let mut data = self.0.lock().unwrap();
-        let target = data.root.get_target(path);
-        target.set = false;
+        target.set = truthy;
         data.track_config_list = None;
     }
 

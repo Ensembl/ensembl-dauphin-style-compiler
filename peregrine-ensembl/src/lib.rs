@@ -7,7 +7,7 @@ use wasm_bindgen::{prelude::*, JsCast};
 use peregrine_draw::{Endstop, Message, PeregrineAPI, PeregrineConfig, PgCommanderWeb};
 use peregrine_data::{Channel, ChannelLocation, StickId, zmenu_to_json };
 use peregrine_message::{MessageKind, PeregrineMessage};
-use peregrine_toolkit::{url::Url, log, warn, error_important};
+use peregrine_toolkit::{url::Url, log, warn, error_important, eachorevery::eoestruct::StructTemplate};
 use web_sys::{ Element };
 use serde::{Serialize, Deserialize};
 use serde_json::{ Map as JsonMap, Value as JsonValue };
@@ -160,10 +160,11 @@ impl GenomeBrowser {
         /*
          * You have to turn on tracks _per se_, but we always want tracks.
          */
-        self.api.set_switch(&["track"]);
-        self.api.set_switch(&["focus"]);
-        self.api.set_switch(&["settings"]);
-        self.api.set_switch(&["ruler"]);
+        let tmpl_true = StructTemplate::new_boolean(true).build().ok().unwrap();
+        self.api.switch(&["track"],tmpl_true.clone());
+        self.api.switch(&["focus"],tmpl_true.clone());
+        self.api.switch(&["settings"],tmpl_true.clone());
+        self.api.switch(&["ruler"],tmpl_true.clone());
         self.api.radio_switch(&["focus"],true);
         self.api.radio_switch(&["focus","gene"],true);
 
@@ -207,13 +208,15 @@ impl GenomeBrowser {
     }
     
     pub fn set_switch(&self, path: &JsValue) {
+        let tmpl_true = StructTemplate::new_boolean(true).build().ok().unwrap();
         let path : Vec<String> = path.into_serde().unwrap();
-        self.api.set_switch(&path.iter().map(|x| x.as_str()).collect::<Vec<_>>());
+        self.api.switch(&path.iter().map(|x| x.as_str()).collect::<Vec<_>>(),tmpl_true);
     }
 
     pub fn clear_switch(&self, path: &JsValue) {
+        let tmpl_false = StructTemplate::new_boolean(false).build().ok().unwrap();
         let path : Vec<String> = path.into_serde().unwrap();
-        self.api.clear_switch(&path.iter().map(|x| x.as_str()).collect::<Vec<_>>());
+        self.api.switch(&path.iter().map(|x| x.as_str()).collect::<Vec<_>>(),tmpl_false);
     }
 
     pub fn radio_switch(&self, path: &JsValue, yn: bool) {

@@ -10,6 +10,7 @@ use js_sys::Date;
 use peregrine_data::{Assets, Commander, PeregrineCore, PeregrineApiQueue};
 use peregrine_dauphin::peregrine_dauphin;
 use peregrine_message::MessageKind;
+use peregrine_toolkit::eachorevery::eoestruct::StructBuilt;
 use peregrine_toolkit::log;
 use peregrine_toolkit::plumbing::distributor::Distributor;
 use peregrine_toolkit::plumbing::oneshot::OneShot;
@@ -184,16 +185,12 @@ impl PeregrineInnerAPI {
         self.input.set_artificial(name,start);
     }
 
-    pub(crate) fn set_switch(&self, path: &[&str]) {
-        self.data_api.set_switch(path);
+    pub(crate) fn switch(&self, path: &[&str], value: StructBuilt) {
+        self.data_api.switch(path,value);
     }
 
     pub(crate) fn set_sketchy(&self, yn: bool) {
         self.data_api.set_sketchy(yn);
-    }
-
-    pub(crate) fn clear_switch(&self, path: &[&str]) {
-        self.data_api.clear_switch(path);
     }
 
     pub(crate) fn radio_switch(&self, path: &[&str], yn: bool) {

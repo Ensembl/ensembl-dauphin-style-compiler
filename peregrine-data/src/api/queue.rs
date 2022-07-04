@@ -13,9 +13,9 @@ use crate::train::main::train::StickData;
 use crate::train::model::trainextent::TrainExtent;
 use crate::{Assets, PgCommanderTaskSpec, DrawingCarriage};
 use commander::{CommanderStream, PromiseFuture};
-use peregrine_toolkit::{log, log_extra};
+use peregrine_toolkit::eachorevery::eoestruct::StructBuilt;
+use peregrine_toolkit::{log_extra};
 use peregrine_toolkit_async::sync::blocker::{Blocker, Lockout};
-use crate::util::message::DataMessage;
 use super::pgcore::PeregrineCore;
 
 /* Messages fall into broad categories:
@@ -62,8 +62,7 @@ use super::pgcore::PeregrineCore;
     SetStick(StickId),
     SetMinPxPerCarriage(u32),
     Bootstrap(u64,Channel),
-    SetSwitch(Vec<String>),
-    ClearSwitch(Vec<String>),
+    Switch(Vec<String>,StructBuilt),
     RadioSwitch(Vec<String>,bool),
     RegenerateTrackConfig,
     Jump(String,PromiseFuture<Option<(StickId,f64,f64)>>),
@@ -133,12 +132,8 @@ impl ApiQueueCampaign {
             ApiMessage::Bootstrap(identity,channel) => {
                 bootstrap(&data.base,&data.agent_store,channel,identity);
             },
-            ApiMessage::SetSwitch(path) => {
-                data.switches.set_switch(&path.iter().map(|x| x.as_str()).collect::<Vec<_>>());
-                self.viewport = self.viewport.set_track_config_list(&data.switches.get_track_config_list());
-            },
-            ApiMessage::ClearSwitch(path) => {
-                data.switches.clear_switch(&path.iter().map(|x| x.as_str()).collect::<Vec<_>>());
+            ApiMessage::Switch(path,value) => {
+                data.switches.switch(&path.iter().map(|x| x.as_str()).collect::<Vec<_>>(),value);
                 self.viewport = self.viewport.set_track_config_list(&data.switches.get_track_config_list());
             },
             ApiMessage::RadioSwitch(path,yn) => {

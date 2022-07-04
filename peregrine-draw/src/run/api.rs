@@ -1,5 +1,6 @@
 use crate::util::message::{ Message };
 use peregrine_toolkit::console::{set_printer, Severity};
+use peregrine_toolkit::eachorevery::eoestruct::{StructTemplate, StructBuilt};
 use peregrine_toolkit::{log_extra, log_important, error};
 use peregrine_toolkit_async::sync::blocker::Blocker;
 pub use url::Url;
@@ -54,8 +55,7 @@ enum DrawMessage {
     Goto(f64,f64),
     SetY(f64),
     SetStick(StickId),
-    SetSwitch(Vec<String>),
-    ClearSwitch(Vec<String>),
+    Switch(Vec<String>,StructBuilt),
     RadioSwitch(Vec<String>,bool),
     Bootstrap(Channel),
     SetMessageReporter(Box<dyn FnMut(&Message) + 'static + Send>),
@@ -71,8 +71,7 @@ impl std::fmt::Debug for DrawMessage {
             DrawMessage::Goto(centre,scale) => write!(f,"Goto({:?},{:?})",centre,scale),
             DrawMessage::SetY(y) => write!(f,"SetY({:?})",y),
             DrawMessage::SetStick(stick)  => write!(f,"SetStick({:?})",stick),
-            DrawMessage::SetSwitch(path) => write!(f,"SetSwitch({:?})",path),
-            DrawMessage::ClearSwitch(path)  => write!(f,"ClearSwitch({:?})",path),
+            DrawMessage::Switch(path,value) => write!(f,"Switch({:?},{:?})",path,value),
             DrawMessage::RadioSwitch(path,yn)  => write!(f,"RadioSwitch({:?},{:?})",path,yn),
             DrawMessage::Bootstrap(channel)  => write!(f,"Channel({:?})",channel),
             DrawMessage::SetMessageReporter(_) => write!(f,"SetMessageReporter(...)"),
@@ -120,11 +119,8 @@ impl DrawMessage {
             DrawMessage::SetStick(stick) => {
                 draw.set_stick(&stick);
             },
-            DrawMessage::SetSwitch(path) => {
-                draw.set_switch(&path.iter().map(|x| &x as &str).collect::<Vec<_>>());
-            },
-            DrawMessage::ClearSwitch(path) => {
-                draw.clear_switch(&path.iter().map(|x| &x as &str).collect::<Vec<_>>());
+            DrawMessage::Switch(path,value) => {
+                draw.switch(&path.iter().map(|x| &x as &str).collect::<Vec<_>>(),value);
             },
             DrawMessage::RadioSwitch(path,yn) => {
                 draw.radio_switch(&path.iter().map(|x| &x as &str).collect::<Vec<_>>(),yn);
@@ -184,12 +180,8 @@ impl PeregrineAPI {
         self.queue.add(Some(DrawMessage::Sync()));
     }
 
-    pub fn set_switch(&self, path: &[&str]) {
-        self.queue.add(Some(DrawMessage::SetSwitch(path.iter().map(|x| x.to_string()).collect())));
-    }
-
-    pub fn clear_switch(&self, path: &[&str]) {
-        self.queue.add(Some(DrawMessage::ClearSwitch(path.iter().map(|x| x.to_string()).collect())));
+    pub fn switch(&self, path: &[&str], value: StructBuilt) {
+        self.queue.add(Some(DrawMessage::Switch(path.iter().map(|x| x.to_string()).collect(),value)));
     }
 
     pub fn radio_switch(&self, path: &[&str], yn: bool) {

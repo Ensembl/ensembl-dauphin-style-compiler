@@ -9,6 +9,7 @@ use crate::train::main::railway::Railway;
 use commander::PromiseFuture;
 use peregrine_dauphin_queue::{ PgDauphinQueue };
 use peregrine_message::PeregrineMessage;
+use peregrine_toolkit::eachorevery::eoestruct::StructBuilt;
 use peregrine_toolkit::plumbing::oneshot::OneShot;
 use peregrine_toolkit::{lock};
 use peregrine_toolkit::puzzle::AnswerAllocator;
@@ -137,12 +138,8 @@ impl PeregrineCore {
         p.await
     }
 
-    pub fn set_switch(&self, path: &[&str]) {
-        self.base.queue.push(ApiMessage::SetSwitch(path.iter().map(|x| x.to_string()).collect()));
-    }
-
-    pub fn clear_switch(&self, path: &[&str]) {
-        self.base.queue.push(ApiMessage::ClearSwitch(path.iter().map(|x| x.to_string()).collect()));
+    pub fn switch(&self, path: &[&str], value: StructBuilt) {
+        self.base.queue.push(ApiMessage::Switch(path.iter().map(|x| x.to_string()).collect(),value));
     }
 
     pub fn radio_switch(&self, path: &[&str], yn: bool) {

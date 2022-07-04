@@ -3,6 +3,7 @@ pub mod eachorevery {
         mod eoestructdata;
         mod structbuilt;
         mod build;
+        mod eoetruthy;
         mod eoestruct;
         mod expand;
         mod eoejson;
@@ -13,6 +14,7 @@ pub mod eachorevery {
 
         pub use eoestruct::{ StructVarGroup };
         pub use eoejson::{ struct_to_json, struct_from_json };
+        pub use structbuilt::{ StructBuilt };
         pub use structtemplate::{ StructTemplate, StructVar, StructPair };
     }
 
