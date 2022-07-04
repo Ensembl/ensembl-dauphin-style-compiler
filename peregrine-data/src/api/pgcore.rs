@@ -22,7 +22,7 @@ use crate::api::AgentStore;
 use crate::core::{ StickId };
 use crate::train::graphics::Graphics;
 use crate::util::message::DataMessage;
-use crate::switch::switch::Switches;
+use crate::switch::switches::Switches;
 
 #[derive(Clone)]
 pub struct MessageSender(Arc<Mutex<Box<dyn FnMut(DataMessage) + 'static + Send>>>);

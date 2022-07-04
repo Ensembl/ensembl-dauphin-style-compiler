@@ -212,6 +212,8 @@ pub(crate) mod spacebase {
 pub(crate) mod switch {
     pub(crate) mod track;
     pub(crate) mod switch;
+    pub(crate) mod switches;
+    pub(crate) mod switchoverlay;
     pub(crate) mod trackconfig;
     pub(crate) mod trackconfiglist;
 }
@@ -278,7 +280,7 @@ pub use self::shape::{
     ProgramShapesBuilder, AbstractShapesContainer
 };
 pub use self::allotment::core::coordsystem::{ CoordinateSystem, CoordinateSystemVariety };
-pub use self::switch::switch::{ Switches };
+pub use self::switch::switches::{ Switches };
 pub use self::switch::track::Track;
 pub use self::train::{ DrawingCarriage, CarriageExtent };
 pub use self::util::{ CountingPromise, DataMessage, Builder };

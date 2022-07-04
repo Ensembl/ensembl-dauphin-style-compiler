@@ -3,7 +3,7 @@ use identitynumber::{ identitynumber, hashable, orderable };
 use lazy_static::lazy_static;
 use crate::{ProgramName};
 use crate::core::{ Layout, Scale };
-use super::switch::SwitchOverlay;
+use super::switchoverlay::SwitchOverlay;
 
 identitynumber!(IDS);
 
@@ -40,7 +40,8 @@ impl Track {
         if yn { switches.set(path); } else { switches.clear(path); }
     }
 
-    pub(crate) fn overlay(&self) -> MutexGuard<SwitchOverlay> { self.switch_overlay.lock().unwrap() }
+    pub(super) fn overlay(&self) -> MutexGuard<SwitchOverlay> { self.switch_overlay.lock().unwrap() }
+
     pub fn program_name(&self) -> &ProgramName { &self.program_name }
     pub fn id(&self) -> u64 { self.id }
     pub fn scale(&self) -> (u64,u64) { (self.min_scale,self.max_scale) }

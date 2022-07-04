@@ -2,8 +2,7 @@ use std::{collections::hash_map::DefaultHasher, hash::{ Hash, Hasher }};
 use std::fmt;
 use std::sync::{ Arc };
 use std::collections::HashMap;
-use super::switch::SwitchesData;
-use super::track::Track;
+use super::{track::Track, switches::SwitchesData};
 use super::trackconfig::{ TrackConfig, hashmap_hasher };
 use crate::core::{ Layout, Scale };
 
