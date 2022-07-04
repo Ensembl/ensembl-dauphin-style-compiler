@@ -8,7 +8,7 @@ use wasm_bindgen::{prelude::*, JsCast};
 use peregrine_draw::{Endstop, Message, PeregrineAPI, PeregrineConfig, PgCommanderWeb};
 use peregrine_data::{Channel, ChannelLocation, StickId, zmenu_to_json };
 use peregrine_message::{MessageKind, PeregrineMessage};
-use peregrine_toolkit::{url::Url, error_important, warn, log, eachorevery::eoestruct::StructTemplate};
+use peregrine_toolkit::{url::Url, error_important, warn, log, eachorevery::eoestruct::{StructTemplate, struct_from_json}, js::jstojsonvalue::js_to_json};
 use web_sys::{ Element };
 use serde::{Serialize, Deserialize};
 use serde_json::{ Map as JsonMap, Value as JsonValue };
@@ -208,16 +208,15 @@ impl GenomeBrowser {
         self.api.set_y(y);
     }
     
-    pub fn set_switch(&self, path: &JsValue) {
-        let tmpl_true = StructTemplate::new_boolean(true).build().ok().unwrap();
+    pub fn switch(&self, path: &JsValue, value: &JsValue) {
         let path : Vec<String> = path.into_serde().unwrap();
-        self.api.switch(&path.iter().map(|x| x.as_str()).collect::<Vec<_>>(),tmpl_true);
-    }
-
-    pub fn clear_switch(&self, path: &JsValue) {
-        let tmpl_false = StructTemplate::new_boolean(false).build().ok().unwrap();
-        let path : Vec<String> = path.into_serde().unwrap();
-        self.api.switch(&path.iter().map(|x| x.as_str()).collect::<Vec<_>>(),tmpl_false);
+        if let Ok(json) = js_to_json(value) {
+            if let Ok((template,_)) = struct_from_json(vec![],vec![],&json) {
+                if let Ok(build) = template.build() {
+                    self.api.switch(&path.iter().map(|x| x.as_str()).collect::<Vec<_>>(),build);
+                }
+            }
+        }
     }
 
     pub fn radio_switch(&self, path: &JsValue, yn: bool) {

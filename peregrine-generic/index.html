@@ -79,9 +79,9 @@
           let value = !cur;
           tracks_on[track_name] = value;
           if(value) {
-            genome_browser.set_switch(["track",track_name]);
+            genome_browser.switch(["track",track_name],true);
           } else {
-            genome_browser.clear_switch(["track",track_name]);
+            genome_browser.switch(["track",track_name],false);
           }
         }
         function toggle_label(track_name) {
@@ -90,9 +90,9 @@
           let value = !cur;
           labels[track_name] = value;
           if(value) {
-            genome_browser.set_switch(["track",track_name,"label"]);
+            genome_browser.switch(["track",track_name,"label"],true);
           } else {
-            genome_browser.clear_switch(["track",track_name,"label"]);
+            genome_browser.switch(["track",track_name,"label"],false);
           }
         }
         function toggle_tr_label(track_name) {
@@ -101,9 +101,9 @@
           let value = !cur;
           tr_labels[track_name] = value;
           if(value) {
-            genome_browser.set_switch(["track",track_name,"transcript-label"]);
+            genome_browser.switch(["track",track_name,"transcript-label"],true);
           } else {
-            genome_browser.clear_switch(["track",track_name,"transcript-label"]);
+            genome_browser.switch(["track",track_name,"transcript-label"],false);
           }
         }
         function toggle_name(track_name) {
@@ -112,9 +112,9 @@
           let value = !cur;
           nm_labels[track_name] = value;
           if(value) {
-            genome_browser.set_switch(["track",track_name,"name"]);
+            genome_browser.switch(["track",track_name,"name"],true);
           } else {
-            genome_browser.clear_switch(["track",track_name,"name"]);
+            genome_browser.switch(["track",track_name,"name"],false);
           }
         }
         function toggle_several(track_name) {
@@ -123,9 +123,9 @@
           let value = !cur;
           sv_labels[track_name] = value;
           if(value) {
-            genome_browser.set_switch(["track",track_name,"several"]);
+            genome_browser.switch(["track",track_name,"several"],true);
           } else {
-            genome_browser.clear_switch(["track",track_name,"several"]);
+            genome_browser.switch(["track",track_name,"several"],false);
           }
         }
         let all_tracks = {};
@@ -192,32 +192,32 @@
         });
         //genome_browser.set_stick("triticum_aestivum_GCA_900519105_1:1D");
         genome_browser.set_stick("homo_sapiens_GCA_000001405_28:13");
-        genome_browser.set_switch(["track","focus"]);
-        genome_browser.set_switch(["track","focus","label"]);
-        genome_browser.set_switch(["track","gene-pc-fwd"]);
-        genome_browser.set_switch(["track","gene-pc-rev"]);        
-        genome_browser.set_switch(["track","gene-pc-fwd","label"]);
-        genome_browser.set_switch(["track","gene-pc-fwd","name"]);
-        genome_browser.set_switch(["track","gene-pc-rev","label"]);
-        genome_browser.set_switch(["track","gene-pc-rev","name"]);
-        genome_browser.set_switch(["track","gene-other-fwd"]);
-        genome_browser.set_switch(["track","gene-other-rev"]);
-        genome_browser.set_switch(["track","gene-other-fwd","label"]);
-        genome_browser.set_switch(["track","gene-other-fwd","name"]);
-        genome_browser.set_switch(["track","gene-other-rev","label"]);
-        genome_browser.set_switch(["track","gene-other-rev","name"]);
-        genome_browser.set_switch(["track","gc"]);
-        genome_browser.set_switch(["track","gc","name"]);
-        genome_browser.set_switch(["track","contig"]);
-        genome_browser.set_switch(["track","contig","name"]);
-        genome_browser.set_switch(["track","variant"]);
-        genome_browser.set_switch(["track","variant","name"]);
-        genome_browser.set_switch(["ruler"]);
+        genome_browser.switch(["track","focus"],true);
+        genome_browser.switch(["track","focus","label"],true);
+        genome_browser.switch(["track","gene-pc-fwd"],true);
+        genome_browser.switch(["track","gene-pc-rev"],true);        
+        genome_browser.switch(["track","gene-pc-fwd","label"],true);
+        genome_browser.switch(["track","gene-pc-fwd","name"],true);
+        genome_browser.switch(["track","gene-pc-rev","label"],true);
+        genome_browser.switch(["track","gene-pc-rev","name"],true);
+        genome_browser.switch(["track","gene-other-fwd"],true);
+        genome_browser.switch(["track","gene-other-rev"],true);
+        genome_browser.switch(["track","gene-other-fwd","label"],true);
+        genome_browser.switch(["track","gene-other-fwd","name"],true);
+        genome_browser.switch(["track","gene-other-rev","label"],true);
+        genome_browser.switch(["track","gene-other-rev","name"],true);
+        genome_browser.switch(["track","gc"],true);
+        genome_browser.switch(["track","gc","name"],true);
+        genome_browser.switch(["track","contig"],true);
+        genome_browser.switch(["track","contig","name"],true);
+        genome_browser.switch(["track","variant"],true);
+        genome_browser.switch(["track","variant","name"],true);
+        genome_browser.switch(["ruler"],true);
         //genome_browser.goto(2000000,3000000);
         //genome_browser.goto(6140000,6240000);
         genome_browser.goto(32314449,32316274);
-        genome_browser.set_switch(["focus","gene"]);
-        genome_browser.set_switch(["focus","gene","ENSG00000139618"]);
+        genome_browser.switch(["focus","gene"],true);
+        genome_browser.switch(["focus","gene","ENSG00000139618"],true);
 
         function flipper(path,go) {
             let flip = false;
@@ -225,7 +225,7 @@
                 if(flip) {
                     genome_browser.clear_switch(path);
                 } else {
-                    genome_browser.set_switch(path);
+                    genome_browser.switch(path);
                 }
                 flip=!flip;
             };
@@ -238,32 +238,32 @@
         document.getElementById("jump-brca2").onclick = function() {
           genome_browser.jump("focus:homo_sapiens_GCA_000001405_28:ENSG00000139618");
           genome_browser.wait();
-          genome_browser.set_switch(["focus","gene"]);
-          genome_browser.set_switch(["focus","gene","ENSG00000139618"]);
+          genome_browser.switch(["focus","gene"],true);
+          genome_browser.switch(["focus","gene","ENSG00000139618"],true);
         };
         document.getElementById("jump-fry").onclick = function() {
           genome_browser.jump("focus:homo_sapiens_GCA_000001405_28:ENSG00000073910");
           genome_browser.wait();
-          genome_browser.set_switch(["focus","gene"]);
-          genome_browser.set_switch(["focus","gene","ENSG00000073910"]);
+          genome_browser.switch(["focus","gene"],true);
+          genome_browser.switch(["focus","gene","ENSG00000073910"],true);
         };
         document.getElementById("jump-zar1l").onclick = function() {
           genome_browser.jump("focus:homo_sapiens_GCA_000001405_28:ENSG00000189167");
           genome_browser.wait();
-          genome_browser.set_switch(["focus","gene"]);
-          genome_browser.set_switch(["focus","gene","ENSG00000189167"]);
+          genome_browser.switch(["focus","gene"],true);
+          genome_browser.switch(["focus","gene","ENSG00000189167"],true);
         };
         document.getElementById("jump-wheat").onclick = function() {
           genome_browser.jump("focus:triticum_aestivum_GCA_900519105_1:TraesCS3D02G273600");
           genome_browser.wait();
-          genome_browser.set_switch(["focus","gene"]);
-          genome_browser.set_switch(["focus","gene","TraesCS3D02G273600"]);
+          genome_browser.switch(["focus","gene"],true);
+          genome_browser.switch(["focus","gene","TraesCS3D02G273600"],true);
         };
         document.getElementById("jump-ecoli").onclick = function() {
           genome_browser.jump("focus:escherichia_coli_str_k_12_substr_mg1655_gca_000005845_GCA_000005845_2:b2614");
           genome_browser.wait();
-          genome_browser.set_switch(["focus","gene"]);
-          genome_browser.set_switch(["focus","gene","b2614"]);
+          genome_browser.switch(["focus","gene"],true);
+          genome_browser.switch(["focus","gene","b2614"],true);
         };
         document.getElementById("jump-no-bug").onclick = function() {
           let genome_browser = new GenomeBrowser();
