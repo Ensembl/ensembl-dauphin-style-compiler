@@ -10,8 +10,8 @@ use anyhow::anyhow as err;
 simple_interp_command!(GetSwitchInterpCommand,GetSwitchDeserializer,32,4,(0,1,2,3));
 simple_interp_command!(ListSwitchInterpCommand,ListSwitchDeserializer,42,4,(0,1,2,3));
 simple_interp_command!(SwitchStringInterpCommand,SwitchStringDeserializer,71,3,(0,1,2));
-simple_interp_command!(SwitchNumberInterpCommand,SwitchNumberDeserializer,71,3,(0,1,2));
-simple_interp_command!(SwitchBooleanInterpCommand,SwitchBooleanDeserializer,71,3,(0,1,2));
+simple_interp_command!(SwitchNumberInterpCommand,SwitchNumberDeserializer,72,3,(0,1,2));
+simple_interp_command!(SwitchBooleanInterpCommand,SwitchBooleanDeserializer,73,3,(0,1,2));
 
 impl InterpCommand for GetSwitchInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {

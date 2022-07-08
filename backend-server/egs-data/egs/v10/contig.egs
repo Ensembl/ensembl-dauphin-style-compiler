@@ -2,7 +2,7 @@ import "lib:std"; use "std";
 import "lib:peregrine"; use "peregrine";
 import "file:common.egs"; use "common";
 
-endpoint := ["contig","shimmer-contig"][(@==1)==get_switch(["scale","shimmer"])];
+endpoint := ["contig","shimmer-contig"][(@==1)==switch_yn(["scale","shimmer"])];
 
 req := make_request("self()",endpoint,get_region());
 data := get_data(req);
@@ -27,7 +27,7 @@ bottom_right := spacebase(end,14,0);
 rectangle(top_left,bottom_right,patina,allotment);
 
 /* track names */
-draw_track_names(["Contigs"],[["track","contig","name"]],[allotment_track_name]);
+draw_track_name("Contigs",["track","contig","name"],allotment_track_name);
 
 /* track category */
 draw_track_category("G",[allotment_letter]);

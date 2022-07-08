@@ -37,7 +37,7 @@ import "file:common.egs"; use "common";
  * idx_tr_in_gn_by_ex: for each exon, it is in the 1st, 2nd, 3rd, etc transcript of its gene
  */
 
-no_letters := get_switch(["scale","no-letters"]);
+no_letters := switch_yn(["scale","no-letters"]);
 
 /* 
  * actually get the data from the server
@@ -99,13 +99,7 @@ sequence := [letter_string(data,"sequence")];
 sequence_rev := [base_flip(sequence[])];
 sequence_start := [positive_seq(data,"sequence_start")][@==0];
 
-enabled_tracks := get_switch([
-    ["track","gene-other-rev"],
-    ["track","gene-pc-rev"],
-    ["track","gene-other-fwd"],
-    ["track","gene-pc-fwd"],
-    ["track","focus"]
-][]);
+gene_tracks_enabled(enabled_tracks);
 
 /*
 
@@ -208,13 +202,7 @@ focus_end := end_gn#[allotment_idx==4];
  * Manage the "several" setting.
  */
 
-several_tracks := get_switch([
-    ["track","gene-other-rev","several"],
-    ["track","gene-pc-rev","several"],
-    ["track","gene-other-fwd","several"],
-    ["track","gene-pc-fwd","several"],
-    ["track","focus","several"]
-][]);
+gene_tracks_enabled_property(several_tracks,"several");
 
 SEVERAL := 5;
 
@@ -478,7 +466,7 @@ intron_letter_allotments#[no_letters] := use_allotment("");
 text2(pos,thin_textpen,draw_seq_letter,intron_letter_allotments);
 
 /* track names */
-draw_track_names(gene_track_names,gene_name_switches,allotments_trackname);
+draw_gene_track_names(allotments_trackname);
 
 /* zmenus */
 track_name := index(allotment_idx,potential_tracks);
@@ -494,17 +482,11 @@ pt_zmenu_tr := patina_zmenu(zmenu_tmpl,["gene_id","transcript_id","transcript_bi
 zmenu_tmpl := zmenu("[<light>Gene</light> {symbol}] / [<strong><focus>{id}</focus></strong>]");
 pt_zmenu_gn := patina_zmenu(zmenu_tmpl,["symbol","id","track","type"],[[gene_name],[gene_id],[track_name],["gene"]][]);
 
-enabled_labels := get_switch([
-    ["track","gene-other-rev","label"],
-    ["track","gene-pc-rev","label"],
-    ["track","gene-other-fwd","label"],
-    ["track","gene-pc-fwd","label"],
-    ["track","focus","label"],
-][]);
+gene_tracks_enabled_property(enabled_labels,"label");
 
 enabled_gene_labels := index(allotment_idx,[enabled_labels]);
 al_text_by_gn#[enabled_gene_labels==false] := use_allotment("");
-al_text_by_gn#[get_switch(["scale","no-labels"])] := use_allotment("");
+al_text_by_gn#[switch_yn(["scale","no-labels"])] := use_allotment("");
 text_colour := index(allotment_idx,[normal_text_colour,normal_text_colour,normal_text_colour,normal_text_colour,focus_text_colour]);
 textpen := pen("'IBM Plex Mono', sans-serif",text_size,text_colour,[][]);
 text2(spacebase(start_gn,drawn_tr_by_gn*20-12,0),textpen,gene_name,al_text_by_gn);
@@ -529,7 +511,7 @@ draw_track_category("G",allotments_letter);
 draw_focus_swatch(allotments_letter[@==4]);
 
 /* red-dotted lines */
-dots_allotment := use_allotment(["","dots/content"][(@==1)==(get_switch(["track","focus"]))]);
+dots_allotment := use_allotment(["","dots/content"][(@==1)==(switch_yn(["track","focus"]))]);
 red_dotted(focus_start,focus_end,dots_allotment);
 
 /* report transcripts shown */

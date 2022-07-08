@@ -88,8 +88,8 @@ func request_scope(request,string,string) becomes request;
 func get_switch(vec(string)) becomes boolean;
 func list_switch(vec(string)) becomes string;
 func switch_string(string,string) becomes string;
-func switch_number(string,string) becomes string;
-func switch_boolean(string,string) becomes string;
+func switch_number(string,string) becomes number;
+func switch_boolean(string,string) becomes boolean;
 
 func only_warm() becomes boolean;
 

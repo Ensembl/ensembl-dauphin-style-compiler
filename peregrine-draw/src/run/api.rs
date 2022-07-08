@@ -1,6 +1,6 @@
 use crate::util::message::{ Message };
 use peregrine_toolkit::console::{set_printer, Severity};
-use peregrine_toolkit::eachorevery::eoestruct::{StructTemplate, StructBuilt};
+use peregrine_toolkit::eachorevery::eoestruct::{StructTemplate, StructBuilt, struct_to_json};
 use peregrine_toolkit::{log_extra, log_important, error};
 use peregrine_toolkit_async::sync::blocker::Blocker;
 pub use url::Url;
@@ -71,7 +71,7 @@ impl std::fmt::Debug for DrawMessage {
             DrawMessage::Goto(centre,scale) => write!(f,"Goto({:?},{:?})",centre,scale),
             DrawMessage::SetY(y) => write!(f,"SetY({:?})",y),
             DrawMessage::SetStick(stick)  => write!(f,"SetStick({:?})",stick),
-            DrawMessage::Switch(path,value) => write!(f,"Switch({:?},{:?})",path,value),
+            DrawMessage::Switch(path,value) => write!(f,"Switch({:?},{:?})",path,struct_to_json(value,None)),
             DrawMessage::RadioSwitch(path,yn)  => write!(f,"RadioSwitch({:?},{:?})",path,yn),
             DrawMessage::Bootstrap(channel)  => write!(f,"Channel({:?})",channel),
             DrawMessage::SetMessageReporter(_) => write!(f,"SetMessageReporter(...)"),
