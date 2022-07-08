@@ -27,13 +27,14 @@ use super::geometry:: {
     BarCommandType, BpRangeCommandType, SpotColourCommandType, PpcCommandType, StyleCommandType, PatinaSwitchCommandType, PatinaMetadataCommandType, BackgroundCommandType
 };
 use super::shape::{ WiggleCommandType, RectangleCommandType, Text2CommandType, ImageCommandType, EmptyCommandType };
-use super::switch::{ GetSwitchCommandType, ListSwitchCommandType, SwitchStringCommand, SwitchStringCommandType, SwitchNumberCommandType, SwitchBooleanCommandType };
+use super::switch::{ ListSwitchCommandType, SwitchStringCommandType, SwitchNumberCommandType, SwitchBooleanCommandType };
 
 pub fn peregrine_id() -> CommandSetId {
     CommandSetId::new("peregrine",(52,0),0xB206672D5209117E)
 }
 
 pub fn make_peregrine() -> CompLibRegister {
+    // 32 is unused
     let mut set = CompLibRegister::new(&peregrine_id(),Some(make_peregrine_interp()));
     set.push("add_stick_authority",Some(0),AddAuthorityCommandType());
     set.push("get_stick_id",Some(1),GetStickIdCommandType());
@@ -67,7 +68,6 @@ pub fn make_peregrine() -> CompLibRegister {
     set.push("patina_filled",Some(29),PatinaFilledCommandType());
     set.push("classify",Some(30),ClassifyCommandType());
     set.push("split_string",Some(31),SplitStringCommandType());
-    set.push("get_switch",Some(32),GetSwitchCommandType());
     set.push("track_set_switch",Some(33),SetSwitchCommandType());
     set.push("track_clear_switch",Some(34),ClearSwitchCommandType());
     set.push("simple_colour",Some(35),SimpleColourCommandType());
