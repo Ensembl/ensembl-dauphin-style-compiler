@@ -193,6 +193,7 @@
         //genome_browser.set_stick("triticum_aestivum_GCA_900519105_1:1D");
         genome_browser.set_stick("homo_sapiens_GCA_000001405_28:13");
         genome_browser.switch(["track","focus"],true);
+        genome_browser.switch(["track","focus","item"],true);
         genome_browser.switch(["track","focus","label"],true);
         genome_browser.switch(["track","gene-pc-fwd"],true);
         genome_browser.switch(["track","gene-pc-rev"],true);        
@@ -216,8 +217,10 @@
         //genome_browser.goto(2000000,3000000);
         //genome_browser.goto(6140000,6240000);
         genome_browser.goto(32314449,32316274);
+        genome_browser.switch(["focus"],true);
         genome_browser.switch(["focus","gene"],true);
-        genome_browser.switch(["focus","gene","ENSG00000139618"],true);
+        //genome_browser.switch(["focus","gene","ENSG00000139618"],true);
+        genome_browser.switch(["track","focus","item","gene"],"ENSG00000139618");
 
         function flipper(path,go) {
             let flip = false;
@@ -240,6 +243,8 @@
           genome_browser.wait();
           genome_browser.switch(["focus","gene"],true);
           genome_browser.switch(["focus","gene","ENSG00000139618"],true);
+          genome_browser.switch(["focus","gene2"],"ENSG00000139618");
+
         };
         document.getElementById("jump-fry").onclick = function() {
           genome_browser.jump("focus:homo_sapiens_GCA_000001405_28:ENSG00000073910");

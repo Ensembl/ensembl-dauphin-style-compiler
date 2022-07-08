@@ -162,6 +162,8 @@ impl GenomeBrowser {
          */
         let tmpl_true = StructTemplate::new_boolean(true).build().ok().unwrap();
         self.api.switch(&["track"],tmpl_true.clone());
+        self.api.switch(&["track","focus"],tmpl_true.clone());
+        self.api.switch(&["track","focus","item"],tmpl_true.clone());
         self.api.switch(&["focus"],tmpl_true.clone());
         self.api.switch(&["settings"],tmpl_true.clone());
         self.api.switch(&["ruler"],tmpl_true.clone());

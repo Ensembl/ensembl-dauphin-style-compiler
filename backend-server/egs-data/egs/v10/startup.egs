@@ -23,7 +23,7 @@ stmt gene_std(p) {
     track_add_trigger(p,["track","gene-pc-rev"]);
     track_add_trigger(p,["track","gene-other-fwd"]);
     track_add_trigger(p,["track","gene-other-rev"]);
-    track_add_trigger(p,["track","gene-pc-fwd"]);
+    track_add_trigger(p,["track","focus","item","gene"]);
     track_add_switch(p,["settings"]);
     track_add_switch(p,["focus"]);
     track_add_switch(p,["track","focus"]);
