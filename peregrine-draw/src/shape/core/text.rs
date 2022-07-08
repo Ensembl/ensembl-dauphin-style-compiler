@@ -74,7 +74,7 @@ impl FlatDrawingItem for Text {
     fn build(&mut self, canvas: &mut Flat, text_origin: (u32,u32), size: (u32,u32)) -> Result<(),Message> {
         canvas.set_font(&self.pen)?;
         let background = self.background.clone().unwrap_or_else(|| Background::none());
-        canvas.text(&self.text,half_pad(text_origin),size,&self.colour,&background)?;
+        canvas.text(&self.text,pad(text_origin),size,&self.colour,&background)?;
         Ok(())
     }
 }
