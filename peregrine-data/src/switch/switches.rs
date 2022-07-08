@@ -26,7 +26,7 @@ impl SwitchesData {
     }
 
     pub(super) fn build_track_config_list(&self, track: &Track) -> TrackConfigNode {
-        let mut out = TrackConfigNode::new();
+        let mut out = TrackConfigNode::empty();
         let overlay = track.overlay();
         self.root.build_track_config_list(track, &mut out, &mut vec![], false,&overlay);
         overlay.apply(&mut out);

@@ -27,10 +27,10 @@ use super::geometry:: {
     BarCommandType, BpRangeCommandType, SpotColourCommandType, PpcCommandType, StyleCommandType, PatinaSwitchCommandType, PatinaMetadataCommandType, BackgroundCommandType
 };
 use super::shape::{ WiggleCommandType, RectangleCommandType, Text2CommandType, ImageCommandType, EmptyCommandType };
-use super::switch::{ GetSwitchCommandType, ListSwitchCommandType };
+use super::switch::{ GetSwitchCommandType, ListSwitchCommandType, SwitchStringCommand, SwitchStringCommandType, SwitchNumberCommandType, SwitchBooleanCommandType };
 
 pub fn peregrine_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(51,0),0x8DFCA9DD8E936130)
+    CommandSetId::new("peregrine",(52,0),0xB206672D5209117E)
 }
 
 pub fn make_peregrine() -> CompLibRegister {
@@ -106,6 +106,9 @@ pub fn make_peregrine() -> CompLibRegister {
     set.push("eoes_boolean",Some(68),EoesBooleanCommandType());
     set.push("eoes_late",Some(69),EoesLateCommandType());
     set.push("background",Some(70),BackgroundCommandType());
+    set.push("switch_string",Some(71),SwitchStringCommandType());
+    set.push("switch_number",Some(72),SwitchNumberCommandType());
+    set.push("switch_boolean",Some(73),SwitchBooleanCommandType());
     set.add_header("peregrine",include_str!("header.egs"));
     set
 }

@@ -1,5 +1,6 @@
 use peregrine_data::{ Channel, ProgramName, ProgramRegion, ProgramRegionBuilder, Switches, Track };
 use anyhow::{ anyhow as err };
+use peregrine_toolkit::eachorevery::eoestruct::StructBuilt;
 use std::collections::HashMap;
 use std::sync::{ Arc, Mutex };
 use peregrine_toolkit::lock;
@@ -20,7 +21,9 @@ impl TrackBuilder {
     }
 
     pub(crate) fn add_tag(&mut self, tag: &str) { self.track.add_tag(tag); }
-    pub(crate) fn add_switch(&mut self, path: &[&str], yn: bool) { self.track.add_switch(path,yn); }
+    pub(crate) fn add_switch(&mut self, path: &[&str], value: StructBuilt) { 
+        self.track.add_switch(path,value);
+    }
 
     pub(crate) fn track(&self) -> &Track { &self.track }
 

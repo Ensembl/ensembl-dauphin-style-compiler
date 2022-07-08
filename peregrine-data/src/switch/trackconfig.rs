@@ -2,24 +2,34 @@ use std::{collections::hash_map::DefaultHasher, hash::{ Hash, Hasher }};
 use std::fmt;
 use std::sync::{ Arc };
 use std::collections::HashMap;
+use peregrine_toolkit::eachorevery::eoestruct::{StructBuilt, StructTemplate};
+
 use super::track::Track;
 
 #[derive(Clone)]
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub(super) struct TrackConfigNode {
+    value: StructBuilt,
     kids: HashMap<String,Box<TrackConfigNode>>
 }
 
 impl TrackConfigNode {
-    pub(super) fn new() -> TrackConfigNode {
+    pub(super) fn empty() -> TrackConfigNode {
+        Self::new(false)
+    }
+
+    fn new(yn: bool) -> TrackConfigNode {
         TrackConfigNode {
+            value: StructTemplate::new_boolean(yn).build().unwrap(),
             kids: HashMap::new()
         }
     }
 
-    pub(super) fn add_path(&mut self, path: &[&str]) {
+    pub(super) fn add_path(&mut self, path: &[&str], value: StructBuilt) {
         if path.len() > 0 {
-            self.kids.entry(path[0].to_string()).or_insert_with(|| Box::new(TrackConfigNode::new())).add_path(&path[1..]);
+            self.kids.entry(path[0].to_string()).or_insert_with(|| Box::new(TrackConfigNode::new(true))).add_path(&path[1..],value);
+        } else {
+            self.value = value;
         }
     }
 
@@ -29,22 +39,23 @@ impl TrackConfigNode {
         hasher.finish()
     }
 
-    fn get(&self, path: &[&str]) -> Option<Vec<String>> {
+    fn list(&self, path: &[&str]) -> Option<Vec<String>> {
         if path.len() > 0 {
-            self.kids.get(path[0]).and_then(|x| x.get(&path[1..]))
+            self.kids.get(path[0]).and_then(|x| x.list(&path[1..]))
         } else {
             Some(self.kids.keys().cloned().collect())
         }
     }
 
-    fn contains(&self, path: &[&str]) -> bool {
+    pub fn value(&self, path: &[&str]) -> Option<&StructBuilt> {
         if path.len() > 0 {
-            self.kids.get(path[0]).map(|x| x.contains(&path[1..])).unwrap_or(false)
+            self.kids.get(path[0]).and_then(|x| x.value(&path[1..]))
         } else {
-            true
+            Some(&self.value)
         }
     }
 
+    #[cfg(debug_assertions)]
     fn list_configs(&self, out: &mut Vec<Vec<String>>, path: &mut Vec<String>) {
         for (kid_name,kid) in self.kids.iter() {
             path.push(kid_name.to_string());
@@ -91,9 +102,12 @@ impl TrackConfig {
     }
 
     pub fn track(&self) -> &Track { &self.track }
-    pub fn contains(&self, path: &[&str]) -> bool { self.values.contains(path) }
-    pub fn get(&self, path: &[&str]) -> Option<Vec<String>> { self.values.get(path) }
 
+    pub fn get(&self, path: &[&str]) -> bool { self.values.list(path).is_some() }
+    pub fn list(&self, path: &[&str]) -> Option<Vec<String>> { self.values.list(path) }
+    pub fn value(&self, path: &[&str]) -> Option<&StructBuilt> { self.values.value(path) }
+
+    #[cfg(debug_assertions)]
     fn list_configs(&self, out: &mut Vec<Vec<String>>) {
         self.values.list_configs(out,&mut vec![]);
     }

@@ -1,4 +1,6 @@
-use std::{collections::{HashSet, hash_map::DefaultHasher}, hash::{Hasher, Hash}};
+use std::{collections::{HashSet, hash_map::DefaultHasher, HashMap}, hash::{Hasher, Hash}};
+
+use peregrine_toolkit::eachorevery::eoestruct::StructBuilt;
 
 use super::trackconfig::TrackConfigNode;
 
@@ -16,16 +18,16 @@ fn hash_path(data: &[&str]) -> u64 {
     h.finish()
 }
 
-#[derive(Debug)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub(crate) struct SwitchOverlay {
-    full_set: HashSet<Vec<String>>,
+    full_set: HashMap<Vec<String>,StructBuilt>,
     set_parents: HashSet<u64>
 }
 
 impl SwitchOverlay {
     pub(crate) fn new() -> SwitchOverlay {
         SwitchOverlay {
-            full_set: HashSet::new(),
+            full_set: HashMap::new(),
             set_parents: HashSet::new()
         }
     }
@@ -36,9 +38,9 @@ impl SwitchOverlay {
         }
     }
 
-    pub(crate) fn set(&mut self, path: &[&str]) {
+    pub(crate) fn set(&mut self, path: &[&str], value: StructBuilt) {
         self.ensure_parents(path);
-        self.full_set.insert(path.iter().map(|x| x.to_string()).collect());
+        self.full_set.insert(path.iter().map(|x| x.to_string()).collect(),value);
     }
 
     pub(crate) fn clear(&mut self, path: &[&str]) {
@@ -46,8 +48,8 @@ impl SwitchOverlay {
     }
 
     pub(super) fn apply(&self, node: &mut TrackConfigNode) {
-        for path in &self.full_set {
-            node.add_path(&path.iter().map(|x| x.as_str()).collect::<Vec<_>>());
+        for (path,value) in &self.full_set {
+            node.add_path(&path.iter().map(|x| x.as_str()).collect::<Vec<_>>(),value.clone());
         }
     }
 }

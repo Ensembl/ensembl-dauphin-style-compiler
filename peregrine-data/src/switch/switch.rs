@@ -75,7 +75,7 @@ impl Switch {
 
     pub(super) fn build_track_config_list<'a>(&'a self, want_track: &Track, out: &mut TrackConfigNode, path: &mut Vec<&'a str>,mut active: bool, overlay: &SwitchOverlay) {
         if self.tracks.contains(want_track) { active = true; }
-        if active { out.add_path(path); }
+        if active { out.add_path(path,self.value.clone()); }
         let kids = self.kids.iter();
         for (kid_name,kid) in kids {
             path.push(kid_name);

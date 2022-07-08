@@ -1,4 +1,6 @@
 use std::sync::{Arc, Mutex};
+use peregrine_toolkit::error;
+
 use crate::{AgentStore, DataMessage, PeregrineApiQueue, PeregrineCoreBase, PeregrineIntegration, PgCommanderTaskSpec, PgDauphin, add_task, core::{channel::Channel, version::VersionMetadata}, request::{core::manager::RequestManager, messages::bootstrapres::BootRes}, shapeload::programloader::ProgramLoader};
 
 use super::PgDauphinTaskSpec;
@@ -6,13 +8,16 @@ use super::PgDauphinTaskSpec;
 async fn finish_bootstrap(response: &BootRes, manager: &RequestManager, dauphin: &PgDauphin, queue: &PeregrineApiQueue, loader: &ProgramLoader, integration: &Arc<Mutex<Box<dyn PeregrineIntegration>>>, version: &VersionMetadata) -> Result<(),DataMessage> {
     manager.set_supported_versions(response.supports(),version.backend_version());
     manager.set_lo_divert(response.channel_hi(),response.channel_lo());
-    dauphin.run_program(loader,PgDauphinTaskSpec {
+    let r = dauphin.run_program(loader,PgDauphinTaskSpec {
         prio: 2,
         slot: None,
         timeout: None,
         program_name: response.program_name().clone(),
         payloads: None
-    }).await?;
+    }).await;
+    if let Err(err) = r {
+        error!("{}",err);
+    }
     integration.lock().unwrap().set_assets(response.assets().clone()); // XXX don't clone
     queue.set_assets(response.assets());
     queue.regenerate_track_config();
