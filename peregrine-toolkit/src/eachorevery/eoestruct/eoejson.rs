@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 use crate::eachorevery::EachOrEvery;
-use super::{eoestruct::{StructConst, StructError, struct_error, StructVarGroup, LateValues}, structtemplate::{StructVar, StructPair}, StructTemplate, eoestructdata::{DataStackTransformer, eoestack_run}, structbuilt::StructBuilt};
+use super::{eoestruct::{StructConst, StructError, struct_error, StructVarGroup, LateValues, StructResult}, structtemplate::{StructVar, StructPair}, StructTemplate, eoestructdata::{DataStackTransformer, eoestack_run}, structbuilt::StructBuilt, expand::StructSelectorVisitor};
 use serde_json::{Value as JsonValue, Number, Map};
 
 struct JsonTransformer;
@@ -168,4 +168,32 @@ impl EoeFromJson {
 
 pub fn struct_from_json(alls: Vec<String>, ifs: Vec<String>, json: &JsonValue) -> Result<(StructTemplate,Vec<(String,StructVar)>),StructError> {
     EoeFromJson::new(alls,ifs,json)
+}
+
+struct SelectJsonArray {
+    output: Vec<JsonValue>
+}
+
+impl StructSelectorVisitor for SelectJsonArray {
+    fn constant(&mut self, constant: &StructConst) -> StructResult {
+        let value = match constant {
+            StructConst::Number(n) => { JsonValue::Number(Number::from_f64(*n).unwrap()) }
+            StructConst::String(s) => { JsonValue::String(s.clone()) }
+            StructConst::Boolean(b) => { JsonValue::Bool(*b) },
+            StructConst::Null => { JsonValue::Null }
+        };
+        self.output.push(value);
+        Ok(())
+    }
+
+    fn missing(&mut self) -> StructResult {
+        self.output.push(JsonValue::Null);
+        Ok(())
+    }
+}
+
+pub fn select_to_json(data: &StructBuilt, path: &[String], lates: Option<&LateValues>) -> JsonValue {
+    let mut out = SelectJsonArray { output: vec![] };
+    data.select(lates,path,&mut out);
+    JsonValue::Array(out.output)
 }

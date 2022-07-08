@@ -8,7 +8,7 @@ use super::eoestruct::{StructConst, StructVarValue};
 pub enum StructBuilt {
     Var(usize,usize),
     Const(StructConst),
-    Array(Arc<EachOrEvery<StructBuilt>>),
+    Array(Arc<EachOrEvery<StructBuilt>>,bool),
     Object(Arc<EachOrEvery<(String,StructBuilt)>>),
     All(Vec<Option<Arc<StructVarValue>>>,Arc<StructBuilt>),
     Condition(usize,usize,Arc<StructBuilt>)

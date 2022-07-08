@@ -132,7 +132,7 @@ impl StructBuilt {
                     StructConst::Null => format!("null")
                 });
             },
-            StructBuilt::Array(values) => {
+            StructBuilt::Array(values,_) => {
                 output.push_str("[");
                 comma_separate(&values,|item,output| {
                     item.format_level(output)

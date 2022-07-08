@@ -1,6 +1,6 @@
 use crate::log;
 
-use super::{eoestructdata::{DataVisitor, eoestack_run}, eoestruct::{StructConst, StructResult}, StructBuilt};
+use super::{eoestructdata::{DataVisitor, eoestack_run}, eoestruct::{StructConst, StructResult, struct_error}, StructBuilt};
 
 /* Falsy values are:
  * false, 0, "", [], {}, null
@@ -13,47 +13,35 @@ use super::{eoestructdata::{DataVisitor, eoestack_run}, eoestruct::{StructConst,
  */
 
 struct ProveFalsy {
-    in_struct: bool
+    once: bool
+}
+
+impl ProveFalsy {
+    fn once(&mut self) -> StructResult {
+        if self.once { return Err(struct_error("")) }
+        self.once = true;
+        Ok(())
+    }
 }
 
 impl DataVisitor for ProveFalsy {
     fn visit_const(&mut self, input: &StructConst) -> StructResult { 
+        self.once()?;
         let truthy = match input {
             StructConst::Number(n) => *n != 0.,
             StructConst::String(s) => s != "",
             StructConst::Boolean(b) => *b,
             StructConst::Null => false,
         };
-        if truthy {
-            return Err(String::new());
-        }
-        Ok(())
+        if truthy { Err(struct_error("")) } else { Ok(()) }
     }
-    fn visit_separator(&mut self) -> StructResult { Err(String::new()) }
-    fn visit_array_start(&mut self) -> StructResult { 
-        if self.in_struct {
-            return Err(String::new());
-        }
-        self.in_struct = true;
-        Ok(())
-    }
-    fn visit_array_end(&mut self) -> StructResult { Ok(()) }
-    fn visit_object_start(&mut self) -> StructResult {
-        if self.in_struct {
-            return Err(String::new());
-        }
-        self.in_struct = true;
-        Ok(())
-    }
-    fn visit_object_end(&mut self) -> StructResult { Ok(()) }
-    fn visit_pair_start(&mut self, _key: &str) -> StructResult { Ok(()) }
-    fn visit_pair_end(&mut self, _key: &str) -> StructResult { Ok(()) }
+    fn visit_array_start(&mut self) -> StructResult { self.once() }
+    fn visit_object_start(&mut self) -> StructResult { self.once() }
+    fn visit_pair_start(&mut self, _key: &str) -> StructResult { Err(struct_error("")) }
 }
 
 pub(super) fn truthy(input: &StructBuilt) -> bool {
-    let mut falsy = ProveFalsy {
-        in_struct: false
-    };
+    let mut falsy = ProveFalsy { once: false };
     input.expand(None,&mut falsy).is_err()
 }
 

@@ -29,6 +29,16 @@ fn check_build_compatible(vars: &[Option<Arc<StructVarValue>>]) -> StructResult 
     Ok(())
 }
 
+fn direct_conditionals(input: &EachOrEvery<StructBuilt>) -> bool {
+    for item in input.iter(input.len().unwrap_or(1)).unwrap() {
+        match item {
+            StructBuilt::Condition(_,_,_) => { return true; }
+            _ => {}
+        }
+    }
+    false
+}
+
 impl StructTemplate {
     fn make(&self, bindings: &mut Vec<Binding>, all_depth: usize, first: bool) -> Result<StructBuilt,StructError> {
         Ok(match self {
@@ -44,9 +54,9 @@ impl StructTemplate {
                 if v.len().is_none() {
                     return Err(struct_error("no infinite arrays in json"));
                 }
-                StructBuilt::Array(Arc::new(
-                    v.map_results(|x| x.make(bindings,all_depth,false))?
-                ))
+                let data = v.map_results(|x| x.make(bindings,all_depth,false))?;
+                let cond = direct_conditionals(&data);
+                StructBuilt::Array(Arc::new(data),cond)
             },
             StructTemplate::Object(v) => {
                 if v.len().is_none() {
@@ -67,7 +77,9 @@ impl StructTemplate {
                     binding.value.clone().map(|x| Arc::new(x))
                 }).collect::<Vec<_>>();
                 if removed.is_empty() {
-                    StructBuilt::Array(Arc::new(EachOrEvery::each(vec![obj])))
+                    let data = EachOrEvery::each(vec![obj]);
+                    let cond = direct_conditionals(&data);
+                    StructBuilt::Array(Arc::new(data),cond)
                 } else {
                     check_build_compatible(&removed)?;
                     StructBuilt::All(removed,Arc::new(obj))

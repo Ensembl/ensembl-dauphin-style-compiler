@@ -13,6 +13,9 @@ pub type StructError = String;
 #[cfg(debug_assertions)]
 pub(super) fn struct_error(msg: &str) -> StructError { msg.to_string() }
 
+#[cfg(debug_assertions)]
+pub fn struct_error_to_string(error: StructError) -> String { error }
+
 #[cfg(not(debug_assertions))]
 pub type StructError = ();
 
@@ -20,6 +23,9 @@ pub type StructError = ();
 pub(super) fn struct_error(msg: &str) -> StructError { () }
 
 pub type StructResult = Result<(),StructError>;
+
+#[cfg(not(debug_assertions))]
+pub fn struct_error_to_string(_error: StructError) ->String { "struct error".to_string() }
 
 #[derive(Copy,Clone,PartialEq,Eq,Hash)]
 #[cfg_attr(debug_assertions,derive(Debug))]
@@ -45,7 +51,7 @@ pub enum StructConst {
 }
 
 impl StructConst {
-    pub(super) fn truthy(&self) -> bool {
+    pub fn truthy(&self) -> bool {
         match self {
             StructConst::Number(_) => true,
             StructConst::String(_) => true,
@@ -207,7 +213,7 @@ impl StructVarValue {
 #[cfg(test)]
 mod test {
     use std::str::FromStr;
-    use crate::{eachorevery::{eoestruct::{eoejson::{struct_to_json, struct_from_json, array_to_var }, structtemplate::{StructVar, StructPair}, StructTemplate, eoestructdata::{DataVisitor}}, EachOrEvery}};
+    use crate::{eachorevery::{eoestruct::{eoejson::{struct_to_json, struct_from_json, array_to_var, select_to_json }, structtemplate::{StructVar, StructPair}, StructTemplate, eoestructdata::{DataVisitor}, StructBuilt}, EachOrEvery}};
     use serde_json::{Value as JsonValue, Number, Map as JsonMap };
 
     use super::{StructResult, StructConst, StructVarGroup, LateValues };
@@ -538,7 +544,48 @@ mod test {
         for testcase in json_array(&data).iter() {
             visitor_case(&testcase);
         }
+    }
 
+    fn json_number_or_null(value: &JsonValue) -> Option<f64> {
+        match value {
+            JsonValue::Number(n) => { n.as_f64() },
+            _ => { None }
+        }
+    }
+
+    fn select_subcase(data: &StructBuilt, path: &[String], values: &[Option<f64>]) {
+        let output = json_fix_numbers(&select_to_json(data, path,None));
+        let output = json_array(&output).iter().map(|x| json_number_or_null(x)).collect::<Vec<_>>();
+        assert_eq!(output,values);
+    }
+
+    fn select_case(value: &JsonValue) {
+        let parts = json_array(value);
+        println!("running {}",json_string(&parts[0]));
+        let vars = json_array(&parts[1]).iter().map(|x| json_string(x)).collect::<Vec<_>>();
+        let ifs = json_array(&parts[2]).iter().map(|x| json_string(x)).collect::<Vec<_>>();
+        let (template,lates) = build_json(vars,ifs,&parts[3],None);
+        println!("{:?}\n",template);
+        let build = template.build().ok().expect("unexpected error");
+        println!("{:?}\n",build);
+        let output = struct_to_json(&build,Some(&lates)).ok().unwrap();
+        let output = JsonValue::from_str(&output.to_string()).ok().unwrap();
+        assert_eq!(json_fix_numbers(&output),json_fix_numbers(&parts[4]));
+        for subtests in json_array(&parts[5]) {
+            let parts = json_array(&subtests);
+            let path = json_array(&parts[0]).iter().map(|x| json_string(x)).collect::<Vec<_>>();
+            let values = json_array(&json_fix_numbers(&parts[1])).iter().map(|x| json_number_or_null(x)).collect::<Vec<_>>();
+            println!("path={:?} values={:?}",path,values);
+            select_subcase(&build,&path,&values);
+        }
+    }
+
+    #[test]
+    fn test_select() {
+        let data = JsonValue::from_str(include_str!("test-select.json")).ok().unwrap();
+        for testcase in json_array(&data).iter() {
+            select_case(&testcase);
+        }
     }
 
 }
