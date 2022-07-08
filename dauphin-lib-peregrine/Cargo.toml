@@ -10,6 +10,7 @@ compile = ["dauphin_compile"]
 [dependencies]
 anyhow="*"
 serde_cbor="*"
+serde_json="*"
 url="*"
 owning_ref="*"
 inflate="*"

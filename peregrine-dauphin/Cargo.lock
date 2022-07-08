@@ -106,6 +106,7 @@ dependencies = [
  "peregrine_data",
  "peregrine_toolkit",
  "serde_cbor",
+ "serde_json",
  "url",
  "web-sys",
 ]
