@@ -175,8 +175,6 @@ text_allotment := allotment;
 text_allotment#[enabled_gene_labels==false] := use_allotment("");
 text_allotment#[get_switch(["scale","no-labels"])] := use_allotment("");
 
-gene_labels := if(get_switch(["track","gene-pc-fwd","label","id"]),gene_id,gene_name);
-
 track_name := index(allotment_idx,potential_tracks);
 
 /*
@@ -248,7 +246,7 @@ rectangle_on_genome(start,end,8,tr_zmenu_patina,allotment);
 rectangle_on_genome(start,end,8,ge_zmenu_patina,allotment);
 
 /* label */
-text_underneath(start,8,textpen,gene_labels,text_allotment);
+text_underneath(start,8,textpen,gene_id,text_allotment);
 
 chevron_spacing := [0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0][];
 

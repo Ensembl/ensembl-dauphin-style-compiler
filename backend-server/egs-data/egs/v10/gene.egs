@@ -1,6 +1,6 @@
 import "lib:std"; use "std";
 import "lib:peregrine"; use "peregrine";
-import "file:common9.egs"; use "common9";
+import "file:common.egs"; use "common";
 
 /* 
  * actually get the data from the server
@@ -162,8 +162,6 @@ enabled_gene_labels := index(allotment_idx,[enabled_labels]);
 
 text_allotment#[enabled_gene_labels==false] := use_allotment("");
 
-gene_labels := if(get_switch(["track","gene-pc-fwd","label","id"]),gene_id,gene_name);
-
 /*
  * What colour? What font? etc
  *
@@ -176,8 +174,8 @@ pc_colour := simple_colour(direct_colour(128,128,128,255));
 focus_colour := simple_colour(direct_colour(39,154,252,255));
 patina := patina_filled(index(allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour,focus_colour]));
 
-text_colour := [direct_colour(111,129,144,255),direct_colour(100,100,100,255)][(@==1)==get_switch(["settings","bluer"])];
-text_size := [10,24][(@==1)==get_switch(["settings","bigger"])];
+text_colour := direct_colour(111,129,144,255);
+text_size := 10;
 
 textpen := pen("'IBM Plex Mono', sans-serif",text_size,text_colour,[][]);
 
@@ -209,7 +207,7 @@ rectangle(spacebase(start,0,-0.5),spacebase(end,5,0.5),patina,allotment);
 rectangle_on_genome(start,end,8,zmenu_patina,allotment);
 rectangle_on_genome(start,end,8,tr_zmenu_patina,allotment);
 rectangle_on_genome(start,end,8,ge_zmenu_patina,allotment);
-text_underneath(start,8,textpen,gene_labels,text_allotment);
+text_underneath(start,8,textpen,gene_id,text_allotment);
 
 /* main track chevrons */
 

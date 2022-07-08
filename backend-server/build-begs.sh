@@ -7,6 +7,6 @@ export PATH="$PATH:$DIR/../dauphin/target/release"
 SRC="$DIR/egs-data/egs"
 DST="$DIR/egs-data/begs"
 
-dauphin -c $SRC/zoomed-seq9.egs -c $SRC/gene-overview9.egs -c $SRC/gene9.egs -c $SRC/transcript9.egs -c $SRC/zoomed-transcript9.egs -c $SRC/gc9.egs -c $SRC/variant9.egs -c $SRC/contig9.egs -c $SRC/ruler9.egs -c $SRC/framing9.egs -o $DST/render9.begs -L peregrine -O2 
-dauphin -c $SRC/startup8.egs -c $SRC/lookup.egs -c $SRC/jump.egs -o $DST/stick9.begs -L peregrine -O2
-dauphin -c $SRC/boot.egs -o $DST/boot9.begs -L peregrine -O2
+dauphin -c $SRC/v10/zoomed-seq.egs -c $SRC/v10/gene-overview.egs -c $SRC/v10/gene.egs -c $SRC/v10/transcript.egs -c $SRC/v10/zoomed-transcript.egs -c $SRC/v10/gc.egs -c $SRC/v10/variant.egs -c $SRC/v10/contig.egs -c $SRC/v10/ruler.egs -c $SRC/v10/framing.egs -o $DST/render10.begs -L peregrine -O2 
+dauphin -c $SRC/v10/startup.egs -c $SRC/v10/lookup.egs -c $SRC/v10/jump.egs -o $DST/stick10.begs -L peregrine -O2
+dauphin -c $SRC/v10/boot.egs -o $DST/boot10.begs -L peregrine -O2
