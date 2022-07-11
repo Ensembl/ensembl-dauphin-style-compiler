@@ -28,7 +28,13 @@ pub fn js_to_json(js: &JsValue) -> Result<JsonValue,()> {
         js_object_to_json(js)
     } else {
         match js_typeof(js)?.as_str() {
-            "array" => js_array_to_json(js),
+            "object" => {
+                if Array::is_array(js) {
+                    js_array_to_json(js)
+                } else {
+                    return Err(());
+                }
+            },
             "number" => Ok(JsonValue::Number(JsonNumber::from_f64(js.as_f64().unwrap()).unwrap())),
             "boolean" => Ok(JsonValue::Bool(js.as_bool().unwrap())),
             "string" => Ok(JsonValue::String(js.as_string().unwrap())),

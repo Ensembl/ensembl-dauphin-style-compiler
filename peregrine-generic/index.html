@@ -49,7 +49,8 @@
           <thead>
             <tr>
               <th>id</th>
-              <th>on/off</th>
+              <th>state</th>
+              <th>actions</th>
             </tr>
           </thead>
           <tbody id="focus-transcripts">            
@@ -79,6 +80,7 @@
           "zoom.goto.v": "0.003",
         });
         var seen_transcripts = {};
+        var shown_transcripts = {};
         var labels = {};
         var tr_labels = {};
         var sv_labels = {};
@@ -167,6 +169,10 @@
                 let shown = track['transcripts-shown'];
                 if(shown!==undefined) {
                   console.log("shown: "+shown);
+                  shown_transcripts = {};
+                  for(const trid of shown) {
+                    shown_transcripts[trid] = 1;
+                  }
                 }
                 if(shown) {
                   let continued = false;
@@ -180,14 +186,30 @@
                     seen_transcripts[shown[i]] = 1;
                   }
                   let trbody = document.getElementById("focus-transcripts");
-                    trbody.innerHTML = "";
+                  trbody.innerHTML = "";
                   for(var trid of Object.keys(seen_transcripts)) {
                     let trtr = document.createElement("tr");
                     let trtd1 = document.createElement("td");
                     trtd1.innerHTML = trid;
                     let trtd2 = document.createElement("td");
+                    let text = "off";
+                    let action_text = "turn on";
+                    if(shown_transcripts[trid]) { text = "on"; action_text = "turn off"; }
+                    trtd2.innerHTML = text;
+                    let trtd3 = document.createElement("td");
+                    trtd3.innerHTML = "<a href=\"#\">"+action_text+"</a>";
+                    trtd3.onclick = function() {
+                      if(shown_transcripts[trid]) {
+                        delete shown_transcripts[trid];
+                      } else {
+                        shown_transcripts[trid] = 1;
+                      }
+                      genome_browser.switch(["track","focus","enabled-transcripts"],Object.keys(shown_transcripts));
+                      console.log("sending "+Object.keys(shown_transcripts));
+                    };
                     trtr.append(trtd1);
-                    trtr.append(trtd2);                    
+                    trtr.append(trtd2);
+                    trtr.append(trtd3);
                     trbody.append(trtr);
                   }
                 }
