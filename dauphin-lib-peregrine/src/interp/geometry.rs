@@ -28,7 +28,7 @@ simple_interp_command!(SpotColourInterpCommand,SpotColourDeserializer,46,2,(0,1)
 simple_interp_command!(PpcInterpCommand,PpcDeserializer,49,1,(0));
 simple_interp_command!(StyleInterpCommand,StyleDeserializer,50,3,(0,1,2));
 simple_interp_command!(PatinaSwitchInterpCommand,PatinaSwitchDeserializer,51,3,(0,1,2));
-simple_interp_command!(PatinaMetadataInterpCommand,PatinaMetadataDeserializer,54,3,(0,1,2));
+simple_interp_command!(PatinaMetadataInterpCommand,PatinaMetadataDeserializer,54,4,(0,1,2,3));
 simple_interp_command!(BackgroundInterpCommand,BackgroundDeserializer,70,3,(0,1,2));
 
 impl InterpCommand for BpRangeInterpCommand {
@@ -418,13 +418,17 @@ impl InterpCommand for PatinaMetadataInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         let registers = context.registers_mut();
         let key = registers.get_strings(&self.1)?[0].to_string();
-        let value_ids = registers.get_numbers(&self.2)?;
+        let ids = registers.get_strings(&self.2)?.to_vec();
+        let value_ids = registers.get_numbers(&self.3)?;
         drop(registers);
         let peregrine = get_peregrine(context)?;
         let geometry_builder = peregrine.geometry_builder();
-        let values = EachOrEvery::each(value_ids.iter().map(|request| {
-            geometry_builder.eoetmpl(*request as u32).map(|x| x.as_ref().clone())
-        }).collect::<Result<Vec<_>,_>>()?);
+        let values = value_ids.iter().zip(ids.iter()).map(|(request,id)| {
+            let tmpl = geometry_builder.eoetmpl(*request as u32)
+                .map(|x| x.as_ref().clone());
+            Ok::<_,anyhow::Error>((id.clone(),tmpl?))
+        }).collect::<Result<Vec<_>,_>>()?;
+        let values = EachOrEvery::each(values);
         let patina = Patina::Metadata(key,values);
         let payload = geometry_builder.add_patina(patina) as usize;
         drop(peregrine);

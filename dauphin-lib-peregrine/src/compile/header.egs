@@ -172,4 +172,4 @@ expr positive_seq(stream,name) lesqlite2(inflate_bytes(data_stream(stream,name))
 expr classified_seq(stream,keys,values) classify(string_seq(stream,keys),positive_seq(stream,values));
 expr bool_seq(stream,name) std::bytes_to_bool(inflate_bytes(data_stream(stream,name)));
 
-func patina_metadata(string,eoestmplid) becomes patina;
+func patina_metadata(string,string,eoestmplid) becomes patina;

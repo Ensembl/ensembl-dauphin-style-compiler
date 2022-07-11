@@ -155,7 +155,7 @@ impl Hotspot {
 pub enum Patina {
     Drawn(DrawnType,EachOrEvery<Colour>),
     Hotspot(Hotspot),
-    Metadata(String,EachOrEvery<StructTemplate>)
+    Metadata(String,EachOrEvery<(String,StructTemplate)>)
 }
 
 impl Patina {

@@ -1,11 +1,11 @@
-use std::{collections::{HashMap, hash_map::DefaultHasher}, sync::Arc, hash::{Hash, Hasher}, iter::FromIterator};
+use std::{collections::{HashMap, hash_map::DefaultHasher }, sync::Arc, hash::{Hash, Hasher}, iter::FromIterator};
 use hashbrown::HashSet;
-use peregrine_toolkit::{puzzle::{ StaticValue, StaticAnswer, derived }, eachorevery::eoestruct::{StructTemplate, struct_to_json, StructBuilt}, log};
+use peregrine_toolkit::{puzzle::{ StaticValue, StaticAnswer, derived }, eachorevery::eoestruct::{StructTemplate, struct_to_json, StructBuilt}};
 use crate::{allotment::core::allotmentname::{AllotmentName, AllotmentNamePart}, shape::metadata::AbstractMetadata};
 use serde_json::{ Value as JsonValue, Map as JsonMap };
 
 struct AllotmentData {
-    values: HashMap<(AllotmentName,String),Vec<StaticValue<(StructTemplate,bool)>>>,
+    values: HashMap<(AllotmentName,String),Vec<StaticValue<(StructTemplate,Option<String>)>>>,
     reports: Vec<AllotmentName>
 }
 
@@ -24,9 +24,9 @@ impl LocalAllotmentMetadataBuilder {
         out
     }
 
-    pub(crate) fn set(&mut self, allotment: &AllotmentName, key: &str, value: StaticValue<StructTemplate>, via_boxes: bool) {
+    pub(crate) fn set(&mut self, allotment: &AllotmentName, key: &str, value: StaticValue<StructTemplate>, via_boxes: Option<String>) {
         let value = derived(value, move |x| {
-           (x,via_boxes)
+           (x,via_boxes.clone())
         });
         self.0.values.entry((allotment.clone(),key.to_string()))
             .or_insert_with(|| vec![])
@@ -105,27 +105,22 @@ impl MapToReporter {
     }
 }
 
-fn merge_boxes(input: Vec<StructBuilt>) -> Option<JsonValue> {
-    input.iter()
-        .map(|x| struct_to_json(x,None))
-        .collect::<Result<Vec<_>,_>>().ok()
-        .map(|x| JsonValue::Array(x))
-}
-
-fn merge(input: &[(StructTemplate,bool)]) -> Option<(JsonValue,bool)> {
-    let any_via_boxes = input.iter().any(|(_,x)| *x);
-    if let Ok(value) = input.iter().map(|(x,_)| x.build()).collect::<Result<Vec<_>,_>>() {
-        if any_via_boxes {
-            return merge_boxes(value).map(|x| (x,true));
-        } else {
-            if let Some(value) = value.first() {
-                if let Ok(json) = struct_to_json(value,None) {
-                    return Some((json,false));
-                }
+fn merge(input: &[(StructTemplate,Option<String>)]) -> Option<(JsonValue,bool)> {
+    let mut via_boxes = false;
+    let mut collated = HashMap::new();
+    for (template,key) in input {
+        if key.is_some() { via_boxes = true; }
+        if let Ok(value) = template.build() {
+            if let Ok(json) = struct_to_json(&value,None) {
+                collated.insert(key.clone(),json);
             }
         }
     }
-    None
+    if via_boxes {
+        Some((JsonValue::Array(collated.drain().map(|x| x.1).collect()),true))
+    } else {
+        collated.get(&None).map(|x| (x.clone(),false))
+    }
 }
 
 impl GlobalAllotmentMetadata {

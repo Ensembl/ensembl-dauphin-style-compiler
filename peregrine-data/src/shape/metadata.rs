@@ -7,20 +7,22 @@ use super::shape::UnplacedShape;
 struct AllotmentMetadataEntry {
     allotment: AllotmentName,
     key: String,
+    id: String,
     value: StructTemplate
 }
 
 impl AllotmentMetadataEntry {
-    fn new(allotment: &AllotmentName, key: &str, value: &StructTemplate) -> AllotmentMetadataEntry {
+    fn new(allotment: &AllotmentName, key: &str, id: &str, value: &StructTemplate) -> AllotmentMetadataEntry {
         AllotmentMetadataEntry {
             allotment: allotment.clone(),
             key: key.to_string(),
+            id: id.to_string(),
             value: value.clone()
         }
     }
 
     fn add(&self, state: &mut LocalAllotmentMetadataBuilder) {
-        state.set(&self.allotment,&self.key,constant(self.value.clone()),true)
+        state.set(&self.allotment,&self.key,constant(self.value.clone()),Some(self.id.to_string()))
     }
 }
 
@@ -28,7 +30,7 @@ pub(crate) struct AbstractMetadataBuilder {
     data: Vec<AllotmentMetadataEntry>
 }
 
-fn allotment_and_value<'a>(allotments: &'a EachOrEvery<LeafRequest>, values: &'a EachOrEvery<StructTemplate>) -> Option<impl Iterator<Item=(&'a LeafRequest,&'a StructTemplate)>> {
+fn allotment_and_value<'a>(allotments: &'a EachOrEvery<LeafRequest>, values: &'a EachOrEvery<(String,StructTemplate)>) -> Option<impl Iterator<Item=(&'a LeafRequest,&'a (String,StructTemplate))>> {
     let len = if let Some(len) = values.len() { len } else { return None };
     if !allotments.compatible(len) { return None; } // XXX proper error without length match
     let iter = allotments.iter(len).unwrap().zip(values.iter(len).unwrap());
@@ -40,11 +42,11 @@ impl AbstractMetadataBuilder {
         AbstractMetadataBuilder { data: vec![] }
     }
 
-    fn add_shape(&mut self, allotments: &EachOrEvery<LeafRequest>, key: &str, values: &EachOrEvery<StructTemplate>) {
+    fn add_shape(&mut self, allotments: &EachOrEvery<LeafRequest>, key: &str, values: &EachOrEvery<(String,StructTemplate)>) {
         let iter = allotment_and_value(allotments,values);
         let iter = if let Some(iter) = iter { iter } else { return; };
         for (request,value) in iter {
-            self.data.push(AllotmentMetadataEntry::new(request.name(),key,value));
+            self.data.push(AllotmentMetadataEntry::new(request.name(),key,&value.0,&value.1));
         }
     }
 
