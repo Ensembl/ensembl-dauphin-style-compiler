@@ -155,6 +155,7 @@ dependencies = [
  "anyhow",
  "dauphin_interp",
  "hashbrown 0.12.1",
+ "peregrine_toolkit",
  "serde_cbor",
  "web-sys",
 ]

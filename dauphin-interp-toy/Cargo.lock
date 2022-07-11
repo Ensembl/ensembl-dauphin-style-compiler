@@ -61,6 +61,7 @@ dependencies = [
  "anyhow",
  "dauphin_interp",
  "hashbrown",
+ "peregrine_toolkit",
  "serde_cbor",
  "web-sys",
 ]

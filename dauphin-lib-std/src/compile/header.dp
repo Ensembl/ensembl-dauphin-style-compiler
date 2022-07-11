@@ -62,6 +62,7 @@ expr append(list,items) [list[] (+) items[]];
 func lookup(string,vec(string),number) becomes number;
 func in(string,vec(string)) becomes boolean;
 func index(number,vec(_A)) becomes _A;
+func nth(_A) becomes number;
 
 expr find_key(k,src) index(lookup(k,[src[].key],0),src);
 

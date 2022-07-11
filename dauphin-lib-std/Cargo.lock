@@ -152,6 +152,7 @@ dependencies = [
  "dauphin_interp",
  "dauphin_test_harness",
  "hashbrown",
+ "peregrine_toolkit",
  "serde_cbor",
  "web-sys",
 ]

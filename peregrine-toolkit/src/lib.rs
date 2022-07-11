@@ -76,3 +76,5 @@ pub mod sample;
 pub mod time;
 pub mod url;
 pub mod skyline;
+
+pub use approxnumber::ApproxNumber;

@@ -14,10 +14,14 @@
  *  limitations under the License.
  */
 
+use std::collections::HashMap;
+use std::hash::Hash;
+
 use dauphin_interp::command::{ CommandSetId, InterpCommand, CommandDeserializer, InterpLibRegister, CommandResult };
 use dauphin_interp::runtime::{InterpContext, InterpValue, Register};
 use dauphin_interp::util::DauphinError;
 use dauphin_interp::util::templates::NoopDeserializer;
+use peregrine_toolkit::{ApproxNumber, log};
 use serde_cbor::Value as CborValue;
 use super::eq::{ library_eq_command_interp };
 use super::numops::{ library_numops_commands_interp };
@@ -25,8 +29,9 @@ use super::vector::{ library_vector_commands_interp };
 use super::print::{ library_print_commands_interp };
 use super::map::{ library_map_commands_interp };
 
+
 pub fn std_id() -> CommandSetId {
-    CommandSetId::new("std",(12,0),0xADE3256200D7A739)
+    CommandSetId::new("std",(13,0),0xD2ABC6BB06DED86)
 }
 
 pub struct AssertDeserializer();
@@ -101,6 +106,61 @@ impl InterpCommand for DerunInterpCommand {
             }
             next += 1;
         }
+        registers.write(&self.0,InterpValue::Indexes(out));
+        Ok(CommandResult::SyncResult())
+    }
+}
+
+pub struct NthDeserializer();
+
+impl CommandDeserializer for NthDeserializer {
+    fn get_opcode_len(&self) -> anyhow::Result<Option<(u32,usize)>> { Ok(Some((27,2))) }
+    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> anyhow::Result<Box<dyn InterpCommand>> {
+        Ok(Box::new(NthInterpCommand(Register::deserialize(&value[0])?,Register::deserialize(&value[1])?)))
+    }
+}
+
+fn nth_command<T: Eq+Hash>(src: &[T]) -> Vec<usize> {
+    let mut state = HashMap::new();
+    let mut out = vec![];
+    for item in src {
+        if !state.contains_key(&item) {
+            state.insert(item.clone(),0);
+        }
+        let value = state.get_mut(&item).unwrap();
+        out.push(*value);
+        *value += 1;
+    }
+    out
+}
+
+pub struct NthInterpCommand(Register,Register);
+
+impl InterpCommand for NthInterpCommand {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+        let registers = context.registers_mut();
+        let src = registers.get(&self.1).borrow().get_shared()?;
+        let natural = src.get_natural();
+        let out = match natural {
+            dauphin_interp::runtime::InterpNatural::Strings => {
+                nth_command(&src.to_rc_strings()?.0)
+            },
+            dauphin_interp::runtime::InterpNatural::Empty => { vec![] },
+            dauphin_interp::runtime::InterpNatural::Numbers => {
+                let values = src.to_rc_numbers()?.0.clone().iter().map(|x| ApproxNumber(*x,6)).collect::<Vec<_>>();
+                nth_command(&values)
+            },
+            dauphin_interp::runtime::InterpNatural::Indexes => {
+                nth_command(&src.to_rc_indexes()?.0)
+            },
+            dauphin_interp::runtime::InterpNatural::Boolean => {
+                nth_command(&src.to_rc_boolean()?.0)
+            },
+            dauphin_interp::runtime::InterpNatural::Bytes => {
+                (0..src.len()).collect::<Vec<_>>()
+            },
+        };
+
         registers.write(&self.0,InterpValue::Indexes(out));
         Ok(CommandResult::SyncResult())
     }
@@ -440,6 +500,7 @@ pub fn make_std_interp() -> InterpLibRegister {
     library_vector_commands_interp(&mut set);
     library_map_commands_interp(&mut set);
     set.push(BytesToBoolDeserializer());
+    set.push(NthDeserializer());
     set.push(DerunDeserializer());
     set.push(GapsDeserializer());
     set.push(RangeDeserializer());

@@ -309,6 +309,7 @@ dependencies = [
  "dauphin_compile",
  "dauphin_interp",
  "hashbrown 0.11.2",
+ "peregrine_toolkit",
  "serde_cbor",
  "web-sys",
 ]

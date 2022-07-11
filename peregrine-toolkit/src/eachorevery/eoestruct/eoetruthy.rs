@@ -1,15 +1,14 @@
-use crate::log;
-
-use super::{eoestructdata::{DataVisitor, eoestack_run}, eoestruct::{StructConst, StructResult, struct_error}, StructBuilt};
+use super::{eoestructdata::DataVisitor, eoestruct::{StructConst, StructResult, struct_error}, StructBuilt};
 
 /* Falsy values are:
  * false, 0, "", [], {}, null
  * Everything else is truthy.
+ *
+ * We implement this with visitors by allowing no more than one constant, array start, hash start,
+ * and if a constant then being a falsy one.
  * 
- * Implementation is to assume false and then mark as thruthy if true thing found:
- * 1. Constant other than the given values is truthy
- * 2. Nested [] or {} is truthy.
- * 3. separator is truthy
+ * As we want to short-circuit on true, that is treated as an error state and so our visitor is
+ * called ProveFalsy.
  */
 
 struct ProveFalsy {

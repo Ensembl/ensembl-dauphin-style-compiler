@@ -33,7 +33,7 @@ use super::map::{ library_map_commands };
 use crate::make_std_interp;
 
 pub fn std_id() -> CommandSetId {
-    CommandSetId::new("std",(12,0),0xADE3256200D7A739)
+    CommandSetId::new("std",(13,0),0xD2ABC6BB06DED86)
 }
 
 pub(super) fn std(name: &str) -> Identifier {
@@ -165,6 +165,34 @@ impl Command for RunCommand {
         Ok(Some(vec![self.0.serialize(),self.1.serialize()]))
     }
 }
+
+pub struct NthCommandType();
+
+impl CommandType for NthCommandType {
+    fn get_schema(&self) -> CommandSchema {
+        CommandSchema {
+            values: 2,
+            trigger: CommandTrigger::Command(std("nth"))
+        }
+    }
+
+    fn from_instruction(&self, it: &Instruction) -> anyhow::Result<Box<dyn Command>> {
+        if let InstructionType::Call(_,_,sig,_) = &it.itype {
+            Ok(Box::new(NthCommand(it.regs[0].clone(),it.regs[1].clone())))
+        } else {
+            Err(DauphinError::malformed("unexpected instruction"))
+        }
+    }
+}
+
+pub struct NthCommand(Register,Register);
+
+impl Command for NthCommand {
+    fn serialize(&self) -> anyhow::Result<Option<Vec<CborValue>>> {
+        Ok(Some(vec![self.0.serialize(),self.1.serialize()]))
+    }
+}
+
 
 pub struct ExtractFilterCommandType();
 
@@ -476,7 +504,7 @@ impl Command for RulerMarkingsCommand {
 }
 
 pub fn make_std() -> CompLibRegister {
-    /* next is 38, 27 is free */
+    /* next is 38 */
     let mut set = CompLibRegister::new(&std_id(),Some(make_std_interp()));
     library_eq_command(&mut set);
     set.push("len",None,LenCommandType());
@@ -488,6 +516,7 @@ pub fn make_std() -> CompLibRegister {
     set.push("bytes_to_bool",Some(25),BytesToBoolCommandType());
     set.push("derun",Some(26),DerunCommandType());
     set.push("run",Some(29),RunCommandType());
+    set.push("nth",Some(27),NthCommandType());
     set.push("halt",Some(30),HaltCommandType());
     set.push("ruler_interval",Some(31),RulerIntervalCommandType());
     set.push("ruler_markings",Some(32),RulerMarkingsCommandType());
