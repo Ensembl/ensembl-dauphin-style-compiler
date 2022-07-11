@@ -6,7 +6,7 @@ use std::sync::Arc;
 use super::eoefilter::{EachOrEveryFilterBuilder, EachOrEveryFilter};
 
 #[cfg_attr(debug_assertions,derive(Debug))]
-#[derive(Clone)]
+#[derive(Clone,Hash)]
 pub(super) enum EachOrEveryIndex {
     Unindexed,
     Indexed(Arc<Vec<usize>>),
@@ -22,6 +22,13 @@ pub struct EachOrEvery<X> {
 impl<X> Clone for EachOrEvery<X> {
     fn clone(&self) -> Self {
         Self { index: self.index.clone(), data: self.data.clone() }
+    }
+}
+
+impl<X: Hash> Hash for EachOrEvery<X> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.index.hash(state);
+        self.data.hash(state);
     }
 }
 

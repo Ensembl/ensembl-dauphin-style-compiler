@@ -67,6 +67,7 @@ pub mod puzzle {
     pub use compose::{ derived_debug };
 }
 
+pub mod approxnumber;
 pub mod boom;
 pub mod cbor;
 pub mod console;

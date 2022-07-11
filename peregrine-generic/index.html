@@ -198,11 +198,12 @@
                     trtd2.innerHTML = text;
                     let trtd3 = document.createElement("td");
                     trtd3.innerHTML = "<a href=\"#\">"+action_text+"</a>";
+                    let click_trid = trid;
                     trtd3.onclick = function() {
-                      if(shown_transcripts[trid]) {
-                        delete shown_transcripts[trid];
+                      if(shown_transcripts[click_trid]) {
+                        delete shown_transcripts[click_trid];
                       } else {
-                        shown_transcripts[trid] = 1;
+                        shown_transcripts[click_trid] = 1;
                       }
                       genome_browser.switch(["track","focus","enabled-transcripts"],Object.keys(shown_transcripts));
                       console.log("sending "+Object.keys(shown_transcripts));

@@ -4,6 +4,7 @@ use "peregrine";
 module "common";
 
 expr switch_yn(path) ((push([switch_boolean(path[],[][])],false))[@==0]);
+expr switch_seqstr(path) (switch_string(path[],["*"][]));
 
 stmt use_allotments(our_allotments,enabled_tracks,potential_tracks) {
     tracks_used := ["","","","",""];

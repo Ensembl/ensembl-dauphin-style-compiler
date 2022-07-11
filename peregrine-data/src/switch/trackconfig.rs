@@ -2,7 +2,7 @@ use std::{collections::hash_map::DefaultHasher, hash::{ Hash, Hasher }};
 use std::fmt;
 use std::sync::{ Arc };
 use std::collections::HashMap;
-use peregrine_toolkit::eachorevery::eoestruct::{StructBuilt, StructTemplate};
+use peregrine_toolkit::eachorevery::eoestruct::{StructBuilt, StructTemplate, struct_to_json};
 
 use super::track::Track;
 
@@ -10,6 +10,7 @@ use super::track::Track;
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub(super) struct TrackConfigNode {
     value: StructBuilt,
+    value_hash: u64,
     kids: HashMap<String,Box<TrackConfigNode>>
 }
 
@@ -18,11 +19,20 @@ impl TrackConfigNode {
         Self::new(false)
     }
 
+    fn rehash(&mut self) {
+        let mut state = DefaultHasher::new();
+        self.value.hash(&mut state);
+        self.value_hash = state.finish();
+    }
+
     fn new(yn: bool) -> TrackConfigNode {
-        TrackConfigNode {
+        let mut out = TrackConfigNode {
             value: StructTemplate::new_boolean(yn).build().unwrap(),
+            value_hash: 0,
             kids: HashMap::new()
-        }
+        };
+        out.rehash();
+        out
     }
 
     pub(super) fn add_path(&mut self, path: &[&str], value: StructBuilt) {
@@ -30,6 +40,7 @@ impl TrackConfigNode {
             self.kids.entry(path[0].to_string()).or_insert_with(|| Box::new(TrackConfigNode::new(true))).add_path(&path[1..],value);
         } else {
             self.value = value;
+            self.rehash();
         }
     }
 
@@ -78,6 +89,7 @@ pub(super) fn hashmap_hasher<H: Hasher, K: Hash+PartialEq+Eq+PartialOrd+Ord, V: 
 
 impl Hash for TrackConfigNode {
     fn hash<H: Hasher>(&self, state: &mut H) {
+        self.value_hash.hash(state);
         hashmap_hasher(&self.kids,state);
     }
 }

@@ -1,7 +1,6 @@
 use std::sync::Arc;
-
+use std::hash::Hash;
 use crate::eachorevery::EachOrEvery;
-
 use super::eoestruct::{StructConst, StructVarValue};
 
 #[derive(Clone)]
@@ -12,4 +11,18 @@ pub enum StructBuilt {
     Object(Arc<EachOrEvery<(String,StructBuilt)>>),
     All(Vec<Option<Arc<StructVarValue>>>,Arc<StructBuilt>),
     Condition(usize,usize,Arc<StructBuilt>)
+}
+
+impl Hash for StructBuilt {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        core::mem::discriminant(self).hash(state);
+        match self {
+            StructBuilt::Var(a,b) => { a.hash(state); b.hash(state); },
+            StructBuilt::Const(c) => c.hash(state),
+            StructBuilt::Array(a, _) => { a.hash(state); },
+            StructBuilt::Object(b) => { b.hash(state); },
+            StructBuilt::All(v,b) => { v.hash(state); b.hash(state); },
+            StructBuilt::Condition(a,b,c) => { a.hash(state); b.hash(state); c.hash(state); },
+        }
+    }
 }

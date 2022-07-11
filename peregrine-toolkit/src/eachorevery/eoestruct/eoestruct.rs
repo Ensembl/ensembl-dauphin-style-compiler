@@ -1,8 +1,8 @@
-use crate::eachorevery::{EachOrEvery, EachOrEveryGroupCompatible};
+use crate::{eachorevery::{EachOrEvery, EachOrEveryGroupCompatible}, approxnumber::ApproxNumber};
 use hashbrown::HashMap;
 use identitynumber::{ identitynumber };
 use lazy_static::lazy_static;
-
+use std::hash::Hash;
 use super::StructVar;
 
 identitynumber!(IDS);
@@ -61,6 +61,20 @@ impl StructConst {
     }
 }
 
+const SIG_FIG : i32 = 6;
+
+impl Hash for StructConst {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        core::mem::discriminant(self).hash(state);
+        match self {
+            StructConst::Number(n) => { ApproxNumber(*n,SIG_FIG).hash(state); },
+            StructConst::String(s) => s.hash(state),
+            StructConst::Boolean(b) => b.hash(state),
+            StructConst::Null => {}
+        }
+    }
+}
+
 pub struct LateValues(HashMap<StructValueId,StructVarValue>);
 
 impl LateValues {
@@ -86,6 +100,20 @@ pub enum StructVarValue {
     String(EachOrEvery<String>),
     Boolean(EachOrEvery<bool>),
     Late(StructValueId)
+}
+
+impl Hash for StructVarValue {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        core::mem::discriminant(self).hash(state);
+        match self {
+            StructVarValue::Number(n) => {
+                n.map(|v| ApproxNumber(*v,SIG_FIG)).hash(state);
+            },
+            StructVarValue::String(s) => s.hash(state),
+            StructVarValue::Boolean(b) => b.hash(state),
+            StructVarValue::Late(v) => v.hash(state)
+        }
+    }
 }
 
 fn to_const<X>(input: &EachOrEvery<X>) -> Option<&X> {
