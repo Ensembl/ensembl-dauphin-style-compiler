@@ -103,7 +103,6 @@ impl TrackConfig {
 
     pub fn track(&self) -> &Track { &self.track }
 
-    pub fn get(&self, path: &[&str]) -> bool { self.values.list(path).is_some() }
     pub fn list(&self, path: &[&str]) -> Option<Vec<String>> { self.values.list(path) }
     pub fn value(&self, path: &[&str]) -> Option<&StructBuilt> { self.values.value(path) }
 

@@ -1,11 +1,11 @@
 use std::{collections::{HashMap, hash_map::DefaultHasher}, sync::Arc, hash::{Hash, Hasher}, iter::FromIterator};
 use hashbrown::HashSet;
-use peregrine_toolkit::{puzzle::{ StaticValue, StaticAnswer, derived }, eachorevery::eoestruct::{StructTemplate, struct_to_json}, log};
+use peregrine_toolkit::{puzzle::{ StaticValue, StaticAnswer, derived }, eachorevery::eoestruct::{StructTemplate, struct_to_json, StructBuilt}, log};
 use crate::{allotment::core::allotmentname::{AllotmentName, AllotmentNamePart}, shape::metadata::AbstractMetadata};
 use serde_json::{ Value as JsonValue, Map as JsonMap };
 
 struct AllotmentData {
-    values: HashMap<(AllotmentName,String),StaticValue<Option<(String,bool)>>>,
+    values: HashMap<(AllotmentName,String),Vec<StaticValue<(StructTemplate,bool)>>>,
     reports: Vec<AllotmentName>
 }
 
@@ -25,12 +25,12 @@ impl LocalAllotmentMetadataBuilder {
     }
 
     pub(crate) fn set(&mut self, allotment: &AllotmentName, key: &str, value: StaticValue<StructTemplate>, via_boxes: bool) {
-        let value_str = derived(value, move |x| {
-            x.build()
-                .and_then(|tmpl| struct_to_json(&tmpl,None))
-                .map(|json| (json.to_string(),via_boxes)).ok()
+        let value = derived(value, move |x| {
+           (x,via_boxes)
         });
-        self.0.values.insert((allotment.clone(),key.to_string()),value_str);
+        self.0.values.entry((allotment.clone(),key.to_string()))
+            .or_insert_with(|| vec![])
+            .push(value);
     }
 
     pub(crate) fn set_reporting(&mut self, allotment: &AllotmentName) {
@@ -103,7 +103,29 @@ impl MapToReporter {
             Some(input.clone())
         }
     }
-    
+}
+
+fn merge_boxes(input: Vec<StructBuilt>) -> Option<JsonValue> {
+    input.iter()
+        .map(|x| struct_to_json(x,None))
+        .collect::<Result<Vec<_>,_>>().ok()
+        .map(|x| JsonValue::Array(x))
+}
+
+fn merge(input: &[(StructTemplate,bool)]) -> Option<(JsonValue,bool)> {
+    let any_via_boxes = input.iter().any(|(_,x)| *x);
+    if let Ok(value) = input.iter().map(|(x,_)| x.build()).collect::<Result<Vec<_>,_>>() {
+        if any_via_boxes {
+            return merge_boxes(value).map(|x| (x,true));
+        } else {
+            if let Some(value) = value.first() {
+                if let Ok(json) = struct_to_json(value,None) {
+                    return Some((json,false));
+                }
+            }
+        }
+    }
+    None
 }
 
 impl GlobalAllotmentMetadata {
@@ -111,9 +133,10 @@ impl GlobalAllotmentMetadata {
         let mapper = MapToReporter::new(&builder.0.reports);
         let mut values = HashMap::new();
         for ((allotment,key),value) in &builder.0.values {
-            if let Some((value,via_boxes)) = value.call(answer) {
+            let input_values = value.iter().map(|x| x.call(answer)).collect::<Vec<_>>();
+            if let Some((value,via_boxes)) = merge(&input_values) {
                 if let Some(reporting) = mapper.reporting_allotment(allotment,via_boxes) {
-                    values.insert((reporting,key.to_string()),value);
+                    values.insert((reporting,key.to_string()),value.to_string());
                 }
             }
         }

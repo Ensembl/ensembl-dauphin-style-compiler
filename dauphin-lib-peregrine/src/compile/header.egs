@@ -115,9 +115,9 @@ func eoes_condition(eoesvarid,eoestmplid) becomes eoestmplid;
 func eoes_group() becomes eoesgroupid;
 func eoes_all(eoesgroupid,eoestmplid) becomes eoestmplid;
 func eoes_var(eoesvarid) becomes eoestmplid;
-func eoes_number(number) becomes eoesvarid;
-func eoes_string(string) becomes eoesvarid;
-func eoes_boolean(boolean) becomes eoesvarid;
+func eoes_number(number) becomes eoestmplid;
+func eoes_string(string) becomes eoestmplid;
+func eoes_boolean(boolean) becomes eoestmplid;
 func eoes_late() becomes eoestmplid;
 
 stmt text_underneath(x,y,penspec,writing,allt) {

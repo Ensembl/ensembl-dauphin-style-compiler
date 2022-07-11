@@ -45,6 +45,16 @@
           <tbody id="track-metadata">
           </tbody>
         </table>
+        <table>
+          <thead>
+            <tr>
+              <th>id</th>
+              <th>on/off</th>
+            </tr>
+          </thead>
+          <tbody id="focus-transcripts">            
+          </tbody>
+        </table>
         <div id="zmenu-click" style="width: 200px; word-break: break-all; font-size: 10px"></div>
       </div>
     </div>
@@ -68,6 +78,7 @@
           "zoom.goto.rho": "1.41",
           "zoom.goto.v": "0.003",
         });
+        var seen_transcripts = {};
         var labels = {};
         var tr_labels = {};
         var sv_labels = {};
@@ -153,6 +164,33 @@
             for(const track_name in all_tracks) {
                 let track = all_tracks[track_name];
                 if(track.type != "track") { continue; } /* don't care */
+                let shown = track['transcripts-shown'];
+                if(shown!==undefined) {
+                  console.log("shown: "+shown);
+                }
+                if(shown) {
+                  let continued = false;
+                  for(let i=0;i<shown.length;i++) {
+                    if(seen_transcripts[shown[i]]) { continued = true; }
+                  }
+                  if(!continued) {
+                    seen_transcripts = {};
+                  }
+                  for(let i=0;i<shown.length;i++) {
+                    seen_transcripts[shown[i]] = 1;
+                  }
+                  let trbody = document.getElementById("focus-transcripts");
+                    trbody.innerHTML = "";
+                  for(var trid of Object.keys(seen_transcripts)) {
+                    let trtr = document.createElement("tr");
+                    let trtd1 = document.createElement("td");
+                    trtd1.innerHTML = trid;
+                    let trtd2 = document.createElement("td");
+                    trtr.append(trtd1);
+                    trtr.append(trtd2);                    
+                    trbody.append(trtr);
+                  }
+                }
                 let tr = document.createElement("tr");
                 let data = [track["switch-id"],track.offset,track.height];
                 for(const text of data) {

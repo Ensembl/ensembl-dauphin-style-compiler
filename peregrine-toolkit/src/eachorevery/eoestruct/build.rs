@@ -84,7 +84,7 @@ impl StructTemplate {
                     check_build_compatible(&removed)?;
                     StructBuilt::All(removed,Arc::new(obj))
                 }
-            }
+            },
             StructTemplate::Condition(var,expr) => {
                 if first {
                     return Err(struct_error("conditionals banned at top level"));

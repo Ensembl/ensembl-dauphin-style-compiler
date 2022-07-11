@@ -2,7 +2,7 @@ use std::sync::Mutex;
 
 use crate::simple_interp_command;
 use crate::util::{get_peregrine};
-use dauphin_interp::runtime::{ Register, InterpContext, InterpValue };
+use dauphin_interp::runtime::{ Register, InterpContext, InterpValue, RegisterFile };
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult };
 use peregrine_toolkit::eachorevery::EachOrEvery;
 use peregrine_toolkit::eachorevery::eoestruct::{StructVarGroup, StructTemplate, StructVar, StructPair};
@@ -202,48 +202,45 @@ impl InterpCommand for EoesVarInterpCommand {
     }
 }
 
+fn eoes_builder_command<'a,F,G,X>(reg0: &Register, reg1: &Register, context: &mut InterpContext,
+                        get: F, build: G) -> anyhow::Result<CommandResult<'a>>
+            where F: Fn(&RegisterFile,&Register) -> anyhow::Result<Vec<X>>,
+                  G: Fn(X) -> StructTemplate {
+    let registers = context.registers();
+    let mut values = get(registers,reg1)?;
+    drop(registers);
+    let peregrine = get_peregrine(context)?;
+    let geometry_builder = peregrine.geometry_builder();
+    let ids = values.drain(..).map(|x| 
+        geometry_builder.add_eoetmpl(build(x)) as usize
+    ).collect::<Vec<_>>();
+    drop(peregrine);
+    let registers = context.registers_mut();
+    registers.write(&reg0,InterpValue::Indexes(ids));    
+    Ok(CommandResult::SyncResult())
+}
+
 impl InterpCommand for EoesNumberInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
-        let registers = context.registers();
-        let number = registers.get_numbers(&self.1)?.get(0).cloned().unwrap_or(0.);
-        drop(registers);
-        let peregrine = get_peregrine(context)?;
-        let geometry_builder = peregrine.geometry_builder();
-        let id = geometry_builder.add_eoetmpl(StructTemplate::new_number(number));
-        drop(peregrine);
-        let registers = context.registers_mut();
-        registers.write(&self.0,InterpValue::Indexes(vec![id as usize]));    
-        Ok(CommandResult::SyncResult())
+        eoes_builder_command(&self.0,&self.1,context,|registers,reg| {
+            Ok(registers.get_numbers(&reg)?.to_vec())
+        }, |value| StructTemplate::new_number(value))
     }
 }
 
 impl InterpCommand for EoesStringInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
-        let registers = context.registers();
-        let string = registers.get_strings(&self.1)?.get(0).cloned().unwrap_or(String::new());
-        drop(registers);
-        let peregrine = get_peregrine(context)?;
-        let geometry_builder = peregrine.geometry_builder();
-        let id = geometry_builder.add_eoetmpl(StructTemplate::new_string(string));
-        drop(peregrine);
-        let registers = context.registers_mut();
-        registers.write(&self.0,InterpValue::Indexes(vec![id as usize]));    
-        Ok(CommandResult::SyncResult())
+        eoes_builder_command(&self.0,&self.1,context,|registers,reg| {
+            Ok(registers.get_strings(&reg)?.to_vec())
+        }, |value| StructTemplate::new_string(value))
     }
 }
 
 impl InterpCommand for EoesBooleanInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
-        let registers = context.registers();
-        let boolean = registers.get_boolean(&self.1)?.get(0).cloned().unwrap_or(false);
-        drop(registers);
-        let peregrine = get_peregrine(context)?;
-        let geometry_builder = peregrine.geometry_builder();
-        let id = geometry_builder.add_eoetmpl(StructTemplate::new_boolean(boolean));
-        drop(peregrine);
-        let registers = context.registers_mut();
-        registers.write(&self.0,InterpValue::Indexes(vec![id as usize]));    
-        Ok(CommandResult::SyncResult())
+        eoes_builder_command(&self.0,&self.1,context,|registers,reg| {
+            Ok(registers.get_boolean(&reg)?.to_vec())
+        }, |value| StructTemplate::new_boolean(value))
     }
 }
 
