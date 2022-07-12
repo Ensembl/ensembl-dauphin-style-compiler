@@ -237,23 +237,22 @@ bool_sv_by_gn := index(tk_by_gn,[several_tracks]);
 bool_sv_by_gn#[in(gene_id,[expanded_genes])] := true;
 
 limit_gn := len([gene_id]) (*) 1;
-limit_gn#[bool_sv_by_gn] := 5;
+limit_gn#[bool_sv_by_gn] := SEVERAL;
 
 limit_gn_by_tr := index(which_gn_by_tr,[limit_gn]);
 
 tk_by_tr := index(which_gn_by_tr,[tk_by_gn]);
 
-bool_show_tr := len([which_gn_by_tr]) (*) false;
+enabled_transcripts := switch_seqstr(["track","focus","enabled-transcripts"]);
+bool_show_tr := in(id_tr,[enabled_transcripts]);
 bool_show_tr#[idx_tr_in_gn<limit_gn_by_tr] := true;
 
 /* Temporary hach: focus transcripts only affected by "enabled-transcripts" */
 bool_focusshow_tr := tk_by_tr == 4;
-enabled_transcripts := switch_seqstr(["track","focus","enabled-transcripts"]);
-
-empty_tr_list := len([enabled_transcripts]) == 0;
-bool_show_tr := in(id_tr,[enabled_transcripts]);
 
 /* Temporary hack for focus transcripts for "enabled-transcripts" key: no setting means all. */
+empty_tr_list := bool_focusshow_tr;
+empty_tr_list#[(len([enabled_transcripts]) == 0)==false] := false;
 bool_show_tr#[empty_tr_list] := true;
 
 /* Dispose of transcripts which we should not draw */
