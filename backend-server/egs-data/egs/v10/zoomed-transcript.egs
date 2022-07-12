@@ -292,9 +292,7 @@ focus_thick_colour := direct_colour(39,154,252,255);
 thick_colour := index(tk_by_gn,[normal_thick_colour,normal_thick_colour,normal_thick_colour,normal_thick_colour,focus_thick_colour]);
 
 thick_seq_colour := simple_colour(thick_colour);
-thin_seq_colour := simple_colour(text_colour);
 thick_seq_patina := patina_filled(thick_seq_colour);
-thin_seq_patina := patina_hollow(thin_seq_colour,1);
 
 thick_background := background(thick_colour,false);
 thick_textpen := pen("'IBM Plex Mono', sans-serif",text_size,thick_text_colour,thick_background);
@@ -394,11 +392,15 @@ which_tr_by_seq_right := index(which_ex_by_seq_right,[which_tr_by_ex]);
 
 pos_seq := pos_seq_left (+) pos_seq_right;
 which_tr_by_seq := which_tr_by_seq_left (+) which_tr_by_seq_right;
+which_tk_by_seq := index(which_tr_by_seq,[tk_by_tr]);
 
 c := index(which_tr_by_seq,[idx_drawn_tr_gn]) * 20;
 w := spacebase(pos_seq,c,1);
 e := spacebase(pos_seq+1,c+14,-1);
 thin_seq_allotment_over := index(which_tr_by_seq,[al_over_by_tr]);
+thin_seq_colour := index(which_tk_by_seq,[normal_text_colour,normal_text_colour,normal_text_colour,normal_text_colour,focus_text_colour]);
+thin_seq_colour := simple_colour(thin_seq_colour);
+thin_seq_patina := patina_hollow(thin_seq_colour,1);
 rectangle(w,e,thin_seq_patina,thin_seq_allotment_over);
 
 letters_pos := pos_seq;
@@ -506,11 +508,12 @@ pt_zmenu_gn := patina_zmenu(zmenu_tmpl,["symbol","id","track","type"],[[gene_nam
 
 gene_tracks_enabled_property(enabled_labels,"label");
 
+/* gene labels */
+
 enabled_gene_labels := index(tk_by_gn,[enabled_labels]);
 al_text_by_gn#[enabled_gene_labels==false] := use_allotment("");
 al_text_by_gn#[switch_yn(["scale","no-labels"])] := use_allotment("");
-text_colour := index(tk_by_gn,[normal_text_colour,normal_text_colour,normal_text_colour,normal_text_colour,focus_text_colour]);
-textpen := pen("'IBM Plex Mono', sans-serif",text_size,text_colour,[][]);
+textpen := pen("'IBM Plex Mono', sans-serif",text_size,normal_text_colour,[][]);
 text2(spacebase(start_gn,num_drawn_tr_gn*20-12,0),textpen,gene_name,al_text_by_gn);
 
 /* zmenu areas */

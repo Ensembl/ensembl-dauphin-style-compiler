@@ -4,7 +4,9 @@ pub struct ApproxNumber(pub f64,pub i32);
 
 impl ApproxNumber {
     fn parts(&self) -> (i32,i64) {
-        let log = (self.0).abs().log10().floor() as i32;
+        let log = (self.0).abs().log10();
+        if log.is_infinite() { return (0,0); }
+        let log = log.floor() as i32;
         let mul = (10_f64).powi(self.1-log-1);
         let x = (self.0*mul).round() as i64;
         (log,x)
