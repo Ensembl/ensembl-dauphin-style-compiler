@@ -33,7 +33,7 @@ use super::map::{ library_map_commands };
 use crate::make_std_interp;
 
 pub fn std_id() -> CommandSetId {
-    CommandSetId::new("std",(13,0),0xD2ABC6BB06DED86)
+    CommandSetId::new("std",(13,0),0xA592C9F88053A373)
 }
 
 pub(super) fn std(name: &str) -> Identifier {
@@ -193,6 +193,32 @@ impl Command for NthCommand {
     }
 }
 
+pub struct CountCommandType();
+
+impl CommandType for CountCommandType {
+    fn get_schema(&self) -> CommandSchema {
+        CommandSchema {
+            values: 3,
+            trigger: CommandTrigger::Command(std("count"))
+        }
+    }
+
+    fn from_instruction(&self, it: &Instruction) -> anyhow::Result<Box<dyn Command>> {
+        if let InstructionType::Call(_,_,sig,_) = &it.itype {
+            Ok(Box::new(CountCommand(it.regs[0].clone(),it.regs[1].clone(),it.regs[2].clone())))
+        } else {
+            Err(DauphinError::malformed("unexpected instruction"))
+        }
+    }
+}
+
+pub struct CountCommand(Register,Register,Register);
+
+impl Command for CountCommand {
+    fn serialize(&self) -> anyhow::Result<Option<Vec<CborValue>>> {
+        Ok(Some(vec![self.0.serialize(),self.1.serialize(),self.2.serialize()]))
+    }
+}
 
 pub struct ExtractFilterCommandType();
 
@@ -504,7 +530,7 @@ impl Command for RulerMarkingsCommand {
 }
 
 pub fn make_std() -> CompLibRegister {
-    /* next is 38 */
+    /* next is 39 */
     let mut set = CompLibRegister::new(&std_id(),Some(make_std_interp()));
     library_eq_command(&mut set);
     set.push("len",None,LenCommandType());
@@ -525,6 +551,7 @@ pub fn make_std() -> CompLibRegister {
     set.push("gaps",Some(35),GapsCommandType());
     set.push("range",Some(36),RangeCommandType());
     set.push("split_characters",Some(37),SplitCharactersCommandType());
+    set.push("count",Some(38),CountCommandType());
     set.add_header("std",include_str!("header.dp"));
     library_numops_commands(&mut set);
     library_assign_commands(&mut set);

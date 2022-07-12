@@ -31,7 +31,7 @@ use super::map::{ library_map_commands_interp };
 
 
 pub fn std_id() -> CommandSetId {
-    CommandSetId::new("std",(13,0),0xD2ABC6BB06DED86)
+    CommandSetId::new("std",(13,0),0xA592C9F88053A373)
 }
 
 pub struct AssertDeserializer();
@@ -161,6 +161,39 @@ impl InterpCommand for NthInterpCommand {
             },
         };
 
+        registers.write(&self.0,InterpValue::Indexes(out));
+        Ok(CommandResult::SyncResult())
+    }
+}
+
+pub struct CountDeserializer();
+
+impl CommandDeserializer for CountDeserializer {
+    fn get_opcode_len(&self) -> anyhow::Result<Option<(u32,usize)>> { Ok(Some((38,3))) }
+    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> anyhow::Result<Box<dyn InterpCommand>> {
+        Ok(Box::new(CountInterpCommand(Register::deserialize(&value[0])?,Register::deserialize(&value[1])?,Register::deserialize(&value[2])?)))
+    }
+}
+
+fn count_command(src: &[f64],len: usize) -> Vec<usize> {
+    let mut out = vec![0;len];
+    for item in src {
+        let idx = item.round() as i64;
+        if idx >= 0 && idx < out.len() as i64 {
+            out[idx as usize] += 1;
+        }
+    }
+    out
+}
+
+pub struct CountInterpCommand(Register,Register,Register);
+
+impl InterpCommand for CountInterpCommand {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+        let registers = context.registers_mut();
+        let src = registers.get_numbers(&self.1)?.to_vec();
+        let len = registers.get_indexes(&self.2)?[0];
+        let out = count_command(&src,len);
         registers.write(&self.0,InterpValue::Indexes(out));
         Ok(CommandResult::SyncResult())
     }
@@ -510,5 +543,6 @@ pub fn make_std_interp() -> InterpLibRegister {
     set.push(RulerIntervalDeserializer());
     set.push(RulerMarkingsDeserializer());
     set.push(SplitCharactersDeserializer());
+    set.push(CountDeserializer());
     set
 }
