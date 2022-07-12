@@ -239,6 +239,9 @@ bool_sv_by_gn#[in(gene_id,[expanded_genes])] := true;
 limit_gn := len([gene_id]) (*) 1;
 limit_gn#[bool_sv_by_gn] := SEVERAL;
 
+/* set limit to 0 for focus tracks to allow explicit on/off */
+limit_gn#[tk_by_gn == 4] := 0;
+
 limit_gn_by_tr := index(which_gn_by_tr,[limit_gn]);
 
 tk_by_tr := index(which_gn_by_tr,[tk_by_gn]);
@@ -516,4 +519,5 @@ blue_hotspot_patina := patina_switch(expand_switches,sense);
 //rectangle(blue_top_left,blue_bottom_right,blue_hotspot_patina,button_allotment);
 
 /* report transcripts shown */
+notice(format([id_tr]));
 report_shown(bool_show_tr,tk_by_tr,id_tr,use_allotment([background_allotment_names[@==4]][]));

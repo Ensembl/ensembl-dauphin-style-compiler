@@ -166,24 +166,29 @@
             for(const track_name in all_tracks) {
                 let track = all_tracks[track_name];
                 if(track.type != "track") { continue; } /* don't care */
-                let shown = track['transcripts-shown'];
-                if(shown!==undefined) {
-                  console.log("shown: "+shown);
-                  shown_transcripts = {};
-                  for(const trid of shown) {
-                    shown_transcripts[trid] = 1;
+                if('all-transcripts' in track) {
+                  let all = track['all-transcripts'];
+                  let new_seen_transcripts = {};
+                  for(let i=0;i<all.length;i++) {
+                    new_seen_transcripts[all[i]] = 1;
                   }
-                }
-                if(shown) {
-                  let continued = false;
-                  for(let i=0;i<shown.length;i++) {
-                    if(seen_transcripts[shown[i]]) { continued = true; }
+                  let pruned = false;
+                  for(const old_seen in seen_transcripts) {
+                    if(!new_seen_transcripts[old_seen]) { pruned = true; }
                   }
-                  if(!continued) {
-                    seen_transcripts = {};
+                  if(pruned) {
+                    console.log("PRUNED!");
+                    genome_browser.switch(["track","focus","enabled-transcripts"],[]);
                   }
-                  for(let i=0;i<shown.length;i++) {
-                    seen_transcripts[shown[i]] = 1;
+                  seen_transcripts = new_seen_transcripts;
+                  if('transcripts-shown' in track) {
+                    let shown = track['transcripts-shown'];
+                    shown_transcripts = {};
+                    for(const trid of shown) {
+                      if(seen_transcripts[trid]) {
+                        shown_transcripts[trid] = 1;
+                      }
+                    }
                   }
                   let trbody = document.getElementById("focus-transcripts");
                   trbody.innerHTML = "";
