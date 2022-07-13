@@ -12,6 +12,7 @@ In the following `GENE-TRACK` is one of `gene-other-rev`, `gene-pc-rev`, `gene-o
 * `track.GENE-TRACK.transcript-label` (bool) -- track show transcript label
 * `track.GENE-TRACK.several` (bool) -- track show 1 vs 5
 * `track.focus.item.gene` (string: GENE-ID) -- focus object is a gene; it is this one
+* `track.focus.enabled-transcripts` ([string]: [TRNS-ID]) -- show these transcripts
 
 ## Consistency
 
@@ -22,7 +23,7 @@ You probably always want these hardwired on. They're just there to avoid having 
 * `settings` (bool) -- use settings
 * `track.focus.item` (bool) -- the focus track has an item in it
 
-## Specified by config within genome browser at certain scales
+## Specified by config from within genome browser at certain scales
 
 (No need to worry about these re integration)
 
