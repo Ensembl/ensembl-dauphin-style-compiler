@@ -262,9 +262,12 @@ bool_show_tr#[empty_tr_list] := true;
 tk_by_tr#[bool_show_tr==false] := 5;
 
 /* index the rest (by gene) */
-drawn_tr_gn := id_gn_by_tr;
-drawn_tr_gn#[bool_show_tr==false] := "";
+drawn_tr_gn := which_gn_by_tr;
+drawn_tr_gn#[bool_show_tr==false] := -1;
 idx_drawn_tr_gn := nth(drawn_tr_gn);
+
+num_drawn_tr_gn := count(drawn_tr_gn,len([gene_id]));
+
 
 drawn_tr_by_gn := num_tr_by_gn;
 drawn_tr_by_gn#[drawn_tr_by_gn>limit_gn] := limit_gn#[drawn_tr_by_gn>limit_gn];
@@ -323,16 +326,16 @@ enabled_gene_labels := index(tk_by_gn,[enabled_labels]);
 tk_by_tr := index(which_gn_by_tr,[tk_by_gn]);
 enabled_tr_labels := index(tk_by_tr,[enabled_labels_tr]);
 
+al_trtext_by_gn := al_text_by_gn;
+
 al_text_by_gn#[enabled_gene_labels==false] := use_allotment("");
 al_text_by_gn#[switch_yn(["scale","no-labels"])] := use_allotment("");
 
-al_trtext_by_gn := al_text_by_gn;
-al_trtext_by_gn#[enabled_gene_labels==false] := use_allotment("");
 al_trtext_by_tr := index(which_gn_by_tr,[al_trtext_by_gn]);
 
 al_trtext_by_tr#[bool_show_tr==false] := use_allotment("");
 al_trtext_by_tr#[enabled_tr_labels==false] := use_allotment("");
-al_text_by_tr#[switch_yn(["scale","no-labels"])] := use_allotment("");
+al_trtext_by_tr#[switch_yn(["scale","no-labels"])] := use_allotment("");
 
 track_name := index(tk_by_gn,potential_tracks);
 tk_by_tr := index(which_gn_by_tr,[tk_by_gn]);
@@ -453,12 +456,12 @@ e := spacebase(end_tr,c+20,0);
 rectangle(w,e,pt_zmenu_tr,al_under_by_tr);
 
 /* gene label */
-text2(spacebase(start_gn,8,0),textpen,gene_name,al_text_by_gn);
+text2(spacebase(start_gn, (num_drawn_tr_gn-1)*20+10,4),textpen,gene_name,al_text_by_gn);
 
 /* transcript label */
 c := idx_drawn_tr_gn * 20;
 start_gn_by_tr := index(which_gn_by_tr,[start_gn]);
-pos := spacebase(start_gn_by_tr,c+8,100);
+pos := spacebase(start_gn_by_tr,c+10,100);
 text2(pos,textpen_blue,id_tr,al_trtext_by_tr);
 
 chevron_spacing := [
@@ -507,7 +510,7 @@ button_colour := len([start_gn]) (*) blue_colour;
 button_colour#[in(gene_id,[expanded_genes])] := green_colour;
 button_patina := patina_filled(button_colour);
 
-// DISABLED FOR 0.3.1
+// DISABLED FOR 0.4.1
 //text2(blue_top_left,textpen_lozenge," + ",button_allotment);
 
 sense := len([expand_switches]) (*) true;
@@ -515,7 +518,7 @@ sense#[in(gene_id,[expanded_genes])] := false;
 
 blue_hotspot_patina := patina_switch(expand_switches,sense);
 
-// DISABLED FOR 0.3.1
+// DISABLED FOR 0.4.1
 //rectangle(blue_top_left,blue_bottom_right,blue_hotspot_patina,button_allotment);
 
 /* report transcripts shown */

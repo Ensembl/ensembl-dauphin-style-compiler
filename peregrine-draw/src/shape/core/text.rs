@@ -21,10 +21,6 @@ fn pad(x: (u32,u32)) -> (u32,u32) {
     (x.0+PAD,x.1+PAD)
 }
 
-fn half_pad(x: (u32,u32)) -> (u32,u32) {
-    (x.0+PAD/2,x.1+PAD/2)
-}
-
 // XXX dedup from flat: generally move all text stuff into here
 fn pen_to_font(pen: &PenGeometry, bitmap_multiplier: f64) -> String {
     format!("{}px {}",(pen.size_in_webgl() * bitmap_multiplier).round(),pen.name())

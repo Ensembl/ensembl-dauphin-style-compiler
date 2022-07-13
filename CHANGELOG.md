@@ -1,3 +1,16 @@
+# 0.4.1
+  * Fix reporting of boxes from flanks (reported in 0.4.0)
+  * Multiple transcript update from genes
+  * Visual fixes
+    * move labels to bottom of genes
+    * vertical alignment between transcript and sequence.
+    * flip boxed and unboxed UTR/intron; fix split UTR rendering bug.
+    * fix utr box colour bug
+    * can't turn first tr off bug
+    * show tr labels on zoomed view
+    * make tr labels independent of gn labels
+    * dotted lines at zoomed scale
+
 # 0.4.0
   * Failed unload bug fix (again)
   * Multiple transcript reporting
