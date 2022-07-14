@@ -177,7 +177,6 @@
                     if(!new_seen_transcripts[old_seen]) { pruned = true; }
                   }
                   if(pruned) {
-                    console.log("PRUNED!");
                     genome_browser.switch(["track","focus","enabled-transcripts"],[]);
                   }
                   seen_transcripts = new_seen_transcripts;

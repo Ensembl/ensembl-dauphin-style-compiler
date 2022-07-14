@@ -43,7 +43,12 @@ no_letters := switch_yn(["scale","no-letters"]);
  * actually get the data from the server
  */
 
+focus_gene1 := list_switch(["focus","gene"]);
+focus_gene2 := switch_string(["track","focus","item","gene"][],[][]);
+focus_gene := [focus_gene1,focus_gene2][@==0];
+
 req := make_request("self()","zoomed-transcript",get_region());
+req := request_scope(req,"id",focus_gene);
 data := get_data(req);
 halt(only_warm(),[data]);
 

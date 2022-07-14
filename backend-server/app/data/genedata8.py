@@ -1,7 +1,7 @@
 import collections
 import logging
 import re
-from typing import Dict, List, Mapping, Tuple
+from typing import Dict, List, Mapping, Optional, Tuple
 from command.coremodel import DataHandler, Panel, DataAccessor
 from command.response import Response
 from model.bigbed import get_bigbed
@@ -56,7 +56,11 @@ def add_exon_data(result: dict, genes: List[str], transcripts: Dict[str,List[Tra
     result['transcript_counts'] = compress(lesqlite2(zigzag(delta(transcript_counts))))
     result['transcript_exon_counts'] =  compress(lesqlite2(zigzag(delta(exon_counts))))
 
-def extract_gene_data(data_accessor: DataAccessor, chrom: Chromosome, panel: Panel, include_exons: bool, include_sequence: bool) -> Response:
+def unversioned(data):
+    parts = data.rsplit(".",1)
+    return parts[0]
+    
+def extract_gene_data(data_accessor: DataAccessor, chrom: Chromosome, panel: Panel, include_exons: bool, include_sequence: bool, for_id: Optional[str]) -> Response:
     out = {}
     item = chrom.item_path("transcripts")
     data = get_bigbed(data_accessor,item,panel.start,panel.end)
@@ -74,6 +78,8 @@ def extract_gene_data(data_accessor: DataAccessor, chrom: Chromosome, panel: Pan
     transcript_designations = {}
     for line in data:
         line = TranscriptFileLine(line)
+        if for_id is not None and line.gene_id != for_id and unversioned(line.gene_id) != for_id:
+            continue
         if line.gene_id not in seen_genes:
             genes.append(line.gene_id)
             seen_genes.add(line.gene_id)
@@ -92,11 +98,12 @@ def extract_gene_data(data_accessor: DataAccessor, chrom: Chromosome, panel: Pan
             designated_transcript[line.gene_id] = (dt_grade,line)
         all_transcripts[line.gene_id].append((dt_grade,line))
     if include_exons:
-        top_five = {}
+        selected_trs = {}
         for (gene,transcript) in all_transcripts.items():
             transcript = sorted(transcript, key = lambda x: -x[0])
-            top_five[gene] = [x[1] for x in transcript[:5]]  
-        add_exon_data(out,genes,top_five)
+            transcript = transcript if for_id is not None else transcript[:5]
+            selected_trs[gene] = [x[1] for x in transcript]
+        add_exon_data(out,genes,selected_trs)
     designated_transcript = { k: v[1] for (k,v) in designated_transcript.items() }
     gene_sizes = list([ gene_sizes[gene] for gene in genes ])
     transcript_sizes = list([ transcript_sizes[gene] for gene in genes ])
@@ -155,6 +162,13 @@ def extract_gene_overview_data(data_accessor: DataAccessor, chrom: Chromosome, s
         out['focus_ids'] = compress("\0".join([x.split('.')[0] for x in genes]))
     return out
 
+def for_id(scope):
+    id_seq = scope.get("id")
+    if id_seq is not None and len(id_seq) > 0:
+        return id_seq[0]
+    else:
+        return None
+
 class TranscriptDataHandler8(DataHandler):
     def __init__(self, seq: bool):
         self._seq = seq
@@ -163,14 +177,14 @@ class TranscriptDataHandler8(DataHandler):
         chrom = data_accessor.data_model.stick(data_accessor,panel.stick)
         if chrom == None:
             return Response(1,"Unknown chromosome {0}".format(panel.stick))
-        return extract_gene_data(data_accessor,chrom,panel,True,self._seq)
+        return extract_gene_data(data_accessor,chrom,panel,True,self._seq,for_id(scope))
 
 class GeneDataHandler8(DataHandler):
     def process_data(self, data_accessor: DataAccessor, panel: Panel, scope) -> Response:
         chrom = data_accessor.data_model.stick(data_accessor,panel.stick)
         if chrom == None:
             return Response(1,"Unknown chromosome {0}".format(panel.stick))
-        return extract_gene_data(data_accessor,chrom,panel,False,False)
+        return extract_gene_data(data_accessor,chrom,panel,False,False,for_id(scope))
 
 class GeneOverviewDataHandler8(DataHandler):
     def process_data(self, data_accessor: DataAccessor, panel: Panel,scope) -> Response:

@@ -43,7 +43,12 @@ import "file:common.egs"; use "common";
  * actually get the data from the server
  */
 
+focus_gene1 := list_switch(["focus","gene"]);
+focus_gene2 := switch_string(["track","focus","item","gene"][],[][]);
+focus_gene := [focus_gene1,focus_gene2][@==0];
+
 req := make_request("self()","transcript",get_region());
+req := request_scope(req,"id",focus_gene);
 data := get_data(req);
 halt(only_warm(),[data]);
 
@@ -146,10 +151,6 @@ style("**/main/background/content",["depth","padding-top"][],["-10","32"][]);
 
 enabled_gene_labels := switch_yn(["track","focus","label"]);
 enabled_transcript_labels := switch_yn(["track","focus","transcript-label"]);
-
-focus_gene1 := list_switch(["focus","gene"]);
-focus_gene2 := switch_string(["track","focus","item","gene"][],[][]);
-focus_gene := [focus_gene1,focus_gene2][@==0];
 
 expand_base := len([gene_id]) (*) "buttons/gene/expand";
 expand_switches := append_group(expand_base,gene_id);
