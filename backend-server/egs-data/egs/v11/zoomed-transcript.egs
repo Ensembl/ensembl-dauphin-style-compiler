@@ -90,7 +90,6 @@ idx_tr_in_gn_by_ex :=  index(which_tr_by_ex,[idx_tr_in_gn]);
 start_ex := delta_seq(data,"transcript_exon_starts");
 end_ex := start_ex + delta_seq(data,"transcript_exon_lengths");
 id_gn_by_ex := index(which_gn_by_ex,[gene_id]);
-exon_focus_id := index(which_gn_by_ex,[focus_id]);
 exon_gene_biotype := index(which_gn_by_ex,[gene_biotype]);
 exon_strand := index(which_gn_by_ex,[strand]);
 
@@ -136,7 +135,7 @@ potential_tracks_base := [
     "tracks/track/gene-pc-rev",
     "tracks/track/gene-other-fwd",
     "tracks/track/gene-pc-fwd",
-    "tracks/track/focus",
+    "",
     ""
 ];
 
@@ -152,7 +151,7 @@ use_allotments(allotments_trackname,enabled_tracks,[
     "tracks/track/gene-pc-rev/title/content",
     "tracks/track/gene-other-fwd/title/content",
     "tracks/track/gene-pc-fwd/title/content",
-    "tracks/track/focus/title/content",
+    "",
 ]);
 
 use_allotments(allotments_letter,enabled_tracks,[
@@ -160,7 +159,7 @@ use_allotments(allotments_letter,enabled_tracks,[
     "tracks/track/gene-pc-rev/main/letter/content",
     "tracks/track/gene-other-fwd/main/letter/content",
     "tracks/track/gene-pc-fwd/main/letter/content",
-    "tracks/track/focus/main/letter/content",
+    "",
 ]);
 
 /* apply solidity in thick region ... */
@@ -201,9 +200,6 @@ tk_by_gn#[strand > 0] (+=) 2;
 tk_by_gn#[in(gene_biotype,["protein_coding"])] (+=) 1;
 tk_by_gn#[focus_id==focus_gene] := 4;
 
-focus_start := start_gn#[tk_by_gn==4];
-focus_end := end_gn#[tk_by_gn==4];
-
 /*
  * Manage the "several" setting.
  */
@@ -218,27 +214,18 @@ bool_sv_by_gn#[in(gene_id,[expanded_genes])] := true;
 limit_gn := len([gene_id]) (*) 1;
 limit_gn#[bool_sv_by_gn] := SEVERAL;
 
-/* set limit to 0 for focus tracks to allow explicit on/off */
+/* set limit to 0 for focus tracks */
 limit_gn#[tk_by_gn == 4] := 0;
 
 limit_gn_by_tr := index(which_gn_by_tr,[limit_gn]);
 
 tk_by_tr := index(which_gn_by_tr,[tk_by_gn]);
 
-enabled_transcripts := switch_seqstr(["track","focus","enabled-transcripts"]);
-bool_show_tr := in(id_tr,[enabled_transcripts]);
+bool_show_tr := len([id_tr]) (*) false;
 bool_show_tr#[idx_tr_in_gn<limit_gn_by_tr] := true;
 
-/* Temporary hach: focus transcripts only affected by "enabled-transcripts" */
-bool_focusshow_tr := tk_by_tr == 4;
-
-/* Temporary hack for focus transcripts for "enabled-transcripts" key: no setting means all. */
-empty_tr_list := bool_focusshow_tr;
-empty_tr_list#[(len([enabled_transcripts]) == 0)==false] := false;
-bool_show_tr#[empty_tr_list] := true;
-
 /* Dispose of transcripts which we should not draw */
-tk_by_tr#[bool_show_tr==false] := 5;
+tk_by_tr#[bool_show_tr==false] := 4;
 
 /* index the rest (by gene) */
 drawn_tr_gn := which_gn_by_tr;
@@ -246,7 +233,6 @@ drawn_tr_gn#[bool_show_tr==false] := -1;
 idx_drawn_tr_gn := nth(drawn_tr_gn);
 num_drawn_tr_gn := count(drawn_tr_gn,len([gene_id]));
 
-exon_focus_id := index(which_gn_by_ex,[focus_id]);
 exon_allotment_idx := index(which_tr_by_ex,[tk_by_tr]);
 
 thick_exon_allotment_idx := exon_allotment_idx#[thick_exons];
@@ -280,18 +266,16 @@ al_text_by_gn := use_allotment(append_group(aln_base[],["text"][]));
  */
 
 normal_text_colour := direct_colour(111,129,144,255);
-focus_text_colour := direct_colour(39,154,252,255);
 
-text_colour := index(tk_by_gn,[normal_text_colour,normal_text_colour,normal_text_colour,normal_text_colour,focus_text_colour]);
+text_colour := index(tk_by_gn,[normal_text_colour,normal_text_colour,normal_text_colour,normal_text_colour,normal_text_colour]);
 
 thick_text_colour := direct_colour(255,255,255,255);
 
 text_size := 12;
 
 normal_thick_colour := direct_colour(148,160,171,255);
-focus_thick_colour := direct_colour(39,154,252,255);
 
-thick_colour := index(tk_by_gn,[normal_thick_colour,normal_thick_colour,normal_thick_colour,normal_thick_colour,focus_thick_colour]);
+thick_colour := index(tk_by_gn,[normal_thick_colour,normal_thick_colour,normal_thick_colour,normal_thick_colour,normal_thick_colour]);
 
 thick_seq_colour := simple_colour(thick_colour);
 thick_seq_patina := patina_filled(thick_seq_colour);
@@ -333,7 +317,6 @@ gaps(dotted_start,dotted_end,dotted_idx,
 
 base_non_pc_colour := direct_colour(200,200,200,255);
 base_pc_colour := direct_colour(128,128,128,255);
-base_focus_colour := direct_colour(39,154,252,255);
 
 allotment_colour_idx := [tk_by_gn][true];
 transcript_allotment_colour_idx := index(which_gn_by_tr,[allotment_colour_idx]);
@@ -342,8 +325,7 @@ idx_dotted_in_gn := index(dotted_idx,[idx_drawn_tr_gn]);
 dotted_tr_colour_idx := index(dotted_idx,[transcript_allotment_colour_idx]);
 dotted_non_pc_colour := barred(direct_colour(255,255,255,255),base_non_pc_colour,4,1,0.5);
 dotted_pc_colour := barred(direct_colour(255,255,255,255),base_pc_colour,4,1,0.5);
-dotted_focus_colour := barred(direct_colour(255,255,255,255),base_focus_colour,4,1,0.5);
-pt_dotted := patina_filled(index(dotted_tr_colour_idx,[dotted_non_pc_colour,dotted_pc_colour,dotted_non_pc_colour,dotted_pc_colour,dotted_focus_colour]));
+pt_dotted := patina_filled(index(dotted_tr_colour_idx,[dotted_non_pc_colour,dotted_pc_colour,dotted_non_pc_colour,dotted_pc_colour,dotted_pc_colour]));
 
 c := idx_dotted_in_gn * 20;
 w  := spacebase(dotted_start, c+5, 0);
@@ -370,7 +352,7 @@ draw_thseq_letter#[thseq_strand<1] := rev_thseq_letter#[thseq_strand<1];
 thick_seq_allotment_over := index(which_tr_by_seq,[al_over_by_tr]);
 thick_seq_allotment_far_over := index(which_tr_by_seq,[al_far_over_by_tr]);
 
-thick_colour := index(which_tk_by_thseq,[normal_thick_colour,normal_thick_colour,normal_thick_colour,normal_thick_colour,focus_thick_colour]);
+thick_colour := index(which_tk_by_thseq,[normal_thick_colour,normal_thick_colour,normal_thick_colour,normal_thick_colour,normal_thick_colour]);
 
 /* exon blocks */
 
@@ -426,7 +408,7 @@ c := index(which_tr_by_seq,[idx_drawn_tr_gn]) * 20;
 w := spacebase(pos_seq,c,1);
 e := spacebase(pos_seq+1,c+14,-1);
 thin_seq_allotment_over := index(which_tr_by_seq,[al_over_by_tr]);
-thin_seq_colour := index(which_tk_by_seq,[normal_text_colour,normal_text_colour,normal_text_colour,normal_text_colour,focus_text_colour]);
+thin_seq_colour := index(which_tk_by_seq,[normal_text_colour,normal_text_colour,normal_text_colour,normal_text_colour,normal_text_colour]);
 thin_seq_colour := simple_colour(thin_seq_colour);
 thin_seq_patina := patina_hollow(thin_seq_colour,1);
 rectangle(w,e,thin_seq_patina,thin_seq_allotment_over);
@@ -449,7 +431,7 @@ e := spacebase(end_it_line,c+8,0);
 al_utr_line := index(which_tr_by_it,[al_under_by_tr]);
 al_utr_line#[no_letters==false] := use_allotment("");
 
-line_colour := index(which_tr_by_it,[normal_thick_colour,normal_thick_colour,normal_thick_colour,normal_thick_colour,focus_thick_colour]);
+line_colour := index(which_tr_by_it,[normal_thick_colour,normal_thick_colour,normal_thick_colour,normal_thick_colour,normal_thick_colour]);
 rectangle(w,e,patina_filled(simple_colour(line_colour)),al_utr_line);
 
 range(intron_letters_pos,intron_letters_which_line_by_seq,start_it_line,end_it_line);
@@ -505,7 +487,7 @@ draw_seq_letter#[seq_strand<1] := rev_seq_letter#[seq_strand<1];
 
 idx_tr_in_gn_by_seq := index(letters_which_tr_by_seq,[idx_drawn_tr_gn]);
 c := idx_tr_in_gn_by_seq * 20;
-text_colour := index(index(letters_which_gn_by_seq,[tk_by_gn]),[normal_text_colour,normal_text_colour,normal_text_colour,normal_text_colour,focus_text_colour]);
+text_colour := index(index(letters_which_gn_by_seq,[tk_by_gn]),[normal_text_colour,normal_text_colour,normal_text_colour,normal_text_colour,normal_text_colour]);
 thin_textpen := pen("'IBM Plex Mono', sans-serif",text_size,text_colour,[][]);
 
 pos := spacebase(letters_pos+0.5,c+2,-2);
@@ -565,7 +547,6 @@ blue_text_colour := direct_colour(111,129,255,255);
 textpen_blue := pen("'IBM Plex Mono', sans-serif",text_size,blue_text_colour,[][]);
 text2(pos,textpen_blue,id_tr,al_trtext_by_tr);
 
-
 /* zmenu areas */
 /* type and gene zmenus */
 nw := spacebase(start_gn,0,0);
@@ -581,13 +562,3 @@ rectangle(w,e,pt_zmenu_tr,al_far_under_by_tr);
 
 /* track category */
 draw_track_category("G",allotments_letter);
-
-/* focus swatch */
-draw_focus_swatch(allotments_letter[@==4]);
-
-/* red-dotted lines */
-dots_allotment := use_allotment(["","dots/content"][(@==1)==(switch_yn(["track","focus"]))]);
-red_dotted(focus_start,focus_end,dots_allotment);
-
-/* report transcripts shown */
-report_shown(bool_show_tr,tk_by_tr,id_tr,use_allotment([background_allotment_names[@==4]][]));

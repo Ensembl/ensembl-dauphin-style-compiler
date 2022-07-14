@@ -492,6 +492,3 @@ blue_hotspot_patina := patina_switch(expand_switches,sense);
 
 // DISABLED FOR 0.4.1
 //rectangle(blue_top_left,blue_bottom_right,blue_hotspot_patina,button_allotment);
-
-/* report transcripts shown */
-report_shown(bool_show_tr,tk_by_tr,id_tr,use_allotment([background_allotment_names[@==4]][]));

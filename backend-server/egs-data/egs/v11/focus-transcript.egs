@@ -168,9 +168,6 @@ empty_tr_list := bool_focusshow_tr;
 empty_tr_list#[(len([enabled_transcripts]) == 0)==false] := false;
 bool_show_tr#[empty_tr_list] := true;
 
-/* Dispose of transcripts which we should not draw */
-//tk_by_tr#[bool_show_tr==false] := 5;
-
 /* index the rest (by gene) */
 drawn_tr_gn := which_gn_by_tr;
 drawn_tr_gn#[bool_show_tr==false] := -1;
@@ -183,7 +180,6 @@ drawn_tr_by_gn := num_tr_by_gn;
 
 idx_tr_in_gn_by_ex :=  index(which_tr_by_ex,[idx_drawn_tr_gn]);
 idx_tr_in_gn_by_thex := idx_tr_in_gn_by_ex#[thick_exons];
-
 
 allotment_label := "";
 allotment_label#[focus_enabled_track] := "tracks/track/focus/title/content";
@@ -413,4 +409,4 @@ blue_hotspot_patina := patina_switch(expand_switches,sense);
 //rectangle(blue_top_left,blue_bottom_right,blue_hotspot_patina,al_button);
 
 /* report transcripts shown */
-report_shown2(bool_show_tr,bool_focus_in_tr,id_tr,use_allotment("tracks/track/focus"));
+report_shown(bool_show_tr,bool_focus_in_tr,id_tr,use_allotment("tracks/track/focus"));

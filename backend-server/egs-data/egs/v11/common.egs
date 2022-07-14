@@ -113,28 +113,7 @@ stmt gene_track_styles() {
     style("tracks/track/focus/",["priority","report","min-height"][],["-900","track;switch-id=focus;has-labels=true;!boxes","100"][]);
 }
 
-stmt report_shown(rs_bool_show_tr,rs_transcript_allotment_idx,rs_transcript_id,rs_al_focus_bgd) {
-    /* build list of shown focus tr from list of shown tr then turning off non-focus */
-    bool_show_tr_focus := [rs_bool_show_tr];
-    bool_not_focus := (rs_transcript_allotment_idx == 4)==false;
-    bool_show_tr_focus[bool_not_focus] := false;
-    /* get their ids */
-    values := rs_transcript_id#[bool_show_tr_focus[]];
-    /* build payload */
-    tr_group := eoes_group();
-    shown_transcripts := eoes_all(tr_group,eoes_var(eoes_var_string(tr_group,values)));
-    trans_patina2 := patina_metadata("transcripts-shown",values,eoes_string(values));
-    rectangle(spacebase(len([values]) (*) 0,0,0),spacebase(len([values]) (*) 1,0,0),trans_patina2,rs_al_focus_bgd);
-
-    /* HACK: send list of all focus tr (not currently used by chrome, but used in standalone) */
-    all_ids := rs_transcript_id#[rs_transcript_allotment_idx==4];
-    tr_group := eoes_group();
-    shown_transcripts := eoes_all(tr_group,eoes_var(eoes_var_string(tr_group,values)));
-    trans_patina2 := patina_metadata("all-transcripts",all_ids,eoes_string(all_ids));
-    rectangle(spacebase(len([all_ids]) (*) 0,0,0),spacebase(len([all_ids]) (*) 1,0,0),trans_patina2,rs_al_focus_bgd);
-}
-
-stmt report_shown2(rs_bool_show_tr,rs_bool_focus_in_tr,rs_transcript_id,rs_al_focus_bgd) {
+stmt report_shown(rs_bool_show_tr,rs_bool_focus_in_tr,rs_transcript_id,rs_al_focus_bgd) {
     /* build list of shown focus tr from list of shown tr then turning off non-focus */
     values := rs_transcript_id#[rs_bool_show_tr];
     /* build payload */
