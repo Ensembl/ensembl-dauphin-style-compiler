@@ -172,7 +172,7 @@ focus_gene := [focus_gene1,focus_gene2][@==0];
 focus_start := start_gn#[focus_id==focus_gene];
 focus_end := end_gn#[focus_id==focus_gene];
 
-calc_focus_transcripts_shown(bool_show_tr,id_tr,which_gn_by_tr,focus_id,focus_gene);
+calc_focus_transcripts_shown(bool_show_tr,id_tr,which_gn_by_tr,focus_id,focus_gene,idx_tr_in_gn);
 
 base_allotment := append_group("tracks/track/focus/main/main",focus_gene);
 

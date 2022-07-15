@@ -155,7 +155,7 @@ enabled_transcript_labels := switch_yn(["track","focus","transcript-label"]);
 expand_base := len([gene_id]) (*) "buttons/gene/expand";
 expand_switches := append_group(expand_base,gene_id);
 
-calc_focus_transcripts_shown(bool_show_tr,id_tr,which_gn_by_tr,focus_id,focus_gene);
+calc_focus_transcripts_shown(bool_show_tr,id_tr,which_gn_by_tr,focus_id,focus_gene,idx_tr_in_gn);
 
 /* index the rest (by gene) */
 drawn_tr_gn := which_gn_by_tr;
