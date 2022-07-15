@@ -173,11 +173,13 @@ stmt draw_labels(s_idx_drawn_tr_gn,s_which_gn_by_tr,s_start_gn,s_start_gn_by_tr,
     c := s_idx_drawn_tr_gn * 20;
     start_gn_by_tr := index(s_which_gn_by_tr,[s_start_gn]);
     pos := spacebase(s_start_gn_by_tr,c+10,0);
+    label_id_tr := s_id_tr;
 
-    labelid_tr := index(s_which_gn_by_tr,[s_gene_name]);
-    labelid_tr := concat(labelid_tr,"  \0<");
-    labelid_tr := concat(labelid_tr,s_id_tr);
-    text2(pos,s_textpen_blue,labelid_tr,s_al_trtext_by_tr);
+    /* find last trs of each gene so that we can offset them */
+    last_tr := s_idx_drawn_tr_gn == s_num_drawn_tr_gn-1; 
+    label_id_tr#[last_tr] := concat(len([label_id_tr#[last_tr]]) (*) "  \0<",label_id_tr#[last_tr]);
+    genelabel_by_tr := index(s_which_gn_by_tr,[s_gene_name]);
+    label_id_tr#[last_tr] := concat(genelabel_by_tr#[last_tr],label_id_tr#[last_tr]);
 
-    text2(spacebase(s_start_gn, (num_drawn_tr_gn-1)*20+10,4),textpen,gene_name,al_text_by_gn);
+    text2(pos,s_textpen_blue,label_id_tr,s_al_trtext_by_tr);
 }
