@@ -336,10 +336,7 @@ rectangle(w,e,pt_zmenu_tr,al_under_by_tr);
 text2(spacebase(start_gn, (num_drawn_tr_gn-1)*20+10,4),textpen,gene_name,al_text_by_gn);
 
 /* transcript label */
-c := idx_drawn_tr_gn * 20;
-start_gn_by_tr := index(which_gn_by_tr,[start_gn]);
-pos := spacebase(start_gn_by_tr,c+10,100);
-text2(pos,textpen_blue,id_tr,al_trtext_by_tr);
+draw_transcript_labels(idx_drawn_tr_gn,which_gn_by_tr,start_gn,start_gn_by_tr,gene_name,id_tr,textpen_blue,al_trtext_by_tr);
 
 chevron_spacing := [
     0.00,0.025,0.05,0.075,

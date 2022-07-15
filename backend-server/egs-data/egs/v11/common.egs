@@ -164,3 +164,14 @@ stmt calc_focus_transcripts_shown(s_bool_show_tr,s_id_tr,s_which_gn_by_tr,s_focu
     s_bool_show_tr := et_bool_show_tr;
     s_bool_show_tr#[enabled_is_null] := sv_bool_show_tr;
 }
+
+stmt draw_transcript_labels(s_idx_drawn_tr_gn,s_which_gn_by_tr,s_start_gn,s_start_gn_by_tr,s_gene_name,s_id_tr,s_textpen_blue,s_al_trtext_by_tr) {
+    c := s_idx_drawn_tr_gn * 20;
+    start_gn_by_tr := index(s_which_gn_by_tr,[s_start_gn]);
+    pos := spacebase(s_start_gn_by_tr,c+10,0);
+
+    labelid_tr := index(s_which_gn_by_tr,[s_gene_name]);
+    labelid_tr := concat(labelid_tr,"  \0<");
+    labelid_tr := concat(labelid_tr,s_id_tr);
+    text2(pos,s_textpen_blue,labelid_tr,s_al_trtext_by_tr);
+}
