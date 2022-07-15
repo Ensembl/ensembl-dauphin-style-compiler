@@ -172,19 +172,7 @@ focus_gene := [focus_gene1,focus_gene2][@==0];
 focus_start := start_gn#[focus_id==focus_gene];
 focus_end := end_gn#[focus_id==focus_gene];
 
-enabled_transcripts := switch_seqstr(["track","focus","enabled-transcripts"]);
-bool_show_tr := in(id_tr,[enabled_transcripts]);
-
-bool_focus_in_gn := focus_id==focus_gene;
-bool_focus_in_tr := index(which_gn_by_tr,[bool_focus_in_gn]);
-
-/* Temporary hack: focus transcripts only affected by "enabled-transcripts" */
-bool_focusshow_tr := bool_focus_in_tr;
-
-/* Temporary hack for focus transcripts for "enabled-transcripts" key: no setting means all. */
-empty_tr_list := bool_focusshow_tr;
-empty_tr_list#[(len([enabled_transcripts]) == 0)==false] := false;
-bool_show_tr#[empty_tr_list] := true;
+calc_focus_transcripts_shown(bool_show_tr,id_tr,which_gn_by_tr,focus_id,focus_gene);
 
 base_allotment := append_group("tracks/track/focus/main/main",focus_gene);
 
@@ -197,29 +185,25 @@ allotment_letter#[focus_enabled_track] := "tracks/track/focus/main/letter/conten
 allotment_letter := use_allotment(allotment_letter);
 
 al_over_by_tr := len([id_tr]) (*) "";
-al_over_by_tr#[bool_focus_in_tr] := append_group(base_allotment,"diagram/over");
-al_over_by_tr#[bool_show_tr==false] := "";
+al_over_by_tr#[bool_show_tr] := append_group(base_allotment,"diagram/over");
 
 al_farover_by_tr := len([id_tr]) (*) "";
-al_farover_by_tr#[bool_focus_in_tr] := append_group(base_allotment,"diagram/far-over");
-al_farover_by_tr#[bool_show_tr==false] := "";
+al_farover_by_tr#[bool_show_tr] := append_group(base_allotment,"diagram/far-over");
 
 al_under_by_gn := len([gene_id]) (*) "";
-al_under_by_gn#[bool_focus_in_gn] := append_group(base_allotment,"diagram/under");
+al_under_by_gn#[focus_id==focus_gene] := append_group(base_allotment,"diagram/under");
 
 al_farunder_by_gn := len([gene_id]) (*) "";
-al_farunder_by_gn#[bool_focus_in_gn] := append_group(base_allotment,"diagram/far-under");
+al_farunder_by_gn#[focus_id==focus_gene] := append_group(base_allotment,"diagram/far-under");
 
 al_farunder_by_tr := len([id_tr]) (*) "";
-al_farunder_by_tr#[bool_focus_in_tr] := append_group(base_allotment,"diagram/far-under");
-al_farunder_by_tr#[bool_show_tr==false] := "";
+al_farunder_by_tr#[bool_show_tr] := append_group(base_allotment,"diagram/far-under");
 
 al_under_by_tr := len([id_tr]) (*) "";
-al_under_by_tr#[bool_focus_in_tr] := append_group(base_allotment,"diagram/under");
-al_under_by_tr#[bool_show_tr==false] := "";
+al_under_by_tr#[bool_show_tr] := append_group(base_allotment,"diagram/under");
 
 al_text_by_gn := len([gene_id]) (*) "";
-al_text_by_gn#[bool_focus_in_gn] := append_group(base_allotment,"text");
+al_text_by_gn#[focus_id==focus_gene] := append_group(base_allotment,"text");
 
 al_trtext_by_gn := al_text_by_gn;
 al_trtext_by_tr := index(which_gn_by_tr,[al_text_by_gn]);
@@ -521,5 +505,6 @@ draw_focus_swatch(allotment_letter);
 dots_allotment := use_allotment(["","dots/content"][(@==1)==(switch_yn(["track","focus"]))]);
 red_dotted(focus_start,focus_end,dots_allotment);
 
-// /* report transcripts shown */
-report_shown(bool_show_tr,bool_focus_in_tr,id_tr,use_allotment("tracks/track/focus"));
+/* report transcripts shown */
+report_shown(bool_show_tr,id_tr,use_allotment("tracks/track/focus"));
+report_all(id_tr,focus_id,focus_gene,which_gn_by_tr,use_allotment("tracks/track/focus"));
