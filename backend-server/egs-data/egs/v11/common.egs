@@ -5,6 +5,8 @@ module "common";
 
 expr switch_yn(path) ((push([switch_boolean(path[],[][])],false))[@==0]);
 expr switch_seqstr(path) (switch_string(path[],["*"][]));
+expr switch_isnull(path) (switch_null(path[],[][]));
+
 
 stmt use_allotments(our_allotments,enabled_tracks,potential_tracks) {
     tracks_used := ["","","","",""];
@@ -134,6 +136,7 @@ stmt report_all(rs_transcript_id,rs_focus_id,rs_focus_gene,rs_gn_tr,rs_al_focus_
 }
 
 stmt calc_focus_transcripts_shown(s_bool_show_tr,s_id_tr,s_which_gn_by_tr,s_focus_id,s_focus_gene) {
+    notice(format([switch_isnull(["track","focus","enabled-transcripts"])]));
     enabled_transcripts := switch_seqstr(["track","focus","enabled-transcripts"]);
     s_bool_show_tr := in(s_id_tr,[enabled_transcripts]);
     bool_focusshow_tr := index(s_which_gn_by_tr,[s_focus_id==s_focus_gene]);

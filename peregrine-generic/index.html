@@ -177,7 +177,7 @@
                     if(!new_seen_transcripts[old_seen]) { pruned = true; }
                   }
                   if(pruned) {
-                    genome_browser.switch(["track","focus","enabled-transcripts"],[]);
+                    genome_browser.switch(["track","focus","enabled-transcripts"],null);
                   }
                   seen_transcripts = new_seen_transcripts;
                   if('transcripts-shown' in track) {
@@ -285,6 +285,7 @@
         genome_browser.switch(["focus"],true);
         genome_browser.switch(["focus","gene"],true);
         //genome_browser.switch(["focus","gene","ENSG00000139618"],true);
+        genome_browser.switch(["track","focus","enabled-transcripts"],null);
         genome_browser.switch(["track","focus","item","gene"],"ENSG00000139618");
 
         function flipper(path,go) {
@@ -307,33 +308,36 @@
           genome_browser.jump("focus:homo_sapiens_GCA_000001405_28:ENSG00000139618");
           genome_browser.wait();
           genome_browser.switch(["focus","gene"],true);
-          genome_browser.switch(["focus","gene","ENSG00000139618"],true);
-          genome_browser.switch(["focus","gene2"],"ENSG00000139618");
-
+          genome_browser.switch(["track","focus","enabled-transcripts"],null);
+          genome_browser.switch(["track","focus","item","gene"],"ENSG00000139618");
         };
         document.getElementById("jump-fry").onclick = function() {
           genome_browser.jump("focus:homo_sapiens_GCA_000001405_28:ENSG00000073910");
           genome_browser.wait();
           genome_browser.switch(["focus","gene"],true);
-          genome_browser.switch(["focus","gene","ENSG00000073910"],true);
+          genome_browser.switch(["track","focus","enabled-transcripts"],null);
+          genome_browser.switch(["track","focus","item","gene"],"ENSG00000073910");
         };
         document.getElementById("jump-zar1l").onclick = function() {
           genome_browser.jump("focus:homo_sapiens_GCA_000001405_28:ENSG00000189167");
           genome_browser.wait();
           genome_browser.switch(["focus","gene"],true);
-          genome_browser.switch(["focus","gene","ENSG00000189167"],true);
+          genome_browser.switch(["track","focus","enabled-transcripts"],null);
+          genome_browser.switch(["track","focus","item","gene"],"ENSG00000189167");
         };
         document.getElementById("jump-wheat").onclick = function() {
           genome_browser.jump("focus:triticum_aestivum_GCA_900519105_1:TraesCS3D02G273600");
           genome_browser.wait();
           genome_browser.switch(["focus","gene"],true);
-          genome_browser.switch(["focus","gene","TraesCS3D02G273600"],true);
+          genome_browser.switch(["track","focus","enabled-transcripts"],null);
+          genome_browser.switch(["track","focus","item","gene"],"TraesCS3D02G273600");
         };
         document.getElementById("jump-ecoli").onclick = function() {
           genome_browser.jump("focus:escherichia_coli_str_k_12_substr_mg1655_gca_000005845_GCA_000005845_2:b2614");
           genome_browser.wait();
           genome_browser.switch(["focus","gene"],true);
-          genome_browser.switch(["focus","gene","b2614"],true);
+          genome_browser.switch(["track","focus","enabled-transcripts"],null);
+          genome_browser.switch(["track","focus","item","gene"],"b2614");
         };
         document.getElementById("jump-no-bug").onclick = function() {
           let genome_browser = new GenomeBrowser();

@@ -31,6 +31,8 @@ pub fn js_to_json(js: &JsValue) -> Result<JsonValue,()> {
             "object" => {
                 if Array::is_array(js) {
                     js_array_to_json(js)
+                } else if js.is_null() {
+                    return Ok(JsonValue::Null);
                 } else {
                     return Err(());
                 }

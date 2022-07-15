@@ -11,6 +11,7 @@ simple_interp_command!(ListSwitchInterpCommand,ListSwitchDeserializer,42,4,(0,1,
 simple_interp_command!(SwitchStringInterpCommand,SwitchStringDeserializer,71,3,(0,1,2));
 simple_interp_command!(SwitchNumberInterpCommand,SwitchNumberDeserializer,72,3,(0,1,2));
 simple_interp_command!(SwitchBooleanInterpCommand,SwitchBooleanDeserializer,73,3,(0,1,2));
+simple_interp_command!(SwitchNullInterpCommand,SwitchNullDeserializer,32,3,(0,1,2));
 
 impl InterpCommand for ListSwitchInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
@@ -100,6 +101,19 @@ impl InterpCommand for SwitchBooleanInterpCommand {
         let mut out = vec![];
         for value in values {
             out.push(value.truthy());
+        }
+        let registers = context.registers_mut();
+        registers.write(&self.0,InterpValue::Boolean(out));
+        Ok(CommandResult::SyncResult())
+    }
+}
+
+impl InterpCommand for SwitchNullInterpCommand {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+        let values = switch_value(&self.1,&self.2,context)?;
+        let mut out = vec![];
+        for value in values {
+            out.push(if let StructConst::Null = value { true } else { false });
         }
         let registers = context.registers_mut();
         registers.write(&self.0,InterpValue::Boolean(out));
