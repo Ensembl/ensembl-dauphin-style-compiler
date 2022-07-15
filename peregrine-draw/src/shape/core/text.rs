@@ -1,6 +1,6 @@
 use peregrine_data::{ DirectColour, PenGeometry, Background, LeafStyle, TextShape };
 use keyed::keyed_handle;
-use peregrine_toolkit::{lock, log};
+use peregrine_toolkit::lock;
 use crate::shape::layers::drawingtools::DrawingToolsBuilder;
 use crate::shape::triangles::drawgroup::DrawGroup;
 use crate::util::fonts::Fonts;
@@ -143,5 +143,6 @@ pub(super) fn add_text(out: &mut Vec<GLShape>, tools: &mut DrawingToolsBuilder, 
     if pretexts.len() > 0 {
         positions.fold_tangent(&pretexts,|a,b| a+b); // unwrap ok cos cycle and > 0.
     }
-    out.push(GLShape::Text(positions,handles,depth,draw_group.clone()));
+    let xxx = positions.major().clone();
+    out.push(GLShape::Text(xxx,handles,depth,draw_group.clone()));
 }

@@ -16,6 +16,8 @@ impl<X: std::fmt::Debug, Y: std::fmt::Debug> std::fmt::Debug for SpaceBaseArea<X
 impl <X,Y> SpaceBaseArea<X,Y> {
     pub fn top_left(&self) -> &SpaceBase<X,Y> { &self.0 }
     pub fn bottom_right(&self) -> &SpaceBase<X,Y> { &self.1 }
+    pub fn top_left_mut(&mut self) -> &mut SpaceBase<X,Y> { &mut self.0 }
+    pub fn bottom_right_mut(&mut self) -> &mut SpaceBase<X,Y> { &mut self.1 }
 
     pub fn iter(&self) -> SpaceBaseAreaIterator<X,Y> {
         SpaceBaseAreaIterator {

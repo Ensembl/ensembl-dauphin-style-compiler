@@ -171,14 +171,7 @@ impl Shape<LeafRequest> {
                 register_space_area(area.area());
             },
             Shape::Text(shape) => {
-                let size = shape.pen().geometry().size_in_webgl();
-                for (position,text) in shape.position().iter().zip(shape.iter_texts()) {
-                    position.allotment.update_drawing_info(|allotment| {
-                        allotment.merge_base_range(&RangeUsed::Part(*position.base,*position.base+1.));
-                        allotment.merge_pixel_range(&RangeUsed::Part(0.,size*text.len() as f64)); // Not ideal: assume square
-                        allotment.merge_max_y((*position.normal + size).ceil());
-                    });
-                }
+                shape.register_space();
             },
             Shape::Image(shape) => {
                 for (position,asset_name) in shape.position().iter().zip(shape.iter_names()) {

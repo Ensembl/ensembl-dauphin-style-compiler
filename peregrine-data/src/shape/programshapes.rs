@@ -53,7 +53,7 @@ impl ProgramShapesBuilder {
     }
 
     pub fn add_text(&mut self, position: SpaceBase<f64,LeafRequest>, pen: Pen, text: EachOrEvery<String>) -> Result<(),DataMessage> {
-        self.push_shape(TextShape::new2(position,pen,text)?);
+        self.push_shape(TextShape::new(position,pen,text)?);
         Ok(())
     }
 
