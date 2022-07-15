@@ -31,7 +31,7 @@ use super::map::{ library_map_commands_interp };
 
 
 pub fn std_id() -> CommandSetId {
-    CommandSetId::new("std",(13,0),0xA592C9F88053A373)
+    CommandSetId::new("std",(14,0),0x81698EA7A34573EC)
 }
 
 pub struct AssertDeserializer();
@@ -195,6 +195,30 @@ impl InterpCommand for CountInterpCommand {
         let len = registers.get_indexes(&self.2)?[0];
         let out = count_command(&src,len);
         registers.write(&self.0,InterpValue::Indexes(out));
+        Ok(CommandResult::SyncResult())
+    }
+}
+
+pub struct ConcatDeserializer();
+
+impl CommandDeserializer for ConcatDeserializer {
+    fn get_opcode_len(&self) -> anyhow::Result<Option<(u32,usize)>> { Ok(Some((39,3))) }
+    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> anyhow::Result<Box<dyn InterpCommand>> {
+        Ok(Box::new(ConcatInterpCommand(Register::deserialize(&value[0])?,Register::deserialize(&value[1])?,Register::deserialize(&value[2])?)))
+    }
+}
+
+pub struct ConcatInterpCommand(Register,Register,Register);
+
+impl InterpCommand for ConcatInterpCommand {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+        let registers = context.registers_mut();
+        let mut aa = registers.get_strings(&self.1)?.to_vec();
+        let bb = registers.get_strings(&self.2)?.to_vec();
+        for (a,b) in aa.iter_mut().zip(bb.iter().cycle()) {
+            a.push_str(b);
+        }
+        registers.write(&self.0,InterpValue::Strings(aa));
         Ok(CommandResult::SyncResult())
     }
 }
@@ -544,5 +568,6 @@ pub fn make_std_interp() -> InterpLibRegister {
     set.push(RulerMarkingsDeserializer());
     set.push(SplitCharactersDeserializer());
     set.push(CountDeserializer());
+    set.push(ConcatDeserializer());
     set
 }

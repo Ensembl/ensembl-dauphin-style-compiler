@@ -1,17 +1,39 @@
-use peregrine_data::{ DirectColour, PenGeometry, Background };
+use peregrine_data::{ DirectColour, PenGeometry, Background, LeafStyle, TextShape };
 use keyed::keyed_handle;
-use peregrine_toolkit::lock;
+use peregrine_toolkit::{lock, log};
+use crate::shape::layers::drawingtools::DrawingToolsBuilder;
+use crate::shape::triangles::drawgroup::DrawGroup;
 use crate::util::fonts::Fonts;
 use crate::webgl::canvas::flatplotallocator::FlatPositionManager;
 use crate::webgl::{ CanvasWeave, Flat };
 use crate::webgl::global::WebGlGlobal;
+use super::drawshape::GLShape;
 use super::flatdrawing::{FlatDrawingItem, FlatDrawingManager};
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 use std::sync::{Arc, Mutex};
 use crate::util::message::Message;
 
-// TODO padding measurements!
+struct StructuredText {
+    pre_text: String,
+    text: String
+}
+
+impl StructuredText {
+    fn new(src: &str) -> StructuredText {
+        let mut src = src.to_string();
+        let mut pre_text = String::new();
+        /* Remove any pre-text */
+        if let Some(index) = src.find("\0<") {
+            pre_text = src.split_off(index);
+            (src,pre_text) = (pre_text[2..].to_string(),src);
+        }
+        StructuredText {
+            pre_text, 
+            text: src
+        }
+    }
+}
 
 keyed_handle!(TextHandle);
 
@@ -94,4 +116,32 @@ impl DrawingText {
     }
 
     pub(crate) fn manager(&mut self) -> &mut FlatDrawingManager<TextHandle,Text> { &mut self.0 }
+}
+
+pub(super) fn add_text(out: &mut Vec<GLShape>, tools: &mut DrawingToolsBuilder, shape: &TextShape<LeafStyle>, draw_group: &DrawGroup, gl: &mut WebGlGlobal) {
+    let depth = shape.position().allotments().map(|x| x.depth);
+    let drawing_text = tools.text();
+    let background = shape.pen().background();
+    let texts = shape.iter_texts().collect::<Vec<_>>();
+    let colours_iter = shape.pen().colours().iter(texts.len()).unwrap();
+    let mut pretexts = vec![];
+    let mut handles = vec![];
+    for (text,colour) in texts.iter().zip(colours_iter) {
+        let structured = StructuredText::new(text);
+        let id = drawing_text.add_text(&shape.pen().geometry(),&structured.text,colour,background);
+        let mut pretext_x = 0.;
+        if structured.pre_text != "" {
+            let mut pretext = Text::new(shape.pen().geometry(),&structured.pre_text,colour,background);
+            if let Ok((x,_)) = pretext.calc_size(gl) {
+                pretext_x = x as f64 / (gl.device_pixel_ratio() as f64);
+            }
+        }
+        pretexts.push(pretext_x);
+        handles.push(id);
+    }
+    let mut positions = shape.position().clone();
+    if pretexts.len() > 0 {
+        positions.fold_tangent(&pretexts,|a,b| a+b); // unwrap ok cos cycle and > 0.
+    }
+    out.push(GLShape::Text(positions,handles,depth,draw_group.clone()));
 }

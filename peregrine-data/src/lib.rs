@@ -182,7 +182,7 @@ mod shape {
     mod imageshape;
     pub(crate) mod metadata;
     pub mod rectangleshape;
-    mod textshape;
+    pub(crate) mod textshape;
     pub(crate) mod shape;
     mod programshapes;
     mod zmenu;
@@ -290,5 +290,6 @@ pub use self::spacebase::{
     SpaceBasePoint, SpaceBasePointRef
 };
 pub use self::shape::rectangleshape::RectangleShape;
+pub use self::shape::textshape::TextShape;
 pub use self::request::core::manager::RequestManager;
 pub use self::request::messages::datareq::DataRequest;

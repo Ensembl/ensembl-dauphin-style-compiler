@@ -1,11 +1,13 @@
 use peregrine_data::{ Colour, DrawnType, Patina, RectangleShape, Shape, ShapeDemerge, CoordinateSystem, HollowEdge2, LeafStyle, DrawingShape };
 use peregrine_toolkit::eachorevery::EachOrEvery;
 use super::super::layers::layer::{ Layer };
+use super::text::add_text;
 use crate::shape::core::drawshape::{SimpleShapePatina};
 use crate::shape::heraldry::heraldry::{Heraldry, HeraldryCanvasesUsed};
 use crate::shape::layers::drawingtools::DrawingToolsBuilder;
 use crate::shape::triangles::drawgroup::{DrawGroup, ShapeCategory};
 use crate::util::message::Message;
+use crate::webgl::global::WebGlGlobal;
 use super::drawshape::{ GLShape };
 
 fn split_spacebaserect(tools: &mut DrawingToolsBuilder, shape: &RectangleShape<LeafStyle>, draw_group: &DrawGroup) -> Result<Vec<GLShape>,Message> {
@@ -102,7 +104,7 @@ impl ShapeDemerge for GLCategoriser {
     }
 }
 
-pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingToolsBuilder, shape: DrawingShape) -> Result<Vec<GLShape>,Message> {
+pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingToolsBuilder, shape: DrawingShape, gl: &mut WebGlGlobal) -> Result<Vec<GLShape>,Message> {
     let mut out = vec![];
     let demerge = shape.demerge(&GLCategoriser());
     for (draw_group,shape) in demerge {
@@ -113,15 +115,7 @@ pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingTool
                 out.push(GLShape::Wiggle(shape.range(),shape.values(),shape.plotter().clone(),shape.get_style().depth));
             },
             Shape::Text(shape) => {
-                let depth = shape.position().allotments().map(|x| x.depth);
-                let drawing_text = tools.text();
-                let background = shape.pen().background();
-                let texts = shape.iter_texts().collect::<Vec<_>>();
-                let colours_iter = shape.pen().colours().iter(texts.len()).unwrap();
-                let handles : Vec<_> = texts.iter().zip(colours_iter).map(|(text,colour)| {
-                    drawing_text.add_text(&shape.pen().geometry(),text,colour,background)
-                }).collect();
-                out.push(GLShape::Text(shape.position().clone(),handles,depth,draw_group));
+                add_text(&mut out,tools,&shape,&draw_group,gl);
             },
             Shape::Image(shape) => {
                 let depth = shape.position().allotments().map(|x| x.depth);

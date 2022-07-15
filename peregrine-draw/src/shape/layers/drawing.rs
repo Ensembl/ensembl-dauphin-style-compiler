@@ -42,10 +42,10 @@ impl DrawingBuilder {
         })
     }
 
-    pub(crate) fn prepare_shape(&mut self, shape: &DrawingShape) -> Result<Vec<GLShape>,Message> {
+    pub(crate) fn prepare_shape(&mut self, shape: &DrawingShape, gl: &mut WebGlGlobal) -> Result<Vec<GLShape>,Message> {
         let shape = shape.clone(); // XXX don't clone
         let (layer, tools) = (&mut self.main_layer,&mut self.tools);
-        prepare_shape_in_layer(layer,tools,shape)
+        prepare_shape_in_layer(layer,tools,shape,gl)
     }
 
     pub(crate) async fn prepare_tools(&mut self, gl: &Arc<Mutex<WebGlGlobal>>) -> Result<(),Message> {
@@ -101,7 +101,7 @@ impl Drawing {
         /* convert core shape data model into gl shapes */
         let mut lgl = lock!(gl);
         let mut drawing = DrawingBuilder::new(scale,&mut lgl,assets,left)?;
-        let mut prepared_shapes = shapes.iter().map(|s| drawing.prepare_shape(s)).collect::<Result<Vec<_>,_>>()?;
+        let mut prepared_shapes = shapes.iter().map(|s| drawing.prepare_shape(s,&mut lgl)).collect::<Result<Vec<_>,_>>()?;
         /* gather and allocate aux requirements (2d canvas space etc) */
         drop(lgl);
         drawing.prepare_tools(gl).await?;

@@ -58,6 +58,15 @@ impl LexerGetting {
         let mut first = true;
         while let Some(c) = stream.peek(1).chars().next() {
             if bs {
+                let c = match c {
+                    'n' => '\n',
+                    't' => '\t',
+                    'r' => '\r',
+                    'b' => '\u{0008}',
+                    'f' => '\u{000C}',
+                    '0' => '\0',
+                    x => x
+                };
                 out.push(c);
                 bs = false;
             } else if allow_bs && c == '\\' {
