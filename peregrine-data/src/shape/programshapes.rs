@@ -57,6 +57,12 @@ impl ProgramShapesBuilder {
         Ok(())
     }
 
+    pub fn add_running_text(&mut self, area: SpaceBaseArea<f64,LeafRequest>, pen: Pen, text: EachOrEvery<String>) -> Result<(),DataMessage> {
+        let bottom_right = area.bottom_right().map_allotments(|_| ());
+        self.push_shape(TextShape::new_running(area.top_left().clone(),bottom_right,pen,text)?);
+        Ok(())
+    }
+
     pub fn add_image(&mut self, position: SpaceBase<f64,LeafRequest>, images: EachOrEvery<String>) -> Result<(),DataMessage> {
         self.push_shape(ImageShape::new2(position,images)?);
         Ok(())

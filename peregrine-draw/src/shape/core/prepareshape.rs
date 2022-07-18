@@ -1,7 +1,7 @@
 use peregrine_data::{ Colour, DrawnType, Patina, RectangleShape, Shape, ShapeDemerge, CoordinateSystem, HollowEdge2, LeafStyle, DrawingShape };
 use peregrine_toolkit::eachorevery::EachOrEvery;
 use super::super::layers::layer::{ Layer };
-use super::text::add_text;
+use super::text::{prepare_text};
 use crate::shape::core::drawshape::{SimpleShapePatina};
 use crate::shape::heraldry::heraldry::{Heraldry, HeraldryCanvasesUsed};
 use crate::shape::layers::drawingtools::DrawingToolsBuilder;
@@ -104,7 +104,7 @@ impl ShapeDemerge for GLCategoriser {
     }
 }
 
-pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingToolsBuilder, shape: DrawingShape, gl: &mut WebGlGlobal) -> Result<Vec<GLShape>,Message> {
+pub(crate) fn prepare_shape_in_layer(tools: &mut DrawingToolsBuilder, shape: DrawingShape, gl: &mut WebGlGlobal) -> Result<Vec<GLShape>,Message> {
     let mut out = vec![];
     let demerge = shape.demerge(&GLCategoriser());
     for (draw_group,shape) in demerge {
@@ -115,7 +115,7 @@ pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingTool
                 out.push(GLShape::Wiggle(shape.range(),shape.values(),shape.plotter().clone(),shape.get_style().depth));
             },
             Shape::Text(shape) => {
-                add_text(&mut out,tools,&shape,&draw_group,gl);
+                prepare_text(&mut out,tools,&shape,&draw_group,gl);
             },
             Shape::Image(shape) => {
                 let depth = shape.position().allotments().map(|x| x.depth);

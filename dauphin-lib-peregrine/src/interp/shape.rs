@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use anyhow::anyhow as err;
 use peregrine_toolkit::lock;
 use crate::simple_interp_command;
-use peregrine_data::{SpaceBaseArea, PartialSpaceBase, DataMessage, ProgramShapesBuilder};
+use peregrine_data::{SpaceBaseArea, PartialSpaceBase, ProgramShapesBuilder};
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register };
 use serde_cbor::Value as CborValue;
@@ -14,6 +14,7 @@ simple_interp_command!(WiggleInterpCommand,WiggleDeserializer,7,6,(0,1,2,3,4,5))
 simple_interp_command!(RectangleInterpCommand,RectangleDeserializer,20,4,(0,1,2,3));
 simple_interp_command!(ImageInterpCommand,ImageDeserializer,44,3,(0,1,2));
 simple_interp_command!(EmptyInterpCommand,EmptyDeserializer,53,3,(0,1,2));
+simple_interp_command!(RunningTextInterpCommand,RunningTextDeserializer,74,5,(0,1,2,3,4));
 
 impl InterpCommand for RectangleInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
@@ -65,6 +66,37 @@ impl InterpCommand for Text2InterpCommand {
             if text.len() != Some(0) || allotments.len() != Some(0) {
                 let spacebase = spacebase.replace_allotments(allotments);
                 lock!(zoo).as_mut().unwrap().add_text(spacebase,pen,text)?;
+            }
+        }
+        Ok(CommandResult::SyncResult())
+    }
+}
+
+impl InterpCommand for RunningTextInterpCommand {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+        let registers = context.registers_mut();
+        let topleft_id = registers.get_indexes(&self.0)?.to_vec();
+        let bottomright_id = registers.get_indexes(&self.1)?.to_vec();
+        let pen_id = registers.get_indexes(&self.2)?.to_vec();
+        let text = vec_to_eoe(registers.get_strings(&self.3)?.to_vec());
+        let allotment_id = vec_to_eoe(registers.get_indexes(&self.4)?.to_vec());
+        drop(registers);
+        let peregrine = get_peregrine(context)?;
+        let geometry = peregrine.geometry_builder();
+        let top_left = geometry.spacebase(topleft_id[0] as u32)?.as_ref().clone();
+        if top_left.len() > 0 {
+            let bottom_right = geometry.spacebase(bottomright_id[0] as u32)?.as_ref().clone();
+            let pen = geometry.pen(pen_id[0] as u32)?.as_ref().clone();
+            let allotments = allotment_id.map_results(|id| {
+                geometry.allotment(*id as u32).map(|x| x.as_ref().clone())
+            })?.index(|a| a.name().clone());
+            let zoo = get_instance::<Arc<Mutex<Option<ProgramShapesBuilder>>>>(context,"out")?;
+            if text.len() != Some(0) || allotments.len() != Some(0) {
+                let area = SpaceBaseArea::new(
+                    PartialSpaceBase::from_spacebase(top_left),
+                    PartialSpaceBase::from_spacebase(bottom_right)).ok_or_else(|| err!("sb5"))?;
+                let area = area.replace_allotments(allotments);
+                lock!(zoo).as_mut().unwrap().add_running_text(area,pen,text)?;
             }
         }
         Ok(CommandResult::SyncResult())

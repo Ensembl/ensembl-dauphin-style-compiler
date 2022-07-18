@@ -95,14 +95,17 @@ impl GeometryProgramName {
                     ")
                 ]),
             ],
-            /* Data which follows movements around the region but which isn't well-enough behaved for
-             * Tracking which mainly means things relative to the bottom of the screen. Can also be used
-             * for anything which Tracking is used for (strictly more expressive) but not optimised.
+            /* Data which follows movements around the region but which isn't well-enough behaved 
+             * for Tracking, which mainly means things relative to the bottom of the screen or
+             * running labels. Can  also be used for anything which Tracking is used for (strictly
+             * more expressive) but is not optimised.
              */
             GeometryProgramName::Triangles(TrianglesGeometry::TrackingWindow) => vec![
                 Header::new(WebGlRenderingContext::TRIANGLES),
                 AttributeProto::new(PR_DEF,GLArity::Vec4,"aCoords"),
+                AttributeProto::new(PR_DEF,GLArity::Vec4,"aRunCoords"),
                 AttributeProto::new(PR_LOW,GLArity::Scalar,"aDepth"),
+                AttributeProto::new(PR_DEF,GLArity::Vec4,"aOriginCoords"),
                 Declaration::new_vertex("
                     vec4 transform(in vec4 p)
                     {
@@ -113,11 +116,15 @@ impl GeometryProgramName {
                     }
                 "),
                 Statement::new_vertex("
-                    gl_Position = transform(aCoords)
+                    vec4 origin = transform(aOriginCoords);
+                    vec4 pos = transform(aCoords) + 0.00000001 * (transform(aRunCoords)+transform(aOriginCoords));
+                    if (origin.x < -1.0) {
+                        pos.x = -1.0 + pos.x - origin.x;
+                    }
+                    gl_Position = pos;
                 "),
                 Conditional::new("need-origin",vec![
-                    AttributeProto::new(PR_DEF,GLArity::Vec4,"aOriginCoords"),
-                    Varying::new(PR_DEF,GLArity::Vec2,"vOrigin"),    
+                    Varying::new(PR_DEF,GLArity::Vec2,"vOrigin"),
                     Statement::new_vertex("
                         vec4 x = transform(aOriginCoords);
                         vOrigin = vec2((x.x+1.0)*uFullSize.x,(x.y+1.0)*uFullSize.y);

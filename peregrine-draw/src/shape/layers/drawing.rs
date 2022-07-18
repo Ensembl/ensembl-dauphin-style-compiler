@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 use super::drawingtools::DrawingToolsBuilder;
 use super::layer::Layer;
 use commander::cdr_tick;
-use peregrine_data::{Assets, Scale, DrawingShape };
+use peregrine_data::{Assets, Scale, DrawingShape, Shape };
 use peregrine_toolkit::lock;
 use peregrine_toolkit_async::sync::needed::Needed;
 use peregrine_toolkit_async::sync::retainer::RetainTest;
@@ -44,8 +44,7 @@ impl DrawingBuilder {
 
     pub(crate) fn prepare_shape(&mut self, shape: &DrawingShape, gl: &mut WebGlGlobal) -> Result<Vec<GLShape>,Message> {
         let shape = shape.clone(); // XXX don't clone
-        let (layer, tools) = (&mut self.main_layer,&mut self.tools);
-        prepare_shape_in_layer(layer,tools,shape,gl)
+        prepare_shape_in_layer(&mut self.tools,shape,gl)
     }
 
     pub(crate) async fn prepare_tools(&mut self, gl: &Arc<Mutex<WebGlGlobal>>) -> Result<(),Message> {

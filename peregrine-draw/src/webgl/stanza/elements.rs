@@ -133,7 +133,7 @@ impl ProcessStanzaAddable for ProcessStanzaElements {
     fn add(&mut self, handle: &AttribHandle, values: Vec<f32>, dims: usize) -> Result<(),Message> {
         let array_size = self.points_per_shape * self.shape_count * dims;
         if values.len() != array_size {
-            return Err(Message::CodeInvariantFailed(format!("incorrect array length: expected {} got {}",array_size,values.len())));
+            return Err(Message::CodeInvariantFailed(format!("incorrect array length: expected {} ({}*{}*{}) got {}",array_size,self.points_per_shape,self.shape_count,dims,values.len())));
         }
         let mut offset = 0;
         for (entry,shape_count,cursor) in &mut self.elements {

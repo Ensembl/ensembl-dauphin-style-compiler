@@ -142,7 +142,7 @@ gene_track_styles();
 
 style("**/main/main/",["type"][],["bumper"][]);
 style("**/main/main/*/",["type"][],["overlay"][]);
-style("**/main/main/*/text",["bump-width"][],["none"][]);
+style("**/main/main/*/text",["bump-width","system"][],["none","tracking-special"][]);
 style("**/main/main/*/button",["priority","bump-width"][],["1000","none"][]);
 style("**/main/main/*/diagram/",["type"][],["overlay"][]);
 style("**/main/main/*/diagram/under",["depth"][],["-2"][]);
@@ -437,7 +437,7 @@ rectangle(w,e,pt_zmenu_tr,al_under_by_tr);
 /* gene & transcript labels */
 draw_labels(
     idx_drawn_tr_gn, which_gn_by_tr,
-    start_gn, start_gn_by_tr,
+    start_gn, end_gn, start_gn_by_tr,
     gene_name,id_tr, textpen_blue,
     al_trtext_by_tr,
     num_drawn_tr_gn, textpen, al_text_by_gn

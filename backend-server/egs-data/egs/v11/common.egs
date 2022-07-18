@@ -165,9 +165,11 @@ stmt calc_focus_transcripts_shown(s_bool_show_tr,s_id_tr,s_which_gn_by_tr,s_focu
     s_bool_show_tr#[enabled_is_null] := sv_bool_show_tr;
 }
 
-stmt draw_labels(s_idx_drawn_tr_gn,s_which_gn_by_tr,s_start_gn,s_start_gn_by_tr,s_gene_name,s_id_tr,s_textpen_blue,s_al_trtext_by_tr, s_num_drawn_tr_gn, s_textpen, s_al_text_by_gn) {
+stmt draw_labels(s_idx_drawn_tr_gn,s_which_gn_by_tr,s_start_gn,s_end_gn,s_start_gn_by_tr,s_gene_name,s_id_tr,s_textpen_blue,s_al_trtext_by_tr, s_num_drawn_tr_gn, s_textpen, s_al_text_by_gn) {
     /* gene label */
-    text2(spacebase(s_start_gn, (s_num_drawn_tr_gn-1)*20+10,4),s_textpen,s_gene_name,s_al_text_by_gn);
+    gene_label_start := spacebase(s_start_gn, (s_num_drawn_tr_gn-1)*20+10,4);
+    gene_label_end := spacebase(s_end_gn, (s_num_drawn_tr_gn-1)*20+10,4);
+    running_text(gene_label_start,gene_label_end,s_textpen,s_gene_name,s_al_text_by_gn);
 
     /* transcript labels */
     c := s_idx_drawn_tr_gn * 20;

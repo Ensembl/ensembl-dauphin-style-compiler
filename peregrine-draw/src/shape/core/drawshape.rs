@@ -5,7 +5,7 @@ use peregrine_data::{ Colour, DirectColour, DrawnType, Patina, Plotter, SpaceBas
 use peregrine_toolkit::eachorevery::{EachOrEvery, EachOrEveryFilterBuilder};
 use super::directcolourdraw::DirectYielder;
 use super::spotcolourdraw::SpotColourYielder;
-use super::text::TextHandle;
+use super::text::{TextHandle, draw_text};
 use super::bitmap::BitmapHandle;
 use super::super::layers::layer::{ Layer };
 use super::texture::{CanvasTextureArea, TextureYielder};
@@ -111,7 +111,7 @@ impl DrawingShapePatina {
 }
 
 pub(crate) enum GLShape {
-    Text(SpaceBase<f64,LeafStyle>,Vec<TextHandle>,EachOrEvery<i8>,DrawGroup),
+    Text(SpaceBase<f64,LeafStyle>,Option<SpaceBase<f64,()>>,Vec<TextHandle>,EachOrEvery<i8>,DrawGroup),
     Image(SpaceBase<f64,LeafStyle>,Vec<BitmapHandle>,EachOrEvery<i8>,DrawGroup),
     Heraldry(SpaceBaseArea<f64,LeafStyle>,EachOrEvery<HeraldryHandle>,EachOrEvery<i8>,DrawGroup,HeraldryCanvas,HeraldryScale,Option<HollowEdge2<f64>>,Option<SpaceBaseArea<Observable<'static,f64>,()>>),
     Wiggle((f64,f64),Arc<Vec<Option<f64>>>,Plotter,i8),
@@ -134,7 +134,7 @@ fn add_colour(addable: &mut dyn ProcessStanzaAddable, simple_shape_patina: &Draw
     Ok(())
 }
 
-fn dims_to_sizes(areas: &[CanvasTextureArea], factor: f64) -> (Vec<f64>,Vec<f64>) {
+pub(super) fn dims_to_sizes(areas: &[CanvasTextureArea], factor: f64) -> (Vec<f64>,Vec<f64>) {
     let mut x_sizes = vec![];
     let mut y_sizes = vec![];
     for dim in areas {
@@ -157,11 +157,11 @@ fn draw_area_from_canvas(layer: &mut Layer, gl: &mut WebGlGlobal, draw_group: &D
     Ok(Box::new(Rectangles::new(rectangles,gl)))
 }
 
-fn draw_points_from_canvas2(layer: &mut Layer, gl: &mut WebGlGlobal, draw_group: &DrawGroup, points: &SpaceBase<f64,LeafStyle>, x_sizes: Vec<f64>, y_sizes:Vec<f64>, depth: &EachOrEvery<i8>, canvas: &FlatId, dims: &[CanvasTextureArea], free: bool, wobble: Option<SpaceBase<Observable<'static,f64>,()>>) -> Result<Box<dyn DynamicShape>,Message> {
+pub(super) fn draw_points_from_canvas2(layer: &mut Layer, gl: &mut WebGlGlobal, draw_group: &DrawGroup, points: &SpaceBase<f64,LeafStyle>, run: &Option<SpaceBase<f64,()>>, x_sizes: Vec<f64>, y_sizes:Vec<f64>, depth: &EachOrEvery<i8>, canvas: &FlatId, dims: &[CanvasTextureArea], free: bool, wobble: Option<SpaceBase<Observable<'static,f64>,()>>) -> Result<Box<dyn DynamicShape>,Message> {
     let mut geometry_yielder = draw_group.geometry_yielder();
     let mut patina_yielder = TextureYielder::new(canvas,free);
     let left = layer.left();
-    let mut rectangles = RectanglesData::new_sized(layer, &mut geometry_yielder, &mut patina_yielder,&points,x_sizes,y_sizes,depth,left,false,&draw_group,wobble)?;
+    let mut rectangles = RectanglesData::new_sized(layer, &mut geometry_yielder, &mut patina_yielder,&points,run,x_sizes,y_sizes,depth,left,false,&draw_group,wobble)?;
     let campaign = rectangles.elements_mut();
     let gl_ref = gl.refs();
     patina_yielder.draw()?.add_rectangle(campaign,&canvas,&dims,gl_ref.flat_store)?;
@@ -204,17 +204,8 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &mut WebGlGlobal, tools:
             array.close()?;
             Ok(ShapeToAdd::None)
         },
-        GLShape::Text(points,handles,depth,draw_group) => {
-            // TODO factor
-            let text = tools.text();
-            let bitmap_dims = handles.iter()
-                .map(|handle| text.manager().get_texture_areas_on_bitmap(handle))
-                .collect::<Result<Vec<_>,_>>()?;
-            if bitmap_dims.len() == 0 { return Ok(ShapeToAdd::None); }
-            let (x_sizes,y_sizes) = dims_to_sizes(&bitmap_dims,1./bitmap_multiplier);
-            let canvas = text.manager().canvas_id().ok_or_else(|| Message::CodeInvariantFailed("no canvas id A".to_string()))?;
-            let rectangles = draw_points_from_canvas2(layer,gl,&draw_group,&points,x_sizes,y_sizes,&depth,&canvas,&bitmap_dims,false,None)?;
-            Ok(ShapeToAdd::Dynamic(rectangles))
+        GLShape::Text(points,run,handles,depth,draw_group) => {
+            draw_text(layer,gl,tools,points,run,&handles,depth,&draw_group)
         },
         GLShape::Image(points,handles,depth,kind) => {
             // TODO factor
@@ -225,7 +216,7 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &mut WebGlGlobal, tools:
             if bitmap_dims.len() == 0 { return Ok(ShapeToAdd::None); }
             let (x_sizes,y_sizes) = dims_to_sizes(&bitmap_dims,1./bitmap_multiplier);
             let canvas = bitmap.manager().canvas_id().ok_or_else(|| Message::CodeInvariantFailed("no canvas id A".to_string()))?;
-            let rectangles = draw_points_from_canvas2(layer,gl,&kind,&points,x_sizes,y_sizes,&depth,&canvas,&bitmap_dims,false,None)?;
+            let rectangles = draw_points_from_canvas2(layer,gl,&kind,&points,&None,x_sizes,y_sizes,&depth,&canvas,&bitmap_dims,false,None)?;
             Ok(ShapeToAdd::Dynamic(rectangles))
         },
         GLShape::Heraldry(area,handles,depth,kind,heraldry_canvas,scale,edge,wobble) => {

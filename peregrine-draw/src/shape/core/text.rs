@@ -1,13 +1,15 @@
-use peregrine_data::{ DirectColour, PenGeometry, Background, LeafStyle, TextShape };
+use peregrine_data::{ DirectColour, PenGeometry, Background, LeafStyle, TextShape, SpaceBase };
 use keyed::keyed_handle;
+use peregrine_toolkit::eachorevery::EachOrEvery;
 use peregrine_toolkit::lock;
 use crate::shape::layers::drawingtools::DrawingToolsBuilder;
+use crate::shape::layers::layer::Layer;
 use crate::shape::triangles::drawgroup::DrawGroup;
 use crate::util::fonts::Fonts;
 use crate::webgl::canvas::flatplotallocator::FlatPositionManager;
 use crate::webgl::{ CanvasWeave, Flat };
 use crate::webgl::global::WebGlGlobal;
-use super::drawshape::GLShape;
+use super::drawshape::{GLShape, ShapeToAdd, dims_to_sizes, draw_points_from_canvas2};
 use super::flatdrawing::{FlatDrawingItem, FlatDrawingManager};
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
@@ -118,7 +120,7 @@ impl DrawingText {
     pub(crate) fn manager(&mut self) -> &mut FlatDrawingManager<TextHandle,Text> { &mut self.0 }
 }
 
-pub(super) fn add_text(out: &mut Vec<GLShape>, tools: &mut DrawingToolsBuilder, shape: &TextShape<LeafStyle>, draw_group: &DrawGroup, gl: &mut WebGlGlobal) {
+pub(super) fn prepare_text(out: &mut Vec<GLShape>, tools: &mut DrawingToolsBuilder, shape: &TextShape<LeafStyle>, draw_group: &DrawGroup, gl: &mut WebGlGlobal) {
     let depth = shape.position().allotments().map(|x| x.depth);
     let drawing_text = tools.text();
     let background = shape.pen().background();
@@ -143,6 +145,22 @@ pub(super) fn add_text(out: &mut Vec<GLShape>, tools: &mut DrawingToolsBuilder, 
     if pretexts.len() > 0 {
         positions.fold_tangent(&pretexts,|a,b| a+b); // unwrap ok cos cycle and > 0.
     }
-    let xxx = positions.major().clone();
-    out.push(GLShape::Text(xxx,handles,depth,draw_group.clone()));
+    out.push(GLShape::Text(positions,shape.run().cloned(),handles,depth,draw_group.clone()));
+}
+
+pub(super) fn draw_text(layer: &mut Layer, gl: &mut WebGlGlobal, tools: &mut DrawingToolsBuilder,
+                    points: SpaceBase<f64,LeafStyle>,
+                    run: Option<SpaceBase<f64,()>>,
+                    handles: &[TextHandle], depth: EachOrEvery<i8>, draw_group: &DrawGroup
+                ) -> Result<ShapeToAdd,Message> {
+    let bitmap_multiplier = gl.refs().flat_store.bitmap_multiplier() as f64;
+    let text = tools.text();
+    let bitmap_dims = handles.iter()
+        .map(|handle| text.manager().get_texture_areas_on_bitmap(handle))
+        .collect::<Result<Vec<_>,_>>()?;
+    if bitmap_dims.len() == 0 { return Ok(ShapeToAdd::None); }
+    let (x_sizes,y_sizes) = dims_to_sizes(&bitmap_dims,1./bitmap_multiplier);
+    let canvas = text.manager().canvas_id().ok_or_else(|| Message::CodeInvariantFailed("no canvas id A".to_string()))?;
+    let rectangles = draw_points_from_canvas2(layer,gl,&draw_group,&points,&run,x_sizes,y_sizes,&depth,&canvas,&bitmap_dims,false,None)?;
+    Ok(ShapeToAdd::Dynamic(rectangles))
 }

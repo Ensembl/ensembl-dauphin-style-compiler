@@ -1,17 +1,7 @@
 use std::{collections::{hash_map::DefaultHasher}, hash::{Hash, Hasher}, sync::Arc};
 use peregrine_toolkit::eachorevery::{EachOrEveryFilter, EachOrEvery, eoestruct::StructTemplate};
-use super::zmenu::ZMenu;
 
-pub(super) fn bulk<T>(b: Vec<T>, a_len: usize, primary: bool) -> Vec<T> where T: Clone {
-    if b.len() < a_len && (b.len() > 1 || primary) {
-        let mut out = b.to_vec();
-        let mut it = b.iter().cycle();
-        out.extend((b.len()..a_len).map(|_| it.next().unwrap().clone()));
-        out
-    } else {
-        b
-    }
-}
+use super::zmenu::ZMenu;
 
 #[derive(Clone,Debug,PartialEq,Eq,Hash)]
 pub struct DirectColour(pub u8,pub u8,pub u8,pub u8);
