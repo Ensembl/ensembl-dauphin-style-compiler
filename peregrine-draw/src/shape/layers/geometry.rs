@@ -117,9 +117,9 @@ impl GeometryProgramName {
                 "),
                 Statement::new_vertex("
                     vec4 origin = transform(aOriginCoords);
-                    vec4 pos = transform(aCoords) + 0.00000001 * (transform(aRunCoords)+transform(aOriginCoords));
-                    if (origin.x < -1.0) {
-                        pos.x = -1.0 + pos.x - origin.x;
+                    vec4 pos = transform(aCoords) + 0.00000001 * (transform(aRunCoords));
+                    if (origin.x < uLeftRail) {
+                        pos.x = uLeftRail + pos.x - origin.x;
                     }
                     gl_Position = pos;
                 "),

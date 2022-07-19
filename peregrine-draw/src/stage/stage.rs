@@ -1,4 +1,5 @@
 use peregrine_data::{StickId, Viewport, PlayingField};
+use peregrine_toolkit::log;
 use peregrine_toolkit_async::sync::needed::Needed;
 
 use crate::{ webgl::{ SourceInstrs, UniformProto, GLArity, UniformHandle, ProgramBuilder, Process }};
@@ -14,7 +15,8 @@ pub(crate) struct ProgramStage {
     full_size: UniformHandle,
     size: UniformHandle,
     opacity: UniformHandle,
-    model: UniformHandle
+    model: UniformHandle,
+    left_rail: UniformHandle,
 }
 
 impl ProgramStage {
@@ -26,7 +28,8 @@ impl ProgramStage {
             size: builder.get_uniform_handle("uSize")?,
             full_size: builder.get_uniform_handle("uFullSize")?,
             opacity: builder.get_uniform_handle("uOpacity")?,
-            model: builder.get_uniform_handle("uModel")?
+            model: builder.get_uniform_handle("uModel")?,
+            left_rail: builder.get_uniform_handle("uLeftRail")?
         })
     }
 
@@ -42,19 +45,6 @@ impl ProgramStage {
     }
 
     pub fn apply(&self, stage: &ReadStage, left: f64, opacity: f64, dpr: f64, process: &mut Process) -> Result<(),Message> {
-        /*
-        use web_sys::console;
-        let size = (stage.x.size()?,stage.y.size()?);
-        console::log_1(&format!("
-            hpos={:?} vpos={:?} 2./bp_per_screen={:?} size={:?} opacity={:?} model={:?}
-        ",
-        vec![stage.x.position()?-left],
-        vec![stage.y.position()?],
-        vec![2./stage.x.bp_per_screen()?],
-        vec![size.0/2.,size.1/2.],
-        vec![opacity],
-        self.model_matrix(stage)).into());  
-        */
         let mut position = stage.x.position()?;
         let mut bp_per_screen = stage.x.bp_per_screen()? as f64;
         /* allow for squeeze */
@@ -74,6 +64,7 @@ impl ProgramStage {
         process.set_uniform(&self.full_size,&[(full_size.0*dpr/2.) as f32,(full_size.1*dpr/2.) as f32])?;
         process.set_uniform(&self.opacity,&[opacity as f32])?;
         process.set_uniform(&self.model, &self.model_matrix(stage)?)?;
+        process.set_uniform(&self.left_rail,&[(stage.x.squeeze()?.0/(size.0/2.) as f32)-1.])?;
         Ok(())
     }
 }
@@ -168,6 +159,7 @@ pub(crate) fn get_stage_source() -> SourceInstrs {
         UniformProto::new_vertex(PR_DEF,GLArity::Scalar,"uStageHpos"),
         UniformProto::new_vertex(PR_DEF,GLArity::Scalar,"uStageVpos"),
         UniformProto::new_vertex(PR_DEF,GLArity::Scalar,"uStageZoom"),
+        UniformProto::new_vertex(PR_DEF,GLArity::Scalar,"uLeftRail"),
         UniformProto::new_vertex(PR_DEF,GLArity::Vec2,"uFullSize"),
         UniformProto::new_fragment(PR_DEF,GLArity::Vec2,"uFullSize"),
         UniformProto::new_vertex(PR_DEF,GLArity::Vec2,"uSize"),
