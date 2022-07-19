@@ -1,6 +1,6 @@
 use peregrine_toolkit::{eachorevery::{EachOrEveryFilter, EachOrEvery}, log};
 
-use crate::{DataMessage, Pen, ShapeDemerge, Shape, SpaceBase, allotment::{transformers::{transformers::{Transformer, TransformerVariety}}, style::{style::LeafStyle}, util::rangeused::RangeUsed}, CoordinateSystem, LeafRequest, SpaceBaseArea, SpaceBasePointRef};
+use crate::{DataMessage, Pen, ShapeDemerge, Shape, SpaceBase, allotment::{transformers::{transformers::{Transformer, TransformerVariety}}, style::{style::LeafStyle}, util::rangeused::RangeUsed, core::allotmentname::AllotmentName}, CoordinateSystem, LeafRequest, SpaceBaseArea, PartialSpaceBase};
 use std::{hash::Hash, sync::Arc};
 
 #[cfg_attr(debug_assertions,derive(Debug))]
@@ -96,9 +96,20 @@ impl<A> Clone for TextShape<A> where A: Clone {
 }
 
 impl TextShape<LeafRequest> {
+    fn make_base_filter(&self, min: f64,max: f64) -> EachOrEveryFilter {
+        if let Some(run) = &self.run {
+            let anon = LeafRequest::new(&AllotmentName::new(""));
+            let run = run.map_allotments(|_| anon.clone());
+            let area = SpaceBaseArea::new(PartialSpaceBase::from_spacebase(self.position.clone()),PartialSpaceBase::from_spacebase(run)).unwrap();
+            area.make_base_filter(min,max)
+        } else {
+            self.position.make_base_filter(min,max)
+        }
+    }
+
     pub fn base_filter(&self, min: f64, max: f64) -> TextShape<LeafRequest> {
         let non_tracking = self.position.allotments().make_filter(self.position.len(),|a| !a.leaf_style().coord_system.is_tracking());
-        let filter = self.position.make_base_filter(min,max);
+        let filter = self.make_base_filter(min,max);
         self.filter(&filter.or(&non_tracking))
     }
 }
