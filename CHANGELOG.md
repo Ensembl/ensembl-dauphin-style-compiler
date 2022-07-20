@@ -1,3 +1,10 @@
+# 0.4.2
+  * Separate focus egs file to allow always shown in transcript view.
+  * Factoring egs stuff shared between tracks
+  * Impl of "don't know" state for eye icons
+  * Fix label spacing between gene and transcript labels
+  * Left-sticky labels
+
 # 0.4.1
   * Fix reporting of boxes from flanks (reported in 0.4.0)
   * Multiple transcript update from genes
