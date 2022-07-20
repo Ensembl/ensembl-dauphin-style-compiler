@@ -6,7 +6,7 @@ use super::zmenu::ZMenu;
 #[derive(Clone,Debug,PartialEq,Eq,Hash)]
 pub struct DirectColour(pub u8,pub u8,pub u8,pub u8);
 
-#[derive(Clone)]
+#[derive(Clone,Hash)]
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub struct Background {
     pub colour: DirectColour,

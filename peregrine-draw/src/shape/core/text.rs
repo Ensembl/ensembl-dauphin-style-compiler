@@ -7,6 +7,7 @@ use crate::shape::layers::layer::Layer;
 use crate::shape::triangles::drawgroup::DrawGroup;
 use crate::util::fonts::Fonts;
 use crate::webgl::canvas::flatplotallocator::FlatPositionManager;
+use crate::webgl::canvas::structuredtext::StructuredText;
 use crate::webgl::{ CanvasWeave, Flat };
 use crate::webgl::global::WebGlGlobal;
 use super::drawshape::{GLShape, ShapeToAdd, dims_to_sizes, draw_points_from_canvas2};
@@ -16,27 +17,6 @@ use std::hash::{Hash, Hasher};
 use std::sync::{Arc, Mutex};
 use crate::util::message::Message;
 
-struct StructuredText {
-    pre_text: String,
-    text: String
-}
-
-impl StructuredText {
-    fn new(src: &str) -> StructuredText {
-        let mut src = src.to_string();
-        let mut pre_text = String::new();
-        /* Remove any pre-text */
-        if let Some(index) = src.find("\0<") {
-            pre_text = src.split_off(index);
-            (src,pre_text) = (pre_text[2..].to_string(),src);
-        }
-        StructuredText {
-            pre_text, 
-            text: src
-        }
-    }
-}
-
 keyed_handle!(TextHandle);
 
 const PAD : u32 = 4;
@@ -45,26 +25,19 @@ fn pad(x: (u32,u32)) -> (u32,u32) {
     (x.0+PAD,x.1+PAD)
 }
 
-// XXX dedup from flat: generally move all text stuff into here
-fn pen_to_font(pen: &PenGeometry, bitmap_multiplier: f64) -> String {
-    format!("{}px {}",(pen.size_in_webgl() * bitmap_multiplier).round(),pen.name())
-}
-
 pub(crate) struct Text {
-    pen: PenGeometry,
-    text: String,
-    colour: DirectColour,
-    background: Option<Background>
+    text: StructuredText,
 }
 
 impl Text {
     fn new(pen: &PenGeometry, text: &str, colour: &DirectColour, background: &Option<Background>) -> Text {
-        Text { pen: pen.clone(), text: text.to_string(), colour: colour.clone(), background: background.clone() }
+        Text {
+            text: StructuredText::new(pen,text,colour,background)
+        }
     }
 
     async fn prepare(&self, fonts: &Fonts, bitmap_multiplier: f64) {
-        let new_font = pen_to_font(&self.pen,bitmap_multiplier);
-        fonts.load_font(&new_font).await;
+        self.text.prepare(fonts,bitmap_multiplier).await;
     }
 }
 
@@ -73,29 +46,25 @@ impl FlatDrawingItem for Text {
         let gl_ref = gl.refs();
         let document = gl_ref.document.clone();
         let canvas = gl_ref.flat_store.scratch(&document,&CanvasWeave::Crisp,(100,100))?;
-        canvas.set_font(&self.pen)?;
-        canvas.measure(&self.text)
+        self.text.measure(canvas)
     }
 
     fn padding(&mut self, _: &mut WebGlGlobal) -> Result<(u32,u32),Message> { Ok((PAD,PAD)) }
 
     fn compute_hash(&self) -> Option<u64> {
         let mut hasher = DefaultHasher::new();
-        self.pen.hash(&mut hasher);
         self.text.hash(&mut hasher);
-        self.colour.hash(&mut hasher);
         Some(hasher.finish())
     }
 
     fn group_hash(&self) -> Option<u64> {
-        Some(self.pen.group_hash())
+        let mut hasher = DefaultHasher::new();
+        self.text.group().hash(&mut hasher);
+        Some(hasher.finish())
     }
 
     fn build(&mut self, canvas: &mut Flat, text_origin: (u32,u32), size: (u32,u32)) -> Result<(),Message> {
-        canvas.set_font(&self.pen)?;
-        let background = self.background.clone().unwrap_or_else(|| Background::none());
-        canvas.text(&self.text,pad(text_origin),size,&self.colour,&background)?;
-        Ok(())
+        self.text.draw(canvas,text_origin,size)
     }
 }
 
@@ -126,25 +95,12 @@ pub(super) fn prepare_text(out: &mut Vec<GLShape>, tools: &mut DrawingToolsBuild
     let background = shape.pen().background();
     let texts = shape.iter_texts().collect::<Vec<_>>();
     let colours_iter = shape.pen().colours().iter(texts.len()).unwrap();
-    let mut pretexts = vec![];
     let mut handles = vec![];
     for (text,colour) in texts.iter().zip(colours_iter) {
-        let structured = StructuredText::new(text);
-        let id = drawing_text.add_text(&shape.pen().geometry(),&structured.text,colour,background);
-        let mut pretext_x = 0.;
-        if structured.pre_text != "" {
-            let mut pretext = Text::new(shape.pen().geometry(),&structured.pre_text,colour,background);
-            if let Ok((x,_)) = pretext.calc_size(gl) {
-                pretext_x = x as f64 / (gl.device_pixel_ratio() as f64);
-            }
-        }
-        pretexts.push(pretext_x);
+        let id = drawing_text.add_text(&shape.pen().geometry(),&text,colour,background);
         handles.push(id);
     }
     let mut positions = shape.position().clone();
-    if pretexts.len() > 0 {
-        positions.fold_tangent(&pretexts,|a,b| a+b); // unwrap ok cos cycle and > 0.
-    }
     out.push(GLShape::Text(positions,shape.run().cloned(),handles,depth,draw_group.clone()));
 }
 

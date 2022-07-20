@@ -206,6 +206,9 @@ al_farover_by_thex := al_farover_by_ex#[thick_exons];
 al_text_by_gn := len([gene_id]) (*) "";
 al_text_by_gn#[focus_id==focus_gene] := append_group(base_allotment,"text");
 
+al_label_by_gn := len([gene_id]) (*) "";
+al_label_by_gn#[focus_id==focus_gene] := append_group(base_allotment,"text");
+
 al_trtext_by_gn := al_text_by_gn;
 al_trtext_by_tr := index(which_gn_by_tr,[al_text_by_gn]);
 
@@ -335,9 +338,10 @@ rectangle(w,e,pt_zmenu_tr,al_under_by_tr);
 /* gene & transcript labels */
 draw_labels(
     idx_drawn_tr_gn, which_gn_by_tr,
-    start_gn, end_gn, start_gn_by_tr,
+    start_gn, end_gn,
     gene_name, id_tr, textpen_blue, al_trtext_by_tr,   
-    num_drawn_tr_gn, textpen, al_text_by_gn
+    num_drawn_tr_gn, textpen, bool_show_tr, 
+    enabled_gene_labels, enabled_transcript_labels
 );
 
 chevron_spacing := [

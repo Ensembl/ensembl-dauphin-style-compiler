@@ -158,7 +158,7 @@ impl Flat {
         Ok(())
     }
 
-    fn background(&self, origin: (u32,u32), size: (u32,u32), background: &Background, multiply: bool) -> Result<(),Message> {
+    pub(crate) fn background(&self, origin: (u32,u32), size: (u32,u32), background: &Background, multiply: bool) -> Result<(),Message> {
         if background.round {
             let d = (size.0/2).min(size.1/2).min(MAX_ROUNDING_SIZE).max(MIN_ROUNDING_SIZE);
             let d = 16;
@@ -179,10 +179,8 @@ impl Flat {
         Ok(())
     }
 
-    // TODO white-bgd canvas
-    pub(crate) fn text(&self, text: &str, origin: (u32,u32), size: (u32,u32), colour: &DirectColour, background: &Background) -> Result<(),Message> {
+    pub(crate) fn text(&self, text: &str, origin: (u32,u32), colour: &DirectColour) -> Result<(),Message> {
         if self.discarded { return Err(Message::CodeInvariantFailed(format!("set_font on discarded flat canvas"))); }
-        self.background(origin,size,background,false)?;
         let context = self.context()?;
         context.set_text_baseline("top");
         context.set_fill_style(&colour_to_css(&colour).into());

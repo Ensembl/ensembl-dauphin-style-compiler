@@ -160,6 +160,7 @@ mod webgl {
         pub(crate) mod packer;
         pub(crate) mod flatstore;
         pub(crate) mod weave;
+        pub(crate) mod structuredtext;
     }
 
     pub(crate) use canvas::weave::CanvasWeave;

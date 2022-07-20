@@ -165,23 +165,32 @@ stmt calc_focus_transcripts_shown(s_bool_show_tr,s_id_tr,s_which_gn_by_tr,s_focu
     s_bool_show_tr#[enabled_is_null] := sv_bool_show_tr;
 }
 
-stmt draw_labels(s_idx_drawn_tr_gn,s_which_gn_by_tr,s_start_gn,s_end_gn,s_start_gn_by_tr,s_gene_name,s_id_tr,s_textpen_blue,s_al_trtext_by_tr, s_num_drawn_tr_gn, s_textpen, s_al_text_by_gn) {
+stmt draw_labels(s_idx_drawn_tr_gn,s_which_gn_by_tr,s_start_gn,s_end_gn,s_gene_name,s_id_tr,s_textpen_blue,s_al_trtext_by_tr, s_num_drawn_tr_gn, s_textpen, s_bool_show_tr, s_enabled_gene_labels, s_enabled_transcripts) {
+    al_label_by_tr := index(which_gn_by_tr,[al_label_by_gn]);
+    al_label_by_tr#[s_bool_show_tr==false] := "";
+
+    al_label_by_tr := use_allotment(al_label_by_tr);
+
     /* gene label */
     gene_label_start := spacebase(s_start_gn, (s_num_drawn_tr_gn-1)*20+10,4);
     gene_label_end := spacebase(s_end_gn, (s_num_drawn_tr_gn-1)*20+10,4);
-    running_text(gene_label_start,gene_label_end,s_textpen,s_gene_name,s_al_text_by_gn);
 
     /* transcript labels */
     c := s_idx_drawn_tr_gn * 20;
     start_gn_by_tr := index(s_which_gn_by_tr,[s_start_gn]);
-    pos := spacebase(s_start_gn_by_tr,c+10,0);
+    end_gn_by_tr := index(s_which_gn_by_tr,[s_end_gn]);
+    tr_label_start := spacebase(start_gn_by_tr,c+10,0);
+    tr_label_end := spacebase(end_gn_by_tr,c+10,0);
     label_id_tr := s_id_tr;
+    label_id_tr#[s_enabled_transcripts==false] := "";
 
     /* find last trs of each gene so that we can offset them */
-    last_tr := s_idx_drawn_tr_gn == s_num_drawn_tr_gn-1; 
-    label_id_tr#[last_tr] := concat(len([label_id_tr#[last_tr]]) (*) "  \0<",label_id_tr#[last_tr]);
+    last_tr := s_idx_drawn_tr_gn == s_num_drawn_tr_gn-1;
+    last_tr#[s_enabled_gene_labels==false] := false;
+    label_id_tr#[last_tr] := concat(len([label_id_tr#[last_tr]]) (*) " \0c-",label_id_tr#[last_tr]);
     genelabel_by_tr := index(s_which_gn_by_tr,[s_gene_name]);
+    genelabel_by_tr := concat(len([genelabel_by_tr]) (*) "\0c6F8190",genelabel_by_tr);
     label_id_tr#[last_tr] := concat(genelabel_by_tr#[last_tr],label_id_tr#[last_tr]);
 
-    text2(pos,s_textpen_blue,label_id_tr,s_al_trtext_by_tr);
+    running_text(tr_label_start,tr_label_end,s_textpen_blue,label_id_tr,al_label_by_tr);
 }
