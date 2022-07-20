@@ -139,6 +139,10 @@ potential_tracks_base := [
     ""
 ];
 
+potential_track_ids := [
+    "gene-other-rev", "gene-pc-rev", "gene-other-fwd", "gene-pc-fwd", "focus"
+];
+
 tracks_used_base := ["","","","",""];
 tracks_used_base[enabled_tracks] := potential_tracks_base[enabled_tracks];
 
@@ -504,8 +508,8 @@ text2(pos,thin_textpen,draw_seq_letter,intron_letter_allotments);
 draw_gene_track_names(allotments_trackname);
 
 /* zmenus */
-track_name := index(tk_by_gn,potential_tracks);
-transcript_track_name := index(tk_by_tr,potential_tracks);
+track_name := index(tk_by_gn,potential_track_ids);
+transcript_track_name := index(tk_by_tr,potential_track_ids);
 
 pt_zmenu_type := patina_zmenu(zmenu(""),["type"],[["gene-and-one-transcript"]][]);
 

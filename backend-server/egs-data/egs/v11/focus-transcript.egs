@@ -165,7 +165,7 @@ idx_drawn_tr_gn := nth(drawn_tr_gn);
 num_drawn_tr_gn := count(drawn_tr_gn,len([gene_id]));
 
 drawn_tr_by_gn := num_tr_by_gn;
-// drawn_tr_by_gn#[drawn_tr_by_gn>limit_gn] := limit_gn#[drawn_tr_by_gn>limit_gn];
+drawn_tr_by_gn#[drawn_tr_by_gn>limit_gn] := limit_gn#[drawn_tr_by_gn>limit_gn];
 
 idx_tr_in_gn_by_ex :=  index(which_tr_by_ex,[idx_drawn_tr_gn]);
 idx_tr_in_gn_by_thex := idx_tr_in_gn_by_ex#[thick_exons];
@@ -229,8 +229,6 @@ al_over_by_tr := use_allotment(al_over_by_tr);
 al_over_by_ex := use_allotment(al_over_by_ex);
 al_blanking_by_ex := use_allotment(al_blanking_by_ex);
 al_farover_by_thex := use_allotment(al_farover_by_thex);
-al_text_by_gn := use_allotment(al_text_by_gn);
-al_trtext_by_tr := use_allotment(al_trtext_by_tr);
 al_button := use_allotment(al_button);
 
 expanded_genes := list_switch(["buttons","gene","expand"]);
@@ -369,7 +367,7 @@ draw_track_name("",["track","focus","name"],allotment_label); // For spacing! Yu
 draw_track_category("G",[allotment_letter]);
 
 /* focus swatch */
-//draw_focus_swatch(allotment_letter);
+draw_focus_swatch(allotment_letter);
 
 /* red-dotted lines */
 al_dots := use_allotment(["","dots/content"][(@==1)==(switch_yn(["track","focus"]))]);

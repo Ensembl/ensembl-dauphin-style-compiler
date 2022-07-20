@@ -159,6 +159,10 @@ potential_tracks := [
     ""
 ];
 
+potential_track_ids := [
+    "gene-other-rev", "gene-pc-rev", "gene-other-fwd", "gene-pc-fwd", "focus"
+];
+
 use_allotments(al_label_by_tk,enabled_tracks,[
     "tracks/track/gene-other-rev/title/content",
     "tracks/track/gene-pc-rev/title/content",
@@ -320,9 +324,9 @@ al_trtext_by_tr#[bool_show_tr==false] := use_allotment("");
 al_trtext_by_tr#[enabled_tr_labels==false] := use_allotment("");
 al_trtext_by_tr#[switch_yn(["scale","no-labels"])] := use_allotment("");
 
-track_name := index(tk_by_gn,potential_tracks);
+track_name := index(tk_by_gn,potential_track_ids);
 tk_by_tr := index(which_gn_by_tr,[tk_by_gn]);
-transcript_track_name := index(tk_by_tr,potential_tracks);
+transcript_track_name := index(tk_by_tr,potential_track_ids);
 
 /*
  * What colour? What font? etc
