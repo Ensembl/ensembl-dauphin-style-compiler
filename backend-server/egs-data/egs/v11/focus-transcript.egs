@@ -396,4 +396,5 @@ blue_hotspot_patina := patina_switch(expand_switches,sense);
 
 /* report transcripts shown */
 report_shown(bool_show_tr,id_tr,use_allotment("tracks/track/focus"));
+report_id(focus_gene,use_allotment("tracks/track/focus"));
 report_all(id_tr,focus_id,focus_gene,which_gn_by_tr,use_allotment("tracks/track/focus"));

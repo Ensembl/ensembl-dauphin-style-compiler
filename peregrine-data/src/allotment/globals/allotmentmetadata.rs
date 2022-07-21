@@ -117,7 +117,11 @@ fn merge(input: &[(StructTemplate,Option<String>)]) -> Option<(JsonValue,bool)> 
         }
     }
     if via_boxes {
-        Some((JsonValue::Array(collated.drain().map(|x| x.1).collect()),true))
+        if let Some(value) = collated.get(&Some("".to_string())) {
+            Some((value.clone(),true))
+        } else {
+            Some((JsonValue::Array(collated.drain().map(|x| x.1).collect()),true))
+        }
     } else {
         collated.get(&None).map(|x| (x.clone(),false))
     }

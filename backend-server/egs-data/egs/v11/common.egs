@@ -115,6 +115,11 @@ stmt gene_track_styles() {
     style("tracks/track/focus/",["priority","report","min-height"][],["-900","track;switch-id=focus;has-labels=true;!boxes","100"][]);
 }
 
+stmt report_id(id,rs_al_focus_bgd) {
+    id_patina := patina_metadata("id","",eoes_string(id)); // XXX replace with [][] when FE on 12
+    rectangle(spacebase(0,0,0),spacebase(1,0,0),id_patina,rs_al_focus_bgd); 
+}
+
 stmt report_shown(rs_bool_show_tr,rs_transcript_id,rs_al_focus_bgd) {
     /* build list of shown focus tr from list of shown tr then turning off non-focus */
     values := rs_transcript_id#[rs_bool_show_tr];
