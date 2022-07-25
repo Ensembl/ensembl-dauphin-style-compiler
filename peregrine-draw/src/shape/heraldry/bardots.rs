@@ -6,7 +6,7 @@ use super::heraldry::{HeraldryHandleType, HeraldryScale};
  * Dots represent a certain dot length and repeat.
  */
 
-const BAR_WIDTH : u32 = 32;
+const BAR_WIDTH : u32 = 16;
 const PAD : u32 = 8;
 
 #[cfg_attr(debug_assertions, derive(Debug))]
@@ -60,7 +60,8 @@ impl HeraldryBarDots {
     }
 
     fn unit_size(&self, bitmap_multiplier: f64) -> (u32,u32) {
-        (BAR_WIDTH,BAR_WIDTH)
+        (((BAR_WIDTH as f64)*bitmap_multiplier).round() as u32,
+         ((BAR_WIDTH as f64)*bitmap_multiplier).round() as u32)
     }
 
     pub(super) fn size(&self, bitmap_multiplier: f64) -> (u32,u32) {
