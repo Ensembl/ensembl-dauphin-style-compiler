@@ -8,6 +8,8 @@ use std::ops::Index;
 use js_sys::Math::{ random };
 use web_sys::HtmlCollection;
 
+include!(concat!(env!("OUT_DIR"), "/env.rs"));
+
 fn to_canvas(e: Element) -> Result<HtmlCanvasElement,Message> {
     e.dyn_into::<web_sys::HtmlCanvasElement>().map_err(|_| Message::BadTemplate(format!("canvas is not a canvas element")))
 }
@@ -115,6 +117,11 @@ fn run_shutdown_detector(commander: &PgCommanderWeb, oneshot: &OneShot, element:
     Ok(())
 }
 
+fn effective_dpr() -> f32 {
+    let real_dpr = web_sys::window().unwrap().device_pixel_ratio() as f32;
+    FORCE_DPR.unwrap_or(real_dpr)
+}
+
 impl PeregrineDom {
     pub fn new(el: &Element, html: &str, css: &str) -> Result<PeregrineDom,Message> {
         let dollar = DollarReplace::new();
@@ -123,7 +130,7 @@ impl PeregrineDom {
             Some(e) => e,
             None => parent(&canvas)?
         };
-        let device_pixel_ratio = web_sys::window().unwrap().device_pixel_ratio() as f32;
+        let device_pixel_ratio = effective_dpr();
         let shutdown = OneShot::new();
         let canvas_frame = to_html(canvas_frame)?;
         Ok(PeregrineDom {

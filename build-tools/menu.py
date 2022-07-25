@@ -171,7 +171,8 @@ def ask_all(questions):
         # Show settings for confirmation
         print(rich("\0X\0gSummary:\0-"))
         for q in questions:
-            print(rich("{0}: \0c{1}\0-".format(q[1].label(),out[q[0]])))
+            if conditions_met(q[3],out):
+                print(rich("{0}: \0c{1}\0-".format(q[1].label(),out[q[0]])))
         print("\n")
 
         # Confirm

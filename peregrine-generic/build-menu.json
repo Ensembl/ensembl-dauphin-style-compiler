@@ -46,6 +46,24 @@
         "options": ["default","quiet","noisy"]
     },
     {
+        "key": "FORCE_DPR_YN",
+        "question": "Force device pixel ratio?",
+        "options": ["no","yes"]
+    },
+    {
+        "key": "FORCE_DPR",
+        "question": "Force device pixel ratio to",
+        "default": "1",
+        "conditions": { "eq": ["FORCE_DPR_YN","yes"] },
+        "verifiers": [
+            {
+                "verifier": "number",
+                "min": 1,
+                "max": 16
+            }
+        ]
+    },
+    {
         "key": "CFG_PORT",
         "question": "Port number (0=no server)",
         "default": "8000",

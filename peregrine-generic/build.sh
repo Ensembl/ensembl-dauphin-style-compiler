@@ -33,6 +33,9 @@ fi
 if [ "x$CFG_DEBUG_CLEANUP" = "xyes" ] ; then
   FLAGS="$FLAGS --cfg debug_unregister"
 fi
+if [ "x$FORCE_DPR" != "x" ] ; then
+  export FORCE_DPR="$FORCE_DPR"
+fi
 
 case "$CFG_CONSOLE" in
   noisy)
