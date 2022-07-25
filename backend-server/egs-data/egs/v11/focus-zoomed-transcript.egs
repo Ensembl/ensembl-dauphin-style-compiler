@@ -293,7 +293,7 @@ pt_dotted := patina_filled(dotted_focus_colour);
 
 c := idx_dotted_in_gn * 20;
 w  := spacebase(dotted_start, c+5, 0);
-e  := spacebase(dotted_end,   c+6, 0);
+e  := spacebase(dotted_end,   c+5, 0);
 rectangle(w,  e,  pt_dotted, dotted_al); // dotted
 
 

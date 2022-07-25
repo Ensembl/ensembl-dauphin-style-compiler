@@ -1,5 +1,4 @@
 use std::sync::{Arc, Mutex};
-
 use crate::shape::layers::drawing::DynamicShape;
 use crate::shape::layers::geometry::{GeometryYielder, GeometryAdder };
 use crate::shape::layers::layer::Layer;
@@ -130,7 +129,6 @@ fn area_to_rectangle(area: &SpaceBaseArea<f64,LeafStyle>,  wobble: &Option<Space
 
 impl RectanglesLocationSized {
     fn new(spacebase: &SpaceBase<f64,LeafStyle>, run: &Option<SpaceBase<f64,()>>, wobble: Option<SpaceBase<Observable<'static,f64>,()>>, depth: EachOrEvery<i8>, size_x: Vec<f64>, size_y: Vec<f64>) -> Result<RectanglesLocationSized,Message> {
-        let wobbled_spacebase = apply_any_wobble(spacebase,&wobble);
         let wobbled = (
             sized_to_rectangle(&apply_any_wobble(&spacebase,&wobble),&size_x,&size_y)?,
             run.as_ref().map(|x| apply_any_wobble(x,&wobble))

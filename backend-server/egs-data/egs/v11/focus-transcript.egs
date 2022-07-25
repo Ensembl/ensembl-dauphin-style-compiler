@@ -248,7 +248,7 @@ end_focus := end_gn#[focus_id==focus_gene];
 
 base_focus_colour := direct_colour(39,154,252,255);
 
-dotted_focus_colour := barred(direct_colour(255,255,255,255),base_focus_colour,4,1,0.5);
+dotted_focus_colour := barred(direct_colour(255,255,255,255),base_focus_colour,4,0,0.5);
 focus_colour := simple_colour(base_focus_colour);
 
 pt_under_by_tr := patina_filled(focus_colour);
@@ -298,7 +298,7 @@ pt_dotted := patina_filled(dotted_focus_colour);
 
 c := idx_dotted_in_gn * 20;
 w  := spacebase(dotted_start, c+5, 0);
-e  := spacebase(dotted_end,   c+6, 0);
+e  := spacebase(dotted_end,   c+5, 0);
 rectangle(w,  e,  pt_dotted, dotted_al); // dotted
 
 /* draw solid line the extent of the transcript */
