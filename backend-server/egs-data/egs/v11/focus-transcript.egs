@@ -164,9 +164,6 @@ idx_drawn_tr_gn := nth(drawn_tr_gn);
 
 num_drawn_tr_gn := count(drawn_tr_gn,len([gene_id]));
 
-drawn_tr_by_gn := num_tr_by_gn;
-drawn_tr_by_gn#[drawn_tr_by_gn>limit_gn] := limit_gn#[drawn_tr_by_gn>limit_gn];
-
 idx_tr_in_gn_by_ex :=  index(which_tr_by_ex,[idx_drawn_tr_gn]);
 idx_tr_in_gn_by_thex := idx_tr_in_gn_by_ex#[thick_exons];
 
@@ -323,7 +320,7 @@ rectangle(a,b,pt_thick_by_thex,al_farover_by_thex);
 /* zmenu areas */
 /* type and gene zmenus */
 nw := spacebase(start_gn,0,0);
-se := spacebase(end_gn,drawn_tr_by_gn*20,0);
+se := spacebase(end_gn,num_drawn_tr_gn*20,0);
 rectangle(nw,se,pt_zmenu_type,al_under_by_gn);
 rectangle(nw,se,pt_zmenu_gn,al_under_by_gn);
 
@@ -374,8 +371,8 @@ al_dots := use_allotment(["","dots/content"][(@==1)==(switch_yn(["track","focus"
 red_dotted(start_focus,end_focus,al_dots);
 
 /* blue button */
-blue_top_left := spacebase(start_gn,drawn_tr_by_gn*20+6,0);
-blue_bottom_right := spacebase(start_gn,drawn_tr_by_gn*20+32,32);
+blue_top_left := spacebase(start_gn,num_drawn_tr_gn*20+6,0);
+blue_bottom_right := spacebase(start_gn,num_drawn_tr_gn*20+32,32);
 blue_colour := simple_colour(direct_colour(239,154,52,255));
 green_colour := simple_colour(direct_colour(154,239,52,255));
 
