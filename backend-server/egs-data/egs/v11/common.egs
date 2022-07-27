@@ -176,10 +176,6 @@ stmt draw_labels(s_idx_drawn_tr_gn,s_which_gn_by_tr,s_start_gn,s_end_gn,s_gene_n
 
     al_label_by_tr := use_allotment(al_label_by_tr);
 
-    /* gene label */
-    gene_label_start := spacebase(s_start_gn, (s_num_drawn_tr_gn-1)*20+10,4);
-    gene_label_end := spacebase(s_end_gn, (s_num_drawn_tr_gn-1)*20+10,4);
-
     /* transcript labels */
     c := s_idx_drawn_tr_gn * 20;
     start_gn_by_tr := index(s_which_gn_by_tr,[s_start_gn]);
@@ -190,7 +186,8 @@ stmt draw_labels(s_idx_drawn_tr_gn,s_which_gn_by_tr,s_start_gn,s_end_gn,s_gene_n
     label_id_tr#[s_enabled_transcripts==false] := "";
 
     /* find last trs of each gene so that we can offset them */
-    last_tr := s_idx_drawn_tr_gn == s_num_drawn_tr_gn-1;
+    num_drawn_tr_gn_by_tr := index(which_gn_by_tr,[num_drawn_tr_gn]);
+    last_tr := s_idx_drawn_tr_gn == num_drawn_tr_gn_by_tr-1;
     last_tr#[s_enabled_gene_labels==false] := false;
     label_id_tr#[last_tr] := concat(len([label_id_tr#[last_tr]]) (*) " \0c-",label_id_tr#[last_tr]);
     genelabel_by_tr := index(s_which_gn_by_tr,[s_gene_name]);
