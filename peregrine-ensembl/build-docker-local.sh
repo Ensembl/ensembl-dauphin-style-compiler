@@ -90,6 +90,7 @@ fi
 DOCKER_BUILDKIT=1 docker build \
     --build-arg CFG_RUST_MODE=--$CFG_RUST_MODE --build-arg CFG_EGB=$CFG_EGB \
     --build-arg CACHE_DATE=$CACHE_BUST --build-arg FLAGS="$CFG_RUSTFLAGS" \
+    --build-arg CFG_EC_BRANCH=$CFG_EC_BRANCH \
     -f peregrine-ensembl/Dockerfile-buildkit --iidfile /tmp/build.id $CFG_FLAGS .
 
 # tidy

@@ -30,7 +30,9 @@ WORKDIR /srv/ensembl-client-integration/
 
 # Clone ensembl-genome-browser repo and ensembl-client repo
 ARG CACHE_DATE
-RUN git clone --depth 1 https://github.com/Ensembl/ensembl-client.git
+ARG CFG_EC_BRANCH
+RUN git clone https://github.com/Ensembl/ensembl-client.git
+RUN git -C ensembl-client checkout $CFG_EC_BRANCH
 
 RUN mkdir -p ./ensembl-genome-browser
 COPY egb.tar.gz ./ensembl-genome-browser
