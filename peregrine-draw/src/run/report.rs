@@ -1,58 +1,29 @@
 use std::{sync::{Arc, Mutex}};
 use commander::{CommanderStream, cdr_tick, cdr_timer };
 use peregrine_data::{ZMenuFixed, GlobalAllotmentMetadata};
-use peregrine_toolkit::plumbing::oneshot::OneShot;
-use peregrine_toolkit_async::sync::needed::{Needed, NeededLock};
+use peregrine_toolkit::{plumbing::oneshot::OneShot, log};
+use peregrine_toolkit_async::sync::{needed::{Needed, NeededLock}, changed::Changed};
 use crate::{Message, PgCommanderWeb, util::message::Endstop};
 use super::{PgConfigKey, PgPeregrineConfig};
 
-struct Changed<T: PartialEq> {
-    reported: Option<T>,
-    unreported: Option<T>,
-    #[allow(unused)]
-    lock: Option<NeededLock>
-}
+const TRIVIAL_PIXELS : f64 = 20000.; // if nothing would move more than 1px on a screen this size, ignore the change
 
-impl<T: PartialEq+std::fmt::Debug> Changed<T> where T: PartialEq {
-    fn new() -> Changed<T> {
-        Changed {
-            reported: None,
-            unreported: None,
-            lock: None
-        }
-    }
+fn d(a: u64,b: u64) -> u64 { if a > b { a-b } else { b-a } }
 
-    fn set(&mut self, value: T, needed: &Needed) {
-        self.unreported = Some(value);
-        self.lock = Some(needed.lock());
-    }
-    fn is_changed(&mut self) -> bool { 
-        let changed = self.unreported.is_some() && self.unreported != self.reported;
-        if !changed { self.lock = None; }
-        changed
-     }
-    fn peek(&self) -> Option<&T> { self.unreported.as_ref().or_else(|| self.reported.as_ref()) }
-
-    fn report(&mut self, reuse: bool) -> Option<&T> {
-        let mut update = false;
-        if let Some(unreported) = self.unreported.take() {
-            update = true;
-            if let Some(reported) = self.reported.as_ref() {
-                if reported == &unreported { update = false; }
-            }
-            self.reported = Some(unreported);
-        }
-        self.lock = None;
-        if update || reuse {
-            self.reported.as_ref()
-        } else {
-            None
-        }
-    }
+fn trivial_change(x_from: f64, x_to: f64, bp_from: f64, bp_to: f64) -> bool {
+    let (left_from,right_from) = to_left_right(x_from,bp_from);
+    let (left_to,right_to) = to_left_right(x_to,bp_to);
+    let screenful = bp_from.min(bp_to);
+    let trivial_amount = (screenful / TRIVIAL_PIXELS -1.) as u64;
+    d(left_to,left_from) < trivial_amount && d(right_to,right_from) < trivial_amount
 }
 
 fn extract_coord(stick: &mut Changed<String>, x: &mut Changed<f64>, bp: &mut Changed<f64>) -> Option<(String,f64,f64)> {
-    if !x.is_changed() && !bp.is_changed() && !stick.is_changed() { return None; }
+    let nothing_changed = !x.is_changed() && !bp.is_changed() && !stick.is_changed();
+    if nothing_changed { return None; }
+    if let ((Some(x_from),Some(x_to)),(Some(bp_from),Some(bp_to))) = (x.peek(),bp.peek()) {
+        if trivial_change(*x_from,*x_to,*bp_from,*bp_to) { return None; }
+    }
     if let (Some(stick),Some(x),Some(bp)) = (stick.report(true),x.report(true),bp.report(true)) {
         Some((stick.clone(),*x,*bp))
     } else {
@@ -73,7 +44,10 @@ struct ReportData {
     target_stick: Changed<String>,
     endstop: Changed<Vec<Endstop>>,
     messages: CommanderStream<Option<Message>>,
-    needed: Needed
+    /* If we are delaying then we need to keep the main loop alive */
+    needed: Needed,
+    #[allow(unused)]
+    fast_lock: Option<NeededLock>
 }
 
 impl ReportData {
@@ -87,22 +61,30 @@ impl ReportData {
             target_stick: Changed::new(),
             endstop: Changed::new(),
             messages: messages.clone(),
-            needed: needed.clone()
+            needed: needed.clone(),
+            fast_lock: None
         }
     }
 
     fn set_stick(&mut self, stick: &str) {
-        self.stick.set(stick.to_string(),&self.needed);
+        self.fast_lock();
+        self.stick.set(stick.to_string());
     }
 
     fn set_target_stick(&mut self, stick: &str) {
-        self.target_stick.set(stick.to_string(),&self.needed);
+        self.fast_lock();
+        self.target_stick.set(stick.to_string());
     }
-    fn set_x_bp(&mut self, value: f64) { self.x_bp.set(value,&self.needed); }
-    fn set_bp_per_screen(&mut self, value: f64) { self.bp_per_screen.set(value,&self.needed); }
-    fn set_target_x_bp(&mut self, value: f64) { self.target_x_bp.set(value,&self.needed); }
-    fn set_target_bp_per_screen(&mut self, value: f64) { self.target_bp_per_screen.set(value,&self.needed); }
-    fn set_endstops(&mut self, value: &[Endstop]) { self.endstop.set(value.to_vec(),&self.needed); }
+
+    fn fast_lock(&mut self) {
+        self.fast_lock = Some(self.needed.lock());
+    }
+
+    fn set_x_bp(&mut self, value: f64) { self.fast_lock(); self.x_bp.set(value); }
+    fn set_bp_per_screen(&mut self, value: f64) { self.fast_lock(); self.bp_per_screen.set(value); }
+    fn set_target_x_bp(&mut self, value: f64) { self.fast_lock(); self.target_x_bp.set(value); }
+    fn set_target_bp_per_screen(&mut self, value: f64) { self.fast_lock(); self.target_bp_per_screen.set(value); }
+    fn set_endstops(&mut self, value: &[Endstop]) {  self.fast_lock(); self.endstop.set(value.to_vec()); }
 
     fn zmenu_event(&self, x: f64, y: f64, event: Vec<ZMenuFixed>) {
         self.messages.add(Some(Message::ZMenuEvent(x,y,event)));
@@ -113,12 +95,13 @@ impl ReportData {
         if !fast {
             if let Some((stick,current_pos,current_scale)) = extract_coord(&mut self.stick,&mut self.x_bp,&mut self.bp_per_screen) {
                 let (left,right) = to_left_right(current_pos,current_scale);
-                out.push(Message::CurrentLocation(stick,left,right))
+                out.push(Message::CurrentLocation(stick,left,right));
             }
             if let Some((stick,current_pos,current_scale)) = extract_coord(&mut self.target_stick,&mut self.target_x_bp,&mut self.target_bp_per_screen) {
                 let (left,right) = to_left_right(current_pos,current_scale);
-                out.push(Message::TargetLocation(stick,left,right))
+                out.push(Message::TargetLocation(stick,left,right));
             }
+            self.fast_lock = None;
         }
         if let Some(endstops) = self.endstop.report(false) {
             out.push(Message::HitEndstop(endstops.to_vec()));
