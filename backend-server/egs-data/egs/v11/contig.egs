@@ -27,7 +27,7 @@ bottom_right := spacebase(end,14,0);
 rectangle(top_left,bottom_right,patina,allotment);
 
 /* track names */
-draw_track_name("Contigs",["track","contig","name"],allotment_track_name);
+draw_track_name("Reference sequence",["track","contig","name"],allotment_track_name);
 
 /* track category */
 draw_track_category("G",[allotment_letter]);

@@ -52,7 +52,7 @@ stmt bond(start,offset) {
 }
 
 /* track names */
-draw_track_name("Sequence",["track","contig","name"],allotment_track_name);
+draw_track_name("Reference sequence",["track","contig","name"],allotment_track_name);
 
 seq_rectangle(pos_seq,seq_letter,0);
 seq_rectangle(pos_seq,seq_rev_letter,14);
