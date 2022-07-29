@@ -457,9 +457,6 @@ intron_letter_allotments#[no_letters] := use_allotment("");
 
 text2(pos,thin_textpen,draw_seq_letter,intron_letter_allotments);
 
-/* track names */
-draw_track_name("",["track","focus","name"],allotment_label); // For spacing! Yuk!
-
 /* zmenus */
 
 pt_zmenu_type := patina_zmenu(zmenu(""),["type"],[["gene-and-one-transcript"]][]);
@@ -515,3 +512,8 @@ red_dotted(focus_start,focus_end,dots_allotment);
 report_shown(bool_show_tr,id_tr,use_allotment("tracks/track/focus"));
 report_id(focus_gene,use_allotment("tracks/track/focus"));
 report_all(id_tr,focus_id,focus_gene,which_gn_by_tr,use_allotment("tracks/track/focus"));
+
+/* track name */
+/* track name */
+focus_label := concat(concat(gene_name#[focus_gene==focus_id]," - "),focus_gene);
+draw_track_name(focus_label,["track","focus","name"],allotment_label);

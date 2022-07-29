@@ -63,7 +63,7 @@ impl InterpCommand for Text2InterpCommand {
                 geometry.allotment(*id as u32).map(|x| x.as_ref().clone())
             })?.index(|a| a.name().clone());
             let zoo = get_instance::<Arc<Mutex<Option<ProgramShapesBuilder>>>>(context,"out")?;
-            if text.len() != Some(0) || allotments.len() != Some(0) {
+            if text.len() != Some(0) && allotments.len() != Some(0) {
                 let spacebase = spacebase.replace_allotments(allotments);
                 lock!(zoo).as_mut().unwrap().add_text(spacebase,pen,text)?;
             }
