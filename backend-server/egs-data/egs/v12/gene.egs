@@ -1,0 +1,208 @@
+import "lib:std"; use "std";
+import "lib:peregrine"; use "peregrine";
+import "file:common.egs"; use "common";
+
+/* 
+ * actually get the data from the server
+ */
+
+req := make_request("self()","gene",get_region());
+data := get_data(req);
+halt(only_warm(),[data]);
+
+/*
+ * undo the compression applied by the server basically by applying
+ * the transforms applied there in reverse order.
+ */
+
+focus_id := string_seq(data,"focus_ids");
+gene_id := string_seq(data,"gene_ids");
+gene_name := string_seq(data,"gene_names");
+gene_desc := string_seq(data,"gene_descs");
+start := delta_seq(data,"starts");
+end := start + delta_seq(data,"lengths");
+gene_designation := classified_seq(data,"gene_designation_keys","gene_designation_values");
+gene_biotype := classified_seq(data,"gene_biotypes_keys","gene_biotypes_values");
+strand := positive_seq(data,"strands");
+designated_transcript_id := string_seq(data,"designated_transcript_ids");
+designated_transcript_biotype := classified_seq(data,"designated_transcript_biotypes_keys","designated_transcript_biotypes_values");
+designated_transcript_designation := classified_seq(data,"designated_transcript_designations_keys","designated_transcript_designations_values");
+strand_string := len([strand]) (*) "reverse strand";
+strand_string#[strand>0] := "forward strand";
+
+/* 
+ * What are the current track settings?
+ */
+
+gene_tracks_enabled(enabled_tracks);
+
+potential_tracks := [
+    "tracks/track/gene-other-rev/main/main",
+    "tracks/track/gene-pc-rev/main/main",
+    "tracks/track/gene-other-fwd/main/main",
+    "tracks/track/gene-pc-fwd/main/main",
+    ""
+];
+
+potential_tracks_bgd := [
+    "tracks/track/gene-other-rev/main/background/content",
+    "tracks/track/gene-pc-rev/main/background/content",
+    "tracks/track/gene-other-fwd/main/background/content",
+    "tracks/track/gene-pc-fwd/main/background/content",
+    ""
+];
+
+/*
+
+/ <- stack
+title/ <- track title
+main/ <- overlay
+main/background/ <- chevrons (WINDOW)
+main/main/ <- bumper
+main/main/<id>/ <- stacker
+main/main/<id>/blocks/ <- blocks
+main/main/<id>/text/ <- label
+
+*/
+
+gene_track_styles();
+
+/* If we have labels then we bump */
+
+style("**/main/main/",["type"][],["bumper"][]);
+style("**/main/main/*/",["type"][],["overlay"][]);
+style("**/main/main/*/blocks/",["depth"][],["4"][]);
+style("**/main/main/*/text/",["bump-width"][],["none"][]);
+style("**/main/background/content",["depth","padding-top"][],["-10","32"][]);
+
+use_allotment_names(base_allotment_names,enabled_tracks,potential_tracks);
+use_allotment_names(allotment_names_bgd,enabled_tracks,potential_tracks_bgd);
+use_allotments(allotments_bgd,enabled_tracks,allotment_names_bgd);
+
+use_allotments(allotments_trackname,enabled_tracks,[
+    "tracks/track/gene-other-rev/title/content",
+    "tracks/track/gene-pc-rev/title/content",
+    "tracks/track/gene-other-fwd/title/content",
+    "tracks/track/gene-pc-fwd/title/content",
+    "",
+]);
+
+use_allotments(allotments_letter,enabled_tracks,[
+    "tracks/track/gene-other-rev/main/letter/content",
+    "tracks/track/gene-pc-rev/main/letter/content",
+    "tracks/track/gene-other-fwd/main/letter/content",
+    "tracks/track/gene-pc-fwd/main/letter/content",
+    "",
+]);
+
+/*
+ * Which allotment and track does data go into?
+ *
+ * There are separate allotments for protein_coding and non-protein_coding
+ * and also for forward and reverse strand. As usual there is a fifth 
+ * allotment for a focus-feature.
+ *
+ * For the data on each allotment there are currently two tracks: the
+ * main data and the labels.
+ */
+
+allotment_idx := len([gene_id]) (*) 0;
+
+allotment_idx#[strand > 0] (+=) 2;
+allotment_idx#[in(gene_biotype,["protein_coding"])] (+=) 1;
+
+focus_gene1 := list_switch(["focus","gene"]);
+focus_gene2 := switch_string(["track","focus","item","gene"][],[][]);
+focus_gene := [focus_gene1,focus_gene2][@==0];
+
+allotment_idx#[focus_id==focus_gene] := 4;
+
+base_allotment_names := [append_group(index(allotment_idx,base_allotment_names),gene_id)];
+allotment_names := [append_group(base_allotment_names[],["blocks"][])];
+allotment := use_allotment(append_group(allotment_names[],["content"][]));
+
+text_allotment_names :=  [append_group(base_allotment_names[],["text"][])];
+text_allotment := use_allotment(append_group(text_allotment_names[],["content"][]));
+
+track_name := index(allotment_idx,potential_tracks);
+
+/*
+ * Filter labels by which tracks are configured to have labels
+ */
+
+gene_tracks_enabled_property(enabled_labels,"label");
+
+enabled_gene_labels := index(allotment_idx,[enabled_labels]);
+
+text_allotment#[enabled_gene_labels==false] := use_allotment("");
+
+/*
+ * What colour? What font? etc
+ *
+ * (driven by allotment for gene)
+ */
+
+non_pc_colour := simple_colour(direct_colour(200,200,200,255));
+pc_colour := simple_colour(direct_colour(128,128,128,255));
+focus_colour := simple_colour(direct_colour(39,154,252,255));
+patina := patina_filled(index(allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour,focus_colour]));
+
+text_colour := direct_colour(111,129,144,255);
+text_size := 10;
+
+textpen := pen("'IBM Plex Mono', sans-serif",text_size,text_colour,[][]);
+
+/*
+ * prepare the zmenus
+ */
+
+/* metadata */
+zmenu_patina := patina_zmenu(zmenu(""),["type"],[["gene-and-one-transcript"]][]);
+
+/* transcript part */
+zmenu_tmpl := zmenu("[<light>Transcript</light> <strong>{transcript_id}</strong>] [<light>{transcript_biotype}</light>] [<light>{strand}</light>] / [<light>{transcript_id}</light>] [<light>{designation}</light>]");
+tr_zmenu_patina := patina_zmenu(zmenu_tmpl,["gene_id","transcript_id","transcript_biotype","strand","designation","type","track"],
+                                      [[gene_id],[designated_transcript_id],[designated_transcript_biotype],[strand_string],[designated_transcript_designation],["transcript"],[track_name]][]);
+
+/* gene part */
+zmenu_tmpl := zmenu("[<light>Gene</light> {symbol}] / [<strong><focus>{id}</focus></strong>]");
+ge_zmenu_patina := patina_zmenu(zmenu_tmpl,["symbol","id","type","track"],[[gene_name],[gene_id],["gene"],[track_name]][]);
+
+/*
+ * DRAW!
+ */
+
+/* main contents */
+
+rectangle(spacebase(start,0,-0.5),spacebase(end,5,0.5),patina,allotment);
+rectangle_on_genome(start,end,8,zmenu_patina,allotment);
+rectangle_on_genome(start,end,8,tr_zmenu_patina,allotment);
+rectangle_on_genome(start,end,8,ge_zmenu_patina,allotment);
+text_underneath(start,8,textpen,gene_name,text_allotment);
+
+/* main track chevrons */
+
+chevron_spacing := [
+    0.00,0.025,0.05,0.075,
+    0.10,0.125,0.15,0.175,
+    0.20,0.225,0.25,0.275,
+    0.30,0.325,0.35,0.375,
+    0.40,0.425,0.45,0.475,
+
+    0.50,0.525,0.55,0.575,
+    0.60,0.625,0.65,0.675,
+    0.70,0.725,0.75,0.775,
+    0.80,0.825,0.85,0.875,
+    0.90,0.925,0.95,0.975,
+][];
+
+image_underneath(chevron_spacing,0,"chevron-left",allotments_bgd[@==0]);
+image_underneath(chevron_spacing,0,"chevron-left",allotments_bgd[@==1]);
+image_underneath(chevron_spacing,0,"chevron-right",allotments_bgd[@==2]);
+image_underneath(chevron_spacing,0,"chevron-right",allotments_bgd[@==3]);
+
+/* track names */
+draw_gene_track_names(allotments_trackname);
+
+/* track category */
+draw_track_category("G",allotments_letter);

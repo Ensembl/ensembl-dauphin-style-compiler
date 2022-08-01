@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 use serde_cbor::Value as CborValue;
 
-const BE_VERSION: u32 = 11;
+const BE_VERSION: u32 = 12;
 
 #[derive(Clone)]
 pub struct VersionMetadata {
