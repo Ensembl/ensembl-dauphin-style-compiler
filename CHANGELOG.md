@@ -1,3 +1,18 @@
+# 0.4.3
+  * Bug-fixes:
+    * Fix chevron tangle bug
+    * Fix gene labels drawn on wrong transcripts
+    * Fix zmenus not including type payload
+    * Don't report trivial changes and rounding errors as location events on click
+    * New track names
+    * Use item object as focus track name
+    * Fix track ordering
+    * Fix dotted line height bug
+    * Fix dotted line device-pixel-ratio bug
+  * Build process
+    * Allow dockerised integration to checkout ensembl-client on given branch
+    * Compile time ability to override device-pixel-ratio for testing
+
 # 0.4.2
   * Separate focus egs file to allow always shown in transcript view.
   * Factoring egs stuff shared between tracks
