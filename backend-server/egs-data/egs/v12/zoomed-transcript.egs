@@ -569,3 +569,9 @@ rectangle(w,e,pt_zmenu_gn,al_far_under_by_tr);
 
 /* track category */
 draw_track_category("G",allotments_letter);
+
+/* chevrons */
+draw_image(spacebase(0,0,24),"chevron-dark-left",allotments_letter[@==0]);
+draw_image(spacebase(0,0,24),"chevron-dark-left",allotments_letter[@==1]);
+draw_image(spacebase(0,0,24),"chevron-dark-right",allotments_letter[@==2]);
+draw_image(spacebase(0,0,24),"chevron-dark-right",allotments_letter[@==3]);

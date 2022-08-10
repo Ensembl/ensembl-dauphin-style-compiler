@@ -74,7 +74,7 @@ stmt draw_track_category(category,allotments) {
     cat_text_colour := direct_colour(0,0,0,255);
 
     textpen_cat := pen("'Lato', sans-serif",cat_text_size,cat_text_colour,[][]);
-    text2(spacebase(len(allotments) (*) 0,0,16),textpen_cat,category,allotments[]);
+    text2(spacebase(len(allotments) (*) 0,5,16),textpen_cat,category,allotments[]);
 }
 
 stmt draw_focus_swatch(allotment_value) {

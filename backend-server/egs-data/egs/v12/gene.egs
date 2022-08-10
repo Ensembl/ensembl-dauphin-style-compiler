@@ -200,6 +200,10 @@ image_underneath(chevron_spacing,0,"chevron-left",allotments_bgd[@==0]);
 image_underneath(chevron_spacing,0,"chevron-left",allotments_bgd[@==1]);
 image_underneath(chevron_spacing,0,"chevron-right",allotments_bgd[@==2]);
 image_underneath(chevron_spacing,0,"chevron-right",allotments_bgd[@==3]);
+draw_image(spacebase(0,0,24),"chevron-dark-left",allotments_letter[@==0]);
+draw_image(spacebase(0,0,24),"chevron-dark-left",allotments_letter[@==1]);
+draw_image(spacebase(0,0,24),"chevron-dark-right",allotments_letter[@==2]);
+draw_image(spacebase(0,0,24),"chevron-dark-right",allotments_letter[@==3]);
 
 /* track names */
 draw_gene_track_names(allotments_trackname);

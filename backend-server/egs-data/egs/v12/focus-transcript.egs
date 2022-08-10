@@ -352,9 +352,9 @@ chevron_spacing := [
     0.90,0.925,0.95,0.975,
 ][];
 
-/* focus */
 focus_strand := strand#[focus_id==focus_gene];
 image_underneath(chevron_spacing,0,["chevron-left","chevron-right"][@==focus_strand],allotment_wallpaper);
+draw_image(spacebase(0,0,24),["chevron-dark-left","chevron-dark-right"][@==focus_strand],allotment_letter);
 
 /* track category */
 draw_track_category("G",[allotment_letter]);

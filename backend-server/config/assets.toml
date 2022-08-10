@@ -13,3 +13,15 @@ width=32
 height=32
 file="chevron-right.png"
 scale=200
+
+[sources.chevron-dark-left]
+width=32
+height=32
+file="chevron-dark-left.png"
+scale=200
+
+[sources.chevron-dark-right]
+width=32
+height=32
+file="chevron-dark-right.png"
+scale=200
