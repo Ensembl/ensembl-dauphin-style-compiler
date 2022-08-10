@@ -17,11 +17,17 @@
     {
         "key": "CFG_EC_BRANCH",
         "question": "ensembl-client branch to use",
-        "default": "main"
+        "default": "main",
+        "conditions": { "eq": ["CFG_EC","github"] }
     },
     {
         "key": "CFG_EGB",
         "question": "ensembl-genome-browser code",
+        "options": ["github","local"]
+    },
+    {
+        "key": "CFG_EC",
+        "question": "ensembl-client code",
         "options": ["github","local"]
     },
     {

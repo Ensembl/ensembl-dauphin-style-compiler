@@ -16,6 +16,7 @@ if [ $? -ne 0 ] ; then echo "no wasmpack image, please build it with build-wasmp
 # setup
 mkdir -p ./egb-tmp
 tar -c -z -f egb.tar.gz --files-from /dev/null
+tar -c -z -f ec.tar.gz --files-from /dev/null
 
 # configure
 $SCRIPTPATH/../build-tools/menu.py --quick --use-prev=.buildkit-config.prev $SCRIPTPATH/buildkit-menu.json .cfg || exit
@@ -25,6 +26,11 @@ if [ "x$CFG_EGB" = "xlocal" ] ; then
       if [[ ! -e ../ensembl-genome-browser ]] ; then echo "cannot find egb repo" ; exit 1 ; fi
       rm egb.tar.gz
       tar -c -z -v -f egb.tar.gz ../ensembl-genome-browser
+fi
+if [ "x$CFG_EC" = "xlocal" ] ; then
+      if [[ ! -e ../ensembl-client ]] ; then echo "cannot find ec repo" ; exit 1 ; fi
+      rm ec.tar.gz
+      tar -c -z -v -f ec.tar.gz ../ensembl-client
 fi
 
 echo "rust build: $CFG_RUST_MODE   e-g-b: $CFG_EGB   clear cache: $CFG_CLEAR   backend: $CFG_BE   progress: ${CFG_PROGRESS:-pretty}"
@@ -95,6 +101,7 @@ DOCKER_BUILDKIT=1 docker build \
 
 # tidy
 rm -rf egb.tar.gz
+rm -rf ec.tar.gz
 
 # kill old one
 ID=$(docker ps -f publish=$CFG_PORT --format '{{.ID}}')
