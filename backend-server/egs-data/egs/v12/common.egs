@@ -63,10 +63,10 @@ stmt gene_tracks_enabled_property(out,property) {
 }
 
 stmt draw_gene_track_names(allotments_trackname) {
-    draw_track_name("Other genes — Reverse strand",["track","gene-other-rev","name"],allotments_trackname[@==0]);
-    draw_track_name("Protein coding genes — Reverse strand",["track","gene-pc-rev","name"],allotments_trackname[@==1]);
-    draw_track_name("Other genes — Forward strand",["track","gene-other-fwd","name"],allotments_trackname[@==2]);
-    draw_track_name("Protein coding genes — Forward strand",["track","gene-pc-fwd","name"],allotments_trackname[@==3]);
+    draw_track_name("Other genes Reverse strand",["track","gene-other-rev","name"],allotments_trackname[@==0]);
+    draw_track_name("Protein coding genes Reverse strand",["track","gene-pc-rev","name"],allotments_trackname[@==1]);
+    draw_track_name("Other genes Forward strand",["track","gene-other-fwd","name"],allotments_trackname[@==2]);
+    draw_track_name("Protein coding genes Forward strand",["track","gene-pc-fwd","name"],allotments_trackname[@==3]);
 }
 
 stmt draw_track_category(category,allotments) {

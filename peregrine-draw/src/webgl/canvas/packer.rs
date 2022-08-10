@@ -131,7 +131,7 @@ pub(crate) fn allocate_areas(sizes: &[(u32,u32)], gpu_spec: &GPUSpec) -> Result<
     let mut sorted = sizes.iter().enumerate().collect::<Vec<_>>();
     sorted.sort_by_key(|(_,(w,h))| (*h,*w));
     sorted.reverse();
-    let max_width = if let Some(max_width) = max_width { max_width } else { return Ok((vec![],1,1)); };
+    let max_width = if let Some(max_width) = max_width { max_width+1 } else { return Ok((vec![],1,1)); };
     let mut texture_width = max_width.max(square_dim).next_power_of_two();
     if texture_width > max_size {
         return Err(Message::CannotPackRectangles(format!("all attempts failed")));

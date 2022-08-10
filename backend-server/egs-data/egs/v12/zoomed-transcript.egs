@@ -518,8 +518,12 @@ zmenu_tmpl := zmenu("[<light>Transcript</light> <strong>{transcript_id}</strong>
 pt_zmenu_tr := patina_zmenu(zmenu_tmpl,["gene_id","transcript_id","transcript_biotype","strand","designation","track","type"],
                                       [[id_gn_by_tr],[id_tr],[transcript_biotype],[transcript_strand_string],[transcript_designation],[transcript_track_name],[len([id_gn_by_tr]) (*) "transcript"]][]);
 
+gene_name_by_tr := index(which_gn_by_tr,[gene_name]);
+gene_id_by_tr := index(which_gn_by_tr,[gene_id]);
+track_name_by_tr := index(which_gn_by_tr,[track_name]);
+
 zmenu_tmpl := zmenu("[<light>Gene</light> {symbol}] / [<strong><focus>{id}</focus></strong>]");
-pt_zmenu_gn := patina_zmenu(zmenu_tmpl,["symbol","id","track","type"],[[gene_name],[gene_id],[track_name],["gene"]][]);
+pt_zmenu_gn := patina_zmenu(zmenu_tmpl,["symbol","id","track","type"],[[gene_name_by_tr],[gene_id_by_tr],[track_name_by_tr],["gene"]][]);
 
 gene_tracks_enabled_property(enabled_labels,"label");
 gene_tracks_enabled_property(enabled_labels_tr,"transcript-label");
@@ -556,17 +560,12 @@ draw_labels(
 );
 
 /* zmenu areas */
-/* type and gene zmenus */
-nw := spacebase(start_gn,0,0);
-se := spacebase(end_gn,num_drawn_tr_gn*20,0);
-rectangle(nw,se,pt_zmenu_type,al_far_under_by_gn);
-rectangle(nw,se,pt_zmenu_gn,al_far_under_by_gn);
-
-/* transcript zmenus */
 c := idx_drawn_tr_gn * 20;
 w := spacebase(start_tr,c,0);
 e := spacebase(end_tr,c+20,0);
 rectangle(w,e,pt_zmenu_tr,al_far_under_by_tr);
+rectangle(w,e,pt_zmenu_type,al_far_under_by_tr);
+rectangle(w,e,pt_zmenu_gn,al_far_under_by_tr);
 
 /* track category */
 draw_track_category("G",allotments_letter);
