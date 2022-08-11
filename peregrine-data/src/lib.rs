@@ -191,7 +191,7 @@ mod shape {
 
     pub use self::core::{ 
         Patina, Pen, Colour, DirectColour, Plotter, DrawnType, Hotspot, PenGeometry,
-        Background
+        Background, AttachmentPoint
     };
     pub use self::shape::{ ShapeDemerge, Shape };
     pub use self::zmenu::ZMenu;
@@ -277,7 +277,7 @@ pub use self::shape::{
     Patina, Colour, DirectColour, DrawnType, Shape, Hotspot, PenGeometry, Background,
     ZMenu, Pen, Plotter, ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator,
     ZMenuProxy, zmenu_fixed_vec_to_json, ShapeDemerge, zmenu_to_json,
-    ProgramShapesBuilder, AbstractShapesContainer
+    ProgramShapesBuilder, AbstractShapesContainer, AttachmentPoint
 };
 pub use self::allotment::core::coordsystem::{ CoordinateSystem, CoordinateSystemVariety };
 pub use self::switch::switches::{ Switches };

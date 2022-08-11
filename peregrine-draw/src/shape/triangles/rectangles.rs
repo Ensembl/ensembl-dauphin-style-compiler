@@ -8,7 +8,7 @@ use crate::shape::util::iterators::eoe_throw;
 use crate::webgl::global::WebGlGlobal;
 use crate::webgl::{ ProcessStanzaElements };
 use peregrine_data::reactive::{Observable, Observer};
-use peregrine_data::{ SpaceBaseArea, SpaceBase, PartialSpaceBase, HollowEdge2, SpaceBasePoint, LeafStyle };
+use peregrine_data::{ SpaceBaseArea, SpaceBase, PartialSpaceBase, HollowEdge2, SpaceBasePoint, LeafStyle, AttachmentPoint };
 use peregrine_toolkit::eachorevery::EachOrEvery;
 use peregrine_toolkit::{lock, log};
 use super::drawgroup::DrawGroup;
@@ -79,7 +79,45 @@ impl RectanglesLocationArea {
 }
 
 #[cfg_attr(debug_assertions,derive(Debug))]
+#[derive(Clone)]
+pub(crate) enum GLAttachmentPoint {
+    Left,
+    Right
+}
+
+impl GLAttachmentPoint {
+    pub(crate) fn new(input: &AttachmentPoint) -> GLAttachmentPoint {
+        match input {
+            AttachmentPoint::Left => GLAttachmentPoint::Left,
+            AttachmentPoint::Right => GLAttachmentPoint::Right
+        }
+    }
+}
+
+impl GLAttachmentPoint {
+    fn sized_to_rectangle(&self,spacebase: &SpaceBase<f64,LeafStyle>, size_x: &[f64], size_y: &[f64]) -> Result<SpaceBaseArea<f64,LeafStyle>,Message> {
+        let mut near = spacebase.clone();
+        let mut far = spacebase.clone();
+        match self {
+            GLAttachmentPoint::Left => {
+                far.fold_tangent(size_x,|v,z| { *v + z });
+                far.fold_normal(size_y,|v,z| { *v + z });        
+            }
+            GLAttachmentPoint::Right => {
+                near.fold_tangent(size_x,|v,z| { *v - z });
+                far.fold_normal(size_y,|v,z| { *v + z });        
+            }
+        }
+        let area = eoe_throw("rl1",SpaceBaseArea::new(
+            PartialSpaceBase::from_spacebase(near),
+            PartialSpaceBase::from_spacebase(far)))?;
+        Ok(area)
+    }
+}
+
+#[cfg_attr(debug_assertions,derive(Debug))]
 struct RectanglesLocationSized {
+    attachment: GLAttachmentPoint,
     spacebase: SpaceBase<f64,LeafStyle>,
     run: Option<SpaceBase<f64,()>>,
     wobble: Option<SpaceBase<Observable<'static,f64>,()>>,
@@ -95,16 +133,6 @@ fn apply_any_wobble<A: Clone>(spacebase: &SpaceBase<f64,A>, wobble: &Option<Spac
     } else {
         spacebase.clone()
     }
-}
-
-fn sized_to_rectangle(spacebase: &SpaceBase<f64,LeafStyle>, size_x: &[f64], size_y: &[f64]) -> Result<SpaceBaseArea<f64,LeafStyle>,Message> {
-    let mut far = spacebase.clone();
-    far.fold_tangent(size_x,|v,z| { *v + z });
-    far.fold_normal(size_y,|v,z| { *v + z });
-    let area = eoe_throw("rl1",SpaceBaseArea::new(
-        PartialSpaceBase::from_spacebase(spacebase.clone()),
-        PartialSpaceBase::from_spacebase(far)))?;
-    Ok(area)
 }
 
 fn apply_hollow(area: &SpaceBaseArea<f64,LeafStyle>, edge: &Option<HollowEdge2<f64>>) -> SpaceBaseArea<f64,LeafStyle> {
@@ -128,16 +156,17 @@ fn area_to_rectangle(area: &SpaceBaseArea<f64,LeafStyle>,  wobble: &Option<Space
 }
 
 impl RectanglesLocationSized {
-    fn new(spacebase: &SpaceBase<f64,LeafStyle>, run: &Option<SpaceBase<f64,()>>, wobble: Option<SpaceBase<Observable<'static,f64>,()>>, depth: EachOrEvery<i8>, size_x: Vec<f64>, size_y: Vec<f64>) -> Result<RectanglesLocationSized,Message> {
+    fn new(spacebase: &SpaceBase<f64,LeafStyle>, run: &Option<SpaceBase<f64,()>>, wobble: Option<SpaceBase<Observable<'static,f64>,()>>, depth: EachOrEvery<i8>, size_x: Vec<f64>, size_y: Vec<f64>, attachment: GLAttachmentPoint) -> Result<RectanglesLocationSized,Message> {
         let wobbled = (
-            sized_to_rectangle(&apply_any_wobble(&spacebase,&wobble),&size_x,&size_y)?,
+            attachment.sized_to_rectangle(&apply_any_wobble(&spacebase,&wobble),&size_x,&size_y)?,
             run.as_ref().map(|x| apply_any_wobble(x,&wobble))
         );
         Ok(RectanglesLocationSized { 
             wobbled: Arc::new(Mutex::new(wobbled)),
             spacebase: spacebase.clone(),
             run: run.clone(),
-            wobble, depth, size_x, size_y
+            wobble, depth, size_x, size_y,
+            attachment
         })
     }
 
@@ -156,8 +185,9 @@ impl RectanglesLocationSized {
             let wobble2 = wobble.clone();
             let spacebase = apply_any_wobble(&pos,&Some(wobble));
             let run = self.run.as_ref().map(|x| apply_any_wobble(x,&Some(wobble2)));
+            let attachment = self.attachment.clone();
             Box::new(move || {
-                if let Ok(sized) = sized_to_rectangle(&spacebase,&size_x,&size_y) {
+                if let Ok(sized) = attachment.sized_to_rectangle(&spacebase,&size_x,&size_y) {
                     *lock!(wobbled) = (sized,run.clone());
                 }
             }) as Box<dyn FnMut() + 'static>
@@ -242,8 +272,8 @@ impl RectanglesData {
         Self::real_new(layer,geometry_yielder,patina_yielder,location,left,hollow,kind)
     }
 
-    pub(crate) fn new_sized(layer: &mut Layer, geometry_yielder: &mut GeometryYielder, patina_yielder: &mut dyn PatinaYielder, points: &SpaceBase<f64,LeafStyle>, run: &Option<SpaceBase<f64,()>>, x_sizes: Vec<f64>, y_sizes: Vec<f64>, depth: &EachOrEvery<i8>, left: f64, hollow: bool, kind: &DrawGroup, wobble: Option<SpaceBase<Observable<'static,f64>,()>>)-> Result<RectanglesData,Message> {
-        let location = RectanglesLocation::Sized(RectanglesLocationSized::new(points,run,wobble,depth.clone(),x_sizes,y_sizes)?);
+    pub(crate) fn new_sized(layer: &mut Layer, geometry_yielder: &mut GeometryYielder, patina_yielder: &mut dyn PatinaYielder, points: &SpaceBase<f64,LeafStyle>, run: &Option<SpaceBase<f64,()>>, x_sizes: Vec<f64>, y_sizes: Vec<f64>, depth: &EachOrEvery<i8>, left: f64, hollow: bool, kind: &DrawGroup, attachment: GLAttachmentPoint, wobble: Option<SpaceBase<Observable<'static,f64>,()>>)-> Result<RectanglesData,Message> {
+        let location = RectanglesLocation::Sized(RectanglesLocationSized::new(points,run,wobble,depth.clone(),x_sizes,y_sizes,attachment)?);
         Self::real_new(layer,geometry_yielder,patina_yielder,location,left,hollow,kind)
     }
 

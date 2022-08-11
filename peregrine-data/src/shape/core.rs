@@ -6,6 +6,13 @@ use super::zmenu::ZMenu;
 #[derive(Clone,Debug,PartialEq,Eq,Hash)]
 pub struct DirectColour(pub u8,pub u8,pub u8,pub u8);
 
+#[cfg_attr(debug_assertions,derive(Debug))]
+#[derive(Clone)]
+pub enum AttachmentPoint {
+    Left,
+    Right
+}
+
 #[derive(Clone,Hash)]
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub struct Background {
@@ -52,7 +59,8 @@ impl PenGeometry {
 pub struct Pen {
     geometry: Arc<PenGeometry>,
     colours: EachOrEvery<DirectColour>,
-    background: Option<Background>
+    background: Option<Background>,
+    attachment: AttachmentPoint
 }
 
 impl Pen {
@@ -61,6 +69,7 @@ impl Pen {
             geometry: geometry.clone(),
             colours: colours.clone(),
             background: background.clone(),
+            attachment: AttachmentPoint::Right
         }
     }
 
@@ -76,6 +85,7 @@ impl Pen {
     pub fn geometry(&self) -> &PenGeometry { &self.geometry }
     pub fn colours(&self) -> &EachOrEvery<DirectColour> { &self.colours }
     pub fn background(&self) -> &Option<Background> { &self.background }
+    pub fn attachment(&self) -> &AttachmentPoint { &self.attachment }
 
     pub fn filter(&self, filter: &EachOrEveryFilter) -> Pen {
         Pen::new_real(&self.geometry,&self.colours.filter(filter),&self.background)

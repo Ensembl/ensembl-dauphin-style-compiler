@@ -5,6 +5,7 @@ use peregrine_toolkit::lock;
 use crate::shape::layers::drawingtools::DrawingToolsBuilder;
 use crate::shape::layers::layer::Layer;
 use crate::shape::triangles::drawgroup::DrawGroup;
+use crate::shape::triangles::rectangles::GLAttachmentPoint;
 use crate::util::fonts::Fonts;
 use crate::webgl::canvas::flatplotallocator::FlatPositionManager;
 use crate::webgl::canvas::structuredtext::StructuredText;
@@ -100,14 +101,15 @@ pub(super) fn prepare_text(out: &mut Vec<GLShape>, tools: &mut DrawingToolsBuild
         let id = drawing_text.add_text(&shape.pen().geometry(),&text,colour,background);
         handles.push(id);
     }
-    let mut positions = shape.position().clone();
-    out.push(GLShape::Text(positions,shape.run().cloned(),handles,depth,draw_group.clone()));
+    let positions = shape.position().clone();
+    out.push(GLShape::Text(positions,shape.run().cloned(),handles,depth,draw_group.clone(),GLAttachmentPoint::new(shape.pen().attachment())));
 }
 
 pub(super) fn draw_text(layer: &mut Layer, gl: &mut WebGlGlobal, tools: &mut DrawingToolsBuilder,
                     points: SpaceBase<f64,LeafStyle>,
                     run: Option<SpaceBase<f64,()>>,
-                    handles: &[TextHandle], depth: EachOrEvery<i8>, draw_group: &DrawGroup
+                    handles: &[TextHandle], depth: EachOrEvery<i8>, draw_group: &DrawGroup,
+                    attachment: GLAttachmentPoint,
                 ) -> Result<ShapeToAdd,Message> {
     let bitmap_multiplier = gl.refs().flat_store.bitmap_multiplier() as f64;
     let text = tools.text();
@@ -117,6 +119,6 @@ pub(super) fn draw_text(layer: &mut Layer, gl: &mut WebGlGlobal, tools: &mut Dra
     if bitmap_dims.len() == 0 { return Ok(ShapeToAdd::None); }
     let (x_sizes,y_sizes) = dims_to_sizes(&bitmap_dims,1./bitmap_multiplier);
     let canvas = text.manager().canvas_id().ok_or_else(|| Message::CodeInvariantFailed("no canvas id A".to_string()))?;
-    let rectangles = draw_points_from_canvas2(layer,gl,&draw_group,&points,&run,x_sizes,y_sizes,&depth,&canvas,&bitmap_dims,false,None)?;
+    let rectangles = draw_points_from_canvas2(layer,gl,&draw_group,&points,&run,x_sizes,y_sizes,&depth,&canvas,&bitmap_dims,false,attachment,None)?;
     Ok(ShapeToAdd::Dynamic(rectangles))
 }
