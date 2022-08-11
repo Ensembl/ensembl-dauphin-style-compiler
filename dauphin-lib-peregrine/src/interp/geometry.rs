@@ -2,7 +2,7 @@ use anyhow::anyhow as err;
 use peregrine_toolkit::eachorevery::EachOrEvery;
 use peregrine_toolkit::{lock, log};
 use crate::simple_interp_command;
-use peregrine_data::{Colour, DirectColour, DrawnType, Patina, Pen, Plotter, ShapeRequest, ZMenu, SpaceBase, ProgramShapesBuilder, Hotspot, Background};
+use peregrine_data::{Colour, DirectColour, DrawnType, Patina, Pen, Plotter, ShapeRequest, ZMenu, SpaceBase, ProgramShapesBuilder, Hotspot, Background, AttachmentPoint};
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
 use serde_cbor::Value as CborValue;
@@ -362,6 +362,11 @@ impl InterpCommand for PenInterpCommand {
         let registers = context.registers_mut();
         let font = registers.get_strings(&self.1)?[0].to_string();
         let size = registers.get_numbers(&self.2)?[0];
+        let (size,attachment) = if size < 0. {
+            (-size,AttachmentPoint::Right)
+        } else {
+            (size,AttachmentPoint::Left)
+        };
         let colour_ids = registers.get_indexes(&self.3)?;
         let background_id = registers.get_indexes(&self.4)?.get(0).cloned();
         drop(registers);
@@ -370,7 +375,7 @@ impl InterpCommand for PenInterpCommand {
         let colours : anyhow::Result<Vec<_>> = colour_ids.iter().map(|id| geometry_builder.direct_colour(*id as u32)).collect();
         let colours : Vec<DirectColour> = colours?.iter().map(|x| x.as_ref().clone()).collect();
         let background = background_id.map(|id| geometry_builder.background(id as u32)).transpose()?.map(|x| x.as_ref().clone());
-        let pen = Pen::new(&font,size as u32,&colours,&background);
+        let pen = Pen::new(&font,size as u32,&colours,&background,&attachment);
         let id = geometry_builder.add_pen(pen);
         drop(peregrine);
         let registers = context.registers_mut();

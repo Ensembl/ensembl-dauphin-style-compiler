@@ -64,22 +64,22 @@ pub struct Pen {
 }
 
 impl Pen {
-    fn new_real(geometry: &Arc<PenGeometry>, colours: &EachOrEvery<DirectColour>, background: &Option<Background>) -> Pen {
+    fn new_real(geometry: &Arc<PenGeometry>, colours: &EachOrEvery<DirectColour>, background: &Option<Background>, attachment: &AttachmentPoint) -> Pen {
         Pen {
             geometry: geometry.clone(),
             colours: colours.clone(),
             background: background.clone(),
-            attachment: AttachmentPoint::Right
+            attachment: attachment.clone()
         }
     }
 
-    pub fn new(name: &str, size: u32, colours: &[DirectColour], background: &Option<Background>) -> Pen {
+    pub fn new(name: &str, size: u32, colours: &[DirectColour], background: &Option<Background>, attachment: &AttachmentPoint) -> Pen {
         let colours = if colours.len() == 1 {
             EachOrEvery::every(colours[0].clone())
         } else {
             EachOrEvery::each(colours.to_vec())
         };
-        Pen::new_real(&Arc::new(PenGeometry::new(name,size)), &colours.index(|x| x.clone()),background)
+        Pen::new_real(&Arc::new(PenGeometry::new(name,size)), &colours.index(|x| x.clone()),background,attachment)
     }
 
     pub fn geometry(&self) -> &PenGeometry { &self.geometry }
@@ -88,7 +88,7 @@ impl Pen {
     pub fn attachment(&self) -> &AttachmentPoint { &self.attachment }
 
     pub fn filter(&self, filter: &EachOrEveryFilter) -> Pen {
-        Pen::new_real(&self.geometry,&self.colours.filter(filter),&self.background)
+        Pen::new_real(&self.geometry,&self.colours.filter(filter),&self.background,&self.attachment)
     }
 }
 
