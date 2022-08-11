@@ -113,4 +113,13 @@ impl PatinaProcessName {
             PatinaProcessName::FreeTexture(_) => PatinaProgramName::FreeTexture
         }
     }
+
+    pub(super) fn order(&self) -> usize {
+        match self {
+            PatinaProcessName::Direct => 0,
+            PatinaProcessName::Spot(_) => 1,
+            PatinaProcessName::Texture(_) => 2,
+            PatinaProcessName::FreeTexture(_) => 3
+        }
+    }
 }

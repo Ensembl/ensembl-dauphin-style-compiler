@@ -16,17 +16,13 @@ use super::shapeprogram::ShapeProgram;
 /* 
 TODO ensure + index
 TODO y split bug
-TODO y from bottom
 TODO layers from core
 TODO ordered layers
-TODO remove datum option from stretchtangles
 TODO return shapes from core without cloning (drain)
 TODO uniforms set only on change
 TODO global destroy
 TODO keep program when same program
-TODO initial clear
 TODO wiggle width
-TODO hollowwidth
 TODO intersection cache
 */
 
@@ -36,6 +32,10 @@ pub(crate) struct ProgramCharacter(pub GeometryProcessName, pub PatinaProcessNam
 impl ProgramCharacter {
     pub(crate) fn key(&self) -> String {
         format!("{}/{}",self.0.key(),self.1.get_program_name().key())
+    }
+
+    pub(crate) fn order(&self) -> (usize,usize,String) {
+        (self.1.order(),0,self.key())
     }
 }
 
@@ -75,7 +75,8 @@ impl Layer {
 
     pub(super) async fn build(mut self, gl: &Arc<Mutex<WebGlGlobal>>, canvases: &DrawingAllFlats, retain: &RetainTest) -> Result<Option<Vec<Process>>,Message> {
         let mut processes = vec![];
-        let characters = self.store.keys().cloned().collect::<Vec<_>>();
+        let mut characters = self.store.keys().cloned().collect::<Vec<_>>();
+        characters.sort_by_cached_key(|c| c.order());
         for character in &characters {
             let mut prog = self.store.remove(&character).unwrap();
             match character {
