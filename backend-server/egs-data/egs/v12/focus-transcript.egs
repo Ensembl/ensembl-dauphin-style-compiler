@@ -300,7 +300,7 @@ pt_dotted := patina_filled(dotted_focus_colour);
 c := idx_dotted_in_gn * 20;
 w  := spacebase(dotted_start, c+5, 0);
 e  := spacebase(dotted_end,   c+5, 0);
-rectangle(w,  e,  pt_dotted, dotted_al); // dotted
+rectangle(w,  e,  pt_dotted, dotted_al);
 
 /* draw solid line the extent of the transcript */
 c := idx_drawn_tr_gn * 20;
@@ -325,8 +325,8 @@ rectangle(a,b,pt_thick_by_thex,al_farover_by_thex);
 c := idx_drawn_tr_gn * 20;
 w := spacebase(start_tr,c,0);
 e := spacebase(end_tr,c+20,0);
-rectangle(w,e,pt_zmenu_type,al_under_by_gn);
-rectangle(w,e,pt_zmenu_gn,al_under_by_gn);
+rectangle(w,e,pt_zmenu_type,al_under_by_tr);
+rectangle(w,e,pt_zmenu_gn,al_under_by_tr);
 rectangle(w,e,pt_zmenu_tr,al_under_by_tr);
 
 /* gene & transcript labels */
