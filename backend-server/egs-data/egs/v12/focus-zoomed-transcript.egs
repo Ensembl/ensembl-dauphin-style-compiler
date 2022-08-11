@@ -504,7 +504,7 @@ draw_focus_swatch(allotment_letter);
 
 /* red-dotted lines */
 dots_allotment := use_allotment(["","dots/content"][(@==1)==(switch_yn(["track","focus"]))]);
-red_dotted(focus_start,focus_end,dots_allotment);
+red_dotted(focus_start,focus_end,dots_allotment,comma_format(focus_start),comma_format(focus_end));
 
 /* report transcripts shown */
 report_shown(bool_show_tr,id_tr,use_allotment("tracks/track/focus"));

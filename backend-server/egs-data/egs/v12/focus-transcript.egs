@@ -364,7 +364,7 @@ draw_focus_swatch(allotment_letter);
 
 /* red-dotted lines */
 al_dots := use_allotment(["","dots/content"][(@==1)==(switch_yn(["track","focus"]))]);
-red_dotted(start_focus,end_focus,al_dots);
+red_dotted(start_focus,end_focus,al_dots,comma_format(start_focus),comma_format(end_focus));
 
 /* blue button */
 blue_top_left := spacebase(start_gn,num_drawn_tr_gn*20+6,0);
