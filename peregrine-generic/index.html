@@ -91,7 +91,6 @@
 
         function tr_all(yn) {
           for(const tr in seen_transcripts) {
-            console.log(tr);
             if(yn) {
               shown_transcripts[tr] = 1;
             } else {
@@ -99,7 +98,6 @@
             }
           }
           genome_browser.switch(["track","focus","enabled-transcripts"],Object.keys(shown_transcripts));
-          console.log("sending "+Object.keys(shown_transcripts));
         }
 
         function toggle_track(track_name) {
