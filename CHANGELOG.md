@@ -1,3 +1,6 @@
+# 0.5.0
+  * Drop support for 0.3.x clients (all versions prior to 9)
+
 # 0.4.4
   * Features
     * "Flagtop" track for showing focus region endpoints

@@ -7,11 +7,9 @@ import time
 from .coremodel import Handler, Panel
 from .response import Response
 from .datasources import DataAccessor
-from data.genedata import GeneDataHandler, GeneOverviewDataHandler, TranscriptDataHandler
 from data.genedata8 import GeneDataHandler8, GeneLocationHandler8, GeneOverviewDataHandler8, TranscriptDataHandler8
 from data.gc import WiggleDataHandler
 from data.variant import VariantDataHandler
-from data.sequence import ZoomedSeqDataHandler
 from data.sequence8 import ZoomedSeqDataHandler8
 from data.contig import ContigDataHandler, ShimmerContigDataHandler
 from data.focusjump import FocusJumpHandler
@@ -19,18 +17,12 @@ from util.influx import ResponseMetrics
 from model.version import Version
 
 handlers = [
-    ("gene-overview", GeneOverviewDataHandler()),
-    ("gene", GeneDataHandler()),
-    ("transcript", TranscriptDataHandler(False)),
-    ("zoomed-transcript", TranscriptDataHandler(True)),
-    ("zoomed-seq", ZoomedSeqDataHandler()),
-
-    ("gene-location", GeneLocationHandler8(), 8),
-    ("gene-overview", GeneOverviewDataHandler8(), 8),
-    ("gene", GeneDataHandler8(), 8),
-    ("transcript", TranscriptDataHandler8(False), 8),
-    ("zoomed-transcript", TranscriptDataHandler8(True), 8),
-    ("zoomed-seq", ZoomedSeqDataHandler8(), 8),
+    ("gene-location", GeneLocationHandler8()),
+    ("gene-overview", GeneOverviewDataHandler8()),
+    ("gene", GeneDataHandler8()),
+    ("transcript", TranscriptDataHandler8(False)),
+    ("zoomed-transcript", TranscriptDataHandler8(True)),
+    ("zoomed-seq", ZoomedSeqDataHandler8()),
 
     ("gc", WiggleDataHandler()),
     ("contig", ContigDataHandler()),

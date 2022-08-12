@@ -9,7 +9,6 @@ from model.chromosome import Chromosome
 from model.transcriptfile import TranscriptFileLine
 from .util import classified_numbers, starts_and_ends, starts_and_lengths
 from .numbers import delta, zigzag, lesqlite2, compress, classify
-from .sequence import sequence_blocks
 from .sequence8 import sequence_blocks8
 from model.datalocator import AccessItem
 from ncd import NCDRead
@@ -125,7 +124,6 @@ def extract_gene_data(data_accessor: DataAccessor, chrom: Chromosome, panel: Pan
     classified_numbers(out,gene_biotypes,"gene_biotypes")
     classified_numbers(out,designated_transcript_biotypes,"designated_transcript_biotypes")
     classified_numbers(out,designated_transcript_designations,"designated_transcript_designations")
-    sequence_blocks(out,data_accessor,chrom,panel,not include_sequence)
     sequence_blocks8(out,data_accessor,chrom,panel,not include_sequence)
     #for (k,v) in out.items():
     #    logging.warn("len({}) = {}".format(k,len(v)))

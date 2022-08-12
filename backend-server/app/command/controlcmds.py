@@ -79,12 +79,9 @@ class StickHandler(Handler):
         (stick_name,) = payload
         chromosome = data_accessor.data_model.stick(data_accessor,stick_name)
         if chromosome == None:
-            if version.get_egs() > 4:
-                return Response(3,{
-                    "error": "Unknown stick {0}".format(stick_name)
-                })
-            else:
-                return Response(1,"Unknown stick {0}".format(stick_name))
+            return Response(3,{
+                "error": "Unknown stick {0}".format(stick_name)
+            })
         else:
             return Response(3,{
                 "id": stick_name,
