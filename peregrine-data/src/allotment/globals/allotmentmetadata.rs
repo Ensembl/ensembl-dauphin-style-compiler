@@ -1,6 +1,6 @@
 use std::{collections::{HashMap, hash_map::DefaultHasher }, sync::Arc, hash::{Hash, Hasher}, iter::FromIterator};
 use hashbrown::HashSet;
-use peregrine_toolkit::{puzzle::{ StaticValue, StaticAnswer, derived }, eachorevery::eoestruct::{StructTemplate, struct_to_json, StructBuilt}};
+use peregrine_toolkit::{puzzle::{ StaticValue, StaticAnswer, derived }, eachorevery::eoestruct::{StructTemplate, struct_to_json}};
 use crate::{allotment::core::allotmentname::{AllotmentName, AllotmentNamePart}, shape::metadata::AbstractMetadata};
 use serde_json::{ Value as JsonValue, Map as JsonMap };
 
@@ -120,7 +120,9 @@ fn merge(input: &[(StructTemplate,Option<String>)]) -> Option<(JsonValue,bool)> 
         if let Some(value) = collated.get(&Some("".to_string())) {
             Some((value.clone(),true))
         } else {
-            Some((JsonValue::Array(collated.drain().map(|x| x.1).collect()),true))
+            let mut collated = collated.drain().collect::<Vec<_>>();
+            collated.sort_by_cached_key(|(key,_)| key.clone());
+            Some((JsonValue::Array(collated.drain(..).map(|x| x.1).collect()),true))
         }
     } else {
         collated.get(&None).map(|x| (x.clone(),false))
