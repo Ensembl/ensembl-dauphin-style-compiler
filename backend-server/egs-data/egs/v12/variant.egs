@@ -41,7 +41,7 @@ patina := patina_filled(index(values,colours));
 rectangle(spacebase(r_start,0,-1),spacebase(r_end,5,1),patina,allotment);
 
 /* track names */
-draw_track_name("1000 Genomes all SNPs & indels",["track","variant","name"],allotment_track_name);
+draw_track_name("Variants",["track","variant","name"],allotment_track_name);
 
 /* track category */
 draw_track_category("V",[allotment_letter]);

@@ -466,11 +466,8 @@ zmenu_tmpl := zmenu("[<light>Transcript</light> <strong>{transcript_id}</strong>
 pt_zmenu_tr := patina_zmenu(zmenu_tmpl,["gene_id","transcript_id","transcript_biotype","strand","designation","track","type"],
                                       [[id_gn_by_tr],[id_tr],[transcript_biotype],[transcript_strand_string],[transcript_designation],["focus"],[len([id_gn_by_tr]) (*) "transcript"]][]);
 
-gene_name_by_tr := index(which_gn_by_tr,[gene_name]);
-gene_id_by_tr := index(which_gn_by_tr,[gene_id]);
-
 zmenu_tmpl := zmenu("[<light>Gene</light> {symbol}] / [<strong><focus>{id}</focus></strong>]");
-pt_zmenu_gn := patina_zmenu(zmenu_tmpl,["symbol","id","track","type"],[[gene_name_by_tr],[gene_id_by_tr],["focus"],["gene"]][]);
+pt_zmenu_gn := patina_zmenu(zmenu_tmpl,["symbol","id","track","type"],[[gene_name],[gene_id],["focus"],["gene"]][]);
 
 /* gene labels */
 
@@ -489,11 +486,16 @@ draw_labels(
 );
 
 /* zmenu areas */
+/* type and gene zmenus */
+nw := spacebase(start_gn,0,0);
+se := spacebase(end_gn,num_drawn_tr_gn*20,0);
+rectangle(nw,se,pt_zmenu_type,al_farunder_by_gn);
+rectangle(nw,se,pt_zmenu_gn,al_farunder_by_gn);
+
+/* transcript zmenus */
 c := idx_drawn_tr_gn * 20;
 w := spacebase(start_tr,c,0);
 e := spacebase(end_tr,c+20,0);
-rectangle(w,e,pt_zmenu_type,al_farunder_by_tr);
-rectangle(w,e,pt_zmenu_gn,al_farunder_by_tr);
 rectangle(w,e,pt_zmenu_tr,al_farunder_by_tr);
 
 /* track category */
@@ -504,7 +506,7 @@ draw_focus_swatch(allotment_letter);
 
 /* red-dotted lines */
 dots_allotment := use_allotment(["","dots/content"][(@==1)==(switch_yn(["track","focus"]))]);
-red_dotted(focus_start,focus_end,dots_allotment,comma_format(focus_start),comma_format(focus_end));
+red_dotted(focus_start,focus_end,dots_allotment);
 
 /* report transcripts shown */
 report_shown(bool_show_tr,id_tr,use_allotment("tracks/track/focus"));
@@ -513,10 +515,5 @@ report_all(id_tr,focus_id,focus_gene,which_gn_by_tr,use_allotment("tracks/track/
 
 /* track name */
 /* track name */
-focus_label := [concat(concat(gene_name#[focus_gene==focus_id]," - "),focus_gene),""];
-focus_label := focus_label[@==0];
+focus_label := concat(concat(gene_name#[focus_gene==focus_id]," - "),focus_gene);
 draw_track_name(focus_label,["track","focus","name"],allotment_label);
-
-/* chevrons */
-focus_strand := strand#[focus_id==focus_gene];
-draw_image(spacebase(0,0,24),["chevron-dark-left","chevron-dark-right"][@==focus_strand],allotment_letter);
