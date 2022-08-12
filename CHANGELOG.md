@@ -1,3 +1,21 @@
+# 0.4.4
+  * Features
+    * "Flagtop" track for showing focus region endpoints
+    * special, dark lhs chevrons
+  * Feature-enabling functionality
+    * text alignable against right edge (for flagtop)
+  * Bug-fixes:
+    * don't show any zmenus when over dotted lines
+    * variation track name per side panel
+    * Remove dashes from track names
+    * large gene truncation issue (seen in MAPK10)
+    * lhs white ground data showing through bug
+    * stop zmenus forcing full gene size when fewer transcripts shown
+    * Doubled letter rhs bug
+    * rhs frame layering bug
+  * Build process
+    * fix handling of dpr-force parameter when dpr-forcing disabled
+
 # 0.4.3
   * Bug-fixes:
     * Fix chevron tangle bug
