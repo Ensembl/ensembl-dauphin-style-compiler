@@ -13,6 +13,7 @@
     * stop zmenus forcing full gene size when fewer transcripts shown
     * Doubled letter rhs bug
     * rhs frame layering bug
+    * remove hyphen from focus track.
   * Build process
     * fix handling of dpr-force parameter when dpr-forcing disabled
 
