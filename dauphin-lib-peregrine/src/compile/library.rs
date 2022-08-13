@@ -10,7 +10,7 @@ use super::boot::{
 };
 use super::data::{ 
     GetLaneCommandType, GetDataCommandType, DataStreamCommandType, OnlyWarmCommandType,
-    RequestCommandType, RequestScopeCommandType
+    RequestCommandType, RequestScopeCommandType, MakeRegionCommandType
 };
 use super::decompress::{
     InflateBytesCommandType, InflateStringCommandType, Lesqlite2CommandType, ZigzagCommandType, DeltaCommandType,
@@ -30,11 +30,11 @@ use super::shape::{ WiggleCommandType, RectangleCommandType, Text2CommandType, I
 use super::switch::{ ListSwitchCommandType, SwitchStringCommandType, SwitchNumberCommandType, SwitchBooleanCommandType, SwitchNullCommandType };
 
 pub fn peregrine_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(52,0),0xD9F9321BF44465BF)
+    CommandSetId::new("peregrine",(53,0),0x76EDDB0D69AF7BFD)
 }
 
 pub fn make_peregrine() -> CompLibRegister {
-    // next is 75
+    // next is 76
     let mut set = CompLibRegister::new(&peregrine_id(),Some(make_peregrine_interp()));
     set.push("add_stick_authority",Some(0),AddAuthorityCommandType());
     set.push("get_stick_id",Some(1),GetStickIdCommandType());
@@ -111,6 +111,7 @@ pub fn make_peregrine() -> CompLibRegister {
     set.push("switch_number",Some(72),SwitchNumberCommandType());
     set.push("switch_boolean",Some(73),SwitchBooleanCommandType());
     set.push("running_text",Some(74),RunningTextCommandType());
+    set.push("make_region",Some(75),MakeRegionCommandType());
     set.add_header("peregrine",include_str!("header.egs"));
     set
 }

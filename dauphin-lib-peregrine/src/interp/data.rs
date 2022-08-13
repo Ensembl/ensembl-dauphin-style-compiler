@@ -6,6 +6,7 @@ use dauphin_interp::command::{ CommandDeserializer, InterpCommand, AsyncBlock, C
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue, RegisterFile };
 use peregrine_data::DataRequest;
 use peregrine_data::{Channel, PacketPriority, ProgramData, Region, Scale, ShapeRequest, StickId};
+use peregrine_toolkit::log;
 use serde_cbor::Value as CborValue;
 
 simple_interp_command!(GetLaneInterpCommand,GetLaneDeserializer,21,3,(0,1,2));
@@ -14,6 +15,7 @@ simple_interp_command!(DataStreamInterpCommand,DataStreamDeserializer,23,3,(0,1,
 simple_interp_command!(OnlyWarmInterpCommand,OnlyWarmDeserializer,43,1,(0));
 simple_interp_command!(RequestInterpCommand,RequestDeserializer,10,6,(0,1,2,3,4,5));
 simple_interp_command!(RequestScopeInterpCommand,RequestScopeDeserializer,52,4,(0,1,2,3));
+simple_interp_command!(MakeRegionInterpCommand,MakeRegionDeserializer,75,6,(0,1,2,3,4,5));
 
 impl InterpCommand for OnlyWarmInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
@@ -119,6 +121,23 @@ impl InterpCommand for RequestScopeInterpCommand {
         drop(peregrine);
         let registers = context.registers_mut();
         registers.write(&self.0,InterpValue::Indexes(vec![new_id as usize]));
+        Ok(CommandResult::SyncResult())
+    }
+}
+
+impl InterpCommand for MakeRegionInterpCommand {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+        let registers = context.registers_mut();
+        /* get data */
+        let stick = registers.get_strings(&self.3)?[0].to_string();
+        let start = registers.get_numbers(&self.4)?[0];
+        let end = registers.get_numbers(&self.5)?[0];
+        let scale = Scale::new_bp_per_screen(end-start);
+        let index = scale.carriage((start+end)/2.);
+        /* return region */
+        registers.write(&self.0,InterpValue::Strings(vec![stick.to_string()]));
+        registers.write(&self.1,InterpValue::Numbers(vec![index as f64]));
+        registers.write(&self.2,InterpValue::Numbers(vec![scale.get_index() as f64]));
         Ok(CommandResult::SyncResult())
     }
 }

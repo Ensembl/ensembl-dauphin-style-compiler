@@ -204,7 +204,7 @@ def _get_approx_location(data_accessor: DataAccessor, panel: Panel, id):
         if len(parts) == 3:
             on_stick = "{}:{}".format(genome,parts[0])
             if on_stick == panel.stick:
-                return (int(parts[1]),int(parts[2]))
+                return (on_stick,int(parts[1]),int(parts[2]))
     return None
 
 def _remove_version(id: str):
@@ -227,11 +227,13 @@ class GeneLocationHandler8(DataHandler):
     def process_data(self, data_accessor: DataAccessor, panel: Panel,scope) -> Response:
         id = scope.get("id",[])
         out = []
+        stick = None
         location = None
         if len(id) > 0:
             approx = _get_approx_location(data_accessor,panel,id[0])
             if approx is not None:
-                exact = _get_exact_location(data_accessor,panel,id[0],approx[0],approx[1])
+                stick = approx[0]
+                exact = _get_exact_location(data_accessor,panel,id[0],approx[1],approx[2])
                 if exact is not None:
                     location = exact
         chrom = data_accessor.data_model.stick(data_accessor,panel.stick)
@@ -241,4 +243,6 @@ class GeneLocationHandler8(DataHandler):
             out = extract_gene_overview_data(data_accessor,chrom,0,0,True)
             location = []
         out["location"] = compress(lesqlite2(location))
+        if stick is not None:
+            out["stick"] = compress(stick)
         return Response(5,{ 'data': out })

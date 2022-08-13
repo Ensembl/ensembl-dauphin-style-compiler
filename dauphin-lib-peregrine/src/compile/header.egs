@@ -51,6 +51,8 @@ struct region {
     scale: number
 };
 
+func make_region(string,number,number) becomes region;
+
 struct datasource { value: number };
 
 func bp_range() becomes number;
