@@ -193,8 +193,7 @@ class GeneOverviewDataHandler8(DataHandler):
         return Response(5,{ 'data': out })
 
 
-def _get_approx_location(data_accessor: DataAccessor, panel: Panel, id):
-    genome = panel.stick.rsplit(":",1)[0]
+def _get_approx_location(data_accessor: DataAccessor, genome: str, id):
     key = "focus:{}:{}".format(genome,id)
     accessor = data_accessor.resolver.get(AccessItem("jump"))
     jump_ncd = NCDRead(accessor.ncd())
@@ -203,17 +202,16 @@ def _get_approx_location(data_accessor: DataAccessor, panel: Panel, id):
         parts = value.decode('utf-8').split("\t")
         if len(parts) == 3:
             on_stick = "{}:{}".format(genome,parts[0])
-            if on_stick == panel.stick:
-                return (on_stick,int(parts[1]),int(parts[2]))
+            return (on_stick,int(parts[1]),int(parts[2]))
     return None
 
 def _remove_version(id: str):
     return id.rsplit('.',1)[0]
 
-def _get_exact_location(data_accessor: DataAccessor, panel, gene_id, approx_start, approx_end):
-    chrom = data_accessor.data_model.stick(data_accessor,panel.stick)
+def _get_exact_location(data_accessor: DataAccessor, stick, gene_id, approx_start, approx_end):
+    chrom = data_accessor.data_model.stick(data_accessor,stick)
     if chrom == None:
-        return Response(1,"Unknown chromosome {0}".format(panel.stick))
+        return Response(1,"Unknown chromosome {0}".format(stick))
     item = chrom.item_path("transcripts")
     data = get_bigbed(data_accessor,item,approx_start,approx_end)
     for line in data:
@@ -225,15 +223,16 @@ def _get_exact_location(data_accessor: DataAccessor, panel, gene_id, approx_star
 
 class GeneLocationHandler8(DataHandler):
     def process_data(self, data_accessor: DataAccessor, panel: Panel,scope) -> Response:
+        genome = scope.get("genome",[])
         id = scope.get("id",[])
         out = []
         stick = None
         location = None
         if len(id) > 0:
-            approx = _get_approx_location(data_accessor,panel,id[0])
+            approx = _get_approx_location(data_accessor,genome[0],id[0])
             if approx is not None:
                 stick = approx[0]
-                exact = _get_exact_location(data_accessor,panel,id[0],approx[1],approx[2])
+                exact = _get_exact_location(data_accessor,approx[0],id[0],approx[1],approx[2])
                 if exact is not None:
                     location = exact
         chrom = data_accessor.data_model.stick(data_accessor,panel.stick)
