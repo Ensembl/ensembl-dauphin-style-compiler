@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use peregrine_toolkit::{eachorevery::eoestruct::{StructTemplate, StructBuilt}, log};
+use peregrine_toolkit::{eachorevery::eoestruct::{StructTemplate, StructBuilt, StructConst}, log};
 
 use crate::Track;
 
@@ -57,8 +57,12 @@ impl Switches {
                 parent.clear_if_radio();
             }
         }
-        let target = data.root.get_target(path);
-        target.set(value);
+        if value == StructBuilt::Const(StructConst::Null) {
+            data.root.remove(path);
+        } else {
+            let target = data.root.get_target(path);
+            target.set(value);
+        }
         data.track_config_list = None;
     }
 

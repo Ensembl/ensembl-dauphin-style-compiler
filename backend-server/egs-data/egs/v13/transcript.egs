@@ -350,8 +350,7 @@ text_size := 10;
 
 textpen := pen("'IBM Plex Mono', sans-serif",text_size,text_colour,[][]);
 textpen_blue := pen("'IBM Plex Mono', sans-serif",text_size,blue_text_colour,[][]);
-blue_text_bgd := background(blue_text_colour,true);
-textpen_lozenge := pen("'IBM Plex Mono', sans-serif",text_size*1.2,white_text_colour,blue_text_bgd);
+blue_text_bgd := background(blue_text_colour,false);
 
 /*
  * prepare the zmenus
@@ -482,11 +481,16 @@ button_colour := len([start_gn]) (*) blue_colour;
 button_colour#[in(gene_id,[expanded_genes])] := green_colour;
 button_patina := patina_filled(button_colour);
 
-//text2(blue_top_left,textpen_lozenge," + ",button_allotment);
+button_text := len([start_gn]) (*) " + ";
+button_text#[in(gene_id,[expanded_genes])] := " – ";
+notice(format([button_text]));
+
+textpen_lozenge := pen("'IBM Plex Mono', sans-serif",text_size*1.2,white_text_colour,blue_text_bgd);
+text2(blue_top_left,textpen_lozenge,button_text,button_allotment);
 
 sense := len([expand_switches]) (*) true;
 sense#[in(gene_id,[expanded_genes])] := false;
 
 blue_hotspot_patina := patina_switch(expand_switches,sense);
 
-//rectangle(blue_top_left,blue_bottom_right,blue_hotspot_patina,button_allotment);
+rectangle(blue_top_left,blue_bottom_right,blue_hotspot_patina,button_allotment);

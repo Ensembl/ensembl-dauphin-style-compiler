@@ -19,8 +19,8 @@ fn process_hotspot_event(api: &LockedPeregrineInnerAPI, x: f64, y: f64) -> Resul
                     let tmpl_true = StructTemplate::new_boolean(true).build().ok().unwrap();
                     api.data_api.switch(&path,tmpl_true);
                 } else {
-                    let tmpl_false = StructTemplate::new_boolean(false).build().ok().unwrap();
-                    api.data_api.switch(&path,tmpl_false);
+                    let tmpl_null = StructTemplate::new_null().build().ok().unwrap();
+                    api.data_api.switch(&path,tmpl_null);
                 }
             }
         }

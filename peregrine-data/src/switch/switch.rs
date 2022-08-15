@@ -40,6 +40,16 @@ impl Switch {
         }
     }
 
+    pub(super) fn remove(&mut self, path: &[&str]) {
+        if path.len() > 1 {
+            if let Some(child) = self.kids.get_mut(&path[0].to_string()) {
+                child.remove(&path[1..]);
+            }
+        } else if path.len() > 0 {
+            self.kids.remove(&path[0].to_string());
+        }
+    }
+
     pub(super) fn set(&mut self, value: StructBuilt) {
         self.value = value;
     }

@@ -1,5 +1,5 @@
-use std::sync::Arc;
-use std::hash::Hash;
+use std::{sync::Arc, collections::hash_map::DefaultHasher};
+use std::hash::{Hash, Hasher};
 use crate::eachorevery::EachOrEvery;
 use super::eoestruct::{StructConst, StructVarValue};
 
@@ -26,3 +26,15 @@ impl Hash for StructBuilt {
         }
     }
 }
+
+impl PartialEq for StructBuilt {
+    fn eq(&self, other: &Self) -> bool {
+        let mut self_hash = DefaultHasher::new();
+        self.hash(&mut self_hash);
+        let mut other_hash = DefaultHasher::new();
+        other.hash(&mut other_hash);
+        self_hash.finish() == other_hash.finish()
+    }
+}
+
+impl Eq for StructBuilt {}
