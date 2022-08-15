@@ -1,5 +1,13 @@
 # 0.5.0
   * Drop support for 0.3.x clients (all versions prior to 9)
+  * Features:
+    * Add blank 90px at bottom as requested by Andrea via Jyo
+  * Bugfixes:
+    * gene label was scrambled at most-zoomed-in display level
+    * flagtop offset was incorrect on LHS
+    * Don't send summary updates too frequently
+    * Force send empty metadata via boxes when none present
+    * Always retrieve focus data to force box reports even when very off-screen
 
 # 0.4.4
   * Features
