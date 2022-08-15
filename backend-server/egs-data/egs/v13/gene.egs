@@ -111,11 +111,10 @@ allotment_idx := len([gene_id]) (*) 0;
 allotment_idx#[strand > 0] (+=) 2;
 allotment_idx#[in(gene_biotype,["protein_coding"])] (+=) 1;
 
-focus_gene1 := list_switch(["focus","gene"]);
-focus_gene2 := switch_string(["track","focus","item","gene"][],[][]);
-focus_gene := [focus_gene1,focus_gene2][@==0];
+focus_genome_id := switch_string(["track","focus","item","gene"][],["genome_id"][]);
+focus_gene_id := switch_string(["track","focus","item","gene"][],["item_id"][]);
 
-allotment_idx#[focus_id==focus_gene] := 4;
+allotment_idx#[focus_id==focus_gene_id] := 4;
 
 base_allotment_names := [append_group(index(allotment_idx,base_allotment_names),gene_id)];
 allotment_names := [append_group(base_allotment_names[],["blocks"][])];
