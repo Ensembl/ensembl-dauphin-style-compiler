@@ -1,7 +1,7 @@
 use crate::simple_interp_command;
 use peregrine_data::ShapeRequest;
 use peregrine_toolkit::eachorevery::eoestruct::{StructBuilt, StructConst, struct_select, struct_error_to_string};
-use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult, AsyncBlock };
+use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
 use serde_cbor::Value as CborValue;
 use crate::util::get_instance;
@@ -35,14 +35,14 @@ impl InterpCommand for ListSwitchInterpCommand {
     }
 }
 
-fn value_to_json(value: &StructBuilt, contents: &[String]) -> Result<Vec<StructConst>,String> {
+fn value_to_atom(value: &StructBuilt, contents: &[String]) -> Result<Vec<StructConst>,String> {
     Ok(struct_select(value,contents,None)
         .map_err(|e| struct_error_to_string(e))?
         .drain(..).filter_map(|x| x).collect::<Vec<_>>()
     )
 }
 
-fn switch_value(r1: &Register, r2: &Register, context: &mut InterpContext) -> anyhow::Result<Vec<StructConst>> {
+fn switch_value(r1: &Register, r2: &Register, context: &mut InterpContext, is_null_test: bool) -> anyhow::Result<Vec<StructConst>> {
     let registers = context.registers_mut();
     let switch_data = registers.get_strings(r1)?.to_vec();
     let contents_data = registers.get_strings(r2)?.to_vec();
@@ -51,15 +51,19 @@ fn switch_value(r1: &Register, r2: &Register, context: &mut InterpContext) -> an
     let config = request.track();
     let path = &switch_data.iter().map(|x| x.as_str()).collect::<Vec<_>>();
     Ok(if let Some(value) = config.value(&path) {
-        value_to_json(value,&contents_data).map_err(|e| err!(e))?
+        value_to_atom(value,&contents_data).map_err(|e| err!(e))?
     } else {
-        vec![]
+        if is_null_test && contents_data.len() == 0 {
+            vec![StructConst::Null]
+        } else {
+            vec![]
+        }
     })
 }
 
 impl InterpCommand for SwitchStringInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
-        let values = switch_value(&self.1,&self.2,context)?;
+        let values = switch_value(&self.1,&self.2,context,false)?;
         let mut out = vec![];
         for value in values {
             let v = match value {
@@ -78,7 +82,7 @@ impl InterpCommand for SwitchStringInterpCommand {
 
 impl InterpCommand for SwitchNumberInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
-        let values = switch_value(&self.1,&self.2,context)?;
+        let values = switch_value(&self.1,&self.2,context,false)?;
         let mut out = vec![];
         for value in values {
             let v = match value {
@@ -97,7 +101,7 @@ impl InterpCommand for SwitchNumberInterpCommand {
 
 impl InterpCommand for SwitchBooleanInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
-        let values = switch_value(&self.1,&self.2,context)?;
+        let values = switch_value(&self.1,&self.2,context,false)?;
         let mut out = vec![];
         for value in values {
             out.push(value.truthy());
@@ -110,7 +114,7 @@ impl InterpCommand for SwitchBooleanInterpCommand {
 
 impl InterpCommand for SwitchNullInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
-        let values = switch_value(&self.1,&self.2,context)?;
+        let values = switch_value(&self.1,&self.2,context,true)?;
         let mut out = vec![];
         for value in values {
             out.push(if let StructConst::Null = value { true } else { false });
