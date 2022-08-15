@@ -110,10 +110,10 @@ style("tracks/earth/",["min-height","priority","system"][],["90","10000000","win
 empty(spacebase(0,0,0),spacebase(0,1,90),use_allotment("tracks/earth/main"));
 
 stmt gene_track_styles() {
-    style("tracks/track/gene-other-rev/",["priority","report","min-height"][],["110","track;switch-id=gene-other-rev;has-labels=true;!transcripts-shown;!all-transcripts","92"][]);
-    style("tracks/track/gene-pc-rev/",["priority","report","min-height"][],["100","track;switch-id=gene-pc-rev;has-labels=true;!transcripts-shown;!all-transcripts","92"][]);
-    style("tracks/track/gene-other-fwd/",["priority","report","min-height"][],["-100","track;switch-id=gene-other-fwd;has-labels=true;!transcripts-shown;!all-transcripts","92"][]);
-    style("tracks/track/gene-pc-fwd/",["priority","report","min-height"][],["-110","track;switch-id=gene-pc-fwd;has-labels=true;!!transcripts-shown;!all-transcripts","92"][]);
+    style("tracks/track/gene-other-rev/",["priority","report","min-height"][],["110","track;switch-id=gene-other-rev;has-labels=true","92"][]);
+    style("tracks/track/gene-pc-rev/",["priority","report","min-height"][],["100","track;switch-id=gene-pc-rev;has-labels=true","92"][]);
+    style("tracks/track/gene-other-fwd/",["priority","report","min-height"][],["-100","track;switch-id=gene-other-fwd;has-labels=true","92"][]);
+    style("tracks/track/gene-pc-fwd/",["priority","report","min-height"][],["-110","track;switch-id=gene-pc-fwd;has-labels=true","92"][]);
     style("tracks/track/focus/",["priority","report","min-height"][],["-900","track;switch-id=focus;has-labels=true;!transcripts-shown;!all-transcripts","100"][]);
 }
 

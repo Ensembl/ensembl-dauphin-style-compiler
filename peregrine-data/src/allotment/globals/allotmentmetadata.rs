@@ -144,6 +144,13 @@ impl GlobalAllotmentMetadata {
                 }
             }
         }
+        /* add in any empty reports */
+        for (allotment,key) in &builder.0.reports {
+            if !values.contains_key(&(allotment.clone(),key.clone())) {
+                values.insert((allotment.clone(),key.clone()),JsonValue::Array(vec![]).to_string());
+            }
+        }
+        /* build */
         let mut hash = DefaultHasher::new();
         let mut keys = values.keys().cloned().collect::<Vec<_>>();
         keys.sort();
