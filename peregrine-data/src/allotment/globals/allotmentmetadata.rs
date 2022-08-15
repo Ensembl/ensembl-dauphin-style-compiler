@@ -6,7 +6,7 @@ use serde_json::{ Value as JsonValue, Map as JsonMap };
 
 struct AllotmentData {
     values: HashMap<(AllotmentName,String),Vec<StaticValue<(StructTemplate,Option<String>)>>>,
-    reports: Vec<AllotmentName>
+    reports: Vec<(AllotmentName,String)>
 }
 
 impl AllotmentData {
@@ -33,8 +33,10 @@ impl LocalAllotmentMetadataBuilder {
             .push(value);
     }
 
-    pub(crate) fn set_reporting(&mut self, allotment: &AllotmentName) {
-        self.0.reports.push(allotment.clone());
+    pub(crate) fn set_reporting(&mut self, allotment: &AllotmentName, keys: &[String]) {
+        for key in keys {
+            self.0.reports.push((allotment.clone(),key.clone()));
+        }
     }
 }
 
@@ -78,17 +80,18 @@ impl Hash for GlobalAllotmentMetadata {
     fn hash<H: Hasher>(&self, state: &mut H) { self.0.hash(state); }
 }
 
-struct MapToReporter(HashSet<AllotmentName>);
+struct MapToReporter(HashSet<(AllotmentName,String)>);
 
 impl MapToReporter {
-    fn new(reports: &[AllotmentName]) -> MapToReporter {
+    fn new(reports: &[(AllotmentName,String)]) -> MapToReporter {
         MapToReporter(HashSet::from_iter(reports.iter().cloned()))
     }
 
-    fn reporting_allotment(&self, input: &AllotmentName, via_boxes: bool) -> Option<AllotmentName> {
+    fn reporting_allotment(&self, input: &AllotmentName, key: &str, via_boxes: bool) -> Option<AllotmentName> {
         let mut part = AllotmentNamePart::new(input.clone());
         loop {
-            if self.0.contains(&AllotmentName::from_part(&part)) { // TODO inefficient
+            let key = key.to_string();
+            if self.0.contains(&(AllotmentName::from_part(&part),key)) { // TODO inefficient
                 return Some(AllotmentName::from_part(&part));
             }
             if let Some((_,new)) = part.pop() {
@@ -136,7 +139,7 @@ impl GlobalAllotmentMetadata {
         for ((allotment,key),value) in &builder.0.values {
             let input_values = value.iter().map(|x| x.call(answer)).collect::<Vec<_>>();
             if let Some((value,via_boxes)) = merge(&input_values) {
-                if let Some(reporting) = mapper.reporting_allotment(allotment,via_boxes) {
+                if let Some(reporting) = mapper.reporting_allotment(allotment,key,via_boxes) {
                     values.insert((reporting,key.to_string()),value.to_string());
                 }
             }

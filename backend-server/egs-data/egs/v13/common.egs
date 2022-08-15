@@ -110,11 +110,11 @@ style("tracks/earth/",["min-height","priority","system"][],["90","10000000","win
 empty(spacebase(0,0,0),spacebase(0,1,90),use_allotment("tracks/earth/main"));
 
 stmt gene_track_styles() {
-    style("tracks/track/gene-other-rev/",["priority","report","min-height"][],["110","track;switch-id=gene-other-rev;has-labels=true;!boxes","92"][]);
-    style("tracks/track/gene-pc-rev/",["priority","report","min-height"][],["100","track;switch-id=gene-pc-rev;has-labels=true;!boxes","92"][]);
-    style("tracks/track/gene-other-fwd/",["priority","report","min-height"][],["-100","track;switch-id=gene-other-fwd;has-labels=true;!boxes","92"][]);
-    style("tracks/track/gene-pc-fwd/",["priority","report","min-height"][],["-110","track;switch-id=gene-pc-fwd;has-labels=true;!boxes","92"][]);
-    style("tracks/track/focus/",["priority","report","min-height"][],["-900","track;switch-id=focus;has-labels=true;!boxes","100"][]);
+    style("tracks/track/gene-other-rev/",["priority","report","min-height"][],["110","track;switch-id=gene-other-rev;has-labels=true;!transcripts-shown;!all-transcripts","92"][]);
+    style("tracks/track/gene-pc-rev/",["priority","report","min-height"][],["100","track;switch-id=gene-pc-rev;has-labels=true;!transcripts-shown;!all-transcripts","92"][]);
+    style("tracks/track/gene-other-fwd/",["priority","report","min-height"][],["-100","track;switch-id=gene-other-fwd;has-labels=true;!transcripts-shown;!all-transcripts","92"][]);
+    style("tracks/track/gene-pc-fwd/",["priority","report","min-height"][],["-110","track;switch-id=gene-pc-fwd;has-labels=true;!!transcripts-shown;!all-transcripts","92"][]);
+    style("tracks/track/focus/",["priority","report","min-height"][],["-900","track;switch-id=focus;has-labels=true;!transcripts-shown;!all-transcripts","100"][]);
 }
 
 stmt report_id(id,rs_al_focus_bgd) {
@@ -126,7 +126,6 @@ stmt report_shown(rs_bool_show_tr,rs_transcript_id,rs_al_focus_bgd) {
     /* build list of shown focus tr from list of shown tr then turning off non-focus */
     values := rs_transcript_id#[rs_bool_show_tr];
     /* build payload */
-    tr_group := eoes_group();
     trans_patina2 := patina_metadata("transcripts-shown",values,eoes_string(values));
     rectangle(spacebase(len([values]) (*) 0,0,0),spacebase(len([values]) (*) 1,0,0),trans_patina2,rs_al_focus_bgd);
 }
@@ -137,7 +136,6 @@ stmt report_all(rs_transcript_id,rs_focus_id,rs_focus_gene,rs_gn_tr,rs_al_focus_
 
     /* HACK: send list of all focus tr (not currently used by chrome, but used in standalone) */
     all_ids := rs_transcript_id#[bool_focus_in_tr];
-    tr_group := eoes_group();
     trans_patina2 := patina_metadata("all-transcripts",all_ids,eoes_string(all_ids));
     rectangle(spacebase(len([all_ids]) (*) 0,0,0),spacebase(len([all_ids]) (*) 1,0,0),trans_patina2,rs_al_focus_bgd);
 }

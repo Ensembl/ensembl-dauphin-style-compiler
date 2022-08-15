@@ -1,5 +1,5 @@
 use std::{sync::Arc, collections::HashMap};
-use peregrine_toolkit::{puzzle::constant, eachorevery::{EachOrEvery, eoestruct::StructTemplate}, log};
+use peregrine_toolkit::{puzzle::constant, eachorevery::{EachOrEvery, eoestruct::StructTemplate}};
 
 use crate::{allotment::{core::allotmentname::AllotmentName, globals::allotmentmetadata::LocalAllotmentMetadataBuilder}, Shape, Patina, LeafRequest};
 use super::shape::UnplacedShape;
@@ -86,16 +86,16 @@ impl AbstractMetadata {
     }
 }
 
-fn parse_report_value(input: &str) -> (Arc<HashMap<String,String>>,bool) {
+fn parse_report_value(input: &str) -> (Arc<HashMap<String,String>>,Vec<String>) {
     let parts = input.split(";").collect::<Vec<_>>();
     let mut values = HashMap::new();
-    let mut reports = false;
-    for item in &parts {
+    let mut reports = vec![];
+    for item in parts {
         if let Some(eq_at) = item.find("=") {
             let (k,v) = item.split_at(eq_at);
             values.insert(k.to_string(),v[1..].to_string());
-        } else if *item == "!boxes" {
-            reports = true;
+        } else if item.starts_with("!") {
+            reports.push(item[1..].to_string());
         } else {
             values.insert("type".to_string(),item.to_string());
         }
@@ -107,7 +107,7 @@ fn parse_report_value(input: &str) -> (Arc<HashMap<String,String>>,bool) {
 #[derive(Clone)]
 pub(crate) struct MetadataStyle {
     values: Arc<HashMap<String,String>>,
-    report: bool
+    report: Vec<String>
 }
 
 impl MetadataStyle {
@@ -120,5 +120,5 @@ impl MetadataStyle {
         self.values.iter()
     }
 
-    pub(crate) fn reporting(&self) -> bool { self.report }
+    pub(crate) fn reporting(&self) -> &[String] { &self.report }
 }

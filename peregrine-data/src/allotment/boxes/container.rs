@@ -44,9 +44,7 @@ fn add_report(metadata: &mut LocalAllotmentMetadataBuilder, name: &AllotmentName
         let value = constant(StructTemplate::new_string(value.to_string()));
         metadata.set(name,key,value,None);
     }
-    if in_values.reporting() {
-        metadata.set_reporting(name);
-    }
+    metadata.set_reporting(name,in_values.reporting());
 }
 
 impl Container {
