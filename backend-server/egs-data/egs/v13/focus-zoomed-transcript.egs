@@ -39,18 +39,30 @@ import "file:common.egs"; use "common";
 
 no_letters := switch_yn(["scale","no-letters"]);
 
-/* 
- * actually get the data from the server
- */
+/* get data */
 
-focus_gene1 := list_switch(["focus","gene"]);
-focus_gene2 := switch_string(["track","focus","item","gene"][],[][]);
-focus_gene := [focus_gene1,focus_gene2][@==0];
+focus_genome_id := switch_string(["track","focus","item","gene"][],["genome_id"][]);
+focus_gene_id := switch_string(["track","focus","item","gene"][],["item_id"][]);
 
-req := make_request("self()","zoomed-transcript",get_region());
-req := request_scope(req,"id",focus_gene);
+/* Get the region the focus object is inside */
+
+req2 := make_request("self()","gene-location",get_region());
+req2 := request_scope(req2,"id",focus_gene_id);
+req2 := request_scope(req2,"genome",focus_genome_id);
+focus_data := get_data(req2);
+
+focus_range := [positive_seq(focus_data,"location")];
+focus_stick := string_seq(focus_data,"stick");
+
+region := make_region(focus_stick,focus_range[@==0],focus_range[@==1]);
+
+/* Get the data for that region */
+
+req := make_request("self()","zoomed-transcript",region);
+req := request_scope(req,"id",focus_gene_id);
+req := request_scope(req,"genome",focus_genome_id);
 data := get_data(req);
-halt(only_warm(),[data]);
+halt(only_warm(),[data,focus_data]);
 
 bp := [bp_range()];
 
@@ -165,16 +177,12 @@ which_tr_by_thex := which_tr_by_ex#[thick_exons];
  * Allotments
  */
 
-focus_gene1 := list_switch(["focus","gene"]);
-focus_gene2 := switch_string(["track","focus","item","gene"][],[][]);
-focus_gene := [focus_gene1,focus_gene2][@==0];
+focus_start := start_gn#[focus_id==focus_gene_id];
+focus_end := end_gn#[focus_id==focus_gene_id];
 
-focus_start := start_gn#[focus_id==focus_gene];
-focus_end := end_gn#[focus_id==focus_gene];
+calc_focus_transcripts_shown(bool_show_tr,id_tr,which_gn_by_tr,focus_id,focus_gene_id,idx_tr_in_gn);
 
-calc_focus_transcripts_shown(bool_show_tr,id_tr,which_gn_by_tr,focus_id,focus_gene,idx_tr_in_gn);
-
-base_allotment := append_group("tracks/track/focus/main/main",focus_gene);
+base_allotment := append_group("tracks/track/focus/main/main",focus_gene_id);
 
 allotment_label := "";
 allotment_label#[focus_enabled_track] := "tracks/track/focus/title/content";
@@ -191,10 +199,10 @@ al_farover_by_tr := len([id_tr]) (*) "";
 al_farover_by_tr#[bool_show_tr] := append_group(base_allotment,"diagram/far-over");
 
 al_under_by_gn := len([gene_id]) (*) "";
-al_under_by_gn#[focus_id==focus_gene] := append_group(base_allotment,"diagram/under");
+al_under_by_gn#[focus_id==focus_gene_id] := append_group(base_allotment,"diagram/under");
 
 al_farunder_by_gn := len([gene_id]) (*) "";
-al_farunder_by_gn#[focus_id==focus_gene] := append_group(base_allotment,"diagram/far-under");
+al_farunder_by_gn#[focus_id==focus_gene_id] := append_group(base_allotment,"diagram/far-under");
 
 al_farunder_by_tr := len([id_tr]) (*) "";
 al_farunder_by_tr#[bool_show_tr] := append_group(base_allotment,"diagram/far-under");
@@ -203,10 +211,10 @@ al_under_by_tr := len([id_tr]) (*) "";
 al_under_by_tr#[bool_show_tr] := append_group(base_allotment,"diagram/under");
 
 al_text_by_gn := len([gene_id]) (*) "";
-al_text_by_gn#[focus_id==focus_gene] := append_group(base_allotment,"text");
+al_text_by_gn#[focus_id==focus_gene_id] := append_group(base_allotment,"text");
 
 al_label_by_gn := len([gene_id]) (*) "";
-al_label_by_gn#[focus_id==focus_gene] := append_group(base_allotment,"text");
+al_label_by_gn#[focus_id==focus_gene_id] := append_group(base_allotment,"text");
 
 al_trtext_by_gn := al_text_by_gn;
 al_trtext_by_tr := index(which_gn_by_tr,[al_text_by_gn]);
@@ -507,15 +515,15 @@ red_dotted(focus_start,focus_end,dots_allotment,comma_format(focus_start),comma_
 
 /* report transcripts shown */
 report_shown(bool_show_tr,id_tr,use_allotment("tracks/track/focus"));
-report_id(focus_gene,use_allotment("tracks/track/focus"));
-report_all(id_tr,focus_id,focus_gene,which_gn_by_tr,use_allotment("tracks/track/focus"));
+report_id(focus_gene_id,use_allotment("tracks/track/focus"));
+report_all(id_tr,focus_id,focus_gene_id,which_gn_by_tr,use_allotment("tracks/track/focus"));
 
 /* track name */
 
-focus_label := [concat(concat(gene_name#[focus_gene==focus_id]," "),focus_gene),""];
+focus_label := [concat(concat(gene_name#[focus_gene_id==focus_id]," "),focus_gene_id),""];
 focus_label := focus_label[@==0];
 draw_track_name(focus_label,["track","focus","name"],allotment_label);
 
 /* chevrons */
-focus_strand := strand#[focus_id==focus_gene];
+focus_strand := strand#[focus_id==focus_gene_id];
 draw_image(spacebase(0,0,24),["chevron-dark-left","chevron-dark-right"][@==focus_strand],allotment_letter);

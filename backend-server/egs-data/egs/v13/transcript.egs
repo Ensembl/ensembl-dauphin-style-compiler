@@ -205,11 +205,10 @@ tk_by_gn := len([gene_id]) (*) 0;
 tk_by_gn#[strand>0] (+=) 2;
 tk_by_gn#[in(gene_biotype,["protein_coding"])] (+=) 1;
 
-focus_gene1 := list_switch(["focus","gene"]);
-focus_gene2 := switch_string(["track","focus","item","gene"][],[][]);
-focus_gene := [focus_gene1,focus_gene2][@==0];
+focus_genome_id := switch_string(["track","focus","item","gene"][],["genome_id"][]);
+focus_gene_id := switch_string(["track","focus","item","gene"][],["item_id"][]);
 
-tk_by_gn#[focus_id==focus_gene] := 4;
+tk_by_gn#[focus_id==focus_gene_id] := 4;
 
 allotment_colour_idx := [tk_by_gn][true];
 
@@ -483,13 +482,11 @@ button_colour := len([start_gn]) (*) blue_colour;
 button_colour#[in(gene_id,[expanded_genes])] := green_colour;
 button_patina := patina_filled(button_colour);
 
-// DISABLED FOR 0.4.1
-//text2(blue_top_left,textpen_lozenge," + ",button_allotment);
+text2(blue_top_left,textpen_lozenge," + ",button_allotment);
 
 sense := len([expand_switches]) (*) true;
 sense#[in(gene_id,[expanded_genes])] := false;
 
 blue_hotspot_patina := patina_switch(expand_switches,sense);
 
-// DISABLED FOR 0.4.1
-//rectangle(blue_top_left,blue_bottom_right,blue_hotspot_patina,button_allotment);
+rectangle(blue_top_left,blue_bottom_right,blue_hotspot_patina,button_allotment);
