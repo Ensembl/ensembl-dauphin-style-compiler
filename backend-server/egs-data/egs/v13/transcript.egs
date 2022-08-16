@@ -471,19 +471,18 @@ draw_gene_track_names(al_label_by_tk);
 /* track category */
 draw_track_category("G",allotments_letter);
 
-/* blue button */
+/* lozenges */
+
+draw_lozenges(start_gn,num_drawn_tr_gn,gene_id,expanded_genes,button_allotment);
+
+/*
+
 blue_top_left := spacebase(start_gn,num_drawn_tr_gn*20+6,0);
 blue_bottom_right := spacebase(start_gn,num_drawn_tr_gn*20+32,32);
 blue_colour := simple_colour(direct_colour(239,154,52,255));
-green_colour := simple_colour(direct_colour(154,239,52,255));
-
-button_colour := len([start_gn]) (*) blue_colour;
-button_colour#[in(gene_id,[expanded_genes])] := green_colour;
-button_patina := patina_filled(button_colour);
 
 button_text := len([start_gn]) (*) " + ";
 button_text#[in(gene_id,[expanded_genes])] := " – ";
-notice(format([button_text]));
 
 textpen_lozenge := pen("'IBM Plex Mono', sans-serif",text_size*1.2,white_text_colour,blue_text_bgd);
 text2(blue_top_left,textpen_lozenge,button_text,button_allotment);
@@ -494,3 +493,5 @@ sense#[in(gene_id,[expanded_genes])] := false;
 blue_hotspot_patina := patina_switch(expand_switches,sense);
 
 rectangle(blue_top_left,blue_bottom_right,blue_hotspot_patina,button_allotment);
+
+*/

@@ -385,6 +385,9 @@ al_dots := use_allotment(["","dots/content"][(@==1)==(switch_yn(["track","focus"
 red_dotted(start_focus,end_focus,al_dots,comma_format(start_focus),comma_format(end_focus));
 
 /* blue button */
+draw_lozenges(start_gn,num_drawn_tr_gn,gene_id,expanded_genes,al_button);
+
+/*
 blue_top_left := spacebase(start_gn,num_drawn_tr_gn*20+6,0);
 blue_bottom_right := spacebase(start_gn,num_drawn_tr_gn*20+32,32);
 blue_colour := simple_colour(direct_colour(239,154,52,255));
@@ -404,6 +407,7 @@ blue_hotspot_patina := patina_switch(expand_switches,sense);
 
 // DISABLED FOR 0.4.2
 //rectangle(blue_top_left,blue_bottom_right,blue_hotspot_patina,al_button);
+*/
 
 /* report transcripts shown */
 report_shown(bool_show_tr,id_tr,use_allotment("tracks/track/focus/main/background/content"));
