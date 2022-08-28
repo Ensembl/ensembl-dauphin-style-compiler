@@ -1,35 +1,16 @@
-import collections
 import sys,os
 
 # to allow tests in this file desipte relative imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from tanglers import ClassifiedTangler, ConditionFilter, FirstFilter, IntervalTangler, NumberTangler, StringTangler
+from library.filters import FirstFilter
+from library.atomics import StringTangler, NumberTangler
+from library.classified import ClassifiedTangler
+from library.interval import IntervalTangler
+from library.sources import GetSourceType, AttrSourceType
 
 class TangleException(Exception):
     pass
-
-class AttrSource:
-    def __init__(self, key):
-        self._key = key
-
-    def get(self, row):
-        return getattr(row,self._key)
-
-class AttrSourceType:
-    def make(self, key, _conf):
-        return AttrSource(key)
-
-class GetSource:
-    def __init__(self, key):
-        self._key = key
-
-    def get(self, row):
-        return row.get(self._key,None)
-
-class GetSourceType:
-    def make(self, key, _conf):
-        return GetSource(key)
 
 class Config:
     def __init__(self,config,conditions):
@@ -62,7 +43,6 @@ class TangleFactory:
         self.register_tangler(NumberTangler())
         self.register_source_type("get",GetSourceType())
         self.register_source_type("getattr",AttrSourceType())
-        self.register_filter(ConditionFilter())
         self.register_filter(FirstFilter())
 
     def _make_filters(self, name, config):
@@ -114,6 +94,10 @@ class TangleFactory:
         config = Config(config,conditions)
         tanglings = {}
         for name in config.tangles:
+            condition = config.tangles[name].get("condition")
+            if condition is not None:
+                if condition not in conditions:
+                    continue
             input_key = config.tangles[name].get("input","default")
             if input_key not in tanglings:
                 input = config.inputs.get(input_key,{})
