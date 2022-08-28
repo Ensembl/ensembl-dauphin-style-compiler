@@ -1,0 +1,63 @@
+[input.default]
+default_source_type = "getattr"
+name = "tr_bigbed"
+
+[tangle.transcript_ids]
+string = "transcript_id"
+condition = "exon"
+
+[tangle.transcript_designation]
+classify = "transcript_designation"
+condition = "exon"
+
+[tangle.transcript_sizes]
+start = "transcript_start"
+end = "transcript_end"
+condition = "exon"
+
+[tangle.transcript_biotypes]
+classify = "transcript_biotype"
+condition = "exon"
+
+[tangle.transcript_exon_counts]
+number = "block_starts"
+condition = "exon"
+
+[tangle.thicks]
+start = "thick_start"
+end = "thick_end"
+condition = "exon"
+
+[tangle.transcript_exon]
+start = "block_starts"
+length = "block_sizes"
+delta = "transcript_start"
+condition = "exon"
+
+[tangle.sizes]
+name = ""
+start = "gene_start"
+end = "gene_end"
+first = "gene_id"
+
+[tangle.gene_names]
+string = ["gene_name","gene_id"]
+first = "gene_id"
+
+[tangle.gene_descs]
+string = "gene_description"
+first = "gene_id"
+
+[tangle.gene_ids]
+string = "gene_id"
+first = "gene_id"
+
+[tangle.gene_biotypes]
+classify = "gene_biotypes"
+first = "gene_id"
+
+[tangle.designated_transcript_biotypes]
+classify = "designated_transcript_biotypes"
+
+[tangle.designated_transcript_designations]
+classify = "designated_transcript_designations"
