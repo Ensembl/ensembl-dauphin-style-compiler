@@ -1,4 +1,6 @@
-import sys,os
+import json
+import sys, os, toml
+import unittest
 
 # to allow tests in this file desipte relative imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -111,6 +113,9 @@ class TangleFactory:
             tanglings[input_key][1].append((tangling,filters))
         return Tangle(tanglings.values())
 
+    def make_from_toml(self, config, conditions=[]):
+        return self.make_from_config(toml.loads(config),conditions)
+
 class Tangle:
     def __init__(self, tanglings):
         self._tanglings = tanglings
@@ -130,124 +135,19 @@ class Tangle:
                 tangle.finish(out,state)
         return out
 
+def test_data(filename):
+    with open(os.path.join(os.path.dirname(__file__),"testdata",filename),"r") as f:
+        return f.read()
+
+class TangleTestCase(unittest.TestCase):
+    def test_smoke(self):
+        tangle_factory = TangleFactory()
+        test_config = test_data("smoke-config.toml")
+        data_in = json.loads(test_data("smoke-in.json"))
+        data_out = json.loads(test_data("smoke-out.json"))
+        tangle = tangle_factory.make_from_toml(test_config,["on"])
+        out = tangle.run(data_in)
+        self.assertEqual(out,data_out)
+
 if __name__ == '__main__':
-    tangle_factory = TangleFactory()
-    tangle = tangle_factory.make_from_config({
-        'input': {
-            'default': {
-                'default_source_type': 'get',
-                'name': 'test'
-            }
-        },
-        'tangle': {
-            'string_dest': {
-                'string': 'string_src',
-                'uncompressed': True
-            },
-            'stringlist_dest': {
-                "name": 'stringlist',
-                'string': 'stringlist_src',
-                'uncompressed': True
-            },
-            'classified': {
-                "name": "class",
-                "keys_name": "class_key",
-                "classify": "classified_src",
-                'uncompressed': True
-            },
-            'interval': {
-                "name": "interval",
-                "start": "interval_start",
-                "end": "interval_end",
-                'uncompressed': True
-            },
-            'interval2': {
-                "name": "interval2",
-                "start": "interval2_start",
-                "length": "interval2_length",
-                'uncompressed': True
-            },
-            'number': {
-                "number": "number",
-                'uncompressed': True
-            },
-            'number2': {
-                "number": "number2",
-                'delta': True,
-                'uncompressed': True
-            },
-            'condition_on': {
-                "number": "condition_on",
-                'condition': 'on',
-                'positive': True,
-                'uncompressed': True
-            },
-            'condition_off': {
-                "number": "condition_off",
-                'condition': 'off',
-                'positive': True,
-                'uncompressed': True
-            },
-            'first': {
-                "number": "number",
-                "first": "first",
-                'positive': True,
-                'uncompressed': True
-            },
-            'delegate': {
-                'string': ['delegate1','delegate2'],
-                'uncompressed': True
-            }
-        }
-    },["on"])
-    out = tangle.run({
-        'test': [
-            {
-                'string_src': 'hello',
-                'stringlist_src': [1,2,3],
-                'classified_src': ['a','b','c','b','a','d','b'],
-                'interval_start': 100,
-                'interval_end': 110,
-                'interval2_start': [100,200],
-                'interval2_length': [20,21],
-                'number': 10,
-                'number2': 10,
-                'condition_on': 1,
-                'condition_off': 2,
-                'first': 'A',
-                'delegate1': 'A',
-                'delegate2': 'X',
-            },
-            {
-                'string_src': 'world',
-                'stringlist_src': ['a','b','c'],
-                'classified_src': 'd',
-                'interval_start': 200,
-                'interval_end': 210,
-                'interval2_start': [300,400],
-                'interval2_length': [10,11],
-                'number': 11,
-                'number2': 11,
-                'condition_on': 1,
-                'condition_off': 2,
-                'first': 'B',
-                'delegate1': 'B',
-            },
-            {
-                'string_src': 'world',
-                'stringlist_src': ['a','b','c'],
-                'classified_src': 'd',
-                'interval_start': 200,
-                'interval_end': 210,
-                'interval2_start': [300,400],
-                'interval2_length': [10,11],
-                'number': 12,
-                'number2': 12,
-                'condition_on': 1,
-                'condition_off': 2,
-                'first': 'A',
-                'delegate2': 'C',
-            }
-        ]
-    })
-    print(out)
+    unittest.main()

@@ -1,0 +1,15 @@
+{
+    "string_dest": ["hello", "world", "world"], 
+    "stringlist": ["1", "2", "3", "a", "b", "c", "a", "b", "c"], 
+    "class_key": ["a", "b", "c", "d"], 
+    "class_values": [0, 1, 2, 1, 0, 3, 1, 3, 3],
+    "interval_starts": [200, 200, 0],
+    "interval_lengths": [20, 0, 0],
+    "interval2_starts": [200, 200, 200, 200, 199, 200], 
+    "interval2_lengths": [40, 2, 21, 2, 1, 2], 
+    "number": [20, 22, 24], 
+    "number2": [20, 2, 2], 
+    "condition_on": [2, 2, 2], 
+    "first": [10, 11], 
+    "delegate": ["A", "B", "C"]
+}

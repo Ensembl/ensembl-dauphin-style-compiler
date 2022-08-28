@@ -1,0 +1,50 @@
+{
+    "test": [
+        {
+            "string_src": "hello",
+            "stringlist_src": [1,2,3],
+            "classified_src": ["a","b","c","b","a","d","b"],
+            "interval_start": 100,
+            "interval_end": 110,
+            "interval2_start": [100,200],
+            "interval2_length": [20,21],
+            "number": 10,
+            "number2": 10,
+            "condition_on": 1,
+            "condition_off": 2,
+            "first": "A",
+            "delegate1": "A",
+            "delegate2": "X"
+        },
+        {
+            "string_src": "world",
+            "stringlist_src": ["a","b","c"],
+            "classified_src": "d",
+            "interval_start": 200,
+            "interval_end": 210,
+            "interval2_start": [300,400],
+            "interval2_length": [10,11],
+            "number": 11,
+            "number2": 11,
+            "condition_on": 1,
+            "condition_off": 2,
+            "first": "B",
+            "delegate1": "B"
+        },
+        {
+            "string_src": "world",
+            "stringlist_src": ["a","b","c"],
+            "classified_src": "d",
+            "interval_start": 200,
+            "interval_end": 210,
+            "interval2_start": [300,400],
+            "interval2_length": [10,11],
+            "number": 12,
+            "number2": 12,
+            "condition_on": 1,
+            "condition_off": 2,
+            "first": "A",
+            "delegate2": "C"
+        }
+    ]
+}

@@ -1,0 +1,60 @@
+[input.default]
+default_source_type = "get"
+name = "test"
+
+[tangle.string_dest]
+string = "string_src"
+uncompressed = true
+
+[tangle.stringlist_dest]
+name = "stringlist"
+string = "stringlist_src"
+uncompressed = true
+
+[tangle.classified]
+name = "class"
+keys_name = "class_key"
+classify = "classified_src"
+uncompressed = true
+
+[tangle.interval]
+name = "interval"
+start = "interval_start"
+end = "interval_end"
+uncompressed = true
+
+[tangle.interval2]
+name = "interval2"
+start = "interval2_start"
+length = "interval2_length"
+uncompressed = true
+
+[tangle.number]
+number = "number"
+uncompressed = true
+
+[tangle.number2]
+number = "number2"
+delta = true
+uncompressed = true
+
+[tangle.condition_on]
+number = "condition_on"
+condition = "on"
+uncompressed = true
+
+[tangle.condition_off]
+number = "condition_off"
+condition = "off"
+positive = true
+uncompressed = true
+
+[tangle.first]
+number = "number"
+first = "first"
+positive = true
+uncompressed = true
+
+[tangle.delegate]
+string = ["delegate1","delegate2"]
+uncompressed = true
