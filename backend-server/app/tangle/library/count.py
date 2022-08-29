@@ -14,9 +14,9 @@ class CountTangling(Tangling):
     def _add(self, state,value):
         state.append(len(value))
 
-    def finish(self, out, state):
+    def finish(self, out, state, run_config):
         state = zigzag(delta(state))
-        self._emit_number(out,'name',state)
+        self._emit_number(out,run_config,'name',state)
 
 class CountTangler(Tangler):
     def __init__(self):
@@ -40,10 +40,10 @@ class GroupCountTangling(Tangling):
             state[1].append(value)
         state[0][value] += 1
 
-    def finish(self, out, state):
+    def finish(self, out, state, run_config):
         values = [ state[0][x] for x in state[1] ]
         state = zigzag(delta(values))
-        self._emit_number(out,'name',state)
+        self._emit_number(out,run_config,'name',state)
 
 class GroupCountTangler(Tangler):
     def __init__(self):

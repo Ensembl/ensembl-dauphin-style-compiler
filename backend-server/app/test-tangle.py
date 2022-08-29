@@ -23,7 +23,7 @@ class TangleTestCase(unittest.TestCase):
         data_out = json.loads(test_data("smoke-out.json"))
         tangle = tangle_factory.make_from_toml(test_config,["on"],Processor())
         out = {}
-        tangle.run(out,data_in)
+        tangle.run(out,data_in,to_bytes=False,compress=False)
         self.assertEqual(out,data_out)
 
 if __name__ == '__main__':

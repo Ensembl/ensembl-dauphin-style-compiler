@@ -20,9 +20,9 @@ class ClassifiedTangling(Tangling):
             state[1].append(value)
         state[2].append(index)
 
-    def finish(self, out, state):
-        self._emit_strings(out,'keys_name',state[1])
-        self._emit_number(out,'values_name',state[2])
+    def finish(self, out, state, run_config):
+        self._emit_strings(out,run_config,'keys_name',state[1])
+        self._emit_number(out,run_config,'values_name',state[2])
 
 class ClassifiedTangler(Tangler):
     def __init__(self):

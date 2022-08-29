@@ -10,7 +10,7 @@ class FirstFiltering:
     def create(self):
         return set()
 
-    def check(self, row, state):
+    def check(self, row, state, _run_config):
         values = [x.row(row) for x in self._source]
         new = all([x not in state for x in values])
         state |= set(values)

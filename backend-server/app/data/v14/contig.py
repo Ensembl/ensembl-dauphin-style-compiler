@@ -84,17 +84,6 @@ def shimmer(positions: List[Tuple[int]], sense: List[bool], start: int, end: int
 
 
 def get_contig(data_accessor: DataAccessor, chrom: Chromosome, panel: Panel, do_shimmer: bool) -> Response:
-    """
-
-    Args:
-        data_accessor (object):
-        chrom (object):
-        panel (object):
-        do_shimmer (bool):
-
-    Returns:
-        Response object
-    """
     item = chrom.item_path("contigs")
     data = get_bigbed(data_accessor, item, panel.start, panel.end)
     positions = []
@@ -113,7 +102,7 @@ def get_contig(data_accessor: DataAccessor, chrom: Chromosome, panel: Panel, do_
     return Response(5, {'data': out})
 
 
-class ContigDataHandler(DataHandler):
+class ContigDataHandler2(DataHandler):
     def process_data(self, data_accessor: DataAccessor, panel: Panel, scope) -> Response:
         """
 
@@ -130,7 +119,7 @@ class ContigDataHandler(DataHandler):
             return Response(1,"Unknown chromosome {0}".format(panel.stick))
         return get_contig(data_accessor,chrom,panel,False)
 
-class ShimmerContigDataHandler(DataHandler):
+class ShimmerContigDataHandler2(DataHandler):
     def process_data(self, data_accessor: DataAccessor, panel: Panel, scope) -> Response:
         """
 

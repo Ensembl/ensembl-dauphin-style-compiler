@@ -8,7 +8,7 @@ from model.bigbed import get_bigbed
 from model.chromosome import Chromosome
 from model.transcriptfile import TranscriptFileLine
 from ..numbers import lesqlite2, compress
-from ..sequence8 import sequence_blocks8
+from ..sequence import sequence_blocks8
 from .transcriptorder import sort_data_by_transcript_priority
 from .transcriptfilter import filter_lines_by_criteria
 from model.datalocator import AccessItem
@@ -70,7 +70,7 @@ def for_id(scope):
     else:
         return None
 
-class TranscriptDataHandler8(DataHandler):
+class TranscriptDataHandler(DataHandler):
     def __init__(self, seq: bool):
         self._seq = seq
 
@@ -80,14 +80,14 @@ class TranscriptDataHandler8(DataHandler):
             return Response(1,"Unknown chromosome {0}".format(panel.stick))
         return extract_gene_data(data_accessor,chrom,panel,True,self._seq,for_id(scope))
 
-class GeneDataHandler8(DataHandler):
+class GeneDataHandler(DataHandler):
     def process_data(self, data_accessor: DataAccessor, panel: Panel, scope) -> Response:
         chrom = data_accessor.data_model.stick(data_accessor,panel.stick)
         if chrom == None:
             return Response(1,"Unknown chromosome {0}".format(panel.stick))
         return extract_gene_data(data_accessor,chrom,panel,False,False,for_id(scope))
 
-class GeneOverviewDataHandler8(DataHandler):
+class GeneOverviewDataHandler(DataHandler):
     def process_data(self, data_accessor: DataAccessor, panel: Panel,scope) -> Response:
         chrom = data_accessor.data_model.stick(data_accessor,panel.stick)
         if chrom == None:

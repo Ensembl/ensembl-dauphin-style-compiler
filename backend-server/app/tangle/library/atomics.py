@@ -8,8 +8,8 @@ class StringTangling(AtomicTangling):
     def __init__(self, config, our_config):
         super().__init__(config,our_config,"string",str)
 
-    def finish(self, out, state):
-        self._emit_strings(out,'name',state)
+    def finish(self, out, state, run_config):
+        self._emit_strings(out,run_config,'name',state)
 
 class StringTangler(Tangler):
     def __init__(self):
@@ -26,12 +26,12 @@ class NumberTangling(AtomicTangling):
         self._delta = our_config["delta"]
         self._positive = our_config["positive"]
 
-    def finish(self, out, state):
+    def finish(self, out, state, run_config):
         if self._delta:
             state = delta(state)
         if not self._positive:
             state = zigzag(state)
-        self._emit_number(out,'name',state)
+        self._emit_number(out,run_config,'name',state)
 
 class NumberTangler(Tangler):
     def __init__(self):

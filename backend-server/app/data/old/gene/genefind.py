@@ -1,19 +1,10 @@
-import os.path
-import collections
-import logging
-from typing import Dict, List, Optional
 from command.coremodel import DataHandler, Panel, DataAccessor
 from command.response import Response
 from model.bigbed import get_bigbed
-from model.chromosome import Chromosome
 from model.transcriptfile import TranscriptFileLine
 from ..numbers import lesqlite2, compress
-from ..sequence8 import sequence_blocks8
-from .transcriptorder import sort_data_by_transcript_priority
-from .transcriptfilter import filter_lines_by_criteria
 from .genedata import extract_gene_overview_data
 from model.datalocator import AccessItem
-from tangle.tangle import TangleFactory
 from ncd import NCDRead
 
 def _get_approx_location(data_accessor: DataAccessor, genome: str, id):

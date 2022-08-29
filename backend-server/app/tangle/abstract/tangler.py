@@ -8,7 +8,6 @@ class TanglerConfigBuilder(ConfigBuilder):
     def make(self, factory, config, name, input):
         our_config = config.tangles[name]
         out = super().make(factory,config,our_config,input)
-        out["uncompressed"] = our_config.get("uncompressed",False)
         name = our_config.get("name",name)
         out["name"] = name
         if name != '':

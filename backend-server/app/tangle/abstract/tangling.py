@@ -3,25 +3,26 @@ from .getter import Getter
 
 class Tangling:
     def __init__(self, our_config, getter):
-        self._uncompressed = our_config["uncompressed"]
         self._config = our_config
         self._getter = getter
 
-    def _emit_strings(self,out,key,value):
+    def _emit_strings(self,out,run_config,key,value):
         name = self._config[key]
-        if self._uncompressed:
-            out[name] = value
-        else:
-            out[name] = compress("\0".join(value))
+        if run_config.to_bytes:
+            value = "\0".join(value)
+        if run_config.compress:
+            value = compress(value)
+        out[name] = value
 
-    def _emit_number(self,out,key,value):
+    def _emit_number(self,out,run_config,key,value):
         name = self._config[key]
-        if self._uncompressed:
-            out[name] = value
-        else:
-            out[name] = compress(lesqlite2(value))
+        if run_config.to_bytes:
+            value = lesqlite2(value)
+        if run_config.compress:
+            value = compress(value)
+        out[name] = value
 
-    def row(self, row, state):
+    def row(self, row, state, _run_config):
         self._getter.get(row,state)
 
 class AtomicTangling(Tangling):

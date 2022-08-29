@@ -1,0 +1,47 @@
+import "lib:std"; use "std";
+import "lib:peregrine"; use "peregrine";
+import "file:common.egs"; use "common";
+
+req := make_request("self()","variant",get_region());
+data := get_data(req);
+halt(only_warm(),[data]);
+
+values := delta_seq(data,"values");
+x_range := [positive_seq(data,"range")];
+
+allotment := use_allotment("tracks/track/variant/main/main/content");
+allotment_track_name := use_allotment("tracks/track/variant/title/content");
+allotment_letter := use_allotment("tracks/track/variant/main/letter/content");
+
+style("tracks/track/variant/",["priority","report"][],["1000","track;switch-id=variant"][]);
+
+colours := [
+    simple_colour(direct_colour(255,255,255,255)), // white = 0
+    simple_colour(direct_colour(67,134,147,255)),  // petrol = 1
+    simple_colour(direct_colour(165,213,207,255)), // duck-egg = 2
+    simple_colour(direct_colour(157,243,95,255)),  // green = 3
+    simple_colour(direct_colour(236,202,98,255)),  // orange = 4
+    simple_colour(direct_colour(216,47,36,255)),   // red = 5
+];
+
+start := x_range[@==0];
+end := x_range[@==1];
+step := x_range[@==2] / 1000;
+
+r_start := run(len([values])) * step + start;
+r_end := r_start + step;
+
+filter := (values==0)==false;
+r_start := r_start#[filter];
+r_end := r_end#[filter];
+values := values#[filter];
+
+patina := patina_filled(index(values,colours));
+
+rectangle(spacebase(r_start,0,-1),spacebase(r_end,5,1),patina,allotment);
+
+/* track names */
+draw_track_name("1000 Genomes all SNPs & indels",["track","variant","name"],allotment_track_name);
+
+/* track category */
+draw_track_category("V",[allotment_letter]);

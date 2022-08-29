@@ -28,9 +28,9 @@ class IntervalTangling(Tangling):
         state[0].append(start)
         state[1].append(length)
 
-    def finish(self, out, state):
-        self._emit_number(out,'starts_name',zigzag(delta(state[0])))
-        self._emit_number(out,'lengths_name',zigzag(delta(state[1])))
+    def finish(self, out, state, run_config):
+        self._emit_number(out,run_config,'starts_name',zigzag(delta(state[0])))
+        self._emit_number(out,run_config,'lengths_name',zigzag(delta(state[1])))
 
 class IntervalTangler(Tangler):
     def __init__(self):
@@ -46,6 +46,7 @@ class IntervalTangler(Tangler):
                 ("end",True),
                 ("delta",True,None),                
                 ('process',False,None),
+                ("store_end",False,False)
             ],["starts","lengths"])
         ])
 

@@ -7,28 +7,47 @@ import time
 from .coremodel import Handler, Panel
 from .response import Response
 from .datasources import DataAccessor
-from data.gene.genedata import GeneDataHandler8, GeneOverviewDataHandler8, TranscriptDataHandler8
-from data.gene.genefind import GeneLocationHandler8
-from data.gc import WiggleDataHandler
-from data.variant import VariantDataHandler
-from data.sequence8 import ZoomedSeqDataHandler8
-from data.contig import ContigDataHandler, ShimmerContigDataHandler
+
+from data.old.gene.genedata import GeneDataHandler8, GeneOverviewDataHandler8, TranscriptDataHandler8
+from data.old.gene.genefind import GeneLocationHandler8
+from data.old.wiggle.gc import WiggleDataHandler
+from data.old.variant import VariantDataHandler
+from data.old.sequence8 import ZoomedSeqDataHandler8
+from data.old.contig import ContigDataHandler, ShimmerContigDataHandler
+
+from data.v14.gene.genedata import GeneDataHandler, GeneOverviewDataHandler, TranscriptDataHandler
+from data.v14.gene.genefind import GeneLocationHandler
+from data.v14.wiggle.gc import WiggleDataHandler2
+from data.v14.variant import VariantDataHandler2
+from data.v14.sequence import ZoomedSeqDataHandler
+from data.v14.contig import ContigDataHandler2, ShimmerContigDataHandler2
+
 from data.focusjump import FocusJumpHandler
 from util.influx import ResponseMetrics
 from model.version import Version
 
 handlers = [
-    ("gene-location", GeneLocationHandler8()),
     ("gene-overview", GeneOverviewDataHandler8()),
     ("gene", GeneDataHandler8()),
     ("transcript", TranscriptDataHandler8(False)),
     ("zoomed-transcript", TranscriptDataHandler8(True)),
     ("zoomed-seq", ZoomedSeqDataHandler8()),
-
+    ("gene-location", GeneLocationHandler8()),
     ("gc", WiggleDataHandler()),
     ("contig", ContigDataHandler()),
     ("shimmer-contig", ShimmerContigDataHandler()),
-    ("variant", VariantDataHandler())
+    ("variant", VariantDataHandler()),
+
+    ("gene-overview", GeneOverviewDataHandler(),14),
+    ("gene", GeneDataHandler(),14),
+    ("transcript", TranscriptDataHandler(False),14),
+    ("zoomed-transcript", TranscriptDataHandler(True),14),
+    ("zoomed-seq", ZoomedSeqDataHandler(),14),
+    ("gene-location", GeneLocationHandler(),14),
+    ("gc", WiggleDataHandler2(),14),
+    ("contig", ContigDataHandler2(),14),
+    ("shimmer-contig", ShimmerContigDataHandler2(),14),
+    ("variant", VariantDataHandler2(),14),
 ]
 
 def make_handlers_for_version(version_wanted: Number) -> Dict[str,DataHandler]:
