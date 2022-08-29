@@ -1,4 +1,4 @@
-from abstract.configbuilder import ConfigBuilder
+from .configbuilder import ConfigBuilder
 
 class TanglerConfigBuilder(ConfigBuilder):
     def __init__(self,fields,names):
@@ -40,4 +40,4 @@ class Tangler:
 
     def make(self, factory, config, name, input):
         target = self._find(config,name)[1]
-        return (self.tangling())(target.make(factory,config,name,input))
+        return (self.tangling())(config,target.make(factory,config,name,input))

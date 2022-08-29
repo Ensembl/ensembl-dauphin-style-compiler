@@ -7,7 +7,8 @@ import time
 from .coremodel import Handler, Panel
 from .response import Response
 from .datasources import DataAccessor
-from data.genedata8 import GeneDataHandler8, GeneLocationHandler8, GeneOverviewDataHandler8, TranscriptDataHandler8
+from data.gene.genedata import GeneDataHandler8, GeneOverviewDataHandler8, TranscriptDataHandler8
+from data.gene.genefind import GeneLocationHandler8
 from data.gc import WiggleDataHandler
 from data.variant import VariantDataHandler
 from data.sequence8 import ZoomedSeqDataHandler8

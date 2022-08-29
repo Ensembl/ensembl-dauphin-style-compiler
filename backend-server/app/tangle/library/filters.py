@@ -1,7 +1,7 @@
 import itertools
 
-from abstract.configbuilder import ConfigBuilder
-from abstract.filter import Filter
+from ..abstract.configbuilder import ConfigBuilder
+from ..abstract.filter import Filter
 
 class FirstFiltering:
     def __init__(self, our_config):
@@ -11,7 +11,7 @@ class FirstFiltering:
         return set()
 
     def check(self, row, state):
-        values = [x.get(row) for x in self._source]
+        values = [x.row(row) for x in self._source]
         new = all([x not in state for x in values])
         state |= set(values)
         return new

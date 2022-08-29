@@ -1,13 +1,12 @@
-import itertools
-
-from util.numbers import zigzag, delta
-from abstract.tangler import Tangler
-from abstract.tangling import AtomicTangling
-from abstract.tangler import TanglerConfigBuilder
+from ..util.numbers import zigzag, delta
+from ..abstract.getter import Getter
+from ..abstract.tangler import Tangler
+from ..abstract.tangling import AtomicTangling
+from ..abstract.tangler import TanglerConfigBuilder
 
 class StringTangling(AtomicTangling):
-    def __init__(self, our_config):
-        super().__init__(our_config,"string",str)
+    def __init__(self, config, our_config):
+        super().__init__(config,our_config,"string",str)
 
     def finish(self, out, state):
         self._emit_strings(out,'name',state)
@@ -17,12 +16,13 @@ class StringTangler(Tangler):
         super().__init__([TanglerConfigBuilder([
             ("string",True)
         ],[])])
+
     def tangling(self):
         return StringTangling
 
 class NumberTangling(AtomicTangling):
-    def __init__(self, our_config):
-        super().__init__(our_config,'number',int)
+    def __init__(self, config, our_config):
+        super().__init__(config,our_config,'number',int)
         self._delta = our_config["delta"]
         self._positive = our_config["positive"]
 

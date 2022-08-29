@@ -9,7 +9,10 @@
     "interval2_lengths": [40, 2, 21, 2, 1, 2], 
     "number": [20, 22, 24], 
     "number2": [20, 2, 2], 
+    "process": [22, 24, 26],
     "condition_on": [2, 2, 2], 
     "first": [10, 11], 
-    "delegate": ["A", "B", "C"]
+    "delegate": ["A", "B", "C"],
+    "count": [8, 7, 2],
+    "group_count": [4, 1]
 }

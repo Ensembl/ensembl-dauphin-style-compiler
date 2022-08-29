@@ -1,26 +1,44 @@
 import json
 import sys, os, toml
-import unittest
 
-# to allow tests in this file desipte relative imports
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from library.filters import FirstFilter
-from library.atomics import StringTangler, NumberTangler
-from library.classified import ClassifiedTangler
-from library.interval import IntervalTangler
-from library.sources import GetSourceType, AttrSourceType
+from .library.filters import FirstFilter
+from .library.atomics import StringTangler, NumberTangler
+from .library.count import CountTangler, GroupCountTangler
+from .library.classified import ClassifiedTangler
+from .library.interval import IntervalTangler
+from .library.sources import GetSourceType, AttrSourceType
 
 class TangleException(Exception):
     pass
 
 class Config:
-    def __init__(self,config,conditions):
+    def __init__(self,config,conditions,processor):
         self.tangles = config.get("tangle",{})
         self.inputs = config.get("input",{})
         self.conditions = conditions
+        self.processor = processor
         if "default" not in self.inputs:
             self.inputs["default"] = {}
+
+class SourceHolder:
+    def __init__(self, config, source_config, source):
+        self._source = source
+        complex = False
+        self._process = None
+        process_name = source_config.get('process',None)
+        if process_name is not None:
+            self._process = getattr(config.processor,process_name)
+            complex = True
+        self.row = self._cooked_row if complex else self._raw_row
+
+    def _raw_row(self,row):
+        return self._source.get(row)
+
+    def _cooked_row(self,row):
+        out = self._raw_row(row)
+        if self._process is not None:
+            out = self._process(out)
+        return out
 
 class TangleFactory:
     def __init__(self):
@@ -43,6 +61,8 @@ class TangleFactory:
         self.register_tangler(ClassifiedTangler())
         self.register_tangler(IntervalTangler())
         self.register_tangler(NumberTangler())
+        self.register_tangler(CountTangler())
+        self.register_tangler(GroupCountTangler())
         self.register_source_type("get",GetSourceType())
         self.register_source_type("getattr",AttrSourceType())
         self.register_filter(FirstFilter())
@@ -89,11 +109,11 @@ class TangleFactory:
         values = source_config.copy()
         for key in ('field','type'):
             values.pop(key,None)
-        return self._sources[type_key].make(field_key,values)
+        return SourceHolder(config,source_config,self._sources[type_key].make(field_key,values))
 
-    def make_from_config(self, config, conditions=[]):
+    def make_from_config(self, config, conditions=[], processor=None):
         conditions = set(conditions)
-        config = Config(config,conditions)
+        config = Config(config,conditions,processor)
         tanglings = {}
         for name in config.tangles:
             condition = config.tangles[name].get("condition")
@@ -113,16 +133,19 @@ class TangleFactory:
             tanglings[input_key][1].append((tangling,filters))
         return Tangle(tanglings.values())
 
-    def make_from_toml(self, config, conditions=[]):
-        return self.make_from_config(toml.loads(config),conditions)
+    def make_from_toml(self, config, conditions=[],processor=None):
+        return self.make_from_config(toml.loads(config),conditions,processor)
+
+    def make_from_tomlfile(self, path, conditions=[],processor=None):
+        with open(path,"r") as f:
+            return self.make_from_toml(f.read(),conditions,processor)
 
 class Tangle:
     def __init__(self, tanglings):
         self._tanglings = tanglings
         self._conditions = set()
 
-    def run(self,inputs):
-        out = {}
+    def run(self,out,inputs):
         for (input,tanglings) in self._tanglings:
             data = inputs.get(input["name"],[])
             tangle_run = [ (t,[(f,f.create()) for f in f],t.create()) for (t,f) in tanglings ]
@@ -134,20 +157,3 @@ class Tangle:
             for (tangle,_,state) in tangle_run:
                 tangle.finish(out,state)
         return out
-
-def test_data(filename):
-    with open(os.path.join(os.path.dirname(__file__),"testdata",filename),"r") as f:
-        return f.read()
-
-class TangleTestCase(unittest.TestCase):
-    def test_smoke(self):
-        tangle_factory = TangleFactory()
-        test_config = test_data("smoke-config.toml")
-        data_in = json.loads(test_data("smoke-in.json"))
-        data_out = json.loads(test_data("smoke-out.json"))
-        tangle = tangle_factory.make_from_toml(test_config,["on"])
-        out = tangle.run(data_in)
-        self.assertEqual(out,data_out)
-
-if __name__ == '__main__':
-    unittest.main()

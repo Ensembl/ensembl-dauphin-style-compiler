@@ -58,3 +58,16 @@ uncompressed = true
 [tangle.delegate]
 string = ["delegate1","delegate2"]
 uncompressed = true
+
+[tangle.count]
+count = "count"
+uncompressed = true
+
+[tangle.group_count]
+group_count = "group_count"
+uncompressed = true
+
+[tangle.process]
+number.field = "number"
+number.process = "inc"
+uncompressed = true

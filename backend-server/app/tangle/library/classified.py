@@ -1,13 +1,13 @@
 import itertools
 
-from abstract.tangler import Tangler
-from abstract.tangling import Tangling
-from abstract.getter import Getter
-from abstract.tangler import TanglerConfigBuilder
+from ..abstract.tangler import Tangler
+from ..abstract.tangling import Tangling
+from ..abstract.getter import Getter
+from ..abstract.tangler import TanglerConfigBuilder
 
 class ClassifiedTangling(Tangling):
-    def __init__(self, our_config):
-        super().__init__(our_config,Getter(our_config,[("classify",str)],[],self._add))
+    def __init__(self, config, our_config):
+        super().__init__(our_config,Getter(config,our_config,[("classify",str)],[],self._add))
 
     def create(self):
         return ({},[],[])
