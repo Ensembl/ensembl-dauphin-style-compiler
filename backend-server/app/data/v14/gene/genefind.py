@@ -36,7 +36,8 @@ def _get_exact_location(data_accessor: DataAccessor, stick, gene_id, approx_star
     return None
 
 class GeneLocationHandler(DataHandler):
-    def process_data(self, data_accessor: DataAccessor, panel: Panel,scope) -> Response:
+    def process_data(self, data_accessor: DataAccessor, panel: Panel, scope, accept) -> Response:
+        is_dump = accept == "dump"
         genome = scope.get("genome",[])
         id = scope.get("id",[])
         out = []
@@ -51,9 +52,9 @@ class GeneLocationHandler(DataHandler):
                     location = exact
         chrom = data_accessor.data_model.stick(data_accessor,panel.stick)
         if location is not None:
-            out = extract_gene_overview_data(data_accessor,chrom,exact[0],exact[1],True)
+            out = extract_gene_overview_data(data_accessor,chrom,exact[0],exact[1],True,is_dump)
         else:
-            out = extract_gene_overview_data(data_accessor,chrom,0,0,True)
+            out = extract_gene_overview_data(data_accessor,chrom,0,0,True,is_dump)
             location = []
         out["location"] = compress(lesqlite2(location))
         if stick is not None:

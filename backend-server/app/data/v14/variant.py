@@ -55,7 +55,7 @@ def get_variant(data_accessor: DataAccessor, chrom: Chromosome, panel: Panel) ->
 
 
 class VariantDataHandler2(DataHandler):
-    def process_data(self, data_accessor: DataAccessor, panel: Panel, scope) -> Response:
+    def process_data(self, data_accessor: DataAccessor, panel: Panel, scope, accept) -> Response:
         chrom = data_accessor.data_model.stick(data_accessor,panel.stick)
         if chrom == None:
             return Response(1,"Unknown chromosome {0}".format(panel.stick))

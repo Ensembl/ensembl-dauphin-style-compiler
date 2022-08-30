@@ -23,7 +23,7 @@ def sequence_blocks8(out: Dict[str,bytes], data_accessor: DataAccessor, chrom: C
     out['sequence_start'] = compress(lesqlite2([panel.start]))
 
 class ZoomedSeqDataHandler(DataHandler):
-    def process_data(self, data_accessor: DataAccessor, panel: Panel, scope) -> Response:
+    def process_data(self, data_accessor: DataAccessor, panel: Panel, scope, accept) -> Response:
         chrom = data_accessor.data_model.stick(data_accessor,panel.stick)
         if chrom == None:
             return Response(1,"Unknown chromosome {0}".format(panel.stick))

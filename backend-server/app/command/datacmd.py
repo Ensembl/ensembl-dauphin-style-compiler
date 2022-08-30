@@ -76,15 +76,12 @@ class DataHandler(Handler):
         return self.handlers[min(version.get_egs(),len(self.handlers)-1)].get(name,None)
 
     def process(self, data_accessor: DataAccessor, channel: Any, payload: Any, metrics: ResponseMetrics, version: Version) -> Response:
-        scope = []
-        if len(payload) == 3:
-            (channel,name,panel) = payload
-            scope = []
+        if version.get_egs() < 14:
+            (channel,name,panel,scope) = payload
         else:
-            (channel,name,panel,new_scope) = payload
-            scope = new_scope
+            (channel,name,panel,scope,accept) = payload
         panel = Panel(panel)
-        out = data_accessor.cache.get_data(channel,name,version,panel,scope)
+        out = data_accessor.cache.get_data([channel,name,panel.dumps(),scope,accept],version)
         if out != None:
             metrics.cache_hits += 1
             metrics.cache_hits_bytes += out.len()
@@ -93,13 +90,16 @@ class DataHandler(Handler):
         if handler == None:
             return Response(1,"Unknown data endpoint {0}".format(name))
         start = time.time()
-        out = handler.process_data(data_accessor, panel, scope)
+        if version.get_egs() < 14:
+            out = handler.process_data(data_accessor,panel,scope)
+        else:
+            out = handler.process_data(data_accessor,panel,scope,accept)
         time_taken_ms = (time.time() - start) * 1000.0
         metrics.runtime_num[(name,panel.scale)] += time_taken_ms
         metrics.runtime_denom[(name,panel.scale)] += 1
         metrics.cache_misses += 1
         metrics.cache_misses_bytes += out.len()
-        data_accessor.cache.store_data(channel,name,version,panel,scope,out)
+        data_accessor.cache.store_data([channel,name,panel.dumps(),scope,accept],version,out)
         return out
 
     def remote_prefix(self, payload: Any) -> Optional[List[str]]:

@@ -1,7 +1,6 @@
 use std::collections::BTreeMap;
 
 use crate::{Region, core::channel::Channel};
-use peregrine_toolkit::log;
 use serde_cbor::{Value as CborValue};
 
 #[cfg_attr(debug_assertions,derive(Debug))]
@@ -10,7 +9,8 @@ pub struct DataRequest {
     channel: Channel,
     name: String,
     region: Region,
-    scope: BTreeMap<String,Vec<String>>
+    scope: BTreeMap<String,Vec<String>>,
+    accept: String
 }
 
 fn encode_scope(input: &BTreeMap<String,Vec<String>>) -> CborValue {
@@ -28,7 +28,8 @@ impl DataRequest {
             channel: channel.clone(),
             name: name.to_string(),
             region: region.clone(),
-            scope: BTreeMap::new()
+            scope: BTreeMap::new(),
+            accept: "release".to_string()
         }
     }
 
@@ -41,7 +42,8 @@ impl DataRequest {
             self.channel.encode(),
             CborValue::Text(self.name.to_string()),
             self.region.encode(),
-            encode_scope(&self.scope)
+            encode_scope(&self.scope),
+            CborValue::Text(self.accept.to_string()),
         ])
     }
 

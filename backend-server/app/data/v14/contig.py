@@ -103,7 +103,7 @@ def get_contig(data_accessor: DataAccessor, chrom: Chromosome, panel: Panel, do_
 
 
 class ContigDataHandler2(DataHandler):
-    def process_data(self, data_accessor: DataAccessor, panel: Panel, scope) -> Response:
+    def process_data(self, data_accessor: DataAccessor, panel: Panel, scope, accept) -> Response:
         """
 
         Args:
@@ -120,7 +120,7 @@ class ContigDataHandler2(DataHandler):
         return get_contig(data_accessor,chrom,panel,False)
 
 class ShimmerContigDataHandler2(DataHandler):
-    def process_data(self, data_accessor: DataAccessor, panel: Panel, scope) -> Response:
+    def process_data(self, data_accessor: DataAccessor, panel: Panel, scope, accept) -> Response:
         """
 
         Args:

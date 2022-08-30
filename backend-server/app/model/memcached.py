@@ -129,7 +129,7 @@ class Memcached(object):
         value.update(cbor2.dumps([self._prefix,self._bump,version.get_egs(),parts]))
         return value.hexdigest()
 
-    def store_data(self, channel, name, version, panel, scope, data):
+    def store_data(self, key, version, data):
         """
 
         Args:
@@ -143,11 +143,11 @@ class Memcached(object):
         """
         if not self._is_available():
             return
-        key = self.hashed_key([channel,name,panel.dumps(),scope],version)
+        key = self.hashed_key(key,version)
         if len(data.payload) < 900_000:
             self._client.set(key, data.payload)
 
-    def get_data(self, channel, name, version, panel, scope) -> Optional[Response]:
+    def get_data(self, key, version) -> Optional[Response]:
         """
 
         Args:
@@ -160,7 +160,7 @@ class Memcached(object):
         """
         if not self._is_available():
             return None
-        key = self.hashed_key([channel,name,panel.dumps(),scope],version)
+        key = self.hashed_key(key,version)
         value = self._client.get(key)
         if value is None:
             return None

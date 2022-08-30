@@ -47,7 +47,7 @@ def _get_gc(data_accessor: DataAccessor, chrom: Chromosome, panel: Panel) -> Res
     return Response(5, {'data': out})
 
 class WiggleDataHandler2(DataHandler):
-    def process_data(self, data_accessor: DataAccessor, panel: Panel, _scope) -> Response:
+    def process_data(self, data_accessor: DataAccessor, panel: Panel, _scope, accept) -> Response:
         """
         Handle a request for wiggle data.
 
