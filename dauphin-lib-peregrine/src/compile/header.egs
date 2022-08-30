@@ -155,25 +155,23 @@ func get_region() becomes region;
 func get_data(request) becomes datasource;
 
 func data_stream(datasource,string) becomes bytes;
-func inflate_bytes(bytes) becomes bytes;
-func inflate_string(bytes) becomes string;
 func lesqlite2(bytes) becomes number;
 func zigzag(number) becomes number;
 func delta(number) becomes number;
 func alternate(number) becomes number;
 func classify(string,number) becomes string;
-func split_string(string) becomes vec(string);
+func split_string(bytes) becomes vec(string);
 func base_flip(string) becomes string;
 func append_group(string,string) becomes string;
 func append_depth(string,number) becomes string;
 
 proc style(string,string,string);
 
-expr delta_seq(stream,name) delta(zigzag(lesqlite2(inflate_bytes(data_stream(stream,name)))));
-expr string_seq(stream,name) split_string(inflate_string(data_stream(stream,name)))[];
-expr letter_string(stream,name) std::split_characters(inflate_string(data_stream(stream,name)))[];
-expr positive_seq(stream,name) lesqlite2(inflate_bytes(data_stream(stream,name)));
+expr delta_seq(stream,name) delta(zigzag(lesqlite2(data_stream(stream,name))));
+expr string_seq(stream,name) split_string(data_stream(stream,name))[];
+expr letter_string(stream,name) std::split_characters(data_stream(stream,name))[];
+expr positive_seq(stream,name) lesqlite2(data_stream(stream,name));
 expr classified_seq(stream,keys,values) classify(string_seq(stream,keys),positive_seq(stream,values));
-expr bool_seq(stream,name) std::bytes_to_bool(inflate_bytes(data_stream(stream,name)));
+expr bool_seq(stream,name) std::bytes_to_bool(data_stream(stream,name));
 
 func patina_metadata(string,string,eoestmplid) becomes patina;

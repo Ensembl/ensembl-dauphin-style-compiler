@@ -75,5 +75,5 @@ func set_difference(number,number) becomes boolean;
 proc gaps(stomp mask number,stomp mask number,stomp mask number,number,number,number,number,number);
 proc range(stomp mask number,stomp mask number,number,number);
 
-func split_characters(string) becomes vec(string);
+func split_characters(bytes) becomes vec(string);
 func concat(string,string) becomes string;

@@ -3,11 +3,8 @@ use crate::simple_interp_command;
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
 use serde_cbor::Value as CborValue;
-use inflate::inflate_bytes_zlib;
 use std::str::from_utf8;
 
-simple_interp_command!(InflateBytesInterpCommand,InflateBytesDeserializer,24,2,(0,1));
-simple_interp_command!(InflateStringInterpCommand,InflateStringDeserializer,25,2,(0,1));
 simple_interp_command!(Lesqlite2InterpCommand,Lesqlite2Deserializer,26,2,(0,1));
 simple_interp_command!(ZigzagInterpCommand,ZigzagDeserializer,27,2,(0,1));
 simple_interp_command!(DeltaInterpCommand,DeltaDeserializer,28,2,(0,1));
@@ -28,35 +25,6 @@ impl InterpCommand for BaseFlipInterpCommand {
                 "t" => "a", "T" => "A",
                 x => x
             }.to_string());
-        }
-        registers.write(&self.0,InterpValue::Strings(out));
-        Ok(CommandResult::SyncResult())
-    }
-}
-
-impl InterpCommand for InflateBytesInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
-        let registers = context.registers_mut();
-        let datas = registers.get_bytes(&self.1)?;
-        let mut out = vec![];
-        for data in datas.iter() {
-            out.push(data.clone());
-
-        }
-        registers.write(&self.0,InterpValue::Bytes(out));
-        Ok(CommandResult::SyncResult())
-    }
-}
-
-impl InterpCommand for InflateStringInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
-        let registers = context.registers_mut();
-        let datas = registers.get_bytes(&self.1)?;
-        let mut out = vec![];
-        for data in datas.iter() {
-            //let bytes = inflate_bytes_zlib(&data).map_err(|e| err!(e))?;
-            let string = from_utf8(&data).map_err(|e| err!(e))?;
-            out.push(string.to_string());
         }
         registers.write(&self.0,InterpValue::Strings(out));
         Ok(CommandResult::SyncResult())
@@ -165,13 +133,13 @@ impl InterpCommand for ClassifyInterpCommand {
 impl InterpCommand for SplitStringInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         let registers = context.registers_mut();
-        let strings = registers.get_strings(&self.3)?;
+        let strings = registers.get_bytes(&self.3)?;
         let mut out_offset = vec![];
         let mut out_length = vec![];
         let mut out_data = vec![];
-        for string in strings.iter() {
+        for bytes in strings.iter() {
             out_offset.push(out_data.len());
-            let mut more : Vec<_> = string.split("\0").map(|x| x.to_string()).collect();
+            let mut more : Vec<_> = from_utf8(bytes)?.split("\0").map(|x| x.to_string()).collect();
             out_length.push(more.len());
             out_data.append(&mut more);
 

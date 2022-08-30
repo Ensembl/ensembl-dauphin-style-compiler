@@ -16,6 +16,7 @@
 
 use std::collections::HashMap;
 use std::hash::Hash;
+use std::str::from_utf8;
 
 use dauphin_interp::command::{ CommandSetId, InterpCommand, CommandDeserializer, InterpLibRegister, CommandResult };
 use dauphin_interp::runtime::{InterpContext, InterpValue, Register};
@@ -408,14 +409,14 @@ pub struct SplitCharactersInterpCommand(Register,Register,Register,Register);
 impl InterpCommand for SplitCharactersInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         let registers = context.registers_mut();
-        let strings = registers.get_strings(&self.3)?;
+        let bytes = registers.get_bytes(&self.3)?;
         let mut out_data = vec![];
         let mut out_start = vec![];
         let mut out_len = vec![];
-        for string in strings.iter() {
+        for b in bytes.iter() {
             let old_len = out_data.len();
             out_start.push(old_len);
-            out_data.extend(string.chars().map(|x| x.to_string()));
+            out_data.extend(from_utf8(b)?.chars().map(|x| x.to_string()));
             out_len.push(out_data.len()-old_len);
         }
         registers.write(&self.0,InterpValue::Strings(out_data));

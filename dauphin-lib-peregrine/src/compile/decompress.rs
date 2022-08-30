@@ -7,8 +7,6 @@ use dauphin_interp::runtime::{ Register };
 use dauphin_interp::util::DauphinError;
 use serde_cbor::Value as CborValue;
 
-simple_command!(InflateBytesCommand,InflateBytesCommandType,"peregrine","inflate_bytes",2,(0,1));
-simple_command!(InflateStringCommand,InflateStringCommandType,"peregrine","inflate_string",2,(0,1));
 simple_command!(Lesqlite2Command,Lesqlite2CommandType,"peregrine","lesqlite2",2,(0,1));
 simple_command!(ZigzagCommand,ZigzagCommandType,"peregrine","zigzag",2,(0,1));
 simple_command!(DeltaCommand,DeltaCommandType,"peregrine","delta",2,(0,1));

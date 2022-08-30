@@ -5,7 +5,7 @@ use super::boot::{
 };
 use super::data::{ GetLaneDeserializer, GetDataDeserializer, DataStreamDeserializer, OnlyWarmDeserializer, RequestScopeDeserializer, RequestDeserializer, MakeRegionDeserializer };
 use super::decompress::{ 
-    InflateBytesDeserializer, InflateStringDeserializer, Lesqlite2Deserializer, ZigzagDeserializer, DeltaDeserializer,
+    Lesqlite2Deserializer, ZigzagDeserializer, DeltaDeserializer,
     ClassifyDeserializer, SplitStringDeserializer, BaseFlipDeserializer
 };
 
@@ -28,7 +28,7 @@ use super::switch::{
 };
 
 pub fn std_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(53,0),0x76EDDB0D69AF7BFD)
+    CommandSetId::new("peregrine",(54,0),0x430E516157E506BC)
 }
 
 pub fn make_peregrine_interp() -> InterpLibRegister {
@@ -46,8 +46,6 @@ pub fn make_peregrine_interp() -> InterpLibRegister {
     set.push(GetLaneDeserializer());
     set.push(GetDataDeserializer());
     set.push(DataStreamDeserializer());
-    set.push(InflateBytesDeserializer());
-    set.push(InflateStringDeserializer());
     set.push(Lesqlite2Deserializer());
     set.push(ZigzagDeserializer());
     set.push(DeltaDeserializer());

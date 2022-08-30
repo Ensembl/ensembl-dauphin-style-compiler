@@ -13,7 +13,7 @@ use super::data::{
     RequestCommandType, RequestScopeCommandType, MakeRegionCommandType
 };
 use super::decompress::{
-    InflateBytesCommandType, InflateStringCommandType, Lesqlite2CommandType, ZigzagCommandType, DeltaCommandType,
+    Lesqlite2CommandType, ZigzagCommandType, DeltaCommandType,
     ClassifyCommandType, SplitStringCommandType, BaseFlipCommandType
 };
 use super::eoes::{EoesVarNumberCommandType, EoesVarStringCommandType, EoesVarBooleanCommandType, EoesNullCommandType, EoesArrayCommandType, EoesPairCommandType, EoesObjectCommandType, EoesConditionCommandType, EoesGroupCommandType, EoesAllCommandType, EoesVarCommandType, EoesNumberCommandType, EoesStringCommandType, EoesBooleanCommandType, EoesLateCommandType};
@@ -30,11 +30,11 @@ use super::shape::{ WiggleCommandType, RectangleCommandType, Text2CommandType, I
 use super::switch::{ ListSwitchCommandType, SwitchStringCommandType, SwitchNumberCommandType, SwitchBooleanCommandType, SwitchNullCommandType };
 
 pub fn peregrine_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(53,0),0x76EDDB0D69AF7BFD)
+    CommandSetId::new("peregrine",(54,0),0x430E516157E506BC)
 }
 
 pub fn make_peregrine() -> CompLibRegister {
-    // next is 76
+    // next is 76, 24 and 25 are unused
     let mut set = CompLibRegister::new(&peregrine_id(),Some(make_peregrine_interp()));
     set.push("add_stick_authority",Some(0),AddAuthorityCommandType());
     set.push("get_stick_id",Some(1),GetStickIdCommandType());
@@ -60,8 +60,6 @@ pub fn make_peregrine() -> CompLibRegister {
     set.push("get_region",Some(21),GetLaneCommandType());
     set.push("get_data",Some(22),GetDataCommandType());
     set.push("data_stream",Some(23),DataStreamCommandType());
-    set.push("inflate_bytes",Some(24),InflateBytesCommandType());
-    set.push("inflate_string",Some(25),InflateStringCommandType());
     set.push("lesqlite2",Some(26),Lesqlite2CommandType());
     set.push("zigzag",Some(27),ZigzagCommandType());
     set.push("delta",Some(28),DeltaCommandType());
