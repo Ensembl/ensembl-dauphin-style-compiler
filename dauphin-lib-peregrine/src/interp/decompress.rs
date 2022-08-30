@@ -40,7 +40,7 @@ impl InterpCommand for InflateBytesInterpCommand {
         let datas = registers.get_bytes(&self.1)?;
         let mut out = vec![];
         for data in datas.iter() {
-            out.push(inflate_bytes_zlib(&data).map_err(|e| err!(e))?);
+            out.push(data.clone());
 
         }
         registers.write(&self.0,InterpValue::Bytes(out));
@@ -54,8 +54,8 @@ impl InterpCommand for InflateStringInterpCommand {
         let datas = registers.get_bytes(&self.1)?;
         let mut out = vec![];
         for data in datas.iter() {
-            let bytes = inflate_bytes_zlib(&data).map_err(|e| err!(e))?;
-            let string = from_utf8(&bytes).map_err(|e| err!(e))?;
+            //let bytes = inflate_bytes_zlib(&data).map_err(|e| err!(e))?;
+            let string = from_utf8(&data).map_err(|e| err!(e))?;
             out.push(string.to_string());
         }
         registers.write(&self.0,InterpValue::Strings(out));

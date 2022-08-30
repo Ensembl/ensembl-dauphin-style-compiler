@@ -19,8 +19,8 @@ def get_variant_stats(data_accessor: DataAccessor, chrom: Chromosome, panel: Pan
         step = SCALE
     data = bytearray([round(x) for x in data])
     out = {
-        "values": compress(lesqlite2(zigzag(delta(data)))),
-        "range": compress(lesqlite2([start, end, step]))
+        "values": lesqlite2(zigzag(delta(data))),
+        "range": lesqlite2([start, end, step])
     }
     return out
 
@@ -37,8 +37,8 @@ def get_variant_exact(data_accessor: DataAccessor, chrom: Chromosome, panel: Pan
         step = SCALE
     data = bytearray([round(x) for x in data])
     out = {
-        "values": compress(lesqlite2(zigzag(delta(data)))),
-        "range": compress(lesqlite2([start, end, step]))
+        "values": lesqlite2(zigzag(delta(data))),
+        "range": lesqlite2([start, end, step])
     }
     return out
 

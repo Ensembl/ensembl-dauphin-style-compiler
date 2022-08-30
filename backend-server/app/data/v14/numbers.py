@@ -15,7 +15,7 @@ def compress(input: Union[ByteString, str]) -> ByteString:
     """
     if isinstance(input, str):
         input = input.encode("utf-8")
-    return zlib.compress(input)
+    return input
 
 
 def delta(input: List[int]) -> List[int]:

@@ -96,7 +96,7 @@ def get_contig(data_accessor: DataAccessor, chrom: Chromosome, panel: Panel, do_
     if do_shimmer:
         (positions, senses) = shimmer(positions, senses, panel.start, panel.end)
     out = {
-        "sense": compress(lesqlite2(senses))
+        "sense": lesqlite2(senses)
     }
     starts_and_ends(out, positions, "contig")
     return out

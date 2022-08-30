@@ -11,7 +11,7 @@ class Tangling:
         if run_config.to_bytes:
             value = "\0".join(value)
         if run_config.compress:
-            value = compress(value)
+            value = value.encode("utf8")
         out[name] = value
 
     def _emit_number(self,out,run_config,key,value):
@@ -19,7 +19,8 @@ class Tangling:
         if run_config.to_bytes:
             value = lesqlite2(value)
         if run_config.compress:
-            value = compress(value)
+            #pass
+            value = bytes(value)
         out[name] = value
 
     def row(self, row, state, _run_config):

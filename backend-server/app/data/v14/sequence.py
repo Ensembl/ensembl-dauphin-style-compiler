@@ -19,8 +19,8 @@ def sequence_blocks8(out: Dict[str,bytes], data_accessor: DataAccessor, chrom: C
         logging.error("line len = {0} seq len {1}".format(len(line),len(sequence)))
         for (offset,letter) in enumerate(sequence):
             line[offset] = letter if letter in "CGAT" else " "
-    out['sequence'] = compress("".join(line))
-    out['sequence_start'] = compress(lesqlite2([panel.start]))
+    out['sequence'] = ("".join(line)).encode("utf8")
+    out['sequence_start'] = lesqlite2([panel.start])
 
 class ZoomedSeqDataHandler(DataHandler):
     def process_data(self, data_accessor: DataAccessor, panel: Panel, scope, accept) -> Response:

@@ -6,8 +6,6 @@ import requests # use pip/pip3 if you don't have it!
 
 use_rich = sys.stdout.isatty() 
 
-chrom = "homo_sapiens_GCA_000001405_28:4"
-
 (optlist,args) = getopt.getopt(sys.argv[1:],[],['rich','no-rich'])
 for (option,value) in optlist:
     if option == '--rich':
@@ -28,15 +26,21 @@ if not use_rich:
 def rich(line):
     return re.sub(r'\0(.)',lambda x: CODES[x[1]],line)
 
-def ask(question):
+def ask(question,default):
     print(rich("\0y{}\0-? ".format(question)),end=' ',flush=True)
-    return sys.stdin.readline().strip()
+    out = sys.stdin.readline().strip()
+    if out == '':
+        out = default
+    return out
 
-ask_chrom = ask("Enter stick name (eg \0ghomo_sapiens_GCA_000001405_28:4\0y) or blank for default")
+endpoint = ask('Endpoint name','transcript')
+print(rich("Ok, using endpoint \0y{}\0-").format(endpoint))
+
+ask_chrom = ask("Enter stick name (eg \0ghomo_sapiens_GCA_000001405_28:4\0y)","homo_sapiens_GCA_000001405_28:4")
 if ask_chrom.strip() != '':
     chrom = ask_chrom
 
-bp_in_data = int(ask("Roughly how many bp in data"))
+bp_in_data = int(ask("Roughly how many bp in data",100000))
 scale = 1
 for try_scale in range(0,40):
     base_bp = 2**try_scale
@@ -44,7 +48,7 @@ for try_scale in range(0,40):
         scale = try_scale
 print(rich("Ok, nearest is scale \0y{}\0- which has \0y{}\0- bp".format(scale,2**scale)))
 
-bp_centre = int(ask("Approx centre in bp"))
+bp_centre = int(ask("Approx centre in bp",10000000))
 index = max(0,bp_centre//(2**scale))
 print(rich("Ok, nearest is index \0y{}\0- which has bp range \0y{}\0- - \0y{}\0-".format(
     index, index*(2**scale), (index+1)*(2**scale)-1
@@ -100,7 +104,7 @@ def summarize_data(data,sizes):
         print(value)
 
 def make_request(accept):
-    request_data = [0,4,["self()","transcript",[chrom,scale,index],{},accept]]
+    request_data = [0,4,["self()",endpoint,[chrom,scale,index],{},accept]]
 
     request_data = cbor2.dumps({ 
         "channel": "self()", 
@@ -113,8 +117,7 @@ def make_request(accept):
     for response in content['responses']:
         (msgid,(resp,payload)) = response
         if msgid == 0 and resp == 5:
-            return payload['data']
+            return cbor2.loads(zlib.decompress(payload['data']))
 
 sizes = calc_sizes(make_request("uncompressed"))
-print(sizes)
 summarize_data(make_request("dump"),sizes)
