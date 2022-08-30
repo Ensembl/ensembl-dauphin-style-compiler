@@ -21,6 +21,11 @@
         "options": ["no","yes"]
     },
     {
+        "key": "CFG_DEBUG_BIG_REQUESTS",
+        "question": "Debug big requests",
+        "options": ["no","yes"]
+    },
+    {
         "key": "CFG_DEBUG_CLEANUP",
         "question": "Debug cleanup",
         "options": ["no","yes"]

@@ -6,8 +6,14 @@ use crate::core::channel::Channel;
 use crate::core::programbundle::SuppliedBundle;
 use crate::core::version::VersionMetadata;
 use super::request::BackendRequestAttempt;
-use super::response::BackendResponseAttempt;
+use super::response::{BackendResponseAttempt};
 use serde_cbor::Value as CborValue;
+
+#[cfg(debug_big_requests)]
+const TOO_LARGE : usize = 100*1024;
+
+#[cfg(debug_big_requests)]
+use peregrine_toolkit::{warn , cbor::cbor_as_vec };
 
 pub struct RequestPacketBuilder {
     channel: Channel,
@@ -63,15 +69,31 @@ impl RequestPacket {
 
 pub struct ResponsePacket {
     responses: Vec<BackendResponseAttempt>,
-    programs: Vec<SuppliedBundle>
+    programs: Vec<SuppliedBundle>,
+    #[cfg(debug_big_requests)]
+    total_size: usize
 }
 
 impl ResponsePacket {
     fn new() -> ResponsePacket {
         ResponsePacket {
             responses: vec![],
-            programs: vec![]
+            programs: vec![],
+            #[cfg(debug_big_requests)]
+            total_size: 0
         }
+    }
+
+    #[cfg(debug_big_requests)]
+    fn total_size(value: &CborValue) -> Result<usize,String> {
+        Ok(cbor_as_vec(value)?.iter()
+            .map(|v| BackendResponseAttempt::total_size(v))
+            .collect::<Result<Vec<usize>,String>>()?.iter().sum())
+    }
+
+    #[cfg(not(debug_big_requests))]
+    fn total_size(_value: &CborValue) -> Result<usize,String> {
+        Ok(0)
     }
 
     fn decode_responses(value: CborValue) -> Result<Vec<BackendResponseAttempt>,String> {
@@ -89,22 +111,42 @@ impl ResponsePacket {
     pub fn decode(value: CborValue) -> Result<ResponsePacket,String> {
         let mut responses = vec![];
         let mut programs= vec![];
+        #[allow(unused)]
+        let mut total_size = 0;
         for (k,v) in cbor_into_drained_map(value)?.drain(..) {
             match k.as_str() {
-                "responses" => { responses = ResponsePacket::decode_responses(v)?; },
+                "responses" => {
+                    total_size = Self::total_size(&v)?;
+                    responses = ResponsePacket::decode_responses(v)?;
+                },
                 "programs" => { programs = ResponsePacket::decode_programs(v)?; },
                 _ => {}
             }
         }
-        Ok(ResponsePacket { responses, programs })
+        Ok(ResponsePacket { 
+            responses, programs, 
+            #[cfg(debug_big_requests)]
+            total_size
+        })
     }
 
     fn add_response(&mut self, response: BackendResponseAttempt) {
         self.responses.push(response);
     }
 
+    #[cfg(debug_big_requests)]
+    fn check_big_requests(&self) {
+        if self.total_size > TOO_LARGE {
+            warn!("excessively large response size {} ({} elements)",self.total_size,self.responses.len());
+        }
+    }
+
+    #[cfg(not(debug_big_requests))]
+    fn check_big_requests(&self) {}
+
     pub(crate) fn programs(&self) -> &[SuppliedBundle] { &self.programs }
     pub(crate) fn take_responses(&mut self) -> Vec<BackendResponseAttempt> {
+        self.check_big_requests();
         replace(&mut self.responses,vec![])
     }
 }

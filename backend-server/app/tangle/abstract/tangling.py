@@ -19,7 +19,6 @@ class Tangling:
         if run_config.to_bytes:
             value = lesqlite2(value)
         if run_config.compress:
-            #pass
             value = bytes(value)
         out[name] = value
 

@@ -8,10 +8,24 @@ pub fn cbor_into_vec(value: CborValue) -> Result<Vec<CborValue>,String> {
     }
 }
 
+pub fn cbor_as_vec(value: &CborValue) -> Result<&[CborValue],String> {
+    match value {
+        CborValue::Array(v) => Ok(v),
+        _ => { return Err("wrong type, expected array".to_string()) }
+    }
+}
+
 pub fn cbor_into_map(value: CborValue) -> Result<BTreeMap<CborValue,CborValue>,String> {
     match value {
         CborValue::Map(m) => Ok(m),
-        _ => { return Err("wrong type, expected array".to_string()) }
+        _ => { return Err("wrong type, expected map".to_string()) }
+    }
+}
+
+pub fn cbor_as_map(value: &CborValue) -> Result<&BTreeMap<CborValue,CborValue>,String> {
+    match value {
+        CborValue::Map(m) => Ok(m),
+        _ => { return Err("wrong type, expected map".to_string()) }
     }
 }
 
@@ -45,9 +59,20 @@ pub fn cbor_map_optional_key(value: &mut BTreeMap<CborValue,CborValue>, key: &st
     value.remove(&CborValue::Text(key.to_string()))
 }
 
+pub fn cbor_map_optional_key_ref<'a>(value: &'a BTreeMap<CborValue,CborValue>, key: &str) -> Option<&'a CborValue> {
+    value.get(&CborValue::Text(key.to_string()))
+}
+
 pub fn cbor_as_str(value: &CborValue) -> Result<&str,String> {
     match value {
         CborValue::Text(t) => Ok(t),
+        _ => { return Err("wrong type, expected string".to_string()) }
+    }
+}
+
+pub fn cbor_as_bytes(value: &CborValue) -> Result<&[u8],String> {
+    match value {
+        CborValue::Bytes(t) => Ok(t),
         _ => { return Err("wrong type, expected string".to_string()) }
     }
 }
@@ -60,7 +85,7 @@ pub fn cbor_as_number<T: TryFrom<i128>>(value: &CborValue) -> Result<T,String> {
     T::try_from(v).map_err(|_| format!("doesn't fit into type"))
 }
 
-pub fn check_array_len<T>(data: &Vec<T>, len: usize) -> Result<(),String> {
+pub fn check_array_len<T>(data: &[T], len: usize) -> Result<(),String> {
     if data.len() == len {
         Ok(())
     } else {
@@ -68,7 +93,7 @@ pub fn check_array_len<T>(data: &Vec<T>, len: usize) -> Result<(),String> {
     }
 }
 
-pub fn check_array_min_len<T>(data: &Vec<T>, len: usize) -> Result<(),String> {
+pub fn check_array_min_len<T>(data: &[T], len: usize) -> Result<(),String> {
     if data.len() >= len {
         Ok(())
     } else {

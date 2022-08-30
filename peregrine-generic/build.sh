@@ -24,6 +24,9 @@ fi
 if [ "x$CFG_DEBUG_TRAINS" = "xyes" ] ; then
   FLAGS="$FLAGS --cfg debug_trains"
 fi
+if [ "x$CFG_DEBUG_BIG_REQUESTS" = "xyes" ] ; then
+  FLAGS="$FLAGS --cfg debug_big_requests"
+fi
 if [ "x$CFG_DISABLE_ANTICIPATE" = "xyes" ] ; then
   FLAGS="$FLAGS --cfg disable_anticipate"
 fi

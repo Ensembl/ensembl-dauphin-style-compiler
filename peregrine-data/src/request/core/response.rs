@@ -1,4 +1,4 @@
-use peregrine_toolkit::{cbor::{cbor_as_number, cbor_into_vec, check_array_len}, decompose_vec};
+use peregrine_toolkit::{cbor::{cbor_as_number, cbor_into_vec, check_array_len, cbor_as_vec}, decompose_vec, log};
 use crate::request::messages::{authorityres::AuthorityRes, bootstrapres::BootRes, datares::DataRes, failureres::FailureRes, jumpres::JumpRes, programres::ProgramRes, stickres::StickRes};
 use serde_cbor::Value as CborValue;
 
@@ -62,6 +62,17 @@ impl BackendResponse {
             v => { return Err(format!("bad response type: {}",v)) }
         })
     }
+
+    #[cfg(debug_big_requests)]
+    pub(crate) fn total_size(value: &CborValue) -> Result<usize,String> {
+        let seq = cbor_as_vec(value)?;
+        check_array_len(seq,2)?;
+        let variety : usize = cbor_as_number(&seq[0])?;
+        match variety {
+            5 => DataRes::result_size(&seq[1]),
+            _ => Ok(0)
+        }
+    }
 }
 
 pub struct BackendResponseAttempt {
@@ -72,6 +83,11 @@ pub struct BackendResponseAttempt {
 impl BackendResponseAttempt {
     pub(super) fn new(msg_id: u64, variety: BackendResponse) -> BackendResponseAttempt {
         BackendResponseAttempt { msg_id, variety }
+    }
+
+    #[cfg(debug_big_requests)]
+    pub(crate) fn total_size(value: &CborValue) -> Result<usize,String> {
+        BackendResponse::total_size(&cbor_as_vec(value)?[1])
     }
 
     pub fn decode(value: CborValue) -> Result<BackendResponseAttempt,String> {

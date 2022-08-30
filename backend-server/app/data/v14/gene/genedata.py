@@ -7,11 +7,9 @@ from command.response import Response
 from model.bigbed import get_bigbed
 from model.chromosome import Chromosome
 from model.transcriptfile import TranscriptFileLine
-from ..numbers import lesqlite2, compress
 from ..sequence import sequence_blocks8
 from .transcriptorder import sort_data_by_transcript_priority
 from .transcriptfilter import filter_lines_by_criteria
-from model.datalocator import AccessItem
 from tangle.tangle import TangleFactory
 from ncd import NCDRead
 
