@@ -59,4 +59,4 @@ class GeneLocationHandler(DataHandler):
         out["location"] = compress(lesqlite2(location))
         if stick is not None:
             out["stick"] = compress(stick)
-        return Response(5,{ 'data': out })
+        return out

@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-import logging
+import zlib, cbor2
 from tokenize import Number
-from typing import Any, Dict, List, Optional
+from typing import Any, ByteString, Dict, List, Optional, Union
 import time
 from .coremodel import Handler, Panel
 from .response import Response
 from .datasources import DataAccessor
+from .exceptionres import DataException
 
 from data.old.gene.genedata import GeneDataHandler8, GeneOverviewDataHandler8, TranscriptDataHandler8
 from data.old.gene.genefind import GeneLocationHandler8
@@ -50,6 +51,10 @@ handlers = [
     ("variant", VariantDataHandler2(),14),
 ]
 
+def compress_payload(data):
+    data = cbor2.dumps(data)
+    return zlib.compress(data)
+
 def make_handlers_for_version(version_wanted: Number) -> Dict[str,DataHandler]:
     out = {}
     versions = {}
@@ -90,10 +95,14 @@ class DataHandler(Handler):
         if handler == None:
             return Response(1,"Unknown data endpoint {0}".format(name))
         start = time.time()
-        if version.get_egs() < 14:
-            out = handler.process_data(data_accessor,panel,scope)
-        else:
-            out = handler.process_data(data_accessor,panel,scope,accept)
+        try:
+            if version.get_egs() < 14:
+                out = handler.process_data(data_accessor,panel,scope)
+            else:
+                data = handler.process_data(data_accessor,panel,scope,accept)
+                out = Response(5,{'data': compress_payload(data) })
+        except DataException as e:
+            out = e.to_response()
         time_taken_ms = (time.time() - start) * 1000.0
         metrics.runtime_num[(name,panel.scale)] += time_taken_ms
         metrics.runtime_denom[(name,panel.scale)] += 1

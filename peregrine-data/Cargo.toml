@@ -18,6 +18,7 @@ futures="*"
 lazy_static="*"
 lru="*"
 hashbrown="*"
+inflate="*"
 
 [dependencies.keyed]
 version="*"

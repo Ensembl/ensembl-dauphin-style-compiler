@@ -4,8 +4,8 @@ from command.coremodel import DataHandler, Panel, DataAccessor
 from command.response import Response
 from model.bigbed import get_bigbed
 from model.chromosome import Chromosome
-from model.transcriptfile import TranscriptFileLine
-from .numbers import delta, zigzag, lesqlite2, compress, classify
+from command.exceptionres import DataException
+from .numbers import lesqlite2, compress
 from .util import starts_and_ends
 
 DOMINO_COUNT = 200
@@ -99,7 +99,7 @@ def get_contig(data_accessor: DataAccessor, chrom: Chromosome, panel: Panel, do_
         "sense": compress(lesqlite2(senses))
     }
     starts_and_ends(out, positions, "contig")
-    return Response(5, {'data': out})
+    return out
 
 
 class ContigDataHandler2(DataHandler):
@@ -116,7 +116,7 @@ class ContigDataHandler2(DataHandler):
         """
         chrom = data_accessor.data_model.stick(data_accessor,panel.stick)
         if chrom == None:
-            return Response(1,"Unknown chromosome {0}".format(panel.stick))
+            raise DataException("Unknown chromosome {0}".format(panel.stick))
         return get_contig(data_accessor,chrom,panel,False)
 
 class ShimmerContigDataHandler2(DataHandler):
@@ -133,5 +133,5 @@ class ShimmerContigDataHandler2(DataHandler):
         """
         chrom = data_accessor.data_model.stick(data_accessor,panel.stick)
         if chrom == None:
-            return Response(1,"Unknown chromosome {0}".format(panel.stick))
+            raise DataException("Unknown chromosome {0}".format(panel.stick))
         return get_contig(data_accessor,chrom,panel,True)

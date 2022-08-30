@@ -58,7 +58,7 @@ def extract_gene_data(data_accessor: DataAccessor, chrom: Chromosome, panel: Pan
     out = {}
     tangle.run(out,{ "tr_bigbed": lines },**accept_to_tangling_config(accept))
     sequence_blocks8(out,data_accessor,chrom,panel,not include_sequence)
-    return Response(5,{ 'data': out })
+    return out
 
 OV_TANGLE_PATH = os.path.join(os.path.dirname(__file__),"overview-tangle.toml")
 TANGLE_OVERVIEW = TANGLE_FACTORY.make_from_tomlfile(OV_TANGLE_PATH,[],processor)
@@ -103,4 +103,4 @@ class GeneOverviewDataHandler(DataHandler):
         if chrom == None:
             return Response(1,"Unknown chromosome {0}".format(panel.stick))
         out = extract_gene_overview_data(data_accessor,chrom,panel.start,panel.end,False,accept)
-        return Response(5,{ 'data': out })
+        return out

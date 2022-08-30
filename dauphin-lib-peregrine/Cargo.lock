@@ -501,6 +501,7 @@ dependencies = [
  "futures",
  "hashbrown",
  "identitynumber",
+ "inflate",
  "js-sys",
  "keyed",
  "lazy_static",

@@ -1,13 +1,9 @@
-import collections
-import logging
-from typing import Any, List
 from command.coremodel import DataHandler, Panel, DataAccessor
 from command.response import Response
+from command.exceptionres import DataException
 from model.bigbed import get_bigwig_stats, get_bigwig
 from model.chromosome import Chromosome
-from model.transcriptfile import TranscriptFileLine
-from .numbers import delta, zigzag, lesqlite2, compress, classify
-from .util import domino_series_expand
+from .numbers import delta, zigzag, lesqlite2, compress
 
 SCALE = 1000
 
@@ -26,7 +22,7 @@ def get_variant_stats(data_accessor: DataAccessor, chrom: Chromosome, panel: Pan
         "values": compress(lesqlite2(zigzag(delta(data)))),
         "range": compress(lesqlite2([start, end, step]))
     }
-    return Response(5, {'data': out})
+    return out
 
 
 def get_variant_exact(data_accessor: DataAccessor, chrom: Chromosome, panel: Panel) -> Response:
@@ -44,7 +40,7 @@ def get_variant_exact(data_accessor: DataAccessor, chrom: Chromosome, panel: Pan
         "values": compress(lesqlite2(zigzag(delta(data)))),
         "range": compress(lesqlite2([start, end, step]))
     }
-    return Response(5, {'data': out})
+    return out
 
 
 def get_variant(data_accessor: DataAccessor, chrom: Chromosome, panel: Panel) -> Response:
@@ -58,5 +54,5 @@ class VariantDataHandler2(DataHandler):
     def process_data(self, data_accessor: DataAccessor, panel: Panel, scope, accept) -> Response:
         chrom = data_accessor.data_model.stick(data_accessor,panel.stick)
         if chrom == None:
-            return Response(1,"Unknown chromosome {0}".format(panel.stick))
+            raise DataException("Unknown chromosome {0}".format(panel.stick))
         return get_variant(data_accessor,chrom,panel)

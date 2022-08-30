@@ -44,7 +44,7 @@ def _get_gc(data_accessor: DataAccessor, chrom: Chromosome, panel: Panel) -> Res
     #TANGLE.run(out,{
     #    'metadata': [[start,end]]
     #})
-    return Response(5, {'data': out})
+    return out
 
 class WiggleDataHandler2(DataHandler):
     def process_data(self, data_accessor: DataAccessor, panel: Panel, _scope, accept) -> Response:
