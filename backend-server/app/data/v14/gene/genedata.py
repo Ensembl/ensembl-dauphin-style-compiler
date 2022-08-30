@@ -13,6 +13,11 @@ from .transcriptfilter import filter_lines_by_criteria
 from tangle.tangle import TangleFactory
 from ncd import NCDRead
 
+# We might be asked for very zoomed-in views even when zoomed out for example if we are zoomed
+# in and want info on a whole transcipt object. Even in this case we don't want to emit very big
+# data sets such as sequences.
+MAX_SEQ_SCALE = 10
+
 def accept_to_tangling_config(accept):
     compress = True
     to_bytes = True
@@ -86,7 +91,10 @@ class TranscriptDataHandler(DataHandler):
         chrom = data_accessor.data_model.stick(data_accessor,panel.stick)
         if chrom == None:
             return Response(1,"Unknown chromosome {0}".format(panel.stick))
-        return extract_gene_data(data_accessor,chrom,panel,True,self._seq,for_id(scope),accept)
+        include_seq = self._seq
+        if panel.scale > MAX_SEQ_SCALE:
+            include_seq = False
+        return extract_gene_data(data_accessor,chrom,panel,True,include_seq,for_id(scope),accept)
 
 class GeneDataHandler(DataHandler):
     def process_data(self, data_accessor: DataAccessor, panel: Panel, scope, accept) -> Response:
