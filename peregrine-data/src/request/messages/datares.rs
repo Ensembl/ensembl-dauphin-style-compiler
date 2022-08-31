@@ -1,12 +1,13 @@
 use anyhow::anyhow as err;
-use dauphin_interp::util::cbor::cbor_map;
-use peregrine_toolkit::cbor::{cbor_into_drained_map,cbor_into_bytes, cbor_into_map, cbor_as_bytes, cbor_as_map, cbor_map_optional_key, cbor_map_optional_key_ref};
-use peregrine_toolkit::{log, warn};
+use peregrine_toolkit::cbor::{cbor_into_drained_map,cbor_into_bytes };
 use std::{collections::HashMap};
 use crate::{metric::datastreammetric::PacketDatastreamMetricBuilder};
 use crate::core::data::ReceivedData;
 use serde_cbor::Value as CborValue;
 use inflate::inflate_bytes_zlib;
+
+#[cfg(debug_big_requests)]
+use peregrine_toolkit::{ warn, cbor::{ cbor_as_map, cbor_as_bytes, cbor_map_optional_key_ref }};
 
 #[cfg(debug_big_requests)]
 const TOO_LARGE : usize = 10*1024;
