@@ -1,6 +1,6 @@
 [source]
 driver = "s3"
-url="http://nginx/upload-20210917/"
+url="http://nginx/upload-20220829/"
 
 [source.contigs."triticum_aestivum_GCA_900519105.1"]
 driver = "none"

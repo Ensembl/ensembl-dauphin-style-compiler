@@ -109,7 +109,7 @@ track_apply(p);
 
 
 /* VARIANT */
-p := track_new("self()","variant",1,100,1);
+p := track_new("self()","variant",1,100,4);
 track_add_tag(p,"local");
 track_add_trigger(p,["track","variant"]);
 track_add_switch(p,["settings"]);

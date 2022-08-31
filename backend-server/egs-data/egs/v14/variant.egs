@@ -26,7 +26,7 @@ colours := [
 
 start := x_range[@==0];
 end := x_range[@==1];
-step := x_range[@==2] / 1000;
+step := x_range[@==2] / 4000;
 
 r_start := run(len([values])) * step + start;
 r_end := r_start + step;

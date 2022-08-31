@@ -5,7 +5,7 @@ from model.bigbed import get_bigwig_stats, get_bigwig
 from model.chromosome import Chromosome
 from .numbers import delta, zigzag, lesqlite2, compress
 
-SCALE = 1000
+SCALE = 4000
 
 def get_variant_stats(data_accessor: DataAccessor, chrom: Chromosome, panel: Panel) -> Response:
     item = chrom.item_path("variant-summary")
