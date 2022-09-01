@@ -1,3 +1,4 @@
+import logging
 from command.coremodel import DataHandler, Panel, DataAccessor
 from command.response import Response
 from model.bigbed import get_bigbed
@@ -55,7 +56,7 @@ class GeneLocationHandler(DataHandler):
             out = extract_gene_overview_data(data_accessor,chrom,exact[0],exact[1],True,is_dump)
         else:
             out = extract_gene_overview_data(data_accessor,chrom,0,0,True,is_dump)
-            location = []
+            location = (0,0,0)
         out["location"] = compress(lesqlite2(location))
         if stick is not None:
             out["stick"] = compress(stick)
