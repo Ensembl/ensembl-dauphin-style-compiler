@@ -17,7 +17,6 @@ from data.old.sequence8 import ZoomedSeqDataHandler8
 from data.old.contig import ContigDataHandler, ShimmerContigDataHandler
 
 from data.v14.gene.genedata import GeneDataHandler, GeneOverviewDataHandler, TranscriptDataHandler
-from data.v14.gene.genefind import GeneLocationHandler
 from data.v14.wiggle.gc import WiggleDataHandler2
 from data.v14.variant import VariantDataHandler2
 from data.v14.sequence import ZoomedSeqDataHandler
@@ -44,7 +43,6 @@ handlers = [
     ("transcript", TranscriptDataHandler(False),14),
     ("zoomed-transcript", TranscriptDataHandler(True),14),
     ("zoomed-seq", ZoomedSeqDataHandler(),14),
-    ("gene-location", GeneLocationHandler(),14),
     ("gc", WiggleDataHandler2(),14),
     ("contig", ContigDataHandler2(),14),
     ("shimmer-contig", ShimmerContigDataHandler2(),14),

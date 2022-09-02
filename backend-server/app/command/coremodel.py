@@ -1,4 +1,4 @@
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Tuple
 from command.datasources import DataAccessor
 import cbor2
 from .response import Response

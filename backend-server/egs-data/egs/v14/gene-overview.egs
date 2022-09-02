@@ -2,7 +2,8 @@ import "lib:std"; use "std";
 import "lib:peregrine"; use "peregrine";
 import "file:common.egs"; use "common";
 
-focus_gene := list_switch(["focus","gene"]);
+focus_genome_id := switch_string(["track","focus","item","gene"][],["genome_id"][]);
+focus_gene_id := switch_string(["track","focus","item","gene"][],["item_id"][]);
 
 /* 
  * actually get the data from the server
@@ -12,12 +13,20 @@ focus_gene := list_switch(["focus","gene"]);
 req := make_request("self()","gene-overview",get_region());
 data := get_data(req);
 /* location of focus gene */
-req2 := make_request("self()","gene-location",get_region());
-req2 := request_scope(req2,"id",focus_gene);
-focus_data := get_data(req2);
+
+req := make_request("self()","transcript",get_region());
+req := request_scope(req,"id",focus_gene_id);
+req := request_scope(req,"genome",focus_genome_id);
+focus_data := get_data(req);
+
 halt(only_warm(),[data,focus_data]);
 
-focus_range := [positive_seq(focus_data,"location")];
+start_gn := delta_seq(focus_data,"starts");
+end_gn := start_gn + delta_seq(focus_data,"lengths");
+focus_id := string_seq(focus_data,"focus_ids");
+
+start_focus := start_gn#[focus_id==focus_gene_id];
+end_focus := end_gn#[focus_id==focus_gene_id];
 
 /*
  * undo the compression applied by the server basically by applying
@@ -126,9 +135,9 @@ patina := index(allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour,f
 
 /* pretend focus is at (0,0) if missing, for simplicity */
 clip_start := 0;
-clip_start#[len(focus_range)>0] := focus_range[@==0];
+clip_start#[len([start_focus])>0] := [start_focus][@==0];
 clip_end := 0;
-clip_end#[len(focus_range)>0] := focus_range[@==1];
+clip_end#[len([end_focus])>0] := [end_focus][@==0];
 
 /* Things which start to left of focus region */
 members := start<clip_start;

@@ -50,25 +50,13 @@ import "file:common.egs"; use "common";
 focus_genome_id := switch_string(["track","focus","item","gene"][],["genome_id"][]);
 focus_gene_id := switch_string(["track","focus","item","gene"][],["item_id"][]);
 
-/* Get the region the focus object is inside */
+/* Get the data */
 
-req2 := make_request("self()","gene-location",get_region());
-req2 := request_scope(req2,"id",focus_gene_id);
-req2 := request_scope(req2,"genome",focus_genome_id);
-focus_data := get_data(req2);
-
-focus_range := [positive_seq(focus_data,"location")];
-focus_stick := string_seq(focus_data,"stick");
-
-region := make_region(focus_stick,focus_range[@==0],focus_range[@==1]);
-
-/* Get the data for that region */
-
-req := make_request("self()","transcript",region);
+req := make_request("self()","transcript",get_region());
 req := request_scope(req,"id",focus_gene_id);
 req := request_scope(req,"genome",focus_genome_id);
 data := get_data(req);
-halt(only_warm(),[data,focus_data]);
+halt(only_warm(),[data]);
 
 /*
  * undo the compression applied by the server basically by applying

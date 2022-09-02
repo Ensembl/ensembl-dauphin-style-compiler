@@ -116,7 +116,7 @@ impl ResponsePacket {
         for (k,v) in cbor_into_drained_map(value)?.drain(..) {
             match k.as_str() {
                 "responses" => {
-                    total_size = Self::total_size(&v)?;
+                    total_size = Self::total_size(&v).ok().unwrap_or(0);
                     responses = ResponsePacket::decode_responses(v)?;
                 },
                 "programs" => { programs = ResponsePacket::decode_programs(v)?; },
