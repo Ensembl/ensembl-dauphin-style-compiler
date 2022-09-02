@@ -105,6 +105,9 @@ def extract_gene_data(data_accessor: DataAccessor, panel: Panel, include_exons: 
     item = chrom.item_path("transcripts")
     data = get_bigbed(data_accessor,item,panel.start,panel.end)
     extract_data_for_lines(out,data,for_id,include_exons,accept)
+    # flag as invariant if for a given id and no sequence data
+    if for_id is not None and not include_sequence:
+        out['__invariant'] = True
     return out
 
 def extract_gene_overview_data(data_accessor: DataAccessor, chrom: Chromosome, start: int, end: int, with_ids: bool, accept: str) -> Response:

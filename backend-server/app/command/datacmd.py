@@ -98,7 +98,8 @@ class DataHandler(Handler):
                 out = handler.process_data(data_accessor,panel,scope)
             else:
                 data = handler.process_data(data_accessor,panel,scope,accept)
-                out = Response(5,{'data': compress_payload(data) })
+                invariant = data.pop('__invariant',False)
+                out = Response(5,{'data': compress_payload(data), 'invariant': invariant })
         except DataException as e:
             out = e.to_response()
         time_taken_ms = (time.time() - start) * 1000.0

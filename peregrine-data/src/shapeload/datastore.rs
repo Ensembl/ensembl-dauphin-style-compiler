@@ -1,9 +1,11 @@
 use commander::cdr_current_time;
-use std::sync::{ Arc };
+use peregrine_toolkit::{lock, log};
+use std::sync::{ Arc, Mutex };
 use crate::api::{ PeregrineCoreBase };
 use crate::core::channel::{PacketPriority};
 use crate::request::messages::datareq::DataRequest;
 use crate::request::messages::datares::DataRes;
+use crate::util::lrucache::Cache;
 use crate::util::memoized::{ Memoized, MemoizedType };
 use crate::util::message::{ DataMessage };
 
@@ -26,6 +28,7 @@ fn make_data_cache(cache_size: usize, base: &PeregrineCoreBase, prio: PacketPrio
 
 #[derive(Clone)]
 pub struct DataStore {
+    invariant_cache: Arc<Mutex<Cache<DataRequest,Result<Arc<DataRes>,DataMessage>>>>,
     cache: Memoized<DataRequest,Result<Arc<DataRes>,DataMessage>>,
     batch_cache: Memoized<DataRequest,Result<Arc<DataRes>,DataMessage>>
 }
@@ -33,6 +36,7 @@ pub struct DataStore {
 impl DataStore {
     pub fn new(cache_size: usize, base: &PeregrineCoreBase) -> DataStore {
         DataStore { 
+            invariant_cache: Arc::new(Mutex::new(Cache::new(cache_size))),
             cache: make_data_cache(cache_size,base,PacketPriority::RealTime),
             batch_cache: make_data_cache(cache_size,base,PacketPriority::Batch)
         }
@@ -40,6 +44,13 @@ impl DataStore {
 
     pub async fn get(&self, request: &DataRequest, priority: &PacketPriority) -> Result<(Arc<DataRes>,f64),DataMessage> {
         let start = cdr_current_time();
+        /* maybe there's an invariant version? */
+        if let Some(response) = lock!(self.invariant_cache).get(&request.to_index_invariant()).cloned().transpose()? {
+            log!("got invatiant!");
+            let took_ms = cdr_current_time() - start;
+            return Ok((response,took_ms));
+        }
+        /* needs full lookup or new request */
         let response = match priority {
             PacketPriority::RealTime => {
                 self.cache.get(&request).await.as_ref().clone()
@@ -50,6 +61,11 @@ impl DataStore {
                 data.as_ref().clone()
             }
         };
+        if let Ok(response) = &response{
+            if response.is_invariant() {
+                lock!(self.invariant_cache).put(&request.to_index_invariant(),Ok(response.clone()));
+            }
+        }
         let took_ms = cdr_current_time() - start;
         response.map(|r| (r,took_ms))
     }

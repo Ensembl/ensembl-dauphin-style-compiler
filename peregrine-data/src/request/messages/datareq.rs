@@ -37,6 +37,12 @@ impl DataRequest {
     pub fn name(&self) -> &str { &self.name }
     pub fn region(&self) -> &Region { &self.region }
 
+    pub fn to_index_invariant(&self) -> DataRequest {
+        let mut out = self.clone();
+        out.region = out.region.to_index_invariant();
+        out
+    }
+
     pub(crate) fn encode(&self) -> CborValue {
         CborValue::Array(vec![
             self.channel.encode(),

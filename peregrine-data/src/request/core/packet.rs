@@ -111,8 +111,7 @@ impl ResponsePacket {
     pub fn decode(value: CborValue) -> Result<ResponsePacket,String> {
         let mut responses = vec![];
         let mut programs= vec![];
-        #[allow(unused)]
-        let mut total_size = 0;
+        #[allow(unused)] let mut total_size = 0;
         for (k,v) in cbor_into_drained_map(value)?.drain(..) {
             match k.as_str() {
                 "responses" => {

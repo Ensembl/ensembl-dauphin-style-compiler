@@ -1,5 +1,7 @@
 use anyhow::anyhow as err;
+use dauphin_interp::util::cbor::cbor_bool;
 use peregrine_toolkit::cbor::{cbor_into_drained_map,cbor_into_bytes };
+use peregrine_toolkit::log;
 use std::{collections::HashMap};
 use crate::{metric::datastreammetric::PacketDatastreamMetricBuilder};
 use crate::core::data::ReceivedData;
@@ -13,7 +15,8 @@ use peregrine_toolkit::{ warn, cbor::{ cbor_as_map, cbor_as_bytes, cbor_map_opti
 const TOO_LARGE : usize = 10*1024;
 
 pub struct DataRes {
-    data: HashMap<String,ReceivedData>
+    data: HashMap<String,ReceivedData>,
+    invariant: bool
 }
 
 impl DataRes {
@@ -50,15 +53,21 @@ impl DataRes {
 
     pub fn decode(value: CborValue) -> Result<DataRes,String> {
         let mut data = cbor_into_drained_map(value)?;
+        let mut invariant = false;
+        let mut out = None;
         for (key,value) in data.drain(..) {
             if key == "data" {
                 let bytes = inflate_bytes_zlib(&cbor_into_bytes(value)?).map_err(|e| "corrupted data payload")?;
-                let value = serde_cbor::from_slice(&bytes).map_err(|e| "corrupted data payload")?;
-                let data = cbor_into_drained_map(value)?.drain(..).map(|(k,v)| {
+                let value = serde_cbor::from_slice(&bytes).map_err(|_| "corrupted data payload")?;
+                out = Some(cbor_into_drained_map(value)?.drain(..).map(|(k,v)| {
                     Ok((k,ReceivedData::decode(v)?))
-                }).collect::<Result<_,String>>()?;
-                return Ok(DataRes { data });
+                }).collect::<Result<_,String>>()?);
+            } else if key == "invariant" {
+                invariant = cbor_bool(&value).ok().unwrap_or(false);
             }
+        }
+        if let Some(data) = out {
+            return Ok(DataRes { data, invariant });
         }
         return Err(format!("missing key 'data'"));
     }
@@ -69,4 +78,6 @@ impl DataRes {
             self.data.keys().cloned().collect::<Vec<_>>().join(", ")
         ))
     }
+
+    pub(crate) fn is_invariant(&self) -> bool { self.invariant }
 }

@@ -26,6 +26,12 @@ impl Region {
         ])
     }
 
+    pub fn to_index_invariant(&self) -> Region {
+        let mut out = self.clone();
+        out.index = 0;
+        out
+    }
+
     pub fn stick(&self) -> &StickId { &self.stick }
     pub fn index(&self) -> u64 { self.index }
     pub fn scale(&self) -> &Scale { &self.scale }
