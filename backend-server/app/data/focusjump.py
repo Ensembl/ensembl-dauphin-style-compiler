@@ -40,15 +40,15 @@ class FocusJumpHandler:
 
         """
         if location.startswith(PREFIX):
-            for (species, chrom) in split_all(":", location[len(PREFIX):]):
-                key = PREFIX + species
-                cached = data_accessor.cache.get_jump(location,version)
-                if cached is not None:
-                    return cached
-                value = self._jump_ncd.get(location.encode("utf-8"))
-                if value is not None:
-                    parts = value.decode("utf-8").split("\t")
-                    out = (species + ":" + parts[0], int(float(parts[1])), int(float(parts[2])))
-                    data_accessor.cache.set_jump(location,*out,version)
-                    return out
+            (sp_obj,_,chr_name) = data_accessor.data_model.split_total_wire_id(location[len(PREFIX):])
+            lookup_key = "focus:{}:{}".format(sp_obj.wire_id,chr_name)
+            cached = data_accessor.cache.get_jump(lookup_key,version)
+            if cached is not None:
+                return cached
+            value = self._jump_ncd.get(lookup_key.encode("utf-8"))
+            if value is not None:
+                parts = value.decode("utf-8").split("\t")
+                out = (sp_obj.best_name + ":" + parts[0], int(float(parts[1])), int(float(parts[2])))
+                data_accessor.cache.set_jump(lookup_key,*out,version)
+                return out
         return None

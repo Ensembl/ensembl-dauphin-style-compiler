@@ -1,3 +1,4 @@
+import logging
 import re
 from .chromosome import Chromosome
 from model.datalocator import AccessItem
@@ -12,16 +13,16 @@ class Species(object):
         genome_id ():
     """
 
-    def __init__(self, genome_id):
-
+    def __init__(self, genome_id, best_name, names):
         self.genome_id = genome_id
         self.genome_path = self.genome_id
         self.wire_id = re.sub(r'\W', '_', self.genome_id)
         self.chromosomes = {}
+        self.best_name = best_name
+        self._names = names
         self.alias_prefixes = [self.wire_id]
 
     def _load_ncd(self, data_accessor, variety, wire_id):
-
         """
 
         Args:
@@ -40,6 +41,12 @@ class Species(object):
             raise RequestException("cannot find hash")
         return hash_data.decode("utf-8").split("\t")
 
+    def split_total_wire_id(self, total_wire_id: str):
+        for name in self._names:
+            if total_wire_id.startswith(name+":"):
+                return (name,total_wire_id[len(name)+1:])
+        raise RequestException("cannot split id")
+
     def _load_chromosome(self, data_accessor, total_wire_id):
         """
 
@@ -50,7 +57,7 @@ class Species(object):
         Returns:
 
         """
-        wire_id = total_wire_id[(len(self.wire_id) + 1):]
+        (_, wire_id) = self.split_total_wire_id(total_wire_id)
         hash_value = self._load_ncd(data_accessor, "chrom-hashes", wire_id)[0]
         size = int(self._load_ncd(data_accessor, "chrom-sizes", wire_id)[0])
         return Chromosome(wire_id, size, hash_value, self)

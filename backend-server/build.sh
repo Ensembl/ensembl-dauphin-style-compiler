@@ -1,5 +1,8 @@
 #! /bin/bash
 
-cd app
-uvicorn main:app --host 0.0.0.0 --port 3333 --workers 16
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+cd $SCRIPT_DIR
 
+cd app
+export SOURCES_TOML=sources-dan-standalone.toml
+uvicorn main:app --host 0.0.0.0 --port 3333 --workers 16

@@ -1,19 +1,23 @@
-import logging
+import logging, toml
 from .species import Species
 from util.string import split_all
 from model.datalocator import AccessItem
+from core.config import SPECIESLIST_TOML
+from core.exceptions import RequestException
 
-
+"""
+Converts a stick id to a Chromosome() object which includes means of access for the data.
+The main tasks are resolving species IDs and determining data-sets based on versioning.
+"""
 class DataModel(object):
     """
     Args:
         data_accessor ():
     """
     def __init__(self, data_accessor):
-
         self._species = {}
         self._species_aliases = {}
-        self._load_species(data_accessor)
+        self._load_species()
 
     def stick(self, data_accessor, alias):
         """
@@ -46,22 +50,35 @@ class DataModel(object):
         values = accessor.get().decode("utf-8")
         return values.splitlines()
 
-    def _load_species(self, resolver):
-        """
+    def _load_species(self):
+        with open(SPECIESLIST_TOML) as f:
+            species_list = toml.loads(f.read())
+            for species_name in species_list["species"]:
+                species_conf = species_list["species"][species_name]
+                print(species_conf)
+                all_names = list(species_conf["other_names"])
+                all_names.append(species_conf["best_name"])
+                try:
+                    species_object = Species(species_conf["path"],species_conf['best_name'],all_names)
+                    self._species[species_object.wire_id] = species_object
+                    for alias_prefix in all_names:
+                        self._species_aliases[alias_prefix] = species_object.wire_id
+                except:
+                    logging.error("Species {0} failed to configure. Skipping!".format(species_name))
 
-        Args:
-            resolver ():
-
-        Returns:
-            None
-
-        """
-        species_list = self._get_species_list(resolver)
-        for species_name in species_list:
-            try:
-                species_object = Species(species_name)
-                self._species[species_object.wire_id] = species_object
-                for alias_prefix in species_object.alias_prefixes:
-                    self._species_aliases[alias_prefix] = species_object.wire_id
-            except:
-                logging.error("Species {0} failed to configure. Skipping!".format(species_name))
+    def split_total_wire_id(self, total_wire_id: str):
+        # we know that we split on a oclon, but which one? We go from longest to shortest, trying
+        # them all!
+        parts = total_wire_id.split(":")
+        for partition in reversed(range(0,len(parts))):
+            head = ":".join(parts[0:partition+1])
+            species_name = self._species_aliases.get(head,None)
+            if species_name is not None:
+                species = self._species[species_name]
+                if species is not None:
+                    try:
+                        (sp_name,chr_name) = species.split_total_wire_id(total_wire_id)
+                        return (species,sp_name,chr_name)
+                    except RequestException:
+                        pass
+        raise RequestException("cannot split id")

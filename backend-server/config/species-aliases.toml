@@ -1,0 +1,61 @@
+[species.grch38]
+path = "homo_sapiens_GCA_000001405.28"
+best_name = "a7335667-93e7-11ec-a39d-005056b38ce3"
+other_names = [
+    "homo_sapiens_GCA_000001405.28",
+    "homo_sapiens_GCA_000001405_28",
+    "grch38"
+]
+
+[species.grch37]
+path = "homo_sapiens_GCA_000001405.14"
+best_name = "3704ceb1-948d-11ec-a39d-005056b38ce3"
+other_names = [
+    "homo_sapiens_GCA_000001405.14",
+    "homo_sapiens_GCA_000001405_14",
+    "grch37"
+]
+
+[species.wheat]
+path = "triticum_aestivum_GCA_900519105.1"
+best_name = "a73357ab-93e7-11ec-a39d-005056b38ce3"
+other_names = [
+    "triticum_aestivum_GCA_900519105.1",
+    "triticum_aestivum_GCA_900519105_1",
+    "wheat"
+]
+
+[species.yeast]
+path = "saccharomyces_cerevisiae_GCA_000146045.2"
+best_name = "a733574a-93e7-11ec-a39d-005056b38ce3"
+other_names = [
+    "saccharomyces_cerevisiae_GCA_000146045.2",
+    "saccharomyces_cerevisiae_GCA_000146045_2",
+    "yeast"
+]
+
+[species.plasmodium]
+path = "plasmodium_falciparum_GCA_000002765.2"
+best_name = "a73356e1-93e7-11ec-a39d-005056b38ce3"
+other_names = [
+    "plasmodium_falciparum_GCA_000002765.2",
+    "plasmodium_falciparum_GCA_000002765_2",
+    "plasmodium"
+]
+
+[species.worm]
+path = "caenorhabditis_elegans_GCA_000002985.3"
+best_name = "a733550b-93e7-11ec-a39d-005056b38ce3"
+other_names = [
+    "caenorhabditis_elegans_GCA_000002985.3",
+    "caenorhabditis_elegans_GCA_000002985_3",
+    "worm"
+]
+
+[species.ecoli]
+path = "escherichia_coli_str_k_12_substr_mg1655_gca_000005845_GCA_000005845_2"
+best_name = "a73351f7-93e7-11ec-a39d-005056b38ce3"
+other_names = [
+    "escherichia_coli_str_k_12_substr_mg1655_gca_000005845_GCA_000005845_2",
+    "ecoli"
+]

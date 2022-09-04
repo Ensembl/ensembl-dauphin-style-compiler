@@ -65,6 +65,7 @@ METRIC_FILE = config("METRIC_FILE",default=os.path.join(base_directory,"metric.l
 
 ASSETS_DIR = config("ASSETS_DIR",default=os.path.join(base_directory,"assets"))
 ASSETS_TOML = config("ASSETS_TOML",default=os.path.join(config_directory,"assets.toml"))
+SPECIESLIST_TOML = config("SPECIESLIST_TLML",default=os.path.join(config_directory,"species-aliases.toml"))
 
 # logging configuration
 

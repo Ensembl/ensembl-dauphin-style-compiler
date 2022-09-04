@@ -149,7 +149,7 @@ impl PeregrineMessage for DataMessage {
             DataMessage::CodeInvariantFailed(f) => format!("Code invariant failed: {}",f),
             DataMessage::AuthorityUnavailable(source) => format!("stick authority unavailable due to earlier: {}",source),
             DataMessage::NoSuchStick(stick) => format!("no such stick: {}",stick),
-            DataMessage::NoSuchJump(jump) => format!("no such stick: {}",jump),
+            DataMessage::NoSuchJump(jump) => format!("no such jump: {}",jump),
             DataMessage::CarriageUnavailable(causes) =>
                 format!("carriage unavilable. causes = [{}]",causes.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(", ")),
             DataMessage::DauphinProgramDidNotLoad(name) => format!("dauphin program '{}' did not load",name),
