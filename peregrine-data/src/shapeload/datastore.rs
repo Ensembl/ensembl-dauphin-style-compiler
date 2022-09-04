@@ -1,5 +1,5 @@
 use commander::cdr_current_time;
-use peregrine_toolkit::{lock, log};
+use peregrine_toolkit::{lock};
 use std::sync::{ Arc, Mutex };
 use crate::api::{ PeregrineCoreBase };
 use crate::core::channel::{PacketPriority};
@@ -45,8 +45,7 @@ impl DataStore {
     pub async fn get(&self, request: &DataRequest, priority: &PacketPriority) -> Result<(Arc<DataRes>,f64),DataMessage> {
         let start = cdr_current_time();
         /* maybe there's an invariant version? */
-        if let Some(response) = lock!(self.invariant_cache).get(&request.to_index_invariant()).cloned().transpose()? {
-            log!("got invatiant!");
+        if let Some(response) = lock!(self.invariant_cache).get(&request.to_invariant()).cloned().transpose()? {
             let took_ms = cdr_current_time() - start;
             return Ok((response,took_ms));
         }
@@ -63,7 +62,7 @@ impl DataStore {
         };
         if let Ok(response) = &response{
             if response.is_invariant() {
-                lock!(self.invariant_cache).put(&request.to_index_invariant(),Ok(response.clone()));
+                lock!(self.invariant_cache).put(&request.to_invariant(),Ok(response.clone()));
             }
         }
         let took_ms = cdr_current_time() - start;

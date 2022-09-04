@@ -36,10 +36,11 @@ impl DataRequest {
     pub fn channel(&self) -> &Channel { &self.channel }
     pub fn name(&self) -> &str { &self.name }
     pub fn region(&self) -> &Region { &self.region }
+    pub fn scope(&self) -> &BTreeMap<String,Vec<String>> { &self.scope }
 
-    pub fn to_index_invariant(&self) -> DataRequest {
+    pub fn to_invariant(&self) -> DataRequest {
         let mut out = self.clone();
-        out.region = out.region.to_index_invariant();
+        out.region = out.region.to_invariant();
         out
     }
 

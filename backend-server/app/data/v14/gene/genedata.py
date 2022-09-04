@@ -87,14 +87,8 @@ def extract_data_for_lines(out, data, for_id: Optional[Tuple[str,str]], include_
     tangle = TANGLE_EXON if include_exons else TANGLE_NO_EXON
     tangle.run(out,{ "tr_bigbed": lines },**accept_to_tangling_config(accept))
 
-def extract_gene_data(data_accessor: DataAccessor, panel: Panel, include_exons: bool, include_sequence: bool, for_id: Optional[Tuple[str,str]], accept: str) -> Response:
-    # sequence data (only applies to requested region)
+def extract_gene_data(data_accessor: DataAccessor, panel: Panel, include_exons: bool, for_id: Optional[Tuple[str,str]], accept: str) -> Response:
     out = {}
-    chrom = data_accessor.data_model.stick(data_accessor,panel.stick)
-    if chrom == None:
-        raise DataException("Unknown chromosome {0}".format(panel.stick))
-    sequence_blocks8(out,data_accessor,chrom,panel,not include_sequence)
-    # other data needs to be id-based because it's used to drive metadata, etc
     # fix location
     if for_id is not None:
         update_panel_from_id(data_accessor,panel,for_id)
@@ -105,8 +99,8 @@ def extract_gene_data(data_accessor: DataAccessor, panel: Panel, include_exons: 
     item = chrom.item_path("transcripts")
     data = get_bigbed(data_accessor,item,panel.start,panel.end)
     extract_data_for_lines(out,data,for_id,include_exons,accept)
-    # flag as invariant if for a given id and no sequence data
-    if for_id is not None and not include_sequence:
+    # flag as invariant if by id
+    if for_id is not None:
         out['__invariant'] = True
     return out
 
@@ -132,14 +126,8 @@ def for_id(scope):
         return None
 
 class TranscriptDataHandler(DataHandler):
-    def __init__(self, seq: bool):
-        self._seq = seq
-
     def process_data(self, data_accessor: DataAccessor, panel: Panel, scope, accept) -> Response:
-        include_seq = self._seq
-        if panel.scale > MAX_SEQ_SCALE:
-            include_seq = False
-        return extract_gene_data(data_accessor,panel,True,include_seq,for_id(scope),accept)
+        return extract_gene_data(data_accessor,panel,True,for_id(scope),accept)
 
 class GeneDataHandler(DataHandler):
     def process_data(self, data_accessor: DataAccessor, panel: Panel, scope, accept) -> Response:

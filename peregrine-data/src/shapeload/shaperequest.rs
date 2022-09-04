@@ -26,9 +26,10 @@ impl Region {
         ])
     }
 
-    pub fn to_index_invariant(&self) -> Region {
+    pub fn to_invariant(&self) -> Region {
         let mut out = self.clone();
         out.index = 0;
+        out.scale = Scale::new(0);
         out
     }
 

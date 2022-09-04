@@ -45,7 +45,12 @@ no_letters := switch_yn(["scale","no-letters"]);
 
 req := make_request("self()","zoomed-transcript",get_region());
 data := get_data(req);
-halt(only_warm(),[data]);
+
+seq_req := make_request("self()","zoomed-seq",get_region());
+seq_data := get_data(seq_req);
+
+halt(only_warm(),[data,seq_data]);
+
 
 bp := [bp_range()];
 
@@ -94,9 +99,9 @@ exon_gene_biotype := index(which_gn_by_ex,[gene_biotype]);
 exon_strand := index(which_gn_by_ex,[strand]);
 
 /* sequence stuff */
-sequence := [letter_string(data,"sequence")];
+sequence := [letter_string(seq_data,"sequence")];
 sequence_rev := [base_flip(sequence[])];
-sequence_start := [positive_seq(data,"sequence_start")][@==0];
+sequence_start := [positive_seq(seq_data,"sequence_start")][@==0];
 
 gene_tracks_enabled(enabled_tracks);
 

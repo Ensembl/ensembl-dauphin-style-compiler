@@ -44,11 +44,15 @@ no_letters := switch_yn(["scale","no-letters"]);
 focus_genome_id := switch_string(["track","focus","item","gene"][],["genome_id"][]);
 focus_gene_id := switch_string(["track","focus","item","gene"][],["item_id"][]);
 
-req := make_request("self()","zoomed-transcript",get_region());
+req := make_request("self()","transcript",get_region());
 req := request_scope(req,"id",focus_gene_id);
 req := request_scope(req,"genome",focus_genome_id);
 data := get_data(req);
-halt(only_warm(),[data]);
+
+seq_req := make_request("self()","zoomed-seq",get_region());
+seq_data := get_data(seq_req);
+
+halt(only_warm(),[data,seq_data]);
 
 bp := [bp_range()];
 
@@ -98,9 +102,9 @@ exon_gene_biotype := index(which_gn_by_ex,[gene_biotype]);
 exon_strand := index(which_gn_by_ex,[strand]);
 
 /* sequence stuff */
-sequence := [letter_string(data,"sequence")];
+sequence := [letter_string(seq_data,"sequence")];
 sequence_rev := [base_flip(sequence[])];
-sequence_start := [positive_seq(data,"sequence_start")][@==0];
+sequence_start := [positive_seq(seq_data,"sequence_start")][@==0];
 
 focus_enabled_track := switch_yn(["track","focus"]);
 
