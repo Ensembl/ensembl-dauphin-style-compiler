@@ -131,7 +131,7 @@ class TranscriptDataHandler(DataHandler):
 
 class GeneDataHandler(DataHandler):
     def process_data(self, data_accessor: DataAccessor, panel: Panel, scope, accept) -> Response:
-        return extract_gene_data(data_accessor,panel,False,False,for_id(scope),accept)
+        return extract_gene_data(data_accessor,panel,False,for_id(scope),accept)
 
 class GeneOverviewDataHandler(DataHandler):
     def process_data(self, data_accessor: DataAccessor, panel: Panel,scope, accept) -> Response:
