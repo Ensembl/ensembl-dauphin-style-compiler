@@ -40,7 +40,7 @@ handlers = [
 
     ("gene-overview", GeneOverviewDataHandler(),14),
     ("gene", GeneDataHandler(),14),
-    ("transcript", TranscriptDataHandler(False),14),
+    ("transcript", TranscriptDataHandler(),14),
     ("zoomed-seq", ZoomedSeqDataHandler(),14),
     ("gc", WiggleDataHandler2(),14),
     ("contig", ContigDataHandler2(),14),
