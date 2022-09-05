@@ -1,18 +1,18 @@
-import os.path
-
+import collections
+import logging
 from command.coremodel import DataHandler, Panel, DataAccessor
 from command.response import Response
 from model.bigbed import get_bigwig_stats, get_bigwig
 from model.chromosome import Chromosome
-from ..numbers import delta, zigzag, lesqlite2, compress
-from tangle.tangle import TangleFactory
+from model.transcriptfile import TranscriptFileLine
+from .numbers import delta, zigzag, lesqlite2, compress
 
 SCALE = 4
 
-TANGLE_FACTORY = TangleFactory()
+"""
+Attributes:
+"""
 
-TANGLE_PATH = os.path.join(os.path.dirname(__file__),"wiggle-tangle.toml")
-TANGLE = TANGLE_FACTORY.make_from_tomlfile(TANGLE_PATH,[])
 
 def _get_gc(data_accessor: DataAccessor, chrom: Chromosome, panel: Panel) -> Response:
     """
@@ -41,10 +41,8 @@ def _get_gc(data_accessor: DataAccessor, chrom: Chromosome, panel: Panel) -> Res
         "values": compress(lesqlite2(zigzag(delta(data)))),
         "range": compress(lesqlite2([start, end]))
     }
-    #TANGLE.run(out,{
-    #    'metadata': [[start,end]]
-    #})
     return Response(5, {'data': out})
+
 
 class WiggleDataHandler(DataHandler):
     def process_data(self, data_accessor: DataAccessor, panel: Panel, _scope) -> Response:

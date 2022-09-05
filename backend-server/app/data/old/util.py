@@ -1,6 +1,7 @@
 from typing import Any, List, Tuple
 from .numbers import delta, zigzag, lesqlite2, compress, classify
 
+
 def classified_numbers(result: dict, data: List[str], name: str):
     """
 

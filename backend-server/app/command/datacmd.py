@@ -9,9 +9,8 @@ from .response import Response
 from .datasources import DataAccessor
 from .exceptionres import DataException
 
-from data.old.gene.genedata import GeneDataHandler8, GeneOverviewDataHandler8, TranscriptDataHandler8
-from data.old.gene.genefind import GeneLocationHandler8
-from data.old.wiggle.gc import WiggleDataHandler
+from data.old.genedata8 import GeneDataHandler8, GeneOverviewDataHandler8, TranscriptDataHandler8, GeneLocationHandler8
+from data.old.gc import WiggleDataHandler
 from data.old.variant import VariantDataHandler
 from data.old.sequence8 import ZoomedSeqDataHandler8
 from data.old.contig import ContigDataHandler, ShimmerContigDataHandler
@@ -80,6 +79,7 @@ class DataHandler(Handler):
     def process(self, data_accessor: DataAccessor, channel: Any, payload: Any, metrics: ResponseMetrics, version: Version) -> Response:
         if version.get_egs() < 14:
             (channel,name,panel,scope) = payload
+            accept = ""
         else:
             (channel,name,panel,scope,accept) = payload
         panel = Panel(panel)
