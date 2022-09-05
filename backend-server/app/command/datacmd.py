@@ -113,9 +113,9 @@ class DataHandler(Handler):
         return ["data",payload[1],payload[2][0]]
 
 class JumpHandler(Handler):
-    def __init__(self, data_accessor):
+    def __init__(self):
         self.handlers = [
-            FocusJumpHandler(data_accessor)
+            FocusJumpHandler()
         ]
 
     def process(self, data_accessor: DataAccessor, channel: Any, payload: Any, metrics: ResponseMetrics, version: Version) -> Response:

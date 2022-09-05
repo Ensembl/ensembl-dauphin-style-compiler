@@ -12,7 +12,6 @@ class Species(object):
     Args:
         genome_id ():
     """
-
     def __init__(self, genome_id, best_name, names):
         self.genome_id = genome_id
         self.genome_path = self.genome_id
@@ -77,13 +76,13 @@ class Species(object):
             self.chromosomes[wire_id] = self._load_chromosome(data_accessor, wire_id)
         return self.chromosomes.get(wire_id)
 
-    def item_path(self, variety):
-        """
+    # def item_path(self, variety):
+    #     """
 
-        Args:
-            variety ():
+    #     Args:
+    #         variety ():
 
-        Returns:
+    #     Returns:
 
-        """
-        return AccessItem(variety, self.genome_id)
+    #     """
+    #     return AccessItem(variety, self.genome_id)

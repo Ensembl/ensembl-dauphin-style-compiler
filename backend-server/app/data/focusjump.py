@@ -5,7 +5,6 @@ import os.path
 from command.coremodel import DataAccessor
 from model.datalocator import AccessItem
 from ncd import NCDRead
-from util.string import split_all
 from model.version import Version
 
 """
@@ -22,11 +21,14 @@ class FocusJumpHandler:
     Args:
         data_accessor ():
     """
+    def __init__(self):
+        self._jump_ncd = None
 
-    def __init__(self, data_accessor: DataAccessor):
-        item = AccessItem("jump")
-        accessor = data_accessor.resolver.get(item)
-        self._jump_ncd = NCDRead(accessor.ncd())
+    def _ensure_ncd(self, data_accessor: DataAccessor):
+        if self._jump_ncd is None:
+            item = AccessItem("jump")
+            accessor = data_accessor.resolver.get(item)
+            self._jump_ncd = NCDRead(accessor.ncd())
 
     def get(self,data_accessor: DataAccessor, location: str, version: Version):
         """
@@ -39,6 +41,7 @@ class FocusJumpHandler:
         Returns:
 
         """
+        self._ensure_ncd(data_accessor)
         if location.startswith(PREFIX):
             (sp_obj,_,chr_name) = data_accessor.data_model.split_total_wire_id(location[len(PREFIX):])
             lookup_key = "focus:{}:{}".format(sp_obj.wire_id,chr_name)

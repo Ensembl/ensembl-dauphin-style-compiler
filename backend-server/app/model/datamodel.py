@@ -14,7 +14,7 @@ class DataModel(object):
     Args:
         data_accessor ():
     """
-    def __init__(self, data_accessor):
+    def __init__(self):
         self._species = {}
         self._species_aliases = {}
         self._load_species()
@@ -34,21 +34,6 @@ class DataModel(object):
             if species_name is not None:
                 return self._species[species_name].chromosome(data_accessor, alias)
         return None
-
-    @staticmethod
-    def _get_species_list(resolver):
-        """
-
-        Args:
-            resolver ():
-
-        Returns:
-            String
-        """
-        item = AccessItem("species-list")
-        accessor = resolver.get(item)
-        values = accessor.get().decode("utf-8")
-        return values.splitlines()
 
     def _load_species(self):
         with open(SPECIESLIST_TOML) as f:

@@ -3,17 +3,14 @@ import logging
 import cbor2
 import urllib
 from typing import Any, List, Tuple
-from .datasources import DataAccessor
-from .begs import Bundle
-from .coremodel import Handler
-from .response import Response
+from .datasources import DataAccessor, DataAccessorCollection
 from .controlcmds import BootstrapHandler, ProgramHandler, ErrorHandler, StickHandler, StickAuthorityHandler
 from .metriccmd import MetricHandler
 from .datacmd import DataHandler, JumpHandler
 from util.influx import ResponseMetrics
 from model.version import Version
 
-data_accessor = DataAccessor()        
+data_accessor_collection = DataAccessorCollection()        
 
 handlers = {
     0: BootstrapHandler(),
@@ -21,7 +18,7 @@ handlers = {
     2: StickHandler(),
     3: StickAuthorityHandler(),
     4: DataHandler(),
-    5: JumpHandler(data_accessor),
+    5: JumpHandler(),
     6: MetricHandler()
 }
 
@@ -43,7 +40,7 @@ def do_request_remote(url,messages, high_priority: bool, version: Version):
     with urllib.request.urlopen(upstream,data=request) as response:
         return cbor2.loads(response.read())
 
-def extract_remote_request(channel: Tuple[int,str], typ: int, payload: Any):
+def extract_remote_request(data_accessor: DataAccessor, typ: int, payload: Any):
     handler = type_to_handler(typ)
     prefix = handler.remote_prefix(payload)
     if prefix != None:
@@ -52,7 +49,7 @@ def extract_remote_request(channel: Tuple[int,str], typ: int, payload: Any):
             return override
     return None
 
-def process_local_request(channel: Tuple[int,str], typ: int, payload: Any, metrics: ResponseMetrics, version: Version):
+def process_local_request(data_accessor: DataAccessor,channel: Tuple[int,str], typ: int, payload: Any, metrics: ResponseMetrics, version: Version):
     handler = type_to_handler(typ)
     return handler.process(data_accessor,channel,payload,metrics,version)
 
@@ -64,11 +61,12 @@ def process_packet(packet_cbor: Any, high_priority: bool) -> Any:
     local_requests = []
     remote_requests = collections.defaultdict(list)
     version = Version(packet_cbor.get("version",None))
+    data_accessor = data_accessor_collection.get(version.get_egs())
     # anything that should be remote
     metrics.count_packets += len(packet_cbor["requests"])
     for p in packet_cbor["requests"]:
         (msgid,typ,payload) = p
-        override = extract_remote_request(channel,typ,payload)
+        override = extract_remote_request(data_accessor,typ,payload)
         if override != None:
             remote_requests[override].append(p)
         else:
@@ -79,7 +77,7 @@ def process_packet(packet_cbor: Any, high_priority: bool) -> Any:
         bundles |= set(r["programs"])
     # local stuff
     for (msgid,typ,payload) in local_requests:
-        r = process_local_request(channel,typ,payload,metrics,version)
+        r = process_local_request(data_accessor,channel,typ,payload,metrics,version)
         response.append([msgid,r.payload])
         bundles |= r.bundles
     begs_files = data_accessor.begs_files

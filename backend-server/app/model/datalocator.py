@@ -1,5 +1,5 @@
 import logging
-from typing import Optional
+from typing import Any, Optional
 import toml
 from collections import namedtuple
 from core.config import SOURCES_TOML
@@ -22,7 +22,6 @@ class AccessItem(object):
     """
 
     def __init__(self, variety: str, genome: str = None, chromosome: str = None):
-
         self.variety: str = variety
         self.genome: str = genome
         self.chromosome: str = chromosome
@@ -230,11 +229,11 @@ class DataSourceResolver:
 
     """
 
-    def __init__(self):
+    def __init__(self, version: int):
         self._paths = {}
         self._redirect = {}
         self._blacklist = set()
-        self._load(SOURCES_TOML)
+        self._load(SOURCES_TOML,version)
 
     def _add_here(self, path, data):
         """
@@ -289,7 +288,21 @@ class DataSourceResolver:
             if type(new_data) is dict:
                 self._add_redirect(path + [more_path], new_data)
 
-    def _load(self, source):
+    def _select_source(self, config, version: int) -> Any:
+        sources_conf = config.get('source',{})
+        for source in sources_conf:
+            source_conf = sources_conf[source]
+            min_version = source_conf.get('min_version',None)
+            if min_version is not None and version < min_version:
+                continue
+            max_version = source_conf.get('max_version',None)
+            if max_version is not None and version > max_version:
+                continue
+            logging.info("Choosing source '{}' for version {}".format(source,version))
+            return source_conf
+        raise RequestException("no source for version {}".format(version))
+
+    def _load(self, source, version: int):
         """
 
         Args:
@@ -299,7 +312,7 @@ class DataSourceResolver:
 
         """
         toml_data = toml.load(source)
-        self._add([], toml_data.get('source', {}))
+        self._add([], self._select_source(toml_data,version))
         self._add_redirect([], toml_data.get('redirect', {}))
 
     def get(self, item: AccessItem) -> Optional[AccessMethod]:
