@@ -1,6 +1,12 @@
-[source]
+[source.apple]
+driver = "s3"
+url = "https://ensembl-2020-gb-flatfiles.s3.eu-west-2.amazonaws.com/upload-20210917/"
+max_version = 13
+
+[source.banana]
 driver = "s3"
 url = "https://ensembl-2020-gb-flatfiles.s3.eu-west-2.amazonaws.com/upload-20220829/"
+min_version = 14
 
 [redirect.data]
 upstream="http://52.56.215.72:3333/api/data"
