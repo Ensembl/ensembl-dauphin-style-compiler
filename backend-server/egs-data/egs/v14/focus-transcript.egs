@@ -283,12 +283,13 @@ pt_zmenu_tr := patina_zmenu(zmenu_tmpl,["gene_id","transcript_id","transcript_bi
                                       [[id_gn_by_tr],[id_tr],[transcript_biotype],[transcript_strand_string],[transcript_designation],["focus"],[len([id_gn_by_tr]) (*) "transcript"]][]);
 
 /* gene part */
-zmenu_tmpl := zmenu("[<light>Gene</light> {symbol}] / [<strong><focus>{id}</focus></strong>]");
+zmenu_tmpl := zmenu("[<light>Gene</light> {symbol}] / [<strong><focus>{id}</focus></strong>] / [{desc}]");
 
 gene_name_by_tr := index(which_gn_by_tr,[gene_name]);
 gene_id_by_tr := index(which_gn_by_tr,[gene_id]);
+gene_desc_by_tr := index(which_gn_by_tr,[gene_desc]);
 
-pt_zmenu_gn := patina_zmenu(zmenu_tmpl,["symbol","id","track","type"],[[gene_name_by_tr],[gene_id_by_tr],["focus"],["gene"]][]);
+pt_zmenu_gn := patina_zmenu(zmenu_tmpl,["symbol","id","track","type","desc"],[[gene_name_by_tr],[gene_id_by_tr],["focus"],["gene"],[gene_desc_by_tr]][]);
 
 /*
  * draw everything!

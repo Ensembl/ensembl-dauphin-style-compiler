@@ -523,9 +523,10 @@ pt_zmenu_tr := patina_zmenu(zmenu_tmpl,["gene_id","transcript_id","transcript_bi
 gene_name_by_tr := index(which_gn_by_tr,[gene_name]);
 gene_id_by_tr := index(which_gn_by_tr,[gene_id]);
 track_name_by_tr := index(which_gn_by_tr,[track_name]);
+gene_desc_by_tr := index(which_gn_by_tr,[gene_desc]);
 
-zmenu_tmpl := zmenu("[<light>Gene</light> {symbol}] / [<strong><focus>{id}</focus></strong>]");
-pt_zmenu_gn := patina_zmenu(zmenu_tmpl,["symbol","id","track","type"],[[gene_name_by_tr],[gene_id_by_tr],[track_name_by_tr],["gene"]][]);
+zmenu_tmpl := zmenu("[<light>Gene</light> {symbol}] / [<strong><focus>{id}</focus></strong>] / [{descs}]");
+pt_zmenu_gn := patina_zmenu(zmenu_tmpl,["symbol","id","track","type","descs"],[[gene_name_by_tr],[gene_id_by_tr],[track_name_by_tr],["gene"],[gene_desc_by_tr]][]);
 
 gene_tracks_enabled_property(enabled_labels,"label");
 gene_tracks_enabled_property(enabled_labels_tr,"transcript-label");
