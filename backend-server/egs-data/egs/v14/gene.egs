@@ -163,6 +163,7 @@ zmenu_patina := patina_zmenu(zmenu(""),["type"],[["gene-and-one-transcript"]][])
 
 /* transcript part */
 zmenu_tmpl := zmenu("[<light>Transcript</light> <strong>{versioned_id}</strong>] [<light>{transcript_biotype}</light>] [<light>{strand}</light>] / [<light>{transcript_id}</light>] [<light>{designation}</light>]");
+designated_transcript_designation#[designated_transcript_designation=="normal"] := "";
 tr_zmenu_patina := patina_zmenu(zmenu_tmpl,
     ["gene_id","versioned_id","unversioned_id","transcript_biotype","strand","designation","type","track"],
     [[id_gn_vr],[id_dtr_vr],[id_dtr_uv],[designated_transcript_biotype],[strand_string],[designated_transcript_designation],["transcript"],[track_name]][]);
