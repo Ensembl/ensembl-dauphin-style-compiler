@@ -63,7 +63,6 @@ halt(only_warm(),[data]);
  * the transforms applied there in reverse order.
  */
 
-focus_id := string_seq(data,"focus_ids");
 id_gn_uv := string_seq(data,"gene_id");
 id_gn_vo := string_seq(data,"gene_id_version");
 id_gn_vr := concat(concat(id_gn_uv,"."),id_gn_vo);
@@ -103,7 +102,6 @@ idx_tr_in_gn := run(delta_seq(data,"transcript_counts"));
 start_ex := delta_seq(data,"transcript_exon_starts");
 end_ex := start_ex + delta_seq(data,"transcript_exon_lengths");
 id_gn_by_ex := index(which_gn_by_ex,[id_gn_vr]);
-exon_focus_id := index(which_gn_by_ex,[focus_id]);
 exon_gene_biotype := index(which_gn_by_ex,[gene_biotype]);
 exon_strand := index(which_gn_by_ex,[strand]);
 
@@ -166,7 +164,7 @@ enabled_transcript_labels := switch_yn(["track","focus","transcript-label"]);
 expand_base := len([id_gn_vr]) (*) "buttons/gene/expand";
 expand_switches := append_group(expand_base,id_gn_vr);
 
-calc_focus_transcripts_shown(bool_show_tr,id_gn_vr,id_tr_vr,which_gn_by_tr,focus_id,focus_gene_id,idx_tr_in_gn);
+calc_focus_transcripts_shown(bool_show_tr,id_gn_vr,id_tr_vr,which_gn_by_tr,id_gn_uv,focus_gene_id,idx_tr_in_gn);
 
 /* index the rest (by gene) */
 drawn_tr_gn := which_gn_by_tr;
@@ -193,7 +191,7 @@ allotment_wallpaper := use_allotment(allotment_wallpaper);
 base_allotment := append_group("tracks/track/focus/main/main",focus_gene_id);
 
 al_under_by_gn := len([id_gn_vr]) (*) "";
-al_under_by_gn#[focus_id==focus_gene_id] := append_group(base_allotment,"diagram/under");
+al_under_by_gn#[id_gn_uv==focus_gene_id] := append_group(base_allotment,"diagram/under");
 
 al_under_by_tr := len([id_tr_vr]) (*) "";
 al_under_by_tr#[bool_show_tr] := append_group(base_allotment,"diagram/under");
@@ -212,10 +210,10 @@ al_farover_by_ex := index(which_tr_by_ex,[al_farover_by_tr]);
 al_farover_by_thex := al_farover_by_ex#[thick_exons];
 
 al_text_by_gn := len([id_gn_vr]) (*) "";
-al_text_by_gn#[focus_id==focus_gene_id] := append_group(base_allotment,"text");
+al_text_by_gn#[id_gn_uv==focus_gene_id] := append_group(base_allotment,"text");
 
 al_label_by_gn := len([id_gn_vr]) (*) "";
-al_label_by_gn#[focus_id==focus_gene_id] := append_group(base_allotment,"text");
+al_label_by_gn#[id_gn_uv==focus_gene_id] := append_group(base_allotment,"text");
 
 al_trtext_by_gn := al_text_by_gn;
 al_trtext_by_tr := index(which_gn_by_tr,[al_text_by_gn]);
@@ -229,7 +227,7 @@ al_text_by_gn#[switch_yn(["scale","no-labels"])] := "";
 al_trtext_by_tr#[switch_yn(["scale","no-labels"])] := "";
 
 al_button := len([id_gn_vr]) (*) "";
-al_button#[focus_id==focus_gene_id] := append_group(base_allotment,"button");
+al_button#[id_gn_uv==focus_gene_id] := append_group(base_allotment,"button");
 
 al_under_by_tr := use_allotment(al_under_by_tr);
 al_under_by_gn := use_allotment(al_under_by_gn);
@@ -245,8 +243,8 @@ expanded_genes := list_switch(["buttons","gene","expand"]);
  * focus object
  */
 
-start_focus := start_gn#[focus_id==focus_gene_id];
-end_focus := end_gn#[focus_id==focus_gene_id];
+start_focus := start_gn#[id_gn_uv==focus_gene_id];
+end_focus := end_gn#[id_gn_uv==focus_gene_id];
 
 /*
  * What colour? What font? etc
@@ -364,7 +362,7 @@ chevron_spacing := [
     0.90,0.925,0.95,0.975,
 ][];
 
-focus_strand := strand#[focus_id==focus_gene_id];
+focus_strand := strand#[id_gn_uv==focus_gene_id];
 image_underneath(chevron_spacing,0,["chevron-left","chevron-right"][@==focus_strand],allotment_wallpaper);
 draw_image(spacebase(0,0,24),["chevron-dark-left","chevron-dark-right"][@==focus_strand],allotment_letter);
 
@@ -406,9 +404,9 @@ blue_hotspot_patina := patina_switch(expand_switches,sense);
 /* report transcripts shown */
 report_shown(bool_show_tr,id_tr_vr,use_allotment("tracks/track/focus/main/background/content"));
 report_id(focus_gene_id,use_allotment("tracks/track/focus/main/background/content"));
-report_all(id_tr_vr,focus_id,focus_gene_id,which_gn_by_tr,use_allotment("tracks/track/focus/main/background/content"));
+report_all(id_tr_vr,id_gn_uv,focus_gene_id,which_gn_by_tr,use_allotment("tracks/track/focus/main/background/content"));
 
 /* track name */
-focus_label := [concat(concat(gene_name#[focus_gene_id==focus_id]," "),focus_gene_id),""];
+focus_label := [concat(concat(gene_name#[focus_gene_id==id_gn_uv]," "),focus_gene_id),""];
 focus_label := focus_label[@==0];
 draw_track_name(focus_label,["track","focus","name"],allotment_label);

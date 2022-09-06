@@ -58,7 +58,6 @@ bp := [bp_range()];
  * the transforms applied there in reverse order.
  */
 
-focus_id := string_seq(data,"focus_ids");
 id_gn_uv := string_seq(data,"gene_id");
 id_gn_vo := string_seq(data,"gene_id_version");
 id_gn_vr := concat(concat(id_gn_uv,"."),id_gn_vo);
@@ -208,7 +207,7 @@ expanded_genes := list_switch(["buttons","gene","expand"]);
 tk_by_gn := len([id_gn_vr]) (*) 0;
 tk_by_gn#[strand > 0] (+=) 2;
 tk_by_gn#[in(gene_biotype,["protein_coding"])] (+=) 1;
-tk_by_gn#[focus_id==focus_gene_id] := 4;
+tk_by_gn#[id_gn_uv==focus_gene_id] := 4;
 
 /*
  * Manage the "several" setting.

@@ -18,6 +18,7 @@ start = "gene_start"
 end = "gene_end"
 first = "gene_id"
 
-[tangle.focus_ids]
+[tangle.gene_id]
 string = "unversioned_gene_id"
 condition = "ids"
+first = "gene_id"

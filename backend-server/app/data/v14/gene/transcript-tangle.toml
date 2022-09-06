@@ -34,10 +34,6 @@ first = "gene_id"
 string = "unversioned_gene_id"
 first = "gene_id"
 
-[tangle.focus_ids]
-string = "unversioned_gene_id"
-first = "gene_id"
-
 [tangle.strands]
 number.field = "strand"
 number.process = "plus_strand"
