@@ -30,9 +30,6 @@ def accept_to_tangling_config(accept):
     return { 'compress': compress, 'to_bytes': to_bytes }
 
 class TangleProcessor:
-    def before_first_dot(self, data):
-        return data.split('.')[0]
-
     def plus_strand(self, data):
         return int(data=="+")
 

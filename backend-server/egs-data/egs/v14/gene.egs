@@ -16,7 +16,9 @@ halt(only_warm(),[data]);
  */
 
 focus_id := string_seq(data,"focus_ids");
-gene_id := string_seq(data,"gene_ids");
+id_gn_uv := string_seq(data,"gene_id");
+id_gn_vo := string_seq(data,"gene_id_version");
+id_gn_vr := concat(concat(id_gn_uv,"."),id_gn_vo);
 gene_name := string_seq(data,"gene_names");
 gene_desc := string_seq(data,"gene_descs");
 start := delta_seq(data,"starts");
@@ -106,7 +108,7 @@ use_allotments(allotments_letter,enabled_tracks,[
  * main data and the labels.
  */
 
-allotment_idx := len([gene_id]) (*) 0;
+allotment_idx := len([id_gn_vr]) (*) 0;
 
 allotment_idx#[strand > 0] (+=) 2;
 allotment_idx#[in(gene_biotype,["protein_coding"])] (+=) 1;
@@ -116,7 +118,7 @@ focus_gene_id := switch_string(["track","focus","item","gene"][],["item_id"][]);
 
 allotment_idx#[focus_id==focus_gene_id] := 4;
 
-base_allotment_names := [append_group(index(allotment_idx,base_allotment_names),gene_id)];
+base_allotment_names := [append_group(index(allotment_idx,base_allotment_names),id_gn_vr)];
 allotment_names := [append_group(base_allotment_names[],["blocks"][])];
 allotment := use_allotment(append_group(allotment_names[],["content"][]));
 
@@ -161,11 +163,11 @@ zmenu_patina := patina_zmenu(zmenu(""),["type"],[["gene-and-one-transcript"]][])
 /* transcript part */
 zmenu_tmpl := zmenu("[<light>Transcript</light> <strong>{transcript_id}</strong>] [<light>{transcript_biotype}</light>] [<light>{strand}</light>] / [<light>{transcript_id}</light>] [<light>{designation}</light>]");
 tr_zmenu_patina := patina_zmenu(zmenu_tmpl,["gene_id","transcript_id","transcript_biotype","strand","designation","type","track"],
-                                      [[gene_id],[designated_transcript_id],[designated_transcript_biotype],[strand_string],[designated_transcript_designation],["transcript"],[track_name]][]);
+                                      [[id_gn_vr],[designated_transcript_id],[designated_transcript_biotype],[strand_string],[designated_transcript_designation],["transcript"],[track_name]][]);
 
 /* gene part */
 zmenu_tmpl := zmenu("[<light>Gene</light> {symbol}] / [<strong><focus>{id}</focus></strong>] / [{desc}]");
-ge_zmenu_patina := patina_zmenu(zmenu_tmpl,["symbol","id","type","track","name"],[[gene_name],[gene_id],["gene"],[track_name],[gene_desc]][]);
+ge_zmenu_patina := patina_zmenu(zmenu_tmpl,["symbol","id","type","track","name"],[[gene_name],[id_gn_vr],["gene"],[track_name],[gene_desc]][]);
 
 /*
  * DRAW!

@@ -53,7 +53,9 @@ halt(only_warm(),[data]);
  */
 
 focus_id := string_seq(data,"focus_ids");
-gene_id := string_seq(data,"gene_ids");
+id_gn_uv := string_seq(data,"gene_id");
+id_gn_vo := string_seq(data,"gene_id_version");
+id_gn_vr := concat(concat(id_gn_uv,"."),id_gn_vo);
 gene_name := string_seq(data,"gene_names");
 gene_desc := string_seq(data,"gene_descs");
 start_gn := delta_seq(data,"starts");
@@ -64,7 +66,9 @@ gene_designation := classified_seq(data,"gene_designation_keys","gene_designatio
 transcript_designation := classified_seq(data,"transcript_designation_keys","transcript_designation_values");
 gene_biotype := classified_seq(data,"gene_biotypes_keys","gene_biotypes_values");
 strand := positive_seq(data,"strands");
-id_tr := string_seq(data,"transcript_ids");
+id_tr_uv := string_seq(data,"transcript_id");
+id_tr_vo := string_seq(data,"transcript_id_version");
+id_tr_vr := concat(concat(id_tr_uv,"."),id_tr_vo);
 transcript_biotype := classified_seq(data,"transcript_biotypes_keys","transcript_biotypes_values");
 strand_string := len([strand]) (*) "reverse strand";
 strand_string#[strand>0] := "forward strand";
@@ -74,7 +78,7 @@ num_tr_by_gn := delta_seq(data,"transcript_counts");
 which_gn_by_tr := derun(num_tr_by_gn);
 start_gn_by_tr := index(which_gn_by_tr,[start_gn]);
 end_gn_by_tr := index(which_gn_by_tr,[end_gn]);
-id_gn_by_tr := index(which_gn_by_tr,[gene_id]);
+id_gn_by_tr := index(which_gn_by_tr,[id_gn_vr]);
 
 /* exon stuff */
 start_thex := delta_seq(data,"thicks_starts");
@@ -86,7 +90,7 @@ idx_tr_in_gn := run(delta_seq(data,"transcript_counts"));
 
 start_ex := delta_seq(data,"transcript_exon_starts");
 end_ex := start_ex + delta_seq(data,"transcript_exon_lengths");
-id_gn_by_ex := index(which_gn_by_ex,[gene_id]);
+id_gn_by_ex := index(which_gn_by_ex,[id_gn_vr]);
 exon_focus_id := index(which_gn_by_ex,[focus_id]);
 exon_gene_biotype := index(which_gn_by_ex,[gene_biotype]);
 exon_strand := index(which_gn_by_ex,[strand]);
@@ -201,7 +205,7 @@ expanded_genes := list_switch(["buttons","gene","expand"]);
  *
  */
 
-tk_by_gn := len([gene_id]) (*) 0;
+tk_by_gn := len([id_gn_vr]) (*) 0;
 tk_by_gn#[strand>0] (+=) 2;
 tk_by_gn#[in(gene_biotype,["protein_coding"])] (+=) 1;
 
@@ -222,13 +226,13 @@ gene_tracks_enabled_property(several_tracks,"several");
 
 SEVERAL := 5;
 
-expand_base := len([gene_id]) (*) "buttons/gene/expand";
-expand_switches := append_group(expand_base,gene_id);
+expand_base := len([id_gn_vr]) (*) "buttons/gene/expand";
+expand_switches := append_group(expand_base,id_gn_vr);
 
 bool_sv_by_gn := index(tk_by_gn,[several_tracks]);
-bool_sv_by_gn#[in(gene_id,[expanded_genes])] := true;
+bool_sv_by_gn#[in(id_gn_vr,[expanded_genes])] := true;
 
-limit_gn := len([gene_id]) (*) 1;
+limit_gn := len([id_gn_vr]) (*) 1;
 limit_gn#[bool_sv_by_gn] := SEVERAL;
 
 /* set limit to 0 for focus tracks to allow explicit on/off */
@@ -239,7 +243,7 @@ limit_gn_by_tr := index(which_gn_by_tr,[limit_gn]);
 tk_by_tr := index(which_gn_by_tr,[tk_by_gn]);
 
 enabled_transcripts := switch_seqstr(["track","focus","enabled-transcripts"]);
-bool_show_tr := in(id_tr,[enabled_transcripts]);
+bool_show_tr := in(id_tr_vr,[enabled_transcripts]);
 bool_show_tr#[idx_tr_in_gn<limit_gn_by_tr] := true;
 
 /* Temporary hach: focus transcripts only affected by "enabled-transcripts" */
@@ -258,7 +262,7 @@ drawn_tr_gn := which_gn_by_tr;
 drawn_tr_gn#[bool_show_tr==false] := -1;
 idx_drawn_tr_gn := nth(drawn_tr_gn);
 
-num_drawn_tr_gn := count(drawn_tr_gn,len([gene_id]));
+num_drawn_tr_gn := count(drawn_tr_gn,len([id_gn_vr]));
 
 idx_tr_in_gn_by_ex :=  index(which_tr_by_ex,[idx_drawn_tr_gn]);
 idx_tr_in_gn_by_thex := idx_tr_in_gn_by_ex#[thick_exons];
@@ -274,7 +278,7 @@ thick_exon_allotment_idx := exon_allotment_idx#[thick_exons];
 thick_id_gn_by_ex := id_gn_by_ex#[thick_exons];
 
 use_allotment_names(root_allotment_names,enabled_tracks,potential_tracks);
-base_allotment_names := [append_group(index(tk_by_gn,root_allotment_names),gene_id)];
+base_allotment_names := [append_group(index(tk_by_gn,root_allotment_names),id_gn_vr)];
 base_transcript_allotment_names := [append_group(index(tk_by_tr,root_allotment_names),id_gn_by_tr)];
 base_exon_allotment_names := [append_group(index(exon_allotment_idx,root_allotment_names),id_gn_by_ex)];
 base_thick_exon_allotment_names := [append_group(index(thick_exon_allotment_idx,root_allotment_names),thick_id_gn_by_ex)];
@@ -363,11 +367,11 @@ pt_zmenu_type := patina_zmenu(zmenu(""),["type"],[["gene-and-one-transcript"]][]
 transcript_strand_string := index(which_gn_by_tr,[strand_string]);
 zmenu_tmpl := zmenu("[<light>Transcript</light> <strong>{transcript_id}</strong>] [<light>{transcript_biotype}</light>] [<light>{strand}</light>] / [<light>{transcript_id}</light>] [<light>{designation}</light>]");
 pt_zmenu_tr := patina_zmenu(zmenu_tmpl,["gene_id","transcript_id","transcript_biotype","strand","designation","track","type"],
-                                      [[id_gn_by_tr],[id_tr],[transcript_biotype],[transcript_strand_string],[transcript_designation],[transcript_track_name],[len([id_gn_by_tr]) (*) "transcript"]][]);
+                                      [[id_gn_by_tr],[id_tr_vr],[transcript_biotype],[transcript_strand_string],[transcript_designation],[transcript_track_name],[len([id_gn_by_tr]) (*) "transcript"]][]);
 
 /* gene part */
 gene_name_by_tr := index(which_gn_by_tr,[gene_name]);
-gene_id_by_tr := index(which_gn_by_tr,[gene_id]);
+gene_id_by_tr := index(which_gn_by_tr,[id_gn_vr]);
 track_name_by_tr := index(which_gn_by_tr,[track_name]);
 gene_desc_by_tr := index(which_gn_by_tr,[gene_desc]);
 
@@ -437,7 +441,7 @@ rectangle(w,e,pt_zmenu_tr,al_under_by_tr);
 draw_labels(
     idx_drawn_tr_gn, which_gn_by_tr,
     start_gn, end_gn,
-    gene_name,id_tr, textpen_blue,
+    gene_name,id_tr_vr, textpen_blue,
     al_trtext_by_tr,
     num_drawn_tr_gn, textpen, bool_show_tr,
     enabled_gene_labels,  enabled_tr_labels
@@ -474,7 +478,7 @@ draw_track_category("G",allotments_letter);
 
 /* lozenges */
 
-draw_lozenges(start_gn,num_drawn_tr_gn,gene_id,expanded_genes,button_allotment);
+draw_lozenges(start_gn,num_drawn_tr_gn,id_gn_vr,expanded_genes,button_allotment);
 
 /*
 
@@ -483,7 +487,7 @@ blue_bottom_right := spacebase(start_gn,num_drawn_tr_gn*20+32,32);
 blue_colour := simple_colour(direct_colour(239,154,52,255));
 
 button_text := len([start_gn]) (*) " + ";
-button_text#[in(gene_id,[expanded_genes])] := " – ";
+button_text#[in(id_gn_vr,[expanded_genes])] := " – ";
 
 textpen_lozenge := pen("'IBM Plex Mono', sans-serif",text_size*1.2,white_text_colour,blue_text_bgd);
 text2(blue_top_left,textpen_lozenge,button_text,button_allotment);

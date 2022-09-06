@@ -140,7 +140,7 @@ stmt report_all(rs_transcript_id,rs_focus_id,rs_focus_gene,rs_gn_tr,rs_al_focus_
     rectangle(spacebase(len([all_ids]) (*) 0,0,0),spacebase(len([all_ids]) (*) 1,0,0),trans_patina2,rs_al_focus_bgd);
 }
 
-stmt calc_focus_transcripts_shown(s_bool_show_tr,s_id_tr,s_which_gn_by_tr,s_focus_id,s_focus_gene,s_idx_tr_in_gn) {
+stmt calc_focus_transcripts_shown(s_bool_show_tr,s_id_gn,s_id_tr,s_which_gn_by_tr,s_focus_id,s_focus_gene,s_idx_tr_in_gn) {
     /* Transcripts to be shown is determined by enabled-transcripts list if not null.
      * If it is null, it's determined by the "several" setting.
      * For simplicity we just calculate both and choose.
@@ -153,7 +153,7 @@ stmt calc_focus_transcripts_shown(s_bool_show_tr,s_id_tr,s_which_gn_by_tr,s_focu
     limit := 1;
     limit#[several_setting] := SEVERAL;
 
-    limit_gn := len([gene_id]) (*) 0;
+    limit_gn := len([s_id_gn]) (*) 0;
     limit_gn#[s_focus_id==s_focus_gene] := limit;
     limit_gn_by_tr := index(s_which_gn_by_tr,[limit_gn]);
 
@@ -215,7 +215,7 @@ stmt draw_lozenges(starts,y_offsets,ids,expanded_ids,allt) {
     expand_switches := append_group(expand_base,ids);
 
     sense := len([expand_switches]) (*) true;
-    sense#[in(gene_id,[expanded_ids])] := false;
+    sense#[in(ids,[expanded_ids])] := false;
 
     blue_hotspot_patina := patina_switch(expand_switches,sense);
 

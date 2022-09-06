@@ -64,7 +64,9 @@ halt(only_warm(),[data]);
  */
 
 focus_id := string_seq(data,"focus_ids");
-gene_id := string_seq(data,"gene_ids");
+id_gn_uv := string_seq(data,"gene_id");
+id_gn_vo := string_seq(data,"gene_id_version");
+id_gn_vr := concat(concat(id_gn_uv,"."),id_gn_vo);
 gene_name := string_seq(data,"gene_names");
 gene_desc := string_seq(data,"gene_descs");
 start_gn := delta_seq(data,"starts");
@@ -75,7 +77,10 @@ gene_designation := classified_seq(data,"gene_designation_keys","gene_designatio
 transcript_designation := classified_seq(data,"transcript_designation_keys","transcript_designation_values");
 gene_biotype := classified_seq(data,"gene_biotypes_keys","gene_biotypes_values");
 strand := positive_seq(data,"strands");
-id_tr := string_seq(data,"transcript_ids");
+id_tr_uv := string_seq(data,"transcript_id");
+id_tr_vo := string_seq(data,"transcript_id_version");
+id_tr_vr := concat(concat(id_tr_uv,"."),id_tr_vo);
+
 transcript_biotype := classified_seq(data,"transcript_biotypes_keys","transcript_biotypes_values");
 strand_string := len([strand]) (*) "reverse strand";
 strand_string#[strand>0] := "forward strand";
@@ -85,7 +90,7 @@ num_tr_by_gn := delta_seq(data,"transcript_counts");
 which_gn_by_tr := derun(num_tr_by_gn);
 start_gn_by_tr := index(which_gn_by_tr,[start_gn]);
 end_gn_by_tr := index(which_gn_by_tr,[end_gn]);
-id_gn_by_tr := index(which_gn_by_tr,[gene_id]);
+id_gn_by_tr := index(which_gn_by_tr,[id_gn_vr]);
 
 /* exon stuff */
 start_thex := delta_seq(data,"thicks_starts");
@@ -97,7 +102,7 @@ idx_tr_in_gn := run(delta_seq(data,"transcript_counts"));
 
 start_ex := delta_seq(data,"transcript_exon_starts");
 end_ex := start_ex + delta_seq(data,"transcript_exon_lengths");
-id_gn_by_ex := index(which_gn_by_ex,[gene_id]);
+id_gn_by_ex := index(which_gn_by_ex,[id_gn_vr]);
 exon_focus_id := index(which_gn_by_ex,[focus_id]);
 exon_gene_biotype := index(which_gn_by_ex,[gene_biotype]);
 exon_strand := index(which_gn_by_ex,[strand]);
@@ -158,17 +163,17 @@ style("**/main/background/content",["depth","padding-top"][],["-10","32"][]);
 enabled_gene_labels := switch_yn(["track","focus","label"]);
 enabled_transcript_labels := switch_yn(["track","focus","transcript-label"]);
 
-expand_base := len([gene_id]) (*) "buttons/gene/expand";
-expand_switches := append_group(expand_base,gene_id);
+expand_base := len([id_gn_vr]) (*) "buttons/gene/expand";
+expand_switches := append_group(expand_base,id_gn_vr);
 
-calc_focus_transcripts_shown(bool_show_tr,id_tr,which_gn_by_tr,focus_id,focus_gene_id,idx_tr_in_gn);
+calc_focus_transcripts_shown(bool_show_tr,id_gn_vr,id_tr_vr,which_gn_by_tr,focus_id,focus_gene_id,idx_tr_in_gn);
 
 /* index the rest (by gene) */
 drawn_tr_gn := which_gn_by_tr;
 drawn_tr_gn#[bool_show_tr==false] := -1;
 idx_drawn_tr_gn := nth(drawn_tr_gn);
 
-num_drawn_tr_gn := count(drawn_tr_gn,len([gene_id]));
+num_drawn_tr_gn := count(drawn_tr_gn,len([id_gn_vr]));
 
 idx_tr_in_gn_by_ex :=  index(which_tr_by_ex,[idx_drawn_tr_gn]);
 idx_tr_in_gn_by_thex := idx_tr_in_gn_by_ex#[thick_exons];
@@ -187,29 +192,29 @@ allotment_wallpaper := use_allotment(allotment_wallpaper);
 
 base_allotment := append_group("tracks/track/focus/main/main",focus_gene_id);
 
-al_under_by_gn := len([gene_id]) (*) "";
+al_under_by_gn := len([id_gn_vr]) (*) "";
 al_under_by_gn#[focus_id==focus_gene_id] := append_group(base_allotment,"diagram/under");
 
-al_under_by_tr := len([id_tr]) (*) "";
+al_under_by_tr := len([id_tr_vr]) (*) "";
 al_under_by_tr#[bool_show_tr] := append_group(base_allotment,"diagram/under");
 
-al_over_by_tr := len([id_tr]) (*) "";
+al_over_by_tr := len([id_tr_vr]) (*) "";
 al_over_by_tr#[bool_show_tr] := append_group(base_allotment,"diagram/over");
 al_over_by_ex := index(which_tr_by_ex,[al_over_by_tr]);
 
-al_blanking_by_tr := len([id_tr]) (*) "";
+al_blanking_by_tr := len([id_tr_vr]) (*) "";
 al_blanking_by_tr#[bool_show_tr] := append_group(base_allotment,"diagram/blanking");
 al_blanking_by_ex := index(which_tr_by_ex,[al_blanking_by_tr]);
 
-al_farover_by_tr := len([id_tr]) (*) "";
+al_farover_by_tr := len([id_tr_vr]) (*) "";
 al_farover_by_tr#[bool_show_tr] := append_group(base_allotment,"diagram/far-over");
 al_farover_by_ex := index(which_tr_by_ex,[al_farover_by_tr]);
 al_farover_by_thex := al_farover_by_ex#[thick_exons];
 
-al_text_by_gn := len([gene_id]) (*) "";
+al_text_by_gn := len([id_gn_vr]) (*) "";
 al_text_by_gn#[focus_id==focus_gene_id] := append_group(base_allotment,"text");
 
-al_label_by_gn := len([gene_id]) (*) "";
+al_label_by_gn := len([id_gn_vr]) (*) "";
 al_label_by_gn#[focus_id==focus_gene_id] := append_group(base_allotment,"text");
 
 al_trtext_by_gn := al_text_by_gn;
@@ -223,7 +228,7 @@ al_trtext_by_tr#[enabled_transcript_labels==false] := "";
 al_text_by_gn#[switch_yn(["scale","no-labels"])] := "";
 al_trtext_by_tr#[switch_yn(["scale","no-labels"])] := "";
 
-al_button := len([gene_id]) (*) "";
+al_button := len([id_gn_vr]) (*) "";
 al_button#[focus_id==focus_gene_id] := append_group(base_allotment,"button");
 
 al_under_by_tr := use_allotment(al_under_by_tr);
@@ -280,13 +285,13 @@ pt_zmenu_type := patina_zmenu(zmenu(""),["type"],[["gene-and-one-transcript"]][]
 transcript_strand_string := index(which_gn_by_tr,[strand_string]);
 zmenu_tmpl := zmenu("[<light>Transcript</light> <strong>{transcript_id}</strong>] [<light>{transcript_biotype}</light>] [<light>{strand}</light>] / [<light>{transcript_id}</light>] [<light>{designation}</light>]");
 pt_zmenu_tr := patina_zmenu(zmenu_tmpl,["gene_id","transcript_id","transcript_biotype","strand","designation","track","type"],
-                                      [[id_gn_by_tr],[id_tr],[transcript_biotype],[transcript_strand_string],[transcript_designation],["focus"],[len([id_gn_by_tr]) (*) "transcript"]][]);
+                                      [[id_gn_by_tr],[id_tr_vr],[transcript_biotype],[transcript_strand_string],[transcript_designation],["focus"],[len([id_gn_by_tr]) (*) "transcript"]][]);
 
 /* gene part */
 zmenu_tmpl := zmenu("[<light>Gene</light> {symbol}] / [<strong><focus>{id}</focus></strong>] / [{desc}]");
 
 gene_name_by_tr := index(which_gn_by_tr,[gene_name]);
-gene_id_by_tr := index(which_gn_by_tr,[gene_id]);
+gene_id_by_tr := index(which_gn_by_tr,[id_gn_vr]);
 gene_desc_by_tr := index(which_gn_by_tr,[gene_desc]);
 
 pt_zmenu_gn := patina_zmenu(zmenu_tmpl,["symbol","id","track","type","name"],[[gene_name_by_tr],[gene_id_by_tr],["focus"],["gene"],[gene_desc_by_tr]][]);
@@ -340,7 +345,7 @@ rectangle(w,e,pt_zmenu_tr,al_under_by_tr);
 draw_labels(
     idx_drawn_tr_gn, which_gn_by_tr,
     start_gn, end_gn,
-    gene_name, id_tr, textpen_blue, al_trtext_by_tr,   
+    gene_name, id_tr_vr, textpen_blue, al_trtext_by_tr,   
     num_drawn_tr_gn, textpen, bool_show_tr, 
     enabled_gene_labels, enabled_transcript_labels
 );
@@ -374,7 +379,7 @@ al_dots := use_allotment(["","dots/content"][(@==1)==(switch_yn(["track","focus"
 red_dotted(start_focus,end_focus,al_dots,comma_format(start_focus),comma_format(end_focus));
 
 /* blue button */
-draw_lozenges(start_gn,num_drawn_tr_gn,gene_id,expanded_genes,al_button);
+draw_lozenges(start_gn,num_drawn_tr_gn,id_gn_vr,expanded_genes,al_button);
 
 /*
 blue_top_left := spacebase(start_gn,num_drawn_tr_gn*20+6,0);
@@ -383,14 +388,14 @@ blue_colour := simple_colour(direct_colour(239,154,52,255));
 green_colour := simple_colour(direct_colour(154,239,52,255));
 
 button_colour := len([start_gn]) (*) blue_colour;
-button_colour#[in(gene_id,[expanded_genes])] := green_colour;
+button_colour#[in(id_gn_vr,[expanded_genes])] := green_colour;
 button_patina := patina_filled(button_colour);
 
 // DISABLED FOR 0.4.2
 //text2(blue_top_left,textpen_lozenge," + ",al_button);
 
 sense := len([expand_switches]) (*) true;
-sense#[in(gene_id,[expanded_genes])] := false;
+sense#[in(id_gn_vr,[expanded_genes])] := false;
 
 blue_hotspot_patina := patina_switch(expand_switches,sense);
 
@@ -399,9 +404,9 @@ blue_hotspot_patina := patina_switch(expand_switches,sense);
 */
 
 /* report transcripts shown */
-report_shown(bool_show_tr,id_tr,use_allotment("tracks/track/focus/main/background/content"));
+report_shown(bool_show_tr,id_tr_vr,use_allotment("tracks/track/focus/main/background/content"));
 report_id(focus_gene_id,use_allotment("tracks/track/focus/main/background/content"));
-report_all(id_tr,focus_id,focus_gene_id,which_gn_by_tr,use_allotment("tracks/track/focus/main/background/content"));
+report_all(id_tr_vr,focus_id,focus_gene_id,which_gn_by_tr,use_allotment("tracks/track/focus/main/background/content"));
 
 /* track name */
 focus_label := [concat(concat(gene_name#[focus_gene_id==focus_id]," "),focus_gene_id),""];

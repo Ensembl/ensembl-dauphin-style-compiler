@@ -19,6 +19,5 @@ end = "gene_end"
 first = "gene_id"
 
 [tangle.focus_ids]
-string.field = "gene_id"
-string.process = "before_first_dot"
+string = "unversioned_gene_id"
 condition = "ids"

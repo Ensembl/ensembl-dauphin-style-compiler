@@ -24,13 +24,18 @@ start = "gene_start"
 end = "gene_end"
 first = "gene_id"
 
-[tangle.gene_ids]
+[tangle.gene_id_version]
 string = "gene_id"
+without_prefix_source = "unversioned_gene_id"
+without_prefix = "."
+first = "gene_id"
+
+[tangle.gene_id]
+string = "unversioned_gene_id"
 first = "gene_id"
 
 [tangle.focus_ids]
-string.field = "gene_id"
-string.process = "before_first_dot"
+string = "unversioned_gene_id"
 first = "gene_id"
 
 [tangle.strands]
@@ -62,8 +67,14 @@ classify = "transcript_designation"
 # Exon structure (when required)
 #
 
-[tangle.transcript_ids]
+[tangle.transcript_id_version]
 string = "transcript_id"
+without_prefix_source = "unversioned_transcript_id"
+without_prefix = "."
+condition = "exon"
+
+[tangle.transcript_id]
+string = "unversioned_transcript_id"
 condition = "exon"
 
 [tangle.transcript_designation]
