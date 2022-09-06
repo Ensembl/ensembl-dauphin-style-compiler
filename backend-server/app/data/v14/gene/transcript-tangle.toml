@@ -27,7 +27,6 @@ first = "gene_id"
 [tangle.gene_id_version]
 string = "gene_id"
 without_prefix_source = "unversioned_gene_id"
-without_prefix = "."
 first = "gene_id"
 
 [tangle.gene_id]
@@ -61,7 +60,6 @@ condition = "block"
 [tangle.designated_transcript_id_version]
 string = "transcript_id"
 without_prefix_source = "unversioned_transcript_id"
-without_prefix = "."
 first = "gene_id"
 condition = "block"
 
@@ -84,7 +82,6 @@ classify = "transcript_designation"
 [tangle.transcript_id_version]
 string = "transcript_id"
 without_prefix_source = "unversioned_transcript_id"
-without_prefix = "."
 condition = "exon"
 
 [tangle.transcript_id]

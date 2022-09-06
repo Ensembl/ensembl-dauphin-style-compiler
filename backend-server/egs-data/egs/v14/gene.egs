@@ -17,7 +17,7 @@ halt(only_warm(),[data]);
 
 id_gn_uv := string_seq(data,"gene_id");
 id_gn_vo := string_seq(data,"gene_id_version");
-id_gn_vr := concat(concat(id_gn_uv,"."),id_gn_vo);
+id_gn_vr := concat(id_gn_uv,id_gn_vo);
 gene_name := string_seq(data,"gene_names");
 gene_desc := string_seq(data,"gene_descs");
 start := delta_seq(data,"starts");
@@ -27,7 +27,7 @@ gene_biotype := classified_seq(data,"gene_biotypes_keys","gene_biotypes_values")
 strand := positive_seq(data,"strands");
 id_dtr_uv := string_seq(data,"designated_transcript_id");
 id_dtr_vo := string_seq(data,"designated_transcript_id_version");
-id_dtr_vr := concat(concat(id_dtr_uv,"."),id_dtr_vo);
+id_dtr_vr := concat(id_dtr_uv,id_dtr_vo);
 designated_transcript_biotype := classified_seq(data,"designated_transcript_biotypes_keys","designated_transcript_biotypes_values");
 designated_transcript_designation := classified_seq(data,"designated_transcript_designations_keys","designated_transcript_designations_values");
 strand_string := len([strand]) (*) "reverse strand";
