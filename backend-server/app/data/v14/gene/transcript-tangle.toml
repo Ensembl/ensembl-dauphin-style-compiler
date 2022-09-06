@@ -44,13 +44,31 @@ first = "gene_id"
 classify = "transcript_designation"
 first = "gene_id"
 
+#
+# Not transcript level
+#
+
 [tangle.designated_transcript_ids]
 string = "transcript_id"
 first = "gene_id"
+condition = "block"
+
+[tangle.designated_transcript_id]
+string = "unversioned_transcript_id"
+first = "gene_id"
+condition = "block"
+
+[tangle.designated_transcript_id_version]
+string = "transcript_id"
+without_prefix_source = "unversioned_transcript_id"
+without_prefix = "."
+first = "gene_id"
+condition = "block"
 
 [tangle.designated_transcript_designations]
 classify = "transcript_designation"
 first = "gene_id"
+condition = "block"
 
 #
 # Transcript level

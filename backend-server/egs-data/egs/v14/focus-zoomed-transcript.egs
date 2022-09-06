@@ -462,16 +462,20 @@ text2(pos,thin_textpen,draw_seq_letter,intron_letter_allotments);
 pt_zmenu_type := patina_zmenu(zmenu(""),["type"],[["gene-and-one-transcript"]][]);
 
 transcript_strand_string := index(which_gn_by_tr,[strand_string]);
-zmenu_tmpl := zmenu("[<light>Transcript</light> <strong>{transcript_id}</strong>] [<light>{transcript_biotype}</light>] [<light>{strand}</light>] / [<light>{transcript_id}</light>] [<light>{designation}</light>]");
-pt_zmenu_tr := patina_zmenu(zmenu_tmpl,["gene_id","transcript_id","transcript_biotype","strand","designation","track","type"],
-                                      [[id_gn_by_tr],[id_tr_vr],[transcript_biotype],[transcript_strand_string],[transcript_designation],["focus"],[len([id_gn_by_tr]) (*) "transcript"]][]);
+zmenu_tmpl := zmenu("[<light>Transcript</light> <strong>{versioned_id}</strong>] [<light>{transcript_biotype}</light>] [<light>{strand}</light>] / [<light>{transcript_id}</light>] [<light>{designation}</light>]");
+pt_zmenu_tr := patina_zmenu(zmenu_tmpl,
+     ["gene_id","unversioned_id","versioned_id","transcript_biotype","strand","designation","track","type"],
+     [[id_gn_by_tr],[id_tr_uv],[id_tr_vr],[transcript_biotype],[transcript_strand_string],[transcript_designation],["focus"],[len([id_gn_by_tr]) (*) "transcript"]][]);
 
 gene_name_by_tr := index(which_gn_by_tr,[gene_name]);
-gene_id_by_tr := index(which_gn_by_tr,[id_gn_vr]);
+id_gn_uv_by_tr := index(which_gn_by_tr,[id_gn_uv]);
+id_gn_vr_by_tr := index(which_gn_by_tr,[id_gn_vr]);
 gene_desc_by_tr := index(which_gn_by_tr,[gene_desc]);
 
-zmenu_tmpl := zmenu("[<light>Gene</light> {symbol}] / [<strong><focus>{id}</focus></strong>] / [{desc}]");
-pt_zmenu_gn := patina_zmenu(zmenu_tmpl,["symbol","id","track","type","name"],[[gene_name_by_tr],[gene_id_by_tr],["focus"],["gene"],[gene_desc_by_tr]][]);
+zmenu_tmpl := zmenu("[<light>Gene</light> {symbol}] / [<strong><focus>{versioned_id}</focus></strong>] / [{desc}]");
+pt_zmenu_gn := patina_zmenu(zmenu_tmpl,
+     ["symbol","versioned_id","unversioned_id","track","type","name"],
+     [[gene_name_by_tr],[id_gn_vr_by_tr],[id_gn_uv_by_tr],["focus"],["gene"],[gene_desc_by_tr]][]);
 
 /* gene labels */
 

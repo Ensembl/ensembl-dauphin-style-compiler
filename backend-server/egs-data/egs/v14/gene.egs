@@ -25,7 +25,9 @@ end := start + delta_seq(data,"lengths");
 gene_designation := classified_seq(data,"gene_designation_keys","gene_designation_values");
 gene_biotype := classified_seq(data,"gene_biotypes_keys","gene_biotypes_values");
 strand := positive_seq(data,"strands");
-designated_transcript_id := string_seq(data,"designated_transcript_ids");
+id_dtr_uv := string_seq(data,"designated_transcript_id");
+id_dtr_vo := string_seq(data,"designated_transcript_id_version");
+id_dtr_vr := concat(concat(id_dtr_uv,"."),id_dtr_vo);
 designated_transcript_biotype := classified_seq(data,"designated_transcript_biotypes_keys","designated_transcript_biotypes_values");
 designated_transcript_designation := classified_seq(data,"designated_transcript_designations_keys","designated_transcript_designations_values");
 strand_string := len([strand]) (*) "reverse strand";
@@ -160,13 +162,16 @@ textpen := pen("'IBM Plex Mono', sans-serif",text_size,text_colour,[][]);
 zmenu_patina := patina_zmenu(zmenu(""),["type"],[["gene-and-one-transcript"]][]);
 
 /* transcript part */
-zmenu_tmpl := zmenu("[<light>Transcript</light> <strong>{transcript_id}</strong>] [<light>{transcript_biotype}</light>] [<light>{strand}</light>] / [<light>{transcript_id}</light>] [<light>{designation}</light>]");
-tr_zmenu_patina := patina_zmenu(zmenu_tmpl,["gene_id","transcript_id","transcript_biotype","strand","designation","type","track"],
-                                      [[id_gn_vr],[designated_transcript_id],[designated_transcript_biotype],[strand_string],[designated_transcript_designation],["transcript"],[track_name]][]);
+zmenu_tmpl := zmenu("[<light>Transcript</light> <strong>{versioned_id}</strong>] [<light>{transcript_biotype}</light>] [<light>{strand}</light>] / [<light>{transcript_id}</light>] [<light>{designation}</light>]");
+tr_zmenu_patina := patina_zmenu(zmenu_tmpl,
+    ["gene_id","versioned_id","unversioned_id","transcript_biotype","strand","designation","type","track"],
+    [[id_gn_vr],[id_dtr_vr],[id_dtr_uv],[designated_transcript_biotype],[strand_string],[designated_transcript_designation],["transcript"],[track_name]][]);
 
 /* gene part */
-zmenu_tmpl := zmenu("[<light>Gene</light> {symbol}] / [<strong><focus>{id}</focus></strong>] / [{desc}]");
-ge_zmenu_patina := patina_zmenu(zmenu_tmpl,["symbol","id","type","track","name"],[[gene_name],[id_gn_vr],["gene"],[track_name],[gene_desc]][]);
+zmenu_tmpl := zmenu("[<light>Gene</light> {symbol}] / [<strong><focus>{versioned_id}</focus></strong>] / [{desc}]");
+ge_zmenu_patina := patina_zmenu(zmenu_tmpl,
+    ["symbol","versioned_id","unversioned_id","type","track","name"],
+    [[gene_name],[id_gn_vr],[id_gn_uv],["gene"],[track_name],[gene_desc]][]);
 
 /*
  * DRAW!

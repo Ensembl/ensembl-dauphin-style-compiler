@@ -38,7 +38,7 @@ processor = TangleProcessor()
 TANGLE_FACTORY = TangleFactory()
 
 TR_TANGLE_PATH = os.path.join(os.path.dirname(__file__),"transcript-tangle.toml")
-TANGLE_NO_EXON = TANGLE_FACTORY.make_from_tomlfile(TR_TANGLE_PATH,[],processor)
+TANGLE_NO_EXON = TANGLE_FACTORY.make_from_tomlfile(TR_TANGLE_PATH,["block"],processor)
 TANGLE_EXON = TANGLE_FACTORY.make_from_tomlfile(TR_TANGLE_PATH,["exon"],processor)
 
 OV_TANGLE_PATH = os.path.join(os.path.dirname(__file__),"overview-tangle.toml")
