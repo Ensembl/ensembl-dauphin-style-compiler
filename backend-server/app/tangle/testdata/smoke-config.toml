@@ -57,3 +57,19 @@ group_count = "group_count"
 [tangle.process]
 number.field = "number"
 number.process = "inc"
+
+[tangle.without_prefix_source]
+string = "chopmain"
+without_prefix_source = "chopprefix"
+
+[tangle.without_suffix_source]
+string = "chopmain"
+without_suffix_source = "chopsuffix"
+
+[tangle.without_prefix]
+string = "chopmain"
+without_prefix = "ab"
+
+[tangle.without_suffix]
+string = "chopmain"
+without_suffix = "c"

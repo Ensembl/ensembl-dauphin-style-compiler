@@ -2,7 +2,8 @@ import json
 import sys, os, toml
 
 from .library.filters import FirstFilter
-from .library.atomics import StringTangler, NumberTangler
+from .library.strings import SimpleStringTangler, ComplexStringTangler
+from .library.numbers import NumberTangler
 from .library.count import CountTangler, GroupCountTangler
 from .library.classified import ClassifiedTangler
 from .library.interval import IntervalTangler
@@ -57,7 +58,8 @@ class TangleFactory:
         self._filters.append(filter)
 
     def add_defaults(self):
-        self.register_tangler(StringTangler())
+        self.register_tangler(ComplexStringTangler())
+        self.register_tangler(SimpleStringTangler())
         self.register_tangler(ClassifiedTangler())
         self.register_tangler(IntervalTangler())
         self.register_tangler(NumberTangler())

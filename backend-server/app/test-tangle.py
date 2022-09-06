@@ -1,3 +1,5 @@
+#! /usr/bin/env python3
+
 import json
 import sys, os
 import unittest
@@ -17,6 +19,7 @@ class Processor:
 
 class TangleTestCase(unittest.TestCase):
     def test_smoke(self):
+        self.maxDiff = 10000
         tangle_factory = TangleFactory()
         test_config = test_data("smoke-config.toml")
         data_in = json.loads(test_data("smoke-in.json"))

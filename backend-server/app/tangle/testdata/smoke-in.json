@@ -16,7 +16,10 @@
             "delegate1": "A",
             "delegate2": "X",
             "count": [1,2,3,4],
-            "group_count": "A"
+            "group_count": "A",
+            "chopmain": "abc",
+            "chopprefix": "ab",
+            "chopsuffix": ""
         },
         {
             "string_src": "world",
@@ -33,7 +36,10 @@
             "first": "B",
             "delegate1": "B",
             "count": [],
-            "group_count": "A"
+            "group_count": "A",
+            "chopmain": "def",
+            "chopprefix": "d",
+            "chopsuffix": "def"
         },
         {
             "string_src": "world",
@@ -50,7 +56,10 @@
             "first": "A",
             "delegate2": "C",
             "count": [5],
-            "group_count": "B"
+            "group_count": "B",
+            "chopmain": "abc",
+            "chopprefix": "",
+            "chopsuffix": "c"
         }
     ]
 }

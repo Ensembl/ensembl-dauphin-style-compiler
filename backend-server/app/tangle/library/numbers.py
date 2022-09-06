@@ -1,24 +1,7 @@
 from ..util.numbers import zigzag, delta
-from ..abstract.getter import Getter
 from ..abstract.tangler import Tangler
 from ..abstract.tangling import AtomicTangling
 from ..abstract.tangler import TanglerConfigBuilder
-
-class StringTangling(AtomicTangling):
-    def __init__(self, config, our_config):
-        super().__init__(config,our_config,"string",str)
-
-    def finish(self, out, state, run_config):
-        self._emit_strings(out,run_config,'name',state)
-
-class StringTangler(Tangler):
-    def __init__(self):
-        super().__init__([TanglerConfigBuilder([
-            ("string",True)
-        ],[])])
-
-    def tangling(self):
-        return StringTangling
 
 class NumberTangling(AtomicTangling):
     def __init__(self, config, our_config):

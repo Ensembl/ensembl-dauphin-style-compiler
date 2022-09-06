@@ -30,5 +30,6 @@ class ConfigBuilder:
             if not is_optional:
                 if key not in our_config:
                     return None
+            if key in our_config:
                 count += 1
         return count

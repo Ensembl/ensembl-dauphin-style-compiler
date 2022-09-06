@@ -14,5 +14,9 @@
     "first": [10, 11], 
     "delegate": ["A", "B", "C"],
     "count": [8, 7, 2],
-    "group_count": [4, 1]
+    "group_count": [4, 1],
+    "without_prefix_source": ["c","ef","abc"],
+    "without_suffix_source": ["abc","","ab"],
+    "without_prefix": ["c","def","c"],
+    "without_suffix": ["ab","def","ab"]
 }
