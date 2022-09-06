@@ -8,7 +8,6 @@ from command.datacmd import DataException
 from model.bigbed import get_bigbed
 from model.chromosome import Chromosome
 from model.transcriptfile import TranscriptFileLine
-from ..sequence import sequence_blocks8
 from .transcriptorder import sort_data_by_transcript_priority
 from .transcriptfilter import filter_lines_by_criteria
 from tangle.tangle import TangleFactory

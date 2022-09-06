@@ -165,7 +165,7 @@ tr_zmenu_patina := patina_zmenu(zmenu_tmpl,["gene_id","transcript_id","transcrip
 
 /* gene part */
 zmenu_tmpl := zmenu("[<light>Gene</light> {symbol}] / [<strong><focus>{id}</focus></strong>] / [{desc}]");
-ge_zmenu_patina := patina_zmenu(zmenu_tmpl,["symbol","id","type","track","desc"],[[gene_name],[gene_id],["gene"],[track_name],[gene_desc]][]);
+ge_zmenu_patina := patina_zmenu(zmenu_tmpl,["symbol","id","type","track","name"],[[gene_name],[gene_id],["gene"],[track_name],[gene_desc]][]);
 
 /*
  * DRAW!

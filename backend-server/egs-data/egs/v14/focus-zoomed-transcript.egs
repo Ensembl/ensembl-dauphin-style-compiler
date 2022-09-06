@@ -469,7 +469,7 @@ gene_id_by_tr := index(which_gn_by_tr,[gene_id]);
 gene_desc_by_tr := index(which_gn_by_tr,[gene_desc]);
 
 zmenu_tmpl := zmenu("[<light>Gene</light> {symbol}] / [<strong><focus>{id}</focus></strong>] / [{desc}]");
-pt_zmenu_gn := patina_zmenu(zmenu_tmpl,["symbol","id","track","type","desc"],[[gene_name_by_tr],[gene_id_by_tr],["focus"],["gene"],[gene_desc_by_tr]][]);
+pt_zmenu_gn := patina_zmenu(zmenu_tmpl,["symbol","id","track","type","name"],[[gene_name_by_tr],[gene_id_by_tr],["focus"],["gene"],[gene_desc_by_tr]][]);
 
 /* gene labels */
 
