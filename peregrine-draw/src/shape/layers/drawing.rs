@@ -152,7 +152,7 @@ impl Drawing {
         let recompute =  state.recompute.is_needed();
         for process in &mut state.processes {
             if recompute {
-                process.update_attributes(gl)?;
+                process.update_attributes()?;
             }
             session.run_process(gl,stage,process,opacity)?;
         }

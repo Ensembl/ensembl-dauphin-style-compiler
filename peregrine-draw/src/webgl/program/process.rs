@@ -100,10 +100,9 @@ impl Process {
         self.stanzas.iter().map(|x| x.number_of_buffers()).sum()
     }
 
-    pub fn update_attributes(&self, gl: &mut WebGlGlobal) -> Result<(),Message> {
-        let gl_ref = gl.refs();
+    pub fn update_attributes(&self) -> Result<(),Message> {
         for stanza in &self.stanzas {
-            stanza.update_values(gl_ref.context,gl_ref.aux_array)?;
+            stanza.update_values()?;
         }
         Ok(())
     }
@@ -119,7 +118,7 @@ impl Process {
         program_stage.apply(stage,self.left,opacity,dpr,self)?;
         self.program.select_program(gl.context)?;
         for stanza in self.stanzas.iter() {
-            stanza.activate(gl.context)?;
+            stanza.activate()?;
             for entry in self.textures.values_mut() {
                 entry.apply(&mut gl)?;
             }
@@ -127,7 +126,7 @@ impl Process {
                 entry.activate(gl.context)?;
             }
             stanza.draw(gl.context,self.program.get_method())?;
-            stanza.deactivate(gl.context)?;
+            stanza.deactivate()?;
             handle_context_errors(gl.context)?;
         }
         stats.add_character(&self.character);

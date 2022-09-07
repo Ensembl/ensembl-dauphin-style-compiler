@@ -7,7 +7,7 @@ pub use web_sys::{ console, WebGlRenderingContext };
 use crate::PeregrineDom;
 use crate::util::message::Message;
 use wasm_bindgen::JsCast;
-use super::GPUSpec;
+use super::{GPUSpec, glbufferstore::GLBufferStore};
 
 pub struct WebGlGlobal {
     program_store: ProgramStore,
@@ -19,7 +19,8 @@ pub struct WebGlGlobal {
     gpuspec: GPUSpec,
     aux_array: Float32Array,
     fonts: Fonts,
-    dpr: f32
+    dpr: f32,
+    buffer_store: GLBufferStore
 }
 
 pub(crate) struct WebGlGlobalRefs<'a> {
@@ -31,7 +32,8 @@ pub(crate) struct WebGlGlobalRefs<'a> {
     pub canvas_size: &'a mut Option<(u32,u32)>,
     pub gpuspec: &'a GPUSpec,
     pub aux_array: &'a Float32Array,
-    pub fonts: &'a Fonts
+    pub fonts: &'a Fonts,
+    pub buffer_store: &'a GLBufferStore
 }
 
 impl WebGlGlobal {
@@ -55,7 +57,8 @@ impl WebGlGlobal {
             gpuspec,
             fonts,
             aux_array: Float32Array::new_with_length(config.get_size(&PgConfigKey::AuxBufferSize)? as u32),
-            dpr: dom.device_pixel_ratio()
+            dpr: dom.device_pixel_ratio(),
+            buffer_store: GLBufferStore::new(&context)
         })
     }
 
@@ -71,7 +74,8 @@ impl WebGlGlobal {
             canvas_size: &mut self.canvas_size,
             gpuspec: &self.gpuspec,
             aux_array: &self.aux_array,
-            fonts: &self.fonts     
+            fonts: &self.fonts,
+            buffer_store: &&self.buffer_store 
         }
     }
 }

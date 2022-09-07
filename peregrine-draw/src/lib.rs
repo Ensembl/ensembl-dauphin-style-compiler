@@ -222,6 +222,7 @@ mod webgl {
     pub(crate) use program::texture::{ TextureProto };
 
     pub(crate) mod global;
+    pub(crate) mod glbufferstore;
     mod util;
 }
 
