@@ -64,7 +64,7 @@ impl ProgramStage {
         process.set_uniform(&self.full_size,&[(full_size.0*dpr/2.) as f32,(full_size.1*dpr/2.) as f32])?;
         process.set_uniform(&self.opacity,&[opacity as f32])?;
         process.set_uniform(&self.model, &self.model_matrix(stage)?)?;
-        process.set_uniform(&self.left_rail,&[(stage.x.squeeze()?.0/(size.0/2.) as f32)-1.])?;
+        process.set_uniform(&self.left_rail,&[(stage.x.squeeze()?.0/(full_size.0/2.) as f32)-1.])?;
         Ok(())
     }
 }
