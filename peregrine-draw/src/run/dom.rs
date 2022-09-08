@@ -1,6 +1,5 @@
 use commander::cdr_timer;
 use peregrine_toolkit::{plumbing::oneshot::OneShot, log_extra};
-use peregrine_toolkit_async::sync::retainer::Retainer;
 use web_sys::{Document, Element, HtmlCanvasElement, HtmlElement};
 use crate::{util::message::Message, PgCommanderWeb};
 use wasm_bindgen::JsCast;
@@ -159,7 +158,7 @@ impl PeregrineDom {
     pub(crate) fn set_useful_height(&self, height: u32) {
         let frame_height = self.canvas_frame.get_bounding_client_rect().height().round() as u32;
         let height = height.max(frame_height);
-        self.canvas_container.style().set_property("height",&format!("{}px",height)); // XXX errors
+        //self.canvas_container.style().set_property("height",&format!("{}px",height)); // XXX errors
     }
 
     pub(crate) fn set_canvas_size(&self, width: u32, height: u32) {

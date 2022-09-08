@@ -92,17 +92,20 @@ impl SizeManagerState {
     fn test_update_canvas_size(&mut self, active: bool) -> Option<(u32,u32)> {
         let (canvas_x,canvas_y) = self.canvas_size();
         if !self.booted {
+            log!("test_update_canvas_size/A({},{})",canvas_x,canvas_y);
             return Some((canvas_x,canvas_y));
         }
         if let Some((container_x,container_y)) = self.container_size {
-            if active {
+            if active && false {
                 let (min_x,min_y) = screen_size();
                 let min_x = min_x.min(WebGlRenderingContext::MAX_VIEWPORT_DIMS);
                 let min_y = min_y.min(WebGlRenderingContext::MAX_VIEWPORT_DIMS);
                 if canvas_x < min_x || canvas_y <min_y {
+                    log!("test_update_canvas_size/B({},{})",min_x,min_y);
                     return Some((min_x,min_y));
                 }
             } else if container_x != canvas_x || container_y != canvas_y {
+                log!("test_update_canvas_size/C({},{})",container_x,container_y);
                 return Some((container_x,container_y));
             }
         }

@@ -13,7 +13,7 @@ const HTML : &str = r#"
 const CSS : &str = r#"
     .$-container {
         height: 100%;
-        overflow: hidden;
+        overflow: auto;
     }
 
     .$-browser {

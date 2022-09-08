@@ -82,7 +82,6 @@ pub struct ProgramStore(Arc<Mutex<ProgramStoreData>>);
 impl ProgramStore {
     async fn async_background_load(&self) -> Result<(),Message> {
         for program in ProgramIndex::all_programs() {
-            debug_log!("preload {:?}",program);
             lock!(self.0).get_program(program.0,program.1).ok(); // ok to discard result
         }
         log_extra!("program preloading done");
