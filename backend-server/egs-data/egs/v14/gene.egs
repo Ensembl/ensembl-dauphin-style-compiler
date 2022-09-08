@@ -75,7 +75,7 @@ gene_track_styles();
 style("**/main/main/",["type"][],["bumper"][]);
 style("**/main/main/*/",["type"][],["overlay"][]);
 style("**/main/main/*/blocks/",["depth"][],["4"][]);
-style("**/main/main/*/text/",["bump-width"][],["none"][]);
+style("**/main/main/*/text/",["bump-width","system"][],["none","tracking-special"][]);
 style("**/main/background/content",["depth","padding-top"][],["-10","32"][]);
 
 use_allotment_names(base_allotment_names,enabled_tracks,potential_tracks);
@@ -184,7 +184,7 @@ rectangle(spacebase(start,0,-0.5),spacebase(end,5,0.5),patina,allotment);
 rectangle_on_genome(start,end,8,zmenu_patina,allotment);
 rectangle_on_genome(start,end,8,tr_zmenu_patina,allotment);
 rectangle_on_genome(start,end,8,ge_zmenu_patina,allotment);
-text_underneath(start,8,textpen,gene_name,text_allotment);
+running_text(spacebase(start,8,0),spacebase(end,8,0),textpen,gene_name,text_allotment);
 
 /* main track chevrons */
 
