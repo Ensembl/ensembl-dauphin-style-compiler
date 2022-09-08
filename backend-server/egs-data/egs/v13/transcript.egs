@@ -473,7 +473,7 @@ draw_track_category("G",allotments_letter);
 
 /* lozenges */
 
-draw_lozenges(start_gn,num_drawn_tr_gn,gene_id,expanded_genes,button_allotment);
+//draw_lozenges(start_gn,num_drawn_tr_gn,gene_id,expanded_genes,button_allotment);
 
 /*
 
