@@ -10,6 +10,10 @@ const HTML : &str = r#"
     </div>
 "#;
 
+const HTML2 : &str = r#"
+    <canvas class="$-browser-canvas"></canvas></div>
+"#;
+
 const CSS : &str = r#"
     .$-container {
         height: 100%;
@@ -29,5 +33,5 @@ const CSS : &str = r#"
 "#;
 
 pub(crate) fn make_dom_from_element(browser_el: &Element) -> Result<PeregrineDom,Message> {
-    PeregrineDom::new(&browser_el,&HTML,&CSS)
+    PeregrineDom::new(&browser_el,&HTML2,&CSS)
 }

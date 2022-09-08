@@ -64,6 +64,13 @@ fn add_css(document: &Document, css: &str) -> Result<(),Message> {
     Ok(())
 }
 
+fn string_to_dom(document: &Document, html: &str) -> Result<Element,Message> {
+    let outer = document.create_element("div").map_err(|e| Message::ConfusedWebBrowser(format!("Cannot create style element: {:?}",e.as_string())))?;
+    outer.set_inner_html(html);
+    let out = unique_element(outer.children())?;
+    out.ok_or_else(|| Message::ConfusedWebBrowser(format!("Cannot find inner element")))
+}
+
 struct DollarReplace(String);
 
 impl DollarReplace {
@@ -76,8 +83,11 @@ fn find_class(dollar: &DollarReplace, el: &Element, class: &str) -> Result<Optio
 }
 
 fn setup_dom(dollar: &DollarReplace, el: &Element, html: &str, css: &str) -> Result<(Element,Element),Message> {
+    let document = el.owner_document().ok_or_else(|| Message::ConfusedWebBrowser(format!("Element has no document")))?;
     add_css(&el.owner_document().ok_or_else(|| Message::ConfusedWebBrowser(format!("Element has no document")))?,&dollar.replace(css))?;
-    el.set_inner_html(&dollar.replace(html));
+    let inner = string_to_dom(&document,html)?;
+    el.append_child(&inner).map_err(|e| Message::ConfusedWebBrowser(format!("cannot append child")))?;
+    //el.set_inner_html(&dollar.replace(html));
     let canvas = require(unique_element(el.get_elements_by_class_name(&dollar.replace("$-browser-canvas"))))?;
     let container = require(unique_element(el.get_elements_by_class_name(&dollar.replace("$-container"))))?;
     Ok((canvas,container))
