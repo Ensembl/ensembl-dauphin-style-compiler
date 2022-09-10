@@ -39,6 +39,10 @@ strand_string#[strand>0] := "forward strand";
 
 gene_tracks_enabled(enabled_tracks);
 
+potential_track_ids := [
+    "gene-other-rev", "gene-pc-rev", "gene-other-fwd", "gene-pc-fwd", "focus"
+];
+
 potential_tracks := [
     "tracks/track/gene-other-rev/main/main",
     "tracks/track/gene-pc-rev/main/main",
@@ -126,7 +130,7 @@ allotment := use_allotment(append_group(allotment_names[],["content"][]));
 text_allotment_names :=  [append_group(base_allotment_names[],["text"][])];
 text_allotment := use_allotment(append_group(text_allotment_names[],["content"][]));
 
-track_name := index(allotment_idx,potential_tracks);
+track_name := index(allotment_idx,potential_track_ids);
 
 /*
  * Filter labels by which tracks are configured to have labels
