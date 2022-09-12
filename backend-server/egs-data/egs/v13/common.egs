@@ -114,7 +114,7 @@ stmt gene_track_styles() {
     style("tracks/track/gene-pc-rev/",["priority","report","min-height"][],["100","track;switch-id=gene-pc-rev;has-labels=true","92"][]);
     style("tracks/track/gene-other-fwd/",["priority","report","min-height"][],["-100","track;switch-id=gene-other-fwd;has-labels=true","92"][]);
     style("tracks/track/gene-pc-fwd/",["priority","report","min-height"][],["-110","track;switch-id=gene-pc-fwd;has-labels=true","92"][]);
-    style("tracks/track/focus/",["priority","report","min-height"][],["-900","track;switch-id=focus;has-labels=true;!transcripts-shown;!all-transcripts","100"][]);
+    style("tracks/track/focus/",["priority","report","min-height"][],["-900","track;switch-id=focus;has-labels=true;!transcripts-shown;!all-transcripts;!id","100"][]);
 }
 
 stmt report_id(id,rs_al_focus_bgd) {

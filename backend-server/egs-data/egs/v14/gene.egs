@@ -39,6 +39,10 @@ strand_string#[strand>0] := "forward strand";
 
 gene_tracks_enabled(enabled_tracks);
 
+potential_track_ids := [
+    "gene-other-rev", "gene-pc-rev", "gene-other-fwd", "gene-pc-fwd", "focus"
+];
+
 potential_tracks := [
     "tracks/track/gene-other-rev/main/main",
     "tracks/track/gene-pc-rev/main/main",
@@ -75,7 +79,7 @@ gene_track_styles();
 style("**/main/main/",["type"][],["bumper"][]);
 style("**/main/main/*/",["type"][],["overlay"][]);
 style("**/main/main/*/blocks/",["depth"][],["4"][]);
-style("**/main/main/*/text/",["bump-width"][],["none"][]);
+style("**/main/main/*/text/",["bump-width","system"][],["none","tracking-special"][]);
 style("**/main/background/content",["depth","padding-top"][],["-10","32"][]);
 
 use_allotment_names(base_allotment_names,enabled_tracks,potential_tracks);
@@ -126,7 +130,7 @@ allotment := use_allotment(append_group(allotment_names[],["content"][]));
 text_allotment_names :=  [append_group(base_allotment_names[],["text"][])];
 text_allotment := use_allotment(append_group(text_allotment_names[],["content"][]));
 
-track_name := index(allotment_idx,potential_tracks);
+track_name := index(allotment_idx,potential_track_ids);
 
 /*
  * Filter labels by which tracks are configured to have labels
@@ -162,17 +166,22 @@ textpen := pen("'IBM Plex Mono', sans-serif",text_size,text_colour,[][]);
 zmenu_patina := patina_zmenu(zmenu(""),["type"],[["gene-and-one-transcript"]][]);
 
 /* transcript part */
-zmenu_tmpl := zmenu("[<light>Transcript</light> <strong>{versioned_id}</strong>] [<light>{transcript_biotype}</light>] [<light>{strand}</light>] / [<light>{transcript_id}</light>] [<light>{designation}</light>]");
+zmenu_tmpl := zmenu("[<light>Transcript</light> <strong>{versioned_id}</strong>] [<light>{designation}</light>] / [<light>{transcript_biotype}</light>] [<light>{strand}</light>]");
 designated_transcript_designation#[designated_transcript_designation=="normal"] := "";
-tr_zmenu_patina := patina_zmenu(zmenu_tmpl,
-    ["gene_id","versioned_id","unversioned_id","transcript_biotype","strand","designation","type","track"],
-    [[id_gn_vr],[id_dtr_vr],[id_dtr_uv],[designated_transcript_biotype],[strand_string],[designated_transcript_designation],["transcript"],[track_name]][]);
+pt_zmenu_tr := patina_zmenu(zmenu_tmpl,
+    ["gene_id","unversioned_id","versioned_id","transcript_biotype","strand",
+     "designation","track","type"],
+    [[id_gn_vr],[id_dtr_uv],[id_dtr_vr],[designated_transcript_biotype],[strand_string],
+     [designated_transcript_designation],[track_name],[len([id_gn_vr]) (*) "transcript"]][]);
 
 /* gene part */
-zmenu_tmpl := zmenu("[<light>Gene</light> {symbol}] / [<strong><focus>{versioned_id}</focus></strong>] / [{desc}]");
-ge_zmenu_patina := patina_zmenu(zmenu_tmpl,
-    ["symbol","versioned_id","unversioned_id","type","track","name"],
-    [[gene_name],[id_gn_vr],[id_gn_uv],["gene"],[track_name],[gene_desc]][]);
+zmenu_tmpl := zmenu(
+    "[<light>Gene</light> {symbol}] / [<strong><focus>{versioned_id}</focus></strong>] [{name}] / [<light>{gene_biotype}</light>] [<light>{strand}</light>]");
+pt_zmenu_gn := patina_zmenu(zmenu_tmpl,
+    ["symbol","unversioned_id","versioned_id","track","type",
+     "name","gene_biotype","strand"],
+    [[gene_name],[id_gn_uv],[id_gn_vr],[track_name],["gene"],
+     [gene_desc],[gene_biotype],[strand_string]][]);
 
 /*
  * DRAW!
@@ -182,9 +191,9 @@ ge_zmenu_patina := patina_zmenu(zmenu_tmpl,
 
 rectangle(spacebase(start,0,-0.5),spacebase(end,5,0.5),patina,allotment);
 rectangle_on_genome(start,end,8,zmenu_patina,allotment);
-rectangle_on_genome(start,end,8,tr_zmenu_patina,allotment);
-rectangle_on_genome(start,end,8,ge_zmenu_patina,allotment);
-text_underneath(start,8,textpen,gene_name,text_allotment);
+rectangle_on_genome(start,end,8,pt_zmenu_tr,allotment);
+rectangle_on_genome(start,end,8,pt_zmenu_gn,allotment);
+running_text(spacebase(start,8,0),spacebase(end,8,0),textpen,gene_name,text_allotment);
 
 /* main track chevrons */
 
