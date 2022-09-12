@@ -61,8 +61,8 @@ struct SizeManagerState {
 
 impl SizeManagerState {
     fn check_container_size(&mut self) -> bool {
-        let size = self.dom.canvas_frame().get_bounding_client_rect();
-        let (x,y) = (size.width().round() as u32,size.height().round() as u32);
+        let x = self.dom.viewport_element().client_width() as u32;
+        let y = self.dom.viewport_element().client_height() as u32;
         if x == 0 || y == 0 {
             log_extra!("browser disappeared XXX signal this");
             return false;
@@ -131,7 +131,7 @@ pub(crate) struct SizeManager {
 
 impl SizeManager {
     async fn redraw_needed(web: &mut PeregrineInnerAPI) -> Needed {
-        web.lock().await.stage.lock().unwrap().redraw_needed().clone()
+        lock!(web.lock().await.stage).redraw_needed().clone()
     }
 
     pub(crate) async fn new(web: &mut PeregrineInnerAPI, dom: &PeregrineDom) -> Result<SizeManager,Message> {
@@ -154,17 +154,17 @@ impl SizeManager {
         };
         let out2 = out.clone();
         let resize_observer = PgResizeObserver::new(web, move|_el| {
-            if out2.state.lock().unwrap().check_container_size() {
+            if lock!(out2.state).check_container_size() {
                 out2.container_was_resized();
             }
         }).await?;
-        resize_observer.observe(dom.canvas_frame());
-        out.state.lock().unwrap().set_observer(resize_observer);
+        resize_observer.observe(dom.viewport_element());
+        lock!(out.state).set_observer(resize_observer);
         Ok(out)
     }
 
     fn container_was_resized(&self) {
-        if self.state.lock().unwrap().booted() {
+        if lock!(self.state).booted() {
             self.activity_monostable.set();
         }
         self.redraw_needed.set();
@@ -174,7 +174,7 @@ impl SizeManager {
         self.dom.set_canvas_size(x,y);
         let device_pixel_ratio = self.dom.device_pixel_ratio();
         *draw.webgl.lock().unwrap().refs().canvas_size = Some((apply_dpr(x,device_pixel_ratio),apply_dpr(y,device_pixel_ratio)));
-        let mut stage = draw.stage.lock().unwrap();
+        let mut stage = lock!(draw.stage);
         stage.x_mut().set_size(x as f64);
         stage.y_mut().set_size(y as f64);
         Ok(())
@@ -186,9 +186,9 @@ impl SizeManager {
         if let Some((resize_x,resize_y)) = resize {
             self.update_canvas_size(draw,resize_x,resize_y)?;
         }
-        let mut state = self.state.lock().unwrap();
+        let mut state = lock!(self.state);
         if let Some(drawable) = state.take_pending_drawable_size() {
-            let mut stage = draw.stage.lock().unwrap();
+            let mut stage = lock!(draw.stage);
             stage.x_mut().set_drawable_size(drawable.0 as f64);
             stage.y_mut().set_drawable_size(drawable.1 as f64);
             drop(stage);

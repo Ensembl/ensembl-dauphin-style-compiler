@@ -10,7 +10,7 @@ use super::{event::{ EventSystem }, lowlevel::LowLevelState };
 use crate::input::low::pointer::pointer::{ Pointer, PointerEventKind, PointerConfig };
 
 fn position(lowlevel: &LowLevelState, event: &MouseEvent) -> (f64,f64) {
-    let rect = lowlevel.dom().canvas_frame().get_bounding_client_rect();
+    let rect = lowlevel.dom().canvas().get_bounding_client_rect();
     let x = (event.client_x() as f64) - rect.left();
     let y = (event.client_y() as f64) - rect.top();
     (x,y)
@@ -169,9 +169,9 @@ pub(super) fn mouse_events(config: &PgPeregrineConfig, state: &LowLevelState, gl
     events.add(canvas,"pointerleave",|handler,event| {
         handler.abandon(&event)
     })?;
-    events.add(dom.canvas_frame(),"scroll",|_,_: &Event| {
+    events.add(dom.canvas(),"scroll",|_,_: &Event| {
     })?;
-    events.add(dom.canvas_frame(),"contextmenu",|_,e: &Event| {
+    events.add(dom.canvas(),"contextmenu",|_,e: &Event| {
         e.prevent_default();
     })?;
     Ok(events)

@@ -66,7 +66,7 @@ impl Cursor {
             let values = value.split_whitespace().map(|x| x.to_string()).collect::<Vec<_>>();
             configs.insert(circ,values);
         }
-        let el = dom.canvas_frame().clone();        
+        let el = dom.canvas().clone();        
         Ok(Cursor {
             state: Arc::new(Mutex::new(CursorState::new(move |circ| {
                 let values = configs.get(&circ).unwrap(); // XXX report error

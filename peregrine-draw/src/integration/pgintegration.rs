@@ -77,7 +77,7 @@ impl PeregrineIntegration for PgIntegration {
     }
 
     fn set_playing_field(&mut self, playing_field: PlayingField) {
-        self.dom.set_useful_height(playing_field.height as u32);
+        self.dom.set_content_height(playing_field.height as u32);
         lock!(self.stage).notify_playingfield(&playing_field);
     }
 }
