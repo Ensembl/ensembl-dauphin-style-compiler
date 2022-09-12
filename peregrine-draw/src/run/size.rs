@@ -105,7 +105,7 @@ impl SizeManagerState {
                     return Some((min_x,min_y));
                 }
             } else if container_x != canvas_x || container_y != canvas_y {
-                log!("test_update_canvas_size/C({},{})",container_x,container_y);
+                log!("test_update_canvas_size/C container ({},{}) canvas ({},{})",container_x,container_y,canvas_x,canvas_y);
                 return Some((container_x,container_y));
             }
         }

@@ -25,8 +25,7 @@ pub fn js_throw<T,E: Debug>(e: Result<T,E>) -> T {
     match e {
         Ok(e) => e,
         Err(e) => {
-            error_important!("{:?}",e);
-            panic!("deliberate panic from js_throw following error. Ignore this trace, see error above.");
+            panic!("{:?}",e);
         }
     }
 }
