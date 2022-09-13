@@ -10,10 +10,16 @@ spec:
           envFrom:
           - configMapRef:
               name: new-genome-browser-server-configmap-hi
-          - configMapRef:
-              name: new-genome-browser-source-toml-configmap
       volumes:
         - name: new-genome-browser-server-data-vol
           nfs:
             server: <NFS_SERVER>
             path: <NFS_PATH>
+---
+apiVersion: v1
+data:
+  THREADS: "16"
+  SOURCES_TOML: /usr/src/app/config/sources-ebi-live.toml
+kind: ConfigMap
+metadata:
+  name: new-genome-browser-server-configmap
