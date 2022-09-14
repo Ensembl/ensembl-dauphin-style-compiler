@@ -60,12 +60,12 @@ def shimmer(positions: List[Tuple[int]], sense: List[bool], start: int, end: int
         tuple
 
     """
-    domino_bp = (end - start + 1) / DOMINO_COUNT
+    domino_bp = (end - start) / DOMINO_COUNT
     domino_onoff = [0] * DOMINO_COUNT
     for ((start_p, end_p), sense) in zip(positions, sense):
         start_d = int((start_p - start) / domino_bp)
         end_d = int((end_p - start) / domino_bp)
-        for domino in range(start_d, end_d + 1):
+        for domino in range(start_d, end_d):
             domino_onoff[domino] |= (2 if sense else 1)
     out_position = []
     out_sense = []
