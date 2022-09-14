@@ -4,7 +4,7 @@ use commander::cdr_tick;
 use peregrine_data::Commander;
 use peregrine_toolkit::{plumbing::oneshot::OneShot, log_extra};
 
-use crate::{Message, PeregrineDom, PeregrineInnerAPI, input::Input, stage::stage::{ReadStage, Stage}, train::GlRailway, webgl::global::WebGlGlobal};
+use crate::{Message, PeregrineInnerAPI, input::Input, stage::stage::{ReadStage, Stage}, train::GlRailway, webgl::global::WebGlGlobal, domcss::dom::PeregrineDom};
 
 fn mouse_move_tick(input: &Input, mouse_position: &mut Option<(f64,f64)>, stage: &ReadStage, train_set: &GlRailway) -> Result<(),Message> {
     let position = input.get_pointer_last_seen();

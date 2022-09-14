@@ -29,6 +29,7 @@ pub mod eachorevery {
 pub mod js {
     pub mod exception;
     pub mod jstojsonvalue;
+    pub mod dommanip;
 }
 
 pub mod plumbing {

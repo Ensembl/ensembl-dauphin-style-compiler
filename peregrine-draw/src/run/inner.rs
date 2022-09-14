@@ -1,3 +1,4 @@
+use crate::domcss::dom::PeregrineDom;
 use crate::input::Input;
 use crate::{integration::pgchannel::PgChannel };
 use crate::integration::pgcommander::PgCommanderWeb;
@@ -22,7 +23,6 @@ use super::{PgPeregrineConfig, globalconfig::CreatedPeregrineConfigs};
 pub use url::Url;
 pub use web_sys::{ console, WebGlRenderingContext, Element };
 use crate::train::GlRailway;
-use super::dom::PeregrineDom;
 use crate::stage::stage::{ Stage };
 use crate::webgl::global::WebGlGlobal;
 use commander::{CommanderStream, Lock, LockGuard, cdr_lock};

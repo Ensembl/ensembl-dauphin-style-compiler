@@ -5,7 +5,7 @@ use peregrine_data::{
 };
 use peregrine_toolkit::lock;
 use super::pgchannel::PgChannel;
-use crate::{PeregrineDom};
+use crate::domcss::dom::PeregrineDom;
 use crate::input::Input;
 use crate::run::report::Report;
 use crate::train::GlRailway;

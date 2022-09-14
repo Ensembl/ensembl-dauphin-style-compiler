@@ -3,12 +3,13 @@ use peregrine_data::{PeregrineCore};
 use peregrine_toolkit_async::sync::blocker::{Blocker, Lockout};
 
 use crate::PeregrineInnerAPI;
+use crate::domcss::dom::PeregrineDom;
 use crate::input::translate::targetreporter::TargetReporter;
 use crate::input::translate::translatehotspots::{translate_hotspots};
 use crate::shape::core::spectre::Spectre;
 use crate::stage::stage::ReadStage;
 use crate::webgl::global::WebGlGlobal;
-use crate::{ PeregrineDom, run::PgPeregrineConfig, PgCommanderWeb };
+use crate::{ run::PgPeregrineConfig, PgCommanderWeb };
 use crate::util::Message;
 use crate::input::low::lowlevel::LowLevelInput;
 use crate::input::translate::InputTranslator;

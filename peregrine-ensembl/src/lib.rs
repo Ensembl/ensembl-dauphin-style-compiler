@@ -1,8 +1,6 @@
 use std::{collections::HashMap, sync::{ Arc, Mutex }};
 use std::fmt::Debug;
-mod standalonedom;
 use js_sys::{ Reflect, Array, JSON };
-use standalonedom::make_dom_from_element;
 use wasm_bindgen::{prelude::*, JsCast};
 use peregrine_draw::{Endstop, Message, PeregrineAPI, PeregrineConfig, PgCommanderWeb};
 use peregrine_data::{Channel, ChannelLocation, StickId, zmenu_to_json };
@@ -147,11 +145,10 @@ impl GenomeBrowser {
          * use. See that file for details.
          */
         let target_element = get_or_error(&config_in,&["target_element","target_element_id"])?;
-        let dom = make_dom_from_element(&target_element.to_element()?)?;
         /*
          * Create a genome browser object.
          */
-        self.commander = Some(self.api.run(config,dom)?);
+        self.commander = Some(self.api.run(config,&target_element.to_element()?)?);
         /*
          * Ok, we're ready to go. Bootstrapping causes the genome browser to go to the backend and configure itself.
          */

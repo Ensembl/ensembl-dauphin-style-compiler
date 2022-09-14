@@ -10,10 +10,10 @@ use super::buildconfig::{ GIT_TAG, GIT_BUILD_DATE };
 use super::mousemove::run_mouse_move;
 use commander::CommanderStream;
 use super::inner::PeregrineInnerAPI;
-use super::dom::PeregrineDom;
 use crate::integration::pgcommander::PgCommanderWeb;
 use crate::run::globalconfig::PeregrineConfig;
 use super::frame::run_animations;
+use crate::domcss::dom::PeregrineDom;
 
 use std::sync::{ Arc, Mutex };
 
@@ -222,7 +222,8 @@ impl PeregrineAPI {
         Ok(())
     }
 
-    pub fn run(&self, config: PeregrineConfig, dom: PeregrineDom) -> Result<PgCommanderWeb,Message> {
+    pub fn run(&self, config: PeregrineConfig, el: &Element) -> Result<PgCommanderWeb,Message> {
+        let dom = PeregrineDom::new(el)?;
         let commander = PgCommanderWeb::new()?;
         dom.run_shutdown_detector(&commander);
         commander.start();

@@ -1,14 +1,14 @@
 use super::inner::{ PeregrineInnerAPI, LockedPeregrineInnerAPI };
-use super::size::{SizeManager, self};
 use commander::{ cdr_tick, cdr_current_time };
 use peregrine_data::{Commander, Assets, PeregrineCoreBase};
 use peregrine_toolkit::plumbing::oneshot::OneShot;
 use peregrine_toolkit::{lock, timer_end, timer_start, log_extra};
+use crate::domcss::dom::PeregrineDom;
+use crate::domcss::size::SizeManager;
 use crate::input::Input;
 use crate::stage::stage::ReadStage;
 use crate::util::message::Message;
 use crate::webgl::DrawingSession;
-use super::dom::PeregrineDom;
 
 fn draw_objects_and_spectres(lweb: &mut LockedPeregrineInnerAPI, read_stage: &ReadStage, elapsed: f64) -> Result<(),Message> {
     if read_stage.ready() {

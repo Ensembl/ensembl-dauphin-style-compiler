@@ -1,6 +1,6 @@
 use std::{collections::{BTreeMap}, sync::{ Arc, Mutex }};
 use std::collections::HashMap;
-use crate::{PeregrineDom, run::PgPeregrineConfig};
+use crate::{run::PgPeregrineConfig, domcss::dom::PeregrineDom};
 use crate::util::Message;
 use crate::run::{ CursorCircumstance, PgConfigKey };
 use crate::util::error::confused_browser;

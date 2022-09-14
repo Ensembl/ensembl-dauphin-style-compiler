@@ -1,3 +1,8 @@
+mod domcss {
+    pub(crate) mod dom;
+    pub(crate) mod size;
+}
+
 mod input {
     mod core {
         pub mod input;
@@ -60,18 +65,15 @@ mod run {
     mod buildconfig;
     pub mod api;
     mod config;
-    mod dom;
     mod globalconfig;
     pub mod inner;
     mod frame;
     mod mousemove;
     pub(crate) mod report;
-    mod size;
     pub(crate) mod sound;
 
     pub use self::config::{ PgPeregrineConfig, PgConfigKey, CursorCircumstance };
     pub use self::globalconfig::PeregrineConfig;
-    pub use self::dom::PeregrineDom;
     pub use self::api::{ PeregrineAPI };
     pub use self::inner::{ PeregrineInnerAPI };
 }
@@ -226,6 +228,6 @@ mod webgl {
     mod util;
 }
 
-pub use crate::run::{ PeregrineInnerAPI, PeregrineDom, PeregrineAPI, PeregrineConfig };
+pub use crate::run::{ PeregrineInnerAPI, PeregrineAPI, PeregrineConfig };
 pub use self::util::{ PgAjax, Message, Endstop };
 pub use crate::integration::PgCommanderWeb;
