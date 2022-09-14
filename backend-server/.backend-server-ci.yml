@@ -9,6 +9,14 @@ variables:
 
 .base-be-rules:
   rules:
+    - if: '$CI_DEPLOY_FREEZE == null'
+      changes:
+        - backend-server/**/*
+      when: always
+    - when: never
+
+.base-be-deploy-rules:
+  rules:
     - if: '$CI_DEPLOY_FREEZE == null && $CI_COMMIT_BRANCH == "master"'
       changes:
         - backend-server/**/*
@@ -33,7 +41,7 @@ variables:
     - docker logout $CI_REGISTRY
 
 .deploy_backend:
-  extends: .base-be-rules
+  extends: .base-be-deploy-rules
   stage: deploy
   image: dockerhub.ebi.ac.uk/ensembl-web/deploy-tools:0.4
   before_script:
