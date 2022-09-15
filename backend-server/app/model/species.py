@@ -37,13 +37,15 @@ class Species(object):
         hash_reader = NCDRead(accessor.ncd())
         hash_data = hash_reader.get(wire_id.encode("utf-8"))
         if hash_data == None:
-            raise RequestException("cannot find hash")
+            raise RequestException("cannot find hash '{}'".format(wire_id))
         return hash_data.decode("utf-8").split("\t")
 
     def split_total_wire_id(self, total_wire_id: str):
         for name in self._names:
             if total_wire_id.startswith(name+":"):
                 return (name,total_wire_id[len(name)+1:])
+            elif total_wire_id == name:
+                return (name,"")
         raise RequestException("cannot split id")
 
     def _load_chromosome(self, data_accessor, total_wire_id):
