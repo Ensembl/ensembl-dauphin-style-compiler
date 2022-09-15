@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM ubuntu:groovy-20210723
+FROM ubuntu:jammy
 
 RUN apt-get update && apt-get install -y syslog-ng
 

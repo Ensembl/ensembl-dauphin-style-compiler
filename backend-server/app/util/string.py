@@ -7,3 +7,4 @@ def split_all(pat,input):
             start = idx+1
         else:
             break
+    yield (input,"")
