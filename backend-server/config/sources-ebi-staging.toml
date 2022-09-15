@@ -1,0 +1,9 @@
+[source.apple]
+driver = "file"
+root = "/usr/data/newsite/staging/genome_browser/s3-data"
+max_version = 13
+
+[source.banana]
+driver = "file"
+root = "/usr/data/newsite/staging/genome_browser/upload-20220829"
+min_version = 14
