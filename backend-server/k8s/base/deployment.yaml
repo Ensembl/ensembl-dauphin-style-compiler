@@ -2,14 +2,14 @@ apiVersion: apps/v1
 kind: Deployment
 metadata: 
   name: new-genome-browser-server-deployment
-  labels:
-    app: new-genome-browser-server
+#  labels:
+#    app: new-genome-browser-server
 spec:
   replicas: 1
   template:
-    metadata:
-      labels:
-        app: new-genome-browser-server
+#    metadata:
+#      labels:
+#        app: new-genome-browser-server
     spec:
       imagePullSecrets:
         - name: ensemblweb-pull-secret

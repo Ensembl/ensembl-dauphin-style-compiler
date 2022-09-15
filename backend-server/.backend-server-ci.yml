@@ -99,6 +99,7 @@ variables:
     # Update hi configuration
     - cd ${BASE}/hi
     - kustomize edit set image DOCKER_IMAGE=${DOCKER_IMAGE}
+    - kustomize edit add label "app":"new-genome-browser-server"
     - kustomize edit add label "gbtype":"${CI_COMMIT_REF_SLUG}-hi"
     - kustomize edit set namesuffix -- -${CI_COMMIT_REF_SLUG}-hi
     - cd -
@@ -106,6 +107,7 @@ variables:
     # Update lo configuration
     - cd ${BASE}/lo
     - kustomize edit set image DOCKER_IMAGE=${DOCKER_IMAGE}
+    - kustomize edit add label "app":"new-genome-browser-server"
     - kustomize edit add label "gbtype":"${CI_COMMIT_REF_SLUG}-lo"
     - kustomize edit set namesuffix -- -${CI_COMMIT_REF_SLUG}-lo
     - cd -
