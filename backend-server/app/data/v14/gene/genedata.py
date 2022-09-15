@@ -46,6 +46,8 @@ TANGLE_OVERVIEW = TANGLE_FACTORY.make_from_tomlfile(OV_TANGLE_PATH,[],processor)
 TANGLE_OVERVIEW_WITH_IDS = TANGLE_FACTORY.make_from_tomlfile(OV_TANGLE_PATH,["ids"],processor)
 
 def get_approx_location(data_accessor: DataAccessor, genome: str, id):
+    # replace with canonical form for focus lookup
+    genome = data_accessor.data_model.canonical_genome_id(genome)
     key = "focus:{}:{}".format(genome,id)
     accessor = data_accessor.resolver.get(AccessItem("jump"))
     jump_ncd = NCDRead(accessor.ncd())

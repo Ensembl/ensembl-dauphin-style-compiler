@@ -35,6 +35,13 @@ class DataModel(object):
                 return self._species[species_name].chromosome(data_accessor, alias)
         return None
 
+    def canonical_genome_id(self, alias):
+        for (prefix, _) in split_all(":", alias):
+            species_name = self._species_aliases.get(prefix)
+            if species_name is not None:
+                return species_name
+        return None
+
     def _load_species(self):
         with open(SPECIESLIST_TOML) as f:
             species_list = toml.loads(f.read())
@@ -52,7 +59,7 @@ class DataModel(object):
                     logging.error("Species {0} failed to configure. Skipping!".format(species_name))
 
     def split_total_wire_id(self, total_wire_id: str):
-        # we know that we split on a oclon, but which one? We go from longest to shortest, trying
+        # we know that we split on a colon, but which one? We go from longest to shortest, trying
         # them all!
         parts = total_wire_id.split(":")
         for partition in reversed(range(0,len(parts))):
