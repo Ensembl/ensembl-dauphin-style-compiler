@@ -15,6 +15,7 @@ spec:
 ---
 apiVersion: v1
 data:
+  SOURCES_TOML: /usr/src/app/config/sources-ebi-dev.toml
   THREADS: "16"
 kind: ConfigMap
 metadata:
