@@ -113,8 +113,8 @@ variables:
     - cd -
 
     # Update hi/lo configuration
-    - kustomize build ${BASE}/hi #| kubectl apply -f -
-    - kustomize build ${BASE}/lo #| kubectl apply -f -
+    - kustomize build ${BASE}/hi | kubectl apply -f -
+    - kustomize build ${BASE}/lo | kubectl apply -f -
 
 BE-Docker:
   extends: .build_backend
