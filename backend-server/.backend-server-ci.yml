@@ -17,7 +17,7 @@ variables:
 
 .base-be-deploy-rules:
   rules:
-    - if: '$CI_DEPLOY_FREEZE == null && $CI_COMMIT_BRANCH == "master"'
+    - if: '$CI_DEPLOY_FREEZE == null && $CI_COMMIT_BRANCH == "auto-deploy-nonmain"'
       changes:
         - backend-server/**/*
       when: always
