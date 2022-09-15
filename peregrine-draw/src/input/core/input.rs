@@ -82,7 +82,7 @@ impl Input {
 
     fn state<F,T>(&self, f: F) -> T where F: FnOnce(&mut InputState) -> T { f(self.state.lock().unwrap().as_mut().unwrap()) }
 
-    pub fn set_api(&mut self, dom: &PeregrineDom, config: &PgPeregrineConfig, inner_api: &PeregrineInnerAPI, commander: &PgCommanderWeb, target_reporter: &TargetReporter, gl: &Arc<Mutex<WebGlGlobal>>) -> Result<(),Message> {
+    pub(crate) fn set_api(&mut self, dom: &PeregrineDom, config: &PgPeregrineConfig, inner_api: &PeregrineInnerAPI, commander: &PgCommanderWeb, target_reporter: &TargetReporter, gl: &Arc<Mutex<WebGlGlobal>>) -> Result<(),Message> {
         let spectres = inner_api.spectres();
         let mut low_level = LowLevelInput::new(dom,commander,spectres,config,gl,&target_reporter)?;
         let translator = InputTranslator::new(config,&mut low_level,inner_api,commander,&self.queue_blocker,&target_reporter)?;

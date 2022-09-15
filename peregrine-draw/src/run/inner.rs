@@ -59,7 +59,7 @@ pub struct LockedPeregrineInnerAPI<'t> {
     pub webgl: &'t mut Arc<Mutex<WebGlGlobal>>,
     pub stage: &'t mut Arc<Mutex<Stage>>,
     pub message_sender: &'t mut CommanderStream<Option<Message>>,
-    pub dom: &'t mut PeregrineDom,
+    pub(crate) dom: &'t mut PeregrineDom,
     pub(crate) spectre_manager: &'t mut SpectreManager,
     pub report: &'t Report,
     pub input: &'t Input,

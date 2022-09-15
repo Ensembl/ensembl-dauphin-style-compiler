@@ -34,7 +34,7 @@ async fn mouse_move_loop(input: Input, train_set: GlRailway, shutdown: OneShot, 
     log_extra!("mouse move loop finished");
 }
 
-pub fn run_mouse_move(web: &mut PeregrineInnerAPI, dom: &PeregrineDom) -> Result<(),Message> {
+pub(crate) fn run_mouse_move(web: &mut PeregrineInnerAPI, dom: &PeregrineDom) -> Result<(),Message> {
     let shutdown = dom.shutdown().clone();
     let mut other = web.clone();
     web.commander().add_task("mouse-move-animator",0,None,None,Box::pin(async move {

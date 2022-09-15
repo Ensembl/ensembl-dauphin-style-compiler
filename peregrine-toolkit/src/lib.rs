@@ -72,6 +72,8 @@ pub mod approxnumber;
 pub mod boom;
 pub mod cbor;
 pub mod console;
+#[macro_use]
+pub mod lang;
 pub mod refs;
 pub mod sample;
 pub mod time;

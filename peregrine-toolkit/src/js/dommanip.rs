@@ -41,3 +41,7 @@ pub fn unique_element(c: HtmlCollection) -> Result<Option<Element>,String> {
         _ => return Err(format!("collection has {} members, expected singleton",c.length()))
     }
 }
+
+pub fn prepend_element(parent: &HtmlElement, child: &HtmlElement) -> Result<(),String> {
+    parent.prepend_with_node_1(&child).ok().ok_or_else(|| "Cannot prepend child element".to_string())
+}

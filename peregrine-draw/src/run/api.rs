@@ -223,10 +223,9 @@ impl PeregrineAPI {
     }
 
     pub fn run(&self, config: PeregrineConfig, el: &Element) -> Result<PgCommanderWeb,Message> {
-        let dom = PeregrineDom::new(el)?;
         let commander = PgCommanderWeb::new()?;
-        dom.run_shutdown_detector(&commander);
         commander.start();
+        let dom = PeregrineDom::new(&commander,el)?;
         set_printer(|severity,message| {
             match severity {
                 Severity::Error => { console::error_1(&message.into()); },

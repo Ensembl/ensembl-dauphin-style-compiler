@@ -1,8 +1,8 @@
 use super::inner::{ PeregrineInnerAPI, LockedPeregrineInnerAPI };
 use commander::{ cdr_tick, cdr_current_time };
-use peregrine_data::{Commander, Assets, PeregrineCoreBase};
+use peregrine_data::Commander;
 use peregrine_toolkit::plumbing::oneshot::OneShot;
-use peregrine_toolkit::{lock, timer_end, timer_start, log_extra};
+use peregrine_toolkit::{lock, log_extra};
 use crate::domcss::dom::PeregrineDom;
 use crate::domcss::size::SizeManager;
 use crate::input::Input;
@@ -63,7 +63,7 @@ async fn animation_tick_loop(mut web: PeregrineInnerAPI, input: Input, size_mana
     log_extra!("animation loop quit");
 }
 
-pub fn run_animations(web: &mut PeregrineInnerAPI, dom: &PeregrineDom) -> Result<(),Message> {
+pub(crate) fn run_animations(web: &mut PeregrineInnerAPI, dom: &PeregrineDom) -> Result<(),Message> {
     let mut other = web.clone();
     let dom = dom.clone();
     let shutdown = dom.shutdown().clone();

@@ -1,6 +1,7 @@
 mod domcss {
     pub(crate) mod dom;
     pub(crate) mod size;
+    mod shutdown;
 }
 
 mod input {

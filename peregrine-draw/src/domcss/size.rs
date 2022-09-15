@@ -37,7 +37,6 @@ use std::sync::{ Arc, Mutex };
 use crate::run::inner::LockedPeregrineInnerAPI;
 use crate::util::{message::Message };
 use commander::{cdr_timer};
-use peregrine_toolkit::plumbing::oneshot;
 use peregrine_toolkit::{log_extra, lock, log};
 use peregrine_toolkit_async::sync::needed::Needed;
 use web_sys::{ WebGlRenderingContext, window };
@@ -105,7 +104,8 @@ impl SizeManagerState {
                     log!("test_update_canvas_size/B({},{})",min_x,min_y);
                     return Some((min_x,min_y));
                 }
-            } else if container_x != canvas_x || container_y != canvas_y {
+            } else if (container_x != canvas_x || container_y != canvas_y) && (canvas_x != 0 || canvas_y != 0) {
+                /* canvas = (0,0) on shutdown: don't waste time */
                 log!("test_update_canvas_size/C container ({},{}) canvas ({},{})",container_x,container_y,canvas_x,canvas_y);
                 return Some((container_x,container_y));
             }
@@ -172,7 +172,7 @@ impl SizeManager {
     }
 
     fn update_canvas_size(&self, draw: &mut LockedPeregrineInnerAPI, x: u32, y: u32) -> Result<(),Message> {
-        self.dom.set_canvas_size(x,y);
+        self.dom.set_canvas_size(x,y)?;
         let device_pixel_ratio = self.dom.device_pixel_ratio();
         *draw.webgl.lock().unwrap().refs().canvas_size = Some((apply_dpr(x,device_pixel_ratio),apply_dpr(y,device_pixel_ratio)));
         let mut stage = lock!(draw.stage);
