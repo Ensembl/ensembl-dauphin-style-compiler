@@ -340,10 +340,10 @@
           genome_browser.switch(["track","focus","enabled-transcripts"],null);
         };
         document.getElementById("jump-wheat").onclick = function() {
-          genome_browser.jump("focus:triticum_aestivum_GCA_900519105_1:TraesCS3D02G273600");
-          genome_browser.wait();
           genome_browser.switch(["track","focus","enabled-transcripts"],null);
-          genome_browser.switch(["track","focus","item","gene"],{ "genome_id": "triticum_aestivum_GCA_900519105_1", "item_id": "TraesCS3D02G273600" });
+          genome_browser.switch(["track","focus","item","gene"],{ "genome_id": "a73357ab-93e7-11ec-a39d-005056b38ce3", "item_id": "TraesCS3D02G273600" });
+          genome_browser.wait();
+          genome_browser.jump("focus:a73357ab-93e7-11ec-a39d-005056b38ce3:TraesCS3D02G273600");
         };
         document.getElementById("jump-ecoli").onclick = function() {
           genome_browser.jump("focus:escherichia_coli_str_k_12_substr_mg1655_gca_000005845_GCA_000005845_2:b2614");
