@@ -3,6 +3,7 @@ use peregrine_toolkit::console::{set_printer, Severity};
 use peregrine_toolkit::eachorevery::eoestruct::{StructTemplate, StructBuilt, struct_to_json};
 use peregrine_toolkit::{log_extra, log_important, error};
 use peregrine_toolkit_async::sync::blocker::Blocker;
+use peregrine_toolkit_async::sync::needed::Needed;
 pub use url::Url;
 pub use web_sys::{ console, WebGlRenderingContext, Element };
 use peregrine_data::{ Channel, StickId, Commander };
@@ -225,7 +226,8 @@ impl PeregrineAPI {
     pub fn run(&self, config: PeregrineConfig, el: &Element) -> Result<PgCommanderWeb,Message> {
         let commander = PgCommanderWeb::new()?;
         commander.start();
-        let dom = PeregrineDom::new(&commander,el)?;
+        let redraw_needed = Needed::new();
+        let dom = PeregrineDom::new(&commander,el,&redraw_needed)?;
         set_printer(|severity,message| {
             match severity {
                 Severity::Error => { console::error_1(&message.into()); },
@@ -234,7 +236,7 @@ impl PeregrineAPI {
             }
         });
         let configs = config.build();
-        let mut inner = PeregrineInnerAPI::new(&configs,&dom,&commander,self.queue.syncer())?;
+        let mut inner = PeregrineInnerAPI::new(&configs,&dom,&commander,self.queue.syncer(),&redraw_needed)?;
         run_animations(&mut inner,&dom)?;
         run_mouse_move(&mut inner,&dom)?;
         let self2 = self.clone();

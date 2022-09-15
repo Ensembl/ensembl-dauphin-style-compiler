@@ -1,7 +1,8 @@
 use peregrine_toolkit::{plumbing::oneshot::OneShot, js::dommanip::{to_html, create_element, set_css, html_document, html_body, to_canvas, prepend_element}, map};
+use peregrine_toolkit_async::sync::needed::Needed;
 use web_sys::{Document, Element, HtmlCanvasElement, HtmlElement };
-use crate::{util::message::Message, PgCommanderWeb};
-use super::shutdown::detect_shutdown;
+use crate::{util::message::Message, PgCommanderWeb, stage::stage::Stage};
+use super::{shutdown::detect_shutdown, yposdetector::YPosDetector};
 
 include!(concat!(env!("OUT_DIR"), "/env.rs"));
 
@@ -13,7 +14,8 @@ pub(crate) struct PeregrineDom {
     document: Document,
     body: HtmlElement,
     device_pixel_ratio: f32,
-    shutdown: OneShot
+    shutdown: OneShot,
+    ypos_detector: YPosDetector
 }
 
 fn effective_dpr() -> f32 {
@@ -26,7 +28,7 @@ fn confused<F,T>(cb: F) -> Result<T,Message> where F: FnOnce() -> Result<T,Strin
 }
 
 impl PeregrineDom {
-    pub fn new(commander: &PgCommanderWeb, el: &Element) -> Result<PeregrineDom,Message> {
+    pub fn new(commander: &PgCommanderWeb, el: &Element, needed: &Needed) -> Result<PeregrineDom,Message> {
         let out = confused(|| {
             let viewport_element = to_html(el.clone())?;
             let content_element = to_html(create_element("div")?)?;
@@ -43,6 +45,7 @@ impl PeregrineDom {
                 "margin-top" => "0px"
             ))?;
             prepend_element(&viewport_element,&canvas)?;
+            let ypos_detector = YPosDetector::new(&viewport_element,needed).ok().unwrap(); // XXX
             let out = PeregrineDom {
                 document: html_document()?,
                 body: html_body()?,
@@ -50,7 +53,8 @@ impl PeregrineDom {
                 viewport_element,
                 content_element,
                 device_pixel_ratio: effective_dpr(),
-                shutdown: OneShot::new()
+                shutdown: OneShot::new(),
+                ypos_detector
             };
             Ok(out)
         })?;
@@ -65,6 +69,10 @@ impl PeregrineDom {
     pub(crate) fn document(&self) -> &Document { &self.document }
     pub(crate) fn body(&self) -> &HtmlElement { &self.body }
     pub(crate) fn device_pixel_ratio(&self) -> f32 { self.device_pixel_ratio }
+
+    pub(crate) fn update_ypos(&self, stage: &mut Stage) {
+        self.ypos_detector.update(stage);
+    }
 
     pub(crate) fn set_content_height(&self, height: u32) -> Result<(),Message> {
         confused(|| {

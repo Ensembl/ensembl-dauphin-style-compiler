@@ -2,6 +2,7 @@ mod domcss {
     pub(crate) mod dom;
     pub(crate) mod size;
     mod shutdown;
+    mod yposdetector;
 }
 
 mod input {
@@ -9,7 +10,7 @@ mod input {
         pub mod input;
     }
 
-    mod low {
+    pub(crate) mod low {
         mod pointer {
             pub(crate) mod cursor;
             mod drag;
@@ -17,7 +18,7 @@ mod input {
             pub(super) mod pointer;   
         }
 
-        mod event;
+        pub(crate) mod event;
         pub(crate) mod keyboardinput;
         pub(crate) mod mouseinput;
         pub(crate) mod lowlevel; 

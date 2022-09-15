@@ -125,7 +125,7 @@ impl PeregrineInnerAPI {
     
     pub fn commander(&self) -> PgCommanderWeb { self.commander.clone() } // XXX
 
-    pub(super) fn new(config: &CreatedPeregrineConfigs, dom: &PeregrineDom, commander: &PgCommanderWeb, queue_blocker: &Blocker) -> Result<PeregrineInnerAPI,Message> {
+    pub(super) fn new(config: &CreatedPeregrineConfigs, dom: &PeregrineDom, commander: &PgCommanderWeb, queue_blocker: &Blocker, redraw_needed: &Needed) -> Result<PeregrineInnerAPI,Message> {
         let commander = commander.clone();
         // XXX change commander init to allow message init to move to head
         let mut messages = Distributor::new();
@@ -137,7 +137,6 @@ impl PeregrineInnerAPI {
             message_sender2.add(Some(message));
         });
         let webgl = Arc::new(Mutex::new(WebGlGlobal::new(&commander,&dom,&config.draw)?));
-        let redraw_needed = Needed::new();
         let stage = Arc::new(Mutex::new(Stage::new(&redraw_needed)));
         let report = Report::new(&config.draw,&message_sender,&dom.shutdown())?;
         let target_reporter = TargetReporter::new(&commander,dom.shutdown(),&config.draw,&report)?;
