@@ -18,7 +18,7 @@ CODES = {
 }
 
 COLOUR_CODES = { 'r': '91;1', 'g': '32;1', 'y': '93;1', '-': '39;0', 'b': '34;1', 'c': '96;1' }
-CODES |= { k: "\033[{0}m".format(v) for (k,v) in COLOUR_CODES.items() }
+CODES.update({ k: "\033[{0}m".format(v) for (k,v) in COLOUR_CODES.items() })
 
 if not use_rich:
     CODES = { k: '' for k in CODES.keys() }
@@ -112,6 +112,9 @@ def make_request(accept):
         "version": { "egs": 14 }
     })
     request = requests.post(url,data=request_data)
+    if request.status_code > 299:
+        print(rich("\0rGot status code {}\0-".format(request.status_code)))
+        sys.exit(1)
     content = cbor2.loads(request.content)
 
     for response in content['responses']:
