@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM ubuntu:hirsute
+FROM ubuntu:jammy
 
 RUN apt-get update && apt-get install -y bash telegraf
 
