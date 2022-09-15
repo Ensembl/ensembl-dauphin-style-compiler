@@ -23,6 +23,14 @@ variables:
       when: always
     - when: never
 
+.base-be-deploy-rules-branches:
+  rules:
+    - if: '$CI_DEPLOY_FREEZE == null'
+      changes:
+        - backend-server/**/*
+      when: always
+    - when: never
+
 .build_backend:
   extends: .base-be-rules
   stage: build
@@ -54,6 +62,7 @@ variables:
     # Update hi configuration
     - cd ${BASE}/hi
     - kustomize edit set image DOCKER_IMAGE=${DOCKER_IMAGE}
+    - kustomize edit add label "app":"new-genome-browser-server"
     - kustomize edit set label "gbtype":"hi"
     - kustomize edit set namesuffix -- -hi
     - cd -
@@ -61,6 +70,7 @@ variables:
     # Update lo configuration
     - cd ${BASE}/lo
     - kustomize edit set image DOCKER_IMAGE=${DOCKER_IMAGE}
+    - kustomize edit add label "app":"new-genome-browser-server"
     - kustomize edit set label "gbtype":"lo"
     - kustomize edit set namesuffix -- -lo
     - cd -
@@ -71,8 +81,48 @@ variables:
 
   needs: ["BE-Docker"]
 
+.deploy_backend_branches:
+  extends: .base-be-deploy-rules-branches
+  environment:
+    name : wp-hx-dev
+  stage: deploy
+  image: dockerhub.ebi.ac.uk/ensembl-web/deploy-tools:0.4
+  variables:
+    BASE: backend-server/k8s/overlays/review
+    NFS_SERVER: ${HX_NFS_SERVER}
+    NFS_PATH: ${HX_NFS_PATH}
+  before_script:
+    - sed -i "s#<NFS_SERVER>#${NFS_SERVER}#g" ${BASE}/hi/patch.yaml
+    - sed -i "s#<NFS_PATH>#${NFS_PATH}#g" ${BASE}/hi/patch.yaml
+    - sed -i "s#<NFS_SERVER>#${NFS_SERVER}#g" ${BASE}/lo/patch.yaml
+    - sed -i "s#<NFS_PATH>#${NFS_PATH}#g" ${BASE}/lo/patch.yaml
+
+  script:
+    # Update hi configuration
+    - cd ${BASE}/hi
+    - kustomize edit set image DOCKER_IMAGE=${DOCKER_IMAGE}
+    - kustomize edit add label "app":"new-genome-browser-server"
+    - kustomize edit add label "gbtype":"${CI_COMMIT_REF_SLUG}-hi"
+    - kustomize edit set namesuffix -- -${CI_COMMIT_REF_SLUG}-hi
+    - cd -
+
+    # Update lo configuration
+    - cd ${BASE}/lo
+    - kustomize edit set image DOCKER_IMAGE=${DOCKER_IMAGE}
+    - kustomize edit add label "app":"new-genome-browser-server"
+    - kustomize edit add label "gbtype":"${CI_COMMIT_REF_SLUG}-lo"
+    - kustomize edit set namesuffix -- -${CI_COMMIT_REF_SLUG}-lo
+    - cd -
+
+    # Update hi/lo configuration
+    - kustomize build ${BASE}/hi | kubectl apply -f -
+    - kustomize build ${BASE}/lo | kubectl apply -f -
+
 BE-Docker:
   extends: .build_backend
+
+HX:Branches:
+  extends: .deploy_backend_branches
 
 HX:Dev:
   extends: .deploy_backend
