@@ -19,8 +19,8 @@ impl LocalPlayingFieldBuilder {
         let edge = match (&coord_system.0,coord_system.1) {
             (CoordinateSystemVariety::Tracking, false) => PlayingFieldEdge::Top,
             (CoordinateSystemVariety::Tracking, true) => PlayingFieldEdge::Bottom,
-            (CoordinateSystemVariety::TrackingWindow, false) => PlayingFieldEdge::Top,
-            (CoordinateSystemVariety::TrackingWindow, true) => PlayingFieldEdge::Bottom,
+            (CoordinateSystemVariety::TrackingSpecial, false) => PlayingFieldEdge::Top,
+            (CoordinateSystemVariety::TrackingSpecial, true) => PlayingFieldEdge::Bottom,
             (CoordinateSystemVariety::Window, false) => PlayingFieldEdge::Top,
             (CoordinateSystemVariety::Window, true) => PlayingFieldEdge::Bottom,
             (CoordinateSystemVariety::Sideways, false) => PlayingFieldEdge::Left,

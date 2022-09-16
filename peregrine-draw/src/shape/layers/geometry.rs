@@ -46,7 +46,7 @@ impl GeometryYielder {
 #[derive(Clone,Hash,PartialEq,Eq,Debug,Sequence)]
 pub enum TrianglesGeometry {
     Tracking,
-    TrackingWindow,
+    TrackingSpecial,
     Window
 }
 
@@ -67,7 +67,7 @@ impl GeometryProgramName {
     pub(crate) fn get_source(&self) -> SourceInstrs {
         /* Most actual data, tracks etc. Follows movements around the region. Optimised for minimal GPU work.
          * Cannot do anything relative to the screen bottom to minimise the number of buffers required:
-         * rulers etc need to use TrackingWindow.
+         * rulers etc need to use TrackingSpecial.
          */
         SourceInstrs::new(match self {
             GeometryProgramName::Triangles(TrianglesGeometry::Tracking) => vec![
@@ -100,7 +100,7 @@ impl GeometryProgramName {
              * running labels. Can  also be used for anything which Tracking is used for (strictly
              * more expressive) but is not optimised.
              */
-            GeometryProgramName::Triangles(TrianglesGeometry::TrackingWindow) => vec![
+            GeometryProgramName::Triangles(TrianglesGeometry::TrackingSpecial) => vec![
                 Header::new(WebGlRenderingContext::TRIANGLES),
                 AttributeProto::new(PR_DEF,GLArity::Vec4,"aCoords"),
                 AttributeProto::new(PR_DEF,GLArity::Vec4,"aRunCoords"),
