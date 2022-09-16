@@ -1,3 +1,29 @@
+# 0.5.1
+  * Features:
+    * systematic handling of species for UUID support
+    * data-test script to look at payload contents
+    * consistent support for both versionad and unversioned IDs
+    * new "tangle" system to minimise boilerplate code in backend
+    * allow multiple data sources in backend based on protocol version
+    * "invariant" mechanism to reduce traffic
+  * New data pipeline run:
+    * misc zmenu fixes
+    * wheat contigs
+  * Improvements:
+    * fix track names
+    * unit test improvements
+    * tidy and reduce transmitted data
+    * simplify "anticipation" to reduce network traffic
+    * improved data-test script for error cases
+    * simplify data-compression code in BE/FE communitcation (size & speed)
+  * Bugfixes:
+    * better handling of webgl buffers (performance)
+    * problem with contig handling identified when handling new wheat tracks
+    * alignment of sticky gene labels
+    * focus transcript id fixes
+    * fix switch_null
+  * Update 3rd-party packages and tool versions
+
 # 0.5.0
   * Drop support for 0.3.x clients (all versions prior to 9)
   * Features:
