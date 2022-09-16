@@ -47,7 +47,7 @@ impl GeometryYielder {
 pub enum TrianglesGeometry {
     Tracking,
     TrackingSpecial(bool),
-    Window
+    Window(bool)
 }
 
 #[derive(Clone,Hash,PartialEq,Eq,Debug,Sequence)]
@@ -106,7 +106,7 @@ impl GeometryProgramName {
                 AttributeProto::new(PR_DEF,GLArity::Vec4,"aRunCoords"),
                 AttributeProto::new(PR_LOW,GLArity::Scalar,"aDepth"),
                 AttributeProto::new(PR_DEF,GLArity::Vec4,"aOriginCoords"),
-                UniformProto::new_vertex(PR_LOW,GLArity::Scalar,"uUseVertical"),                
+                UniformProto::new_vertex(PR_LOW,GLArity::Scalar,"uUseVertical"),
                 Declaration::new_vertex("
                     vec4 transform(in vec4 p)
                     {
@@ -136,15 +136,18 @@ impl GeometryProgramName {
             ],
             /* Data relative to the window, which doesn't follow the movements of the region.
              */
-            GeometryProgramName::Triangles(TrianglesGeometry::Window) => vec![
+            GeometryProgramName::Triangles(TrianglesGeometry::Window(_)) => vec![
                 Header::new(WebGlRenderingContext::TRIANGLES),
                 AttributeProto::new(PR_DEF,GLArity::Vec4,"aCoords"),
                 AttributeProto::new(PR_LOW,GLArity::Scalar,"aDepth"),
+                UniformProto::new_vertex(PR_LOW,GLArity::Scalar,"uUseVertical"),
                 Declaration::new_vertex("
                     vec4 transform(in vec4 p)
                     {
-                        return uModel * vec4(p.x/uSize.x+p.z*2.0-1.0,
-                                                          -p.y/uSize.y-p.a*2.0+1.0,    aDepth,1.0);
+                        return uModel * vec4(
+                            p.x/uSize.x+p.z*2.0-1.0,
+                            (uUseVertical*uStageVpos-p.y)/uSize.y-p.a*2.0+1.0,
+                            aDepth,1.0);
                     }
                 "),
                 Statement::new_vertex("

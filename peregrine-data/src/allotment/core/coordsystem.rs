@@ -26,7 +26,7 @@ pub enum CoordinateSystemVariety {
     /* base = 0->left-of-window, 1->right-of-window, tangent = x-px,  normal = y-px (-ve = bottom)
      * drawing relative to the window, scrolls vertically with overflow
      */
-    //Content,
+    Content,
 
     /* base = 0->top-of-window, 1->bottom-of-window, tangent = y-px,  normal = x-px (-ve = bottom)
      * drawing relative to the window on left and right
@@ -44,6 +44,7 @@ impl CoordinateSystemVariety {
             "tracking-special" => CoordinateSystemVariety::TrackingSpecial,
             "tracking-window" => CoordinateSystemVariety::TrackingWindow,
             "window" => CoordinateSystemVariety::Window,
+            "content" => CoordinateSystemVariety::Content,
             "sideways" => CoordinateSystemVariety::Sideways,
             "dustbin" => CoordinateSystemVariety::Dustbin,
             _ => CoordinateSystemVariety::Tracking

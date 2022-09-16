@@ -80,7 +80,8 @@ impl Layer {
         for character in &characters {
             let mut prog = self.store.remove(&character).unwrap();
             match &character.0 {
-                GeometryProcessName::Triangles(TrianglesGeometry::TrackingSpecial(use_vertical)) => {
+                GeometryProcessName::Triangles(TrianglesGeometry::TrackingSpecial(use_vertical)) |
+                GeometryProcessName::Triangles(TrianglesGeometry::Window(use_vertical)) => {
                     let draw = match prog.get_geometry() {
                         GeometryAdder::Triangles(adder) => Some(adder.clone()),
                         _ => None

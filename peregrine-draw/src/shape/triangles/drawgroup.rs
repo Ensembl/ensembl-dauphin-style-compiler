@@ -22,7 +22,8 @@ fn geometry(coord_system: &CoordinateSystem) -> TrianglesGeometry {
         CoordinateSystemVariety::Tracking => TrianglesGeometry::Tracking,
         CoordinateSystemVariety::TrackingSpecial => TrianglesGeometry::TrackingSpecial(true),
         CoordinateSystemVariety::TrackingWindow => TrianglesGeometry::TrackingSpecial(false),
-        _ => TrianglesGeometry::Window
+        CoordinateSystemVariety::Content => TrianglesGeometry::Window(true),
+        _ => TrianglesGeometry::Window(false)
     }
 }
 
