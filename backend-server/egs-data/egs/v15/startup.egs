@@ -89,7 +89,7 @@ focus_gene_std(p);
 //track_set_switch(p,["scale","no-letters"]);
 track_apply(p);
 /* exon-structure; labels ; zmenus; no sequence blocks */
-p := track_new("self()","focus-transcript",sequence_scale,100,6);
+p := track_new("self()","focus-transcript",sequence_scale,60,60);
 track_add_tag(p,"local");
 focus_gene_std(p);
 track_apply(p);
