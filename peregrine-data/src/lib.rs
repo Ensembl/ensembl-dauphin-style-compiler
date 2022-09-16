@@ -12,7 +12,7 @@ mod allotment {
         mod holder;
         pub(crate) mod stylebuilder;
     }
-
+    
     pub(crate) mod collision {
         mod bumppart;
         pub(crate) mod bumpprocess;
