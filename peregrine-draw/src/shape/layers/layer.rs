@@ -6,7 +6,7 @@ use peregrine_toolkit_async::sync::retainer::RetainTest;
 
 use crate::shape::layers::patina::PatinaProcess;
 use crate::webgl::{ ProcessBuilder, Process, DrawingAllFlats };
-use super::geometry::{GeometryProcessName, GeometryYielder};
+use super::geometry::{GeometryProcessName, GeometryYielder, TrianglesGeometry, GeometryAdder};
 use super::programstore::ProgramStore;
 use super::patina::{PatinaProcessName, PatinaYielder};
 use crate::util::message::Message;
@@ -79,12 +79,25 @@ impl Layer {
         characters.sort_by_cached_key(|c| c.order());
         for character in &characters {
             let mut prog = self.store.remove(&character).unwrap();
-            match character {
-                ProgramCharacter(_,PatinaProcessName::Texture(flat_id)) |
-                ProgramCharacter(_,PatinaProcessName::FreeTexture(flat_id)) =>{
+            match &character.0 {
+                GeometryProcessName::Triangles(TrianglesGeometry::TrackingSpecial(use_vertical)) => {
+                    let draw = match prog.get_geometry() {
+                        GeometryAdder::Triangles(adder) => Some(adder.clone()),
+                        _ => None
+                    };
+                    if let Some(adder) = draw {
+                        let process = prog.get_process_mut();
+                        adder.set_use_vertical(process,if *use_vertical { 1.0 } else { 0.0 })?;
+                    }
+                },
+                _ => {}
+            }
+            match &character.1 {
+                PatinaProcessName::Texture(flat_id) |
+                PatinaProcessName::FreeTexture(flat_id) =>{
                     canvases.add_process(&flat_id,prog.get_process_mut())?;
                 },
-                ProgramCharacter(_,PatinaProcessName::Spot(colour)) => {
+                PatinaProcessName::Spot(colour) => {
                     let draw = match prog.get_patina() {
                         PatinaProcess::Spot(draw) => Some(draw),
                         _ => None

@@ -3,7 +3,7 @@ use std::any::Any;
 use super::super::core::wigglegeometry::WiggleAdder;
 use crate::shape::layers::consts::{ PR_DEF, PR_LOW };
 use crate::shape::triangles::triangleadder::TriangleAdder;
-use crate::webgl::{AttributeProto, Conditional, Declaration, GLArity, Header, ProgramBuilder, SourceInstrs, Statement, Varying};
+use crate::webgl::{AttributeProto, Conditional, Declaration, GLArity, Header, ProgramBuilder, SourceInstrs, Statement, Varying, UniformProto};
 use web_sys::{ WebGlRenderingContext };
 use crate::util::message::Message;
 use enum_iterator::Sequence;
@@ -46,7 +46,7 @@ impl GeometryYielder {
 #[derive(Clone,Hash,PartialEq,Eq,Debug,Sequence)]
 pub enum TrianglesGeometry {
     Tracking,
-    TrackingSpecial,
+    TrackingSpecial(bool),
     Window
 }
 
@@ -100,19 +100,21 @@ impl GeometryProgramName {
              * running labels. Can  also be used for anything which Tracking is used for (strictly
              * more expressive) but is not optimised.
              */
-            GeometryProgramName::Triangles(TrianglesGeometry::TrackingSpecial) => vec![
+            GeometryProgramName::Triangles(TrianglesGeometry::TrackingSpecial(_)) => vec![
                 Header::new(WebGlRenderingContext::TRIANGLES),
                 AttributeProto::new(PR_DEF,GLArity::Vec4,"aCoords"),
                 AttributeProto::new(PR_DEF,GLArity::Vec4,"aRunCoords"),
                 AttributeProto::new(PR_LOW,GLArity::Scalar,"aDepth"),
                 AttributeProto::new(PR_DEF,GLArity::Vec4,"aOriginCoords"),
+                UniformProto::new_vertex(PR_LOW,GLArity::Scalar,"uUseVertical"),                
                 Declaration::new_vertex("
                     vec4 transform(in vec4 p)
                     {
                         return uModel * vec4(
                         (p.z -uStageHpos) * uStageZoom + 
                         p.x / uSize.x,
-                        -p.y/uSize.y-p.a*2.0+1.0,    aDepth,1.0);
+                        (uUseVertical*uStageVpos-p.y)/uSize.y-p.a*2.0+1.0,
+                        aDepth,1.0);
                     }
                 "),
                 Statement::new_vertex("

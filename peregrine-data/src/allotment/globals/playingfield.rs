@@ -21,6 +21,8 @@ impl LocalPlayingFieldBuilder {
             (CoordinateSystemVariety::Tracking, true) => PlayingFieldEdge::Bottom,
             (CoordinateSystemVariety::TrackingSpecial, false) => PlayingFieldEdge::Top,
             (CoordinateSystemVariety::TrackingSpecial, true) => PlayingFieldEdge::Bottom,
+            (CoordinateSystemVariety::TrackingWindow, false) => PlayingFieldEdge::Top,
+            (CoordinateSystemVariety::TrackingWindow, true) => PlayingFieldEdge::Bottom,
             (CoordinateSystemVariety::Window, false) => PlayingFieldEdge::Top,
             (CoordinateSystemVariety::Window, true) => PlayingFieldEdge::Bottom,
             (CoordinateSystemVariety::Sideways, false) => PlayingFieldEdge::Left,

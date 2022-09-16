@@ -13,22 +13,30 @@ markings := ruler_markings(interval,min,max);
 
 allotment_window_top := use_allotment("window-top/ruler/background/content");
 allotment_overlay_top := use_allotment("window-top/ruler/background/overlay");
+allotment_underlay_top := use_allotment("window-top/ruler/background/underlay");
 allotment_top := use_allotment("window-top/ruler/main/content");
 
 allotment_window_bottom := use_allotment("window-bottom/ruler/background/content");
 allotment_overlay_bottom := use_allotment("window-bottom/ruler/background/overlay");
+allotment_underlay_bottom := use_allotment("window-bottom/ruler/background/underlay");
 allotment_bottom := use_allotment("window-bottom/ruler/main/content");
 
 style("**/ruler/",["type","priority"][],["overlay","-1000"][]);
 style("**/ruler/background/",["type","depth"][],["overlay","55"][]);
-style("**/ruler/main/",["system"][],["tracking-special"][]);
+style("**/ruler/main/",["system"][],["tracking-window"][]);
 style("**/ruler/main/content",["depth"][],["55"][]);
+style("**/ruler/background/underlay",["depth"][],["53"][]);
 style("**/ruler/background/overlay",["depth"][],["58"][]);
 
 style("window-top/",["system","priority","type"][],["window","-1000","overlay"][]);
 style("window-bottom/",["system","direction","priority","type"][],["window","reverse","-1000","overlay"][]);
 
+background_patina := patina_filled(simple_colour(direct_colour(255,255,255,255)));
 marker_patina := patina_hollow(simple_colour(direct_colour(120,120,120,255)),1);
+
+/* background */
+rectangle(spacebase(0,0,0),spacebase(1,16,0),background_patina,allotment_underlay_top);
+rectangle(spacebase(0,0,0),spacebase(1,16,0),background_patina,allotment_underlay_bottom);
 
 /* top and bottom separators */
 rectangle(spacebase(0,16,0),spacebase(1,16,0),marker_patina,allotment_window_top);
