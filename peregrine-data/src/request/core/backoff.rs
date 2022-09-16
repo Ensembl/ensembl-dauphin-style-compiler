@@ -1,16 +1,16 @@
 use commander::cdr_timer;
 use crate::{core::channel::{Channel, PacketPriority}, util::message::DataMessage};
 
-use super::{manager::RequestManager, request::BackendRequest, response::BackendResponse};
+use super::{manager::NetworkRequestManager, request::BackendRequest, response::BackendResponse};
 
 pub struct Backoff { 
-    manager: RequestManager,
+    manager: NetworkRequestManager,
     channel: Channel,
     priority: PacketPriority
 }
 
 impl Backoff {
-    pub fn new(manager: &RequestManager, channel: &Channel, priority: &PacketPriority) -> Backoff {
+    pub fn new(manager: &NetworkRequestManager, channel: &Channel, priority: &PacketPriority) -> Backoff {
         Backoff {
             manager: manager.clone(),
             channel: channel.clone(),

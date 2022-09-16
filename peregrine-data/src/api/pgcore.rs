@@ -2,7 +2,7 @@ use crate::core::channel::Channel;
 use crate::core::version::VersionMetadata;
 use crate::metric::metricreporter::MetricCollector;
 use crate::core::{ Viewport };
-use crate::request::core::manager::RequestManager;
+use crate::request::core::manager::NetworkRequestManager;
 use crate::request::messages::metricreq::MetricReport;
 use crate::api::PeregrineIntegration;
 use crate::train::main::railway::Railway;
@@ -46,7 +46,7 @@ pub struct PeregrineCoreBase {
     pub dauphin: PgDauphin,
     pub commander: PgCommander,
     pub all_backends: AllBackends,
-    pub manager: RequestManager,
+    pub manager: NetworkRequestManager,
     pub booted: CountingPromise,
     pub queue: PeregrineApiQueue,
     pub identity: Arc<Mutex<u64>>,
@@ -79,7 +79,7 @@ impl PeregrineCore {
         let dauphin_queue = PgDauphinQueue::new(&shutdown);
         let dauphin = PgDauphin::new(&dauphin_queue).map_err(|e| DataMessage::DauphinIntegrationError(format!("could not create: {}",e)))?;
         let version = VersionMetadata::new();
-        let manager = RequestManager::new(lock!(integration).channel(),&commander,&shutdown,&messages,&version);
+        let manager = NetworkRequestManager::new(lock!(integration).channel(),&commander,&shutdown,&messages,&version);
         let all_backends = AllBackends::new(&manager,&metrics,&messages);
         let booted = CountingPromise::new();
         let base = PeregrineCoreBase {

@@ -157,11 +157,11 @@ impl RequestManagerData {
 }
 
 #[derive(Clone)]
-pub struct RequestManager(Arc<Mutex<RequestManagerData>>);
+pub struct NetworkRequestManager(Arc<Mutex<RequestManagerData>>);
 
-impl RequestManager {
-    pub fn new(integration: Box<dyn ChannelIntegration>, commander: &PgCommander, shutdown: &OneShot, messages: &MessageSender, version: &VersionMetadata) -> RequestManager {
-        RequestManager(Arc::new(Mutex::new(RequestManagerData::new(integration,commander,shutdown,messages,version))))
+impl NetworkRequestManager {
+    pub fn new(integration: Box<dyn ChannelIntegration>, commander: &PgCommander, shutdown: &OneShot, messages: &MessageSender, version: &VersionMetadata) -> NetworkRequestManager {
+        NetworkRequestManager(Arc::new(Mutex::new(RequestManagerData::new(integration,commander,shutdown,messages,version))))
     }
 
     pub fn set_supported_versions(&self, support: Option<&[u32]>, version: u32) {

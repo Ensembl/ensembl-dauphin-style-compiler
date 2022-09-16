@@ -1,11 +1,11 @@
 use std::sync::{Arc, Mutex};
 use peregrine_toolkit::error;
 
-use crate::{AgentStore, DataMessage, PeregrineApiQueue, PeregrineCoreBase, PeregrineIntegration, PgCommanderTaskSpec, PgDauphin, add_task, core::{channel::Channel, version::VersionMetadata}, request::{core::manager::RequestManager, messages::bootstrapres::BootRes}, shapeload::programloader::ProgramLoader};
+use crate::{AgentStore, DataMessage, PeregrineApiQueue, PeregrineCoreBase, PeregrineIntegration, PgCommanderTaskSpec, PgDauphin, add_task, core::{channel::Channel, version::VersionMetadata}, request::{core::manager::NetworkRequestManager, messages::bootstrapres::BootRes}, shapeload::programloader::ProgramLoader};
 
 use super::PgDauphinTaskSpec;
 
-async fn finish_bootstrap(response: &BootRes, manager: &RequestManager, dauphin: &PgDauphin, queue: &PeregrineApiQueue, loader: &ProgramLoader, integration: &Arc<Mutex<Box<dyn PeregrineIntegration>>>, version: &VersionMetadata) -> Result<(),DataMessage> {
+async fn finish_bootstrap(response: &BootRes, manager: &NetworkRequestManager, dauphin: &PgDauphin, queue: &PeregrineApiQueue, loader: &ProgramLoader, integration: &Arc<Mutex<Box<dyn PeregrineIntegration>>>, version: &VersionMetadata) -> Result<(),DataMessage> {
     manager.set_supported_versions(response.supports(),version.backend_version());
     manager.set_lo_divert(response.channel_hi(),response.channel_lo());
     let r = dauphin.run_program(loader,PgDauphinTaskSpec {

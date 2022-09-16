@@ -744,7 +744,6 @@ dependencies = [
  "hashbrown 0.11.2",
  "identitynumber",
  "inflate",
- "js-sys",
  "keyed",
  "lazy_static",
  "lru",
@@ -758,7 +757,6 @@ dependencies = [
  "serde_cbor",
  "serde_derive",
  "serde_json",
- "web-sys",
 ]
 
 [[package]]

@@ -11,7 +11,7 @@ pub mod eachorevery {
 
         #[cfg(debug_assertions)]
         mod eoedebug;
-
+        
         pub use expand::{ struct_select };
         pub use eoestruct::{ StructVarGroup, StructConst, StructError, struct_error_to_string };
         pub use eoejson::{ struct_to_json, struct_from_json };

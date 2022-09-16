@@ -6,7 +6,7 @@ use crate::metric::datastreammetric::DatastreamMetricValue;
 use crate::metric::datastreammetric::DatastreamMetricKey;
 use crate::metric::datastreammetric::DatastreamMetricBuilder;
 use crate::metric::datastreammetric::DatastreamMetricData;
-use crate::request::core::manager::RequestManager;
+use crate::request::core::manager::NetworkRequestManager;
 use crate::request::core::request::RequestVariant;
 use crate::request::core::request::BackendRequest;
 use crate::request::messages::metricreq::MetricReport;
@@ -49,7 +49,7 @@ struct MetricCollectorData {
     datastream: DatastreamMetricBuilder,
     program_run: ProgramRunMetricBuilder,
     general: GeneralMetricBuilder,
-    manager_and_channel: Option<(RequestManager,Channel)>,
+    manager_and_channel: Option<(NetworkRequestManager,Channel)>,
     identity: u64
 }
 
@@ -64,7 +64,7 @@ impl MetricCollectorData {
         }
     }
 
-    pub fn bootstrap(&mut self, channel: &Channel, identity: u64, manager: &RequestManager) {
+    pub fn bootstrap(&mut self, channel: &Channel, identity: u64, manager: &NetworkRequestManager) {
         self.identity = identity;
         self.manager_and_channel = Some((manager.clone(),channel.clone()));
     }
@@ -78,7 +78,7 @@ impl MetricCollectorData {
         out
     }
 
-    fn manager_and_channel(&self) -> Option<(RequestManager,Channel)> { self.manager_and_channel.clone() }
+    fn manager_and_channel(&self) -> Option<(NetworkRequestManager,Channel)> { self.manager_and_channel.clone() }
 }
 
 #[derive(Clone)]
@@ -125,7 +125,7 @@ impl MetricCollector {
         out
     }
 
-    pub fn bootstrap(&mut self, channel: &Channel, identity: u64, manager: &RequestManager) {
+    pub fn bootstrap(&mut self, channel: &Channel, identity: u64, manager: &NetworkRequestManager) {
        lock!(self.data).bootstrap(channel,identity,manager);
     }
 

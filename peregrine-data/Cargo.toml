@@ -52,14 +52,6 @@ path="../peregrine-toolkit"
 version="*"
 path="../peregrine-toolkit-async"
 
-# XXX
-[dependencies.web-sys]
-version="*"
-features=["console"]
-
-[dependencies.js-sys]
-version="*"
-
 [dependencies.identitynumber]
 version="*"
 path="../identitynumber"
