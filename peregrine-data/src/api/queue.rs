@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use crate::core::channel::Channel;
 use crate::core::pixelsize::PixelSize;
 use crate::core::{ StickId, Viewport };
-use crate::request::core::request::{BackendRequest, RequestVariant};
+use crate::request::core::request::{BackendRequest};
 use crate::request::messages::metricreq::MetricReport;
 use crate::run::{add_task};
 use crate::run::bootstrap::bootstrap;
@@ -144,7 +144,7 @@ impl ApiQueueCampaign {
                 self.viewport = self.viewport.set_track_config_list(&data.switches.get_track_config_list());
             },
             ApiMessage::ReportMetric(channel,metric) => {
-                data.base.manager.execute_and_forget(&channel,BackendRequest::new(RequestVariant::Metric(metric)));
+                data.base.manager.execute_and_forget(&channel,BackendRequest::Metric(metric));
             },
             ApiMessage::GeneralMetric(name,tags,values) => {
                 data.base.metrics.add_general(&name,&tags,&values);

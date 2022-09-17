@@ -60,7 +60,7 @@ impl RequestPacket {
     pub fn encode(&self) -> CborValue {
         let mut map = BTreeMap::new();
         map.insert(CborValue::Text("channel".to_string()), self.channel.encode());
-        let requests = self.requests.iter().map(|r| r.encode()).collect::<Vec<_>>();
+        let requests = self.requests.iter().map(|r| r.encode().clone()).collect::<Vec<_>>();  // XXX to take, ie destroy
         map.insert(CborValue::Text("requests".to_string()),CborValue::Array(requests));
         map.insert(CborValue::Text("version".to_string()),self.metadata.encode());
         CborValue::Map(map)

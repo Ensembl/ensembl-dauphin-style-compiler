@@ -1,4 +1,4 @@
-use crate::request::core::request::{RequestVariant};
+use crate::request::core::request::{BackendRequest};
 use serde_cbor::Value as CborValue;
 
 pub struct JumpReq {
@@ -6,8 +6,8 @@ pub struct JumpReq {
 }
 
 impl JumpReq {
-    pub(crate) fn new(location: &str) -> RequestVariant {
-        RequestVariant::Jump(JumpReq {
+    pub(crate) fn new(location: &str) -> BackendRequest {
+        BackendRequest::Jump(JumpReq {
             location: location.to_string()
         })
     }

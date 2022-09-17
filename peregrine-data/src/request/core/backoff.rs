@@ -18,12 +18,12 @@ impl Backoff {
         }
     }
 
-    pub async fn backoff<F,T>(&mut self, req: BackendRequest, cb: F) -> Result<T,DataMessage>
+    pub(crate) async fn backoff<F,T>(&mut self, req: &BackendRequest, cb: F) -> Result<T,DataMessage>
                                                     where F: Fn(BackendResponse) -> Result<T,String> {
         let channel = self.channel.clone();
         let mut last_error = None;
         for _ in 0..5 { // XXX configurable
-            let resp = self.manager.execute(channel.clone(),self.priority.clone(),req.clone()).await?;
+            let resp = self.manager.execute(channel.clone(),self.priority.clone(),req).await?;
             match cb(resp) {
                 Ok(r) => { return Ok(r); },
                 Err(e) => { last_error = Some(e); }

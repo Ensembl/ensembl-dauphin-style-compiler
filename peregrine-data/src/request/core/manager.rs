@@ -130,10 +130,10 @@ impl RequestManagerData {
         }
     }
 
-    fn execute(&mut self, channel: Channel, priority: PacketPriority, request: BackendRequest) -> Result<CommanderStream<BackendResponse>,DataMessage> {
+    fn execute(&mut self, channel: Channel, priority: PacketPriority, request: &BackendRequest) -> Result<CommanderStream<BackendResponse>,DataMessage> {
         let msg_id = self.next_id;
         self.next_id += 1;
-        let request = BackendRequestAttempt::new2(msg_id,request);
+        let request = BackendRequestAttempt::new(msg_id,request);
         let response_stream = CommanderStream::new();
         self.get_queue(&channel,&priority)?.queue_command(request,response_stream.clone());
         Ok(response_stream)
@@ -176,12 +176,12 @@ impl NetworkRequestManager {
         lock!(self.0).set_timeout(channel,priority,timeout)
     }
 
-    pub async fn execute(&mut self, channel: Channel, priority: PacketPriority, request: BackendRequest) -> Result<BackendResponse,DataMessage> {
+    pub(crate) async fn execute(&mut self, channel: Channel, priority: PacketPriority, request: &BackendRequest) -> Result<BackendResponse,DataMessage> {
         let m = lock!(self.0).execute(channel,priority,request)?;
         Ok(m.get().await)
     }
 
-    pub async fn submit<F,T>(&self, channel: &Channel, priority: &PacketPriority, request: BackendRequest, cb: F) 
+    pub(crate) async fn submit<F,T>(&self, channel: &Channel, priority: &PacketPriority, request: &BackendRequest, cb: F) 
                                                                     -> Result<T,DataMessage>
                                                                     where F: Fn(BackendResponse) -> Result<T,String> {
         let mut backoff = Backoff::new(self,channel,priority);
@@ -198,7 +198,7 @@ impl NetworkRequestManager {
             timeout: None,
             slot: None,
             task: Box::pin(async move { 
-                manager.execute(channel,PacketPriority::Batch,request).await.ok();
+                manager.execute(channel,PacketPriority::Batch,&request).await.ok();
                 Ok(())
             }),
             stats: false

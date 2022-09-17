@@ -7,7 +7,6 @@ use crate::metric::datastreammetric::DatastreamMetricKey;
 use crate::metric::datastreammetric::DatastreamMetricBuilder;
 use crate::metric::datastreammetric::DatastreamMetricData;
 use crate::request::core::manager::NetworkRequestManager;
-use crate::request::core::request::RequestVariant;
 use crate::request::core::request::BackendRequest;
 use crate::request::messages::metricreq::MetricReport;
 use commander::cdr_timer;
@@ -73,7 +72,7 @@ impl MetricCollectorData {
         let mut out = vec![];
         let report = ClientMetricReport::new(self.identity,&mut self.datastream,&mut self.program_run, &mut self.general);
         if !report.empty() {
-            out.push(BackendRequest::new(RequestVariant::Metric(MetricReport::Client(report))));
+            out.push(BackendRequest::Metric(MetricReport::Client(report)));
         }
         out
     }
@@ -93,7 +92,7 @@ impl MetricCollector {
             if let Some((manager,channel)) = &mut manager_and_channel {
                 let mut messages = self.data.lock().unwrap().send();
                 for message in messages.drain(..) {
-                    manager.execute(channel.clone(),PacketPriority::Batch,message).await.ok(); 
+                    manager.execute(channel.clone(),PacketPriority::Batch,&message).await.ok(); 
                 }
             }
             for _ in 0..60 {

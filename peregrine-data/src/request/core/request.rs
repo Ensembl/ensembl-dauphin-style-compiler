@@ -7,13 +7,79 @@ use crate::request::messages::jumpreq::JumpReq;
 use crate::request::messages::metricreq::MetricReport;
 use crate::request::messages::programreq::ProgramReq;
 use crate::request::messages::stickreq::StickReq;
-use std::sync::Arc;
 use std::rc::Rc;
 use super::response::BackendResponseAttempt;
 use super::response::BackendResponse;
 use serde_cbor::Value as CborValue;
 
-pub(crate) enum RequestVariant {
+pub struct DataRequestSerialization {
+    failure_string: String,
+    encoding: CborValue    
+}
+
+impl DataRequestSerialization {
+    fn make_type_index(request: &BackendRequest) -> u8 {
+        match request {
+            BackendRequest::Bootstrap(_) => 0,
+            BackendRequest::Program(_) => 1,
+            BackendRequest::Stick(_) => 2,
+            BackendRequest::Authority(_) => 3,
+            BackendRequest::Data(_) => 4,
+            BackendRequest::Jump(_) => 5,
+            BackendRequest::Metric(_) => 6,
+        }
+    }
+
+    fn make_to_failure(request: &BackendRequest) -> String {
+        match request {
+            BackendRequest::Bootstrap(_) => "bootstrap",
+            BackendRequest::Program(_) => "program",
+            BackendRequest::Stick(_) => "stick",
+            BackendRequest::Authority(_) => "authority",
+            BackendRequest::Data(_) => "data",
+            BackendRequest::Jump(_) => "jump",
+            BackendRequest::Metric(_) => "metric",
+        }.to_string()
+    }
+
+    fn make_encode(request: &BackendRequest, msgid: u64) -> CborValue {
+        CborValue::Array(vec![
+            CborValue::Integer(msgid as i128),
+            CborValue::Integer(Self::make_type_index(request) as i128),
+            Self::make_encode_data(request)
+        ])
+    }
+
+
+    fn make_encode_data(request: &BackendRequest) -> CborValue {
+        match request {
+            BackendRequest::Bootstrap(x) => x.encode(),
+            BackendRequest::Program(x) => x.encode(),
+            BackendRequest::Stick(x) => x.encode(),
+            BackendRequest::Authority(x) => x.encode(),
+            BackendRequest::Data(x) => x.encode(),
+            BackendRequest::Jump(x) => x.encode(),
+            BackendRequest::Metric(x) => x.encode(),
+        }
+    }
+
+    fn new(request: &BackendRequest, msgid: u64) -> DataRequestSerialization {
+        DataRequestSerialization {
+             failure_string: Self::make_to_failure(request),
+             encoding: Self::make_encode(request,msgid)
+        }
+    }
+
+    pub fn to_failure(&self) -> BackendResponse {
+        BackendResponse::FailureRes(FailureRes::new(&self.failure_string))
+    }
+
+    pub(crate) fn encode(&self) -> &CborValue {
+        &self.encoding
+    }
+}
+
+pub(crate) enum BackendRequest {
     Bootstrap(BootstrapReq),
     Program(ProgramReq),
     Stick(StickReq),
@@ -24,67 +90,16 @@ pub(crate) enum RequestVariant {
 }
 
 #[derive(Clone)]
-pub struct BackendRequest {
-    variant: Arc<RequestVariant>
-}
-
-impl BackendRequest {
-    pub(crate) fn new(variant: RequestVariant) -> BackendRequest {
-        BackendRequest {
-            variant: Arc::new(variant)
-        }
-    }
-
-    fn type_index(&self) -> u8 {
-        match self.variant.as_ref() {
-            RequestVariant::Bootstrap(_) => 0,
-            RequestVariant::Program(_) => 1,
-            RequestVariant::Stick(_) => 2,
-            RequestVariant::Authority(_) => 3,
-            RequestVariant::Data(_) => 4,
-            RequestVariant::Jump(_) => 5,
-            RequestVariant::Metric(_) => 6,
-        }
-    }
-
-    pub fn to_failure(&self) -> BackendResponse {
-        let out = match self.variant.as_ref() {
-            RequestVariant::Bootstrap(_) => "bootstrap",
-            RequestVariant::Program(_) => "program",
-            RequestVariant::Stick(_) => "stick",
-            RequestVariant::Authority(_) => "authority",
-            RequestVariant::Data(_) => "data",
-            RequestVariant::Jump(_) => "jump",
-            RequestVariant::Metric(_) => "metric",
-
-        };
-        BackendResponse::FailureRes(FailureRes::new(out))
-    }
-
-    pub(crate) fn encode(&self) -> CborValue {
-        match self.variant.as_ref() {
-            RequestVariant::Bootstrap(x) => x.encode(),
-            RequestVariant::Program(x) => x.encode(),
-            RequestVariant::Stick(x) => x.encode(),
-            RequestVariant::Authority(x) => x.encode(),
-            RequestVariant::Data(x) => x.encode(),
-            RequestVariant::Jump(x) => x.encode(),
-            RequestVariant::Metric(x) => x.encode(),
-        }
-    }
-}
-
-#[derive(Clone)]
 pub struct BackendRequestAttempt {
     msgid: u64,
-    data: Rc<BackendRequest>
+    data: Rc<DataRequestSerialization>
 }
 
 impl BackendRequestAttempt {
-    pub(crate) fn new2(msgid: u64, rt: BackendRequest) -> BackendRequestAttempt {
+    pub(crate) fn new(msgid: u64, data: &BackendRequest) -> BackendRequestAttempt {
         BackendRequestAttempt {
             msgid,
-            data: Rc::new(rt)
+            data: Rc::new(DataRequestSerialization::new(data,msgid))
         }
     }
 
@@ -94,11 +109,5 @@ impl BackendRequestAttempt {
         BackendResponseAttempt::new(self.msgid,self.data.to_failure())
     }
 
-    pub(crate) fn encode(&self) -> CborValue {
-        CborValue::Array(vec![
-            CborValue::Integer(self.msgid as i128),
-            CborValue::Integer(self.data.type_index() as i128),
-            self.data.encode()
-        ])
-    }
+    pub(crate) fn encode(&self) -> &CborValue { self.data.encode() }
 }
