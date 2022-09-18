@@ -10,6 +10,7 @@ use crate::request::messages::stickreq::StickReq;
 use std::rc::Rc;
 use super::response::BackendResponseAttempt;
 use super::response::BackendResponse;
+use commander::CommanderStream;
 use serde_cbor::Value as CborValue;
 
 pub struct DataRequestSerialization {
@@ -92,17 +93,20 @@ pub(crate) enum BackendRequest {
 #[derive(Clone)]
 pub struct BackendRequestAttempt {
     msgid: u64,
-    data: Rc<DataRequestSerialization>
+    data: Rc<DataRequestSerialization>,
+    response: CommanderStream<BackendResponse>
 }
 
 impl BackendRequestAttempt {
     pub(crate) fn new(msgid: u64, data: &BackendRequest) -> BackendRequestAttempt {
         BackendRequestAttempt {
             msgid,
-            data: Rc::new(DataRequestSerialization::new(data,msgid))
+            data: Rc::new(DataRequestSerialization::new(data,msgid)),
+            response: CommanderStream::new()
         }
     }
 
+    pub(crate) fn response(&self) -> &CommanderStream<BackendResponse> { &self.response }
     pub(crate) fn to_failure(&self) -> BackendResponse { self.data.to_failure() }
     pub(crate) fn message_id(&self) -> u64 { self.msgid }
     pub(crate) fn fail(&self) -> BackendResponseAttempt {

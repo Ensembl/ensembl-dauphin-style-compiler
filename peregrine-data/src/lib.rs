@@ -144,6 +144,7 @@ mod request {
         pub(crate) mod queue;
         pub(crate) mod request;
         pub(crate) mod response;
+        mod attemptmatch;
     }
 
     pub(crate) mod messages {

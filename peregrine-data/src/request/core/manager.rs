@@ -7,10 +7,11 @@ use std::future::Future;
 use std::pin::Pin;
 use std::rc::Rc;
 use std::sync::{ Arc, Mutex };
+use super::attemptmatch::AttemptMatch;
 use super::backoff::Backoff;
 use super::queue::RequestQueue;
-use super::request::{BackendRequestAttempt, BackendRequest };
-use super::response::BackendResponse;
+use super::request::BackendRequest;
+use super::response::{BackendResponse};
 use crate::core::channel::{Channel, ChannelIntegration, PacketPriority};
 use crate::core::version::VersionMetadata;
 use crate::{PgCommanderTaskSpec, ResponsePacket, add_task};
@@ -51,7 +52,7 @@ pub struct RequestManagerData {
     receiver: PayloadReceiverCollection,
     commander: PgCommander,
     shutdown: OneShot,
-    next_id: u64,
+    matcher: AttemptMatch,
     queues: HashMap<(Channel,PacketPriority),QueueValue>,
     real_time_lock: Blocker,
     messages: MessageSender
@@ -64,7 +65,7 @@ impl RequestManagerData {
             receiver: PayloadReceiverCollection(Arc::new(Mutex::new(vec![]))),
             commander: commander.clone(),
             shutdown: shutdown.clone(),
-            next_id: 0,
+            matcher: AttemptMatch::new(),
             queues: HashMap::new(),
             real_time_lock: Blocker::new(),
             messages: messages.clone(),
@@ -103,7 +104,7 @@ impl RequestManagerData {
             if missing {
                 let commander = self.commander.clone();
                 let integration = self.integration.clone(); // Rc why? XXX
-                let mut queue = RequestQueue::new(&commander,&self.receiver,&integration,&self.version,&channel,&priority,&self.messages,self.get_pace(&priority),self.get_priority(&priority))?;
+                let mut queue = RequestQueue::new(&commander,&self.matcher,&self.receiver,&integration,&self.version,&channel,&priority,&self.messages,self.get_pace(&priority),self.get_priority(&priority))?;
                 match priority {
                     PacketPriority::RealTime => {
                         queue.set_realtime_block(&self.real_time_lock);
@@ -131,12 +132,9 @@ impl RequestManagerData {
     }
 
     fn execute(&mut self, channel: Channel, priority: PacketPriority, request: &BackendRequest) -> Result<CommanderStream<BackendResponse>,DataMessage> {
-        let msg_id = self.next_id;
-        self.next_id += 1;
-        let request = BackendRequestAttempt::new(msg_id,request);
-        let response_stream = CommanderStream::new();
-        self.get_queue(&channel,&priority)?.queue_command(request,response_stream.clone());
-        Ok(response_stream)
+        let (request,stream) = self.matcher.make_attempt(request);
+        self.get_queue(&channel,&priority)?.queue_command(request);
+        Ok(stream.clone())
     }
 
     fn set_timeout(&mut self, channel: &Channel, priority: &PacketPriority, timeout: f64) -> anyhow::Result<()> {
