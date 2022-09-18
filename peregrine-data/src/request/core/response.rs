@@ -1,4 +1,4 @@
-use peregrine_toolkit::{cbor::{cbor_as_number, cbor_into_vec, check_array_len, cbor_as_vec}, decompose_vec, log};
+use peregrine_toolkit::{cbor::{cbor_as_number, cbor_into_vec, check_array_len }, decompose_vec};
 use crate::request::messages::{authorityres::AuthorityRes, bootstrapres::BootRes, datares::DataRes, failureres::FailureRes, jumpres::JumpRes, programres::ProgramRes, stickres::StickRes};
 use serde_cbor::Value as CborValue;
 

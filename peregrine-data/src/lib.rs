@@ -144,7 +144,10 @@ mod request {
         pub(crate) mod queue;
         pub(crate) mod request;
         pub(crate) mod response;
+        mod pendingattemptqueue;
         mod attemptmatch;
+        pub(crate) mod sidecars;
+        mod trafficcontrol;
     }
 
     pub(crate) mod messages {

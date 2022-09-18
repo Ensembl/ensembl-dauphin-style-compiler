@@ -3,8 +3,6 @@ use commander::{ CommanderStream };
 use peregrine_toolkit::plumbing::oneshot::OneShot;
 use peregrine_toolkit_async::sync::blocker::Blocker;
 use std::collections::HashMap;
-use std::future::Future;
-use std::pin::Pin;
 use std::rc::Rc;
 use std::sync::{ Arc, Mutex };
 use super::attemptmatch::AttemptMatch;
@@ -12,34 +10,13 @@ use super::backoff::Backoff;
 use super::queue::RequestQueue;
 use super::request::BackendRequest;
 use super::response::{BackendResponse};
+use super::sidecars::RequestSidecars;
 use crate::core::channel::{Channel, ChannelIntegration, PacketPriority};
 use crate::core::version::VersionMetadata;
-use crate::{PgCommanderTaskSpec, ResponsePacket, add_task};
+use crate::{PgCommanderTaskSpec, add_task };
 use crate::api::MessageSender;
 use crate::run::{ PgCommander };
 use crate::util::message::DataMessage;
-
-pub trait PayloadReceiver {
-    fn receive(&self, channel: &Channel, response: ResponsePacket, itn: &Rc<Box<dyn ChannelIntegration>>, messages: &MessageSender) -> Pin<Box<dyn Future<Output=ResponsePacket>>>;
-}
-
-#[derive(Clone)]
-pub struct PayloadReceiverCollection(Arc<Mutex<Vec<Rc<Box<dyn PayloadReceiver>>>>>);
-
-impl PayloadReceiver for PayloadReceiverCollection {
-    fn receive(&self, channel: &Channel, mut response: ResponsePacket, itn: &Rc<Box<dyn ChannelIntegration>>, messages: &MessageSender) ->  Pin<Box<dyn Future<Output=ResponsePacket>>> {
-        let all = lock!(self.0).clone();
-        let itn = itn.clone();
-        let channel = channel.clone();
-        let messages = messages.clone();
-        Box::pin(async move {
-            for receiver in all.iter() {
-                response = receiver.receive(&channel,response,&itn,&messages).await;
-            }
-            response
-        })
-    }
-}
 
 enum QueueValue {
     Queue(RequestQueue),
@@ -49,7 +26,7 @@ enum QueueValue {
 pub struct RequestManagerData {
     integration: Rc<Box<dyn ChannelIntegration>>,
     version: VersionMetadata,
-    receiver: PayloadReceiverCollection,
+    sidecars: RequestSidecars,
     commander: PgCommander,
     shutdown: OneShot,
     matcher: AttemptMatch,
@@ -59,10 +36,10 @@ pub struct RequestManagerData {
 }
 
 impl RequestManagerData {
-    pub fn new(integration: Box<dyn ChannelIntegration>, commander: &PgCommander, shutdown: &OneShot, messages: &MessageSender, version: &VersionMetadata) -> RequestManagerData {
+    pub(crate) fn new(integration: Box<dyn ChannelIntegration>, sidecars: &RequestSidecars, commander: &PgCommander, shutdown: &OneShot, messages: &MessageSender, version: &VersionMetadata) -> RequestManagerData {
         RequestManagerData {
             integration: Rc::new(integration),
-            receiver: PayloadReceiverCollection(Arc::new(Mutex::new(vec![]))),
+            sidecars: sidecars.clone(),
             commander: commander.clone(),
             shutdown: shutdown.clone(),
             matcher: AttemptMatch::new(),
@@ -77,9 +54,9 @@ impl RequestManagerData {
         self.messages.send(message);
     }
 
-    pub fn add_receiver(&mut self, receiver: Box<dyn PayloadReceiver>) {
-        lock!(self.receiver.0).push(Rc::new(receiver));
-    }
+    // pub fn add_receiver(&mut self, receiver: Box<dyn PayloadReceiver>) {
+    //     lock!(self.receiver.0).push(Rc::new(receiver));
+    // }
 
     fn get_pace(&self, priority: &PacketPriority) -> &[f64] {
         match priority {
@@ -95,6 +72,17 @@ impl RequestManagerData {
         }
     }
 
+    fn create_queue(&self, sidecars: &RequestSidecars, channel: &Channel, priority: &PacketPriority) -> Result<RequestQueue,DataMessage> {
+        let commander = self.commander.clone();
+        let integration = self.integration.clone(); // Rc why? XXX
+        let queue = RequestQueue::new(&commander,&self.real_time_lock,&self.matcher,sidecars,&integration,&self.version,&channel,&priority,&self.messages,self.get_pace(&priority),self.get_priority(&priority))?;
+        let queue2 = queue.clone();
+        self.shutdown.add(move || {
+            queue2.input_queue().close();
+        });
+        Ok(queue)
+    }
+
     fn get_queue(&mut self, channel: &Channel, priority: &PacketPriority) -> Result<RequestQueue,DataMessage> {
         let mut channel = channel.clone();
         let mut priority = priority.clone();
@@ -102,22 +90,7 @@ impl RequestManagerData {
             let key = (channel.clone(),priority.clone());
             let missing = self.queues.get(&key).is_none();
             if missing {
-                let commander = self.commander.clone();
-                let integration = self.integration.clone(); // Rc why? XXX
-                let mut queue = RequestQueue::new(&commander,&self.matcher,&self.receiver,&integration,&self.version,&channel,&priority,&self.messages,self.get_pace(&priority),self.get_priority(&priority))?;
-                match priority {
-                    PacketPriority::RealTime => {
-                        queue.set_realtime_block(&self.real_time_lock);
-                    },
-                    _ => {
-                        queue.set_realtime_check(&self.real_time_lock);
-                    }
-                }
-                let mut queue2 = queue.clone();
-                self.shutdown.add(move || {
-                    queue2.shutdown();
-                });
-                self.queues.insert(key.clone(),QueueValue::Queue(queue));
+                self.queues.insert(key.clone(),QueueValue::Queue(self.create_queue(&self.sidecars,&channel,&priority)?));
             }
             match self.queues.get_mut(&key).unwrap() {
                 QueueValue::Queue(q) => { 
@@ -133,12 +106,11 @@ impl RequestManagerData {
 
     fn execute(&mut self, channel: Channel, priority: PacketPriority, request: &BackendRequest) -> Result<CommanderStream<BackendResponse>,DataMessage> {
         let (request,stream) = self.matcher.make_attempt(request);
-        self.get_queue(&channel,&priority)?.queue_command(request);
+        self.get_queue(&channel,&priority)?.input_queue().add(request);
         Ok(stream.clone())
     }
 
-    fn set_timeout(&mut self, channel: &Channel, priority: &PacketPriority, timeout: f64) -> anyhow::Result<()> {
-        self.get_queue(channel,priority)?.set_timeout(timeout);
+    fn set_timeout(&mut self, channel: &Channel, timeout: f64) -> anyhow::Result<()> {
         self.integration.set_timeout(channel,timeout);
         Ok(())
     }
@@ -158,8 +130,8 @@ impl RequestManagerData {
 pub struct NetworkRequestManager(Arc<Mutex<RequestManagerData>>);
 
 impl NetworkRequestManager {
-    pub fn new(integration: Box<dyn ChannelIntegration>, commander: &PgCommander, shutdown: &OneShot, messages: &MessageSender, version: &VersionMetadata) -> NetworkRequestManager {
-        NetworkRequestManager(Arc::new(Mutex::new(RequestManagerData::new(integration,commander,shutdown,messages,version))))
+    pub(crate) fn new(integration: Box<dyn ChannelIntegration>, sidecars: &RequestSidecars, commander: &PgCommander, shutdown: &OneShot, messages: &MessageSender, version: &VersionMetadata) -> NetworkRequestManager {
+        NetworkRequestManager(Arc::new(Mutex::new(RequestManagerData::new(integration,sidecars,commander,shutdown,messages,version))))
     }
 
     pub fn set_supported_versions(&self, support: Option<&[u32]>, version: u32) {
@@ -168,10 +140,6 @@ impl NetworkRequestManager {
 
     pub fn set_lo_divert(&self, channel_hi: &Channel, channel_lo: &Channel) {
         lock!(self.0).set_lo_divert(channel_hi,channel_lo);
-    }
-
-    pub fn set_timeout(&self, channel: &Channel, priority: &PacketPriority, timeout: f64) -> anyhow::Result<()> {
-        lock!(self.0).set_timeout(channel,priority,timeout)
     }
 
     pub(crate) async fn execute(&mut self, channel: Channel, priority: PacketPriority, request: &BackendRequest) -> Result<BackendResponse,DataMessage> {
@@ -203,9 +171,9 @@ impl NetworkRequestManager {
         });
     }
 
-    pub fn add_receiver(&mut self, receiver: Box<dyn PayloadReceiver>) {
-        lock!(self.0).add_receiver(receiver);
-    }
+    // pub fn add_receiver(&mut self, receiver: Box<dyn PayloadReceiver>) {
+    //     lock!(self.0).add_receiver(receiver);
+    // }
 
     pub fn message(&self, message: DataMessage) {
         lock!(self.0).message(message);

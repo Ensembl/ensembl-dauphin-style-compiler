@@ -38,7 +38,7 @@ impl AttemptMatch {
         (request,stream)
     }
 
-    pub(super) fn retrieve_attempt(&self, response: &BackendResponseAttempt) -> Option<CommanderStream<BackendResponse>> {
+    pub(super) fn retrieve_attempt_by_response(&self, response: &BackendResponseAttempt) -> Option<CommanderStream<BackendResponse>> {
         let mut pending = lock!(self.pending);
         pending.remove(&response.message_id())
     }

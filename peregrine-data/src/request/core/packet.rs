@@ -15,15 +15,34 @@ const TOO_LARGE : usize = 100*1024;
 #[cfg(debug_big_requests)]
 use peregrine_toolkit::{warn , cbor::cbor_as_vec };
 
-pub struct RequestPacketBuilder {
+#[derive(Clone)]
+pub struct RequestPacketFactory {
     channel: Channel,
+    metadata: VersionMetadata,
+}
+
+impl RequestPacketFactory {
+    pub fn new(channel: &Channel, metadata: &VersionMetadata) -> RequestPacketFactory {
+        RequestPacketFactory {
+            channel: channel.clone(),
+            metadata: metadata.clone()
+        }
+    }
+
+    pub fn create(&self) -> RequestPacketBuilder {
+        RequestPacketBuilder::new(&self)
+    }
+}
+
+pub struct RequestPacketBuilder {
+    factory: RequestPacketFactory,
     requests: Vec<BackendRequestAttempt>
 }
 
 impl RequestPacketBuilder {
-    pub fn new(channel: &Channel) -> RequestPacketBuilder {
+    fn new(factory: &RequestPacketFactory) -> RequestPacketBuilder {
         RequestPacketBuilder {
-            channel: channel.clone(),
+            factory: factory.clone(),
             requests: vec![]
         }
     }
@@ -35,17 +54,15 @@ impl RequestPacketBuilder {
 
 #[derive(Clone)]
 pub struct RequestPacket {
-    channel: Channel,
+    factory: RequestPacketFactory,
     requests: Arc<Vec<BackendRequestAttempt>>,
-    metadata: VersionMetadata
 }
 
 impl RequestPacket {
-    pub fn new(builder: RequestPacketBuilder, metadata: &VersionMetadata) -> RequestPacket {
+    pub fn new(builder: RequestPacketBuilder) -> RequestPacket {
         RequestPacket {
-            channel: builder.channel.clone(),
+            factory: builder.factory.clone(),
             requests: Arc::new(builder.requests.clone()),
-            metadata: metadata.clone()
         }
     }
 
@@ -59,10 +76,10 @@ impl RequestPacket {
 
     pub fn encode(&self) -> CborValue {
         let mut map = BTreeMap::new();
-        map.insert(CborValue::Text("channel".to_string()), self.channel.encode());
+        map.insert(CborValue::Text("channel".to_string()), self.factory.channel.encode());
         let requests = self.requests.iter().map(|r| r.encode().clone()).collect::<Vec<_>>();  // XXX to take, ie destroy
         map.insert(CborValue::Text("requests".to_string()),CborValue::Array(requests));
-        map.insert(CborValue::Text("version".to_string()),self.metadata.encode());
+        map.insert(CborValue::Text("version".to_string()),self.factory.metadata.encode());
         CborValue::Map(map)
     }
 }

@@ -55,7 +55,6 @@ use super::pgcore::PeregrineCore;
  */
 
  pub(crate) enum ApiMessage {
-    Ready,
     TransitionComplete,
     SetPosition(f64),
     SetBpPerScreen(f64),
@@ -91,9 +90,6 @@ impl ApiQueueCampaign {
 
     async fn run_message(&mut self, data: &mut PeregrineCore, message: ApiMessage) {
         match message {
-            ApiMessage::Ready => {
-                data.dauphin_ready();
-            },
             ApiMessage::LoadStick(extent,output) => {
                 load_stick(&mut data.base,&data.agent_store.stick_store,&extent,&output);
             },

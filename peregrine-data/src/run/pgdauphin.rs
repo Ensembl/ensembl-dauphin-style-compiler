@@ -4,15 +4,12 @@ use commander::{ RunSlot };
 use serde_cbor::Value as CborValue;
 use std::any::Any;
 use std::collections::HashMap;
-use std::future::Future;
-use std::pin::Pin;
-use std::rc::Rc;
 use std::sync::{ Arc, Mutex };
 use crate::ResponsePacket;
 use crate::api::MessageSender;
-use crate::core::channel::{Channel, ChannelIntegration};
+use crate::core::channel::Channel;
+use crate::core::programbundle::SuppliedBundle;
 use crate::shapeload::programloader::ProgramLoader;
-use crate::request::core::manager::{ PayloadReceiver };
 use crate::util::message::DataMessage;
 use peregrine_dauphin_queue::{ PgDauphinQueue, PgDauphinLoadTaskSpec, PgDauphinRunTaskSpec };
 use crate::shapeload::programname::ProgramName;
@@ -108,28 +105,24 @@ impl PgDauphin {
     }
 }
 
-impl PayloadReceiver for PgDauphin {
-    fn receive(&self, channel: &Channel, response: ResponsePacket, _channel_itn: &Rc<Box<dyn ChannelIntegration>>, messages: &MessageSender) -> Pin<Box<dyn Future<Output=ResponsePacket>>> {
-        let pgd = self.clone();
-        let channel = channel.clone();
-        let messages = messages.clone();
-        Box::pin(async move {
-            for bundle in response.programs().clone().iter() {
-                match pgd.add_binary(&channel,bundle.bundle_name(),bundle.program()).await {
-                    Ok(_) => {
-                        for (in_channel_name,in_bundle_name) in bundle.name_map() {
-                            pgd.register(&ProgramName(channel.clone(),in_channel_name.to_string()),bundle.bundle_name(),in_bundle_name);
-                        }
-                    },
-                    Err(e) => {
-                        messages.send(DataMessage::BadDauphinProgram(format!("{:#}",e)));
-                        for (in_channel_name,_) in bundle.name_map() {
-                            pgd.mark_missing(&ProgramName(channel.clone(),in_channel_name.to_string()));
-                        }
-                    }
-                }
+async fn add_bundle(pgd: &PgDauphin, channel: &Channel, bundle: &SuppliedBundle, messages: &MessageSender) {
+    match pgd.add_binary(&channel,bundle.bundle_name(),bundle.program()).await {
+        Ok(_) => {
+            for (in_channel_name,in_bundle_name) in bundle.name_map() {
+                pgd.register(&ProgramName(channel.clone(),in_channel_name.to_string()),bundle.bundle_name(),in_bundle_name);
             }
-            response
-        })
+        },
+        Err(e) => {
+            messages.send(DataMessage::BadDauphinProgram(format!("{:#}",e)));
+            for (in_channel_name,_) in bundle.name_map() {
+                pgd.mark_missing(&ProgramName(channel.clone(),in_channel_name.to_string()));
+            }
+        }
+    }
+}
+
+pub(crate) async fn add_programs_from_response(pgd: &PgDauphin, channel: &Channel, response: &ResponsePacket, messages: &MessageSender) {
+    for bundle in response.programs().clone().iter() {
+        add_bundle(&pgd,&channel, bundle, &messages).await;
     }
 }

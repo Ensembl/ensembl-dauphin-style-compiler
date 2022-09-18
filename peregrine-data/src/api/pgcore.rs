@@ -2,7 +2,8 @@ use crate::core::channel::Channel;
 use crate::core::version::VersionMetadata;
 use crate::metric::metricreporter::MetricCollector;
 use crate::core::{ Viewport };
-use crate::request::core::manager::NetworkRequestManager;
+use crate::request::core::manager::{NetworkRequestManager};
+use crate::request::core::sidecars::RequestSidecars;
 use crate::request::messages::metricreq::MetricReport;
 use crate::api::PeregrineIntegration;
 use crate::train::main::railway::Railway;
@@ -79,7 +80,8 @@ impl PeregrineCore {
         let dauphin_queue = PgDauphinQueue::new(&shutdown);
         let dauphin = PgDauphin::new(&dauphin_queue).map_err(|e| DataMessage::DauphinIntegrationError(format!("could not create: {}",e)))?;
         let version = VersionMetadata::new();
-        let manager = NetworkRequestManager::new(lock!(integration).channel(),&commander,&shutdown,&messages,&version);
+        let sidecars = RequestSidecars::new(&dauphin);
+        let manager = NetworkRequestManager::new(lock!(integration).channel(),&sidecars,&commander,&shutdown,&messages,&version);
         let all_backends = AllBackends::new(&manager,&metrics,&messages);
         let booted = CountingPromise::new();
         let base = PeregrineCoreBase {
@@ -114,13 +116,8 @@ impl PeregrineCore {
 
     pub(crate) fn shutdown(&mut self) -> &OneShot { &self.base.shutdown }
 
-    pub fn dauphin_ready(&mut self) {
-        self.base.manager.add_receiver(Box::new(self.base.dauphin.clone()));
-    }
-
     pub fn application_ready(&mut self) {
         self.base.queue.clone().run(self);
-        self.base.queue.push(ApiMessage::Ready);
     }
 
     pub fn bootstrap(&mut self, identity: u64, channel: Channel) {
