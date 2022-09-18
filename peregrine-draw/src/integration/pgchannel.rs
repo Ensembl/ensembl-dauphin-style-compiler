@@ -21,7 +21,7 @@ impl PgChannel {
     }
 }
 
-fn add_priority(a: &Url, prio: PacketPriority, cache_buster: &str) -> Result<Url,Message> {
+fn add_priority(a: &Url, prio: &PacketPriority, cache_buster: &str) -> Result<Url,Message> {
     let z = a.add_path_segment(match prio {
         PacketPriority::RealTime => "hi",
         PacketPriority::Batch => "lo"
@@ -34,7 +34,7 @@ fn add_priority(a: &Url, prio: PacketPriority, cache_buster: &str) -> Result<Url
 async fn send(channel: Channel, prio: PacketPriority, data: CborValue, timeout: Option<f64>, cache_buster: &str) -> Result<CborValue,Message> {
     match channel.location().as_ref() {
         ChannelLocation::HttpChannel(url) => {
-            let mut ajax = PgAjax::new("POST",&add_priority(url,prio,cache_buster)?);
+            let mut ajax = PgAjax::new("POST",&add_priority(url,&prio,cache_buster)?);
             if let Some(timeout) = timeout {
                 ajax.set_timeout(timeout);
             }
@@ -75,9 +75,9 @@ impl ChannelIntegration for PgChannel {
         show_versions(supports,version);
     }
 
-    fn get_sender(&self,channel: Channel, prio: PacketPriority, packet: RequestPacket) -> Pin<Box<dyn Future<Output=Result<ResponsePacket,DataMessage>>>> {
+    fn get_sender(&self,channel: &Channel, prio: &PacketPriority, packet: RequestPacket) -> Pin<Box<dyn Future<Output=Result<ResponsePacket,DataMessage>>>> {
         let timeout = lock!(self.0).get(&channel).and_then(|x| x.clone());
-        Box::pin(send_wrap(channel,prio,packet,timeout,self.1.clone()))
+        Box::pin(send_wrap(channel.clone(),prio.clone(),packet,timeout,self.1.clone()))
     }
 
     fn set_timeout(&self, channel: &Channel, timeout: f64) {

@@ -107,8 +107,6 @@ impl BackendRequestAttempt {
     }
 
     pub(crate) fn response(&self) -> &CommanderStream<BackendResponse> { &self.response }
-    pub(crate) fn to_failure(&self) -> BackendResponse { self.data.to_failure() }
-    pub(crate) fn message_id(&self) -> u64 { self.msgid }
     pub(crate) fn fail(&self) -> BackendResponseAttempt {
         BackendResponseAttempt::new(self.msgid,self.data.to_failure())
     }

@@ -1,7 +1,11 @@
+use futures::Future;
 use peregrine_toolkit::cbor::{cbor_into_drained_map, cbor_into_vec};
 use std::collections::BTreeMap;
 use std::mem::replace;
+use std::pin::Pin;
+use std::rc::Rc;
 use std::sync::Arc;
+use crate::{PacketPriority, ChannelIntegration, DataMessage};
 use crate::core::channel::Channel;
 use crate::core::programbundle::SuppliedBundle;
 use crate::core::version::VersionMetadata;
@@ -18,13 +22,15 @@ use peregrine_toolkit::{warn , cbor::cbor_as_vec };
 #[derive(Clone)]
 pub struct RequestPacketFactory {
     channel: Channel,
+    priority: PacketPriority,
     metadata: VersionMetadata,
 }
 
 impl RequestPacketFactory {
-    pub fn new(channel: &Channel, metadata: &VersionMetadata) -> RequestPacketFactory {
+    pub fn new(channel: &Channel, priority: &PacketPriority, metadata: &VersionMetadata) -> RequestPacketFactory {
         RequestPacketFactory {
             channel: channel.clone(),
+            priority: priority.clone(),
             metadata: metadata.clone()
         }
     }
@@ -81,6 +87,11 @@ impl RequestPacket {
         map.insert(CborValue::Text("requests".to_string()),CborValue::Array(requests));
         map.insert(CborValue::Text("version".to_string()),self.factory.metadata.encode());
         CborValue::Map(map)
+    }
+
+    pub(crate) fn sender(&self, integration: &Rc<Box<dyn ChannelIntegration>>) -> Result<Pin<Box<dyn Future<Output=Result<ResponsePacket,DataMessage>>>>,DataMessage> {
+        let integration = integration.clone();
+        Ok(integration.get_sender(&self.factory.channel,&self.factory.priority,self.clone()))
     }
 }
 
