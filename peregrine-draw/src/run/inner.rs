@@ -250,7 +250,7 @@ impl PeregrineInnerAPI {
             let stage = self.stage.lock().unwrap();
             log!("x {:?} bp_per_screen {:?}",stage.x().position(),stage.x().bp_per_screen());
         } else if index == 8 {
-            self.sound.play("bell");
+            self.sound.play(None,"bell");
         }
     }
 }

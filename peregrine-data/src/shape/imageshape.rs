@@ -1,11 +1,12 @@
 use peregrine_toolkit::eachorevery::{EachOrEveryFilter, EachOrEvery};
 
-use crate::{DataMessage, ShapeDemerge, Shape, SpaceBase, allotment::{transformers::transformers::{Transformer, TransformerVariety}, style::{style::LeafStyle}}, CoordinateSystem, LeafRequest};
+use crate::{DataMessage, ShapeDemerge, Shape, SpaceBase, allotment::{transformers::transformers::{Transformer, TransformerVariety}, style::{style::LeafStyle}}, CoordinateSystem, LeafRequest, Channel};
 use std::{hash::Hash, sync::Arc};
 
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub struct ImageShape<A> {
     position: SpaceBase<f64,A>,
+    channel: Channel,
     names: EachOrEvery<String>
 }
 
@@ -13,41 +14,44 @@ impl<A> ImageShape<A> {
     pub fn map_new_allotment<F,B>(&self, cb: F) -> ImageShape<B> where F: FnMut(&A) -> B {
         ImageShape {
             position: self.position.map_allotments(cb),
+            channel: self.channel.clone(),
             names: self.names.clone()
         }
     }
 
     pub fn len(&self) -> usize { self.position.len() }
     pub fn position(&self) -> &SpaceBase<f64,A> { &self.position }
+    pub fn channel(&self) -> &Channel { &self.channel }
 
     pub fn iter_names(&self) -> impl Iterator<Item=&String> {
         self.names.iter(self.position.len()).unwrap()
     }
 
-    pub fn new_details(position: SpaceBase<f64,A>, names: EachOrEvery<String>) -> Result<ImageShape<A>,DataMessage> {
+    pub fn new_details(position: SpaceBase<f64,A>, channel: &Channel, names: EachOrEvery<String>) -> Result<ImageShape<A>,DataMessage> {
         if !names.compatible(position.len()) { return Err(DataMessage::LengthMismatch(format!("image patina"))); }
         Ok(ImageShape {
-            position, names
+            position, names, channel: channel.clone()
         })
     }
 
     pub(super) fn filter(&self, filter: &EachOrEveryFilter) -> ImageShape<A> {
         ImageShape {
             position: self.position.filter(filter),
-            names: self.names.filter(&filter)
+            names: self.names.filter(&filter),
+            channel: self.channel.clone()
         }
     }
 }
 
 impl<A> Clone for ImageShape<A> where A: Clone {
     fn clone(&self) -> Self {
-        Self { position: self.position.clone(), names: self.names.clone() }
+        Self { position: self.position.clone(), names: self.names.clone(), channel: self.channel.clone() }
     }
 }
 
 impl ImageShape<LeafRequest> {
-    pub fn new2(position: SpaceBase<f64,LeafRequest>, names: EachOrEvery<String>) -> Result<Shape<LeafRequest>,DataMessage> {
-        let details = ImageShape::new_details(position,names.clone())?;
+    pub fn new(position: SpaceBase<f64,LeafRequest>, channel: &Channel, names: EachOrEvery<String>) -> Result<Shape<LeafRequest>,DataMessage> {
+        let details = ImageShape::new_details(position,channel,names.clone())?;
         Ok(Shape::Image(details))
     }
 
@@ -98,6 +102,7 @@ impl ImageShape<Arc<dyn Transformer>> {
         for ((variety,coord_system),images) in self.demerge_by_variety() {
             out.push(ImageShape {
                 position: variety.spacebase_transform(&coord_system,&self.position),
+                channel: self.channel.clone(),
                 names: images.names.clone()
             });
         }

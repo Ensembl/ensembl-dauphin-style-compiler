@@ -24,8 +24,8 @@ pub struct PgIntegration {
 }
 
 impl PeregrineIntegration for PgIntegration {
-    fn set_assets(&mut self, mut assets: Assets) {
-        self.assets.add(&mut assets);
+    fn set_assets(&mut self, assets: &Assets) {
+        self.assets.add(&assets);
     }
 
     fn create_train(&mut self, train: &TrainIdentity) {

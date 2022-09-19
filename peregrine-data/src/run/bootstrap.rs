@@ -21,8 +21,10 @@ async fn finish_bootstrap(response: &BootRes, manager: &RequestManager, dauphin:
     if let Err(err) = r {
         error!("{}",err);
     }
-    integration.lock().unwrap().set_assets(response.assets().clone()); // XXX don't clone
-    queue.set_assets(response.assets());
+    lock!(integration).set_assets(response.channel_assets());
+    lock!(integration).set_assets(response.chrome_assets());
+    queue.set_assets(response.channel_assets());
+    queue.set_assets(response.chrome_assets());
     queue.regenerate_track_config();
     Ok(())
 }

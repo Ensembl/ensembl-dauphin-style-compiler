@@ -121,7 +121,7 @@ pub(crate) fn prepare_shape_in_layer(tools: &mut DrawingToolsBuilder, shape: Dra
                 let depth = shape.position().allotments().map(|x| x.depth);
                 let drawing_bitmap = tools.bitmap();
                 let names = shape.iter_names().collect::<Vec<_>>();
-                let handles = names.iter().map(|asset| drawing_bitmap.add_bitmap(asset)).collect::<Result<Vec<_>,_>>()?;
+                let handles = names.iter().map(|asset| drawing_bitmap.add_bitmap(&shape.channel(),asset)).collect::<Result<Vec<_>,_>>()?;
                 out.push(GLShape::Image(shape.position().clone(),handles,depth,draw_group));
             },
             Shape::SpaceBaseRect(shape) => {

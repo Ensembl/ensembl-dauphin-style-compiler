@@ -106,6 +106,7 @@ pub fn cbor_force_into_string(value: CborValue) -> Result<String,String> {
         CborValue::Text(t) => { t.to_string() },
         CborValue::Integer(i) => { i.to_string() },
         CborValue::Float(f) => { f.to_string() },
+        CborValue::Bool(b) => (if b { "true" } else { "" }).to_string(),
         _ => { return Err(format!("metadata value cannot be converted to string")); }            
     })
 }

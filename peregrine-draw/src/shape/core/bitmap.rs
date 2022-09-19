@@ -1,4 +1,4 @@
-use peregrine_data::{Asset, Assets };
+use peregrine_data::{Asset, Assets, Channel };
 use keyed::keyed_handle;
 use peregrine_toolkit::lock;
 use crate::webgl::canvas::flatplotallocator::FlatPositionManager;
@@ -37,7 +37,7 @@ impl Bitmap {
         Ok(())
     }
 
-    fn new(assets: &Assets, name: &str) -> Result<Bitmap,Message> {
+    fn new(assets: &Assets, channel: &Channel, name: &str) -> Result<Bitmap,Message> {
         let mut out = Bitmap {
             name: name.to_string(),
             width: 0,
@@ -45,7 +45,7 @@ impl Bitmap {
             scale: 100,
             bytes: Arc::new(vec![])
         };
-        let asset = assets.get(name).ok_or_else(|| Message::BadAsset(format!("missing asset: {}",name)))?;
+        let asset = assets.get(Some(channel),name).ok_or_else(|| Message::BadAsset(format!("missing asset: {}",name)))?;
         out.set_from_asset(&asset,name)?;
         Ok(out)
     }
@@ -88,8 +88,8 @@ impl DrawingBitmap {
         }
     }
 
-    pub fn add_bitmap(&mut self, asset: &str) -> Result<BitmapHandle,Message> {
-        Ok(self.manager.add(Bitmap::new(&self.assets,asset)?))
+    pub fn add_bitmap(&mut self, channel: &Channel, asset: &str) -> Result<BitmapHandle,Message> {
+        Ok(self.manager.add(Bitmap::new(&self.assets,channel,asset)?))
     }
 
     pub(crate) async fn calculate_requirements(&mut self, gl: &Arc<Mutex<WebGlGlobal>>, allocator: &mut FlatPositionManager) -> Result<(),Message> {

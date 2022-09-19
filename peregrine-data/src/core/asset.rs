@@ -3,12 +3,15 @@ use std::sync::Arc;
 use std::collections::HashMap;
 use peregrine_toolkit::cbor::cbor_force_into_string;
 use peregrine_toolkit::cbor::cbor_into_drained_map;
+use peregrine_toolkit::lock;
 use serde_cbor::Value as CborValue;
+use crate::Channel;
+
 use super::data::ReceivedData;
 
 #[derive(Clone)]
 pub struct Assets {
-    assets: Arc<Mutex<HashMap<String,Arc<Asset>>>>
+    assets: Arc<Mutex<HashMap<(Option<Channel>,String),Arc<Asset>>>>
 }
 
 impl Assets {
@@ -17,19 +20,19 @@ impl Assets {
     }
 
     pub fn add(&mut self, assets: &Assets) {
-        let mut self_assets = self.assets.lock().unwrap();
-        for (key,value) in assets.assets.lock().unwrap().iter() {
-            self_assets.insert(key.to_string(),value.clone());
+        let mut self_assets = lock!(self.assets);
+        for (key,value) in lock!(assets.assets).iter() {
+            self_assets.insert(key.clone(),value.clone());
         }
     }
 
-    pub fn get(&self, key: &str) -> Option<Arc<Asset>> {
-        self.assets.lock().unwrap().get(key).cloned()
+    pub fn get(&self, channel: Option<&Channel>, key: &str) -> Option<Arc<Asset>> {
+        self.assets.lock().unwrap().get(&(channel.cloned(),key.to_string())).cloned()
     }
 
-    pub fn decode(value: CborValue) -> Result<Assets,String> {
+    pub fn decode(channel: Option<&Channel>, value: CborValue) -> Result<Assets,String> {
         let assets = cbor_into_drained_map(value)?.drain(..)
-            .map(|(k,v)| Ok((k,Arc::new(Asset::decode(v)?))) )
+            .map(|(k,v)| Ok(((channel.cloned(),k),Arc::new(Asset::decode(v)?))) )
             .collect::<Result<HashMap<_,_>,String>>()?;
         Ok(Assets { assets: Arc::new(Mutex::new(assets)) })
     }

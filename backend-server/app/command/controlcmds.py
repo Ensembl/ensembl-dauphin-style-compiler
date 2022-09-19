@@ -30,15 +30,17 @@ def lo_port(channel):
         out[1] = url.geturl()
     return out
 
-def load_assets():
+def load_assets(chrome: bool):
     assets = {}
     toml_data = toml.load(ASSETS_TOML)
     toml_data.get('sources',{})
     for (name,data) in toml_data.get('sources',{}).items():
         asset = dict(data)
-        with open(os.path.join(ASSETS_DIR,data["file"]),"rb") as f:
-            asset["data"] = f.read()
-        assets[name] = asset
+        is_chrome = asset.get("chrome",False)
+        if is_chrome == chrome:
+            with open(os.path.join(ASSETS_DIR,data["file"]),"rb") as f:
+                asset["data"] = f.read()
+            assets[name] = asset
     return assets
 
 class BootstrapHandler(Handler):
@@ -47,9 +49,10 @@ class BootstrapHandler(Handler):
         try:
             r = Response(0,{
                 "boot": [channel,data_accessor.begs_files.boot_program(version)],
-                "hi":  channel, # must be present until support for versions <15 is dropped
+                "hi":  channel,
                 "lo":  lo_channel,
-                "assets": load_assets(),
+                "assets": load_assets(False),
+                "chrome-assets": load_assets(True),
                 "supports": data_accessor.begs_files.versions()
             })
             bundles = data_accessor.begs_files.all_bundles(version)

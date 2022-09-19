@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use anyhow::anyhow as err;
 use peregrine_toolkit::lock;
 use crate::simple_interp_command;
-use peregrine_data::{SpaceBaseArea, PartialSpaceBase, ProgramShapesBuilder};
+use peregrine_data::{SpaceBaseArea, PartialSpaceBase, ProgramShapesBuilder, Channel};
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register };
 use serde_cbor::Value as CborValue;
@@ -110,6 +110,7 @@ impl InterpCommand for ImageInterpCommand {
         let images = vec_to_eoe(registers.get_strings(&self.1)?.to_vec());
         let allotment_id = vec_to_eoe(registers.get_indexes(&self.2)?.to_vec());
         drop(registers);
+        let self_channel = get_instance::<Channel>(context,"channel")?;
         let peregrine = get_peregrine(context)?;
         let geometry = peregrine.geometry_builder();
         let spacebase = geometry.spacebase(spacebase_id[0] as u32)?.as_ref().clone();
@@ -120,7 +121,7 @@ impl InterpCommand for ImageInterpCommand {
             if images.len() != Some(0) && allotments.len() != Some(0) {
                 let spacebase = spacebase.replace_allotments(allotments);
                 let zoo = get_instance::<Arc<Mutex<Option<ProgramShapesBuilder>>>>(context,"out")?;
-                lock!(zoo).as_mut().unwrap().add_image(spacebase,images)?;
+                lock!(zoo).as_mut().unwrap().add_image(&self_channel,spacebase,images)?;
             }
         }
         Ok(CommandResult::SyncResult())

@@ -26,7 +26,7 @@ pub(crate) fn new_train_identity() -> TrainIdentity {
 
 pub trait PeregrineIntegration {
     fn report_instance_information(&self, info: &InstanceInformation);
-    fn set_assets(&mut self, assets: Assets);
+    fn set_assets(&mut self, assets: &Assets);
 
     fn create_train(&mut self, train: &TrainIdentity);
     fn drop_train(&mut self, train: &TrainIdentity);

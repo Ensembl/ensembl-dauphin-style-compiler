@@ -1,9 +1,9 @@
 use std::{collections::{HashMap, HashSet}};
 
-use peregrine_toolkit::{timer_start, timer_end, log, eachorevery::EachOrEvery};
+use peregrine_toolkit::{log, eachorevery::EachOrEvery};
 
 use super::{core::{ Patina, Pen, Plotter }, imageshape::ImageShape, rectangleshape::RectangleShape, textshape::TextShape, wiggleshape::WiggleShape, emptyshape::EmptyShape, shape::UnplacedShape};
-use crate::{LeafRequest, AbstractShapesContainer, allotment::core::leaflist::LeafList};
+use crate::{LeafRequest, AbstractShapesContainer, allotment::core::leaflist::LeafList, Channel};
 use crate::{Assets, DataMessage, SpaceBaseArea, reactive::Observable, SpaceBase, allotment::{stylespec::{stylegroup::AllotmentStyleGroup, styletreebuilder::StyleTreeBuilder, styletree::StyleTree}}};
 
 pub struct ProgramShapesBuilder {
@@ -63,8 +63,8 @@ impl ProgramShapesBuilder {
         Ok(())
     }
 
-    pub fn add_image(&mut self, position: SpaceBase<f64,LeafRequest>, images: EachOrEvery<String>) -> Result<(),DataMessage> {
-        self.push_shape(ImageShape::new2(position,images)?);
+    pub fn add_image(&mut self, channel: &Channel, position: SpaceBase<f64,LeafRequest>, images: EachOrEvery<String>) -> Result<(),DataMessage> {
+        self.push_shape(ImageShape::new(position,channel,images)?);
         Ok(())
     }
 
