@@ -6,10 +6,13 @@ use std::fmt::{ self, Display, Formatter };
 use anyhow::{ self };
 use std::sync::Arc;
 use peregrine_toolkit::url::Url;
+use crate::request::messages::bootstrapres::BootRes;
 use crate::{RequestPacket, ResponsePacket};
 use crate::util::message::DataMessage;
 use serde_derive::{ Serialize };
 use serde_cbor::Value as CborValue;
+
+use super::version::VersionMetadata;
 
 fn parse_channel(value: &str) -> anyhow::Result<(String,String)> {
     if value.ends_with(")") {
@@ -26,9 +29,9 @@ fn parse_channel(value: &str) -> anyhow::Result<(String,String)> {
 }
 
 pub trait ChannelIntegration {
-    fn set_supported_versions(&self, supports: Option<&[u32]>, version: u32);
+    fn claim_channel(&self, channel: &Channel) -> bool;
     fn set_timeout(&self, channel: &Channel, timeout: f64);
-    fn get_sender(&self,channel: &Channel, prio: &PacketPriority, data: RequestPacket) -> Pin<Box<dyn Future<Output=Result<ResponsePacket,DataMessage>>>>;
+    fn get_sender(&self, channel: &Channel, prio: &PacketPriority, data: RequestPacket) -> Pin<Box<dyn Future<Output=Result<ResponsePacket,DataMessage>>>>;
 }
 
 #[derive(Clone,Debug,PartialEq,Eq,Hash,PartialOrd,Ord)]

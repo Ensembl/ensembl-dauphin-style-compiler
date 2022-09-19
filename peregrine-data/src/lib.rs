@@ -69,11 +69,13 @@ mod api {
     mod agentstore;
     mod pgcore;
     mod queue;
+    mod instanceinfo;
 
     pub use agentstore::AgentStore;
     pub use api::{ PeregrineIntegration, CarriageSpeed, TrainIdentity };
     pub use self::pgcore::{ PeregrineCore, MessageSender, PeregrineCoreBase };
     pub use queue::{ PeregrineApiQueue };
+    pub use instanceinfo::InstanceInformation;
 }
 
 mod core {
@@ -268,7 +270,7 @@ mod util {
 pub use self::allotment::core::leafrequest::LeafRequest;
 pub use self::allotment::style::style::LeafStyle;
 pub use self::allotment::globals::{ allotmentmetadata::GlobalAllotmentMetadata, playingfield::PlayingField };
-pub use self::api::{ PeregrineCore, PeregrineCoreBase, PeregrineIntegration, PeregrineApiQueue, TrainIdentity, CarriageSpeed, AgentStore };
+pub use self::api::{ PeregrineCore, PeregrineCoreBase, PeregrineIntegration, PeregrineApiQueue, TrainIdentity, CarriageSpeed, AgentStore, InstanceInformation };
 pub use self::core::{ Asset, Assets, PgdPeregrineConfig, ConfigKey, Stick, StickId, StickTopology, Scale, Viewport };
 pub use self::core::channel::{ Channel, PacketPriority, ChannelLocation, ChannelIntegration };
 pub use self::index::{ StickStore, AuthorityStore };
@@ -295,5 +297,5 @@ pub use self::spacebase::{
 };
 pub use self::shape::rectangleshape::RectangleShape;
 pub use self::shape::textshape::TextShape;
-pub use self::request::core::manager::NetworkRequestManager;
+pub use self::request::core::manager::RequestManager;
 pub use self::request::messages::datareq::DataRequest;

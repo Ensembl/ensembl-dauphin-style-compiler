@@ -89,7 +89,7 @@ impl RequestPacket {
         CborValue::Map(map)
     }
 
-    pub(crate) fn sender(&self, integration: &Rc<Box<dyn ChannelIntegration>>) -> Result<Pin<Box<dyn Future<Output=Result<ResponsePacket,DataMessage>>>>,DataMessage> {
+    pub(crate) fn sender(&self, integration: &Rc<dyn ChannelIntegration>) -> Result<Pin<Box<dyn Future<Output=Result<ResponsePacket,DataMessage>>>>,DataMessage> {
         let integration = integration.clone();
         Ok(integration.get_sender(&self.factory.channel,&self.factory.priority,self.clone()))
     }

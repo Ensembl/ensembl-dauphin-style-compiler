@@ -1,13 +1,16 @@
 use std::sync::{Arc, Mutex};
-use peregrine_toolkit::error;
-
-use crate::{AgentStore, DataMessage, PeregrineApiQueue, PeregrineCoreBase, PeregrineIntegration, PgCommanderTaskSpec, PgDauphin, add_task, core::{channel::Channel, version::VersionMetadata}, request::{core::manager::NetworkRequestManager, messages::bootstrapres::BootRes}, shapeload::programloader::ProgramLoader};
-
+use peregrine_toolkit::{error, lock};
+use crate::{AgentStore, DataMessage, PeregrineApiQueue, PeregrineCoreBase, PeregrineIntegration, PgCommanderTaskSpec, PgDauphin, add_task, core::{channel::{Channel}, version::VersionMetadata}, request::{core::manager::RequestManager, messages::bootstrapres::BootRes}, shapeload::programloader::ProgramLoader, InstanceInformation};
 use super::PgDauphinTaskSpec;
 
-async fn finish_bootstrap(response: &BootRes, manager: &NetworkRequestManager, dauphin: &PgDauphin, queue: &PeregrineApiQueue, loader: &ProgramLoader, integration: &Arc<Mutex<Box<dyn PeregrineIntegration>>>, version: &VersionMetadata) -> Result<(),DataMessage> {
-    manager.set_supported_versions(response.supports(),version.backend_version());
-    manager.set_lo_divert(response.channel_hi(),response.channel_lo());
+async fn finish_bootstrap(response: &BootRes, manager: &RequestManager, dauphin: &PgDauphin, queue: &PeregrineApiQueue, loader: &ProgramLoader, integration: &Arc<Mutex<Box<dyn PeregrineIntegration>>>, version: &VersionMetadata, channel: &Channel) -> Result<(),DataMessage> {
+    let info = InstanceInformation::new(
+        channel,response,version
+    );
+    lock!(integration).report_instance_information(&info);
+    if let Some(channel_lo) = response.channel_lo() {
+        manager.set_lo_divert(channel,channel_lo);
+    }
     let r = dauphin.run_program(loader,PgDauphinTaskSpec {
         prio: 2,
         slot: None,
@@ -36,7 +39,7 @@ pub(crate) fn bootstrap(base: &PeregrineCoreBase, agent_store: &AgentStore, chan
         timeout: None,
         task: Box::pin(async move {
             let response = backend.bootstrap().await?;
-            finish_bootstrap(&response,&base2.manager,&base2.dauphin,&base2.queue,&agent_store.program_loader,&base2.integration,&base2.version).await?;
+            finish_bootstrap(&response,&base2.manager,&base2.dauphin,&base2.queue,&agent_store.program_loader,&base2.integration,&base2.version,&channel).await?;
             base2.booted.unlock();
             Ok(())
         }),

@@ -4,8 +4,7 @@ use serde_cbor::Value as CborValue;
 
 pub struct BootRes {
     program_name: ProgramName,
-    channel_hi: Channel,
-    channel_lo: Channel,
+    channel_lo: Option<Channel>,
     assets: Assets,
     supports: Option<Vec<u32>>
 }
@@ -22,8 +21,7 @@ impl BootRes {
             .transpose()?;
         Ok(BootRes {
             program_name: ProgramName::decode(cbor_map_key(&mut map,"boot")?)?,
-            channel_hi: Channel::decode(cbor_map_key(&mut map,"hi")?)?,
-            channel_lo: Channel::decode(cbor_map_key(&mut map,"lo")?)?,
+            channel_lo: cbor_map_optional_key(&mut map,"lp").map(|x| Channel::decode(x)).transpose()?,
             assets: Assets::decode(cbor_map_key(&mut map,"assets")?)?,
             supports
         })
@@ -31,7 +29,6 @@ impl BootRes {
 
     pub(crate) fn program_name(&self) -> &ProgramName { &self.program_name }
     pub(crate) fn assets(&self) -> &Assets { &self.assets }
-    pub(crate) fn channel_hi(&self) -> &Channel { &self.channel_hi }
-    pub(crate) fn channel_lo(&self) -> &Channel { &self.channel_lo }
+    pub(crate) fn channel_lo(&self) -> Option<&Channel> { self.channel_lo.as_ref() }
     pub(crate) fn supports(&self) -> Option<&[u32]> { self.supports.as_ref().map(|x| &x[..]).clone() }
 }

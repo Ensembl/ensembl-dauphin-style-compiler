@@ -18,27 +18,55 @@ use crate::api::MessageSender;
 use crate::run::{ PgCommander };
 use crate::util::message::DataMessage;
 
+pub struct ChannelRegistry {
+    integrations: Vec<Rc<dyn ChannelIntegration>>,
+    channels: HashMap<Channel,Rc<dyn ChannelIntegration>>
+}
+
+impl ChannelRegistry {
+    fn new() -> ChannelRegistry {
+        ChannelRegistry {
+            integrations: vec![],
+            channels: HashMap::new()
+        }
+    }
+
+    fn add(&mut self, integration: Rc<dyn ChannelIntegration>) {
+        self.integrations.push(integration);
+    }
+
+    fn lookup(&mut self, channel: &Channel) -> Result<Rc<dyn ChannelIntegration>,DataMessage> {
+        if !self.channels.contains_key(channel) {
+            for integration in &self.integrations {
+                if integration.claim_channel(channel) {
+                    self.channels.insert(channel.clone(),integration.clone());
+                }
+            }
+        }
+        self.channels.get(channel).cloned().ok_or_else(|| DataMessage::BackendRefused(channel.clone(),"no such integration".to_string()))
+    }
+}
+
 enum QueueValue {
     Queue(RequestQueue),
     Redirect(Channel,PacketPriority)
 }
 
 pub struct RequestManagerData {
-    integration: Rc<Box<dyn ChannelIntegration>>,
     version: VersionMetadata,
     sidecars: RequestSidecars,
     commander: PgCommander,
     shutdown: OneShot,
     matcher: AttemptMatch,
+    channel_registry: ChannelRegistry,
     queues: HashMap<(Channel,PacketPriority),QueueValue>,
     real_time_lock: Blocker,
     messages: MessageSender
 }
 
 impl RequestManagerData {
-    pub(crate) fn new(integration: Box<dyn ChannelIntegration>, sidecars: &RequestSidecars, commander: &PgCommander, shutdown: &OneShot, messages: &MessageSender, version: &VersionMetadata) -> RequestManagerData {
+    pub(crate) fn new(sidecars: &RequestSidecars, commander: &PgCommander, shutdown: &OneShot, messages: &MessageSender, version: &VersionMetadata) -> RequestManagerData {
         RequestManagerData {
-            integration: Rc::new(integration),
             sidecars: sidecars.clone(),
             commander: commander.clone(),
             shutdown: shutdown.clone(),
@@ -46,17 +74,14 @@ impl RequestManagerData {
             queues: HashMap::new(),
             real_time_lock: Blocker::new(),
             messages: messages.clone(),
-            version: version.clone()
+            version: version.clone(),
+            channel_registry: ChannelRegistry::new()
         }
     }
 
     pub fn message(&self, message: DataMessage) {
         self.messages.send(message);
     }
-
-    // pub fn add_receiver(&mut self, receiver: Box<dyn PayloadReceiver>) {
-    //     lock!(self.receiver.0).push(Rc::new(receiver));
-    // }
 
     fn get_pace(&self, priority: &PacketPriority) -> &[f64] {
         match priority {
@@ -72,10 +97,10 @@ impl RequestManagerData {
         }
     }
 
-    fn create_queue(&self, sidecars: &RequestSidecars, channel: &Channel, priority: &PacketPriority) -> Result<RequestQueue,DataMessage> {
+    fn create_queue(&mut self, channel: &Channel, priority: &PacketPriority) -> Result<RequestQueue,DataMessage> {
         let commander = self.commander.clone();
-        let integration = self.integration.clone(); // Rc why? XXX
-        let queue = RequestQueue::new(&commander,&self.real_time_lock,&self.matcher,sidecars,&integration,&self.version,&channel,&priority,&self.messages,self.get_pace(&priority),self.get_priority(&priority))?;
+        let integration = self.channel_registry.lookup(channel)?;
+        let queue = RequestQueue::new(&commander,&self.real_time_lock,&self.matcher,&self.sidecars,&integration,&self.version,&channel,&priority,&self.messages,self.get_pace(&priority),self.get_priority(&priority))?;
         let queue2 = queue.clone();
         self.shutdown.add(move || {
             queue2.input_queue().close();
@@ -90,7 +115,8 @@ impl RequestManagerData {
             let key = (channel.clone(),priority.clone());
             let missing = self.queues.get(&key).is_none();
             if missing {
-                self.queues.insert(key.clone(),QueueValue::Queue(self.create_queue(&self.sidecars,&channel,&priority)?));
+                let queue = self.create_queue(&channel,&priority)?;
+                self.queues.insert(key.clone(),QueueValue::Queue(queue));
             }
             match self.queues.get_mut(&key).unwrap() {
                 QueueValue::Queue(q) => { 
@@ -104,15 +130,14 @@ impl RequestManagerData {
         }
     }
 
+    fn add_channel_integration(&mut self, channel: Rc<dyn ChannelIntegration>) {
+        self.channel_registry.add(channel);
+    }
+
     fn execute(&mut self, channel: Channel, priority: PacketPriority, request: &BackendRequest) -> Result<CommanderStream<BackendResponse>,DataMessage> {
         let (request,stream) = self.matcher.make_attempt(request);
         self.get_queue(&channel,&priority)?.input_queue().add(request);
         Ok(stream.clone())
-    }
-
-    fn set_timeout(&mut self, channel: &Channel, timeout: f64) -> anyhow::Result<()> {
-        self.integration.set_timeout(channel,timeout);
-        Ok(())
     }
 
     fn set_lo_divert(&mut self, hi: &Channel, lo: &Channel) {
@@ -120,22 +145,18 @@ impl RequestManagerData {
             self.queues.insert((hi.clone(),PacketPriority::Batch),QueueValue::Redirect(lo.clone(),PacketPriority::Batch));
         }
     }
-
-    fn set_supported_versions(&self, supports: Option<&[u32]>, version: u32) {
-        self.integration.set_supported_versions(supports,version);
-    }
 }
 
 #[derive(Clone)]
-pub struct NetworkRequestManager(Arc<Mutex<RequestManagerData>>);
+pub struct RequestManager(Arc<Mutex<RequestManagerData>>);
 
-impl NetworkRequestManager {
-    pub(crate) fn new(integration: Box<dyn ChannelIntegration>, sidecars: &RequestSidecars, commander: &PgCommander, shutdown: &OneShot, messages: &MessageSender, version: &VersionMetadata) -> NetworkRequestManager {
-        NetworkRequestManager(Arc::new(Mutex::new(RequestManagerData::new(integration,sidecars,commander,shutdown,messages,version))))
+impl RequestManager {
+    pub(crate) fn new(sidecars: &RequestSidecars, commander: &PgCommander, shutdown: &OneShot, messages: &MessageSender, version: &VersionMetadata) -> RequestManager {
+        RequestManager(Arc::new(Mutex::new(RequestManagerData::new(sidecars,commander,shutdown,messages,version))))
     }
 
-    pub fn set_supported_versions(&self, support: Option<&[u32]>, version: u32) {
-        lock!(self.0).set_supported_versions(support,version);
+    pub fn add_channel_integration(&mut self, channel: Rc<dyn ChannelIntegration>) {
+        lock!(self.0).add_channel_integration(channel);
     }
 
     pub fn set_lo_divert(&self, channel_hi: &Channel, channel_lo: &Channel) {
@@ -170,10 +191,6 @@ impl NetworkRequestManager {
             stats: false
         });
     }
-
-    // pub fn add_receiver(&mut self, receiver: Box<dyn PayloadReceiver>) {
-    //     lock!(self.0).add_receiver(receiver);
-    // }
 
     pub fn message(&self, message: DataMessage) {
         lock!(self.0).message(message);

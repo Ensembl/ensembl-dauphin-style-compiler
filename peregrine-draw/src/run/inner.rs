@@ -1,9 +1,10 @@
 use crate::domcss::dom::PeregrineDom;
 use crate::input::Input;
-use crate::{integration::pgchannel::PgChannel };
+use crate::{integration::networkchannel::NetworkChannel };
 use crate::integration::pgcommander::PgCommanderWeb;
 use crate::integration::pgdauphin::PgDauphinIntegrationWeb;
 use crate::integration::pgintegration::PgIntegration;
+use std::rc::Rc;
 use std::sync::{ Mutex, Arc };
 use crate::util::message::{ Message, message_register_callback, routed_message, message_register_default };
 use crate::input::translate::targetreporter::TargetReporter;
@@ -143,12 +144,13 @@ impl PeregrineInnerAPI {
         let mut input = Input::new(queue_blocker);
         let api_queue = PeregrineApiQueue::new(queue_blocker);
         let trainset = GlRailway::new(&api_queue,&commander,&config.draw,&stage.lock().unwrap())?;
-        let integration = Box::new(PgIntegration::new(PgChannel::new(),trainset.clone(),&input,webgl.clone(),&stage,&dom,&report));
+        let integration = Box::new(PgIntegration::new(trainset.clone(),&input,webgl.clone(),&stage,&dom,&report));
         let assets = integration.assets().clone();
         let sound = Sound::new(&config.draw,&commander,integration.assets(),&mut messages,dom.shutdown())?;
         let mut core = PeregrineCore::new(integration,commander.clone(),move |e| {
             routed_message(Some(commander_id),Message::DataError(e))
         },&api_queue,&redraw_needed).map_err(|e| Message::DataError(e))?;
+        core.add_channel_integration(Rc::new(NetworkChannel::new()));
         peregrine_dauphin(Box::new(PgDauphinIntegrationWeb()),&core);
         report.run(&commander,&dom.shutdown());
         core.application_ready();

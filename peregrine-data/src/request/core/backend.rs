@@ -3,18 +3,18 @@ use peregrine_toolkit::lock;
 
 use crate::{DataMessage, ProgramName, Stick, StickId, api::MessageSender, core::channel::{Channel, PacketPriority}, index::stickauthority::Authority, metric::{datastreammetric::PacketDatastreamMetricBuilder, metricreporter::MetricCollector}, request::messages::{authorityreq::AuthorityReq, bootstrapreq::BootstrapReq, bootstrapres::BootRes, datareq::DataRequest, datares::DataRes, jumpreq::JumpReq, jumpres::{JumpLocation, JumpRes}, programreq::ProgramReq, stickreq::StickReq}};
 
-use super::{request::{BackendRequest}, manager::NetworkRequestManager};
+use super::{request::{BackendRequest}, manager::RequestManager};
 
 #[derive(Clone)]
 pub struct Backend {
-    manager: NetworkRequestManager,
+    manager: RequestManager,
     messages: MessageSender,
     channel: Channel,
     metrics: MetricCollector
 }
 
 impl Backend {
-    pub(crate) fn new(manager: &NetworkRequestManager, channel: &Channel, metrics: &MetricCollector, messages: &MessageSender) -> Backend {
+    pub(crate) fn new(manager: &RequestManager, channel: &Channel, metrics: &MetricCollector, messages: &MessageSender) -> Backend {
         Backend {
             manager: manager.clone(),
             messages: messages.clone(),
@@ -83,14 +83,14 @@ impl Backend {
 
 #[derive(Clone)]
 pub struct AllBackends {
-    manager: NetworkRequestManager,
+    manager: RequestManager,
     messages: MessageSender,
     metrics: MetricCollector,
     backends: Arc<Mutex<HashMap<Channel,Backend>>>
 }
 
 impl AllBackends {
-    pub fn new(manager: &NetworkRequestManager, metrics: &MetricCollector, messages: &MessageSender) -> AllBackends {
+    pub fn new(manager: &RequestManager, metrics: &MetricCollector, messages: &MessageSender) -> AllBackends {
         AllBackends {
             manager: manager.clone(),
             metrics: metrics.clone(),

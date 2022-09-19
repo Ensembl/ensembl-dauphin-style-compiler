@@ -47,7 +47,7 @@ class BootstrapHandler(Handler):
         try:
             r = Response(0,{
                 "boot": [channel,data_accessor.begs_files.boot_program(version)],
-                "hi":  channel,
+                "hi":  channel, # must be present until support for versions <15 is dropped
                 "lo":  lo_channel,
                 "assets": load_assets(),
                 "supports": data_accessor.begs_files.versions()

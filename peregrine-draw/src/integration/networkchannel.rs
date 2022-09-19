@@ -12,12 +12,12 @@ use peregrine_data::DataMessage;
 use peregrine_toolkit::{lock, log, error_important};
 
 #[derive(Clone)]
-pub struct PgChannel(Arc<Mutex<HashMap<Channel,Option<f64>>>>,String);
+pub struct NetworkChannel(Arc<Mutex<HashMap<Channel,Option<f64>>>>,String);
 
-impl PgChannel {
-    pub fn new() -> PgChannel {
+impl NetworkChannel {
+    pub fn new() -> NetworkChannel {
         let cache_buster = Date::now() as u64;
-        PgChannel(Arc::new(Mutex::new(HashMap::new())),format!("{:016x}",cache_buster))
+        NetworkChannel(Arc::new(Mutex::new(HashMap::new())),format!("{:016x}",cache_buster))
     }
 }
 
@@ -56,25 +56,8 @@ async fn send_wrap(channel: Channel, prio: PacketPriority, packet: RequestPacket
     Ok(response)
 }
 
-fn show_versions(supports: Option<&[u32]>, version: u32)  {
-    let (ok,support) = if let Some(versions) = supports {
-        (versions.contains(&version),format!("versions {}",versions.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(",")))
-    } else {
-       (true, "unknown".to_string())
-    };
-    if ok {
-        log!("backend supports {}, we are version {}",support,version);
-    } else {
-        error_important!("backend supports {}, we are version {}",support,version);
-    }
-}
-
 /* using async_trait gives odd errors re Send */
-impl ChannelIntegration for PgChannel {
-    fn set_supported_versions(&self, supports: Option<&[u32]>, version: u32) {
-        show_versions(supports,version);
-    }
-
+impl ChannelIntegration for NetworkChannel {
     fn get_sender(&self,channel: &Channel, prio: &PacketPriority, packet: RequestPacket) -> Pin<Box<dyn Future<Output=Result<ResponsePacket,DataMessage>>>> {
         let timeout = lock!(self.0).get(&channel).and_then(|x| x.clone());
         Box::pin(send_wrap(channel.clone(),prio.clone(),packet,timeout,self.1.clone()))
@@ -82,5 +65,9 @@ impl ChannelIntegration for PgChannel {
 
     fn set_timeout(&self, channel: &Channel, timeout: f64) {
         self.0.lock().unwrap().insert(channel.clone(),Some(timeout));
+    }
+
+    fn claim_channel(&self, channel: &Channel) -> bool {
+        true
     }
 }

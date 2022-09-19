@@ -16,7 +16,7 @@ use super::trafficcontrol::TrafficControl;
 
 #[derive(Clone)]
 pub struct RequestQueue {
-    integration: Rc<Box<dyn ChannelIntegration>>,
+    integration: Rc<dyn ChannelIntegration>,
     channel: Channel,
     name: String,
     messages: MessageSender,
@@ -26,7 +26,7 @@ pub struct RequestQueue {
 }
 
 impl RequestQueue {
-    pub(crate) fn new(commander: &PgCommander, realtime_lock: &Blocker, matcher: &AttemptMatch, sidecars: &RequestSidecars, integration: &Rc<Box<dyn ChannelIntegration>>, version: &VersionMetadata, channel: &Channel, priority: &PacketPriority, messages: &MessageSender, pacing: &[f64], cdr_priority: u8) -> Result<RequestQueue,DataMessage> {
+    pub(crate) fn new(commander: &PgCommander, realtime_lock: &Blocker, matcher: &AttemptMatch, sidecars: &RequestSidecars, integration: &Rc<dyn ChannelIntegration>, version: &VersionMetadata, channel: &Channel, priority: &PacketPriority, messages: &MessageSender, pacing: &[f64], cdr_priority: u8) -> Result<RequestQueue,DataMessage> {
         let batch_size = match priority {
             PacketPriority::RealTime => None, /* limitless */
             PacketPriority::Batch => Some(20) /* no more than 20 at a time */

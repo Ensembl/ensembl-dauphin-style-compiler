@@ -53,7 +53,7 @@ mod integration {
     mod bell;
     pub(crate) mod pgcommander;
     pub(crate) mod pgdauphin;
-    pub(crate) mod pgchannel;
+    pub(crate) mod networkchannel;
     pub(crate) mod pgintegration;
     mod custom;
     mod raf;

@@ -47,7 +47,7 @@ pub enum DataMessage {
     AllotmentNotCreated(String),
     ConfigError(ConfigError),
     LengthMismatch(String),
-    BadBoxStack(String)
+    BadBoxStack(String),
 }
 
 impl PeregrineMessage for DataMessage {

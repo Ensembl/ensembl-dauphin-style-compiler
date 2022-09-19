@@ -1,10 +1,10 @@
 use std::sync::{ Arc, Mutex };
 use peregrine_data::{
-    Assets, CarriageSpeed, ChannelIntegration, PeregrineIntegration, 
-    Viewport, DrawingCarriage, GlobalAllotmentMetadata, PlayingField, TrainIdentity
+    Assets, CarriageSpeed, PeregrineIntegration, 
+    Viewport, DrawingCarriage, GlobalAllotmentMetadata, PlayingField, TrainIdentity,
+    InstanceInformation
 };
-use peregrine_toolkit::lock;
-use super::pgchannel::PgChannel;
+use peregrine_toolkit::{lock, log};
 use crate::domcss::dom::PeregrineDom;
 use crate::input::Input;
 use crate::run::report::Report;
@@ -12,8 +12,8 @@ use crate::train::GlRailway;
 use peregrine_data::{ DataMessage };
 use crate::webgl::global::WebGlGlobal;
 use crate::stage::stage::Stage;
+
 pub struct PgIntegration {
-    channel: PgChannel,
     trainset: GlRailway,
     input: Input,
     webgl: Arc<Mutex<WebGlGlobal>>,
@@ -53,10 +53,6 @@ impl PeregrineIntegration for PgIntegration {
         self.report.set_allotter_metadata(metadata);
     }
 
-    fn channel(&self) -> Box<dyn ChannelIntegration> {
-        Box::new(self.channel.clone())
-    }
-
     fn start_transition(&mut self, extent: &TrainIdentity, max: u64, speed: CarriageSpeed) ->Result<(),DataMessage> {
         self.input.set_limit(max as f64);
         self.trainset.start_fade(extent,max,speed)
@@ -80,12 +76,15 @@ impl PeregrineIntegration for PgIntegration {
         self.dom.set_content_height(playing_field.height as u32);
         lock!(self.stage).notify_playingfield(&playing_field);
     }
+
+    fn report_instance_information(&self, info: &InstanceInformation) {        
+        log!("{}",info);
+    }
 }
 
 impl PgIntegration {
-    pub(crate) fn new(channel: PgChannel, trainset: GlRailway, input: &Input, webgl: Arc<Mutex<WebGlGlobal>>, stage: &Arc<Mutex<Stage>>, dom: &PeregrineDom, report: &Report) -> PgIntegration {
+    pub(crate) fn new(trainset: GlRailway, input: &Input, webgl: Arc<Mutex<WebGlGlobal>>, stage: &Arc<Mutex<Stage>>, dom: &PeregrineDom, report: &Report) -> PgIntegration {
         PgIntegration {
-            channel,
             trainset,
             webgl,
             stage: stage.clone(),
