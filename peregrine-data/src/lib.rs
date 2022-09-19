@@ -272,7 +272,7 @@ pub use self::allotment::style::style::LeafStyle;
 pub use self::allotment::globals::{ allotmentmetadata::GlobalAllotmentMetadata, playingfield::PlayingField };
 pub use self::api::{ PeregrineCore, PeregrineCoreBase, PeregrineIntegration, PeregrineApiQueue, TrainIdentity, CarriageSpeed, AgentStore, InstanceInformation };
 pub use self::core::{ Asset, Assets, PgdPeregrineConfig, ConfigKey, Stick, StickId, StickTopology, Scale, Viewport };
-pub use self::core::channel::{ Channel, PacketPriority, ChannelLocation, ChannelIntegration };
+pub use self::core::channel::{ Channel, PacketPriority, ChannelLocation, ChannelIntegration, ChannelSender };
 pub use self::index::{ StickStore, AuthorityStore };
 pub use self::shapeload::{ Region, ProgramName, ProgramRegion, ShapeStore, DataStore, ProgramData, ProgramRegionBuilder, ShapeRequest, ShapeRequestGroup };
 pub use self::run::{ PgCommander, PgCommanderTaskSpec, PgDauphin, Commander, InstancePayload, add_task, complete_task, async_complete_task };

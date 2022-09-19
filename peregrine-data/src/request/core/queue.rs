@@ -1,9 +1,9 @@
 use peregrine_toolkit_async::sync::blocker::{Blocker};
 use peregrine_toolkit::{log_extra};
-use std::rc::Rc;
-use crate::core::channel::{Channel, ChannelIntegration, PacketPriority};
+use std::sync::Arc;
+use crate::core::channel::{Channel, PacketPriority};
 use crate::core::version::VersionMetadata;
-use crate::{RequestPacket, ResponsePacket};
+use crate::{RequestPacket, ResponsePacket, ChannelSender};
 use crate::api::MessageSender;
 use crate::run::{ PgCommander, add_task };
 use crate::run::pgcommander::PgCommanderTaskSpec;
@@ -16,7 +16,7 @@ use super::trafficcontrol::TrafficControl;
 
 #[derive(Clone)]
 pub struct RequestQueue {
-    integration: Rc<dyn ChannelIntegration>,
+    integration: Arc<dyn ChannelSender>,
     channel: Channel,
     name: String,
     messages: MessageSender,
@@ -26,7 +26,7 @@ pub struct RequestQueue {
 }
 
 impl RequestQueue {
-    pub(crate) fn new(commander: &PgCommander, realtime_lock: &Blocker, matcher: &AttemptMatch, sidecars: &RequestSidecars, integration: &Rc<dyn ChannelIntegration>, version: &VersionMetadata, channel: &Channel, priority: &PacketPriority, messages: &MessageSender, pacing: &[f64], cdr_priority: u8) -> Result<RequestQueue,DataMessage> {
+    pub(crate) fn new(commander: &PgCommander, realtime_lock: &Blocker, matcher: &AttemptMatch, sidecars: &RequestSidecars, integration: &Arc<dyn ChannelSender>, version: &VersionMetadata, channel: &Channel, priority: &PacketPriority, messages: &MessageSender, pacing: &[f64], cdr_priority: u8) -> Result<RequestQueue,DataMessage> {
         let batch_size = match priority {
             PacketPriority::RealTime => None, /* limitless */
             PacketPriority::Batch => Some(20) /* no more than 20 at a time */

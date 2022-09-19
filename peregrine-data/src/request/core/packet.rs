@@ -5,7 +5,7 @@ use std::mem::replace;
 use std::pin::Pin;
 use std::rc::Rc;
 use std::sync::Arc;
-use crate::{PacketPriority, ChannelIntegration, DataMessage};
+use crate::{PacketPriority, DataMessage, ChannelSender};
 use crate::core::channel::Channel;
 use crate::core::programbundle::SuppliedBundle;
 use crate::core::version::VersionMetadata;
@@ -89,9 +89,8 @@ impl RequestPacket {
         CborValue::Map(map)
     }
 
-    pub(crate) fn sender(&self, integration: &Rc<dyn ChannelIntegration>) -> Result<Pin<Box<dyn Future<Output=Result<ResponsePacket,DataMessage>>>>,DataMessage> {
-        let integration = integration.clone();
-        Ok(integration.get_sender(&self.factory.channel,&self.factory.priority,self.clone()))
+    pub(crate) fn sender(&self, sender: &Arc<dyn ChannelSender>) -> Result<Pin<Box<dyn Future<Output=Result<ResponsePacket,DataMessage>>>>,DataMessage> {
+        Ok(sender.get_sender(&self.factory.priority,self.clone()))
     }
 }
 

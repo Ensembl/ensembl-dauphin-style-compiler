@@ -3,16 +3,14 @@ use peregrine_toolkit::cbor::{cbor_as_number, cbor_as_str, cbor_into_vec, check_
 use std::future::Future;
 use std::pin::Pin;
 use std::fmt::{ self, Display, Formatter };
+use std::rc::Rc;
 use anyhow::{ self };
 use std::sync::Arc;
 use peregrine_toolkit::url::Url;
-use crate::request::messages::bootstrapres::BootRes;
 use crate::{RequestPacket, ResponsePacket};
 use crate::util::message::DataMessage;
 use serde_derive::{ Serialize };
 use serde_cbor::Value as CborValue;
-
-use super::version::VersionMetadata;
 
 fn parse_channel(value: &str) -> anyhow::Result<(String,String)> {
     if value.ends_with(")") {
@@ -28,10 +26,13 @@ fn parse_channel(value: &str) -> anyhow::Result<(String,String)> {
     bail!("unparsable channel string!");
 }
 
+pub trait ChannelSender {
+    fn get_sender(&self, prio: &PacketPriority, data: RequestPacket) -> Pin<Box<dyn Future<Output=Result<ResponsePacket,DataMessage>>>>;
+}
+
 pub trait ChannelIntegration {
-    fn claim_channel(&self, channel: &Channel) -> bool;
     fn set_timeout(&self, channel: &Channel, timeout: f64);
-    fn get_sender(&self, channel: &Channel, prio: &PacketPriority, data: RequestPacket) -> Pin<Box<dyn Future<Output=Result<ResponsePacket,DataMessage>>>>;
+    fn make_sender(&self, channel: &Channel) -> Option<Arc<dyn ChannelSender>>;
 }
 
 #[derive(Clone,Debug,PartialEq,Eq,Hash,PartialOrd,Ord)]

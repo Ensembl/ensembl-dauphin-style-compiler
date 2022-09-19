@@ -13,14 +13,14 @@ use super::response::{BackendResponse};
 use super::sidecars::RequestSidecars;
 use crate::core::channel::{Channel, ChannelIntegration, PacketPriority};
 use crate::core::version::VersionMetadata;
-use crate::{PgCommanderTaskSpec, add_task };
+use crate::{PgCommanderTaskSpec, add_task, ChannelSender };
 use crate::api::MessageSender;
 use crate::run::{ PgCommander };
 use crate::util::message::DataMessage;
 
 pub struct ChannelRegistry {
     integrations: Vec<Rc<dyn ChannelIntegration>>,
-    channels: HashMap<Channel,Rc<dyn ChannelIntegration>>
+    channels: HashMap<Channel,Arc<dyn ChannelSender>>
 }
 
 impl ChannelRegistry {
@@ -35,15 +35,16 @@ impl ChannelRegistry {
         self.integrations.push(integration);
     }
 
-    fn lookup(&mut self, channel: &Channel) -> Result<Rc<dyn ChannelIntegration>,DataMessage> {
+    fn lookup(&mut self, channel: &Channel) -> Result<&Arc<dyn ChannelSender>,DataMessage> {
         if !self.channels.contains_key(channel) {
             for integration in &self.integrations {
-                if integration.claim_channel(channel) {
-                    self.channels.insert(channel.clone(),integration.clone());
+                if let Some(sender) = integration.make_sender(channel) {
+                    self.channels.insert(channel.clone(),sender);
+                    break;
                 }
             }
         }
-        self.channels.get(channel).cloned().ok_or_else(|| DataMessage::BackendRefused(channel.clone(),"no such integration".to_string()))
+        self.channels.get(channel).ok_or_else(|| DataMessage::BackendRefused(channel.clone(),"no such integration".to_string()))
     }
 }
 
@@ -99,7 +100,7 @@ impl RequestManagerData {
 
     fn create_queue(&mut self, channel: &Channel, priority: &PacketPriority) -> Result<RequestQueue,DataMessage> {
         let commander = self.commander.clone();
-        let integration = self.channel_registry.lookup(channel)?;
+        let integration = self.channel_registry.lookup(channel)?.clone();
         let queue = RequestQueue::new(&commander,&self.real_time_lock,&self.matcher,&self.sidecars,&integration,&self.version,&channel,&priority,&self.messages,self.get_pace(&priority),self.get_priority(&priority))?;
         let queue2 = queue.clone();
         self.shutdown.add(move || {
