@@ -1,6 +1,5 @@
-use crate::core::channel::Channel;
 use crate::shapeload::programloader::ProgramLoader;
-use crate::{PeregrineCoreBase };
+use crate::{PeregrineCoreBase, Channel };
 use super::stickauthority::{ Authority, load_stick_authority };
 use crate::core::{ StickId, Stick };
 use std::sync::{ Arc, Mutex };

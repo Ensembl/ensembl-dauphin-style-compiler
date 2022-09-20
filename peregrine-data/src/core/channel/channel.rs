@@ -1,15 +1,9 @@
 use anyhow::bail;
 use peregrine_toolkit::cbor::{cbor_as_number, cbor_as_str, cbor_into_vec, check_array_len, check_array_min_len};
-use std::future::Future;
-use std::pin::Pin;
 use std::fmt::{ self, Display, Formatter };
-use std::rc::Rc;
 use anyhow::{ self };
 use std::sync::Arc;
 use peregrine_toolkit::url::Url;
-use crate::{RequestPacket, ResponsePacket};
-use crate::util::message::DataMessage;
-use serde_derive::{ Serialize };
 use serde_cbor::Value as CborValue;
 
 fn parse_channel(value: &str) -> anyhow::Result<(String,String)> {
@@ -24,15 +18,6 @@ fn parse_channel(value: &str) -> anyhow::Result<(String,String)> {
         }
     }
     bail!("unparsable channel string!");
-}
-
-pub trait ChannelSender {
-    fn get_sender(&self, prio: &PacketPriority, data: RequestPacket) -> Pin<Box<dyn Future<Output=Result<ResponsePacket,DataMessage>>>>;
-}
-
-pub trait ChannelIntegration {
-    fn set_timeout(&self, channel: &Channel, timeout: f64);
-    fn make_sender(&self, channel: &Channel) -> Option<Arc<dyn ChannelSender>>;
 }
 
 #[derive(Clone,Debug,PartialEq,Eq,Hash,PartialOrd,Ord)]
@@ -104,30 +89,5 @@ impl Channel {
 impl Display for Channel {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(f,"{}",self.channel_name())
-    }
-}
-
-#[cfg_attr(debug_assertions,derive(Debug))]
-#[derive(Clone,PartialEq,Eq,Hash,Serialize)]
-pub enum PacketPriority {
-    RealTime,
-    Batch
-}
-
-impl PacketPriority {
-    pub fn index(&self) -> usize {
-        match self {
-            PacketPriority::RealTime => 0,
-            PacketPriority::Batch => 1
-        }
-    }
-}
-
-impl Display for PacketPriority {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        match self {
-            PacketPriority::RealTime => write!(f,"real-time"),
-            PacketPriority::Batch => write!(f,"batch")
-        }
     }
 }

@@ -79,6 +79,11 @@ mod api {
 }
 
 mod core {
+    pub(crate) mod channel {
+        pub(crate) mod channel;
+        pub(crate) mod channelintegration;
+    }
+
     pub(crate) mod asset;
     mod config;
     mod layout;
@@ -88,7 +93,6 @@ mod core {
     pub mod stick;
     pub(crate) mod version;
     mod viewport;
-    pub(crate) mod channel;
     pub(crate) mod data;
 
     pub use self::config::{ PgdPeregrineConfig, ConfigKey };
@@ -149,6 +153,7 @@ mod request {
         mod pendingattemptqueue;
         mod attemptmatch;
         pub(crate) mod sidecars;
+        pub(crate) mod packetpriority;
         mod trafficcontrol;
     }
 
@@ -272,11 +277,13 @@ pub use self::allotment::style::style::LeafStyle;
 pub use self::allotment::globals::{ allotmentmetadata::GlobalAllotmentMetadata, playingfield::PlayingField };
 pub use self::api::{ PeregrineCore, PeregrineCoreBase, PeregrineIntegration, PeregrineApiQueue, TrainIdentity, CarriageSpeed, AgentStore, InstanceInformation };
 pub use self::core::{ Asset, Assets, PgdPeregrineConfig, ConfigKey, Stick, StickId, StickTopology, Scale, Viewport };
-pub use self::core::channel::{ Channel, PacketPriority, ChannelLocation, ChannelIntegration, ChannelSender };
+pub use self::core::channel::channel::{ Channel, ChannelLocation };
+pub use self::core::channel::channelintegration::{ ChannelIntegration, ChannelSender };
 pub use self::index::{ StickStore, AuthorityStore };
 pub use self::shapeload::{ Region, ProgramName, ProgramRegion, ShapeStore, DataStore, ProgramData, ProgramRegionBuilder, ShapeRequest, ShapeRequestGroup };
 pub use self::run::{ PgCommander, PgCommanderTaskSpec, PgDauphin, Commander, InstancePayload, add_task, complete_task, async_complete_task };
 pub use self::request::core::packet::{ RequestPacket, ResponsePacket };
+pub use self::request::core::packetpriority::PacketPriority;
 pub use self::request::core::backend::{ AllBackends, Backend };
 pub use self::shape::shape::DrawingShape;
 pub use self::shape::{ 

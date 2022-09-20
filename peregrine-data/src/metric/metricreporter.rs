@@ -1,5 +1,5 @@
-use crate::core::channel::Channel;
-use crate::core::channel::PacketPriority;
+use crate::Channel;
+use crate::PacketPriority;
 use crate::metric::programrunmetric::ProgramRunMetricBuilder;
 use crate::metric::programrunmetric::ProgramRunMetricData;
 use crate::metric::datastreammetric::DatastreamMetricValue;
@@ -11,7 +11,6 @@ use crate::request::core::request::BackendRequest;
 use crate::request::messages::metricreq::MetricReport;
 use commander::cdr_timer;
 use peregrine_toolkit::lock;
-use peregrine_toolkit::log;
 use peregrine_toolkit::log_extra;
 use peregrine_toolkit::plumbing::oneshot::OneShot;
 use std::sync::Mutex;

@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use crate::{Region, core::channel::Channel};
+use crate::{Region, Channel};
 use serde_cbor::{Value as CborValue};
 
 #[cfg_attr(debug_assertions,derive(Debug))]

@@ -1,5 +1,5 @@
 use peregrine_toolkit::{cbor::{cbor_as_str, cbor_into_vec, check_array_len}, decompose_vec };
-use crate::{core::channel::Channel, index::stickauthority::Authority};
+use crate::{index::stickauthority::Authority, Channel};
 use serde_cbor::Value as CborValue;
 
 pub struct AuthorityRes {

@@ -1,9 +1,8 @@
 use peregrine_toolkit_async::sync::blocker::{Blocker};
 use peregrine_toolkit::{log_extra};
 use std::sync::Arc;
-use crate::core::channel::{Channel, PacketPriority};
 use crate::core::version::VersionMetadata;
-use crate::{RequestPacket, ResponsePacket, ChannelSender};
+use crate::{RequestPacket, ResponsePacket, ChannelSender, Channel, PacketPriority};
 use crate::api::MessageSender;
 use crate::run::{ PgCommander, add_task };
 use crate::run::pgcommander::PgCommanderTaskSpec;

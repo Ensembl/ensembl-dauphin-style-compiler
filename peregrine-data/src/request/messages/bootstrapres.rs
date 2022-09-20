@@ -1,5 +1,5 @@
 use peregrine_toolkit::cbor::{cbor_as_number, cbor_into_map, cbor_into_vec, cbor_map_key, cbor_map_optional_key};
-use crate::{Assets, ProgramName, core::channel::Channel};
+use crate::{Assets, ProgramName, Channel};
 use serde_cbor::Value as CborValue;
 
 pub struct BootRes {

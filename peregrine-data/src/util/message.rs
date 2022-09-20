@@ -2,10 +2,9 @@ use std::sync::{ Arc, Mutex };
 use std::{ hash::{ Hash, Hasher }, fmt };
 use std::collections::hash_map::{ DefaultHasher };
 use std::error::Error;
-use crate::core::channel::Channel;
+use crate::Channel;
 use crate::shapeload::programname::ProgramName;
 use crate::core::stick::StickId;
-use crate::train::model::trainextent::TrainExtent;
 use peregrine_message::{ MessageKind, MessageAction, MessageLikelihood, PeregrineMessage };
 use peregrine_config::ConfigError;
 

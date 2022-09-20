@@ -1,5 +1,5 @@
 use commander::cdr_timer;
-use crate::{core::channel::{Channel, PacketPriority}, util::message::DataMessage};
+use crate::{util::message::DataMessage, Channel, PacketPriority};
 
 use super::{manager::RequestManager, request::BackendRequest, response::BackendResponse};
 

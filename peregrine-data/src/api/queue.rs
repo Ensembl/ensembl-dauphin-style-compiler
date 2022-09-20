@@ -1,6 +1,4 @@
 use std::sync::{Arc, Mutex};
-
-use crate::core::channel::Channel;
 use crate::core::pixelsize::PixelSize;
 use crate::core::{ StickId, Viewport };
 use crate::request::core::request::{BackendRequest};
@@ -11,7 +9,7 @@ use crate::shapeload::carriagebuilder::CarriageBuilder;
 use crate::train::main::datatasks::{load_stick, load_carriage};
 use crate::train::main::train::StickData;
 use crate::train::model::trainextent::TrainExtent;
-use crate::{Assets, PgCommanderTaskSpec, DrawingCarriage};
+use crate::{Assets, PgCommanderTaskSpec, DrawingCarriage, Channel};
 use commander::{CommanderStream, PromiseFuture};
 use peregrine_toolkit::eachorevery::eoestruct::StructBuilt;
 use peregrine_toolkit::{log_extra};

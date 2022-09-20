@@ -1,8 +1,8 @@
 use commander::cdr_current_time;
 use peregrine_toolkit::{lock};
 use std::sync::{ Arc, Mutex };
+use crate::PacketPriority;
 use crate::api::{ PeregrineCoreBase };
-use crate::core::channel::{PacketPriority};
 use crate::request::messages::datareq::DataRequest;
 use crate::request::messages::datares::DataRes;
 use crate::util::lrucache::Cache;

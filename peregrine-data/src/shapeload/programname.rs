@@ -1,7 +1,8 @@
 use std::fmt;
 use peregrine_toolkit::{cbor::{cbor_as_str, cbor_into_vec, check_array_len}, decompose_vec};
-use crate::core::channel::Channel;
 use serde_cbor::Value as CborValue;
+
+use crate::Channel;
 
 #[derive(Clone,Debug,Eq,Hash,PartialEq,PartialOrd,Ord)]
 pub struct ProgramName(pub Channel,pub String);

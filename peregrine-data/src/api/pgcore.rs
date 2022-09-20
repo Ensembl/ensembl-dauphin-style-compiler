@@ -1,4 +1,3 @@
-use crate::core::channel::Channel;
 use crate::core::version::VersionMetadata;
 use crate::metric::metricreporter::MetricCollector;
 use crate::core::{ Viewport };
@@ -12,12 +11,11 @@ use peregrine_dauphin_queue::{ PgDauphinQueue };
 use peregrine_message::PeregrineMessage;
 use peregrine_toolkit::eachorevery::eoestruct::StructBuilt;
 use peregrine_toolkit::plumbing::oneshot::OneShot;
-use peregrine_toolkit::{lock};
 use peregrine_toolkit::puzzle::AnswerAllocator;
 use peregrine_toolkit_async::sync::needed::Needed;
 use std::rc::Rc;
 use std::sync::{ Arc, Mutex };
-use crate::{AllBackends, Assets, Commander, CountingPromise, PgCommander, PgDauphin, ChannelIntegration};
+use crate::{AllBackends, Assets, Commander, CountingPromise, PgCommander, PgDauphin, ChannelIntegration, Channel};
 use crate::api::PeregrineApiQueue;
 use crate::api::queue::ApiMessage;
 use crate::api::AgentStore;
