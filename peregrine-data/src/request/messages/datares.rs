@@ -1,7 +1,6 @@
 use anyhow::anyhow as err;
 use dauphin_interp::util::cbor::cbor_bool;
 use peregrine_toolkit::cbor::{cbor_into_drained_map,cbor_into_bytes };
-use peregrine_toolkit::log;
 use std::{collections::HashMap};
 use crate::{metric::datastreammetric::PacketDatastreamMetricBuilder};
 use crate::core::data::ReceivedData;

@@ -1,4 +1,4 @@
-use peregrine_data::{Asset, Assets, Channel };
+use peregrine_data::{Asset, Assets, BackendNamespace };
 use keyed::keyed_handle;
 use peregrine_toolkit::lock;
 use crate::webgl::canvas::flatplotallocator::FlatPositionManager;
@@ -37,7 +37,7 @@ impl Bitmap {
         Ok(())
     }
 
-    fn new(assets: &Assets, channel: &Channel, name: &str) -> Result<Bitmap,Message> {
+    fn new(assets: &Assets, channel: &BackendNamespace, name: &str) -> Result<Bitmap,Message> {
         let mut out = Bitmap {
             name: name.to_string(),
             width: 0,
@@ -88,7 +88,7 @@ impl DrawingBitmap {
         }
     }
 
-    pub fn add_bitmap(&mut self, channel: &Channel, asset: &str) -> Result<BitmapHandle,Message> {
+    pub fn add_bitmap(&mut self, channel: &BackendNamespace, asset: &str) -> Result<BitmapHandle,Message> {
         Ok(self.manager.add(Bitmap::new(&self.assets,channel,asset)?))
     }
 

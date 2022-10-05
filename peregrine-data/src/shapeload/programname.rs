@@ -2,10 +2,10 @@ use std::fmt;
 use peregrine_toolkit::{cbor::{cbor_as_str, cbor_into_vec, check_array_len}, decompose_vec};
 use serde_cbor::Value as CborValue;
 
-use crate::Channel;
+use crate::{BackendNamespace};
 
 #[derive(Clone,Debug,Eq,Hash,PartialEq,PartialOrd,Ord)]
-pub struct ProgramName(pub Channel,pub String);
+pub struct ProgramName(pub BackendNamespace,pub String);
 
 impl ProgramName {
     pub fn encode(&self) -> CborValue {
@@ -19,7 +19,7 @@ impl ProgramName {
         let mut seq = cbor_into_vec(value)?;
         check_array_len(&seq,2)?;
         decompose_vec!(seq,channel,name);
-        Ok(ProgramName(Channel::decode(channel)?,cbor_as_str(&name)?.to_string()))
+        Ok(ProgramName(BackendNamespace::decode(channel)?,cbor_as_str(&name)?.to_string()))
     }
 }
 

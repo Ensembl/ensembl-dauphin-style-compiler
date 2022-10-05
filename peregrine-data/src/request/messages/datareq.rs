@@ -1,12 +1,12 @@
 use std::collections::BTreeMap;
 
-use crate::{Region, Channel};
+use crate::{Region, BackendNamespace};
 use serde_cbor::{Value as CborValue};
 
 #[cfg_attr(debug_assertions,derive(Debug))]
 #[derive(Clone,PartialEq,Eq,Hash)]
 pub struct DataRequest {
-    channel: Channel,
+    channel: BackendNamespace,
     name: String,
     region: Region,
     scope: BTreeMap<String,Vec<String>>,
@@ -23,7 +23,7 @@ fn encode_scope(input: &BTreeMap<String,Vec<String>>) -> CborValue {
 }
 
 impl DataRequest {
-    pub fn new(channel: &Channel, name: &str, region: &Region) -> DataRequest {
+    pub fn new(channel: &BackendNamespace, name: &str, region: &Region) -> DataRequest {
         DataRequest {
             channel: channel.clone(),
             name: name.to_string(),
@@ -33,7 +33,7 @@ impl DataRequest {
         }
     }
 
-    pub fn channel(&self) -> &Channel { &self.channel }
+    pub fn channel(&self) -> &BackendNamespace { &self.channel }
     pub fn name(&self) -> &str { &self.name }
     pub fn region(&self) -> &Region { &self.region }
     pub fn scope(&self) -> &BTreeMap<String,Vec<String>> { &self.scope }

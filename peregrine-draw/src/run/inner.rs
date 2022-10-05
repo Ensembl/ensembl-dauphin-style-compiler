@@ -9,7 +9,7 @@ use std::sync::{ Mutex, Arc };
 use crate::util::message::{ Message, message_register_callback, routed_message, message_register_default };
 use crate::input::translate::targetreporter::TargetReporter;
 use js_sys::Date;
-use peregrine_data::{Assets, Commander, PeregrineCore, PeregrineApiQueue};
+use peregrine_data::{Assets, Commander, PeregrineCore, PeregrineApiQueue, BackendNamespace, ChannelIntegration};
 use peregrine_dauphin::peregrine_dauphin;
 use peregrine_message::MessageKind;
 use peregrine_toolkit::eachorevery::eoestruct::StructBuilt;
@@ -27,7 +27,7 @@ use crate::train::GlRailway;
 use crate::stage::stage::{ Stage };
 use crate::webgl::global::WebGlGlobal;
 use commander::{CommanderStream, Lock, LockGuard, cdr_lock};
-use peregrine_data::{ Channel, StickId };
+use peregrine_data::{ StickId };
 use crate::shape::core::spectremanager::SpectreManager;
 use peregrine_message::PeregrineMessage;
 use js_sys::Math::random;
@@ -89,7 +89,7 @@ fn setup_message_sending_task(commander: &PgCommanderWeb, distributor: Distribut
     stream
 }
 
-fn send_errors_to_backend(channel: &Channel,data_api: &PeregrineCore) -> impl FnMut(&Message) + 'static {
+fn send_errors_to_backend(channel: &BackendNamespace, data_api: &PeregrineCore) -> impl FnMut(&Message) + 'static {
     let data_api = data_api.clone();
     let channel = channel.clone();
     move |message| {
@@ -126,7 +126,7 @@ impl PeregrineInnerAPI {
     
     pub fn commander(&self) -> PgCommanderWeb { self.commander.clone() } // XXX
 
-    pub(super) fn new(config: &CreatedPeregrineConfigs, dom: &PeregrineDom, commander: &PgCommanderWeb, queue_blocker: &Blocker, redraw_needed: &Needed) -> Result<PeregrineInnerAPI,Message> {
+    pub(super) fn new(config: &CreatedPeregrineConfigs, dom: &PeregrineDom, commander: &PgCommanderWeb, backend: &str, queue_blocker: &Blocker, redraw_needed: &Needed) -> Result<PeregrineInnerAPI,Message> {
         let commander = commander.clone();
         // XXX change commander init to allow message init to move to head
         let mut messages = Distributor::new();
@@ -147,11 +147,14 @@ impl PeregrineInnerAPI {
         let integration = Box::new(PgIntegration::new(trainset.clone(),&input,webgl.clone(),&stage,&dom,&report));
         let assets = integration.assets().clone();
         let sound = Sound::new(&config.draw,&commander,integration.assets(),&mut messages,dom.shutdown())?;
+        let channel_integrations : Vec<Rc<dyn ChannelIntegration>> = vec![
+            Rc::new(NetworkChannel::new())
+        ];
         let mut core = PeregrineCore::new(integration,commander.clone(),move |e| {
             routed_message(Some(commander_id),Message::DataError(e))
-        },&api_queue,&redraw_needed).map_err(|e| Message::DataError(e))?;
-        core.add_channel_integration(Rc::new(NetworkChannel::new()));
+        },&api_queue,&redraw_needed,channel_integrations).map_err(|e| Message::DataError(e))?;
         peregrine_dauphin(Box::new(PgDauphinIntegrationWeb()),&core);
+        core.add_backend(backend);
         report.run(&commander,&dom.shutdown());
         core.application_ready();
         message_sender.add(Some(Message::Ready));
@@ -200,10 +203,9 @@ impl PeregrineInnerAPI {
 
     pub(super) fn config(&self) -> &PgPeregrineConfig { &self.config }
 
-    pub(super) fn bootstrap(&mut self, channel: Channel) {
+    pub(super) fn bootstrap(&mut self, channel: BackendNamespace) {
         let identity = (Date::now() + random()) as u64;
         self.messages.add(send_errors_to_backend(&channel,&self.data_api));
-        self.data_api.bootstrap(identity,channel);
     }
 
     pub(super) fn set_message_reporter(&mut self, callback: Box<dyn FnMut(&Message) + 'static>) {

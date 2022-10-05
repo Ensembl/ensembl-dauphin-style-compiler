@@ -1,5 +1,5 @@
 use crate::simple_interp_command;
-use peregrine_data::{Channel };
+use peregrine_data::{ AccessorResolver };
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult, AsyncBlock };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
 use peregrine_toolkit::eachorevery::eoestruct::StructTemplate;
@@ -16,29 +16,34 @@ simple_interp_command!(ClearSwitchInterpCommand,ClearSwitchDeserializer,34,4,(0,
 simple_interp_command!(AppendGroupInterpCommand,AppendGroupDeserializer,47,3,(0,1,2));
 simple_interp_command!(AppendDepthInterpCommand,AppendDepthDeserializer,48,3,(0,1,2));
 
+async fn new_lane_interp_command(context: &mut InterpContext, cmd: NewLaneInterpCommand) -> anyhow::Result<()> {
+    let channel_resolver = get_instance::<AccessorResolver>(context,"channel-resolver")?;
+    let registers = context.registers_mut();
+    let channels = registers.get_strings(&cmd.1)?.to_vec();
+    let programs = registers.get_strings(&cmd.2)?.to_vec();
+    let min_scale = registers.get_indexes(&cmd.3)?.to_vec();
+    let max_scale = registers.get_indexes(&cmd.4)?.to_vec();
+    let scale_jump = registers.get_indexes(&cmd.5)?.to_vec();
+    drop(registers);
+    let mut track_ids = vec![];
+    let values = channels.iter().cycle().zip(programs.iter());
+    let scales = min_scale.iter().cycle().zip(max_scale.iter().cycle());
+    let mut scales = scales.zip(scale_jump.iter().cycle());
+    let track_builder = get_peregrine(context)?.track_builder();
+    for (channel_name,program) in values {
+        let channel = channel_resolver.resolve(&channel_name).await?;
+        let ((min,max),jump) = scales.next().unwrap();
+        track_ids.push(track_builder.allocate(&channel,program,*min as u64,*max as u64,*jump as u64));
+    }
+    let registers = context.registers_mut();
+    registers.write(&cmd.0,InterpValue::Indexes(track_ids));
+    Ok(())
+}
+
 impl InterpCommand for NewLaneInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
-        let self_channel = get_instance::<Channel>(context,"channel")?;
-        let registers = context.registers_mut();
-        let channels = registers.get_strings(&self.1)?.to_vec();
-        let programs = registers.get_strings(&self.2)?.to_vec();
-        let min_scale = registers.get_indexes(&self.3)?.to_vec();
-        let max_scale = registers.get_indexes(&self.4)?.to_vec();
-        let scale_jump = registers.get_indexes(&self.5)?.to_vec();
-        drop(registers);
-        let mut track_ids = vec![];
-        let values = channels.iter().cycle().zip(programs.iter());
-        let scales = min_scale.iter().cycle().zip(max_scale.iter().cycle());
-        let mut scales = scales.zip(scale_jump.iter().cycle());
-        let track_builder = get_peregrine(context)?.track_builder();
-        for (channel,program) in values {
-            let channel = Channel::parse(&self_channel,channel)?;
-            let ((min,max),jump) = scales.next().unwrap();
-            track_ids.push(track_builder.allocate(&channel,program,*min as u64,*max as u64,*jump as u64));
-        }
-        let registers = context.registers_mut();
-        registers.write(&self.0,InterpValue::Indexes(track_ids));
-        Ok(CommandResult::SyncResult())
+    fn execute(&self, _context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+        let cmd = self.clone();
+        Ok(CommandResult::AsyncResult(AsyncBlock::new(Box::new(|context| Box::pin(new_lane_interp_command(context,cmd))))))
     }
 }
 

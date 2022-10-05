@@ -1,6 +1,6 @@
 use crate::simple_interp_command;
 use crate::util::{ get_instance, get_peregrine };
-use peregrine_data::{ Channel, Builder };
+use peregrine_data::{ Builder, AccessorResolver };
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, AsyncBlock, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
 use peregrine_data::{ StickId, Stick, StickTopology };
@@ -17,7 +17,7 @@ simple_interp_command!(AddJumpInterpCommand,AddJumpDeserializer,39,4,(0,1,2,3));
 
 // TODO booted is a mess,  is it needed?
 async fn add_stick_authority(context: &mut InterpContext, cmd: AddAuthorityInterpCommand) -> anyhow::Result<()> {
-    let self_channel = get_instance::<Channel>(context,"channel")?;
+    let channel_resolver = get_instance::<AccessorResolver>(context,"channel-resolver")?;
     let registers = context.registers_mut();
     let authorities = registers.get_strings(&cmd.0)?;
     if let Some(pc) = context.payload("peregrine","core")?.as_any_mut().downcast_mut::<PeregrinePayload>() {
@@ -26,7 +26,8 @@ async fn add_stick_authority(context: &mut InterpContext, cmd: AddAuthorityInter
         let stick_authority_store = agent_store.stick_authority_store.clone();
         let mut tasks = vec![];
         for auth in authorities.iter() {
-            let task = stick_authority_store.add(Channel::parse(&self_channel,auth)?);
+            let channel = channel_resolver.resolve(&auth).await?;
+            let task = stick_authority_store.add(channel);
             tasks.push(task);
         }
         for task in tasks {
@@ -63,7 +64,7 @@ impl InterpCommand for GetJumpLocationInterpCommand {
 }
 
 async fn get(context: &mut InterpContext, cmd: GetStickDataInterpCommand) -> anyhow::Result<()> {
-    let self_channel = get_instance::<Channel>(context,"channel")?;
+    let channel_resolver = get_instance::<AccessorResolver>(context,"channel-resolver")?;
     let registers = context.registers_mut();
     let channel_iter = registers.get_strings(&cmd.6)?;
     let mut channel_iter = channel_iter.iter().cycle();
@@ -79,7 +80,8 @@ async fn get(context: &mut InterpContext, cmd: GetStickDataInterpCommand) -> any
     let all_backends = pc.all_backends();
     for stick_id in id_strings.iter() {
         let channel_name = channel_iter.next().unwrap();
-        let backend = all_backends.backend(&Channel::parse(&self_channel,channel_name)?);
+        let channel = channel_resolver.resolve(&channel_name).await?;
+        let backend = all_backends.backend(&channel);
         let stick = backend.stick(&StickId::new(stick_id)).await?;
         id_strings_out.push(stick.get_id().get_id().to_string());
         sizes.push(stick.size() as f64);
@@ -107,7 +109,7 @@ impl InterpCommand for GetStickDataInterpCommand {
 }
 
 async fn get_jump(context: &mut InterpContext, cmd: GetJumpDataInterpCommand) -> anyhow::Result<()> {
-    let self_channel = get_instance::<Channel>(context,"channel")?;
+    let channel_resolver = get_instance::<AccessorResolver>(context,"channel-resolver")?;
     let registers = context.registers_mut();
     let channel_iter = registers.get_strings(&cmd.3)?;
     let mut channel_iter = channel_iter.iter().cycle();
@@ -120,7 +122,8 @@ async fn get_jump(context: &mut InterpContext, cmd: GetJumpDataInterpCommand) ->
     let all_backends = pc.all_backends();
     for location in locations.iter() {
         let channel_name = channel_iter.next().unwrap();
-        let backend = all_backends.backend(&Channel::parse(&self_channel,channel_name)?);
+        let channel = channel_resolver.resolve(&channel_name).await?;
+        let backend = all_backends.backend(&channel);
         if let Some(jump_location) = backend.jump(location).await? {
             sticks_out.push(jump_location.stick);
             lefts_out.push(jump_location.left as f64);

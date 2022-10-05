@@ -1,12 +1,12 @@
 use crate::util::message::{ Message };
 use peregrine_toolkit::console::{set_printer, Severity};
-use peregrine_toolkit::eachorevery::eoestruct::{StructTemplate, StructBuilt, struct_to_json};
-use peregrine_toolkit::{log_extra, log_important, error};
+use peregrine_toolkit::eachorevery::eoestruct::{StructBuilt, struct_to_json};
+use peregrine_toolkit::{log_extra, log_important};
 use peregrine_toolkit_async::sync::blocker::Blocker;
 use peregrine_toolkit_async::sync::needed::Needed;
 pub use url::Url;
 pub use web_sys::{ console, WebGlRenderingContext, Element };
-use peregrine_data::{ Channel, StickId, Commander };
+use peregrine_data::{ StickId, Commander };
 use super::buildconfig::{ GIT_TAG, GIT_BUILD_DATE };
 use super::mousemove::run_mouse_move;
 use commander::CommanderStream;
@@ -58,7 +58,6 @@ enum DrawMessage {
     SetStick(StickId),
     Switch(Vec<String>,StructBuilt),
     RadioSwitch(Vec<String>,bool),
-    Bootstrap(Channel),
     SetMessageReporter(Box<dyn FnMut(&Message) + 'static + Send>),
     DebugAction(u8),
     SetArtificial(String,bool),
@@ -74,7 +73,6 @@ impl std::fmt::Debug for DrawMessage {
             DrawMessage::SetStick(stick)  => write!(f,"SetStick({:?})",stick),
             DrawMessage::Switch(path,value) => write!(f,"Switch({:?},{:?})",path,struct_to_json(value,None)),
             DrawMessage::RadioSwitch(path,yn)  => write!(f,"RadioSwitch({:?},{:?})",path,yn),
-            DrawMessage::Bootstrap(channel)  => write!(f,"Channel({:?})",channel),
             DrawMessage::SetMessageReporter(_) => write!(f,"SetMessageReporter(...)"),
             DrawMessage::DebugAction(index)  => write!(f,"DebugAction({:?})",index),
             DrawMessage::SetArtificial(name,start) => write!(f,"SetArtificial({:?},{:?})",name,start),
@@ -126,9 +124,6 @@ impl DrawMessage {
             DrawMessage::RadioSwitch(path,yn) => {
                 draw.radio_switch(&path.iter().map(|x| &x as &str).collect::<Vec<_>>(),yn);
             },
-            DrawMessage::Bootstrap(channel) => {
-                draw.bootstrap(channel.clone());
-            },
             DrawMessage::SetMessageReporter(cb) => {
                 draw.set_message_reporter(cb);
             },
@@ -158,10 +153,6 @@ impl PeregrineAPI {
             queue: DrawMessageQueue::new(),
             stick: Arc::new(Mutex::new(None))
         }
-    }
-
-    pub fn bootstrap(&self, channel: &Channel) {
-        self.queue.add(Some(DrawMessage::Bootstrap(channel.clone())));
     }
 
     pub fn set_y(&self, y: f64) {
@@ -223,7 +214,7 @@ impl PeregrineAPI {
         Ok(())
     }
 
-    pub fn run(&self, config: PeregrineConfig, el: &Element) -> Result<PgCommanderWeb,Message> {
+    pub fn run(&self, config: PeregrineConfig, el: &Element, backend: &str) -> Result<PgCommanderWeb,Message> {
         let commander = PgCommanderWeb::new()?;
         commander.start();
         let redraw_needed = Needed::new();
@@ -236,7 +227,7 @@ impl PeregrineAPI {
             }
         });
         let configs = config.build();
-        let mut inner = PeregrineInnerAPI::new(&configs,&dom,&commander,self.queue.syncer(),&redraw_needed)?;
+        let mut inner = PeregrineInnerAPI::new(&configs,&dom,&commander,backend,self.queue.syncer(),&redraw_needed)?;
         run_animations(&mut inner,&dom)?;
         run_mouse_move(&mut inner,&dom)?;
         let self2 = self.clone();

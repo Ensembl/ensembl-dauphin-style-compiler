@@ -15,6 +15,20 @@ impl PacketPriority {
             PacketPriority::Batch => 1
         }
     }
+
+    pub(crate) fn cdr_priority(&self) -> u8 {
+        match self {
+            PacketPriority::Batch => 5,
+            PacketPriority::RealTime => 3
+        }
+    }
+
+    pub(crate) fn get_pace(&self) -> &[f64] {
+        match self {
+            PacketPriority::Batch => &[0.,5000.,10000.,20000.,20000.,20000.],
+            PacketPriority::RealTime => &[0.,0.,500.,2000.,3000.,10000.]
+        }
+    }
 }
 
 impl Display for PacketPriority {

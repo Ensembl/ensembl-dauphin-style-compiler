@@ -2,7 +2,7 @@ use std::sync::{ Arc, Mutex };
 use std::{ hash::{ Hash, Hasher }, fmt };
 use std::collections::hash_map::{ DefaultHasher };
 use std::error::Error;
-use crate::Channel;
+use crate::{BackendNamespace};
 use crate::shapeload::programname::ProgramName;
 use crate::core::stick::StickId;
 use peregrine_message::{ MessageKind, MessageAction, MessageLikelihood, PeregrineMessage };
@@ -18,12 +18,14 @@ fn calculate_hash<T: Hash>(t: &T) -> u64 {
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub enum DataMessage {
     BadDauphinProgram(String),
-    BadBootstrapCannotStart(Channel,Box<DataMessage>),
-    BackendTimeout(Channel),
-    PacketError(Channel,String),
-    TemporaryBackendFailure(Channel),
-    FatalBackendFailure(Channel),
-    BackendRefused(Channel,String),
+    BadBootstrapCannotStart(BackendNamespace,Box<DataMessage>),
+    BackendTimeout(BackendNamespace),
+    PacketError(String,String),
+    TemporaryBackendFailure(String),
+    FatalBackendFailure(String),
+    BackendRefused(String,String),
+    BadChannelSpec(String),
+    NoSuchChannel(BackendNamespace),
     DataHasNoAssociatedStyle(Vec<String>),
     TaskTimedOut(String),
     TaskUnexpectedlyCancelled(String),
@@ -40,7 +42,7 @@ pub enum DataMessage {
     DauphinIntegrationError(String),
     DauphinRunError(ProgramName,String),
     DauphinProgramMissing(String),
-    DataUnavailable(Channel,Box<DataMessage>),
+    DataUnavailable(BackendNamespace,Box<DataMessage>),
     TunnelError(Arc<Mutex<dyn PeregrineMessage>>),
     NoSuchAllotment(String),
     AllotmentNotCreated(String),
@@ -76,6 +78,8 @@ impl PeregrineMessage for DataMessage {
             DataMessage::TemporaryBackendFailure(_) => MessageLikelihood::Inevitable,
             DataMessage::FatalBackendFailure(_) => MessageLikelihood::Inevitable,
             DataMessage::BackendRefused(_,_) => MessageLikelihood::Inevitable,
+            DataMessage::BadChannelSpec(_) => MessageLikelihood::Inevitable,
+            DataMessage::NoSuchChannel(_) => MessageLikelihood::Inevitable,
             DataMessage::TaskUnexpectedlyCancelled(_) => MessageLikelihood::Unlikely,
             DataMessage::TaskUnexpectedlySuperfluous(_) => MessageLikelihood::Inconceivable,
             _ => MessageLikelihood::Quality
@@ -83,7 +87,7 @@ impl PeregrineMessage for DataMessage {
     }
 
     fn code(&self) -> (u64,u64) {
-        // Next code is 30; 0 is reserved; 499 is last.
+        // Next code is 32; 0 is reserved; 499 is last.
         match self {
             DataMessage::BadDauphinProgram(s) => (1,calculate_hash(s)),
             DataMessage::BadBootstrapCannotStart(_,cause) => (2,calculate_hash(&cause.code())),
@@ -92,6 +96,8 @@ impl PeregrineMessage for DataMessage {
             DataMessage::TemporaryBackendFailure(c) => (4,calculate_hash(c)),
             DataMessage::FatalBackendFailure(c) => (18,calculate_hash(c)),
             DataMessage::BackendRefused(c,s) => (5,calculate_hash(&(c,s))),
+            DataMessage::NoSuchChannel(c) => (30,calculate_hash(c)),
+            DataMessage::BadChannelSpec(c) => (31,calculate_hash(c)),
             DataMessage::DataHasNoAssociatedStyle(tags) => (6,calculate_hash(tags)),
             DataMessage::TaskTimedOut(s) => (7,calculate_hash(s)),
             DataMessage::TaskUnexpectedlyCancelled(s) => (8,calculate_hash(s)),
@@ -137,6 +143,8 @@ impl PeregrineMessage for DataMessage {
             DataMessage::TemporaryBackendFailure(c) => format!("Temporary backend failure (retrying) channel={}",c.to_string()),
             DataMessage::FatalBackendFailure(c) => format!("Fatal backend failure channel={}",c.to_string()),
             DataMessage::BackendRefused(c,s) => format!("Backend refused: '{}' channel={}",s,c),
+            DataMessage::NoSuchChannel(c) => format!("No such channel: channel={}",c),
+            DataMessage::BadChannelSpec(c) => format!("Bad channel spec '{}'",c),
             DataMessage::DataHasNoAssociatedStyle(tags) => 
                 format!("Data has no associated style: tags={}",tags.join(",")),
             DataMessage::TaskTimedOut(s) => format!("Task '{}' timed out",s),
@@ -179,6 +187,8 @@ impl PeregrineMessage for DataMessage {
             DataMessage::TemporaryBackendFailure(c) => format!("Temporary backend failure (retrying) channel={}",c.to_string()),
             DataMessage::FatalBackendFailure(c) => format!("Fatal backend failure channel={}",c.to_string()),
             DataMessage::BackendRefused(c,s) => format!("Backend refused: '{}' channel={}",s,c),
+            DataMessage::NoSuchChannel(c) => format!("No such channel: channel={}",c),
+            DataMessage::BadChannelSpec(c) => format!("Bad channel spec '{}'",c),
             DataMessage::DataHasNoAssociatedStyle(tags) => 
                 format!("Data has no associated style: tags={}",tags.join(",")),
             DataMessage::TaskTimedOut(s) => format!("Task '{}' timed out",s),

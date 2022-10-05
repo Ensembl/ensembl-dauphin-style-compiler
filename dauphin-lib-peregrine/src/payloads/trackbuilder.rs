@@ -1,4 +1,4 @@
-use peregrine_data::{ Channel, ProgramName, ProgramRegion, ProgramRegionBuilder, Switches, Track };
+use peregrine_data::{ ProgramName, ProgramRegion, ProgramRegionBuilder, Switches, Track, BackendNamespace };
 use anyhow::{ anyhow as err };
 use peregrine_toolkit::eachorevery::eoestruct::StructBuilt;
 use std::collections::HashMap;
@@ -11,7 +11,7 @@ pub(crate) struct TrackBuilder {
 }
 
 impl TrackBuilder {
-    fn new(channel: &Channel, program: &str, min_scale: u64, max_scale: u64, scale_jump: u64) -> TrackBuilder {
+    fn new(channel: &BackendNamespace, program: &str, min_scale: u64, max_scale: u64, scale_jump: u64) -> TrackBuilder {
         let program_name = ProgramName(channel.clone(),program.to_string());
         let track = Track::new(&program_name,min_scale,max_scale,scale_jump);
         TrackBuilder {
@@ -53,7 +53,7 @@ impl AllTracksBuilderData {
         }
     }
 
-    fn allocate(&mut self, channel: &Channel, program: &str, min_scale: u64, max_scale: u64, scale_jump: u64) -> usize {
+    fn allocate(&mut self, channel: &BackendNamespace, program: &str, min_scale: u64, max_scale: u64, scale_jump: u64) -> usize {
         let id = self.next_id;
         let track_builder = TrackBuilder::new(channel,program,min_scale,max_scale,scale_jump);
         self.tracks.insert(id,Arc::new(Mutex::new(track_builder)));
@@ -74,7 +74,7 @@ impl AllTracksBuilder {
         AllTracksBuilder(Arc::new(Mutex::new(AllTracksBuilderData::new())))
     }
 
-    pub fn allocate(&self, channel: &Channel, program: &str, min_scale: u64, max_scale: u64, scale_jump: u64) -> usize {
+    pub fn allocate(&self, channel: &BackendNamespace, program: &str, min_scale: u64, max_scale: u64, scale_jump: u64) -> usize {
         lock!(self.0).allocate(channel,program,min_scale,max_scale,scale_jump)
     }
 

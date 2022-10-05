@@ -1,9 +1,9 @@
 use peregrine_toolkit::{cbor::{cbor_as_number, cbor_into_vec, check_array_len }, decompose_vec};
-use crate::request::messages::{authorityres::AuthorityRes, bootstrapres::BootRes, datares::DataRes, failureres::FailureRes, jumpres::JumpRes, programres::ProgramRes, stickres::StickRes};
+use crate::request::messages::{authorityres::AuthorityRes, bootchannelres::BootChannelRes, datares::DataRes, failureres::FailureRes, jumpres::JumpRes, programres::ProgramRes, stickres::StickRes };
 use serde_cbor::Value as CborValue;
 
 pub enum BackendResponse {
-    Bootstrap(BootRes),
+    BootChannel(BootChannelRes),
     FailureRes(FailureRes),
     Program(ProgramRes),
     Stick(StickRes),
@@ -30,7 +30,7 @@ impl BackendResponse {
             BackendResponse::FailureRes(g) => {
                 return g.message().to_string();
             },
-            BackendResponse::Bootstrap(_) => "bootstrap",
+            BackendResponse::BootChannel(_) => "bootstrap",
             BackendResponse::Program(_) => "program",
             BackendResponse::Stick(_) => "stick",
             BackendResponse::Authority(_) => "authority",
@@ -45,14 +45,14 @@ impl BackendResponse {
     accessor!(self,into_stick,Stick,StickRes);
     accessor!(self,into_authority,Authority,AuthorityRes);
     accessor!(self,into_data,Data,DataRes);
-    accessor!(self,into_bootstrap,Bootstrap,BootRes);
+    accessor!(self,into_boot_channel,BootChannel,BootChannelRes);
 
     pub fn decode(value: CborValue) -> Result<BackendResponse,String> {
         let mut seq = cbor_into_vec(value)?;
         check_array_len(&seq,2)?;
         decompose_vec!(seq,variety,value);
         Ok(match cbor_as_number(&variety)? {
-            0 => BackendResponse::Bootstrap(BootRes::decode(value)?),
+            0 => BackendResponse::BootChannel(BootChannelRes::decode(value)?),
             1 => BackendResponse::FailureRes(FailureRes::decode(value)?),
             2 => BackendResponse::Program(ProgramRes::decode(value)?),
             3 => BackendResponse::Stick(StickRes::decode(value)?),

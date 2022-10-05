@@ -1,15 +1,15 @@
 use std::fmt::{self, Display, Formatter};
 
-use crate::{request::messages::bootstrapres::BootRes, core::version::VersionMetadata, Channel};
+use crate::{request::messages::bootchannelres::BootChannelRes, core::version::VersionMetadata, BackendNamespace};
 
 pub struct InstanceInformation {
-    pub channel: Channel,
+    pub channel: BackendNamespace,
     pub frontend_version: u32,
     pub backend_version: Vec<u32>
 }
 
 impl InstanceInformation {
-    pub(crate) fn new(channel: &Channel, boot_res: &BootRes, frontend_version: &VersionMetadata) -> InstanceInformation {
+    pub(crate) fn new(channel: &BackendNamespace, boot_res: &BootChannelRes, frontend_version: &VersionMetadata) -> InstanceInformation {
         InstanceInformation { 
             channel: channel.clone(),
             frontend_version: frontend_version.backend_version(),

@@ -94,3 +94,7 @@ path="../peregrine-dauphin"
 [dependencies.peregrine_config]
 version="*"
 path="../peregrine-config"
+
+[dependencies.identitynumber]
+version="*"
+path="../identitynumber"

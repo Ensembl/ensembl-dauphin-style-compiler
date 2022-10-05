@@ -4,7 +4,8 @@ use std::collections::BTreeMap;
 use std::mem::replace;
 use std::pin::Pin;
 use std::sync::Arc;
-use crate::{PacketPriority, DataMessage, ChannelSender, Channel};
+use crate::core::channel::wrappedchannelsender::WrappedChannelSender;
+use crate::{PacketPriority, DataMessage, ChannelSender, BackendNamespace};
 use crate::core::programbundle::SuppliedBundle;
 use crate::core::version::VersionMetadata;
 use super::request::BackendRequestAttempt;
@@ -19,13 +20,13 @@ use peregrine_toolkit::{warn , cbor::cbor_as_vec };
 
 #[derive(Clone)]
 pub struct RequestPacketFactory {
-    channel: Channel,
+    channel: BackendNamespace,
     priority: PacketPriority,
     metadata: VersionMetadata,
 }
 
 impl RequestPacketFactory {
-    pub fn new(channel: &Channel, priority: &PacketPriority, metadata: &VersionMetadata) -> RequestPacketFactory {
+    pub fn new(channel: &BackendNamespace, priority: &PacketPriority, metadata: &VersionMetadata) -> RequestPacketFactory {
         RequestPacketFactory {
             channel: channel.clone(),
             priority: priority.clone(),
@@ -58,6 +59,7 @@ impl RequestPacketBuilder {
 
 #[derive(Clone)]
 pub struct RequestPacket {
+    channel: BackendNamespace,
     factory: RequestPacketFactory,
     requests: Arc<Vec<BackendRequestAttempt>>,
 }
@@ -65,13 +67,14 @@ pub struct RequestPacket {
 impl RequestPacket {
     pub fn new(builder: RequestPacketBuilder) -> RequestPacket {
         RequestPacket {
+            channel: builder.factory.channel.clone(),
             factory: builder.factory.clone(),
             requests: Arc::new(builder.requests.clone()),
         }
     }
 
     pub fn fail(&self) -> ResponsePacket {
-        let mut response = ResponsePacket::new();
+        let mut response = ResponsePacket::empty(&self.channel);
         for r in self.requests.iter() {
             response.add_response(r.fail());
         }
@@ -87,12 +90,13 @@ impl RequestPacket {
         CborValue::Map(map)
     }
 
-    pub(crate) fn sender(&self, sender: &Arc<dyn ChannelSender>) -> Result<Pin<Box<dyn Future<Output=Result<ResponsePacket,DataMessage>>>>,DataMessage> {
+    pub(crate) fn sender(&self, sender: &WrappedChannelSender) -> Result<Pin<Box<dyn Future<Output=Result<ResponsePacket,DataMessage>>>>,DataMessage> {
         Ok(sender.get_sender(&self.factory.priority,self.clone()))
     }
 }
 
 pub struct ResponsePacket {
+    channel: BackendNamespace,
     responses: Vec<BackendResponseAttempt>,
     programs: Vec<SuppliedBundle>,
     #[cfg(debug_big_requests)]
@@ -100,8 +104,9 @@ pub struct ResponsePacket {
 }
 
 impl ResponsePacket {
-    fn new() -> ResponsePacket {
+    fn empty(channel: &BackendNamespace) -> ResponsePacket {
         ResponsePacket {
+            channel: channel.clone(),
             responses: vec![],
             programs: vec![],
             #[cfg(debug_big_requests)]
@@ -136,6 +141,7 @@ impl ResponsePacket {
     pub fn decode(value: CborValue) -> Result<ResponsePacket,String> {
         let mut responses = vec![];
         let mut programs= vec![];
+        let mut channel = None;
         #[allow(unused)] let mut total_size = 0;
         for (k,v) in cbor_into_drained_map(value)?.drain(..) {
             match k.as_str() {
@@ -144,10 +150,15 @@ impl ResponsePacket {
                     responses = ResponsePacket::decode_responses(v)?;
                 },
                 "programs" => { programs = ResponsePacket::decode_programs(v)?; },
+                "channel" => { channel = Some(v); }
                 _ => {}
             }
         }
-        Ok(ResponsePacket { 
+        let channel = if let Some(channel) = channel { channel } else {
+            return Err("missing channel in response".to_string());
+        };
+        Ok(ResponsePacket {
+            channel: BackendNamespace::decode(channel)?,
             responses, programs, 
             #[cfg(debug_big_requests)]
             total_size
@@ -168,6 +179,7 @@ impl ResponsePacket {
     #[cfg(not(debug_big_requests))]
     fn check_big_requests(&self) {}
 
+    pub(crate) fn channel(&self) -> &BackendNamespace { &self.channel }
     pub(crate) fn programs(&self) -> &[SuppliedBundle] { &self.programs }
     pub(crate) fn take_responses(&mut self) -> Vec<BackendResponseAttempt> {
         self.check_big_requests();

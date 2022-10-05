@@ -5,7 +5,8 @@ use serde_cbor::Value as CborValue;
 use std::any::Any;
 use std::collections::HashMap;
 use std::sync::{ Arc, Mutex };
-use crate::{ResponsePacket, Channel};
+use crate::core::channel::channelregistry::ChannelRegistry;
+use crate::{ResponsePacket, BackendNamespace, AccessorResolver, RequestManager};
 use crate::api::MessageSender;
 use crate::core::programbundle::SuppliedBundle;
 use crate::shapeload::programloader::ProgramLoader;
@@ -49,16 +50,16 @@ impl PgDauphin {
         }).await
     }
 
-    fn binary_name(&self, channel: &Channel, name_of_bundle: &str) -> String {
+    fn binary_name(&self, channel: &BackendNamespace, name_of_bundle: &str) -> String {
         let channel_name = channel.to_string();
         format!("{}-{}-{}",channel_name.len(),channel_name,name_of_bundle)
     }
 
-    pub async fn add_binary(&self, channel: &Channel, name_of_bundle: &str, cbor: &CborValue) -> anyhow::Result<()> {
+    pub async fn add_binary(&self, channel: &BackendNamespace, name_of_bundle: &str, cbor: &CborValue) -> anyhow::Result<()> {
         self.add_binary_direct(&self.binary_name(channel,name_of_bundle),cbor).await
     }
 
-    pub async fn add_programs(&self, channel: &Channel, response: &ResponsePacket) -> anyhow::Result<()> {
+    pub async fn add_programs(&self, channel: &BackendNamespace, response: &ResponsePacket) -> anyhow::Result<()> {
         for bundle in response.programs().iter() {
             self.add_binary(channel,bundle.bundle_name(),bundle.program()).await?;
             for (in_channel_name,in_bundle_name) in bundle.name_map() {
@@ -82,7 +83,7 @@ impl PgDauphin {
         data.names.insert(program_name.clone(),None);
     }
 
-    pub async fn run_program(&self, loader: &ProgramLoader, spec: PgDauphinTaskSpec) -> Result<(),DataMessage> {
+    pub async fn run_program(&self, manager: &RequestManager, loader: &ProgramLoader, registry: &ChannelRegistry, spec: PgDauphinTaskSpec) -> Result<(),DataMessage> {
         let program_name = spec.program_name.clone();
         if !self.is_present(&program_name) {
             loader.load(&program_name).await.map_err(|e| DataMessage::DauphinProgramMissing(e.to_string()))?;
@@ -92,6 +93,7 @@ impl PgDauphin {
             .ok_or(err!("Failed channel/program = {}",spec.program_name.to_string())).map_err(|e| DataMessage::DauphinProgramMissing(e.to_string()))?.to_owned();
         let mut payloads = spec.payloads.unwrap_or_else(|| HashMap::new());
         payloads.insert("channel".to_string(),Box::new(spec.program_name.0.clone()));
+        payloads.insert("channel-resolver".to_string(),Box::new(AccessorResolver::new(registry,&spec.program_name.0)));
         let pdq = data.pdq.clone();
         drop(data);
         pdq.run(PgDauphinRunTaskSpec {
@@ -104,7 +106,7 @@ impl PgDauphin {
     }
 }
 
-async fn add_bundle(pgd: &PgDauphin, channel: &Channel, bundle: &SuppliedBundle, messages: &MessageSender) {
+async fn add_bundle(pgd: &PgDauphin, channel: &BackendNamespace, bundle: &SuppliedBundle, messages: &MessageSender) {
     match pgd.add_binary(&channel,bundle.bundle_name(),bundle.program()).await {
         Ok(_) => {
             for (in_channel_name,in_bundle_name) in bundle.name_map() {
@@ -120,7 +122,7 @@ async fn add_bundle(pgd: &PgDauphin, channel: &Channel, bundle: &SuppliedBundle,
     }
 }
 
-pub(crate) async fn add_programs_from_response(pgd: &PgDauphin, channel: &Channel, response: &ResponsePacket, messages: &MessageSender) {
+pub(crate) async fn add_programs_from_response(pgd: &PgDauphin, channel: &BackendNamespace, response: &ResponsePacket, messages: &MessageSender) {
     for bundle in response.programs().clone().iter() {
         add_bundle(&pgd,&channel, bundle, &messages).await;
     }

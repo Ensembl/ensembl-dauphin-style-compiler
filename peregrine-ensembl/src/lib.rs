@@ -3,9 +3,9 @@ use std::fmt::Debug;
 use js_sys::{ Reflect, Array, JSON };
 use wasm_bindgen::{prelude::*, JsCast};
 use peregrine_draw::{Endstop, Message, PeregrineAPI, PeregrineConfig, PgCommanderWeb};
-use peregrine_data::{Channel, ChannelLocation, StickId, zmenu_to_json };
+use peregrine_data::{ StickId, zmenu_to_json };
 use peregrine_message::{MessageKind, PeregrineMessage};
-use peregrine_toolkit::{url::Url, log, warn, error_important, eachorevery::eoestruct::{StructTemplate, struct_from_json}, js::jstojsonvalue::js_to_json};
+use peregrine_toolkit::{ log, warn, error_important, eachorevery::eoestruct::{StructTemplate, struct_from_json}, js::jstojsonvalue::js_to_json};
 use web_sys::{ Element };
 use serde::{Serialize, Deserialize};
 use serde_json::{ Map as JsonMap, Value as JsonValue };
@@ -148,12 +148,8 @@ impl GenomeBrowser {
         /*
          * Create a genome browser object.
          */
-        self.commander = Some(self.api.run(config,&target_element.to_element()?)?);
-        /*
-         * Ok, we're ready to go. Bootstrapping causes the genome browser to go to the backend and configure itself.
-         */
         let url = config_in.get("backend_url").unwrap().to_string()?;
-        self.api.bootstrap(&Channel::new(&ChannelLocation::HttpChannel(js_throw(Url::parse(&url)))));
+        self.commander = Some(self.api.run(config,&target_element.to_element()?,&url)?);
         /*
          * You have to turn on tracks _per se_, but we always want tracks.
          */

@@ -585,6 +585,7 @@ dependencies = [
  "dauphin_interp",
  "enum-iterator",
  "hostname",
+ "identitynumber",
  "js-sys",
  "keyed",
  "lazy_static 1.4.0",

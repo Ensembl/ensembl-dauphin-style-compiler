@@ -1,6 +1,7 @@
 use std::collections::HashMap;
+use crate::core::channel::channelregistry::ChannelRegistry;
 use crate::shapeload::programloader::ProgramLoader;
-use crate::{PeregrineCoreBase, Channel};
+use crate::{PeregrineCoreBase, BackendNamespace, RequestManager};
 use crate::core::{ StickId, Stick };
 use crate::run::{ PgDauphin, PgDauphinTaskSpec };
 use std::any::Any;
@@ -16,7 +17,7 @@ pub struct Authority {
 }
 
 impl Authority {
-    pub fn new(channel: &Channel, startup_program_name: &str, lookup_program_name: &str, jump_program_name: &str) -> Authority {
+    pub fn new(channel: &BackendNamespace, startup_program_name: &str, lookup_program_name: &str, jump_program_name: &str) -> Authority {
         Authority {
             startup_program_name: ProgramName(channel.clone(),startup_program_name.to_string()),
             lookup_program_name: ProgramName(channel.clone(),lookup_program_name.to_string()),
@@ -28,7 +29,7 @@ impl Authority {
     pub fn lookup_program(&self) -> &ProgramName { &self.lookup_program_name }
 
     async fn run_startup_program(&self, base: &PeregrineCoreBase, program_loader: &ProgramLoader) -> Result<(),DataMessage> {
-        base.dauphin.run_program(&program_loader.clone(),PgDauphinTaskSpec {
+        base.dauphin.run_program(&base.manager,&program_loader.clone(),&base.channel_registry,PgDauphinTaskSpec {
             prio: 2,
             slot: None,
             timeout: None,
@@ -45,12 +46,12 @@ impl Authority {
         }
     }
 
-    pub async fn try_lookup(&self, dauphin: PgDauphin, program_loader: &ProgramLoader, id: StickId) -> Result<Vec<Stick>,DataMessage> {
+    pub async fn try_lookup(&self, manager: &RequestManager, dauphin: PgDauphin, program_loader: &ProgramLoader, channel_registry: &ChannelRegistry, id: StickId) -> Result<Vec<Stick>,DataMessage> {
         let sticks = Builder::new(vec![] as Vec<Stick>);
         let mut payloads = HashMap::new();
         payloads.insert("stick_id".to_string(),Box::new(id) as Box<dyn Any>);
         payloads.insert("sticks".to_string(),Box::new(sticks.clone()) as Box<dyn Any>);
-        dauphin.run_program(program_loader,PgDauphinTaskSpec {
+        dauphin.run_program(manager,program_loader,channel_registry,PgDauphinTaskSpec {
             prio: 2,
             slot: None,
             timeout: None,
@@ -60,12 +61,12 @@ impl Authority {
         Ok(sticks.build())
     }
 
-    pub async fn try_jump(&self, dauphin: PgDauphin, program_loader: &ProgramLoader, location: &str) -> Result<Vec<(String,(String,u64,u64))>,DataMessage> {
+    pub async fn try_jump(&self, manager: &RequestManager, dauphin: PgDauphin, program_loader: &ProgramLoader, channel_registry: &ChannelRegistry, location: &str) -> Result<Vec<(String,(String,u64,u64))>,DataMessage> {
         let jumps = Builder::new(vec![] as Vec<(String,(String,u64,u64))>);
         let mut payloads = HashMap::new();
         payloads.insert("location".to_string(),Box::new(location.to_string()) as Box<dyn Any>);
         payloads.insert("jumps".to_string(),Box::new(jumps.clone()) as Box<dyn Any>);
-        dauphin.run_program(program_loader,PgDauphinTaskSpec {
+        dauphin.run_program(manager,program_loader,channel_registry,PgDauphinTaskSpec {
             prio: 2,
             slot: None,
             timeout: None,
@@ -76,7 +77,7 @@ impl Authority {
     }
 }
 
-pub(super) async fn load_stick_authority(base: &PeregrineCoreBase, program_loader: &ProgramLoader, channel: Channel) -> Result<Authority,DataMessage> {
+pub(super) async fn load_stick_authority(base: &PeregrineCoreBase, program_loader: &ProgramLoader, channel: BackendNamespace) -> Result<Authority,DataMessage> {
     let backend = base.all_backends.backend(&channel);
     let stick_authority = backend.authority().await?;
     stick_authority.preload_lookup_program(base,program_loader);

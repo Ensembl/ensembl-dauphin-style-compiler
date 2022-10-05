@@ -1,43 +1,51 @@
 use std::{collections::HashMap, sync::{Arc, Mutex}};
 use peregrine_toolkit::lock;
 
-use crate::{DataMessage, ProgramName, Stick, StickId, api::MessageSender, index::stickauthority::Authority, metric::{datastreammetric::PacketDatastreamMetricBuilder, metricreporter::MetricCollector}, request::messages::{authorityreq::AuthorityReq, bootstrapreq::BootstrapReq, bootstrapres::BootRes, datareq::DataRequest, datares::DataRes, jumpreq::JumpReq, jumpres::{JumpLocation, JumpRes}, programreq::ProgramReq, stickreq::StickReq}, Channel, PacketPriority};
+use crate::{DataMessage, ProgramName, Stick, StickId, api::MessageSender, index::stickauthority::Authority, metric::{datastreammetric::PacketDatastreamMetricBuilder, metricreporter::MetricCollector}, request::messages::{authorityreq::AuthorityReq, datareq::DataRequest, datares::DataRes, jumpreq::JumpReq, jumpres::{JumpLocation, JumpRes}, programreq::ProgramReq, stickreq::StickReq}, PacketPriority, BackendNamespace};
 
-use super::{request::{BackendRequest}, manager::RequestManager};
+use super::{request::{BackendRequest}, manager::{RequestManager}, response::BackendResponse};
 
 #[derive(Clone)]
 pub struct Backend {
     manager: RequestManager,
     messages: MessageSender,
-    channel: Channel,
+    name: BackendNamespace,
     metrics: MetricCollector
 }
 
 impl Backend {
-    pub(crate) fn new(manager: &RequestManager, channel: &Channel, metrics: &MetricCollector, messages: &MessageSender) -> Backend {
+    pub(crate) fn new(manager: &RequestManager, channel: &BackendNamespace, metrics: &MetricCollector, messages: &MessageSender) -> Backend {
         Backend {
             manager: manager.clone(),
             messages: messages.clone(),
-            channel: channel.clone(),
+            name: channel.clone(),
             metrics: metrics.clone()
         }
+    }
+
+    async fn submit<F,T>(&self, priority: &PacketPriority, request: &BackendRequest, cb: F) -> Result<T,DataMessage>
+            where F: Fn(BackendResponse) -> Result<T,String> {
+        self.manager.submit(&self.name,priority,&request, |v| {
+            cb(v)
+        }).await
+    }
+
+    async fn submit_hi<F,T>(&self, request: &BackendRequest, cb: F) -> Result<T,DataMessage>
+            where F: Fn(BackendResponse) -> Result<T,String> {
+        self.submit(&PacketPriority::RealTime,request,cb).await
     }
 
     pub async fn data(&self, data_request: &DataRequest, priority: &PacketPriority) -> Result<DataRes,DataMessage> {
         let request = BackendRequest::Data(data_request.clone());
         let account_builder = PacketDatastreamMetricBuilder::new(&self.metrics,data_request.name(),priority,data_request.region());
-        let r = self.manager.submit(&self.channel,priority,&request, |v| {
-            v.into_data()
-        }).await?;
+        let r = self.submit(priority,&request, |v| { v.into_data() }).await?;
         r.account(&account_builder);
         Ok(r)
     }
 
     pub async fn stick(&self, id: &StickId) -> Result<Stick,DataMessage> {
         let req = StickReq::new(&id);
-        let r = self.manager.submit(&self.channel, &PacketPriority::RealTime, &req, |v| {
-            v.into_stick()
-        }).await?;
+        let r = self.submit_hi(&req, |v| { v.into_stick() }).await?;
         match r.stick() {
             Ok(s) => Ok(s),
             Err(_e) => {
@@ -49,34 +57,21 @@ impl Backend {
 
     pub async fn authority(&self) -> Result<Authority,DataMessage> {
         let request = AuthorityReq::new();
-        Ok(self.manager.submit(&self.channel,&PacketPriority::RealTime, &request, |v| {
-            v.into_authority()
-        }).await?.build())
+        Ok(self.submit_hi(&request, |v| v.into_authority()).await?.build())
     }
 
     pub async fn jump(&self, location: &str) -> anyhow::Result<Option<JumpLocation>> {
         let req = JumpReq::new(&location);
-        let r = self.manager.submit(&self.channel,&PacketPriority::RealTime,&req, |v| {
-            v.into_jump()
-        }).await?;
+        let r = self.submit_hi(&req, |v| v.into_jump()).await?;
         Ok(match r {
             JumpRes::Found(x) => Some(x),
             JumpRes::NotFound => None
         })
     }
 
-    pub async fn bootstrap(&self) -> Result<BootRes,DataMessage> {
-        let request = BootstrapReq::new();
-        self.manager.submit(&self.channel,&PacketPriority::RealTime,&request, |v| {
-            v.into_bootstrap()
-        }).await    
-    }
-
     pub async fn program(&self, program_name: &ProgramName) -> Result<(),DataMessage> {
         let req = ProgramReq::new(&program_name);
-        self.manager.submit(&program_name.0,&PacketPriority::RealTime,&req, |v| {
-            v.into_program()
-        }).await?;
+        self.submit_hi(&req, |v| v.into_program()).await?;
         Ok(())
     }
 }
@@ -86,7 +81,7 @@ pub struct AllBackends {
     manager: RequestManager,
     messages: MessageSender,
     metrics: MetricCollector,
-    backends: Arc<Mutex<HashMap<Channel,Backend>>>
+    backends: Arc<Mutex<HashMap<BackendNamespace,Backend>>>
 }
 
 impl AllBackends {
@@ -99,7 +94,7 @@ impl AllBackends {
         }
     }
 
-    pub fn backend(&self, channel: &Channel) -> Backend {
+    pub fn backend(&self, channel: &BackendNamespace) -> Backend {
         let mut backends = lock!(self.backends);
         if !backends.contains_key(channel) {
             backends.insert(channel.clone(), Backend::new(&self.manager,channel,&self.metrics,&self.messages));

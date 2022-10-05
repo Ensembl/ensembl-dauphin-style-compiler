@@ -80,8 +80,12 @@ mod api {
 
 mod core {
     pub(crate) mod channel {
-        pub(crate) mod channel;
+        pub(crate) mod backendnamespace;
+        pub(crate) mod accessorresolver;
         pub(crate) mod channelintegration;
+        pub(crate) mod channelregistry;
+        pub(crate) mod channelboot;
+        pub(crate) mod wrappedchannelsender;
     }
 
     pub(crate) mod asset;
@@ -160,8 +164,8 @@ mod request {
     pub(crate) mod messages {
         pub(crate) mod authorityreq;
         pub(crate) mod authorityres;
-        pub(crate) mod bootstrapreq;
-        pub(crate) mod bootstrapres;
+        pub(crate) mod bootchannelreq;
+        pub(crate) mod bootchannelres;
         pub(crate) mod datareq;
         pub(crate) mod datares;
         pub(crate) mod failureres;
@@ -177,7 +181,6 @@ mod request {
 
 mod run {
     pub mod instancepayload;
-    pub mod bootstrap;
     pub mod pgcommander;
     pub mod pgdauphin;
     pub use self::pgcommander::Commander;
@@ -277,7 +280,8 @@ pub use self::allotment::style::style::LeafStyle;
 pub use self::allotment::globals::{ allotmentmetadata::GlobalAllotmentMetadata, playingfield::PlayingField };
 pub use self::api::{ PeregrineCore, PeregrineCoreBase, PeregrineIntegration, PeregrineApiQueue, TrainIdentity, CarriageSpeed, AgentStore, InstanceInformation };
 pub use self::core::{ Asset, Assets, PgdPeregrineConfig, ConfigKey, Stick, StickId, StickTopology, Scale, Viewport };
-pub use self::core::channel::channel::{ Channel, ChannelLocation };
+pub use self::core::channel::accessorresolver::{ AccessorResolver };
+pub use self::core::channel::backendnamespace::BackendNamespace;
 pub use self::core::channel::channelintegration::{ ChannelIntegration, ChannelSender };
 pub use self::index::{ StickStore, AuthorityStore };
 pub use self::shapeload::{ Region, ProgramName, ProgramRegion, ShapeStore, DataStore, ProgramData, ProgramRegionBuilder, ShapeRequest, ShapeRequestGroup };

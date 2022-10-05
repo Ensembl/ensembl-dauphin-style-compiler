@@ -3,10 +3,10 @@ use std::sync::Arc;
 use crate::simple_interp_command;
 use crate::util::{ get_instance, get_peregrine };
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, AsyncBlock, CommandResult };
-use dauphin_interp::runtime::{ InterpContext, Register, InterpValue, RegisterFile };
+use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
+use peregrine_data::AccessorResolver;
 use peregrine_data::DataRequest;
-use peregrine_data::{Channel, PacketPriority, ProgramData, Region, Scale, ShapeRequest, StickId};
-use peregrine_toolkit::log;
+use peregrine_data::{PacketPriority, ProgramData, Region, Scale, ShapeRequest, StickId};
 use serde_cbor::Value as CborValue;
 
 simple_interp_command!(GetLaneInterpCommand,GetLaneDeserializer,21,3,(0,1,2));
@@ -83,26 +83,31 @@ impl InterpCommand for DataStreamInterpCommand {
     }
 }
 
+async fn request_interp_command(context: &mut InterpContext, cmd: RequestInterpCommand) -> anyhow::Result<()> {
+    let channel_resolver = get_instance::<AccessorResolver>(context,"channel-resolver")?;
+    let registers = context.registers_mut();
+    let channel_name = registers.get_strings(&cmd.1)?[0].to_owned();
+    let prog_name = registers.get_strings(&cmd.2)?[0].to_owned();
+    let stick = &registers.get_strings(&cmd.3)?[0];
+    let index = &registers.get_numbers(&cmd.4)?[0];
+    let scale = &registers.get_numbers(&cmd.5)?[0];
+    let region = Region::new(&StickId::new(stick),*index as u64,&Scale::new(*scale as u64));
+    let channel = channel_resolver.resolve(&channel_name).await?;
+    let request = DataRequest::new(&channel,&prog_name,&region);
+    drop(registers);
+    let peregrine = get_peregrine(context)?;
+    let geometry_builder = peregrine.geometry_builder();
+    let id = geometry_builder.add_request(request);
+    drop(peregrine);
+    let registers = context.registers_mut();
+    registers.write(&cmd.0,InterpValue::Indexes(vec![id as usize]));
+    Ok(())
+}
+
 impl InterpCommand for RequestInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
-        let self_channel = get_instance::<Channel>(context,"channel")?;
-        let registers = context.registers_mut();
-        let channel_name = registers.get_strings(&self.1)?[0].to_owned();
-        let prog_name = registers.get_strings(&self.2)?[0].to_owned();
-        let stick = &registers.get_strings(&self.3)?[0];
-        let index = &registers.get_numbers(&self.4)?[0];
-        let scale = &registers.get_numbers(&self.5)?[0];
-        let region = Region::new(&StickId::new(stick),*index as u64,&Scale::new(*scale as u64));
-        let channel = Channel::parse(&self_channel,&channel_name)?;
-        let request = DataRequest::new(&channel,&prog_name,&region);
-        drop(registers);
-        let peregrine = get_peregrine(context)?;
-        let geometry_builder = peregrine.geometry_builder();
-        let id = geometry_builder.add_request(request);
-        drop(peregrine);
-        let registers = context.registers_mut();
-        registers.write(&self.0,InterpValue::Indexes(vec![id as usize]));
-        Ok(CommandResult::SyncResult())
+    fn execute(&self, _context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+        let cmd = self.clone();
+        Ok(CommandResult::AsyncResult(AsyncBlock::new(Box::new(|context| Box::pin(request_interp_command(context,cmd))))))
     }
 }
 

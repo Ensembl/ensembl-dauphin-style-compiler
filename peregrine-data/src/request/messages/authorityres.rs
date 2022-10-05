@@ -1,9 +1,9 @@
 use peregrine_toolkit::{cbor::{cbor_as_str, cbor_into_vec, check_array_len}, decompose_vec };
-use crate::{index::stickauthority::Authority, Channel};
+use crate::{index::stickauthority::Authority, BackendNamespace};
 use serde_cbor::Value as CborValue;
 
 pub struct AuthorityRes {
-    channel: Channel,
+    channel: BackendNamespace,
     startup_name: String,
     lookup_name: String,
     jump_name: String
@@ -19,7 +19,7 @@ impl AuthorityRes {
         check_array_len(&value,4)?;
         decompose_vec!(value,channel,startup,lookup,jump);
         Ok(AuthorityRes {
-            channel: Channel::decode(channel)?,
+            channel: BackendNamespace::decode(channel)?,
             startup_name: cbor_as_str(&startup)?.to_string(),
             lookup_name: cbor_as_str(&lookup)?.to_string(),
             jump_name: cbor_as_str(&jump)?.to_string(),

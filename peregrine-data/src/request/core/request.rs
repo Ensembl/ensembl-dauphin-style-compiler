@@ -1,6 +1,6 @@
 // TODO tied failures
 use crate::request::messages::authorityreq::AuthorityReq;
-use crate::request::messages::bootstrapreq::BootstrapReq;
+use crate::request::messages::bootchannelreq::BootChannelReq;
 use crate::request::messages::datareq::DataRequest;
 use crate::request::messages::failureres::FailureRes;
 use crate::request::messages::jumpreq::JumpReq;
@@ -19,27 +19,27 @@ pub struct DataRequestSerialization {
 }
 
 impl DataRequestSerialization {
-    fn make_type_index(request: &BackendRequest) -> u8 {
+    pub(crate) fn make_type_index(request: &BackendRequest) -> u8 { // XXX not pub crate
         match request {
-            BackendRequest::Bootstrap(_) => 0,
+            BackendRequest::BootChannel(_) => 0,
             BackendRequest::Program(_) => 1,
             BackendRequest::Stick(_) => 2,
             BackendRequest::Authority(_) => 3,
             BackendRequest::Data(_) => 4,
             BackendRequest::Jump(_) => 5,
-            BackendRequest::Metric(_) => 6,
+            BackendRequest::Metric(_) => 6
         }
     }
 
     fn make_to_failure(request: &BackendRequest) -> String {
         match request {
-            BackendRequest::Bootstrap(_) => "bootstrap",
+            BackendRequest::BootChannel(_) => "bootstrap",
             BackendRequest::Program(_) => "program",
             BackendRequest::Stick(_) => "stick",
             BackendRequest::Authority(_) => "authority",
             BackendRequest::Data(_) => "data",
             BackendRequest::Jump(_) => "jump",
-            BackendRequest::Metric(_) => "metric",
+            BackendRequest::Metric(_) => "metric"
         }.to_string()
     }
 
@@ -54,13 +54,13 @@ impl DataRequestSerialization {
 
     fn make_encode_data(request: &BackendRequest) -> CborValue {
         match request {
-            BackendRequest::Bootstrap(x) => x.encode(),
+            BackendRequest::BootChannel(x) => x.encode(),
             BackendRequest::Program(x) => x.encode(),
             BackendRequest::Stick(x) => x.encode(),
             BackendRequest::Authority(x) => x.encode(),
             BackendRequest::Data(x) => x.encode(),
             BackendRequest::Jump(x) => x.encode(),
-            BackendRequest::Metric(x) => x.encode(),
+            BackendRequest::Metric(x) => x.encode()
         }
     }
 
@@ -81,13 +81,13 @@ impl DataRequestSerialization {
 }
 
 pub(crate) enum BackendRequest {
-    Bootstrap(BootstrapReq),
+    BootChannel(BootChannelReq),
     Program(ProgramReq),
     Stick(StickReq),
     Authority(AuthorityReq),
     Data(DataRequest),
     Jump(JumpReq),
-    Metric(MetricReport),
+    Metric(MetricReport)
 }
 
 #[derive(Clone)]

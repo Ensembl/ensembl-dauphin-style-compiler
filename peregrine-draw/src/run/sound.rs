@@ -1,6 +1,6 @@
 use peregrine_data::Asset;
 use peregrine_data::Assets;
-use peregrine_data::Channel;
+use peregrine_data::BackendNamespace;
 use peregrine_toolkit::log_extra;
 use peregrine_toolkit::plumbing::distributor::Distributor;
 use peregrine_toolkit::plumbing::oneshot::OneShot;
@@ -21,7 +21,7 @@ use super::PgPeregrineConfig;
 struct PromiseBgd(Arc<Mutex<Option<(Closure<dyn FnMut(JsValue)>,Closure<dyn FnMut(JsValue)>)>>>);
 
 enum SoundQueueItem {
-    Play(Option<Channel>,String),
+    Play(Option<BackendNamespace>,String),
     Shutdown
 }
 
@@ -53,7 +53,7 @@ impl SoundState {
         Ok(self.samples.get(name).unwrap().as_ref())
     }
 
-    async fn try_play(&mut self, channel: Option<&Channel>, name: &str) -> Result<(),JsValue> {
+    async fn try_play(&mut self, channel: Option<&BackendNamespace>, name: &str) -> Result<(),JsValue> {
         let asset = self.assets.get(channel,name);
         if asset.is_none() { return Ok(()); }
         let asset = asset.unwrap();
@@ -87,7 +87,7 @@ impl SoundState {
         Ok(())
     }
 
-    async fn play(&mut self, channel: Option<&Channel>, name: &str) {
+    async fn play(&mut self, channel: Option<&BackendNamespace>, name: &str) {
         self.try_play(channel,name).await.ok();
     }
 }
@@ -147,7 +147,7 @@ impl Sound {
         Ok(())
     }
 
-    pub(crate) fn play(&mut self, channel: Option<&Channel>, sound: &str) {
+    pub(crate) fn play(&mut self, channel: Option<&BackendNamespace>, sound: &str) {
         self.queue.add(SoundQueueItem::Play(channel.cloned(),sound.to_string()))
     }
 

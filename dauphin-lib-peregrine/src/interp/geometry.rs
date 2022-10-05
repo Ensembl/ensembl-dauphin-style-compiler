@@ -1,6 +1,6 @@
 use anyhow::anyhow as err;
 use peregrine_toolkit::eachorevery::EachOrEvery;
-use peregrine_toolkit::{lock, log};
+use peregrine_toolkit::{lock};
 use crate::simple_interp_command;
 use peregrine_data::{Colour, DirectColour, DrawnType, Patina, Pen, Plotter, ShapeRequest, ZMenu, SpaceBase, ProgramShapesBuilder, Hotspot, Background, AttachmentPoint};
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult };

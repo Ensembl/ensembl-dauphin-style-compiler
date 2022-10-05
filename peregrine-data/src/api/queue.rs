@@ -4,12 +4,11 @@ use crate::core::{ StickId, Viewport };
 use crate::request::core::request::{BackendRequest};
 use crate::request::messages::metricreq::MetricReport;
 use crate::run::{add_task};
-use crate::run::bootstrap::bootstrap;
 use crate::shapeload::carriagebuilder::CarriageBuilder;
 use crate::train::main::datatasks::{load_stick, load_carriage};
 use crate::train::main::train::StickData;
 use crate::train::model::trainextent::TrainExtent;
-use crate::{Assets, PgCommanderTaskSpec, DrawingCarriage, Channel};
+use crate::{Assets, PgCommanderTaskSpec, DrawingCarriage, BackendNamespace};
 use commander::{CommanderStream, PromiseFuture};
 use peregrine_toolkit::eachorevery::eoestruct::StructBuilt;
 use peregrine_toolkit::{log_extra};
@@ -44,8 +43,10 @@ use super::pgcore::PeregrineCore;
  *    ReportMetric
  *    GeneralMetric
  *
+ * During startup:
+ *    AddBackend
+ * 
  * During boot.shutdown:
- *    Bootstrap
  *    SetAssets
  *    Ready
  *    Shutdown
@@ -53,17 +54,18 @@ use super::pgcore::PeregrineCore;
  */
 
  pub(crate) enum ApiMessage {
+    AddBackend(String),
+    ApplicationReady,
     TransitionComplete,
     SetPosition(f64),
     SetBpPerScreen(f64),
     SetStick(StickId),
     SetMinPxPerCarriage(u32),
-    Bootstrap(u64,Channel),
     Switch(Vec<String>,StructBuilt),
     RadioSwitch(Vec<String>,bool),
     RegenerateTrackConfig,
     Jump(String,PromiseFuture<Option<(StickId,f64,f64)>>),
-    ReportMetric(Channel,MetricReport),
+    ReportMetric(BackendNamespace,MetricReport),
     GeneralMetric(String,Vec<(String,String)>,Vec<(String,f64)>),
     SetAssets(Assets),
     PingTrains,
@@ -88,6 +90,12 @@ impl ApiQueueCampaign {
 
     async fn run_message(&mut self, data: &mut PeregrineCore, message: ApiMessage) {
         match message {
+            ApiMessage::ApplicationReady => {
+                data.base.channel_registry.booted().await;
+            },
+            ApiMessage::AddBackend(access) => {
+                data.base.channel_registry.add_backend(&access).await;
+            },
             ApiMessage::LoadStick(extent,output) => {
                 load_stick(&mut data.base,&data.agent_store.stick_store,&extent,&output);
             },
@@ -122,9 +130,6 @@ impl ApiQueueCampaign {
             },
             ApiMessage::CarriageLoaded(carriage) => {
                 carriage.set_ready();
-            },
-            ApiMessage::Bootstrap(identity,channel) => {
-                bootstrap(&data.base,&data.agent_store,channel,identity);
             },
             ApiMessage::Switch(path,value) => {
                 data.switches.switch(&path.iter().map(|x| x.as_str()).collect::<Vec<_>>(),value);
@@ -195,6 +200,7 @@ impl PeregrineApiQueue {
     pub(crate) fn visual_blocker(&self) -> &Blocker { &self.visual_blocker }
 
     pub(crate) fn run(&self, data: &mut PeregrineCore) {
+        self.push(ApiMessage::ApplicationReady);
         let mut self2 = self.clone();
         let mut data2 = data.clone();
         add_task::<()>(&data.base.commander,PgCommanderTaskSpec {

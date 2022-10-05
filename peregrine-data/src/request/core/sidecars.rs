@@ -1,4 +1,4 @@
-use crate::{PgDauphin, run::pgdauphin::add_programs_from_response, ResponsePacket, Channel, api::MessageSender};
+use crate::{PgDauphin, run::pgdauphin::add_programs_from_response, ResponsePacket, api::MessageSender, BackendNamespace};
 
 #[derive(Clone)]
 pub(crate) struct RequestSidecars {
@@ -12,7 +12,7 @@ impl RequestSidecars {
         }
     }
 
-    pub(crate) async fn run(&self, response: &ResponsePacket, channel: &Channel, messages: &MessageSender) {
+    pub(crate) async fn run(&self, response: &ResponsePacket, channel: &BackendNamespace, messages: &MessageSender) {
         add_programs_from_response(&self.pgd,channel,response,messages).await;
     }
 }
