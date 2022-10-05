@@ -34,10 +34,10 @@ from io import BytesIO
 router = APIRouter()
 
 # Some of our cbor is from caches and already serialised so we have to build our response ourselves
-def build_response(responses,programs) -> Any:
+def build_response(responses,programs,channel) -> Any:
     with BytesIO() as fp:
         encoder = CBOREncoder(fp)
-        encoder.encode_length(5,2)
+        encoder.encode_length(5,3)
         encoder.encode("responses")
         encoder.encode_length(4,len(responses))
         for (id,payload) in responses:
@@ -46,6 +46,8 @@ def build_response(responses,programs) -> Any:
             encoder.fp.write(payload) # this line is the key swerve
         encoder.encode("programs")
         encoder.encode(programs)
+        encoder.encode("channel")
+        encoder.encode(channel)
         return fp.getvalue()
 
 class PacketPriority(str, Enum):
@@ -64,6 +66,6 @@ async def data(priority: PacketPriority, request: Request):
     async for chunk in request.stream():
         body += chunk
     input_data = cbor2.loads(body)
-    (responses,programs) = process_packet(input_data,priority=="hi")
-    body = build_response(responses,programs)
+    (responses,programs,channel) = process_packet(input_data,priority=="hi")
+    body = build_response(responses,programs,channel)
     return Response(content=body,media_type="application/cbor")

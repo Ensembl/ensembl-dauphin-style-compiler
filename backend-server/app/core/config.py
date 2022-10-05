@@ -67,6 +67,9 @@ ASSETS_DIR = config("ASSETS_DIR",default=os.path.join(base_directory,"assets"))
 ASSETS_TOML = config("ASSETS_TOML",default=os.path.join(config_directory,"assets.toml"))
 SPECIESLIST_TOML = config("SPECIESLIST_TLML",default=os.path.join(config_directory,"species-aliases.toml"))
 
+default_channel_str = config("DEFAULT_BACKEND_NAMESPACE", default="ensembl:main")
+DEFAULT_CHANNEL = default_channel_str.split(":")
+
 # logging configuration
 
 SOURCES_TOML: str = config("SOURCES_TOML", default=os.path.join(config_directory,"sources-s3.toml"))
@@ -77,8 +80,6 @@ if not os.path.exists(SOURCES_TOML):
 MEMCACHED = config("MEMCACHED", default="127.0.0.1:11211")
 MEMCACHED_PREFIX = config("MEMCACHED_PREFIX",default="")
 MEMCACHED_BUMP_ON_RESTART = config("MEMCACHED_BUMP_ON_RESTART",default = False)
-
-LO_PORT = config("LO_PORT",default=False)
 
 setup_logging()
 

@@ -1,4 +1,5 @@
 import collections
+import imp
 import logging
 import cbor2
 import urllib
@@ -9,6 +10,7 @@ from .metriccmd import MetricHandler
 from .datacmd import DataHandler, JumpHandler
 from util.influx import ResponseMetrics
 from model.version import Version
+from core.config import DEFAULT_CHANNEL
 
 data_accessor_collection = DataAccessorCollection()        
 
@@ -53,9 +55,14 @@ def process_local_request(data_accessor: DataAccessor,channel: Tuple[int,str], t
     handler = type_to_handler(typ)
     return handler.process(data_accessor,channel,payload,metrics,version)
 
+def replace_empty_channel(channel: Tuple[str,str]) -> Tuple[str,str]:
+    if channel[0] == "" and channel[1] == "":
+        channel = DEFAULT_CHANNEL
+    return channel
+
 def process_packet(packet_cbor: Any, high_priority: bool) -> Any:
     metrics = ResponseMetrics("realtime" if high_priority else "batch")
-    channel = packet_cbor["channel"]
+    channel = replace_empty_channel(packet_cbor["channel"])
     response = []
     bundles = set()
     local_requests = []
@@ -82,4 +89,4 @@ def process_packet(packet_cbor: Any, high_priority: bool) -> Any:
         bundles |= r.bundles
     begs_files = data_accessor.begs_files
     metrics.send()
-    return (response,[ begs_files.add_bundle(x,version) for x in bundles ])
+    return (response,[ begs_files.add_bundle(x,version) for x in bundles ],channel)

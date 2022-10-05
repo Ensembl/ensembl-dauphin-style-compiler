@@ -1,6 +1,7 @@
+import logging
 import toml
 import os.path
-from core.config import ASSETS_TOML, LO_PORT, METRIC_FILE, ASSETS_DIR
+from core.config import ASSETS_TOML, METRIC_FILE, ASSETS_DIR
 from typing import Any
 from .coremodel import Handler
 from .response import Response
@@ -15,20 +16,8 @@ class ErrorHandler(Handler):
     def __init__(self, message: str):
         self.message = message
 
-    def process(self, data_accessor: DataAccessor, channel: Any,  payload: Any, metrics: ResponseMetrics) -> Response:
+    def process(self, data_accessor: DataAccessor, channel: Any, payload: Any, metrics: ResponseMetrics) -> Response:
         return Response(1,self.message)
-
-def lo_port(channel):
-    out = list(channel)
-    if channel[0] == 0: # URL type
-        url = urlparse(channel[1])
-        netloc = url.netloc
-        hostport = netloc.split(':')
-        if len(hostport) > 1:
-            netloc = hostport[0]+':'+str(int(hostport[1])+1)
-        url = url._replace(netloc=netloc)
-        out[1] = url.geturl()
-    return out
 
 def load_assets(chrome: bool):
     assets = {}
@@ -45,12 +34,12 @@ def load_assets(chrome: bool):
 
 class BootstrapHandler(Handler):
     def process(self, data_accessor: DataAccessor, channel: Any, payload: Any, metrics: ResponseMetrics, version: Version) -> Response:
-        lo_channel = (lo_port(channel) if LO_PORT else channel)
         try:
             r = Response(0,{
                 "boot": [channel,data_accessor.begs_files.boot_program(version)],
-                "hi":  channel,
-                "lo":  lo_channel,
+                "hi": channel, # should go when v15 is retired
+                "lo": channel, # should go when v15 is retired
+                "namespace":  channel,
                 "assets": load_assets(False),
                 "chrome-assets": load_assets(True),
                 "supports": data_accessor.begs_files.versions()
@@ -68,13 +57,13 @@ class ProgramHandler(Handler):
         if want_channel != channel:
             return Response(1,"Only know of programs in my own channel")
         try:
-            bundle = data_accessor.begs_files.find_bundle(name)
+            bundle = data_accessor.begs_files.find_bundle(name,version)
         except UnknownVersionException as e:
             return Response(1,e)
         if bundle == None:
             return Response(1,"Unknown program {}".format(name))
         r = Response(2,[])
-        r.add_bundle(bundle,version)
+        r.bundles.add(bundle)
         return r
 
 class StickHandler(Handler):
