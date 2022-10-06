@@ -3,7 +3,7 @@ use std::{sync::{Mutex, Arc}, collections::HashMap};
 use commander::CommanderStream;
 use peregrine_toolkit::lock;
 
-use super::{response::{BackendResponse, BackendResponseAttempt}, request::{BackendRequest, BackendRequestAttempt}};
+use super::{response::{BackendResponse, BackendResponseAttempt}, request::{MiniRequest, MiniRequestAttempt}};
 
 #[derive(Clone)]
 pub(crate) struct AttemptMatch {
@@ -30,9 +30,9 @@ impl AttemptMatch {
         pending.insert(id,response.clone());
     }
 
-    pub(super) fn make_attempt(&self, request: &BackendRequest) -> (BackendRequestAttempt,CommanderStream<BackendResponse>) {
+    pub(super) fn make_attempt(&self, request: &MiniRequest) -> (MiniRequestAttempt,CommanderStream<BackendResponse>) {
         let id = self.next_id();
-        let request = BackendRequestAttempt::new(id,request);
+        let request = MiniRequestAttempt::new(id,request);
         let stream = request.response().clone();
         self.add_pending(id,&stream);
         (request,stream)

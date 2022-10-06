@@ -149,6 +149,7 @@ mod request {
     pub(crate) mod core {
         pub(crate) mod backend;
         pub(crate) mod backoff;
+        mod cborserial;
         pub(crate) mod manager;
         pub(crate) mod packet;
         pub(crate) mod queue;
@@ -161,7 +162,7 @@ mod request {
         mod trafficcontrol;
     }
 
-    pub(crate) mod messages {
+    pub(crate) mod minirequests {
         pub(crate) mod authorityreq;
         pub(crate) mod authorityres;
         pub(crate) mod bootchannelreq;
@@ -309,4 +310,4 @@ pub use self::spacebase::{
 pub use self::shape::rectangleshape::RectangleShape;
 pub use self::shape::textshape::TextShape;
 pub use self::request::core::manager::RequestManager;
-pub use self::request::messages::datareq::DataRequest;
+pub use self::request::minirequests::datareq::DataRequest;

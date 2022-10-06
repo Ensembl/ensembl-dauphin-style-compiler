@@ -9,7 +9,7 @@ use crate::core::channel::wrappedchannelsender::WrappedChannelSender;
 use crate::{PacketPriority, DataMessage, ChannelSender, BackendNamespace};
 use crate::core::programbundle::SuppliedBundle;
 use crate::core::version::VersionMetadata;
-use super::request::BackendRequestAttempt;
+use super::request::MiniRequestAttempt;
 use super::response::{BackendResponseAttempt};
 use serde_cbor::Value as CborValue;
 
@@ -42,7 +42,7 @@ impl RequestPacketFactory {
 
 pub struct RequestPacketBuilder {
     factory: RequestPacketFactory,
-    requests: Vec<BackendRequestAttempt>
+    requests: Vec<MiniRequestAttempt>
 }
 
 impl RequestPacketBuilder {
@@ -53,7 +53,7 @@ impl RequestPacketBuilder {
         }
     }
 
-    pub fn add(&mut self, request: BackendRequestAttempt) {
+    pub fn add(&mut self, request: MiniRequestAttempt) {
         self.requests.push(request);
     }
 }
@@ -62,7 +62,7 @@ impl RequestPacketBuilder {
 pub struct RequestPacket {
     channel: BackendNamespace,
     factory: RequestPacketFactory,
-    requests: Arc<Vec<BackendRequestAttempt>>,
+    requests: Arc<Vec<MiniRequestAttempt>>,
 }
 
 impl RequestPacket {

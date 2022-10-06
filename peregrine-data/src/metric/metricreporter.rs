@@ -6,8 +6,8 @@ use crate::metric::datastreammetric::DatastreamMetricKey;
 use crate::metric::datastreammetric::DatastreamMetricBuilder;
 use crate::metric::datastreammetric::DatastreamMetricData;
 use crate::request::core::manager::RequestManager;
-use crate::request::core::request::BackendRequest;
-use crate::request::messages::metricreq::MetricReport;
+use crate::request::core::request::MiniRequest;
+use crate::request::minirequests::metricreq::MetricReport;
 use commander::cdr_timer;
 use peregrine_toolkit::lock;
 use peregrine_toolkit::log_extra;
@@ -66,11 +66,11 @@ impl MetricCollectorData {
         self.manager_and_channel = Some((manager.clone(),channel.clone()));
     }
 
-    fn send(&mut self) -> Vec<BackendRequest> {
+    fn send(&mut self) -> Vec<MiniRequest> {
         let mut out = vec![];
         let report = ClientMetricReport::new(self.identity,&mut self.datastream,&mut self.program_run, &mut self.general);
         if !report.empty() {
-            out.push(BackendRequest::Metric(MetricReport::Client(report)));
+            out.push(MiniRequest::Metric(MetricReport::Client(report)));
         }
         out
     }

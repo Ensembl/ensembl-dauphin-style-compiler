@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use crate::{Region, BackendNamespace};
+use crate::{Region, BackendNamespace, request::core::request::MiniRequestVariety};
 use serde_cbor::{Value as CborValue};
 
 #[cfg_attr(debug_assertions,derive(Debug))]
@@ -59,4 +59,8 @@ impl DataRequest {
         out.scope.insert(key.to_string(),values.to_vec());
         out
     }
+}
+
+impl MiniRequestVariety for DataRequest {
+    fn description(&self) -> String { "data".to_string() }
 }

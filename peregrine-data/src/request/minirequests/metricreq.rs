@@ -1,6 +1,6 @@
 use peregrine_message::PeregrineMessage;
 use serde_derive::Serialize;
-use crate::{PeregrineCoreBase, metric::{errormetric::ErrorMetricReport, metricreporter::ClientMetricReport}};
+use crate::{PeregrineCoreBase, metric::{errormetric::ErrorMetricReport, metricreporter::ClientMetricReport}, request::core::request::MiniRequestVariety};
 use serde_cbor::Value as CborValue;
 
 #[derive(Clone,Serialize)]
@@ -21,4 +21,8 @@ impl MetricReport {
         let xxx = serde_cbor::to_vec(self).ok().unwrap();
         serde_cbor::from_slice(&xxx).ok().unwrap()
     }
+}
+
+impl MiniRequestVariety for MetricReport {
+    fn description(&self) -> String { "metric".to_string() }
 }

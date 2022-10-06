@@ -4,7 +4,7 @@ use crate::metric::metricreporter::MetricCollector;
 use crate::core::{ Viewport };
 use crate::request::core::manager::{RequestManager, LowLevelRequestManager};
 use crate::request::core::sidecars::RequestSidecars;
-use crate::request::messages::metricreq::MetricReport;
+use crate::request::minirequests::metricreq::MetricReport;
 use crate::api::PeregrineIntegration;
 use crate::train::main::railway::Railway;
 use commander::PromiseFuture;

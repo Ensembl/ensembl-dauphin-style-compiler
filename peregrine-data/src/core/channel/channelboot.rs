@@ -1,6 +1,6 @@
 use commander::{CommanderStream, FusePromise, PromiseFuture};
 use peregrine_toolkit::{lock, error, log };
-use crate::{ request::{messages::{bootchannelres::BootChannelRes, bootchannelreq::BootChannelReq}}, InstanceInformation, PeregrineCoreBase, shapeload::programloader::ProgramLoader, run::PgDauphinTaskSpec, DataMessage, add_task, PgCommanderTaskSpec, PacketPriority, CountingPromise, BackendNamespace};
+use crate::{ request::{minirequests::{bootchannelres::BootChannelRes, bootchannelreq::BootChannelReq}}, InstanceInformation, PeregrineCoreBase, shapeload::programloader::ProgramLoader, run::PgDauphinTaskSpec, DataMessage, add_task, PgCommanderTaskSpec, PacketPriority, CountingPromise, BackendNamespace};
 
 use super::wrappedchannelsender::WrappedChannelSender;
 

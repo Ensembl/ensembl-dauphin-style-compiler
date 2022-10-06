@@ -1,5 +1,5 @@
 use peregrine_toolkit::{cbor::{cbor_as_number, cbor_into_vec, check_array_len }, decompose_vec};
-use crate::request::messages::{authorityres::AuthorityRes, bootchannelres::BootChannelRes, datares::DataRes, failureres::FailureRes, jumpres::JumpRes, programres::ProgramRes, stickres::StickRes };
+use crate::request::minirequests::{authorityres::AuthorityRes, bootchannelres::BootChannelRes, datares::DataRes, failureres::FailureRes, jumpres::JumpRes, programres::ProgramRes, stickres::StickRes };
 use serde_cbor::Value as CborValue;
 
 pub enum BackendResponse {

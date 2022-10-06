@@ -1,7 +1,7 @@
 use commander::cdr_timer;
 use crate::{util::message::DataMessage };
 
-use super::{manager::{LowLevelRequestManager}, request::BackendRequest, response::BackendResponse, queue::QueueKey};
+use super::{manager::{LowLevelRequestManager}, request::MiniRequest, response::BackendResponse, queue::QueueKey};
 
 pub struct Backoff { 
     manager: LowLevelRequestManager,
@@ -20,7 +20,7 @@ impl Backoff {
         self.key.name.clone().map(|x| x.to_string()).unwrap_or_else(|| "*anon*".to_string())
     }
 
-    pub(crate) async fn backoff<F,T>(&mut self, req: &BackendRequest, cb: F) -> Result<T,DataMessage>
+    pub(crate) async fn backoff<F,T>(&mut self, req: &MiniRequest, cb: F) -> Result<T,DataMessage>
                                                     where F: Fn(BackendResponse) -> Result<T,String> {
         let mut last_error = None;
         for _ in 0..5 { // XXX configurable

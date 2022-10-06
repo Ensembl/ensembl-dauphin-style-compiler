@@ -1,10 +1,10 @@
 use commander::CommanderStream;
-use super::{request::BackendRequestAttempt, packet::RequestPacketBuilder};
+use super::{request::MiniRequestAttempt, packet::RequestPacketBuilder};
 
 #[derive(Clone)]
 pub(crate) struct PendingAttemptQueue {
     batch_size: Option<usize>,
-    pending: CommanderStream<Option<BackendRequestAttempt>>
+    pending: CommanderStream<Option<MiniRequestAttempt>>
 }
 
 impl PendingAttemptQueue {
@@ -15,7 +15,7 @@ impl PendingAttemptQueue {
         }
     }
 
-    pub(crate) fn add(&self, attempt: BackendRequestAttempt) {
+    pub(crate) fn add(&self, attempt: MiniRequestAttempt) {
         self.pending.add(Some(attempt));
     }
 

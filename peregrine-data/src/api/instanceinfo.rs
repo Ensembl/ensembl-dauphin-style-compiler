@@ -1,6 +1,6 @@
 use std::fmt::{self, Display, Formatter};
 
-use crate::{request::messages::bootchannelres::BootChannelRes, core::version::VersionMetadata, BackendNamespace};
+use crate::{request::minirequests::bootchannelres::BootChannelRes, core::version::VersionMetadata, BackendNamespace};
 
 pub struct InstanceInformation {
     pub channel: BackendNamespace,

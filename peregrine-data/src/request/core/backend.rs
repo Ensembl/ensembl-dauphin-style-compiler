@@ -1,9 +1,7 @@
 use std::{collections::HashMap, sync::{Arc, Mutex}};
 use peregrine_toolkit::lock;
-
-use crate::{DataMessage, ProgramName, Stick, StickId, api::MessageSender, index::stickauthority::Authority, metric::{datastreammetric::PacketDatastreamMetricBuilder, metricreporter::MetricCollector}, request::messages::{authorityreq::AuthorityReq, datareq::DataRequest, datares::DataRes, jumpreq::JumpReq, jumpres::{JumpLocation, JumpRes}, programreq::ProgramReq, stickreq::StickReq}, PacketPriority, BackendNamespace};
-
-use super::{request::{BackendRequest}, manager::{RequestManager}, response::BackendResponse};
+use crate::{DataMessage, ProgramName, Stick, StickId, api::MessageSender, index::stickauthority::Authority, metric::{datastreammetric::PacketDatastreamMetricBuilder, metricreporter::MetricCollector}, request::minirequests::{authorityreq::AuthorityReq, datareq::DataRequest, datares::DataRes, jumpreq::JumpReq, jumpres::{JumpLocation, JumpRes}, programreq::ProgramReq, stickreq::StickReq}, PacketPriority, BackendNamespace};
+use super::{request::{MiniRequest}, manager::{RequestManager}, response::BackendResponse};
 
 #[derive(Clone)]
 pub struct Backend {
@@ -23,20 +21,20 @@ impl Backend {
         }
     }
 
-    async fn submit<F,T>(&self, priority: &PacketPriority, request: &BackendRequest, cb: F) -> Result<T,DataMessage>
+    async fn submit<F,T>(&self, priority: &PacketPriority, request: &MiniRequest, cb: F) -> Result<T,DataMessage>
             where F: Fn(BackendResponse) -> Result<T,String> {
         self.manager.submit(&self.name,priority,&request, |v| {
             cb(v)
         }).await
     }
 
-    async fn submit_hi<F,T>(&self, request: &BackendRequest, cb: F) -> Result<T,DataMessage>
+    async fn submit_hi<F,T>(&self, request: &MiniRequest, cb: F) -> Result<T,DataMessage>
             where F: Fn(BackendResponse) -> Result<T,String> {
         self.submit(&PacketPriority::RealTime,request,cb).await
     }
 
     pub async fn data(&self, data_request: &DataRequest, priority: &PacketPriority) -> Result<DataRes,DataMessage> {
-        let request = BackendRequest::Data(data_request.clone());
+        let request = MiniRequest::Data(data_request.clone());
         let account_builder = PacketDatastreamMetricBuilder::new(&self.metrics,data_request.name(),priority,data_request.region());
         let r = self.submit(priority,&request, |v| { v.into_data() }).await?;
         r.account(&account_builder);

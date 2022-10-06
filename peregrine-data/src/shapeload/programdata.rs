@@ -1,7 +1,7 @@
 use anyhow::{ anyhow as err };
 use peregrine_toolkit::lock;
 use std::sync::{ Arc, Mutex };
-use crate::request::messages::datares::DataRes;
+use crate::request::minirequests::datares::DataRes;
 
 pub struct ProgramDataData {
     data: Vec<Arc<DataRes>>

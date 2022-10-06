@@ -1,4 +1,4 @@
-use crate::request::core::request::{BackendRequest};
+use crate::request::core::request::{MiniRequest, MiniRequestVariety};
 use serde_cbor::Value as CborValue;
 
 pub struct JumpReq {
@@ -6,8 +6,8 @@ pub struct JumpReq {
 }
 
 impl JumpReq {
-    pub(crate) fn new(location: &str) -> BackendRequest {
-        BackendRequest::Jump(JumpReq {
+    pub(crate) fn new(location: &str) -> MiniRequest {
+        MiniRequest::Jump(JumpReq {
             location: location.to_string()
         })
     }
@@ -17,4 +17,8 @@ impl JumpReq {
             CborValue::Text(self.location.to_string())
         ])
     }
+}
+
+impl MiniRequestVariety for JumpReq {
+    fn description(&self) -> String { "jump".to_string() }
 }
