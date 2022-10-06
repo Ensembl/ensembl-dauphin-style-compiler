@@ -1,4 +1,4 @@
-use serde_cbor::Value as CborValue;
+use serde::Serialize;
 
 use crate::{request::core::request::{MiniRequest, MiniRequestVariety}};
 
@@ -8,10 +8,16 @@ impl BootChannelReq {
     pub(crate) fn new() -> MiniRequest {
         MiniRequest::BootChannel(BootChannelReq)
     }
-
-    pub fn encode(&self) -> CborValue { CborValue::Null }
 }
 
 impl MiniRequestVariety for BootChannelReq {
     fn description(&self) -> String { "boot".to_string() }
+    fn opcode(&self) -> u8 { 0 }
+}
+
+impl Serialize for BootChannelReq {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+            where S: serde::Serializer {
+        serializer.serialize_none()
+    }
 }

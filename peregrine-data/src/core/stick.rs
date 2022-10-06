@@ -1,5 +1,6 @@
 use anyhow::bail;
 use peregrine_toolkit::cbor::{cbor_as_number, cbor_as_str, cbor_into_map, cbor_into_vec, cbor_map_key, cbor_map_optional_key};
+use serde::Serialize;
 use std::collections::{BTreeMap, HashSet};
 use std::fmt::{ self, Display, Formatter };
 use serde_cbor::Value as CborValue;
@@ -13,9 +14,12 @@ impl StickId {
     }
 
     pub fn get_id(&self) -> &str { &self.0 }
+}
 
-    pub fn encode(&self) -> CborValue {
-        CborValue::Text(self.0.clone())
+impl Serialize for StickId {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+            where S: serde::Serializer {
+        serializer.serialize_str(&self.0)
     }
 }
 

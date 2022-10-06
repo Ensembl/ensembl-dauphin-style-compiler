@@ -11,9 +11,12 @@ use std::rc::Rc;
 use super::response::BackendResponseAttempt;
 use super::response::BackendResponse;
 use commander::CommanderStream;
+use serde::{ Serialize };
+use serde::ser::SerializeSeq;
 
 pub trait MiniRequestVariety {
     fn description(&self) -> String;
+    fn opcode(&self) -> u8;
 }
 
 pub enum MiniRequest {
@@ -27,7 +30,7 @@ pub enum MiniRequest {
 }
 
 impl MiniRequest {
-    fn as_mini(&self) -> &dyn MiniRequestVariety {
+    pub fn as_mini(&self) -> &dyn MiniRequestVariety {
         match self {
             MiniRequest::BootChannel(x) => x,
             MiniRequest::Program(x) => x,
@@ -36,6 +39,21 @@ impl MiniRequest {
             MiniRequest::Data(x) => x,
             MiniRequest::Jump(x) => x,
             MiniRequest::Metric(x) => x
+        }
+    }
+}
+
+impl Serialize for MiniRequest {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+            where S: serde::Serializer {
+        match self {
+            MiniRequest::BootChannel(x) => x.serialize(serializer),
+            MiniRequest::Program(x) =>  x.serialize(serializer),
+            MiniRequest::Stick(x) =>  x.serialize(serializer),
+            MiniRequest::Authority(x) =>  x.serialize(serializer),
+            MiniRequest::Data(x) =>  x.serialize(serializer),
+            MiniRequest::Jump(x) =>  x.serialize(serializer),
+            MiniRequest::Metric(x) => x.serialize(serializer)
         }
     }
 }
@@ -67,4 +85,15 @@ impl MiniRequestAttempt {
 
     pub fn msgid(&self) -> u64 { self.msgid }
     pub fn request(&self) -> &MiniRequest { &self.request }
+}
+
+impl Serialize for MiniRequestAttempt {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+            where S: serde::Serializer {
+        let mut seq = serializer.serialize_seq(Some(3))?;
+        seq.serialize_element(&self.msgid)?;
+        seq.serialize_element(&self.request.as_mini().opcode())?;
+        seq.serialize_element(&self.request)?;
+        seq.end()
+    }
 }

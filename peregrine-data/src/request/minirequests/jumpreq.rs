@@ -1,5 +1,5 @@
 use crate::request::core::request::{MiniRequest, MiniRequestVariety};
-use serde_cbor::Value as CborValue;
+use serde::{Serialize, ser::SerializeSeq};
 
 pub struct JumpReq {
     location: String
@@ -11,14 +11,18 @@ impl JumpReq {
             location: location.to_string()
         })
     }
-
-    pub fn encode(&self) -> CborValue {
-        CborValue::Array(vec![
-            CborValue::Text(self.location.to_string())
-        ])
-    }
 }
 
 impl MiniRequestVariety for JumpReq {
     fn description(&self) -> String { "jump".to_string() }
+    fn opcode(&self) -> u8 { 5 }
+}
+
+impl Serialize for JumpReq {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+            where S: serde::Serializer {
+        let mut seq = serializer.serialize_seq(Some(1))?;
+        seq.serialize_element(&self.location)?;
+        seq.end()
+    }
 }

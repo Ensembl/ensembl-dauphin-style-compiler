@@ -1,5 +1,6 @@
 use std::fmt::{ self, Display, Formatter };
 use peregrine_toolkit::{cbor::cbor_as_vec};
+use serde::{Serialize, ser::SerializeSeq};
 use serde_cbor::Value as CborValue;
 
 #[derive(Clone,Debug,PartialEq,Eq,Hash,PartialOrd,Ord)]
@@ -14,13 +15,6 @@ impl BackendNamespace {
         channel.clone().unwrap_or_else(|| BackendNamespace::new("",""))
     }
 
-    pub fn encode(&self) -> CborValue {
-        CborValue::Array(vec![
-            CborValue::Text(self.0.to_string()),
-            CborValue::Text(self.1.to_string())
-        ])
-    }
-
     pub fn decode(value: CborValue) -> Result<BackendNamespace,String> {
         let parts = cbor_as_vec(&value)?;
         if parts.len() != 2 {
@@ -31,6 +25,16 @@ impl BackendNamespace {
         } else {
             Err(format!("bad channel name {:?}",value))
         }
+    }
+}
+
+impl Serialize for BackendNamespace {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+            where S: serde::Serializer {
+        let mut seq = serializer.serialize_seq(Some(2))?;
+        seq.serialize_element(&self.0)?;
+        seq.serialize_element(&self.1)?;
+        seq.end()
     }
 }
 

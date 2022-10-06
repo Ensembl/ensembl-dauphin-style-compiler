@@ -1,5 +1,4 @@
-use std::collections::BTreeMap;
-use serde_cbor::Value as CborValue;
+use serde::{Serialize, ser::SerializeMap};
 
 const BE_VERSION: u32 = 15;
 
@@ -15,11 +14,14 @@ impl VersionMetadata {
         }
     }
 
-    pub fn encode(&self) -> CborValue {
-        let mut map = BTreeMap::new();
-        map.insert(CborValue::Text("egs".to_string()),CborValue::Integer(self.be_version.into()));
-        CborValue::Map(map)
-    }
-
     pub fn backend_version(&self) -> u32 { self.be_version }
+}
+
+impl Serialize for VersionMetadata {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+            where S: serde::Serializer {
+        let mut map = serializer.serialize_map(Some(1))?;
+        map.serialize_entry("egs",&self.be_version)?;
+        map.end()
+    }
 }

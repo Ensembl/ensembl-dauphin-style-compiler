@@ -86,7 +86,6 @@ impl ChannelRegistry {
     }
 
     pub(crate) fn name_to_sender(&self, name: &BackendNamespace) -> Result<WrappedChannelSender,DataMessage> {
-        log!("getting {}",name);
         let channels = lock!(self.channels);
         Ok(channels.get(name).ok_or_else(|| DataMessage::NoSuchChannel(name.clone()))?.clone())
     }

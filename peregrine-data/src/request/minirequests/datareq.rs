@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use crate::{Region, BackendNamespace, request::core::request::MiniRequestVariety};
-use serde_cbor::{Value as CborValue};
+use serde::{Serialize, ser::SerializeSeq};
 
 #[cfg_attr(debug_assertions,derive(Debug))]
 #[derive(Clone,PartialEq,Eq,Hash)]
@@ -11,15 +11,6 @@ pub struct DataRequest {
     region: Region,
     scope: BTreeMap<String,Vec<String>>,
     accept: String
-}
-
-fn encode_scope(input: &BTreeMap<String,Vec<String>>) -> CborValue {
-    let mut output = BTreeMap::new();
-    for (key,value) in input.iter() {
-        let value_value = value.iter().map(|v| CborValue::Text(v.to_string())).collect::<Vec<_>>();
-        output.insert(CborValue::Text(key.to_string()),CborValue::Array(value_value));
-    }
-    CborValue::Map(output)
 }
 
 impl DataRequest {
@@ -44,16 +35,6 @@ impl DataRequest {
         out
     }
 
-    pub fn encode(&self) -> CborValue {
-        CborValue::Array(vec![
-            self.channel.encode(),
-            CborValue::Text(self.name.to_string()),
-            self.region.encode(),
-            encode_scope(&self.scope),
-            CborValue::Text(self.accept.to_string()),
-        ])
-    }
-
     pub fn add_scope(&self, key: &str, values: &[String]) -> DataRequest {
         let mut out = self.clone();
         out.scope.insert(key.to_string(),values.to_vec());
@@ -63,4 +44,18 @@ impl DataRequest {
 
 impl MiniRequestVariety for DataRequest {
     fn description(&self) -> String { "data".to_string() }
+    fn opcode(&self) -> u8 { 4 }
+}
+
+impl Serialize for DataRequest {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+            where S: serde::Serializer {
+        let mut seq = serializer.serialize_seq(Some(5))?;
+        seq.serialize_element(&self.channel)?;
+        seq.serialize_element(&self.name)?;
+        seq.serialize_element(&self.region)?;
+        seq.serialize_element(&self.scope)?;
+        seq.serialize_element(&self.accept)?;
+        seq.end()
+    }
 }

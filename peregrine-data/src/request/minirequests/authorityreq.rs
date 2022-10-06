@@ -1,4 +1,4 @@
-use serde_cbor::Value as CborValue;
+use serde::Serialize;
 
 use crate::request::core::request::{MiniRequest, MiniRequestVariety};
 
@@ -8,10 +8,16 @@ impl AuthorityReq {
     pub(crate) fn new() -> MiniRequest {
         MiniRequest::Authority(AuthorityReq)
     }
-
-    pub fn encode(&self) -> CborValue { CborValue::Null }
 }
 
 impl MiniRequestVariety for AuthorityReq {
     fn description(&self) -> String { "authority".to_string() }
+    fn opcode(&self) -> u8 { 3 }
+}
+
+impl Serialize for AuthorityReq {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+            where S: serde::Serializer {
+        serializer.serialize_none()
+    }
 }

@@ -1,6 +1,8 @@
 use futures::Future;
 use peregrine_toolkit::cbor::{cbor_into_drained_map, cbor_into_vec};
 use peregrine_toolkit::error::Error;
+use serde::Serialize;
+use serde::ser::SerializeMap;
 use std::mem::replace;
 use std::pin::Pin;
 use std::sync::Arc;
@@ -85,6 +87,17 @@ impl MaxiRequest {
 
     pub(crate) fn sender(&self, sender: &WrappedChannelSender) -> Result<Pin<Box<dyn Future<Output=Result<ResponsePacket,Error>>>>,DataMessage> {
         Ok(sender.get_sender(&self.factory.priority,self.clone()))
+    }
+}
+
+impl Serialize for MaxiRequest {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+            where S: serde::Serializer {
+        let mut map = serializer.serialize_map(Some(3))?;
+        map.serialize_entry("channel",self.channel())?;
+        map.serialize_entry("requests",self.requests())?;
+        map.serialize_entry("version",self.metadata())?;
+        map.end()
     }
 }
 
