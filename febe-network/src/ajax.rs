@@ -1,3 +1,8 @@
+use peregrine_toolkit::error::{Error};
+use peregrine_toolkit::{pg_ok, pg_unwrap};
+use peregrine_toolkit_async::js::promise::promise_to_future;
+use peregrine_toolkit::js::timer::Timer;
+use serde_wasm_bindgen::from_value;
 use wasm_bindgen::{ JsCast };
 use js_sys::{ Uint8Array };
 use web_sys;
@@ -5,9 +10,6 @@ use web_sys::{ AbortController, Request, RequestInit, RequestMode, Response };
 use serde_json::Value as JsonValue;
 use peregrine_toolkit::url::Url;
 use serde_cbor::Value as CborValue;
-use crate::integration::timer::Timer;
-use crate::util::message::Message;
-use super::promise::promise_to_future;
 
 pub struct PgAjax {
     method: String,
@@ -56,13 +58,13 @@ impl PgAjax {
         self.body = Some(body);
     }
 
-    pub fn set_body_cbor(&mut self, value: &CborValue) -> Result<(),Message> {
-        self.set_body(serde_cbor::to_vec(&value).map_err(|e| Message::SerializationError(e.to_string()))?);
+    pub fn set_body_cbor(&mut self, value: &CborValue) -> Result<(),Error> {
+        self.set_body(pg_ok!(serde_cbor::to_vec(&value))?);
         Ok(())
     }
 
-    fn add_abort(&mut self, init: &mut RequestInit, timeout: Option<f64>) -> Result<(),Message> {
-        let controller = AbortController::new().map_err(|e| Message::ConfusedWebBrowser(format!("Cannot create abort controller: {:?}",e)))?;
+    fn add_abort(&mut self, init: &mut RequestInit, timeout: Option<f64>) -> Result<(),Error> {
+        let controller = pg_ok!(AbortController::new())?;
         let signal = controller.signal();
         init.signal(Some(&signal));
         let controller2 = controller.clone();
@@ -73,7 +75,7 @@ impl PgAjax {
         Ok(())
     }
 
-    async fn get(&mut self) -> Result<Response,Message> {
+    async fn get(&mut self) -> Result<Response,Error> {
         let mut init = RequestInit::new();
         init.method(&self.method).mode(RequestMode::Cors);
         if let Some(body) = &self.body {
@@ -81,33 +83,36 @@ impl PgAjax {
             init.body(Some(&js_body));
         }
         self.add_abort(&mut init,self.timeout.clone())?;
-        let req = Request::new_with_str_and_init(&self.url,&init).map_err(|e| Message::ConfusedWebBrowser(format!("cannot create request: {:?}",e)))?;
+        let req = pg_ok!(Request::new_with_str_and_init(&self.url,&init))?;
         for (k,v) in &self.headers {
-            req.headers().set(k,v).map_err(|e| Message::ConfusedWebBrowser(format!("cannot set header {}={}: {:?}",k,v,e)))?;
+            pg_ok!(req.headers().set(k,v))?;
         }
-        let window = web_sys::window().ok_or_else(|| Message::ConfusedWebBrowser(format!("cannot get window")))?;
-        let response = promise_to_future(window.fetch_with_request(&req)).await.map_err(|e| Message::BadBackendConnection(format!("cannot send request: {:?}",e.as_string())))?;
-        let response : Response = response.dyn_into().map_err(|e| Message::ConfusedWebBrowser(format!("cannot cast response to response: {:?}",e.as_string())))?;
+        let window = pg_unwrap!(web_sys::window())?;
+        let response = Error::oper_r(
+            promise_to_future(window.fetch_with_request(&req)).await,
+            "Cannot send request"
+        )?;
+        let response : Response = pg_ok!(response.dyn_into())?;
         if !response.ok() {
-            return Err(Message::BadBackendConnection(format!("unexpected status code: {}",response.status())));
+            return Err(Error::operr(&format!("unexpected status code: {}",response.status())));
         }
         Ok(response)
     }
 
-    pub async fn get_json(&mut self) -> Result<JsonValue,Message> {
+    pub async fn get_json(&mut self) -> Result<JsonValue,Error> {
         self.add_request_header("Content-Type","application/json");
         let response = self.get().await.map(|r| r.json())?.ok().unwrap();
         let js_json = promise_to_future(response).await.ok().unwrap();
-        let json : JsonValue = js_json.into_serde().map_err(|e| Message::SerializationError(e.to_string()))?;
+        let json : JsonValue = Error::oper_r(from_value(js_json),"cannot serialize json")?;
         Ok(json)
     }
 
-    pub async fn get_cbor(&mut self) -> Result<CborValue,Message> {
+    pub async fn get_cbor(&mut self) -> Result<CborValue,Error> {
         self.add_request_header("Content-Type","application/cbor");
         let response = self.get().await.map(|r| r.array_buffer())?.ok().unwrap();
         let array_buffer_value = promise_to_future(response).await.ok().unwrap();
         let buffer: Vec<u8> = typed_array_to_vec_u8(&js_sys::Uint8Array::new(&array_buffer_value));
-        let cbor = serde_cbor::from_slice(&buffer).map_err(|e| Message::SerializationError(e.to_string()))?;
+        let cbor = Error::oper_r(serde_cbor::from_slice(&buffer),"cannot serialize json")?;
         Ok(cbor)
     }
 }

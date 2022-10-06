@@ -17,6 +17,7 @@ fn calculate_hash<T: Hash>(t: &T) -> u64 {
 #[derive(Clone)]
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub enum DataMessage {
+    XXXTransitional(peregrine_toolkit::error::Error),
     BadDauphinProgram(String),
     BadBootstrapCannotStart(BackendNamespace,Box<DataMessage>),
     BackendTimeout(BackendNamespace),
@@ -87,8 +88,9 @@ impl PeregrineMessage for DataMessage {
     }
 
     fn code(&self) -> (u64,u64) {
-        // Next code is 32; 0 is reserved; 499 is last.
+        // Next code is 33; 0 is reserved; 499 is last.
         match self {
+            DataMessage::XXXTransitional(s) => (32,calculate_hash(&s.message)),
             DataMessage::BadDauphinProgram(s) => (1,calculate_hash(s)),
             DataMessage::BadBootstrapCannotStart(_,cause) => (2,calculate_hash(&cause.code())),
             DataMessage::BackendTimeout(c) => (3,calculate_hash(c)),
@@ -136,6 +138,7 @@ impl PeregrineMessage for DataMessage {
     #[cfg(debug_assertions)]
     fn to_message_string(&self) -> String {
         match self {
+            DataMessage::XXXTransitional(e) => format!("{:?}",e),
             DataMessage::BadDauphinProgram(s) => format!("Bad Dauphin Program: {}",s),
             DataMessage::BadBootstrapCannotStart(c,cause) => format!("Bad bootstrap response. Cannot start. channel={}: {}",c,cause),
             DataMessage::BackendTimeout(c) => format!("Timeout on connection to {}",c),
@@ -180,6 +183,7 @@ impl PeregrineMessage for DataMessage {
     #[cfg(not(debug_assertions))]
     fn to_message_string(&self) -> String {
         match self {
+            DataMessage::XXXTransitional(e) => format!("{:?}",e),
             DataMessage::BadDauphinProgram(s) => format!("Bad Dauphin Program: {}",s),
             DataMessage::BadBootstrapCannotStart(c,cause) => format!("Bad bootstrap response. Cannot start. channel={}: {}",c,cause),
             DataMessage::BackendTimeout(c) => format!("Timeout on connection to {}",c),

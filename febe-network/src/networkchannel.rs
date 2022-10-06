@@ -1,13 +1,12 @@
 use js_sys::Date;
 use peregrine_data::{ChannelIntegration, PacketPriority, RequestPacket, ResponsePacket, ChannelSender, BackendNamespace };
+use peregrine_toolkit::error::Error;
 use serde_cbor::Value as CborValue;
-use crate::util::ajax::PgAjax;
+use crate::ajax::PgAjax;
 use peregrine_toolkit::url::Url;
 use std::future::Future;
 use std::pin::Pin;
-use std::sync::{ Arc, Mutex };
-use crate::util::message::Message;
-use peregrine_data::DataMessage;
+use std::sync::{ Arc };
 
 /* Network URL syntax specifies one or two http or https endpoint. If two are specified, then
  * they are for high and low priority requests. A backend namespace can also be specified.
@@ -24,7 +23,7 @@ pub struct NetworkChannelSender {
 }
 
 impl ChannelSender for NetworkChannelSender {
-    fn get_sender(&self, prio: &PacketPriority, data: RequestPacket) -> Pin<Box<dyn Future<Output=Result<ResponsePacket,DataMessage>>>> {
+    fn get_sender(&self, prio: &PacketPriority, data: RequestPacket) -> Pin<Box<dyn Future<Output=Result<ResponsePacket,Error>>>> {
         let url = match prio {
             PacketPriority::RealTime => &self.url_hi,
             PacketPriority::Batch => &self.url_lo
@@ -97,18 +96,16 @@ impl ChannelIntegration for NetworkChannel {
     }
 }
 
-fn add_priority(a: &Url, prio: &PacketPriority, cache_buster: &str) -> Result<Url,Message> {
+fn add_priority(a: &Url, prio: &PacketPriority, cache_buster: &str) -> Url {
     let z = a.add_path_segment(match prio {
         PacketPriority::RealTime => "hi",
         PacketPriority::Batch => "lo"
-    }).map_err(|_| Message::CodeInvariantFailed(format!("cannot manipulate URL")))?;
-    let z = z.add_query_parameter(&format!("stamp={}",cache_buster))
-        .map_err(|_| Message::CodeInvariantFailed(format!("cannot manipulate URL")))?;
-    Ok(z)
+    });
+    z.add_query_parameter(&format!("stamp={}",cache_buster))
 }
 
-async fn send(url: &Url, prio: PacketPriority, data: CborValue, timeout: Option<f64>, cache_buster: &str) -> Result<CborValue,Message> {
-    let mut ajax = PgAjax::new("POST",&add_priority(url,&prio,cache_buster)?);
+async fn send(url: &Url, prio: PacketPriority, data: CborValue, timeout: Option<f64>, cache_buster: &str) -> Result<CborValue,Error> {
+    let mut ajax = PgAjax::new("POST",&add_priority(url,&prio,cache_buster));
     if let Some(timeout) = timeout {
         ajax.set_timeout(timeout);
     }
@@ -116,10 +113,10 @@ async fn send(url: &Url, prio: PacketPriority, data: CborValue, timeout: Option<
     ajax.get_cbor().await
 }
 
-async fn send_wrap(url_str: String, prio: PacketPriority, packet: RequestPacket, timeout: Option<f64>, cache_buster: String) -> Result<ResponsePacket,DataMessage> {
-    let url = Url::parse(&url_str).map_err(|e| DataMessage::PacketError(url_str.to_string(),format!("bad url {} '{:?}'",url_str.to_string(),e)))?;
+async fn send_wrap(url_str: String, prio: PacketPriority, packet: RequestPacket, timeout: Option<f64>, cache_buster: String) -> Result<ResponsePacket,Error> {
+    let url = Error::oper_r(Url::parse(&url_str),&format!("bad_url {}",url_str))?;
     let data = packet.encode();
-    let data = send(&url,prio,data,timeout,&cache_buster).await.map_err(|e| DataMessage::TunnelError(Arc::new(Mutex::new(e))))?;
-    let response = ResponsePacket::decode(data).map_err(|e| DataMessage::PacketError(url_str.to_string(),e))?;
+    let data = send(&url,prio,data,timeout,&cache_buster).await?;
+    let response = Error::oper_r(ResponsePacket::decode(data),"packet error")?;
     Ok(response)
 }

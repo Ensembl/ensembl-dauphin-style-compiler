@@ -49,18 +49,17 @@ path="../peregrine-toolkit-async"
 [dependencies.web-sys]
 version = "*"
 features = [
-  'AbortController', 'AbortSignal', 'AudioContext', 'AudioBufferSourceNode', 'AudioBuffer', 'AudioDestinationNode', 'AudioParam', 'AudioContextState',
+  'AudioContext', 'AudioBufferSourceNode', 'AudioBuffer', 'AudioDestinationNode', 'AudioParam', 'AudioContextState',
   'console', 'CustomEvent', 'CustomEventInit', 'CanvasRenderingContext2d', 'CssStyleDeclaration', 'Crypto',
   'Document', 'DomRect',
   'Element',
   'FontFaceSet',
   'GainNode',
-  'HtmlElement', 'Headers', 'HtmlCanvasElement', 'HtmlCollection', 'HtmlImageElement',
+  'HtmlElement', 'HtmlCanvasElement', 'HtmlCollection', 'HtmlImageElement',
   'KeyboardEvent',
   'MouseEvent',
   'Node',
   'PointerEvent',
-  'Request', 'RequestInit', 'RequestMode', 'Response',
   'Screen',
   'TextMetrics',
   'Window', 'WebGlRenderingContext', 'WebGlShaderPrecisionFormat', 'WebGlProgram', 'WebGlShader',
@@ -74,6 +73,10 @@ version = "^0.3.51"
 [dependencies.dauphin_interp]
 version="*"
 path="../dauphin-interp"
+
+[dependencies.peregrine_febe_network]
+version="*"
+path="../febe-network"
 
 [dependencies.keyed]
 version="*"

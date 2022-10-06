@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use peregrine_toolkit::lock;
+use crate::lock;
 use wasm_bindgen::{prelude::Closure, JsCast};
 use web_sys::Window;
 

@@ -1,6 +1,5 @@
 use crate::domcss::dom::PeregrineDom;
 use crate::input::Input;
-use crate::{integration::networkchannel::NetworkChannel };
 use crate::integration::pgcommander::PgCommanderWeb;
 use crate::integration::pgdauphin::PgDauphinIntegrationWeb;
 use crate::integration::pgintegration::PgIntegration;
@@ -11,6 +10,7 @@ use crate::input::translate::targetreporter::TargetReporter;
 use js_sys::Date;
 use peregrine_data::{Assets, Commander, PeregrineCore, PeregrineApiQueue, BackendNamespace, ChannelIntegration};
 use peregrine_dauphin::peregrine_dauphin;
+use peregrine_febe_network::NetworkChannel;
 use peregrine_message::MessageKind;
 use peregrine_toolkit::eachorevery::eoestruct::StructBuilt;
 use peregrine_toolkit::log;
@@ -31,7 +31,6 @@ use peregrine_data::{ StickId };
 use crate::shape::core::spectremanager::SpectreManager;
 use peregrine_message::PeregrineMessage;
 use js_sys::Math::random;
-
 
 #[derive(Clone)]
 pub struct PeregrineInnerAPI {

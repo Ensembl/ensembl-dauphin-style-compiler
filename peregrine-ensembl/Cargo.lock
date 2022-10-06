@@ -593,6 +593,7 @@ dependencies = [
  "peregrine_data",
  "peregrine_dauphin",
  "peregrine_dauphin_queue",
+ "peregrine_febe_network",
  "peregrine_message",
  "peregrine_toolkit",
  "peregrine_toolkit_async",
@@ -601,6 +602,21 @@ dependencies = [
  "url",
  "wasm-bindgen",
  "wasm-bindgen-futures",
+ "web-sys",
+]
+
+[[package]]
+name = "peregrine_febe_network"
+version = "0.0.0"
+dependencies = [
+ "js-sys",
+ "peregrine_data",
+ "peregrine_toolkit",
+ "peregrine_toolkit_async",
+ "serde-wasm-bindgen",
+ "serde_cbor",
+ "serde_json",
+ "wasm-bindgen",
  "web-sys",
 ]
 
@@ -633,7 +649,9 @@ name = "peregrine_toolkit_async"
 version = "0.0.0"
 dependencies = [
  "commander",
+ "js-sys",
  "peregrine_toolkit",
+ "wasm-bindgen",
 ]
 
 [[package]]
@@ -679,6 +697,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0f747710de3dcd43b88c9168773254e809d8ddbdf9653b84e2554ab219f17860"
 dependencies = [
  "serde_derive",
+]
+
+[[package]]
+name = "serde-wasm-bindgen"
+version = "0.4.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e3b4c031cd0d9014307d82b8abf653c0290fbdaeb4c02d00c63cf52f728628bf"
+dependencies = [
+ "js-sys",
+ "serde",
+ "wasm-bindgen",
 ]
 
 [[package]]

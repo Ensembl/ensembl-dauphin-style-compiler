@@ -53,12 +53,9 @@ mod integration {
     mod bell;
     pub(crate) mod pgcommander;
     pub(crate) mod pgdauphin;
-    pub(crate) mod networkchannel;
     pub(crate) mod pgintegration;
     mod custom;
-    mod raf;
     mod stream;
-    pub(crate) mod timer;
 
     pub use self::pgcommander::PgCommanderWeb;
 }
@@ -139,17 +136,14 @@ mod train {
 }
 
 mod util {
-    pub(crate) mod ajax;
     pub(crate) mod error;
     pub(crate) mod message;
     pub(crate) mod monostable;
     pub(crate) mod debounce;
     pub(crate) mod resizeobserver;
-    pub(crate) mod promise;
     pub(crate) mod fonts;
     #[macro_use]
     pub(crate) mod misc;
-    pub use self::ajax::PgAjax;
     pub use self::message::{ Message, Endstop };
 }
 
@@ -231,5 +225,5 @@ mod webgl {
 }
 
 pub use crate::run::{ PeregrineInnerAPI, PeregrineAPI, PeregrineConfig };
-pub use self::util::{ PgAjax, Message, Endstop };
+pub use self::util::{ Message, Endstop };
 pub use crate::integration::PgCommanderWeb;

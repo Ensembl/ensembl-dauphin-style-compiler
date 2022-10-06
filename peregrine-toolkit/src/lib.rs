@@ -30,6 +30,8 @@ pub mod js {
     pub mod exception;
     pub mod jstojsonvalue;
     pub mod dommanip;
+    pub mod timer;
+    pub mod raf;
 }
 
 pub mod plumbing {
@@ -72,6 +74,7 @@ pub mod approxnumber;
 pub mod boom;
 pub mod cbor;
 pub mod console;
+pub mod error;
 #[macro_use]
 pub mod lang;
 pub mod refs;

@@ -1,13 +1,10 @@
 use std::{sync::{Arc, Mutex}, collections::HashSet};
-
 use js_sys::Reflect;
 use peregrine_toolkit::{lock};
+use peregrine_toolkit_async::js::promise::promise_to_future;
 use wasm_bindgen::JsValue;
 use web_sys::FontFaceSet;
-
 use crate::Message;
-
-use super::promise::promise_to_future;
 
 #[derive(Clone)]
 pub(crate) struct Fonts {

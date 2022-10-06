@@ -2,11 +2,11 @@ use std::pin::Pin;
 use std::sync::{ Arc, Mutex, MutexGuard, Weak };
 use std::future::Future;
 use commander::{ Executor, Integration, Lock, RunConfig, RunSlot, SleepQuantity, TaskHandle, cdr_new_agent, cdr_add, cdr_in_agent };
+use peregrine_toolkit::js::raf::Raf;
+use peregrine_toolkit::js::timer::Timer;
 use peregrine_toolkit::lock;
 use js_sys::Date;
 use super::bell::{ BellReceiver, make_bell, BellSender };
-use super::raf::Raf;
-use super::timer::Timer;
 use peregrine_data::{ Commander, DataMessage };
 use crate::util::message::{ message, Message };
 

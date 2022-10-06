@@ -4,6 +4,7 @@ use peregrine_data::BackendNamespace;
 use peregrine_toolkit::log_extra;
 use peregrine_toolkit::plumbing::distributor::Distributor;
 use peregrine_toolkit::plumbing::oneshot::OneShot;
+use peregrine_toolkit_async::js::promise::promise_to_future;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::Mutex;
@@ -11,7 +12,6 @@ use js_sys::{ Uint8Array};
 use wasm_bindgen::{JsCast, JsValue, prelude::Closure};
 use web_sys::{ AudioContext, AudioBufferSourceNode, AudioBuffer, AudioContextState };
 use commander::{CommanderStream, PromiseFuture};
-use crate::util::promise::promise_to_future;
 use crate::{Message, PgCommanderWeb };
 
 use super::PgConfigKey;

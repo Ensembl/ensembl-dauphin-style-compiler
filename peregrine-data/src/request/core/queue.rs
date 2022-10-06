@@ -87,7 +87,7 @@ impl RequestQueue {
     async fn send_packet(&self, packet: &RequestPacket) -> Result<ResponsePacket,DataMessage> {
         let sender = packet.sender(&self.key.sender)?;
         let lockout = self.traffic_control.await_permission().await;
-        let response = sender.await?;
+        let response = sender.await.map_err(|x| DataMessage::XXXTransitional(x))?;
         drop(lockout);
         Ok(response)
     }

@@ -445,7 +445,9 @@ name = "peregrine_toolkit_async"
 version = "0.0.0"
 dependencies = [
  "commander",
+ "js-sys",
  "peregrine_toolkit",
+ "wasm-bindgen",
 ]
 
 [[package]]

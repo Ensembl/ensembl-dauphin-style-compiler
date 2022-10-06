@@ -1,5 +1,6 @@
 use futures::Future;
 use peregrine_toolkit::cbor::{cbor_into_drained_map, cbor_into_vec};
+use peregrine_toolkit::error::Error;
 use std::collections::BTreeMap;
 use std::mem::replace;
 use std::pin::Pin;
@@ -90,7 +91,7 @@ impl RequestPacket {
         CborValue::Map(map)
     }
 
-    pub(crate) fn sender(&self, sender: &WrappedChannelSender) -> Result<Pin<Box<dyn Future<Output=Result<ResponsePacket,DataMessage>>>>,DataMessage> {
+    pub(crate) fn sender(&self, sender: &WrappedChannelSender) -> Result<Pin<Box<dyn Future<Output=Result<ResponsePacket,Error>>>>,DataMessage> {
         Ok(sender.get_sender(&self.factory.priority,self.clone()))
     }
 }

@@ -1,7 +1,5 @@
 use std::fmt;
 
-use anyhow::bail;
-
 /* dead simple URL library with only the manipulations we need as the rust crate is bloaty (for our uses).
  * We store the URL unparsed and manipulations are on the unparsed URL. Ugly but small. This is hidden from the
  * user so we can revisit this later, if needed. If your URL is particularly crazy it may generate nonsense.
@@ -12,42 +10,42 @@ use anyhow::bail;
 //TODO unit test
 
  /* return ? or # of start of qs or fragment (whichever first) */
-fn find_path_end(value: &str) -> anyhow::Result<Option<usize>> {
+fn find_path_end(value: &str) -> Option<usize> {
     for (i,c) in value.chars().enumerate() {
         if c == '?' || c == '#' {
-            return Ok(Some(i));
+            return Some(i);
         }
     }
-    Ok(None)
+    None
 }
 
  /* return ? or # of start of qs or fragment (whichever first) */
- fn find_qp_end(value: &str) -> anyhow::Result<Option<usize>> {
+ fn find_qp_end(value: &str) ->Option<usize> {
     for (i,c) in value.chars().enumerate() {
         if c == '#' {
-            return Ok(Some(i));
+            return Some(i);
         }
     }
-    Ok(None)
+    None
 }
 
-fn split_at_path_end(value: &str) -> anyhow::Result<(String,String)> {
+fn split_at_path_end(value: &str) -> (String,String) {
     let mut first = value.to_string();
-    if let Some(separator) = find_path_end(value)? {
+    if let Some(separator) = find_path_end(value) {
         let second = first.split_off(separator);
-        Ok((first,second))
+        (first,second)
     } else {
-        Ok((first,String::new()))
+        (first,String::new())
     }
 }
 
-fn split_at_qp_end(value: &str) -> anyhow::Result<(String,String)> {
+fn split_at_qp_end(value: &str) -> (String,String) {
     let mut first = value.to_string();
-    if let Some(separator) = find_qp_end(value)? {
+    if let Some(separator) = find_qp_end(value) {
         let second = first.split_off(separator);
-        Ok((first,second))
+        (first,second)
     } else {
-        Ok((first,String::new()))
+        (first,String::new())
     }
 }
 
@@ -59,20 +57,20 @@ impl Url {
         Ok(Url(url.to_string()))
     }
 
-    pub fn add_path_segment(&self, segment: &str) -> anyhow::Result<Url> {
-        let (mut out,after_path) = split_at_path_end(&self.0)?;
+    pub fn add_path_segment(&self, segment: &str) -> Url {
+        let (mut out,after_path) = split_at_path_end(&self.0);
         out.push_str("/");
         out.push_str(segment);
         out.push_str(&after_path);
-        Ok(Url(out))
+        Url(out)
     }
 
-    pub fn add_query_parameter(&self, param: &str) -> anyhow::Result<Url> {
-        let (mut out,after_path) = split_at_qp_end(&self.0)?;
+    pub fn add_query_parameter(&self, param: &str) -> Url {
+        let (mut out,after_path) = split_at_qp_end(&self.0);
         out.push_str(if out.contains("?") { "&" } else {"?" });
         out.push_str(param);
         out.push_str(&after_path);
-        Ok(Url(out))
+        Url(out)
     }
 }
 
