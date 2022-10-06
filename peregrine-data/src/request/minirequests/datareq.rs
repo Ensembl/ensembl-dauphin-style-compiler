@@ -44,7 +44,7 @@ impl DataRequest {
         out
     }
 
-    pub(crate) fn encode(&self) -> CborValue {
+    pub fn encode(&self) -> CborValue {
         CborValue::Array(vec![
             self.channel.encode(),
             CborValue::Text(self.name.to_string()),

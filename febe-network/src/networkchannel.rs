@@ -1,8 +1,9 @@
 use js_sys::Date;
-use peregrine_data::{ChannelIntegration, PacketPriority, RequestPacket, ResponsePacket, ChannelSender, BackendNamespace };
+use peregrine_data::{ChannelIntegration, PacketPriority, MaxiRequest, ResponsePacket, ChannelSender, BackendNamespace };
 use peregrine_toolkit::error::Error;
 use serde_cbor::Value as CborValue;
 use crate::ajax::PgAjax;
+use crate::cborserial::maxireq_encode_cbor;
 use peregrine_toolkit::url::Url;
 use std::future::Future;
 use std::pin::Pin;
@@ -23,7 +24,7 @@ pub struct NetworkChannelSender {
 }
 
 impl ChannelSender for NetworkChannelSender {
-    fn get_sender(&self, prio: &PacketPriority, data: RequestPacket) -> Pin<Box<dyn Future<Output=Result<ResponsePacket,Error>>>> {
+    fn get_sender(&self, prio: &PacketPriority, data: MaxiRequest) -> Pin<Box<dyn Future<Output=Result<ResponsePacket,Error>>>> {
         let url = match prio {
             PacketPriority::RealTime => &self.url_hi,
             PacketPriority::Batch => &self.url_lo
@@ -113,9 +114,9 @@ async fn send(url: &Url, prio: PacketPriority, data: CborValue, timeout: Option<
     ajax.get_cbor().await
 }
 
-async fn send_wrap(url_str: String, prio: PacketPriority, packet: RequestPacket, timeout: Option<f64>, cache_buster: String) -> Result<ResponsePacket,Error> {
+async fn send_wrap(url_str: String, prio: PacketPriority, packet: MaxiRequest, timeout: Option<f64>, cache_buster: String) -> Result<ResponsePacket,Error> {
     let url = Error::oper_r(Url::parse(&url_str),&format!("bad_url {}",url_str))?;
-    let data = packet.encode();
+    let data = maxireq_encode_cbor(&packet);
     let data = send(&url,prio,data,timeout,&cache_buster).await?;
     let response = Error::oper_r(ResponsePacket::decode(data),"packet error")?;
     Ok(response)

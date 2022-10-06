@@ -1,7 +1,7 @@
 use serde_cbor::Value as CborValue;
 use crate::{StickId, request::core::request::{MiniRequest, MiniRequestVariety}};
 
-pub(crate) struct StickReq {
+pub struct StickReq {
     stick_id: StickId
 }
 
@@ -12,7 +12,7 @@ impl StickReq {
         })
     }
 
-    pub(crate) fn encode(&self) -> CborValue {
+    pub fn encode(&self) -> CborValue {
         CborValue::Array(vec![
             CborValue::Text(self.stick_id.get_id().to_string())
         ])

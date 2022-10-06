@@ -1,7 +1,6 @@
 use futures::Future;
 use peregrine_toolkit::cbor::{cbor_into_drained_map, cbor_into_vec};
 use peregrine_toolkit::error::Error;
-use std::collections::BTreeMap;
 use std::mem::replace;
 use std::pin::Pin;
 use std::sync::Arc;
@@ -59,37 +58,30 @@ impl RequestPacketBuilder {
 }
 
 #[derive(Clone)]
-pub struct RequestPacket {
-    channel: BackendNamespace,
+pub struct MaxiRequest {
     factory: RequestPacketFactory,
     requests: Arc<Vec<MiniRequestAttempt>>,
 }
 
-impl RequestPacket {
-    pub fn new(builder: RequestPacketBuilder) -> RequestPacket {
-        RequestPacket {
-            channel: builder.factory.channel.clone(),
+impl MaxiRequest {
+    pub fn new(builder: RequestPacketBuilder) -> MaxiRequest {
+        MaxiRequest {
             factory: builder.factory.clone(),
             requests: Arc::new(builder.requests.clone()),
         }
     }
 
     pub fn fail(&self) -> ResponsePacket {
-        let mut response = ResponsePacket::empty(&self.channel);
+        let mut response = ResponsePacket::empty(&self.factory.channel);
         for r in self.requests.iter() {
             response.add_response(r.fail());
         }
         response
     }
 
-    pub fn encode(&self) -> CborValue {
-        let mut map = BTreeMap::new();
-        map.insert(CborValue::Text("channel".to_string()), self.factory.channel.encode());
-        let requests = self.requests.iter().map(|r| r.encode().clone()).collect::<Vec<_>>();  // XXX to take, ie destroy
-        map.insert(CborValue::Text("requests".to_string()),CborValue::Array(requests));
-        map.insert(CborValue::Text("version".to_string()),self.factory.metadata.encode());
-        CborValue::Map(map)
-    }
+    pub fn requests(&self) -> &[MiniRequestAttempt] { &self.requests }
+    pub fn channel(&self) -> &BackendNamespace { &self.factory.channel }
+    pub fn metadata(&self) -> &VersionMetadata { &self.factory.metadata }
 
     pub(crate) fn sender(&self, sender: &WrappedChannelSender) -> Result<Pin<Box<dyn Future<Output=Result<ResponsePacket,Error>>>>,DataMessage> {
         Ok(sender.get_sender(&self.factory.priority,self.clone()))

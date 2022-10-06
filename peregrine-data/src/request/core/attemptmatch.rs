@@ -1,4 +1,4 @@
-use std::{sync::{Mutex, Arc}, collections::HashMap};
+use std::{sync::{Mutex, Arc}, collections::HashMap, rc::Rc};
 
 use commander::CommanderStream;
 use peregrine_toolkit::lock;
@@ -30,7 +30,7 @@ impl AttemptMatch {
         pending.insert(id,response.clone());
     }
 
-    pub(super) fn make_attempt(&self, request: &MiniRequest) -> (MiniRequestAttempt,CommanderStream<BackendResponse>) {
+    pub(super) fn make_attempt(&self, request: &Rc<MiniRequest>) -> (MiniRequestAttempt,CommanderStream<BackendResponse>) {
         let id = self.next_id();
         let request = MiniRequestAttempt::new(id,request);
         let stream = request.response().clone();

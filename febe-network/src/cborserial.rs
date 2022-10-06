@@ -1,5 +1,6 @@
+use std::collections::BTreeMap;
+use peregrine_data::{MaxiRequest, MiniRequest, MiniRequestAttempt};
 use serde_cbor::Value as CborValue;
-use super::request::MiniRequest;
 
 fn make_type_index(request: &MiniRequest) -> u8 { // XXX not pub crate
     match request {
@@ -21,7 +22,6 @@ fn make_encode(request: &MiniRequest, msgid: u64) -> CborValue {
     ])
 }
 
-
 fn make_encode_data(request: &MiniRequest) -> CborValue {
     match request {
         MiniRequest::BootChannel(x) => x.encode(),
@@ -34,6 +34,17 @@ fn make_encode_data(request: &MiniRequest) -> CborValue {
     }
 }
 
-pub(crate) fn minireq_encode_cbor(request: &MiniRequest, msgid: u64) -> CborValue {
-    make_encode(request,msgid)
+fn minireq_encode_cbor(request: &MiniRequestAttempt) -> CborValue {
+    make_encode(request.request(),request.msgid())
+}
+
+pub fn maxireq_encode_cbor(request: &MaxiRequest) -> CborValue {
+    let mut map = BTreeMap::new();
+    map.insert(CborValue::Text("channel".to_string()), request.channel().encode());
+    let requests = request.requests().iter().map(|r| {
+        minireq_encode_cbor(r)
+    }).collect::<Vec<_>>();  // XXX to take, ie destroy
+    map.insert(CborValue::Text("requests".to_string()),CborValue::Array(requests));
+    map.insert(CborValue::Text("version".to_string()),request.metadata().encode());
+    CborValue::Map(map)
 }

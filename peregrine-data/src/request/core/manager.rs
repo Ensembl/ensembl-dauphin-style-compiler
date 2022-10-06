@@ -3,6 +3,7 @@ use commander::{ CommanderStream };
 use peregrine_toolkit::plumbing::oneshot::OneShot;
 use peregrine_toolkit_async::sync::blocker::Blocker;
 use std::collections::HashMap;
+use std::rc::Rc;
 use std::sync::{ Arc, Mutex };
 use super::attemptmatch::AttemptMatch;
 use super::backoff::Backoff;
@@ -67,7 +68,7 @@ impl LowLevelRequestManager {
         Ok(queues.get_mut(&key).unwrap().clone()) // safe because of above insert
     }
 
-    pub(crate) fn execute(&mut self, key: &QueueKey, request: &MiniRequest) -> Result<CommanderStream<BackendResponse>,DataMessage> {
+    pub(crate) fn execute(&mut self, key: &QueueKey, request: &Rc<MiniRequest>) -> Result<CommanderStream<BackendResponse>,DataMessage> {
         let (request,stream) = self.matcher.make_attempt(request);
         self.get_queue(key)?.input_queue().add(request);
         Ok(stream.clone())
@@ -77,7 +78,7 @@ impl LowLevelRequestManager {
         Ok(QueueKey::new(&sender,priority,&name))
     }
 
-    pub(crate) async fn submit_direct<F,T>(&self, sender: &WrappedChannelSender, priority: &PacketPriority,  name: &Option<BackendNamespace>, request: &MiniRequest, cb: F) 
+    pub(crate) async fn submit_direct<F,T>(&self, sender: &WrappedChannelSender, priority: &PacketPriority,  name: &Option<BackendNamespace>, request: &Rc<MiniRequest>, cb: F) 
                                                                     -> Result<T,DataMessage>
                                                                     where F: Fn(BackendResponse) -> Result<T,String> {
         let key = self.make_anon_key(sender,priority,name)?;
@@ -105,7 +106,7 @@ impl RequestManager {
         Ok(QueueKey::new(&sender,priority,&Some(name.clone())))
     }
 
-    pub(crate) async fn submit<F,T>(&self, name: &BackendNamespace, priority: &PacketPriority, request: &MiniRequest, cb: F) 
+    pub(crate) async fn submit<F,T>(&self, name: &BackendNamespace, priority: &PacketPriority, request: &Rc<MiniRequest>, cb: F) 
                                                                     -> Result<T,DataMessage>
                                                                     where F: Fn(BackendResponse) -> Result<T,String> {
         let key = self.make_key(name,priority)?;
@@ -113,10 +114,10 @@ impl RequestManager {
         backoff.backoff(request,cb).await
     }
 
-    pub(crate) async fn submit_direct<F,T>(&self, sender: &WrappedChannelSender, priority: &PacketPriority,  name: &Option<BackendNamespace>, request: &MiniRequest, cb: F) 
+    pub(crate) async fn submit_direct<F,T>(&self, sender: &WrappedChannelSender, priority: &PacketPriority,  name: &Option<BackendNamespace>, request: MiniRequest, cb: F) 
                                                                     -> Result<T,DataMessage>
                                                                     where F: Fn(BackendResponse) -> Result<T,String> {
-        self.low.submit_direct(sender, priority, name, request, cb).await
+        self.low.submit_direct(sender, priority, name, &Rc::new(request), cb).await
     }
 
     pub(crate) fn execute_and_forget(&self, name: &BackendNamespace, request: MiniRequest) {
@@ -129,7 +130,7 @@ impl RequestManager {
                 timeout: None,
                 slot: None,
                 task: Box::pin(async move { 
-                    manager.low.execute(&key,&request).ok().unwrap().get().await;
+                    manager.low.execute(&key,&Rc::new(request)).ok().unwrap().get().await;
                     Ok(())
                 }),
                 stats: false

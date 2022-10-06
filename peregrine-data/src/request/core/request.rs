@@ -8,17 +8,15 @@ use crate::request::minirequests::metricreq::MetricReport;
 use crate::request::minirequests::programreq::ProgramReq;
 use crate::request::minirequests::stickreq::StickReq;
 use std::rc::Rc;
-use super::cborserial::minireq_encode_cbor;
 use super::response::BackendResponseAttempt;
 use super::response::BackendResponse;
 use commander::CommanderStream;
-use serde_cbor::Value as CborValue;
 
 pub trait MiniRequestVariety {
     fn description(&self) -> String;
 }
 
-pub(crate) enum MiniRequest {
+pub enum MiniRequest {
     BootChannel(BootChannelReq),
     Program(ProgramReq),
     Stick(StickReq),
@@ -46,16 +44,16 @@ impl MiniRequest {
 pub struct MiniRequestAttempt {
     msgid: u64,
     description: String,
-    data: Rc<CborValue>,
+    request: Rc<MiniRequest>,
     response: CommanderStream<BackendResponse>
 }
 
 impl MiniRequestAttempt {
-    pub(crate) fn new(msgid: u64, data: &MiniRequest) -> MiniRequestAttempt {
+    pub(crate) fn new(msgid: u64, request: &Rc<MiniRequest>) -> MiniRequestAttempt {
         MiniRequestAttempt {
             msgid,
-            data: Rc::new(minireq_encode_cbor(data,msgid)),
-            description: data.as_mini().description(),
+            request: request.clone(),
+            description: request.as_mini().description(),
             response: CommanderStream::new()
         }
     }
@@ -67,5 +65,6 @@ impl MiniRequestAttempt {
         BackendResponseAttempt::new(self.msgid,failure)
     }
 
-    pub(crate) fn encode(&self) -> &CborValue { &self.data }
+    pub fn msgid(&self) -> u64 { self.msgid }
+    pub fn request(&self) -> &MiniRequest { &self.request }
 }

@@ -2,13 +2,13 @@ use peregrine_toolkit_async::sync::blocker::{Blocker};
 use peregrine_toolkit::{log_extra};
 use crate::core::channel::wrappedchannelsender::WrappedChannelSender;
 use crate::core::version::VersionMetadata;
-use crate::{RequestPacket, ResponsePacket, PacketPriority, BackendNamespace};
+use crate::{ResponsePacket, PacketPriority, BackendNamespace};
 use crate::api::MessageSender;
 use crate::run::{ PgCommander, add_task };
 use crate::run::pgcommander::PgCommanderTaskSpec;
 use crate::util::message::DataMessage;
 use super::attemptmatch::AttemptMatch;
-use super::packet::RequestPacketFactory;
+use super::packet::{RequestPacketFactory, MaxiRequest};
 use super::pendingattemptqueue::PendingAttemptQueue;
 use super::sidecars::RequestSidecars;
 use super::trafficcontrol::TrafficControl;
@@ -76,15 +76,15 @@ impl RequestQueue {
         Ok(())
     }
 
-    async fn build_packet(&self) -> Option<RequestPacket> {
+    async fn build_packet(&self) -> Option<MaxiRequest> {
         let mut packet = self.packet_factory.create();
         if !self.pending_send.add_to_packet(&mut packet).await {
             return None; /* queue closed */
         }
-        Some(RequestPacket::new(packet))
+        Some(MaxiRequest::new(packet))
     }
 
-    async fn send_packet(&self, packet: &RequestPacket) -> Result<ResponsePacket,DataMessage> {
+    async fn send_packet(&self, packet: &MaxiRequest) -> Result<ResponsePacket,DataMessage> {
         let sender = packet.sender(&self.key.sender)?;
         let lockout = self.traffic_control.await_permission().await;
         let response = sender.await.map_err(|x| DataMessage::XXXTransitional(x))?;
@@ -92,7 +92,7 @@ impl RequestQueue {
         Ok(response)
     }
 
-    async fn send_or_fail_packet(&self, packet: &RequestPacket) -> ResponsePacket {
+    async fn send_or_fail_packet(&self, packet: &MaxiRequest) -> ResponsePacket {
         let res = self.send_packet(packet).await;
         self.traffic_control.notify_outcome(res.is_ok());
         if let Some(e) = &res.as_ref().err() {
@@ -111,7 +111,7 @@ impl RequestQueue {
         }
     }
 
-    async fn process_request(&self, matcher: &AttemptMatch, sidecars: &RequestSidecars, request: &mut RequestPacket) {
+    async fn process_request(&self, matcher: &AttemptMatch, sidecars: &RequestSidecars, request: &mut MaxiRequest) {
         let response = self.send_or_fail_packet(request).await;
         self.process_responses(matcher,sidecars,response).await;
     }

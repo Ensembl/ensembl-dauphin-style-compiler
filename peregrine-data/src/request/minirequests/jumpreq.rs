@@ -12,7 +12,7 @@ impl JumpReq {
         })
     }
 
-    pub(crate) fn encode(&self) -> CborValue {
+    pub fn encode(&self) -> CborValue {
         CborValue::Array(vec![
             CborValue::Text(self.location.to_string())
         ])

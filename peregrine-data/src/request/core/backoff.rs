@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use commander::cdr_timer;
 use crate::{util::message::DataMessage };
 
@@ -20,7 +22,7 @@ impl Backoff {
         self.key.name.clone().map(|x| x.to_string()).unwrap_or_else(|| "*anon*".to_string())
     }
 
-    pub(crate) async fn backoff<F,T>(&mut self, req: &MiniRequest, cb: F) -> Result<T,DataMessage>
+    pub(crate) async fn backoff<F,T>(&mut self, req: &Rc<MiniRequest>, cb: F) -> Result<T,DataMessage>
                                                     where F: Fn(BackendResponse) -> Result<T,String> {
         let mut last_error = None;
         for _ in 0..5 { // XXX configurable
