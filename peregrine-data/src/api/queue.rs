@@ -11,7 +11,7 @@ use crate::train::model::trainextent::TrainExtent;
 use crate::{Assets, PgCommanderTaskSpec, DrawingCarriage, BackendNamespace};
 use commander::{CommanderStream, PromiseFuture};
 use peregrine_toolkit::eachorevery::eoestruct::StructBuilt;
-use peregrine_toolkit::{log_extra};
+use peregrine_toolkit::{log_extra, lock};
 use peregrine_toolkit_async::sync::blocker::{Blocker, Lockout};
 use super::pgcore::PeregrineCore;
 
@@ -149,7 +149,7 @@ impl ApiQueueCampaign {
                 data.base.metrics.add_general(&name,&tags,&values);
             },
             ApiMessage::SetAssets(assets) => {
-                *data.base.assets.lock().unwrap() = assets;
+                lock!(data.base.assets).add(&assets);
             },
             ApiMessage::PingTrains => {
                 data.train_set.ping();
