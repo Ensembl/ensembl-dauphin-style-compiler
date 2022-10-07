@@ -1,7 +1,6 @@
 use js_sys::Date;
-use peregrine_data::{ChannelIntegration, PacketPriority, MaxiRequest, ResponsePacket, ChannelSender, BackendNamespace };
+use peregrine_data::{ChannelIntegration, PacketPriority, MaxiRequest, MaxiResponse, ChannelSender, BackendNamespace };
 use peregrine_toolkit::error::Error;
-use serde_cbor::Value as CborValue;
 use crate::ajax::PgAjax;
 use peregrine_toolkit::url::Url;
 use std::future::Future;
@@ -23,7 +22,7 @@ pub struct NetworkChannelSender {
 }
 
 impl ChannelSender for NetworkChannelSender {
-    fn get_sender(&self, prio: &PacketPriority, data: MaxiRequest) -> Pin<Box<dyn Future<Output=Result<ResponsePacket,Error>>>> {
+    fn get_sender(&self, prio: &PacketPriority, data: MaxiRequest) -> Pin<Box<dyn Future<Output=Result<MaxiResponse,Error>>>> {
         let url = match prio {
             PacketPriority::RealTime => &self.url_hi,
             PacketPriority::Batch => &self.url_lo
@@ -104,7 +103,7 @@ fn add_priority(a: &Url, prio: &PacketPriority, cache_buster: &str) -> Url {
     z.add_query_parameter(&format!("stamp={}",cache_buster))
 }
 
-async fn send(url: &Url, prio: PacketPriority, data: Vec<u8>, timeout: Option<f64>, cache_buster: &str) -> Result<CborValue,Error> {
+async fn send(url: &Url, prio: PacketPriority, data: Vec<u8>, timeout: Option<f64>, cache_buster: &str) -> Result<Vec<u8>,Error> {
     let mut ajax = PgAjax::new("POST",&add_priority(url,&prio,cache_buster));
     if let Some(timeout) = timeout {
         ajax.set_timeout(timeout);
@@ -113,10 +112,10 @@ async fn send(url: &Url, prio: PacketPriority, data: Vec<u8>, timeout: Option<f6
     ajax.get_cbor().await
 }
 
-async fn send_wrap(url_str: String, prio: PacketPriority, packet: MaxiRequest, timeout: Option<f64>, cache_buster: String) -> Result<ResponsePacket,Error> {
+async fn send_wrap(url_str: String, prio: PacketPriority, packet: MaxiRequest, timeout: Option<f64>, cache_buster: String) -> Result<MaxiResponse,Error> {
     let url = Error::oper_r(Url::parse(&url_str),&format!("bad_url {}",url_str))?;
     let data = Error::oper_r(serde_cbor::to_vec(&packet),"packet error")?;
     let data = send(&url,prio,data,timeout,&cache_buster).await?;
-    let response = Error::oper_r(ResponsePacket::decode(data),"packet error")?;
+    let response = Error::oper_r(serde_cbor::from_slice(&data),"packet error")?;
     Ok(response)
 }

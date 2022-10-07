@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::{Arc, Mutex}, rc::Rc};
 use peregrine_toolkit::lock;
-use crate::{DataMessage, ProgramName, Stick, StickId, api::MessageSender, index::stickauthority::Authority, metric::{datastreammetric::PacketDatastreamMetricBuilder, metricreporter::MetricCollector}, request::minirequests::{authorityreq::AuthorityReq, datareq::DataRequest, datares::DataRes, jumpreq::JumpReq, jumpres::{JumpLocation, JumpRes}, programreq::ProgramReq, stickreq::StickReq}, PacketPriority, BackendNamespace};
-use super::{request::{MiniRequest}, manager::{RequestManager}, response::BackendResponse};
+use crate::{DataMessage, ProgramName, Stick, StickId, api::MessageSender, index::stickauthority::Authority, metric::{datastreammetric::PacketDatastreamMetricBuilder, metricreporter::MetricCollector}, request::minirequests::{authorityreq::AuthorityReq, datareq::DataRequest, datares::DataRes, jumpreq::JumpReq, jumpres::{JumpLocation, JumpRes}, programreq::ProgramReq, stickreq::StickReq, stickres::StickRes}, PacketPriority, BackendNamespace};
+use super::{request::{MiniRequest}, manager::{RequestManager}, response::MiniResponse};
 
 #[derive(Clone)]
 pub struct Backend {
@@ -22,14 +22,14 @@ impl Backend {
     }
 
     async fn submit<F,T>(&self, priority: &PacketPriority, request: MiniRequest, cb: F) -> Result<T,DataMessage>
-            where F: Fn(BackendResponse) -> Result<T,String> {
+            where F: Fn(MiniResponse) -> Result<T,String> {
         self.manager.submit(&self.name,priority,&Rc::new(request), |v| {
             cb(v)
         }).await
     }
 
     async fn submit_hi<F,T>(&self, request: MiniRequest, cb: F) -> Result<T,DataMessage>
-            where F: Fn(BackendResponse) -> Result<T,String> {
+            where F: Fn(MiniResponse) -> Result<T,String> {
         self.submit(&PacketPriority::RealTime,request,cb).await
     }
 
@@ -44,9 +44,9 @@ impl Backend {
     pub async fn stick(&self, id: &StickId) -> Result<Stick,DataMessage> {
         let req = StickReq::new(&id);
         let r = self.submit_hi(req, |v| { v.into_stick() }).await?;
-        match r.stick() {
-            Ok(s) => Ok(s),
-            Err(_e) => {
+        match r {
+            StickRes::Stick(s) => Ok(s),
+            StickRes::Unknown(_) => {
                 self.messages.send(DataMessage::NoSuchStick(id.clone()));
                 Err(DataMessage::NoSuchStick(id.clone()))
             }

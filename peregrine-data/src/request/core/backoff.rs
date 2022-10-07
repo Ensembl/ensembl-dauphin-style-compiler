@@ -3,7 +3,7 @@ use std::rc::Rc;
 use commander::cdr_timer;
 use crate::{util::message::DataMessage };
 
-use super::{manager::{LowLevelRequestManager}, request::MiniRequest, response::BackendResponse, queue::QueueKey};
+use super::{manager::{LowLevelRequestManager}, request::MiniRequest, response::MiniResponse, queue::QueueKey};
 
 pub struct Backoff { 
     manager: LowLevelRequestManager,
@@ -23,7 +23,7 @@ impl Backoff {
     }
 
     pub(crate) async fn backoff<F,T>(&mut self, req: &Rc<MiniRequest>, cb: F) -> Result<T,DataMessage>
-                                                    where F: Fn(BackendResponse) -> Result<T,String> {
+                                                    where F: Fn(MiniResponse) -> Result<T,String> {
         let mut last_error = None;
         for _ in 0..5 { // XXX configurable
             let resp = self.manager.execute(&self.key,req)?.get().await;

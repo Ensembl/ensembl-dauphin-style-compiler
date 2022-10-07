@@ -8,8 +8,8 @@ use crate::request::minirequests::metricreq::MetricReport;
 use crate::request::minirequests::programreq::ProgramReq;
 use crate::request::minirequests::stickreq::StickReq;
 use std::rc::Rc;
-use super::response::BackendResponseAttempt;
-use super::response::BackendResponse;
+use super::response::MiniResponseAttempt;
+use super::response::MiniResponse;
 use commander::CommanderStream;
 use serde::{ Serialize };
 use serde::ser::SerializeSeq;
@@ -63,7 +63,7 @@ pub struct MiniRequestAttempt {
     msgid: u64,
     description: String,
     request: Rc<MiniRequest>,
-    response: CommanderStream<BackendResponse>
+    response: CommanderStream<MiniResponse>
 }
 
 impl MiniRequestAttempt {
@@ -76,11 +76,11 @@ impl MiniRequestAttempt {
         }
     }
 
-    pub(crate) fn response(&self) -> &CommanderStream<BackendResponse> { &self.response }
+    pub(crate) fn response(&self) -> &CommanderStream<MiniResponse> { &self.response }
 
-    pub(crate) fn fail(&self) -> BackendResponseAttempt {
-        let failure = BackendResponse::FailureRes(FailureRes::new(&self.description));
-        BackendResponseAttempt::new(self.msgid,failure)
+    pub(crate) fn fail(&self) -> MiniResponseAttempt {
+        let failure = MiniResponse::FailureRes(FailureRes::new(&self.description));
+        MiniResponseAttempt::new(self.msgid,failure)
     }
 
     pub fn msgid(&self) -> u64 { self.msgid }

@@ -1,5 +1,5 @@
 use commander::{CommanderStream, FusePromise, PromiseFuture};
-use peregrine_toolkit::{lock, error, log };
+use peregrine_toolkit::{lock, error };
 use crate::{ request::{minirequests::{bootchannelres::BootChannelRes, bootchannelreq::BootChannelReq}}, InstanceInformation, PeregrineCoreBase, shapeload::programloader::ProgramLoader, run::PgDauphinTaskSpec, DataMessage, add_task, PgCommanderTaskSpec, PacketPriority, CountingPromise, BackendNamespace};
 
 use super::wrappedchannelsender::WrappedChannelSender;
@@ -12,7 +12,6 @@ async fn finish_bootstrap(response: &BootChannelRes, base: &PeregrineCoreBase, s
     );
     base.channel_registry.register_channel(response.namespace(),sender);
     lock!(base.integration).report_instance_information(&info);
-    log!("boot: program={:?}",response.program_name());
     let r = base.dauphin.run_program(&base.manager,loader,&base.channel_registry,PgDauphinTaskSpec {
         prio: 2,
         slot: None,
@@ -44,7 +43,6 @@ async fn boot_loop(stream: BootStream, base: &PeregrineCoreBase, loader: &Progra
         if let Some((name,sender,promise)) = stream.get().await {
             promise.fuse(boot_channel(base,loader,&name,&sender).await);
         } else {
-            log!("bootloop/booted");
             booted.unlock();
         }
     }
@@ -65,7 +63,6 @@ impl ChannelBoot {
     }
 
     pub(crate) async fn boot(&self, name: &BackendNamespace, sender: &WrappedChannelSender) -> Result<BackendNamespace,DataMessage> {
-        log!("boot/add");
         let promise = FusePromise::new();
         self.bootable.add(Some((name.clone(),sender.clone(),promise.clone())));
         let p = PromiseFuture::new();
@@ -74,7 +71,6 @@ impl ChannelBoot {
     }
 
     pub(crate) async fn ready(&self) -> Result<(),DataMessage> {
-        log!("boot/ready");
         self.bootable.add(None);
         self.booted.wait().await;
         Ok(())

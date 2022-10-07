@@ -1,6 +1,7 @@
-use peregrine_toolkit::cbor::{cbor_as_number, cbor_into_map, cbor_into_vec, cbor_map_key, cbor_map_optional_key};
-use crate::{Assets, ProgramName, BackendNamespace};
-use serde_cbor::Value as CborValue;
+use std::fmt;
+use peregrine_toolkit::{serdetools::st_field};
+use serde::{Deserialize, Deserializer, de::{Visitor, MapAccess, IgnoredAny}};
+use crate::{Assets, ProgramName, BackendNamespace, request::core::response::MiniResponseVariety};
 
 pub struct BootChannelRes {
     program_name: ProgramName,
@@ -10,33 +11,65 @@ pub struct BootChannelRes {
     supports: Option<Vec<u32>>
 }
 
-fn decode_supports(value: CborValue) -> Result<Vec<u32>,String> {
-    cbor_into_vec(value)?.drain(..).map(|x| cbor_as_number(&x)).collect::<Result<_,_>>()
-}
-
 impl BootChannelRes {
-    pub fn decode(value: CborValue) -> Result<BootChannelRes,String> {
-        let mut map = cbor_into_map(value)?;
-        let supports = cbor_map_optional_key(&mut map,"supports")
-            .map(|value| { decode_supports(value) })
-            .transpose()?;
-        let channel = BackendNamespace::decode(cbor_map_key(&mut map, "namespace")?)?;
-        let chrome_assets =
-            cbor_map_optional_key(&mut map,"chrome-assets")
-                .map(|value| Assets::decode(None,value)).transpose()?
-                .unwrap_or_else(|| Assets::empty());
-        Ok(BootChannelRes {
-            program_name: ProgramName::decode(cbor_map_key(&mut map,"boot")?)?,
-            namespace: channel.clone(),
-            channel_assets: Assets::decode(Some(&channel),cbor_map_key(&mut map,"assets")?)?,
-            chrome_assets,
-            supports
-        })
-    }
-
     pub(crate) fn program_name(&self) -> &ProgramName { &self.program_name }
     pub(crate) fn channel_assets(&self) -> &Assets { &self.channel_assets }
     pub(crate) fn chrome_assets(&self) -> &Assets { &self.chrome_assets }
     pub(crate) fn namespace(&self) -> &BackendNamespace { &self.namespace }
     pub(crate) fn supports(&self) -> Option<&[u32]> { self.supports.as_ref().map(|x| &x[..]).clone() }
+}
+
+struct BootChannelVisitor;
+
+impl<'de> Visitor<'de> for BootChannelVisitor {
+    type Value = BootChannelRes;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter.write_str("a StickRes")
+    }
+
+    fn visit_map<M>(self, mut access: M) -> Result<Self::Value, M::Error>
+            where M: MapAccess<'de> {
+        let mut supports = None;
+        let mut namespace : Option<BackendNamespace> = None;
+        let mut assets = None;
+        let mut chrome_assets = None;
+        let mut boot = None;
+        while let Some(key) = access.next_key()? {
+            match key {
+                "supports" => { supports = Some(access.next_value()?); },
+                "namespace" => { namespace = Some(access.next_value()?); },
+                "chrome-assets" => { chrome_assets = Some(access.next_value()?); },
+                "assets" => { assets = Some(access.next_value()?); },
+                "boot" => { boot = Some(access.next_value()?); }
+                _ => { let _ : IgnoredAny = access.next_value()?; }
+            }
+        }
+        let namespace = st_field("namespace",namespace)?;
+        let assets_loader = st_field("assets",assets)?;
+        let chrome_assets_loader = st_field("chrome-assets",chrome_assets)?;
+        let boot = st_field("boot",boot)?;
+        let mut chrome_assets = Assets::empty();
+        chrome_assets.load(chrome_assets_loader,Some(namespace.clone()));
+        let mut assets = Assets::empty();
+        assets.load(assets_loader,Some(namespace.clone()));
+        Ok(BootChannelRes {
+            program_name: boot,
+            namespace,
+            channel_assets: assets,
+            chrome_assets,
+            supports
+        })
+    }
+}
+
+impl<'de> Deserialize<'de> for BootChannelRes {
+    fn deserialize<D>(deserializer: D) -> Result<BootChannelRes, D::Error>
+            where D: Deserializer<'de> {
+        deserializer.deserialize_map(BootChannelVisitor)
+    }
+}
+
+impl MiniResponseVariety for BootChannelRes {
+    fn description(&self) -> &str { "bootstrap" }
 }

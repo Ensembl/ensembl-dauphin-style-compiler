@@ -1,7 +1,7 @@
 use std::{sync::Arc, pin::Pin, fmt};
 use futures::Future;
 use peregrine_toolkit::error::Error;
-use crate::{MaxiRequest, PacketPriority, ResponsePacket, ChannelSender};
+use crate::{MaxiRequest, PacketPriority, MaxiResponse, ChannelSender};
 use lazy_static::lazy_static;
 use identitynumber::{identitynumber, hashable };
 
@@ -31,7 +31,7 @@ impl WrappedChannelSender {
 }
 
 impl ChannelSender for WrappedChannelSender {
-    fn get_sender(&self, prio: &PacketPriority, data: MaxiRequest) -> Pin<Box<dyn Future<Output=Result<ResponsePacket,Error>>>> {
+    fn get_sender(&self, prio: &PacketPriority, data: MaxiRequest) -> Pin<Box<dyn Future<Output=Result<MaxiResponse,Error>>>> {
         self.sender.get_sender(prio,data)
     }
 }

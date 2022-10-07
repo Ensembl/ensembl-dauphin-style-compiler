@@ -2,7 +2,7 @@ use peregrine_toolkit_async::sync::blocker::{Blocker};
 use peregrine_toolkit::{log_extra};
 use crate::core::channel::wrappedchannelsender::WrappedChannelSender;
 use crate::core::version::VersionMetadata;
-use crate::{ResponsePacket, PacketPriority, BackendNamespace};
+use crate::{MaxiResponse, PacketPriority, BackendNamespace};
 use crate::api::MessageSender;
 use crate::run::{ PgCommander, add_task };
 use crate::run::pgcommander::PgCommanderTaskSpec;
@@ -84,7 +84,7 @@ impl RequestQueue {
         Some(MaxiRequest::new(packet))
     }
 
-    async fn send_packet(&self, packet: &MaxiRequest) -> Result<ResponsePacket,DataMessage> {
+    async fn send_packet(&self, packet: &MaxiRequest) -> Result<MaxiResponse,DataMessage> {
         let sender = packet.sender(&self.key.sender)?;
         let lockout = self.traffic_control.await_permission().await;
         let response = sender.await.map_err(|x| DataMessage::XXXTransitional(x))?;
@@ -92,7 +92,7 @@ impl RequestQueue {
         Ok(response)
     }
 
-    async fn send_or_fail_packet(&self, packet: &MaxiRequest) -> ResponsePacket {
+    async fn send_or_fail_packet(&self, packet: &MaxiRequest) -> MaxiResponse {
         let res = self.send_packet(packet).await;
         self.traffic_control.notify_outcome(res.is_ok());
         if let Some(e) = &res.as_ref().err() {
@@ -101,7 +101,7 @@ impl RequestQueue {
         res.ok().unwrap_or_else(|| packet.fail())
     }
 
-    async fn process_responses(&self, matcher: &AttemptMatch, sidecars: &RequestSidecars, mut response: ResponsePacket) {
+    async fn process_responses(&self, matcher: &AttemptMatch, sidecars: &RequestSidecars, mut response: MaxiResponse) {
         sidecars.run(&response,&response.channel(),&self.messages).await;
         for r in response.take_responses().drain(..) {
             if let Some(stream) = matcher.retrieve_attempt_by_response(&r) {

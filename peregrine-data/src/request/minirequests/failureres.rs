@@ -1,6 +1,9 @@
-use peregrine_toolkit::cbor::cbor_as_str;
-use serde_cbor::Value as CborValue;
+use serde_derive::Deserialize;
 
+use crate::request::core::response::MiniResponseVariety;
+
+#[derive(Deserialize)]
+#[serde(transparent)]
 pub struct FailureRes {
     message: String
 }
@@ -11,8 +14,9 @@ impl FailureRes {
     }
 
     pub fn message(&self) -> &str { &self.message }
+}
 
-    pub fn decode(value: CborValue) -> Result<FailureRes,String> {
-        Ok(FailureRes { message: cbor_as_str(&value)?.to_string() })
-    }
+
+impl MiniResponseVariety for FailureRes {
+    fn description(&self) -> &str { "failure" }
 }

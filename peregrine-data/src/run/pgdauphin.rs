@@ -6,7 +6,7 @@ use std::any::Any;
 use std::collections::HashMap;
 use std::sync::{ Arc, Mutex };
 use crate::core::channel::channelregistry::ChannelRegistry;
-use crate::{ResponsePacket, BackendNamespace, AccessorResolver, RequestManager};
+use crate::{MaxiResponse, BackendNamespace, AccessorResolver, RequestManager};
 use crate::api::MessageSender;
 use crate::core::programbundle::SuppliedBundle;
 use crate::shapeload::programloader::ProgramLoader;
@@ -59,7 +59,7 @@ impl PgDauphin {
         self.add_binary_direct(&self.binary_name(channel,name_of_bundle),cbor).await
     }
 
-    pub async fn add_programs(&self, channel: &BackendNamespace, response: &ResponsePacket) -> anyhow::Result<()> {
+    pub async fn add_programs(&self, channel: &BackendNamespace, response: &MaxiResponse) -> anyhow::Result<()> {
         for bundle in response.programs().iter() {
             self.add_binary(channel,bundle.bundle_name(),bundle.program()).await?;
             for (in_channel_name,in_bundle_name) in bundle.name_map() {
@@ -122,7 +122,7 @@ async fn add_bundle(pgd: &PgDauphin, channel: &BackendNamespace, bundle: &Suppli
     }
 }
 
-pub(crate) async fn add_programs_from_response(pgd: &PgDauphin, channel: &BackendNamespace, response: &ResponsePacket, messages: &MessageSender) {
+pub(crate) async fn add_programs_from_response(pgd: &PgDauphin, channel: &BackendNamespace, response: &MaxiResponse, messages: &MessageSender) {
     for bundle in response.programs().clone().iter() {
         add_bundle(&pgd,&channel, bundle, &messages).await;
     }

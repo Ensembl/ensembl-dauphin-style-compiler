@@ -1,8 +1,10 @@
 use futures::Future;
-use peregrine_toolkit::cbor::{cbor_into_drained_map, cbor_into_vec};
 use peregrine_toolkit::error::Error;
-use serde::Serialize;
+use peregrine_toolkit::serdetools::st_field;
+use serde::de::{Visitor, MapAccess};
+use serde::{Serialize, Deserializer, Deserialize};
 use serde::ser::SerializeMap;
+use std::fmt;
 use std::mem::replace;
 use std::pin::Pin;
 use std::sync::Arc;
@@ -11,14 +13,14 @@ use crate::{PacketPriority, DataMessage, ChannelSender, BackendNamespace};
 use crate::core::programbundle::SuppliedBundle;
 use crate::core::version::VersionMetadata;
 use super::request::MiniRequestAttempt;
-use super::response::{BackendResponseAttempt};
-use serde_cbor::Value as CborValue;
+use super::response::{MiniResponseAttempt};
 
-#[cfg(debug_big_requests)]
+
+#[allow(unused)] // used in debug_big_requests
 const TOO_LARGE : usize = 100*1024;
 
 #[cfg(debug_big_requests)]
-use peregrine_toolkit::{warn , cbor::cbor_as_vec };
+use peregrine_toolkit::{warn};
 
 #[derive(Clone)]
 pub struct RequestPacketFactory {
@@ -73,8 +75,8 @@ impl MaxiRequest {
         }
     }
 
-    pub fn fail(&self) -> ResponsePacket {
-        let mut response = ResponsePacket::empty(&self.factory.channel);
+    pub fn fail(&self) -> MaxiResponse {
+        let mut response = MaxiResponse::empty(&self.factory.channel);
         for r in self.requests.iter() {
             response.add_response(r.fail());
         }
@@ -85,7 +87,7 @@ impl MaxiRequest {
     pub fn channel(&self) -> &BackendNamespace { &self.factory.channel }
     pub fn metadata(&self) -> &VersionMetadata { &self.factory.metadata }
 
-    pub(crate) fn sender(&self, sender: &WrappedChannelSender) -> Result<Pin<Box<dyn Future<Output=Result<ResponsePacket,Error>>>>,DataMessage> {
+    pub(crate) fn sender(&self, sender: &WrappedChannelSender) -> Result<Pin<Box<dyn Future<Output=Result<MaxiResponse,Error>>>>,DataMessage> {
         Ok(sender.get_sender(&self.factory.priority,self.clone()))
     }
 }
@@ -101,84 +103,40 @@ impl Serialize for MaxiRequest {
     }
 }
 
-pub struct ResponsePacket {
+pub struct MaxiResponse {
     channel: BackendNamespace,
-    responses: Vec<BackendResponseAttempt>,
-    programs: Vec<SuppliedBundle>,
-    #[cfg(debug_big_requests)]
-    total_size: usize
+    responses: Vec<MiniResponseAttempt>,
+    programs: Vec<SuppliedBundle>
 }
 
-impl ResponsePacket {
-    fn empty(channel: &BackendNamespace) -> ResponsePacket {
-        ResponsePacket {
+impl MaxiResponse {
+    fn empty(channel: &BackendNamespace) -> MaxiResponse {
+        MaxiResponse {
             channel: channel.clone(),
             responses: vec![],
-            programs: vec![],
-            #[cfg(debug_big_requests)]
-            total_size: 0
+            programs: vec![]
         }
     }
 
-    #[cfg(debug_big_requests)]
-    fn total_size(value: &CborValue) -> Result<usize,String> {
-        Ok(cbor_as_vec(value)?.iter()
-            .map(|v| BackendResponseAttempt::total_size(v))
-            .collect::<Result<Vec<usize>,String>>()?.iter().sum())
-    }
-
-    #[cfg(not(debug_big_requests))]
-    fn total_size(_value: &CborValue) -> Result<usize,String> {
-        Ok(0)
-    }
-
-    fn decode_responses(value: CborValue) -> Result<Vec<BackendResponseAttempt>,String> {
-        Ok(cbor_into_vec(value)?.drain(..)
-            .map(|v| BackendResponseAttempt::decode(v))
-            .collect::<Result<_,_>>()?)
-    }
-
-    fn decode_programs(value: CborValue) -> Result<Vec<SuppliedBundle>,String> {
-        Ok(cbor_into_vec(value)?.drain(..)
-            .map(|v| SuppliedBundle::decode(v))
-            .collect::<Result<_,_>>()?)
-    }
-
-    pub fn decode(value: CborValue) -> Result<ResponsePacket,String> {
-        let mut responses = vec![];
-        let mut programs= vec![];
-        let mut channel = None;
-        #[allow(unused)] let mut total_size = 0;
-        for (k,v) in cbor_into_drained_map(value)?.drain(..) {
-            match k.as_str() {
-                "responses" => {
-                    total_size = Self::total_size(&v).ok().unwrap_or(0);
-                    responses = ResponsePacket::decode_responses(v)?;
-                },
-                "programs" => { programs = ResponsePacket::decode_programs(v)?; },
-                "channel" => { channel = Some(v); }
-                _ => {}
-            }
-        }
-        let channel = if let Some(channel) = channel { channel } else {
-            return Err("missing channel in response".to_string());
-        };
-        Ok(ResponsePacket {
-            channel: BackendNamespace::decode(channel)?,
-            responses, programs, 
-            #[cfg(debug_big_requests)]
-            total_size
-        })
-    }
-
-    fn add_response(&mut self, response: BackendResponseAttempt) {
+    fn add_response(&mut self, response: MiniResponseAttempt) {
         self.responses.push(response);
     }
 
     #[cfg(debug_big_requests)]
     fn check_big_requests(&self) {
-        if self.total_size > TOO_LARGE {
-            warn!("excessively large response size {} ({} elements)",self.total_size,self.responses.len());
+        let total_size : usize = self.responses.iter().map(|x| x.total_size()).sum();
+        if total_size > TOO_LARGE {
+            warn!("excessively large maxi-response {} ({} elements)",total_size,self.responses.len());
+        }
+        for mini in &self.responses {
+            if mini.total_size() > TOO_LARGE/5 {
+                warn!("excessively large mini-response {}",mini.description());
+                for (key,size) in mini.component_size().iter() {
+                    if mini.total_size() > TOO_LARGE/15 {
+                        warn!("excessively large mini-response internal key {} ({})",key,size);
+                    }
+                }
+            }
         }
     }
 
@@ -187,8 +145,51 @@ impl ResponsePacket {
 
     pub(crate) fn channel(&self) -> &BackendNamespace { &self.channel }
     pub(crate) fn programs(&self) -> &[SuppliedBundle] { &self.programs }
-    pub(crate) fn take_responses(&mut self) -> Vec<BackendResponseAttempt> {
+    pub(crate) fn take_responses(&mut self) -> Vec<MiniResponseAttempt> {
         self.check_big_requests();
         replace(&mut self.responses,vec![])
+    }
+}
+
+struct MaxiResponseVisitor;
+
+impl<'de> Visitor<'de> for MaxiResponseVisitor {
+    type Value = MaxiResponse;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter.write_str("a MaxiResponse")
+    }
+
+    fn visit_map<M>(self, mut access: M) -> Result<Self::Value, M::Error>
+            where M: MapAccess<'de> {
+        let mut responses : Option<Vec<MiniResponseAttempt>> = None;
+        let mut programs = None;
+        let mut channel = None;
+        while let Some(key) = access.next_key()? {
+            match key {
+                "responses" => { 
+                    //total_size = Self::total_size(&v).ok().unwrap_or(0);
+                    responses = access.next_value()?;
+                },
+                "programs" => { programs = access.next_value()? },
+                "channel" => { channel = access.next_value()? },
+                _ => {}
+            }
+        }
+        let responses = st_field("responses",responses)?;
+        let channel = st_field("channel",channel)?;
+        let programs = st_field("programs",programs)?;
+        Ok(MaxiResponse {
+            channel, 
+            responses, 
+            programs,
+        })
+    }
+}
+
+impl<'de> Deserialize<'de> for MaxiResponse {
+    fn deserialize<D>(deserializer: D) -> Result<MaxiResponse, D::Error>
+            where D: Deserializer<'de> {
+        deserializer.deserialize_seq(MaxiResponseVisitor)
     }
 }

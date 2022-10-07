@@ -107,12 +107,10 @@ impl PgAjax {
         Ok(json)
     }
 
-    pub async fn get_cbor(&mut self) -> Result<CborValue,Error> {
+    pub async fn get_cbor(&mut self) -> Result<Vec<u8>,Error> {
         self.add_request_header("Content-Type","application/cbor");
         let response = self.get().await.map(|r| r.array_buffer())?.ok().unwrap();
         let array_buffer_value = promise_to_future(response).await.ok().unwrap();
-        let buffer: Vec<u8> = typed_array_to_vec_u8(&js_sys::Uint8Array::new(&array_buffer_value));
-        let cbor = Error::oper_r(serde_cbor::from_slice(&buffer),"cannot serialize json")?;
-        Ok(cbor)
+        Ok(typed_array_to_vec_u8(&js_sys::Uint8Array::new(&array_buffer_value)))
     }
 }

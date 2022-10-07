@@ -1,6 +1,7 @@
-use peregrine_toolkit::{cbor::{cbor_as_str, cbor_into_vec, check_array_len}, decompose_vec };
-use crate::{index::stickauthority::Authority, BackendNamespace};
-use serde_cbor::Value as CborValue;
+use std::fmt;
+use peregrine_toolkit::{serdetools::st_field };
+use serde::{Deserialize, Deserializer, de::Visitor};
+use crate::{index::stickauthority::Authority, BackendNamespace, request::core::response::MiniResponseVariety};
 
 pub struct AuthorityRes {
     channel: BackendNamespace,
@@ -13,16 +14,34 @@ impl AuthorityRes {
     pub fn build(&self) -> Authority {
         Authority::new(&self.channel,&self.startup_name,&self.lookup_name,&self.jump_name)
     }
+}
 
-    pub fn decode(value: CborValue) -> Result<AuthorityRes,String> {
-        let mut value = cbor_into_vec(value)?;
-        check_array_len(&value,4)?;
-        decompose_vec!(value,channel,startup,lookup,jump);
-        Ok(AuthorityRes {
-            channel: BackendNamespace::decode(channel)?,
-            startup_name: cbor_as_str(&startup)?.to_string(),
-            lookup_name: cbor_as_str(&lookup)?.to_string(),
-            jump_name: cbor_as_str(&jump)?.to_string(),
-        })
+struct AuthorityVisitor;
+
+impl<'de> Visitor<'de> for AuthorityVisitor {
+    type Value = AuthorityRes;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter.write_str("an AuthorityRes")
     }
+
+    fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+            where A: serde::de::SeqAccess<'de>, {
+        let channel = st_field("channel",seq.next_element()?)?;
+        let startup_name = st_field("startup_name",seq.next_element()?)?;
+        let lookup_name = st_field("lookup_name",seq.next_element()?)?;
+        let jump_name = st_field("jump_name",seq.next_element()?)?;
+        Ok(AuthorityRes { channel, startup_name, lookup_name, jump_name })
+    }
+}
+
+impl<'de> Deserialize<'de> for AuthorityRes {
+    fn deserialize<D>(deserializer: D) -> Result<AuthorityRes, D::Error>
+            where D: Deserializer<'de> {
+        deserializer.deserialize_seq(AuthorityVisitor)
+    }
+}
+
+impl MiniResponseVariety for AuthorityRes {
+    fn description(&self) -> &str { "authority" }
 }

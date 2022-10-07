@@ -1,17 +1,14 @@
 use anyhow::anyhow as err;
-use dauphin_interp::util::cbor::cbor_bool;
-use peregrine_toolkit::cbor::{cbor_into_drained_map,cbor_into_bytes };
+use peregrine_toolkit::cbor::{cbor_into_drained_map };
+use peregrine_toolkit::serdetools::{st_field, st_err, ByteData };
+use serde::de::{Visitor, MapAccess, };
+use serde::{Deserialize, Deserializer};
+use std::fmt;
 use std::{collections::HashMap};
+use crate::request::core::response::MiniResponseVariety;
 use crate::{metric::datastreammetric::PacketDatastreamMetricBuilder};
 use crate::core::data::ReceivedData;
-use serde_cbor::Value as CborValue;
 use inflate::inflate_bytes_zlib;
-
-#[cfg(debug_big_requests)]
-use peregrine_toolkit::{ warn, cbor::{ cbor_as_map, cbor_as_bytes, cbor_map_optional_key_ref }};
-
-#[cfg(debug_big_requests)]
-const TOO_LARGE : usize = 10*1024;
 
 pub struct DataRes {
     data: HashMap<String,ReceivedData>,
@@ -25,51 +22,8 @@ impl DataRes {
         }
     }
 
-    #[cfg(debug_big_requests)]
-    pub(crate) fn result_size(value: &CborValue) -> Result<usize,String> {
-        let data = cbor_as_map(value)?;
-        let mut total = 0;
-        let mut big_keys = vec![];
-        if let Some(data) = cbor_map_optional_key_ref(data,"data") {
-            let bytes = inflate_bytes_zlib(cbor_as_bytes(data)?)?;
-            let data = serde_cbor::from_slice(&bytes).map_err(|e| format!("cannot deserialize"))?;
-            for (key,value) in cbor_as_map(&data)?.iter() {
-                let this_len = cbor_as_bytes(value)?.len();
-                if this_len > TOO_LARGE/5 {
-                    big_keys.push(format!("{:?} = {}",key,this_len));
-                }
-                total += this_len;
-            }    
-        }
-        if total > TOO_LARGE {
-            warn!("excessive single response size {}: {}",total,big_keys.join(", "));
-        }
-        Ok(total)
-    }
-
     #[cfg(debug_assertions)]
     pub fn keys(&self) -> Vec<String> { self.data.keys().cloned().collect::<Vec<_>>() }
-
-    pub fn decode(value: CborValue) -> Result<DataRes,String> {
-        let mut data = cbor_into_drained_map(value)?;
-        let mut invariant = false;
-        let mut out = None;
-        for (key,value) in data.drain(..) {
-            if key == "data" {
-                let bytes = inflate_bytes_zlib(&cbor_into_bytes(value)?).map_err(|e| "corrupted data payload")?;
-                let value = serde_cbor::from_slice(&bytes).map_err(|_| "corrupted data payload")?;
-                out = Some(cbor_into_drained_map(value)?.drain(..).map(|(k,v)| {
-                    Ok((k,ReceivedData::decode(v)?))
-                }).collect::<Result<_,String>>()?);
-            } else if key == "invariant" {
-                invariant = cbor_bool(&value).ok().unwrap_or(false);
-            }
-        }
-        if let Some(data) = out {
-            return Ok(DataRes { data, invariant });
-        }
-        return Err(format!("missing key 'data'"));
-    }
 
     pub fn get(&self, name: &str) -> anyhow::Result<&ReceivedData> {
         self.data.get(name).ok_or_else(|| err!("no such data {}: have {}",
@@ -79,4 +33,54 @@ impl DataRes {
     }
 
     pub(crate) fn is_invariant(&self) -> bool { self.invariant }
+}
+
+struct DataVisitor;
+
+impl<'de> Visitor<'de> for DataVisitor {
+    type Value = DataRes;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter.write_str("a DataRes")
+    }
+
+    fn visit_map<M>(self, mut access: M) -> Result<Self::Value, M::Error>
+            where M: MapAccess<'de> {
+        let mut data = None;
+        let mut invariant = false;
+        while let Some(key) = access.next_key()? {
+            match key {
+                "data" => { data = Some(access.next_value()?) },
+                "invariant" => { invariant = access.next_value()? },
+                _ => {}
+            }
+        }
+        let value : ByteData = st_field("data",data)?;
+        let bytes = st_err(inflate_bytes_zlib(&value.data),"uninflatable")?;
+        let value = st_err(serde_cbor::from_slice(&bytes),"corrupt payload/A")?;
+        let mut data = st_err(cbor_into_drained_map(value),"corrupt payload/B")?;
+        let data = st_err(data.drain(..).map(|(k,v)| {
+            Ok((k,ReceivedData::decode(v)?))
+        }).collect::<Result<HashMap<String,ReceivedData>,String>>(),"corrupt payload/C")?;
+        Ok(DataRes {
+            data, 
+            invariant
+        })
+    }
+}
+
+impl<'de> Deserialize<'de> for DataRes {
+    fn deserialize<D>(deserializer: D) -> Result<DataRes, D::Error>
+            where D: Deserializer<'de> {
+        deserializer.deserialize_map(DataVisitor)
+    }
+}
+
+impl MiniResponseVariety for DataRes {
+    fn description(&self) -> &str { "data" }
+    fn total_size(&self) -> usize { self.data.values().map(|x| x.len()).sum() }
+
+    fn component_size(&self) -> Vec<(String,usize)> {
+        self.data.iter().map(|(k,v)| (k.to_string(),v.len())).collect::<Vec<_>>()
+    }
 }

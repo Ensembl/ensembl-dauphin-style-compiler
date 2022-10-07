@@ -286,7 +286,7 @@ pub use self::core::channel::channelintegration::{ ChannelIntegration, ChannelSe
 pub use self::index::{ StickStore, AuthorityStore };
 pub use self::shapeload::{ Region, ProgramName, ProgramRegion, ShapeStore, DataStore, ProgramData, ProgramRegionBuilder, ShapeRequest, ShapeRequestGroup };
 pub use self::run::{ PgCommander, PgCommanderTaskSpec, PgDauphin, Commander, InstancePayload, add_task, complete_task, async_complete_task };
-pub use self::request::core::packet::{ MaxiRequest, ResponsePacket };
+pub use self::request::core::packet::{ MaxiRequest, MaxiResponse };
 pub use self::request::core::request::{ MiniRequest, MiniRequestAttempt };
 pub use self::request::core::packetpriority::PacketPriority;
 pub use self::request::core::backend::{ AllBackends, Backend };

@@ -1,9 +1,32 @@
-use serde_cbor::Value as CborValue;
+use std::fmt;
+use serde::{de::Visitor, Deserialize, Deserializer};
 
-pub struct ProgramRes {}
+use crate::request::core::response::MiniResponseVariety;
 
-impl ProgramRes {
-    pub fn decode(_value: CborValue) -> Result<ProgramRes,String> {
-        Ok(ProgramRes{})
+pub struct ProgramRes;
+
+struct ProgramVisitor;
+
+impl<'de> Visitor<'de> for ProgramVisitor {
+    type Value = ProgramRes;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter.write_str("an ProgramRes")
     }
+
+    fn visit_seq<A>(self, _: A) -> Result<Self::Value, A::Error>
+            where A: serde::de::SeqAccess<'de>, {
+        Ok(ProgramRes)
+    }
+}
+
+impl<'de> Deserialize<'de> for ProgramRes {
+    fn deserialize<D>(deserializer: D) -> Result<ProgramRes, D::Error>
+            where D: Deserializer<'de> {
+        deserializer.deserialize_seq(ProgramVisitor)
+    }
+}
+
+impl MiniResponseVariety for ProgramRes {
+    fn description(&self) -> &str { "program" }
 }

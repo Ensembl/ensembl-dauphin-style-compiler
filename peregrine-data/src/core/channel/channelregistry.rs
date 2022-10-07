@@ -1,5 +1,5 @@
 use std::{collections::HashMap, rc::Rc, sync::{Arc, Mutex}};
-use peregrine_toolkit::{ lock, log };
+use peregrine_toolkit::{ lock };
 use crate::{ChannelIntegration, BackendNamespace, DataMessage, PeregrineCoreBase, shapeload::programloader::ProgramLoader, CountingPromise };
 use super::{channelboot::{ChannelBoot }, wrappedchannelsender::WrappedChannelSender };
 
@@ -57,9 +57,7 @@ impl ChannelRegistry {
             if let Some((sender,backend_namespace)) = itn.make_channel(access) {
                 let backend_namespace = BackendNamespace::or_missing(&backend_namespace);
                 let sender = WrappedChannelSender::new(sender);
-                log!("adding {}",backend_namespace);
                 let backend_namespace = self.boot.boot(&backend_namespace,&sender).await?;
-                log!("booted {}",backend_namespace);
                 self.register_channel(&backend_namespace,&sender); // should already have been done by boot, but let's do it here to keep invariant explicit
                 lock!(self.channels).insert(backend_namespace.clone(),sender.clone());
                 lock!(self.spec_to_channel).insert(access.to_string(),backend_namespace.clone());
