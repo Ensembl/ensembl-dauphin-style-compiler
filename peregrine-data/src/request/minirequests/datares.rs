@@ -74,7 +74,7 @@ impl<'de> Visitor<'de> for DataVisitor {
         }
         let mut data = st_field("data",data)?;
         let data = st_err(data.drain().map(|(k,v)| {
-            Ok((k,ReceivedData::decode(v)?))
+            Ok((k,ReceivedData::new(v)))
         }).collect::<Result<HashMap<String,ReceivedData>,String>>(),"corrupt payload/C")?;
         Ok(DataRes {
             data, 

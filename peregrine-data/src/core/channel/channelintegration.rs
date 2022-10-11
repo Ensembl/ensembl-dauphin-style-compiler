@@ -2,8 +2,6 @@ use std::{sync::Arc, pin::Pin, any::Any};
 use futures::{Future};
 use peregrine_toolkit::error::Error;
 use crate::{MaxiRequest, PacketPriority, MaxiResponse, BackendNamespace, MaxiResponseDeserialize};
-use serde_cbor::Value as CborValue;
-
 use super::wrappedchannelsender::WrappedChannelSender;
 
 pub trait ChannelResponse {
@@ -37,8 +35,8 @@ impl ChannelMessageDecoder {
 
 pub trait ChannelSender {
     fn get_sender(&self, prio: &PacketPriority, data: MaxiRequest, decoder: ChannelMessageDecoder) -> Pin<Box<dyn Future<Output=Result<MaxiResponse,Error>>>>;
-    fn deserialize_data(&self, _payload: &dyn Any, _bytes: Vec<u8>) -> Result<Option<Vec<(String,CborValue)>>,String> { Ok(None) }
-    fn deserialize_index(&self, _payload: &dyn Any, _index: usize) -> Result<Option<CborValue>,String> { Ok(None) }
+    fn deserialize_data(&self, _payload: &dyn Any, _bytes: Vec<u8>) -> Result<Option<Vec<(String,Vec<u8>)>>,String> { Ok(None) }
+    fn deserialize_index(&self, _payload: &dyn Any, _index: usize) -> Result<Option<Vec<u8>>,String> { Ok(None) }
 }
 
 pub trait ChannelIntegration {

@@ -1,6 +1,6 @@
 use js_sys::Date;
 use peregrine_data::{ChannelIntegration, PacketPriority, MaxiRequest, ChannelSender, BackendNamespace, ChannelMessageDecoder, MaxiResponse };
-use peregrine_toolkit::cbor::cbor_into_drained_map;
+use peregrine_toolkit::cbor::{cbor_into_drained_map, cbor_into_bytes};
 use peregrine_toolkit::error::Error;
 use serde_cbor::Deserializer;
 use serde::de::{DeserializeSeed};
@@ -10,7 +10,6 @@ use std::any::Any;
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::{ Arc };
-use serde_cbor::Value as CborValue;
 use inflate::inflate_bytes_zlib;
 
 /* Network URL syntax specifies one or two http or https endpoint. If two are specified, then
@@ -36,10 +35,12 @@ impl ChannelSender for NetworkChannelSender {
         Box::pin(send_wrap(url.clone(),prio.clone(),data,Some(30.),self.cache_buster.clone(),decoder))
     }
 
-    fn deserialize_data(&self, _payload: &dyn Any, bytes: Vec<u8>) -> Result<Option<Vec<(String,CborValue)>>,String> {
+    fn deserialize_data(&self, _payload: &dyn Any, bytes: Vec<u8>) -> Result<Option<Vec<(String,Vec<u8>)>>,String> {
         let bytes = inflate_bytes_zlib(&bytes).map_err(|e| format!("cannot uncompress: {}",e))?;
         let value = serde_cbor::from_slice(&bytes).map_err(|e| format!("corrupt payload/A: {}",e))?;
-        Ok(Some(cbor_into_drained_map(value).map_err(|e| format!("corrupt payload/B: {}",e))?))
+        let mut value = cbor_into_drained_map(value).map_err(|e| format!("corrupt payload/B: {}",e))?;
+        let value = value.drain(..).map(|(k,v)| Ok((k,cbor_into_bytes(v)?))).collect::<Result<Vec<_>,String>>()?;
+        Ok(Some(value))
     }
 }
 

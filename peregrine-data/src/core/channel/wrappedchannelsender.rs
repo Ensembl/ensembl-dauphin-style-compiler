@@ -37,11 +37,11 @@ impl ChannelSender for WrappedChannelSender {
         self.sender.get_sender(prio,data,decoder)
     }
 
-    fn deserialize_data(&self, payload: &dyn Any, bytes: Vec<u8>) -> Result<Option<Vec<(String,serde_cbor::Value)>>,String> {
+    fn deserialize_data(&self, payload: &dyn Any, bytes: Vec<u8>) -> Result<Option<Vec<(String,Vec<u8>)>>,String> {
         self.sender.deserialize_data(payload,bytes)
     }
 
-    fn deserialize_index(&self, payload: &dyn Any, index: usize) -> Result<Option<serde_cbor::Value>,String> { 
+    fn deserialize_index(&self, payload: &dyn Any, index: usize) -> Result<Option<Vec<u8>>,String> { 
         self.sender.deserialize_index(payload,index)
     }
 }
