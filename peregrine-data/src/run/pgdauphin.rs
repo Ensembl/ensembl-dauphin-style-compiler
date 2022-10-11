@@ -1,7 +1,6 @@
 use anyhow::{ self, anyhow as err };
 use peregrine_toolkit::lock;
 use commander::{ RunSlot };
-use serde_cbor::Value as CborValue;
 use std::any::Any;
 use std::collections::HashMap;
 use std::sync::{ Arc, Mutex };
@@ -43,10 +42,10 @@ impl PgDauphin {
         }))))
     }
 
-    pub async fn add_binary_direct(&self, binary_name: &str, cbor: &CborValue) -> anyhow::Result<()> {
+    async fn add_binary_direct(&self, binary_name: &str, data: &[u8]) -> anyhow::Result<()> {
         lock!(self.0).pdq.load(PgDauphinLoadTaskSpec {
             bundle_name: binary_name.to_string(),
-            data: cbor.clone()
+            data: data.to_vec()
         }).await
     }
 
@@ -55,7 +54,7 @@ impl PgDauphin {
         format!("{}-{}-{}",channel_name.len(),channel_name,name_of_bundle)
     }
 
-    pub async fn add_binary(&self, channel: &BackendNamespace, name_of_bundle: &str, cbor: &CborValue) -> anyhow::Result<()> {
+    async fn add_binary(&self, channel: &BackendNamespace, name_of_bundle: &str, cbor: &[u8]) -> anyhow::Result<()> {
         self.add_binary_direct(&self.binary_name(channel,name_of_bundle),cbor).await
     }
 

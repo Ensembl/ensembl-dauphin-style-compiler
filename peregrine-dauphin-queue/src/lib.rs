@@ -17,7 +17,7 @@ pub struct PgDauphinRunTaskSpec {
 
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub struct PgDauphinLoadTaskSpec {
-    pub data: CborValue,
+    pub data: Vec<u8>,
     pub bundle_name: String
 }
 

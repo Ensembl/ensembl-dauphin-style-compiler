@@ -2,7 +2,7 @@ use anyhow::{ self, Context };
 use std::collections::HashMap;
 use std::rc::Rc;
 use crate::command::{ CommandInterpretSuite, InterpreterLink };
-use crate::runtime::{ InterpContext, InterpretInstance, PayloadFactory, StandardInterpretInstance };
+use crate::runtime::{ InterpretInstance, PayloadFactory, StandardInterpretInstance };
 use crate::util::DauphinError;
 use serde_cbor::Value as CborValue;
 
@@ -44,8 +44,9 @@ impl Dauphin {
         self.payloads.insert((module.to_string(),name.to_string()),pf);
     }
 
-    pub fn add_binary(&mut self, binary_name: &str, cbor: &CborValue) -> anyhow::Result<()> {
-        let (instance,programs) = DauphinInstance::new(&self.suite,cbor)?;
+    pub fn add_binary(&mut self, binary_name: &str, cbor: &[u8]) -> anyhow::Result<()> {
+        let binary = serde_cbor::from_slice(cbor)?;
+        let (instance,programs) = DauphinInstance::new(&self.suite,&binary)?;
         let instance = Rc::new(instance);
         for program in &programs {
             self.mapping.insert(program.to_string(),instance.clone());

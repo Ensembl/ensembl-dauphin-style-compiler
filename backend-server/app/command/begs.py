@@ -37,7 +37,7 @@ class BegsFilesMonitor(object):
         return self._paths.get(name)
 
 class VersionedBegsFiles(object):
-    def __init__(self, path: str):
+    def __init__(self, path: str, egs_version: int):
         with open(path) as f:
             toml_file = toml.loads(f.read())            
         self.boot_program = toml_file["core"]["boot"]
@@ -60,7 +60,7 @@ class VersionedBegsFiles(object):
                 "{}.begs".format(name_of_bundle)
             )
             self._monitor.add(name_of_bundle,program_path)
-            self.program[name_of_bundle] = self.load_program(program_path)
+            self.program[name_of_bundle] = self.load_program(program_path,egs_version)
             self.bundle_contents[name_of_bundle] = {}
             for (name_in_bundle,name_in_channel) in mapping.items():
                 self.program_map[name_in_channel] = (name_of_bundle,name_in_bundle)
@@ -75,14 +75,18 @@ class VersionedBegsFiles(object):
     def all_bundles(self) -> Any:
         return self.program.keys()
 
-    def load_program(self, program_path: str) -> Any:
+    def load_program(self, program_path: str, egs_version: int) -> Any:
         with open(program_path,'rb') as f:
-            return cbor2.loads(f.read())
+            if egs_version < 15:
+                return cbor2.loads(f.read())
+            else:
+                return f.read()
 
-    def add_bundle(self, bundle_name: str) -> Any:
+    def add_bundle(self, bundle_name: str, version: Version) -> Any:
         if self._monitor.check(bundle_name):
             logging.warn("Bundle '{0}' changed. Reloading".format(bundle_name))
-            self.program[bundle_name] = self.load_program(self._monitor.path(bundle_name))
+            egs_version = version.get_egs()
+            self.program[bundle_name] = self.load_program(self._monitor.path(bundle_name),egs_version)
         return Bundle(self,bundle_name).serialize(self.program[bundle_name])
 
 class BegsFiles(object):
@@ -93,7 +97,7 @@ class BegsFiles(object):
             logging.info("Loading begs files {0}".format(toml_file["version"]))
         for (version,filepath) in toml_file["version"].items():
             logging.info("Found begs files for version {0} in {1}".format(version,filepath))
-            self._versions[version] = VersionedBegsFiles(os.path.join(os.path.dirname(BEGS_CONFIG),filepath))
+            self._versions[version] = VersionedBegsFiles(os.path.join(os.path.dirname(BEGS_CONFIG),filepath),int(version))
 
     def _bundle(self, version: Version) -> VersionedBegsFiles:
         egs_version = version.get_egs()
@@ -115,7 +119,7 @@ class BegsFiles(object):
         return self._bundle(version).all_bundles()
 
     def add_bundle(self, bundle_name: str, version: Version) -> Any:
-        return self._bundle(version).add_bundle(bundle_name)
+        return self._bundle(version).add_bundle(bundle_name,version)
 
     def authority_startup_program(self, version: Version):
         return self._bundle(version).authority_startup_program
