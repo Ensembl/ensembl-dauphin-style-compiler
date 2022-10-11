@@ -1,11 +1,17 @@
 use js_sys::Date;
-use peregrine_data::{ChannelIntegration, PacketPriority, MaxiRequest, MaxiResponse, ChannelSender, BackendNamespace };
+use peregrine_data::{ChannelIntegration, PacketPriority, MaxiRequest, ChannelSender, BackendNamespace, ChannelMessageDecoder, MaxiResponse };
+use peregrine_toolkit::cbor::cbor_into_drained_map;
 use peregrine_toolkit::error::Error;
+use serde_cbor::Deserializer;
+use serde::de::{DeserializeSeed};
 use crate::ajax::PgAjax;
 use peregrine_toolkit::url::Url;
+use std::any::Any;
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::{ Arc };
+use serde_cbor::Value as CborValue;
+use inflate::inflate_bytes_zlib;
 
 /* Network URL syntax specifies one or two http or https endpoint. If two are specified, then
  * they are for high and low priority requests. A backend namespace can also be specified.
@@ -22,12 +28,18 @@ pub struct NetworkChannelSender {
 }
 
 impl ChannelSender for NetworkChannelSender {
-    fn get_sender(&self, prio: &PacketPriority, data: MaxiRequest) -> Pin<Box<dyn Future<Output=Result<MaxiResponse,Error>>>> {
+    fn get_sender(&self, prio: &PacketPriority, data: MaxiRequest, decoder: ChannelMessageDecoder) -> Pin<Box<dyn Future<Output=Result<MaxiResponse,Error>>>> {
         let url = match prio {
             PacketPriority::RealTime => &self.url_hi,
             PacketPriority::Batch => &self.url_lo
         };
-        Box::pin(send_wrap(url.clone(),prio.clone(),data,Some(30.),self.cache_buster.clone()))
+        Box::pin(send_wrap(url.clone(),prio.clone(),data,Some(30.),self.cache_buster.clone(),decoder))
+    }
+
+    fn deserialize_data(&self, _payload: &dyn Any, bytes: Vec<u8>) -> Result<Option<Vec<(String,CborValue)>>,String> {
+        let bytes = inflate_bytes_zlib(&bytes).map_err(|e| format!("cannot uncompress: {}",e))?;
+        let value = serde_cbor::from_slice(&bytes).map_err(|e| format!("corrupt payload/A: {}",e))?;
+        Ok(Some(cbor_into_drained_map(value).map_err(|e| format!("corrupt payload/B: {}",e))?))
     }
 }
 
@@ -112,10 +124,14 @@ async fn send(url: &Url, prio: PacketPriority, data: Vec<u8>, timeout: Option<f6
     ajax.get_cbor().await
 }
 
-async fn send_wrap(url_str: String, prio: PacketPriority, packet: MaxiRequest, timeout: Option<f64>, cache_buster: String) -> Result<MaxiResponse,Error> {
+async fn send_wrap(url_str: String, prio: PacketPriority, packet: MaxiRequest, timeout: Option<f64>, cache_buster: String, decoder: ChannelMessageDecoder) -> Result<MaxiResponse,Error> {
     let url = Error::oper_r(Url::parse(&url_str),&format!("bad_url {}",url_str))?;
     let data = Error::oper_r(serde_cbor::to_vec(&packet),"packet error")?;
     let data = send(&url,prio,data,timeout,&cache_buster).await?;
-    let response = Error::oper_r(serde_cbor::from_slice(&data),"packet error")?;
+    let mut deserializer = Deserializer::from_slice(&data);
+    let null : Arc::<dyn Any> = Arc::new(());
+    let deserialize = decoder.serde_deserialize_maxi(null);
+    let response = Error::oper_r(deserialize.deserialize(&mut deserializer),"packet error")?;
+    Error::oper_r(deserializer.end(),"packet error")?;
     Ok(response)
 }

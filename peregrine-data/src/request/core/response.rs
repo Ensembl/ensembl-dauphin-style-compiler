@@ -1,7 +1,7 @@
-use std::fmt;
+use std::{fmt, sync::Arc, any::Any};
 use peregrine_toolkit::{serdetools::st_field};
-use serde::{Deserialize, Deserializer, de::Visitor};
-use crate::request::minirequests::{authorityres::AuthorityRes, bootchannelres::BootChannelRes, datares::DataRes, failureres::FailureRes, jumpres::JumpRes, programres::ProgramRes, stickres::StickRes };
+use serde::{Deserializer, de::{Visitor, DeserializeSeed}};
+use crate::{request::minirequests::{authorityres::AuthorityRes, bootchannelres::BootChannelRes, datares::{DataRes, DataResDeserialize}, failureres::FailureRes, jumpres::JumpRes, programres::ProgramRes, stickres::StickRes }, core::channel::wrappedchannelsender::WrappedChannelSender};
 
 pub(crate) trait MiniResponseVariety {
     fn description(&self) -> &str;
@@ -66,7 +66,7 @@ impl MiniResponse {
     pub(crate) fn total_size(&self) -> usize { self.as_mini().total_size() }
 }
 
-struct MiniResponseVisitor;
+struct MiniResponseVisitor(WrappedChannelSender,Arc<dyn Any>);
 
 impl<'de> Visitor<'de> for MiniResponseVisitor {
     type Value = MiniResponse;
@@ -84,17 +84,21 @@ impl<'de> Visitor<'de> for MiniResponseVisitor {
             2 => MiniResponse::Program(st_field("opdata",seq.next_element()?)?),
             3 => MiniResponse::Stick(st_field("opdata",seq.next_element()?)?),
             4 => MiniResponse::Authority(st_field("opdata",seq.next_element()?)?),
-            5 => MiniResponse::Data(st_field("opdata",seq.next_element()?)?),
+            5 => MiniResponse::Data(st_field("opdata",seq.next_element_seed(DataResDeserialize(self.0.clone(),self.1.clone()))?)?),
             6 => MiniResponse::Jump(st_field("opdata",seq.next_element()?)?),
             v => { return Err(serde::de::Error::custom(format!("unknown opcode {}",v))); }
         })
     }
 }
 
-impl<'de> Deserialize<'de> for MiniResponse {
-    fn deserialize<D>(deserializer: D) -> Result<MiniResponse, D::Error>
+struct MiniResponseDeserializer(WrappedChannelSender,Arc<dyn Any>);
+
+impl<'de> DeserializeSeed<'de> for MiniResponseDeserializer {
+    type Value = MiniResponse;
+
+    fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
             where D: Deserializer<'de> {
-        deserializer.deserialize_map(MiniResponseVisitor)
+        deserializer.deserialize_map(MiniResponseVisitor(self.0.clone(),self.1.clone()))
     }
 }
 
@@ -119,7 +123,7 @@ impl MiniResponseAttempt {
     pub(super) fn component_size(&self) -> Vec<(String,usize)> { self.variety.component_size() }
 }
 
-struct MiniResponseAttemptVisitor;
+struct MiniResponseAttemptVisitor(WrappedChannelSender,Arc<dyn Any>);
 
 impl<'de> Visitor<'de> for MiniResponseAttemptVisitor {
     type Value = MiniResponseAttempt;
@@ -131,14 +135,48 @@ impl<'de> Visitor<'de> for MiniResponseAttemptVisitor {
     fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
             where A: serde::de::SeqAccess<'de> {
         let msg_id = st_field("msgid",seq.next_element()?)?;
-        let variety = st_field("variety",seq.next_element()?)?;
+        let variety = st_field("variety",seq.next_element_seed(MiniResponseDeserializer(self.0.clone(),self.1.clone()))?)?;
         Ok(MiniResponseAttempt { msg_id, variety })
     }
 }
 
-impl<'de> Deserialize<'de> for MiniResponseAttempt {
-    fn deserialize<D>(deserializer: D) -> Result<MiniResponseAttempt, D::Error>
+pub(crate) struct MiniResponseAttemptDeserialize(WrappedChannelSender,Arc<dyn Any>);
+
+impl<'de> DeserializeSeed<'de> for MiniResponseAttemptDeserialize {
+    type Value = MiniResponseAttempt;
+
+    fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
             where D: Deserializer<'de> {
-        deserializer.deserialize_seq(MiniResponseAttemptVisitor)
+        deserializer.deserialize_seq(MiniResponseAttemptVisitor(self.0.clone(),self.1.clone()))
+    }
+}
+
+struct MiniResponseAttemptVecVisitor(WrappedChannelSender,Arc<dyn Any>);
+
+impl<'de> Visitor<'de> for MiniResponseAttemptVecVisitor {
+    type Value = Vec<MiniResponseAttempt>;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter.write_str("a Vec<MiniResponseAttempt>")
+    }
+
+    fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+            where A: serde::de::SeqAccess<'de> {
+        let mut out = vec![];
+        while let Some(entry) = seq.next_element_seed(MiniResponseAttemptDeserialize(self.0.clone(),self.1.clone()))? {
+            out.push(entry);
+        }
+        Ok(out)
+    }
+}
+
+pub(crate) struct MiniResponseAttemptVecDeserialize(pub WrappedChannelSender,pub Arc<dyn Any>);
+
+impl<'de> DeserializeSeed<'de> for MiniResponseAttemptVecDeserialize {
+    type Value = Vec<MiniResponseAttempt>;
+
+    fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+            where D: Deserializer<'de> {
+        deserializer.deserialize_seq(MiniResponseAttemptVecVisitor(self.0.clone(),self.1.clone()))
     }
 }

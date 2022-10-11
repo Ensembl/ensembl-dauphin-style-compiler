@@ -1,20 +1,21 @@
 use futures::Future;
 use peregrine_toolkit::error::Error;
-use peregrine_toolkit::serdetools::st_field;
-use serde::de::{Visitor, MapAccess};
-use serde::{Serialize, Deserializer, Deserialize};
+use peregrine_toolkit::serdetools::{st_field};
+use serde::de::{Visitor, MapAccess, DeserializeSeed};
+use serde::{Serialize, Deserializer};
 use serde::ser::SerializeMap;
+use std::any::Any;
 use std::fmt;
 use std::mem::replace;
 use std::pin::Pin;
 use std::sync::Arc;
+use crate::core::channel::channelintegration::{ChannelMessageDecoder};
 use crate::core::channel::wrappedchannelsender::WrappedChannelSender;
 use crate::{PacketPriority, DataMessage, ChannelSender, BackendNamespace};
 use crate::core::programbundle::SuppliedBundle;
 use crate::core::version::VersionMetadata;
 use super::request::MiniRequestAttempt;
-use super::response::{MiniResponseAttempt};
-
+use super::response::{MiniResponseAttempt, MiniResponseAttemptVecDeserialize};
 
 #[allow(unused)] // used in debug_big_requests
 const TOO_LARGE : usize = 100*1024;
@@ -88,7 +89,8 @@ impl MaxiRequest {
     pub fn metadata(&self) -> &VersionMetadata { &self.factory.metadata }
 
     pub(crate) fn sender(&self, sender: &WrappedChannelSender) -> Result<Pin<Box<dyn Future<Output=Result<MaxiResponse,Error>>>>,DataMessage> {
-        Ok(sender.get_sender(&self.factory.priority,self.clone()))
+        let decoder = ChannelMessageDecoder::new(sender);
+        Ok(sender.get_sender(&self.factory.priority,self.clone(),decoder))
     }
 }
 
@@ -151,7 +153,7 @@ impl MaxiResponse {
     }
 }
 
-struct MaxiResponseVisitor;
+struct MaxiResponseVisitor(WrappedChannelSender,Arc<dyn Any>);
 
 impl<'de> Visitor<'de> for MaxiResponseVisitor {
     type Value = MaxiResponse;
@@ -169,7 +171,7 @@ impl<'de> Visitor<'de> for MaxiResponseVisitor {
             match key {
                 "responses" => { 
                     //total_size = Self::total_size(&v).ok().unwrap_or(0);
-                    responses = access.next_value()?;
+                    responses = Some(access.next_value_seed(MiniResponseAttemptVecDeserialize(self.0.clone(),self.1.clone()))?);
                 },
                 "programs" => { programs = access.next_value()? },
                 "channel" => { channel = access.next_value()? },
@@ -187,9 +189,16 @@ impl<'de> Visitor<'de> for MaxiResponseVisitor {
     }
 }
 
-impl<'de> Deserialize<'de> for MaxiResponse {
-    fn deserialize<D>(deserializer: D) -> Result<MaxiResponse, D::Error>
+#[derive(Clone)]
+pub struct DeserializeData;
+
+pub struct MaxiResponseDeserialize(pub(crate) WrappedChannelSender,pub(crate) Arc<dyn Any>);
+
+impl<'de> DeserializeSeed<'de> for MaxiResponseDeserialize {
+    type Value = MaxiResponse;
+
+    fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
             where D: Deserializer<'de> {
-        deserializer.deserialize_seq(MaxiResponseVisitor)
+        deserializer.deserialize_seq(MaxiResponseVisitor(self.0.clone(),self.1.clone()))
     }
 }

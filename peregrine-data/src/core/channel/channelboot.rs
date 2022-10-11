@@ -33,7 +33,7 @@ async fn finish_bootstrap(response: &BootChannelRes, base: &PeregrineCoreBase, s
 pub(super) async fn boot_channel(base: &PeregrineCoreBase, loader: &ProgramLoader, name: &BackendNamespace, sender: &WrappedChannelSender) -> Result<BackendNamespace,DataMessage> {
     let request = BootChannelReq::new();
     let response = base.manager.submit_direct(sender,&PacketPriority::RealTime,&Some(name.clone()),request, |v| {
-        v.into_boot_channel()
+        v.into_variety().into_boot_channel()
     }).await?;
     finish_bootstrap(&response,base,sender,loader).await
 }

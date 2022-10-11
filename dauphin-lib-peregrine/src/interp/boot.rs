@@ -81,7 +81,7 @@ async fn get(context: &mut InterpContext, cmd: GetStickDataInterpCommand) -> any
     for stick_id in id_strings.iter() {
         let channel_name = channel_iter.next().unwrap();
         let channel = channel_resolver.resolve(&channel_name).await?;
-        let backend = all_backends.backend(&channel);
+        let backend = all_backends.backend(&channel)?;
         let stick = backend.stick(&StickId::new(stick_id)).await?;
         id_strings_out.push(stick.get_id().get_id().to_string());
         sizes.push(stick.size() as f64);
@@ -123,7 +123,7 @@ async fn get_jump(context: &mut InterpContext, cmd: GetJumpDataInterpCommand) ->
     for location in locations.iter() {
         let channel_name = channel_iter.next().unwrap();
         let channel = channel_resolver.resolve(&channel_name).await?;
-        let backend = all_backends.backend(&channel);
+        let backend = all_backends.backend(&channel)?;
         if let Some(jump_location) = backend.jump(location).await? {
             sticks_out.push(jump_location.stick);
             lefts_out.push(jump_location.left as f64);

@@ -2,12 +2,12 @@ use peregrine_toolkit_async::sync::blocker::{Blocker};
 use peregrine_toolkit::{log_extra};
 use crate::core::channel::wrappedchannelsender::WrappedChannelSender;
 use crate::core::version::VersionMetadata;
-use crate::{MaxiResponse, PacketPriority, BackendNamespace};
+use crate::{PacketPriority, BackendNamespace, MaxiResponse};
 use crate::api::MessageSender;
 use crate::run::{ PgCommander, add_task };
 use crate::run::pgcommander::PgCommanderTaskSpec;
 use crate::util::message::DataMessage;
-use super::attemptmatch::AttemptMatch;
+use super::attemptmatch::{AttemptMatch};
 use super::packet::{RequestPacketFactory, MaxiRequest};
 use super::pendingattemptqueue::PendingAttemptQueue;
 use super::sidecars::RequestSidecars;
@@ -101,19 +101,14 @@ impl RequestQueue {
         res.ok().unwrap_or_else(|| packet.fail())
     }
 
-    async fn process_responses(&self, matcher: &AttemptMatch, sidecars: &RequestSidecars, mut response: MaxiResponse) {
+    async fn process_request(&self, matcher: &AttemptMatch, sidecars: &RequestSidecars, request: &mut MaxiRequest) {
+        let mut response = self.send_or_fail_packet(request).await;
         sidecars.run(&response,&response.channel(),&self.messages).await;
         for r in response.take_responses().drain(..) {
-            if let Some(stream) = matcher.retrieve_attempt_by_response(&r) {
-                let response = r.into_variety();
-                stream.add(response);
+            if let Some(stream) = matcher.retrieve_callback_by_response(&r) {
+                stream.add(r);
             }
         }
-    }
-
-    async fn process_request(&self, matcher: &AttemptMatch, sidecars: &RequestSidecars, request: &mut MaxiRequest) {
-        let response = self.send_or_fail_packet(request).await;
-        self.process_responses(matcher,sidecars,response).await;
     }
 
     async fn main_loop(self, matcher: AttemptMatch, sidecars: RequestSidecars) -> Result<(),DataMessage> {

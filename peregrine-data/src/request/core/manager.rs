@@ -5,11 +5,11 @@ use peregrine_toolkit_async::sync::blocker::Blocker;
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::{ Arc, Mutex };
-use super::attemptmatch::AttemptMatch;
+use super::attemptmatch::{AttemptMatch};
 use super::backoff::Backoff;
 use super::queue::{RequestQueue, QueueKey};
 use super::request::MiniRequest;
-use super::response::{MiniResponse};
+use super::response::MiniResponseAttempt;
 use super::sidecars::RequestSidecars;
 use crate::core::channel::channelregistry::{ChannelRegistry};
 use crate::core::channel::wrappedchannelsender::WrappedChannelSender;
@@ -68,7 +68,7 @@ impl LowLevelRequestManager {
         Ok(queues.get_mut(&key).unwrap().clone()) // safe because of above insert
     }
 
-    pub(crate) fn execute(&mut self, key: &QueueKey, request: &Rc<MiniRequest>) -> Result<CommanderStream<MiniResponse>,DataMessage> {
+    pub(crate) fn execute(&mut self, key: &QueueKey, request: &Rc<MiniRequest>) -> Result<CommanderStream<MiniResponseAttempt>,DataMessage> {
         let (request,stream) = self.matcher.make_attempt(request);
         self.get_queue(key)?.input_queue().add(request);
         Ok(stream.clone())
@@ -80,7 +80,7 @@ impl LowLevelRequestManager {
 
     pub(crate) async fn submit_direct<F,T>(&self, sender: &WrappedChannelSender, priority: &PacketPriority,  name: &Option<BackendNamespace>, request: &Rc<MiniRequest>, cb: F) 
                                                                     -> Result<T,DataMessage>
-                                                                    where F: Fn(MiniResponse) -> Result<T,String> {
+                                                                    where F: Fn(MiniResponseAttempt) -> Result<T,String> {
         let key = self.make_anon_key(sender,priority,name)?;
         let mut backoff = Backoff::new(self,&key);
         backoff.backoff(request,cb).await
@@ -108,7 +108,7 @@ impl RequestManager {
 
     pub(crate) async fn submit<F,T>(&self, name: &BackendNamespace, priority: &PacketPriority, request: &Rc<MiniRequest>, cb: F) 
                                                                     -> Result<T,DataMessage>
-                                                                    where F: Fn(MiniResponse) -> Result<T,String> {
+                                                                    where F: Fn(MiniResponseAttempt) -> Result<T,String> {
         let key = self.make_key(name,priority)?;
         let mut backoff = Backoff::new(&self.low,&key);
         backoff.backoff(request,cb).await
@@ -116,7 +116,7 @@ impl RequestManager {
 
     pub(crate) async fn submit_direct<F,T>(&self, sender: &WrappedChannelSender, priority: &PacketPriority,  name: &Option<BackendNamespace>, request: MiniRequest, cb: F) 
                                                                     -> Result<T,DataMessage>
-                                                                    where F: Fn(MiniResponse) -> Result<T,String> {
+                                                                    where F: Fn(MiniResponseAttempt) -> Result<T,String> {
         self.low.submit_direct(sender, priority, name, &Rc::new(request), cb).await
     }
 

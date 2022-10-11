@@ -63,7 +63,7 @@ pub struct MiniRequestAttempt {
     msgid: u64,
     description: String,
     request: Rc<MiniRequest>,
-    response: CommanderStream<MiniResponse>
+    response: CommanderStream<MiniResponseAttempt>
 }
 
 impl MiniRequestAttempt {
@@ -76,7 +76,7 @@ impl MiniRequestAttempt {
         }
     }
 
-    pub(crate) fn response(&self) -> &CommanderStream<MiniResponse> { &self.response }
+    pub(crate) fn response(&self) -> &CommanderStream<MiniResponseAttempt> { &self.response }
 
     pub(crate) fn fail(&self) -> MiniResponseAttempt {
         let failure = MiniResponse::FailureRes(FailureRes::new(&self.description));

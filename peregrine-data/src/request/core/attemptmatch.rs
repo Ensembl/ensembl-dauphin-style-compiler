@@ -1,13 +1,11 @@
 use std::{sync::{Mutex, Arc}, collections::HashMap, rc::Rc};
-
 use commander::CommanderStream;
 use peregrine_toolkit::lock;
-
-use super::{response::{MiniResponse, MiniResponseAttempt}, request::{MiniRequest, MiniRequestAttempt}};
+use super::{response::{MiniResponseAttempt}, request::{MiniRequest, MiniRequestAttempt}};
 
 #[derive(Clone)]
 pub(crate) struct AttemptMatch {
-    pending: Arc<Mutex<HashMap<u64,CommanderStream<MiniResponse>>>>,
+    pending: Arc<Mutex<HashMap<u64,CommanderStream<MiniResponseAttempt>>>>,
     next_id: Arc<Mutex<u64>>
 }
 
@@ -25,12 +23,11 @@ impl AttemptMatch {
         *id
     }
 
-    fn add_pending(&self, id: u64, response: &CommanderStream<MiniResponse>) {
-        let mut pending = lock!(self.pending);
-        pending.insert(id,response.clone());
+    fn add_pending(&self, id: u64, response: &CommanderStream<MiniResponseAttempt>) {
+        lock!(self.pending).insert(id,response.clone());
     }
 
-    pub(super) fn make_attempt(&self, request: &Rc<MiniRequest>) -> (MiniRequestAttempt,CommanderStream<MiniResponse>) {
+    pub(super) fn make_attempt(&self, request: &Rc<MiniRequest>) -> (MiniRequestAttempt,CommanderStream<MiniResponseAttempt>) {
         let id = self.next_id();
         let request = MiniRequestAttempt::new(id,request);
         let stream = request.response().clone();
@@ -38,8 +35,7 @@ impl AttemptMatch {
         (request,stream)
     }
 
-    pub(super) fn retrieve_attempt_by_response(&self, response: &MiniResponseAttempt) -> Option<CommanderStream<MiniResponse>> {
-        let mut pending = lock!(self.pending);
-        pending.remove(&response.message_id())
+    pub(super) fn retrieve_callback_by_response(&self, response: &MiniResponseAttempt) -> Option<CommanderStream<MiniResponseAttempt>> {
+        lock!(self.pending).remove(&response.message_id())
     }
 }

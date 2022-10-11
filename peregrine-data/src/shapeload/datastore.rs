@@ -4,19 +4,19 @@ use std::sync::{ Arc, Mutex };
 use crate::PacketPriority;
 use crate::api::{ PeregrineCoreBase };
 use crate::request::minirequests::datareq::DataRequest;
-use crate::request::minirequests::datares::DataRes;
+use crate::request::minirequests::datares::{DataResponse};
 use crate::util::lrucache::Cache;
 use crate::util::memoized::{ Memoized, MemoizedType };
 use crate::util::message::{ DataMessage };
 
 // TODO Memoized errors with retry semantics
 
-async fn run(base: PeregrineCoreBase, request: DataRequest, priority: PacketPriority) -> Result<Arc<DataRes>,DataMessage> {
-    let backend = base.all_backends.backend(request.channel());
-    backend.data(&request,&priority).await.map(|x| Arc::new(x))
+async fn run(base: PeregrineCoreBase, request: DataRequest, priority: PacketPriority) -> Result<DataResponse,DataMessage> {
+    let backend = base.all_backends.backend(request.channel())?;
+    backend.data(&request,&priority).await
 }
 
-fn make_data_cache(cache_size: usize, base: &PeregrineCoreBase, prio: PacketPriority) -> Memoized<DataRequest,Result<Arc<DataRes>,DataMessage>> {
+fn make_data_cache(cache_size: usize, base: &PeregrineCoreBase, prio: PacketPriority) -> Memoized<DataRequest,Result<DataResponse,DataMessage>> {
     let base = base.clone();
      Memoized::new(MemoizedType::Cache(cache_size),move |_,k: &DataRequest|{
         let base = base.clone();
@@ -28,9 +28,9 @@ fn make_data_cache(cache_size: usize, base: &PeregrineCoreBase, prio: PacketPrio
 
 #[derive(Clone)]
 pub struct DataStore {
-    invariant_cache: Arc<Mutex<Cache<DataRequest,Result<Arc<DataRes>,DataMessage>>>>,
-    cache: Memoized<DataRequest,Result<Arc<DataRes>,DataMessage>>,
-    batch_cache: Memoized<DataRequest,Result<Arc<DataRes>,DataMessage>>
+    invariant_cache: Arc<Mutex<Cache<DataRequest,Result<DataResponse,DataMessage>>>>,
+    cache: Memoized<DataRequest,Result<DataResponse,DataMessage>>,
+    batch_cache: Memoized<DataRequest,Result<DataResponse,DataMessage>>
 }
 
 impl DataStore {
@@ -42,7 +42,7 @@ impl DataStore {
         }
     }
 
-    pub async fn get(&self, request: &DataRequest, priority: &PacketPriority) -> Result<(Arc<DataRes>,f64),DataMessage> {
+    pub async fn get(&self, request: &DataRequest, priority: &PacketPriority) -> Result<(DataResponse,f64),DataMessage> {
         let start = cdr_current_time();
         /* maybe there's an invariant version? */
         if let Some(response) = lock!(self.invariant_cache).get(&request.to_invariant()).cloned().transpose()? {

@@ -501,7 +501,6 @@ dependencies = [
  "futures",
  "hashbrown",
  "identitynumber",
- "inflate",
  "keyed",
  "lazy_static",
  "lru",

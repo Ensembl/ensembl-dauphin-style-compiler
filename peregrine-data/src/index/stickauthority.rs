@@ -78,7 +78,7 @@ impl Authority {
 }
 
 pub(super) async fn load_stick_authority(base: &PeregrineCoreBase, program_loader: &ProgramLoader, channel: BackendNamespace) -> Result<Authority,DataMessage> {
-    let backend = base.all_backends.backend(&channel);
+    let backend = base.all_backends.backend(&channel)?;
     let stick_authority = backend.authority().await?;
     stick_authority.preload_lookup_program(base,program_loader);
     stick_authority.run_startup_program(base,program_loader).await?;

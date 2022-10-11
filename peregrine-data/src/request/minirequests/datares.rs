@@ -1,14 +1,16 @@
 use anyhow::anyhow as err;
-use peregrine_toolkit::cbor::{cbor_into_drained_map };
 use peregrine_toolkit::serdetools::{st_field, st_err, ByteData };
-use serde::de::{Visitor, MapAccess, };
-use serde::{Deserialize, Deserializer};
+use serde::de::{Visitor, MapAccess, DeserializeSeed, self, };
+use serde::{Deserializer};
+use std::any::Any;
 use std::fmt;
+use std::sync::Arc;
 use std::{collections::HashMap};
+use crate::{ChannelSender};
+use crate::core::channel::wrappedchannelsender::WrappedChannelSender;
 use crate::request::core::response::MiniResponseVariety;
 use crate::{metric::datastreammetric::PacketDatastreamMetricBuilder};
 use crate::core::data::ReceivedData;
-use inflate::inflate_bytes_zlib;
 
 pub struct DataRes {
     data: HashMap<String,ReceivedData>,
@@ -22,20 +24,17 @@ impl DataRes {
         }
     }
 
-    #[cfg(debug_assertions)]
-    pub fn keys(&self) -> Vec<String> { self.data.keys().cloned().collect::<Vec<_>>() }
-
-    pub fn get(&self, name: &str) -> anyhow::Result<&ReceivedData> {
+    fn get(&self, name: &str) -> anyhow::Result<&ReceivedData> {
         self.data.get(name).ok_or_else(|| err!("no such data {}: have {}",
             name,
             self.data.keys().cloned().collect::<Vec<_>>().join(", ")
         ))
     }
 
-    pub(crate) fn is_invariant(&self) -> bool { self.invariant }
+    fn is_invariant(&self) -> bool { self.invariant }
 }
 
-struct DataVisitor;
+struct DataVisitor(WrappedChannelSender,Arc<dyn Any>);
 
 impl<'de> Visitor<'de> for DataVisitor {
     type Value = DataRes;
@@ -46,20 +45,35 @@ impl<'de> Visitor<'de> for DataVisitor {
 
     fn visit_map<M>(self, mut access: M) -> Result<Self::Value, M::Error>
             where M: MapAccess<'de> {
-        let mut data = None;
+        let mut data : Option<HashMap<_,_>> = None;
+        let mut indexes : Option<HashMap<String,usize>> = None;
         let mut invariant = false;
         while let Some(key) = access.next_key()? {
             match key {
-                "data" => { data = Some(access.next_value()?) },
-                "invariant" => { invariant = access.next_value()? },
+                "data" => { 
+                    let bytes : ByteData = access.next_value()?;
+                    let values = self.0.deserialize_data(&self.1,bytes.data).map_err(|e| de::Error::custom(e))?;
+                    data = Some(st_field("data deserializer",values)?.drain(..).collect());
+                },
+                "values" => {
+                    data = access.next_value()?;
+                },
+                "indexes" => {
+                    indexes = Some(access.next_value()?);
+                },
+                "__invariant" => { invariant = access.next_value()? },
                 _ => {}
             }
         }
-        let value : ByteData = st_field("data",data)?;
-        let bytes = st_err(inflate_bytes_zlib(&value.data),"uninflatable")?;
-        let value = st_err(serde_cbor::from_slice(&bytes),"corrupt payload/A")?;
-        let mut data = st_err(cbor_into_drained_map(value),"corrupt payload/B")?;
-        let data = st_err(data.drain(..).map(|(k,v)| {
+        if let Some(mut indexes) = indexes {
+            let values = indexes.drain().map(|(k,v)| {
+                let value = self.0.deserialize_index(self.1.as_ref(),v).map_err(|e| de::Error::custom(e))?;
+                Ok((k,st_field("index deserial",value)?))
+            }).collect::<Result<HashMap<_,_>,_>>()?;
+            data = Some(values)
+        }
+        let mut data = st_field("data",data)?;
+        let data = st_err(data.drain().map(|(k,v)| {
             Ok((k,ReceivedData::decode(v)?))
         }).collect::<Result<HashMap<String,ReceivedData>,String>>(),"corrupt payload/C")?;
         Ok(DataRes {
@@ -69,10 +83,14 @@ impl<'de> Visitor<'de> for DataVisitor {
     }
 }
 
-impl<'de> Deserialize<'de> for DataRes {
-    fn deserialize<D>(deserializer: D) -> Result<DataRes, D::Error>
+pub(crate) struct DataResDeserialize(pub WrappedChannelSender,pub Arc<dyn Any>);
+
+impl<'de> DeserializeSeed<'de> for DataResDeserialize {
+    type Value = DataRes;
+
+    fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
             where D: Deserializer<'de> {
-        deserializer.deserialize_map(DataVisitor)
+        deserializer.deserialize_map(DataVisitor(self.0.clone(),self.1.clone()))
     }
 }
 
@@ -83,4 +101,21 @@ impl MiniResponseVariety for DataRes {
     fn component_size(&self) -> Vec<(String,usize)> {
         self.data.iter().map(|(k,v)| (k.to_string(),v.len())).collect::<Vec<_>>()
     }
+}
+
+#[derive(Clone)]
+pub struct DataResponse(Arc<DataRes>);
+
+impl DataResponse {
+    pub fn new(res: DataRes) -> DataResponse {
+        DataResponse(Arc::new(res))
+    }
+
+    pub(crate) fn account(&self, account_builder: &PacketDatastreamMetricBuilder) {
+        self.0.account(account_builder);
+    }
+
+    pub fn get(&self, name: &str) -> anyhow::Result<&ReceivedData> { self.0.get(name) }
+
+    pub(crate) fn is_invariant(&self) -> bool { self.0.is_invariant() }
 }

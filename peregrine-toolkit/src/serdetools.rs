@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{fmt};
 
 use serde::{Deserializer, de::Visitor, Deserialize};
 
@@ -48,7 +48,7 @@ impl<'de> Visitor<'de> for ForceStringVisitor {
         formatter.write_str("an atom coercable into a string")
     }
 
-    force_string!(visit_bool,bool,(|v| if v { "true " } else { "" }));
+    force_string!(visit_bool,bool,(|v| if v { "true" } else { "" }));
     force_string!(visit_i64,i64);
     force_string!(visit_i128,i128);
     force_string!(visit_u64,u64);

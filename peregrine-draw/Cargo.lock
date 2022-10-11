@@ -495,7 +495,6 @@ dependencies = [
  "futures",
  "hashbrown",
  "identitynumber",
- "inflate",
  "keyed",
  "lazy_static 1.4.0",
  "lru",
@@ -576,10 +575,12 @@ dependencies = [
 name = "peregrine_febe_network"
 version = "0.0.0"
 dependencies = [
+ "inflate",
  "js-sys",
  "peregrine_data",
  "peregrine_toolkit",
  "peregrine_toolkit_async",
+ "serde",
  "serde-wasm-bindgen",
  "serde_cbor",
  "serde_json",
