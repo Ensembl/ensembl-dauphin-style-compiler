@@ -6,7 +6,7 @@ use std::any::Any;
 use std::collections::HashMap;
 use std::sync::{ Arc, Mutex };
 use crate::core::channel::channelregistry::ChannelRegistry;
-use crate::{MaxiResponse, BackendNamespace, AccessorResolver, RequestManager};
+use crate::{MaxiResponse, BackendNamespace, AccessorResolver};
 use crate::api::MessageSender;
 use crate::core::programbundle::SuppliedBundle;
 use crate::shapeload::programloader::ProgramLoader;
@@ -83,7 +83,7 @@ impl PgDauphin {
         data.names.insert(program_name.clone(),None);
     }
 
-    pub async fn run_program(&self, manager: &RequestManager, loader: &ProgramLoader, registry: &ChannelRegistry, spec: PgDauphinTaskSpec) -> Result<(),DataMessage> {
+    pub async fn run_program(&self, loader: &ProgramLoader, registry: &ChannelRegistry, spec: PgDauphinTaskSpec) -> Result<(),DataMessage> {
         let program_name = spec.program_name.clone();
         if !self.is_present(&program_name) {
             loader.load(&program_name).await.map_err(|e| DataMessage::DauphinProgramMissing(e.to_string()))?;

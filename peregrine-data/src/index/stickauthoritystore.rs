@@ -55,7 +55,7 @@ impl AuthorityStore {
         let mut sticks = vec![];
         let authorities : Vec<_> = lock!(self.data).each().cloned().collect(); // as we will be waiting and don't want the lock
         for a in &authorities {
-            let mut more = a.try_lookup(&self.base.manager,self.base.dauphin.clone(),&self.program_loader,&self.base.channel_registry,stick_id.clone()).await?;
+            let mut more = a.try_lookup(self.base.dauphin.clone(),&self.program_loader,&self.base.channel_registry,stick_id.clone()).await?;
             sticks.append(&mut more);
         }
         Ok(sticks)
@@ -64,7 +64,7 @@ impl AuthorityStore {
     pub async fn try_location(&self, location: &str) -> Result<Option<(String,u64,u64)>,DataMessage> {
         let authorities : Vec<_> = lock!(self.data).each().cloned().collect(); // as we will be waiting and don't want the lock
         for a in &authorities {
-            let more = a.try_jump(&self.base.manager,self.base.dauphin.clone(),&self.program_loader,&self.base.channel_registry,location).await?;
+            let more = a.try_jump(self.base.dauphin.clone(),&self.program_loader,&self.base.channel_registry,location).await?;
             for (id,jump) in &more {
                 if id == location {
                     return Ok(Some((jump.0.to_string(),jump.1,jump.2)));

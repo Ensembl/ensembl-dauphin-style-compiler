@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use crate::core::channel::channelregistry::ChannelRegistry;
 use crate::shapeload::programloader::ProgramLoader;
-use crate::{PeregrineCoreBase, BackendNamespace, RequestManager};
+use crate::{PeregrineCoreBase, BackendNamespace};
 use crate::core::{ StickId, Stick };
 use crate::run::{ PgDauphin, PgDauphinTaskSpec };
 use std::any::Any;
@@ -29,7 +29,7 @@ impl Authority {
     pub fn lookup_program(&self) -> &ProgramName { &self.lookup_program_name }
 
     async fn run_startup_program(&self, base: &PeregrineCoreBase, program_loader: &ProgramLoader) -> Result<(),DataMessage> {
-        base.dauphin.run_program(&base.manager,&program_loader.clone(),&base.channel_registry,PgDauphinTaskSpec {
+        base.dauphin.run_program(&program_loader.clone(),&base.channel_registry,PgDauphinTaskSpec {
             prio: 2,
             slot: None,
             timeout: None,
@@ -46,12 +46,12 @@ impl Authority {
         }
     }
 
-    pub async fn try_lookup(&self, manager: &RequestManager, dauphin: PgDauphin, program_loader: &ProgramLoader, channel_registry: &ChannelRegistry, id: StickId) -> Result<Vec<Stick>,DataMessage> {
+    pub async fn try_lookup(&self, dauphin: PgDauphin, program_loader: &ProgramLoader, channel_registry: &ChannelRegistry, id: StickId) -> Result<Vec<Stick>,DataMessage> {
         let sticks = Builder::new(vec![] as Vec<Stick>);
         let mut payloads = HashMap::new();
         payloads.insert("stick_id".to_string(),Box::new(id) as Box<dyn Any>);
         payloads.insert("sticks".to_string(),Box::new(sticks.clone()) as Box<dyn Any>);
-        dauphin.run_program(manager,program_loader,channel_registry,PgDauphinTaskSpec {
+        dauphin.run_program(program_loader,channel_registry,PgDauphinTaskSpec {
             prio: 2,
             slot: None,
             timeout: None,
@@ -61,12 +61,12 @@ impl Authority {
         Ok(sticks.build())
     }
 
-    pub async fn try_jump(&self, manager: &RequestManager, dauphin: PgDauphin, program_loader: &ProgramLoader, channel_registry: &ChannelRegistry, location: &str) -> Result<Vec<(String,(String,u64,u64))>,DataMessage> {
+    pub async fn try_jump(&self, dauphin: PgDauphin, program_loader: &ProgramLoader, channel_registry: &ChannelRegistry, location: &str) -> Result<Vec<(String,(String,u64,u64))>,DataMessage> {
         let jumps = Builder::new(vec![] as Vec<(String,(String,u64,u64))>);
         let mut payloads = HashMap::new();
         payloads.insert("location".to_string(),Box::new(location.to_string()) as Box<dyn Any>);
         payloads.insert("jumps".to_string(),Box::new(jumps.clone()) as Box<dyn Any>);
-        dauphin.run_program(manager,program_loader,channel_registry,PgDauphinTaskSpec {
+        dauphin.run_program(program_loader,channel_registry,PgDauphinTaskSpec {
             prio: 2,
             slot: None,
             timeout: None,

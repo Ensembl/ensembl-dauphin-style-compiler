@@ -12,7 +12,7 @@ async fn finish_bootstrap(response: &BootChannelRes, base: &PeregrineCoreBase, s
     );
     base.channel_registry.register_channel(response.namespace(),sender);
     lock!(base.integration).report_instance_information(&info);
-    let r = base.dauphin.run_program(&base.manager,loader,&base.channel_registry,PgDauphinTaskSpec {
+    let r = base.dauphin.run_program(loader,&base.channel_registry,PgDauphinTaskSpec {
         prio: 2,
         slot: None,
         timeout: None,
