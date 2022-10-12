@@ -13,9 +13,11 @@ pub struct JavascriptChannel {
 impl JavascriptChannel {
     pub(crate) fn new(name: &str, payload: JsValue) -> Result<JavascriptChannel,Error> {
         let payload = PayloadExtractor::new(payload)?;
+        let backend_namespace = BackendNamespace::new("jsapi",name);
+
         Ok(JavascriptChannel {
-            backend_namespace: BackendNamespace::new("jsapi",name),
-            backend: Backend::new(payload.callbacks)
+            backend: Backend::new(backend_namespace.clone(),payload.callbacks),
+            backend_namespace
         })
     }
     
@@ -28,6 +30,10 @@ impl JavascriptChannel {
                 MiniRequest::Jump(req) => { 
                     let res = self.backend.jump(req)?;
                     out.add_response(attempt.make_response_attempt(MiniResponse::Jump(res)));
+                },
+                MiniRequest::BootChannel(req) => {
+                    let res = self.backend.boot(req)?;
+                    out.add_response(attempt.make_response_attempt(MiniResponse::BootChannel(res)));
                 },
                 _ => { 
                     log!("unimplemented");

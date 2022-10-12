@@ -1,6 +1,7 @@
 use std::rc::Rc;
 
 use commander::cdr_timer;
+use peregrine_toolkit::error::Error;
 use crate::{util::message::DataMessage };
 
 use super::{manager::{LowLevelRequestManager}, request::MiniRequest, queue::QueueKey, response::MiniResponseAttempt};
@@ -22,7 +23,7 @@ impl Backoff {
         self.key.name.clone().map(|x| x.to_string()).unwrap_or_else(|| "*anon*".to_string())
     }
 
-    pub(crate) async fn backoff<F,T>(&mut self, req: &Rc<MiniRequest>, cb: F) -> Result<T,DataMessage>
+    pub(crate) async fn backoff<F,T>(&mut self, req: &Rc<MiniRequest>, cb: F) -> Result<T,Error>
                                                     where F: Fn(MiniResponseAttempt) -> Result<T,String> {
         let mut last_error = None;
         for _ in 0..5 { // XXX configurable
@@ -39,9 +40,9 @@ impl Backoff {
             Some(e) => {
                 let e = DataMessage::BackendRefused(self.errname(),e.to_string());
                 self.manager.message(e.clone());
-                DataMessage::BackendRefused(self.errname(),e.to_string())
+                Error::operr(&format!("{}: {}",self.errname(),e.to_string()))
             },
-            None => DataMessage::CodeInvariantFailed("unexpected downcast error in backoff".to_string())
+            None => Error::fatal("unexpected downcast error in backoff")
         })
     }
 }

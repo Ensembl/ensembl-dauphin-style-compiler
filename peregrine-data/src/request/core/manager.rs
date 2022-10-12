@@ -1,3 +1,4 @@
+use peregrine_toolkit::error::Error;
 use peregrine_toolkit::{ lock };
 use commander::{ CommanderStream };
 use peregrine_toolkit::plumbing::oneshot::OneShot;
@@ -49,7 +50,7 @@ impl LowLevelRequestManager {
         self.messages.send(message);
     }
 
-    fn create_queue(&self, key: &QueueKey) -> Result<RequestQueue,DataMessage> {
+    fn create_queue(&self, key: &QueueKey) -> Result<RequestQueue,Error> {
         let queue = RequestQueue::new(key,&self.commander,&self.real_time_lock,&self.matcher,&self.sidecars,&self.version,&self.messages)?;
         let queue2 = queue.clone();
         self.shutdown.add(move || {
@@ -58,7 +59,7 @@ impl LowLevelRequestManager {
         Ok(queue)
     }
 
-    fn get_queue(&mut self, key: &QueueKey) -> Result<RequestQueue,DataMessage> {
+    fn get_queue(&mut self, key: &QueueKey) -> Result<RequestQueue,Error> {
         let mut queues = lock!(self.queues);
         let missing = queues.get(&key).is_none();
         if missing {
@@ -68,18 +69,18 @@ impl LowLevelRequestManager {
         Ok(queues.get_mut(&key).unwrap().clone()) // safe because of above insert
     }
 
-    pub(crate) fn execute(&mut self, key: &QueueKey, request: &Rc<MiniRequest>) -> Result<CommanderStream<MiniResponseAttempt>,DataMessage> {
+    pub(crate) fn execute(&mut self, key: &QueueKey, request: &Rc<MiniRequest>) -> Result<CommanderStream<MiniResponseAttempt>,Error> {
         let (request,stream) = self.matcher.make_attempt(request);
         self.get_queue(key)?.input_queue().add(request);
         Ok(stream.clone())
     }
 
-    fn make_anon_key(&self, sender: &WrappedChannelSender, priority: &PacketPriority, name: &Option<BackendNamespace>) -> Result<QueueKey,DataMessage> {
+    fn make_anon_key(&self, sender: &WrappedChannelSender, priority: &PacketPriority, name: &Option<BackendNamespace>) -> Result<QueueKey,Error> {
         Ok(QueueKey::new(&sender,priority,&name))
     }
 
     pub(crate) async fn submit_direct<F,T>(&self, sender: &WrappedChannelSender, priority: &PacketPriority,  name: &Option<BackendNamespace>, request: &Rc<MiniRequest>, cb: F) 
-                                                                    -> Result<T,DataMessage>
+                                                                    -> Result<T,Error>
                                                                     where F: Fn(MiniResponseAttempt) -> Result<T,String> {
         let key = self.make_anon_key(sender,priority,name)?;
         let mut backoff = Backoff::new(self,&key);
@@ -101,13 +102,13 @@ impl RequestManager {
         }
     }
 
-    fn make_key(&self, name: &BackendNamespace, priority: &PacketPriority) -> Result<QueueKey,DataMessage> {
+    fn make_key(&self, name: &BackendNamespace, priority: &PacketPriority) -> Result<QueueKey,Error> {
         let sender = self.channel_registry.name_to_sender(name)?;
         Ok(QueueKey::new(&sender,priority,&Some(name.clone())))
     }
 
     pub(crate) async fn submit<F,T>(&self, name: &BackendNamespace, priority: &PacketPriority, request: &Rc<MiniRequest>, cb: F) 
-                                                                    -> Result<T,DataMessage>
+                                                                    -> Result<T,Error>
                                                                     where F: Fn(MiniResponseAttempt) -> Result<T,String> {
         let key = self.make_key(name,priority)?;
         let mut backoff = Backoff::new(&self.low,&key);
@@ -115,7 +116,7 @@ impl RequestManager {
     }
 
     pub(crate) async fn submit_direct<F,T>(&self, sender: &WrappedChannelSender, priority: &PacketPriority,  name: &Option<BackendNamespace>, request: MiniRequest, cb: F) 
-                                                                    -> Result<T,DataMessage>
+                                                                    -> Result<T,Error>
                                                                     where F: Fn(MiniResponseAttempt) -> Result<T,String> {
         self.low.submit_direct(sender, priority, name, &Rc::new(request), cb).await
     }

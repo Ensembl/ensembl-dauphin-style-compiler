@@ -1,15 +1,16 @@
-use peregrine_data::{JumpReq, JumpRes, JumpLocation};
+use peregrine_data::{JumpReq, JumpRes, JumpLocation, BootChannelReq, BootChannelRes, Assets, BackendNamespace};
 use peregrine_toolkit::error::Error;
 use crate::callbacks::Callbacks;
 
 #[derive(Clone)]
 pub(crate) struct Backend {
+    backend_namespace: BackendNamespace,
     callbacks: Callbacks
 }
 
 impl Backend {
-    pub(crate) fn new(callbacks: Callbacks) -> Backend {
-        Backend { callbacks }
+    pub(crate) fn new(backend_namespace: BackendNamespace, callbacks: Callbacks) -> Backend {
+        Backend { backend_namespace, callbacks }
     }
 
     pub(crate) fn jump(&self, req: &JumpReq) -> Result<JumpRes,Error> {
@@ -20,5 +21,10 @@ impl Backend {
         } else {
             Ok(JumpRes::NotFound)
         }
+    }
+
+    pub(crate) fn boot(&self, _req: &BootChannelReq) -> Result<BootChannelRes,Error> {
+        self.callbacks.boot()?;
+        Ok(BootChannelRes::new(None,self.backend_namespace.clone(),Assets::empty(),Assets::empty(),Some(vec![15])))
     }
 }

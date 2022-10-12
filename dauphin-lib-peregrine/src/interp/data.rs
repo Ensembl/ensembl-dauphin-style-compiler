@@ -5,6 +5,7 @@ use crate::util::{ get_instance, get_peregrine };
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, AsyncBlock, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
 use peregrine_data::AccessorResolver;
+use peregrine_data::DataMessage;
 use peregrine_data::DataRequest;
 use peregrine_data::{PacketPriority, ProgramData, Region, Scale, ShapeRequest, StickId};
 use serde_cbor::Value as CborValue;
@@ -47,7 +48,7 @@ async fn get(context: &mut InterpContext, cmd: GetDataInterpCommand) -> anyhow::
     let peregrine = get_peregrine(context)?;
     let data_store = peregrine.agent_store().data_store.clone();
     let request = peregrine.geometry_builder().request(request_id)?;
-    let (result,took_ms) = data_store.get(&request,&priority).await?;
+    let (result,took_ms) = data_store.get(&request,&priority).await.map_err(|e| DataMessage::XXXTransitional(e))?;
     let data_id = program_data.add(result);
     drop(peregrine);
     let registers = context.registers_mut();
@@ -92,7 +93,7 @@ async fn request_interp_command(context: &mut InterpContext, cmd: RequestInterpC
     let index = &registers.get_numbers(&cmd.4)?[0];
     let scale = &registers.get_numbers(&cmd.5)?[0];
     let region = Region::new(&StickId::new(stick),*index as u64,&Scale::new(*scale as u64));
-    let channel = channel_resolver.resolve(&channel_name).await?;
+    let channel = channel_resolver.resolve(&channel_name).await.map_err(|e| DataMessage::XXXTransitional(e))?;
     let request = DataRequest::new(&channel,&prog_name,&region);
     drop(registers);
     let peregrine = get_peregrine(context)?;

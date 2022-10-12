@@ -1,5 +1,5 @@
 use std::{collections::HashMap, rc::Rc, sync::{Arc, Mutex}};
-use peregrine_toolkit::{ lock };
+use peregrine_toolkit::{ lock, error::Error };
 use crate::{ChannelIntegration, BackendNamespace, DataMessage, PeregrineCoreBase, shapeload::programloader::ProgramLoader, CountingPromise };
 use super::{channelboot::{ChannelBoot }, wrappedchannelsender::WrappedChannelSender };
 
@@ -52,7 +52,7 @@ impl ChannelRegistry {
         lock!(self.channels).insert(backend_namespace.clone(),sender.clone());
     }
 
-    async fn lookup_unknown_spec(&self, access: &str) -> Result<BackendNamespace,DataMessage> {
+    async fn lookup_unknown_spec(&self, access: &str) -> Result<BackendNamespace,Error> {
         for itn in self.integrations.iter() {
             if let Some((sender,backend_namespace)) = itn.make_channel(access) {
                 let backend_namespace = BackendNamespace::or_missing(&backend_namespace);
@@ -64,18 +64,18 @@ impl ChannelRegistry {
                 return Ok(backend_namespace)
             }
         }
-        Err(DataMessage::BadChannelSpec(format!("unclaimed {}",access)))
+        Err(Error::operr(&format!("unclaimed {}",access)))
     }
 
-    pub(crate) async fn spec_to_name(&self, access: &str) -> Result<BackendNamespace,DataMessage> {
+    pub(crate) async fn spec_to_name(&self, access: &str) -> Result<BackendNamespace,Error> {
         let missing = !lock!(self.spec_to_channel).contains_key(access);
         if missing {
             self.lookup_unknown_spec(access).await?; // is idempotent, so no race
         }
-        lock!(self.spec_to_channel).get(access).cloned().ok_or_else(|| DataMessage::BadChannelSpec(format!("unclaimed {}",access)))
+        lock!(self.spec_to_channel).get(access).cloned().ok_or_else(|| Error::operr(&format!("unclaimed {}",access)))
     }
 
-    pub async fn add_backend(&self, access: &str) -> Result<(),DataMessage> {
+    pub async fn add_backend(&self, access: &str) -> Result<(),Error> {
         self.spec_to_name(access).await.map(|_| ())
     }
 
@@ -83,8 +83,8 @@ impl ChannelRegistry {
         self.boot.ready().await
     }
 
-    pub(crate) fn name_to_sender(&self, name: &BackendNamespace) -> Result<WrappedChannelSender,DataMessage> {
+    pub(crate) fn name_to_sender(&self, name: &BackendNamespace) -> Result<WrappedChannelSender,Error> {
         let channels = lock!(self.channels);
-        Ok(channels.get(name).ok_or_else(|| DataMessage::NoSuchChannel(name.clone()))?.clone())
+        Ok(channels.get(name).ok_or_else(|| Error::operr(&format!("No such backend namespace: {}",name)))?.clone())
     }
 }

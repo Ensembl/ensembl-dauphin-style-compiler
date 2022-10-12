@@ -1,5 +1,5 @@
 use crate::simple_interp_command;
-use peregrine_data::{ AccessorResolver };
+use peregrine_data::{ AccessorResolver, DataMessage };
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult, AsyncBlock };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
 use peregrine_toolkit::eachorevery::eoestruct::StructTemplate;
@@ -31,7 +31,7 @@ async fn new_lane_interp_command(context: &mut InterpContext, cmd: NewLaneInterp
     let mut scales = scales.zip(scale_jump.iter().cycle());
     let track_builder = get_peregrine(context)?.track_builder();
     for (channel_name,program) in values {
-        let channel = channel_resolver.resolve(&channel_name).await?;
+        let channel = channel_resolver.resolve(&channel_name).await.map_err(|e| DataMessage::XXXTransitional(e))?;
         let ((min,max),jump) = scales.next().unwrap();
         track_ids.push(track_builder.allocate(&channel,program,*min as u64,*max as u64,*jump as u64));
     }

@@ -280,6 +280,12 @@
               let start_end = parts[parts.length-1].split("-");
               if(start_end.length < 2) { return null; }
               return [stick,start_end[0],start_end[1]];
+            },
+            boot: function() {
+              console.log("booting");
+              return {
+
+              };
             }
           }
         });

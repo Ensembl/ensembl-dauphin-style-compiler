@@ -4,6 +4,7 @@ use super::stickauthority::{ Authority, load_stick_authority };
 use crate::core::{ StickId, Stick };
 use std::sync::{ Arc, Mutex };
 use crate::util::message::DataMessage;
+use peregrine_toolkit::error::Error;
 use peregrine_toolkit::lock;
 
 struct AuthorityStoreData {
@@ -44,7 +45,7 @@ impl AuthorityStore {
         }
     }
 
-    pub async fn add(&self, channel: BackendNamespace) -> Result<(),DataMessage> {
+    pub async fn add(&self, channel: BackendNamespace) -> Result<(),Error> {
         let stick_authority = load_stick_authority(&self.base,&self.program_loader,channel).await?;
         lock!(self.data).add(stick_authority);
         Ok(())

@@ -1,5 +1,5 @@
 use std::{collections::HashMap, sync::{Arc, Mutex}, rc::Rc};
-use peregrine_toolkit::lock;
+use peregrine_toolkit::{lock, error::Error};
 use crate::{DataMessage, ProgramName, Stick, StickId, api::MessageSender, index::stickauthority::Authority, metric::{datastreammetric::PacketDatastreamMetricBuilder, metricreporter::MetricCollector}, request::minirequests::{authorityreq::AuthorityReq, datareq::DataRequest, datares::{DataResponse}, jumpreq::JumpReq, jumpres::{JumpLocation, JumpRes}, programreq::ProgramReq, stickreq::StickReq, stickres::StickRes}, PacketPriority, BackendNamespace};
 use super::{request::{MiniRequest}, manager::{RequestManager}, response::MiniResponseAttempt};
 
@@ -21,19 +21,19 @@ impl Backend {
         }
     }
 
-    async fn submit<F,T>(&self, priority: &PacketPriority, request: MiniRequest, cb: F) -> Result<T,DataMessage>
+    async fn submit<F,T>(&self, priority: &PacketPriority, request: MiniRequest, cb: F) -> Result<T,Error>
             where F: Fn(MiniResponseAttempt) -> Result<T,String> {
         self.manager.submit(&self.name,priority,&Rc::new(request), |v| {
             cb(v)
         }).await
     }
 
-    async fn submit_hi<F,T>(&self, request: MiniRequest, cb: F) -> Result<T,DataMessage>
+    async fn submit_hi<F,T>(&self, request: MiniRequest, cb: F) -> Result<T,Error>
             where F: Fn(MiniResponseAttempt) -> Result<T,String> {
         self.submit(&PacketPriority::RealTime,request,cb).await
     }
 
-    pub async fn data(&self, data_request: &DataRequest, priority: &PacketPriority) -> Result<DataResponse,DataMessage> {
+    pub async fn data(&self, data_request: &DataRequest, priority: &PacketPriority) -> Result<DataResponse,Error> {
         let request = MiniRequest::Data(data_request.clone());
         let account_builder = PacketDatastreamMetricBuilder::new(&self.metrics,data_request.name(),priority,data_request.region());
         let r = self.submit(priority,request, |d| {
@@ -43,24 +43,24 @@ impl Backend {
         Ok(r)
     }
 
-    pub async fn stick(&self, id: &StickId) -> Result<Stick,DataMessage> {
+    pub async fn stick(&self, id: &StickId) -> Result<Stick,Error> {
         let req = StickReq::new(&id);
         let r = self.submit_hi(req, |d| { d.into_variety().into_stick() }).await?;
         match r {
             StickRes::Stick(s) => Ok(s),
             StickRes::Unknown(_) => {
                 self.messages.send(DataMessage::NoSuchStick(id.clone()));
-                Err(DataMessage::NoSuchStick(id.clone()))
+                Err(Error::operr(&format!("No such stick: {}",id)))
             }
         }
     }
 
-    pub async fn authority(&self) -> Result<Authority,DataMessage> {
+    pub async fn authority(&self) -> Result<Authority,Error> {
         let request = AuthorityReq::new();
         Ok(self.submit_hi(request, |d| d.into_variety().into_authority()).await?.build())
     }
 
-    pub async fn jump(&self, location: &str) -> anyhow::Result<Option<JumpLocation>> {
+    pub async fn jump(&self, location: &str) -> Result<Option<JumpLocation>,Error> {
         let req = JumpReq::new(&location);
         let r = self.submit_hi(req, |d| d.into_variety().into_jump()).await?;
         Ok(match r {
@@ -69,7 +69,7 @@ impl Backend {
         })
     }
 
-    pub async fn program(&self, program_name: &ProgramName) -> Result<(),DataMessage> {
+    pub async fn program(&self, program_name: &ProgramName) -> Result<(),Error> {
         let req = ProgramReq::new(&program_name);
         self.submit_hi(req, |d| d.into_variety().into_program()).await?;
         Ok(())
@@ -94,7 +94,7 @@ impl AllBackends {
         }
     }
 
-    pub fn backend(&self, channel: &BackendNamespace) -> Result<Backend,DataMessage> {
+    pub fn backend(&self, channel: &BackendNamespace) -> Result<Backend,Error> {
         let mut backends = lock!(self.backends);
         if !backends.contains_key(channel) {
             backends.insert(channel.clone(), Backend::new(&self.manager,channel,&self.metrics,&self.messages));

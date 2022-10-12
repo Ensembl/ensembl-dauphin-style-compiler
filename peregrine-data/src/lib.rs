@@ -311,6 +311,8 @@ pub use self::spacebase::{
 pub use self::shape::rectangleshape::RectangleShape;
 pub use self::shape::textshape::TextShape;
 pub use self::request::core::manager::RequestManager;
+pub use self::request::minirequests::bootchannelreq::BootChannelReq;
+pub use self::request::minirequests::bootchannelres::BootChannelRes;
 pub use self::request::minirequests::jumpreq::JumpReq;
 pub use self::request::minirequests::jumpres::{ JumpLocation, JumpRes };
 pub use self::request::minirequests::datareq::DataRequest;

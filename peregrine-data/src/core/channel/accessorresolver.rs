@@ -1,5 +1,4 @@
-use crate::DataMessage;
-
+use peregrine_toolkit::error::Error;
 use super::{channelregistry::ChannelRegistry, backendnamespace::BackendNamespace};
 
 fn matches_self(accessor: &str) -> bool {
@@ -20,7 +19,7 @@ impl AccessorResolver {
         }
     }
 
-    pub async fn resolve(&self, accessor: &str) -> Result<BackendNamespace,DataMessage> {
+    pub async fn resolve(&self, accessor: &str) -> Result<BackendNamespace,Error> {
         if matches_self(accessor) {
             Ok(self.base.clone())
         } else {

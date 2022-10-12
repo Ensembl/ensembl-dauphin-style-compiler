@@ -85,7 +85,7 @@ impl PgDauphin {
     pub async fn run_program(&self, loader: &ProgramLoader, registry: &ChannelRegistry, spec: PgDauphinTaskSpec) -> Result<(),DataMessage> {
         let program_name = spec.program_name.clone();
         if !self.is_present(&program_name) {
-            loader.load(&program_name).await.map_err(|e| DataMessage::DauphinProgramMissing(e.to_string()))?;
+            loader.load(&program_name).await.map_err(|e| DataMessage::XXXTransitional(e))?;
         }
         let data = lock!(self.0);
         let (bundle_name,in_bundle_name) = data.names.get(&program_name).as_ref().unwrap().as_ref()

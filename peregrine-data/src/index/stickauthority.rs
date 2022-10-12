@@ -1,4 +1,6 @@
 use std::collections::HashMap;
+use peregrine_toolkit::error::Error;
+
 use crate::core::channel::channelregistry::ChannelRegistry;
 use crate::shapeload::programloader::ProgramLoader;
 use crate::{PeregrineCoreBase, BackendNamespace};
@@ -28,14 +30,14 @@ impl Authority {
     pub fn startup_program(&self) -> &ProgramName { &self.startup_program_name }
     pub fn lookup_program(&self) -> &ProgramName { &self.lookup_program_name }
 
-    async fn run_startup_program(&self, base: &PeregrineCoreBase, program_loader: &ProgramLoader) -> Result<(),DataMessage> {
+    async fn run_startup_program(&self, base: &PeregrineCoreBase, program_loader: &ProgramLoader) -> Result<(),Error> {
         base.dauphin.run_program(&program_loader.clone(),&base.channel_registry,PgDauphinTaskSpec {
             prio: 2,
             slot: None,
             timeout: None,
             program_name: self.startup_program_name.clone(),
             payloads: None
-        }).await?;
+        }).await.map_err(|e| Error::operr(&format!("error running startup program: {}",e.to_string())))?;
         base.queue.regenerate_track_config();
         Ok(())
     }
@@ -77,7 +79,7 @@ impl Authority {
     }
 }
 
-pub(super) async fn load_stick_authority(base: &PeregrineCoreBase, program_loader: &ProgramLoader, channel: BackendNamespace) -> Result<Authority,DataMessage> {
+pub(super) async fn load_stick_authority(base: &PeregrineCoreBase, program_loader: &ProgramLoader, channel: BackendNamespace) -> Result<Authority,Error> {
     let backend = base.all_backends.backend(&channel)?;
     let stick_authority = backend.authority().await?;
     stick_authority.preload_lookup_program(base,program_loader);

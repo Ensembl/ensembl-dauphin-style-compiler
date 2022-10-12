@@ -1,3 +1,4 @@
+use peregrine_toolkit::error::Error;
 use peregrine_toolkit_async::sync::blocker::{Blocker};
 use peregrine_toolkit::{log_extra};
 use crate::core::channel::wrappedchannelsender::WrappedChannelSender;
@@ -42,7 +43,7 @@ pub struct RequestQueue {
 }
 
 impl RequestQueue {
-    pub(crate) fn new(key: &QueueKey, commander: &PgCommander, realtime_lock: &Blocker, matcher: &AttemptMatch, sidecars: &RequestSidecars, version: &VersionMetadata, messages: &MessageSender) -> Result<RequestQueue,DataMessage> {
+    pub(crate) fn new(key: &QueueKey, commander: &PgCommander, realtime_lock: &Blocker, matcher: &AttemptMatch, sidecars: &RequestSidecars, version: &VersionMetadata, messages: &MessageSender) -> Result<RequestQueue,Error> {
         let batch_size = match key.priority {
             PacketPriority::RealTime => None, /* limitless */
             PacketPriority::Batch => Some(20) /* no more than 20 at a time */
@@ -61,7 +62,7 @@ impl RequestQueue {
 
     pub(crate) fn input_queue(&self) -> &PendingAttemptQueue { &self.pending_send }
 
-    fn start(&self, commander: &PgCommander, matcher: &AttemptMatch, sidecars: &RequestSidecars, prio: u8) -> Result<(),DataMessage> {
+    fn start(&self, commander: &PgCommander, matcher: &AttemptMatch, sidecars: &RequestSidecars, prio: u8) -> Result<(),Error> {
         let self2 = self.clone();
         let matcher = matcher.clone();
         let sidecars = sidecars.clone();

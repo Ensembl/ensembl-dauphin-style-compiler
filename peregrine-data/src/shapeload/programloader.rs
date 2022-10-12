@@ -1,6 +1,8 @@
+use peregrine_toolkit::error::Error;
+
 use crate::{DataMessage, PeregrineCoreBase, PgCommanderTaskSpec, ProgramName, add_task, util::memoized::{Memoized, MemoizedType}};
 
-fn make_program_loader(base: &PeregrineCoreBase) -> Memoized<ProgramName,Result<(),DataMessage>> {
+fn make_program_loader(base: &PeregrineCoreBase) -> Memoized<ProgramName,Result<(),Error>> {
     let base = base.clone();
     Memoized::new(MemoizedType::Store,move |_,program_name: &ProgramName| {
         let base = base.clone();
@@ -9,7 +11,7 @@ fn make_program_loader(base: &PeregrineCoreBase) -> Memoized<ProgramName,Result<
             let backend = base.all_backends.backend(&program_name.0)?;
             backend.program(&program_name).await?;
             if !base.dauphin.is_present(&program_name) {
-                return Err(DataMessage::DauphinProgramDidNotLoad(program_name));
+                return Err(Error::operr(&format!("program did not load: {}",program_name)));
             }
             Ok(())
         })
@@ -17,14 +19,14 @@ fn make_program_loader(base: &PeregrineCoreBase) -> Memoized<ProgramName,Result<
 }
 
 #[derive(Clone)]
-pub struct ProgramLoader(Memoized<ProgramName,Result<(),DataMessage>>);
+pub struct ProgramLoader(Memoized<ProgramName,Result<(),Error>>);
 
 impl ProgramLoader {
     pub fn new(base: &PeregrineCoreBase) -> ProgramLoader {
         ProgramLoader(make_program_loader(base))
     }
 
-    pub async fn load(&self, program_name: &ProgramName) -> Result<(),DataMessage> {
+    pub async fn load(&self, program_name: &ProgramName) -> Result<(),Error> {
         self.0.get(program_name).await.as_ref().clone()
     }
 

@@ -4,7 +4,7 @@ use serde::{Deserialize, Deserializer, de::{Visitor, MapAccess, IgnoredAny}};
 use crate::{Assets, ProgramName, BackendNamespace, request::core::response::MiniResponseVariety};
 
 pub struct BootChannelRes {
-    program_name: ProgramName,
+    program_name: Option<ProgramName>,
     namespace: BackendNamespace,
     channel_assets: Assets,
     chrome_assets: Assets,
@@ -12,7 +12,11 @@ pub struct BootChannelRes {
 }
 
 impl BootChannelRes {
-    pub(crate) fn program_name(&self) -> &ProgramName { &self.program_name }
+    pub fn new(program_name: Option<ProgramName>, namespace: BackendNamespace, channel_assets: Assets, chrome_assets: Assets, supports: Option<Vec<u32>>) -> BootChannelRes {
+        BootChannelRes { program_name, namespace, channel_assets, chrome_assets, supports }
+    }
+
+    pub(crate) fn program_name(&self) -> Option<&ProgramName> { self.program_name.as_ref() }
     pub(crate) fn channel_assets(&self) -> &Assets { &self.channel_assets }
     pub(crate) fn chrome_assets(&self) -> &Assets { &self.chrome_assets }
     pub(crate) fn namespace(&self) -> &BackendNamespace { &self.namespace }

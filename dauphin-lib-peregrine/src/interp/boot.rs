@@ -1,6 +1,6 @@
 use crate::simple_interp_command;
 use crate::util::{ get_instance, get_peregrine };
-use peregrine_data::{ Builder, AccessorResolver };
+use peregrine_data::{ Builder, AccessorResolver, DataMessage };
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, AsyncBlock, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
 use peregrine_data::{ StickId, Stick, StickTopology };
@@ -26,12 +26,12 @@ async fn add_stick_authority(context: &mut InterpContext, cmd: AddAuthorityInter
         let stick_authority_store = agent_store.stick_authority_store.clone();
         let mut tasks = vec![];
         for auth in authorities.iter() {
-            let channel = channel_resolver.resolve(&auth).await?;
+            let channel = channel_resolver.resolve(&auth).await.map_err(|e| DataMessage::XXXTransitional(e))?;
             let task = stick_authority_store.add(channel);
             tasks.push(task);
         }
         for task in tasks {
-            task.await?;
+            task.await.map_err(|e| DataMessage::XXXTransitional(e))?;
         }
         pc.booted().unlock();
     }
@@ -80,9 +80,9 @@ async fn get(context: &mut InterpContext, cmd: GetStickDataInterpCommand) -> any
     let all_backends = pc.all_backends();
     for stick_id in id_strings.iter() {
         let channel_name = channel_iter.next().unwrap();
-        let channel = channel_resolver.resolve(&channel_name).await?;
-        let backend = all_backends.backend(&channel)?;
-        let stick = backend.stick(&StickId::new(stick_id)).await?;
+        let channel = channel_resolver.resolve(&channel_name).await.map_err(|e| DataMessage::XXXTransitional(e))?;
+        let backend = all_backends.backend(&channel).map_err(|e| DataMessage::XXXTransitional(e))?;
+        let stick = backend.stick(&StickId::new(stick_id)).await.map_err(|e| DataMessage::XXXTransitional(e))?;
         id_strings_out.push(stick.get_id().get_id().to_string());
         sizes.push(stick.size() as f64);
         topologies.push(stick.topology().to_number() as usize);
@@ -122,9 +122,9 @@ async fn get_jump(context: &mut InterpContext, cmd: GetJumpDataInterpCommand) ->
     let all_backends = pc.all_backends();
     for location in locations.iter() {
         let channel_name = channel_iter.next().unwrap();
-        let channel = channel_resolver.resolve(&channel_name).await?;
-        let backend = all_backends.backend(&channel)?;
-        if let Some(jump_location) = backend.jump(location).await? {
+        let channel = channel_resolver.resolve(&channel_name).await.map_err(|e| DataMessage::XXXTransitional(e))?;
+        let backend = all_backends.backend(&channel).map_err(|e| DataMessage::XXXTransitional(e))?;
+        if let Some(jump_location) = backend.jump(location).await.map_err(|e| DataMessage::XXXTransitional(e))? {
             sticks_out.push(jump_location.stick);
             lefts_out.push(jump_location.left as f64);
             rights_out.push(jump_location.right as f64);
