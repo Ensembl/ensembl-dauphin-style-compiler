@@ -1,18 +1,17 @@
 use std::fmt;
 use peregrine_toolkit::{serdetools::st_field };
-use serde::{Deserialize, Deserializer, de::Visitor};
+use serde::{Deserialize, Deserializer, de::{Visitor, IgnoredAny}};
 use crate::{index::stickauthority::Authority, BackendNamespace, request::core::response::MiniResponseVariety};
 
 pub struct AuthorityRes {
     channel: BackendNamespace,
     startup_name: String,
-    lookup_name: String,
-    jump_name: String
+    lookup_name: String
 }
 
 impl AuthorityRes {
     pub fn build(&self) -> Authority {
-        Authority::new(&self.channel,&self.startup_name,&self.lookup_name,&self.jump_name)
+        Authority::new(&self.channel,&self.startup_name,&self.lookup_name)
     }
 }
 
@@ -30,8 +29,8 @@ impl<'de> Visitor<'de> for AuthorityVisitor {
         let channel = st_field("channel",seq.next_element()?)?;
         let startup_name = st_field("startup_name",seq.next_element()?)?;
         let lookup_name = st_field("lookup_name",seq.next_element()?)?;
-        let jump_name = st_field("jump_name",seq.next_element()?)?;
-        Ok(AuthorityRes { channel, startup_name, lookup_name, jump_name })
+        while let Some(IgnoredAny) = st_field("tail",seq.next_element()?)? { /* Ignore rest */ }
+        Ok(AuthorityRes { channel, startup_name, lookup_name })
     }
 }
 

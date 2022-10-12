@@ -8,7 +8,6 @@ boot="boot"
 [stick-authority]
 startup="sa-startup"
 lookup="sa-lookup"
-jump="sa-jump"
 
 [egs]
 stick=["startup","lookup"]

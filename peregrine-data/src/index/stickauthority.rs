@@ -1,9 +1,10 @@
 use std::collections::HashMap;
 use peregrine_toolkit::error::Error;
+use peregrine_toolkit::log;
 
 use crate::core::channel::channelregistry::ChannelRegistry;
 use crate::shapeload::programloader::ProgramLoader;
-use crate::{PeregrineCoreBase, BackendNamespace};
+use crate::{PeregrineCoreBase, BackendNamespace, AllBackends};
 use crate::core::{ StickId, Stick };
 use crate::run::{ PgDauphin, PgDauphinTaskSpec };
 use std::any::Any;
@@ -14,16 +15,14 @@ use crate::util::builder::Builder;
 #[derive(Clone)]
 pub struct Authority {
     startup_program_name: ProgramName,
-    jump_program_name: ProgramName,
     lookup_program_name: ProgramName
 }
 
 impl Authority {
-    pub fn new(channel: &BackendNamespace, startup_program_name: &str, lookup_program_name: &str, jump_program_name: &str) -> Authority {
+    pub fn new(channel: &BackendNamespace, startup_program_name: &str, lookup_program_name: &str) -> Authority {
         Authority {
             startup_program_name: ProgramName(channel.clone(),startup_program_name.to_string()),
             lookup_program_name: ProgramName(channel.clone(),lookup_program_name.to_string()),
-            jump_program_name: ProgramName(channel.clone(),jump_program_name.to_string())
         }
     }
 
@@ -63,19 +62,16 @@ impl Authority {
         Ok(sticks.build())
     }
 
-    pub async fn try_jump(&self, dauphin: PgDauphin, program_loader: &ProgramLoader, channel_registry: &ChannelRegistry, location: &str) -> Result<Vec<(String,(String,u64,u64))>,DataMessage> {
-        let jumps = Builder::new(vec![] as Vec<(String,(String,u64,u64))>);
-        let mut payloads = HashMap::new();
-        payloads.insert("location".to_string(),Box::new(location.to_string()) as Box<dyn Any>);
-        payloads.insert("jumps".to_string(),Box::new(jumps.clone()) as Box<dyn Any>);
-        dauphin.run_program(program_loader,channel_registry,PgDauphinTaskSpec {
-            prio: 2,
-            slot: None,
-            timeout: None,
-            program_name: self.jump_program_name.clone(),
-            payloads: Some(payloads)
-        }).await?;
-        Ok(jumps.build())
+    pub async fn try_jump(&self, all_backends: &AllBackends, channel_registry: &ChannelRegistry, location: &str) -> Result<Vec<(String,(String,u64,u64))>,DataMessage> {
+        for backend_namespace in channel_registry.all().iter() {
+            let backend = all_backends.backend(backend_namespace).map_err(|x| DataMessage::XXXTransitional(x))?;
+            log!("trying {}",backend_namespace);
+            if let Some(jump_location) = backend.jump(location).await.map_err(|e| DataMessage::XXXTransitional(e))? {
+                return Ok(vec![(location.to_string(),(jump_location.stick,jump_location.left,jump_location.right))]);
+            }
+        }
+        log!("done trying");
+        Ok(vec![])
     }
 }
 
