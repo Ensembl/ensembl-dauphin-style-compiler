@@ -87,4 +87,8 @@ impl ChannelRegistry {
         let channels = lock!(self.channels);
         Ok(channels.get(name).ok_or_else(|| Error::operr(&format!("No such backend namespace: {}",name)))?.clone())
     }
+
+    pub(crate) fn all(&self) -> Vec<BackendNamespace> {
+        lock!(self.channels).keys().cloned().collect()
+    }
 }

@@ -1,6 +1,6 @@
 use peregrine_toolkit::error::Error;
 
-use crate::{DataMessage, PeregrineCoreBase, PgCommanderTaskSpec, ProgramName, add_task, util::memoized::{Memoized, MemoizedType}};
+use crate::{PeregrineCoreBase, PgCommanderTaskSpec, ProgramName, add_task, util::memoized::{Memoized, MemoizedType}};
 
 fn make_program_loader(base: &PeregrineCoreBase) -> Memoized<ProgramName,Result<(),Error>> {
     let base = base.clone();

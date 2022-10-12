@@ -8,7 +8,6 @@ use crate::request::minirequests::datareq::DataRequest;
 use crate::request::minirequests::datares::{DataResponse};
 use crate::util::lrucache::Cache;
 use crate::util::memoized::{ Memoized, MemoizedType };
-use crate::util::message::{ DataMessage };
 
 // TODO Memoized errors with retry semantics
 

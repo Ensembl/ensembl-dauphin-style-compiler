@@ -26,4 +26,8 @@ impl AccessorResolver {
             self.registry.spec_to_name(accessor).await
         }
     }
+
+    pub fn all(&self) -> Vec<BackendNamespace> {
+        self.registry.all()
+    }
 }

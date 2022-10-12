@@ -273,19 +273,16 @@
         genome_browser.add_jsapi_channel("test",{
           callbacks: {
             jump: function(location) {
-              console.log("js jump to " + location);
               let parts = location.split(":");
               let stick = parts.slice(1,parts.length-1).join(":");
               if(parts.length < 3 || parts[0] != "region") { return null; }
               let start_end = parts[parts.length-1].split("-");
               if(start_end.length < 2) { return null; }
-              return [stick,start_end[0],start_end[1]];
+              return [stick,parseInt(start_end[0]),parseInt(start_end[1])];
             },
             boot: function() {
               console.log("booting");
-              return {
-
-              };
+              return {};
             }
           }
         });
@@ -395,7 +392,7 @@
           document.getElementById('browser').remove();
         };
         document.getElementById("jump-bug").onclick = function() {
-          genome_browser.jump("region:homo_sapiens_GCA_000001405_28:1000000-2000000");
+          genome_browser.jump("region:homo_sapiens_GCA_000001405_28:1:1000000-2000000");
           //genome_browser.set_stick("homo_sapiens_GCA_000001405_28:13");
           //genome_browser.goto(32339600,32339650);
         };

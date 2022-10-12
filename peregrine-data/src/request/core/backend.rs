@@ -21,6 +21,8 @@ impl Backend {
         }
     }
 
+    pub fn backend_namespace(&self) -> &BackendNamespace { &self.name }
+
     async fn submit<F,T>(&self, priority: &PacketPriority, request: MiniRequest, cb: F) -> Result<T,Error>
             where F: Fn(MiniResponseAttempt) -> Result<T,String> {
         self.manager.submit(&self.name,priority,&Rc::new(request), |v| {
@@ -49,7 +51,6 @@ impl Backend {
         match r {
             StickRes::Stick(s) => Ok(s),
             StickRes::Unknown(_) => {
-                self.messages.send(DataMessage::NoSuchStick(id.clone()));
                 Err(Error::operr(&format!("No such stick: {}",id)))
             }
         }
@@ -100,5 +101,9 @@ impl AllBackends {
             backends.insert(channel.clone(), Backend::new(&self.manager,channel,&self.metrics,&self.messages));
         }
         Ok(backends.get(channel).unwrap().clone())
+    }
+
+    pub fn all(&self) -> Vec<Backend> {
+        lock!(self.backends).values().cloned().collect()
     }
 }

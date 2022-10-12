@@ -20,6 +20,12 @@ class DataModel(object):
         self._load_species()
 
     def stick(self, data_accessor, alias):
+        out = self.try_stick(data_accessor,alias)
+        if out is None:
+            raise RequestException("cannot find stick")
+        return out
+
+    def try_stick(self, data_accessor, alias):
         """
 
         Args:

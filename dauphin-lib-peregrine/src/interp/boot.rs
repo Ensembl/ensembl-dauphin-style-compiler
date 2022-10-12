@@ -4,6 +4,7 @@ use peregrine_data::{ Builder, AccessorResolver, DataMessage };
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, AsyncBlock, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
 use peregrine_data::{ StickId, Stick, StickTopology };
+use peregrine_toolkit::log;
 use serde_cbor::Value as CborValue;
 use crate::payloads::PeregrinePayload;
 
@@ -111,8 +112,6 @@ impl InterpCommand for GetStickDataInterpCommand {
 async fn get_jump(context: &mut InterpContext, cmd: GetJumpDataInterpCommand) -> anyhow::Result<()> {
     let channel_resolver = get_instance::<AccessorResolver>(context,"channel-resolver")?;
     let registers = context.registers_mut();
-    let channel_iter = registers.get_strings(&cmd.3)?;
-    let mut channel_iter = channel_iter.iter().cycle();
     let locations = registers.get_strings(&cmd.4)?;
     let mut sticks_out = vec![];
     let mut lefts_out = vec![];
@@ -121,14 +120,18 @@ async fn get_jump(context: &mut InterpContext, cmd: GetJumpDataInterpCommand) ->
     let pc = get_peregrine(context)?;
     let all_backends = pc.all_backends();
     for location in locations.iter() {
-        let channel_name = channel_iter.next().unwrap();
-        let channel = channel_resolver.resolve(&channel_name).await.map_err(|e| DataMessage::XXXTransitional(e))?;
-        let backend = all_backends.backend(&channel).map_err(|e| DataMessage::XXXTransitional(e))?;
-        if let Some(jump_location) = backend.jump(location).await.map_err(|e| DataMessage::XXXTransitional(e))? {
-            sticks_out.push(jump_location.stick);
-            lefts_out.push(jump_location.left as f64);
-            rights_out.push(jump_location.right as f64);
+        log!("len {}",channel_resolver.all().len());
+        for backend_namespace in channel_resolver.all().iter() {
+            let backend = all_backends.backend(backend_namespace).map_err(|x| DataMessage::XXXTransitional(x))?;
+            log!("trying {}",backend_namespace);
+            if let Some(jump_location) = backend.jump(location).await.map_err(|e| DataMessage::XXXTransitional(e))? {
+                sticks_out.push(jump_location.stick);
+                lefts_out.push(jump_location.left as f64);
+                rights_out.push(jump_location.right as f64);
+                break;
+            }
         }
+        log!("done trying");
     }
     let registers = context.registers_mut();
     registers.write(&cmd.0,InterpValue::Strings(sticks_out));

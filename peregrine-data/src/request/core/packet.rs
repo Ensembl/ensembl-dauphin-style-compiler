@@ -134,7 +134,7 @@ impl MaxiResponse {
             if mini.total_size() > TOO_LARGE/5 {
                 warn!("excessively large mini-response {}",mini.description());
                 for (key,size) in mini.component_size().iter() {
-                    if mini.total_size() > TOO_LARGE/15 {
+                    if *size > TOO_LARGE/15 {
                         warn!("excessively large mini-response internal key {} ({})",key,size);
                     }
                 }

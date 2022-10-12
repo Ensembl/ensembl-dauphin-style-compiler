@@ -21,7 +21,7 @@ class Species(object):
         self._names = names
         self.alias_prefixes = [self.wire_id]
 
-    def _load_ncd(self, data_accessor, variety, wire_id):
+    def _load_ncd(self, data_accessor, variety, wire_id, missing_ok = False):
         """
 
         Args:
@@ -37,7 +37,10 @@ class Species(object):
         hash_reader = NCDRead(accessor.ncd())
         hash_data = hash_reader.get(wire_id.encode("utf-8"))
         if hash_data == None:
-            raise RequestException("cannot find hash '{}'".format(wire_id))
+            if missing_ok:
+                return None
+            else:
+                raise RequestException("cannot find hash '{}'".format(wire_id))
         return hash_data.decode("utf-8").split("\t")
 
     def split_total_wire_id(self, total_wire_id: str):
@@ -59,9 +62,12 @@ class Species(object):
 
         """
         (_, wire_id) = self.split_total_wire_id(total_wire_id)
-        hash_value = self._load_ncd(data_accessor, "chrom-hashes", wire_id)[0]
-        size = int(self._load_ncd(data_accessor, "chrom-sizes", wire_id)[0])
-        return Chromosome(wire_id, size, hash_value, self)
+        hash_value = self._load_ncd(data_accessor, "chrom-hashes", wire_id, missing_ok=True)
+        if hash_value is not None:
+            size = int(self._load_ncd(data_accessor, "chrom-sizes", wire_id)[0])
+            return Chromosome(wire_id, size, hash_value[0], self)
+        else:
+            return None
 
     def chromosome(self, data_accessor, wire_id):
         """
@@ -77,14 +83,3 @@ class Species(object):
         if not (wire_id in self.chromosomes):
             self.chromosomes[wire_id] = self._load_chromosome(data_accessor, wire_id)
         return self.chromosomes.get(wire_id)
-
-    # def item_path(self, variety):
-    #     """
-
-    #     Args:
-    #         variety ():
-
-    #     Returns:
-
-    #     """
-    #     return AccessItem(variety, self.genome_id)
