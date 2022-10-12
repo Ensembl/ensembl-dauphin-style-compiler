@@ -491,6 +491,7 @@ dependencies = [
  "peregrine_message",
  "peregrine_toolkit",
  "serde",
+ "serde-wasm-bindgen",
  "serde_json",
  "url",
  "wasm-bindgen",

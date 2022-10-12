@@ -1,6 +1,7 @@
 use std::{collections::HashMap, sync::{ Arc, Mutex }};
 use std::fmt::Debug;
 use js_sys::{ Reflect, Array, JSON };
+use serde_wasm_bindgen::from_value;
 use wasm_bindgen::{prelude::*, JsCast};
 use peregrine_draw::{Endstop, Message, PeregrineAPI, PeregrineConfig, PgCommanderWeb};
 use peregrine_data::{ StickId, zmenu_to_json };
@@ -204,18 +205,18 @@ impl GenomeBrowser {
     
     pub fn set_switch(&self, path: &JsValue) {
         let tmpl_true = StructTemplate::new_boolean(true).build().ok().unwrap();
-        let path : Vec<String> = path.into_serde().unwrap();
+        let path : Vec<String> = from_value(path.clone()).unwrap();
         self.api.switch(&path.iter().map(|x| x.as_str()).collect::<Vec<_>>(),tmpl_true);
     }
 
     pub fn clear_switch(&self, path: &JsValue) {
         let tmpl_false = StructTemplate::new_boolean(false).build().ok().unwrap();
-        let path : Vec<String> = path.into_serde().unwrap();
+        let path : Vec<String> = from_value(path.clone()).unwrap();
         self.api.switch(&path.iter().map(|x| x.as_str()).collect::<Vec<_>>(),tmpl_false);
     }
 
     pub fn switch(&self, path: &JsValue, value: &JsValue) {
-        let path : Vec<String> = path.into_serde().unwrap();
+        let path : Vec<String> = from_value(path.clone()).unwrap();
         if let Ok(json) = js_to_json(value) {
             if let Ok((template,_)) = struct_from_json(vec![],vec![],&json) {
                 if let Ok(build) = template.build() {
