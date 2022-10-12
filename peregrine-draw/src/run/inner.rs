@@ -10,14 +10,17 @@ use crate::input::translate::targetreporter::TargetReporter;
 use js_sys::Date;
 use peregrine_data::{Assets, Commander, PeregrineCore, PeregrineApiQueue, BackendNamespace, ChannelIntegration};
 use peregrine_dauphin::peregrine_dauphin;
+use peregrine_febe_javascript::JavascriptIntegration;
 use peregrine_febe_network::NetworkChannel;
 use peregrine_message::MessageKind;
 use peregrine_toolkit::eachorevery::eoestruct::StructBuilt;
+use peregrine_toolkit::error::err_web_drop;
 use peregrine_toolkit::log;
 use peregrine_toolkit::plumbing::distributor::Distributor;
 use peregrine_toolkit::plumbing::oneshot::OneShot;
 use peregrine_toolkit_async::sync::blocker::Blocker;
 use peregrine_toolkit_async::sync::needed::Needed;
+use wasm_bindgen::JsValue;
 use super::report::Report;
 use super::sound::Sound;
 use super::{PgPeregrineConfig, globalconfig::CreatedPeregrineConfigs};
@@ -49,7 +52,8 @@ pub struct PeregrineInnerAPI {
     report: Report,
     sound: Sound,
     assets: Assets,
-    target_reporter: TargetReporter
+    target_reporter: TargetReporter,
+    jsapi: JavascriptIntegration
 }
 
 pub struct LockedPeregrineInnerAPI<'t> {
@@ -146,6 +150,7 @@ impl PeregrineInnerAPI {
         let integration = Box::new(PgIntegration::new(trainset.clone(),&input,webgl.clone(),&stage,&dom,&report));
         let assets = integration.assets().clone();
         let sound = Sound::new(&config.draw,&commander,integration.assets(),&mut messages,dom.shutdown())?;
+        let jsapi = JavascriptIntegration::new();
         let channel_integrations : Vec<Rc<dyn ChannelIntegration>> = vec![
             Rc::new(NetworkChannel::new())
         ];
@@ -171,7 +176,8 @@ impl PeregrineInnerAPI {
             sound: sound.clone(),
             report: report.clone(),
             assets,
-            target_reporter: target_reporter.clone()
+            target_reporter: target_reporter.clone(),
+            jsapi
         };
         input.set_api(dom,&config.draw,&out,&commander,&target_reporter,&out.webgl)?;
         message_sender.add(Some(Message::Ready));
@@ -242,6 +248,10 @@ impl PeregrineInnerAPI {
         self.stage.lock().unwrap().soon_stick(stick);
         self.data_api.set_stick(stick);
         self.target_reporter.set_stick(stick.get_id());
+    }
+
+    pub(crate) fn add_jsapi_channel(&mut self, name: &str, payload: JsValue) {
+        err_web_drop(self.jsapi.add_channel(name,payload));
     }
 
     pub(crate) fn debug_action(&mut self, index: u8) {

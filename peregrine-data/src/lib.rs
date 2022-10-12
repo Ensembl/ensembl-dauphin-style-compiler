@@ -282,12 +282,13 @@ pub use self::api::{ PeregrineCore, PeregrineCoreBase, PeregrineIntegration, Per
 pub use self::core::{ Asset, Assets, PgdPeregrineConfig, ConfigKey, Stick, StickId, StickTopology, Scale, Viewport };
 pub use self::core::channel::accessorresolver::{ AccessorResolver };
 pub use self::core::channel::backendnamespace::BackendNamespace;
-pub use self::core::channel::channelintegration::{ ChannelIntegration, ChannelSender, ChannelResponse, TrivialChannelResponse, ChannelMessageDecoder };
+pub use self::core::channel::channelintegration::{ ChannelIntegration, ChannelSender, ChannelResponse, TrivialChannelResponse, ChannelMessageDecoder, null_payload };
 pub use self::index::{ StickStore, AuthorityStore };
 pub use self::shapeload::{ Region, ProgramName, ProgramRegion, ShapeStore, DataStore, ProgramData, ProgramRegionBuilder, ShapeRequest, ShapeRequestGroup };
 pub use self::run::{ PgCommander, PgCommanderTaskSpec, PgDauphin, Commander, InstancePayload, add_task, complete_task, async_complete_task };
 pub use self::request::core::packet::{ MaxiRequest, MaxiResponse, MaxiResponseDeserialize, DeserializeData };
 pub use self::request::core::request::{ MiniRequest, MiniRequestAttempt };
+pub use self::request::core::response::MiniResponse;
 pub use self::request::core::packetpriority::PacketPriority;
 pub use self::request::core::backend::{ AllBackends, Backend };
 pub use self::shape::shape::DrawingShape;
@@ -310,5 +311,7 @@ pub use self::spacebase::{
 pub use self::shape::rectangleshape::RectangleShape;
 pub use self::shape::textshape::TextShape;
 pub use self::request::core::manager::RequestManager;
+pub use self::request::minirequests::jumpreq::JumpReq;
+pub use self::request::minirequests::jumpres::{ JumpLocation, JumpRes };
 pub use self::request::minirequests::datareq::DataRequest;
 pub use self::request::minirequests::datares::{ DataRes, DataResponse };

@@ -1,5 +1,5 @@
 use js_sys::Date;
-use peregrine_data::{ChannelIntegration, PacketPriority, MaxiRequest, ChannelSender, BackendNamespace, ChannelMessageDecoder, MaxiResponse };
+use peregrine_data::{ChannelIntegration, PacketPriority, MaxiRequest, ChannelSender, BackendNamespace, ChannelMessageDecoder, MaxiResponse, null_payload };
 use peregrine_toolkit::cbor::{cbor_into_drained_map, cbor_into_bytes};
 use peregrine_toolkit::error::Error;
 use serde_cbor::Deserializer;
@@ -130,8 +130,7 @@ async fn send_wrap(url_str: String, prio: PacketPriority, packet: MaxiRequest, t
     let data = Error::oper_r(serde_cbor::to_vec(&packet),"packet error")?;
     let data = send(&url,prio,data,timeout,&cache_buster).await?;
     let mut deserializer = Deserializer::from_slice(&data);
-    let null : Arc::<dyn Any> = Arc::new(());
-    let deserialize = decoder.serde_deserialize_maxi(null);
+    let deserialize = decoder.serde_deserialize_maxi(null_payload());
     let response = Error::oper_r(deserialize.deserialize(&mut deserializer),"packet error")?;
     Error::oper_r(deserializer.end(),"packet error")?;
     Ok(response)

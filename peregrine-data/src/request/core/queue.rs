@@ -98,7 +98,7 @@ impl RequestQueue {
         if let Some(e) = &res.as_ref().err() {
             self.messages.send(DataMessage::PacketError(self.name.clone(),e.to_string()));
         }
-        res.ok().unwrap_or_else(|| packet.fail())
+        res.ok().unwrap_or_else(|| packet.fail("network/backend failed"))
     }
 
     async fn process_request(&self, matcher: &AttemptMatch, sidecars: &RequestSidecars, request: &mut MaxiRequest) {

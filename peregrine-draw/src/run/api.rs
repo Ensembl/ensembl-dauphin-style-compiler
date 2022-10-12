@@ -5,6 +5,7 @@ use peregrine_toolkit::{log_extra, log_important};
 use peregrine_toolkit_async::sync::blocker::Blocker;
 use peregrine_toolkit_async::sync::needed::Needed;
 pub use url::Url;
+use wasm_bindgen::JsValue;
 pub use web_sys::{ console, WebGlRenderingContext, Element };
 use peregrine_data::{ StickId, Commander };
 use super::buildconfig::{ GIT_TAG, GIT_BUILD_DATE };
@@ -62,7 +63,8 @@ enum DrawMessage {
     DebugAction(u8),
     SetArtificial(String,bool),
     Jump(String),
-    Sync()
+    Sync(),
+    AddJsapiChannel(String,JsValue)
 }
 
 impl std::fmt::Debug for DrawMessage {
@@ -77,7 +79,8 @@ impl std::fmt::Debug for DrawMessage {
             DrawMessage::DebugAction(index)  => write!(f,"DebugAction({:?})",index),
             DrawMessage::SetArtificial(name,start) => write!(f,"SetArtificial({:?},{:?})",name,start),
             DrawMessage::Jump(location) => write!(f,"Jump({})",location),
-            DrawMessage::Sync() => write!(f,"Sync")
+            DrawMessage::Sync() => write!(f,"Sync"),
+            DrawMessage::AddJsapiChannel(name,channel) => write!(f,"AddJsapiChannel({},...)",name)
         }
     }
 }
@@ -133,6 +136,9 @@ impl DrawMessage {
             DrawMessage::Jump(location) => {
                 draw.jump(&location);
             },
+            DrawMessage::AddJsapiChannel(name,payload) => {
+                draw.add_jsapi_channel(&name,payload);
+            }
             DrawMessage::Sync() => {
                 blocker.set_freewheel(false);
             }
@@ -198,6 +204,10 @@ impl PeregrineAPI {
     }
 
     pub fn stick(&self) -> Option<String> { self.stick.lock().unwrap().as_ref().cloned() }
+
+    pub fn add_jsapi_channel(&self, name: &str, payload: JsValue) {
+        self.queue.add(Some(DrawMessage::AddJsapiChannel(name.to_string(),payload)))
+    }
 
     pub fn set_artificial(&self, name: &str, start: bool) {
         self.queue.add(Some(DrawMessage::SetArtificial(name.to_string(),start)));

@@ -76,10 +76,10 @@ impl MaxiRequest {
         }
     }
 
-    pub fn fail(&self) -> MaxiResponse {
+    pub fn fail(&self, extra: &str) -> MaxiResponse {
         let mut response = MaxiResponse::empty(&self.factory.channel);
         for r in self.requests.iter() {
-            response.add_response(r.fail());
+            response.add_response(r.fail(extra));
         }
         response
     }
@@ -112,7 +112,7 @@ pub struct MaxiResponse {
 }
 
 impl MaxiResponse {
-    fn empty(channel: &BackendNamespace) -> MaxiResponse {
+    pub fn empty(channel: &BackendNamespace) -> MaxiResponse {
         MaxiResponse {
             channel: channel.clone(),
             responses: vec![],
@@ -120,7 +120,7 @@ impl MaxiResponse {
         }
     }
 
-    fn add_response(&mut self, response: MiniResponseAttempt) {
+    pub fn add_response(&mut self, response: MiniResponseAttempt) {
         self.responses.push(response);
     }
 

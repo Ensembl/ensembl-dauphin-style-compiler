@@ -37,8 +37,8 @@ class BootstrapHandler(Handler):
         try:
             r = Response(0,{
                 "boot": [channel,data_accessor.begs_files.boot_program(version)],
-                "hi": channel, # should go when v15 is retired
-                "lo": channel, # should go when v15 is retired
+                "hi": channel, # should go when v14 is retired
+                "lo": channel, # should go when v14 is retired
                 "namespace":  channel,
                 "assets": load_assets(False),
                 "chrome-assets": load_assets(True),

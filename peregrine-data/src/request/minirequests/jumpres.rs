@@ -1,6 +1,6 @@
 use std::fmt;
 use peregrine_toolkit::serdetools::st_field;
-use serde::{Deserializer, Deserialize, de::{Visitor, MapAccess}};
+use serde::{Deserializer, Deserialize, de::{Visitor, MapAccess, IgnoredAny}};
 
 use crate::request::core::response::MiniResponseVariety;
 
@@ -35,14 +35,14 @@ impl<'de> Visitor<'de> for JumpVisitor {
                 "stick" => { stick = access.next_value()? },
                 "left" => { left = access.next_value()? },
                 "right" => { right = access.next_value()? },
-                "no" => { access.next_value()?; found = false; }
+                "no" => { let _ : IgnoredAny = access.next_value()?; found = false; }
                 _ => {}
             }
         }
-        let stick = st_field("stick",stick)?;
-        let left = st_field("left",left)?;
-        let right = st_field("right",right)?;
         if found {
+            let stick = st_field("stick",stick)?;
+            let left = st_field("left",left)?;
+            let right = st_field("right",right)?;    
             Ok(JumpRes::Found(JumpLocation{ stick, left, right }))
         } else {
             Ok(JumpRes::NotFound)

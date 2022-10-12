@@ -198,6 +198,10 @@ impl GenomeBrowser {
         self.api.set_y(y);
     }
     
+    pub fn add_jsapi_channel(&self, name: &str, payload: JsValue) {
+        self.api.add_jsapi_channel(name,payload);
+    }
+
     pub fn switch(&self, path: &JsValue, value: &JsValue) {
         let path : Vec<String> = path.into_serde().unwrap();
         if let Ok(json) = js_to_json(value) {

@@ -577,6 +577,7 @@ dependencies = [
  "peregrine_data",
  "peregrine_dauphin",
  "peregrine_dauphin_queue",
+ "peregrine_febe_javascript",
  "peregrine_febe_network",
  "peregrine_message",
  "peregrine_toolkit",
@@ -586,6 +587,19 @@ dependencies = [
  "url",
  "wasm-bindgen",
  "wasm-bindgen-futures",
+ "web-sys",
+]
+
+[[package]]
+name = "peregrine_febe_javascript"
+version = "0.0.0"
+dependencies = [
+ "js-sys",
+ "peregrine_data",
+ "peregrine_toolkit",
+ "peregrine_toolkit_async",
+ "serde-wasm-bindgen",
+ "wasm-bindgen",
  "web-sys",
 ]
 

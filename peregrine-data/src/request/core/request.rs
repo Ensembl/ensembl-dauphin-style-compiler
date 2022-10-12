@@ -78,9 +78,14 @@ impl MiniRequestAttempt {
 
     pub(crate) fn response(&self) -> &CommanderStream<MiniResponseAttempt> { &self.response }
 
-    pub(crate) fn fail(&self) -> MiniResponseAttempt {
-        let failure = MiniResponse::FailureRes(FailureRes::new(&self.description));
+    pub fn fail(&self, extra: &str) -> MiniResponseAttempt {
+        let message = format!("{}: {}",self.description,extra);
+        let failure = MiniResponse::FailureRes(FailureRes::new(&message));
         MiniResponseAttempt::new(self.msgid,failure)
+    }
+
+    pub fn make_response_attempt(&self, mini: MiniResponse) -> MiniResponseAttempt {
+        MiniResponseAttempt::new(self.msgid,mini)
     }
 
     pub fn msgid(&self) -> u64 { self.msgid }

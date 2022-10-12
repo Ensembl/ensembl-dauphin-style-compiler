@@ -225,6 +225,10 @@ impl GenomeBrowser {
         }
     }
 
+    pub fn add_jsapi_channel(&self, name: &str, payload: JsValue) {
+        self.api.add_jsapi_channel(name,payload);
+    }
+
     pub fn radio_switch(&self, path: &JsValue, yn: bool) {
         let path : Vec<String> = path.into_serde().unwrap();
         self.api.radio_switch(&path.iter().map(|x| x.as_str()).collect::<Vec<_>>(),yn);

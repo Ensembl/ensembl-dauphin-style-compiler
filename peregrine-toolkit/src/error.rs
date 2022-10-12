@@ -1,3 +1,5 @@
+use crate::error;
+
 #[derive(Clone,Debug)]
 pub enum ErrorType {
     FatalError,      // Browser should be considered crashed
@@ -32,6 +34,19 @@ impl Error {
     error_ctor!(fatal,fatal_r,FatalError);
     error_ctor!(operr,oper_r,OperationError);
     error_ctor!(nosuch,nosuch_r,NoSuch);
+
+    pub fn web_deadend(&self) {
+        match self.error_type {
+            ErrorType::FatalError => { panic!("{}",self.message); },
+            _ => { error!("{}",self.message); },
+        }
+    }
+}
+
+pub fn err_web_drop(value: Result<(),Error>) {
+    if let Err(e) = value {
+        e.web_deadend();
+    }
 }
 
 #[macro_export]

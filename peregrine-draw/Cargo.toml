@@ -78,6 +78,10 @@ path="../dauphin-interp"
 version="*"
 path="../febe-network"
 
+[dependencies.peregrine_febe_javascript]
+version="*"
+path="../febe-javascript"
+
 [dependencies.keyed]
 version="*"
 path="../keyed"

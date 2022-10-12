@@ -11,6 +11,8 @@ impl JumpReq {
             location: location.to_string()
         })
     }
+
+    pub fn location(&self) -> &str { &self.location }
 }
 
 impl MiniRequestVariety for JumpReq {

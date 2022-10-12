@@ -33,6 +33,8 @@ impl ChannelMessageDecoder {
     }
 }
 
+pub fn null_payload() -> Arc<dyn Any> { Arc::new(()) }
+
 pub trait ChannelSender {
     fn get_sender(&self, prio: &PacketPriority, data: MaxiRequest, decoder: ChannelMessageDecoder) -> Pin<Box<dyn Future<Output=Result<MaxiResponse,Error>>>>;
     fn deserialize_data(&self, _payload: &dyn Any, _bytes: Vec<u8>) -> Result<Option<Vec<(String,Vec<u8>)>>,String> { Ok(None) }
