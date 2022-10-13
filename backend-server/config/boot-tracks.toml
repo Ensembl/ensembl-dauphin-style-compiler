@@ -1,0 +1,114 @@
+[include.gene]
+triggers = [
+    ["track","gene-pc-fwd"],
+    ["track","gene-pc-rev"],
+    ["track","gene-other-fwd"],
+    ["track","gene-other-rev"]
+]
+extra = [
+    ["track","focus","item","gene"],
+    ["settings"],
+    ["focus"],
+    ["track","focus"],
+    ["buttons","gene"]
+]
+tags = ["gene"]
+
+[include.focus-gene]
+triggers = [
+    ["track","focus","item","gene"]
+]
+extra = [
+    ["settings"],
+    ["focus"],
+    ["track","focus"],
+    ["buttons","gene"]
+]
+tags = ["gene"]
+
+
+
+[track.framing]
+triggers = [ ["track"] ]
+
+[track.zoomed-transcript-letters]
+program = "zoomed-transcript"
+scales = [0,7,8]
+include=["gene"]
+
+[track.zoomed-transcript-no-letters]
+program = "zoomed-transcript"
+scales = [8,8,1]
+include=["gene"]
+set = [
+    ["scale","no-letters"]
+]
+
+[track.transcript]
+scales = [9,18,6]
+include=["gene"]
+
+[track.gene]
+scales = [19,22,4]
+include=["gene"]
+
+[track.gene-overview]
+scales = [23,100,6]
+include=["gene"]
+
+[track.focus-zoomed-transcript-letters]
+program = "focus-zoomed-transcript"
+scales = [0,7,8]
+include=["focus-gene"]
+
+[track.focus-zoomed-transcript-no-letters]
+program = "focus-zoomed-transcript"
+scales = [8,8,1]
+include=["focus-gene"]
+set = [
+    ["scale","no-letters"]
+]
+
+[track.focus-transcript]
+scales = [9,60,60]
+include=["focus-gene"]
+
+[track.ruler]
+scales = [0,100,100]
+triggers = [["ruler"]]
+extra=[["settings"]]
+
+[track.gc]
+scales = [0,100,3]
+triggers = [["track","gc"]]
+extra=[["settings"]]
+tags=["gc"]
+
+[track.variant]
+scales = [1,100,4]
+triggers = [["track","gc"]]
+extra=[["settings"]]
+tags=["variant"]
+
+[track.contig-shimmer]
+program = "contig"
+scales = [26,100,3]
+triggers = [["track","contig"]]
+extra=[["settings"]]
+tags=["contig"]
+set=[
+    ["scale","shimmer"]
+]
+
+[track.contig]
+scales = [9,25,3]
+triggers = [["track","contig"]]
+extra=[["settings"]]
+tags=["contig"]
+
+[track.sequence]
+program = "zoomed-seq"
+scales = [0,8,3]
+triggers = [["track","contig"]]
+extra=[["settings"]]
+tags=["contig"]

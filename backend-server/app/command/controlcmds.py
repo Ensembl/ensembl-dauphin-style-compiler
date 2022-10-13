@@ -1,7 +1,8 @@
 import logging
+from model.tracks import Tracks
 import toml
 import os.path
-from core.config import ASSETS_TOML, METRIC_FILE, ASSETS_DIR
+from core.config import ASSETS_TOML, BOOT_TRACKS_TOML, METRIC_FILE, ASSETS_DIR
 from typing import Any
 from .coremodel import Handler
 from .response import Response
@@ -49,6 +50,8 @@ class BootstrapHandler(Handler):
             return Response(1,"Backend out of date: Doesn't support egs version {}".format(e))
         for b in bundles:
             r.bundles.add(b)
+        tracks_toml = toml.load(BOOT_TRACKS_TOML)
+        r.add_tracks(Tracks(expanded_toml=tracks_toml))
         return r
 
 class ProgramHandler(Handler):

@@ -1,6 +1,10 @@
 import collections
 import imp
 import logging
+
+from command.response import Response
+from command.coremodel import Handler
+from model.tracks import Tracks
 import cbor2
 import urllib
 from typing import Any, List, Tuple
@@ -24,7 +28,7 @@ handlers = {
     6: MetricHandler()
 }
 
-def type_to_handler(typ: int) -> Any:
+def type_to_handler(typ: int) -> Handler:
     handler = handlers.get(typ)
     if handler == None:
         return ErrorHandler("unsupported command type ({0})".format(typ))
@@ -51,7 +55,7 @@ def extract_remote_request(data_accessor: DataAccessor, typ: int, payload: Any):
             return override
     return None
 
-def process_local_request(data_accessor: DataAccessor,channel: Tuple[int,str], typ: int, payload: Any, metrics: ResponseMetrics, version: Version):
+def process_local_request(data_accessor: DataAccessor,channel: Tuple[int,str], typ: int, payload: Any, metrics: ResponseMetrics, version: Version) -> Response:
     handler = type_to_handler(typ)
     return handler.process(data_accessor,channel,payload,metrics,version)
 
@@ -65,6 +69,7 @@ def process_packet(packet_cbor: Any, high_priority: bool) -> Any:
     channel = replace_empty_channel(packet_cbor["channel"])
     response = []
     bundles = set()
+    tracks = Tracks()
     local_requests = []
     remote_requests = collections.defaultdict(list)
     version = Version(packet_cbor.get("version",None))
@@ -82,11 +87,15 @@ def process_packet(packet_cbor: Any, high_priority: bool) -> Any:
         r = do_request_remote(request,messages,high_priority,version)
         response += [[x[0],cbor2.dumps(x[1])] for x in r["responses"]]
         bundles |= set(r["programs"])
+        if "tracks" in r:
+            tracks.merge(Tracks(expanded_toml=r["tracks"]))
     # local stuff
     for (msgid,typ,payload) in local_requests:
         r = process_local_request(data_accessor,channel,typ,payload,metrics,version)
         response.append([msgid,r.payload])
         bundles |= r.bundles
+        tracks.merge(r.tracks)
     begs_files = data_accessor.begs_files
     metrics.send()
+    tracks.dump_for_wire()
     return (response,[ begs_files.add_bundle(x,version) for x in bundles ],channel)

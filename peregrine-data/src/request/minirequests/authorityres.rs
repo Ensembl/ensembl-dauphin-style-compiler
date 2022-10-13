@@ -27,7 +27,7 @@ impl<'de> Visitor<'de> for AuthorityVisitor {
             where A: serde::de::SeqAccess<'de>, {
         let channel = st_field("channel",seq.next_element()?)?;
         let startup_name = st_field("startup_name",seq.next_element()?)?;
-        while let Some(IgnoredAny) = st_field("tail",seq.next_element()?)? { /* Ignore rest */ }
+        while let Some(IgnoredAny) = seq.next_element()? { /* ignore */ }
         Ok(AuthorityRes { channel, startup_name })
     }
 }
