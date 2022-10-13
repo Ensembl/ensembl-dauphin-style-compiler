@@ -37,7 +37,7 @@ async fn load_one_stick(base: &mut PeregrineCoreBase, stick_store: &StickStore, 
     let data = match output {
         Ok(value) => StickData::Ready(value),
         Err(e) => {
-            base.messages.send(e.clone());
+            base.messages.send(DataMessage::XXXTransitional(e.clone()));
             StickData::Unavailable
         }
     };

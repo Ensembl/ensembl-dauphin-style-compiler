@@ -1,21 +1,19 @@
 use std::{collections::HashMap, sync::{Arc, Mutex}, rc::Rc};
 use peregrine_toolkit::{lock, error::Error};
-use crate::{DataMessage, ProgramName, Stick, StickId, api::MessageSender, index::stickauthority::Authority, metric::{datastreammetric::PacketDatastreamMetricBuilder, metricreporter::MetricCollector}, request::minirequests::{authorityreq::AuthorityReq, datareq::DataRequest, datares::{DataResponse}, jumpreq::JumpReq, jumpres::{JumpLocation, JumpRes}, programreq::ProgramReq, stickreq::StickReq, stickres::StickRes}, PacketPriority, BackendNamespace};
+use crate::{ProgramName, Stick, StickId, index::stickauthority::Authority, metric::{datastreammetric::PacketDatastreamMetricBuilder, metricreporter::MetricCollector}, request::minirequests::{authorityreq::AuthorityReq, datareq::DataRequest, datares::{DataResponse}, jumpreq::JumpReq, jumpres::{JumpLocation, JumpRes}, programreq::ProgramReq, stickreq::StickReq, stickres::StickRes}, PacketPriority, BackendNamespace};
 use super::{request::{MiniRequest}, manager::{RequestManager}, response::MiniResponseAttempt};
 
 #[derive(Clone)]
 pub struct Backend {
     manager: RequestManager,
-    messages: MessageSender,
     name: BackendNamespace,
     metrics: MetricCollector
 }
 
 impl Backend {
-    pub(crate) fn new(manager: &RequestManager, channel: &BackendNamespace, metrics: &MetricCollector, messages: &MessageSender) -> Backend {
+    pub(crate) fn new(manager: &RequestManager, channel: &BackendNamespace, metrics: &MetricCollector) -> Backend {
         Backend {
             manager: manager.clone(),
-            messages: messages.clone(),
             name: channel.clone(),
             metrics: metrics.clone()
         }
@@ -45,14 +43,12 @@ impl Backend {
         Ok(r)
     }
 
-    pub async fn stick(&self, id: &StickId) -> Result<Stick,Error> {
+    pub async fn stick(&self, id: &StickId) -> Result<Option<Stick>,Error> {
         let req = StickReq::new(&id);
         let r = self.submit_hi(req, |d| { d.into_variety().into_stick() }).await?;
         match r {
-            StickRes::Stick(s) => Ok(s),
-            StickRes::Unknown(_) => {
-                Err(Error::operr(&format!("No such stick: {}",id)))
-            }
+            StickRes::Stick(s) => Ok(Some(s)),
+            StickRes::Unknown(_) => Ok(None)
         }
     }
 
@@ -80,17 +76,15 @@ impl Backend {
 #[derive(Clone)]
 pub struct AllBackends {
     manager: RequestManager,
-    messages: MessageSender,
     metrics: MetricCollector,
     backends: Arc<Mutex<HashMap<BackendNamespace,Backend>>>
 }
 
 impl AllBackends {
-    pub fn new(manager: &RequestManager, metrics: &MetricCollector, messages: &MessageSender) -> AllBackends {
+    pub fn new(manager: &RequestManager, metrics: &MetricCollector) -> AllBackends {
         AllBackends {
             manager: manager.clone(),
             metrics: metrics.clone(),
-            messages: messages.clone(),
             backends: Arc::new(Mutex::new(HashMap::new()))
         }
     }
@@ -98,7 +92,7 @@ impl AllBackends {
     pub fn backend(&self, channel: &BackendNamespace) -> Result<Backend,Error> {
         let mut backends = lock!(self.backends);
         if !backends.contains_key(channel) {
-            backends.insert(channel.clone(), Backend::new(&self.manager,channel,&self.metrics,&self.messages));
+            backends.insert(channel.clone(), Backend::new(&self.manager,channel,&self.metrics));
         }
         Ok(backends.get(channel).unwrap().clone())
     }

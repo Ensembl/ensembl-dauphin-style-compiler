@@ -1,16 +1,18 @@
 use std::sync::{ Arc };
-use crate::{DataMessage, AuthorityStore, core::stick::{ Stick, StickId }};
+use peregrine_toolkit::error::Error;
+
+use crate::{ AuthorityStore, core::stick::{ Stick, StickId }};
 use crate::util::memoized::{ Memoized, MemoizedType };
 use crate::api::{ PeregrineCoreBase };
 
-async fn get_sticks(stick_authority_store: &AuthorityStore, stick_id: &StickId) -> Result<Vec<Stick>,DataMessage> {
+async fn get_sticks(stick_authority_store: &AuthorityStore, stick_id: &StickId) -> Result<Vec<Stick>,Error> {
     stick_authority_store.try_lookup(stick_id.clone()).await
 }
 
-async fn query_stick(stick_authority_store: AuthorityStore, stick_cache: Memoized<StickId,Result<Arc<Stick>,DataMessage>>, stick_id: StickId) -> Result<Arc<Stick>,DataMessage> {
+async fn query_stick(stick_authority_store: AuthorityStore, stick_cache: Memoized<StickId,Result<Arc<Stick>,Error>>, stick_id: StickId) -> Result<Arc<Stick>,Error> {
     let stick_cache = stick_cache.clone();
     let mut sticks = get_sticks(&stick_authority_store,&stick_id).await?;
-    let mut out = Err(DataMessage::NoSuchStick(stick_id.clone()));
+    let mut out = Err(Error::operr(&format!("no such stick: {}",stick_id.get_id())));
     for stick in sticks.drain(..) {
         let stick = Arc::new(stick);
         if *stick.get_id() == stick_id {
@@ -21,7 +23,7 @@ async fn query_stick(stick_authority_store: AuthorityStore, stick_cache: Memoize
     out
 }
 
-fn make_stick_cache(stick_authority_store: &AuthorityStore) -> Memoized<StickId,Result<Arc<Stick>,DataMessage>> {
+fn make_stick_cache(stick_authority_store: &AuthorityStore) -> Memoized<StickId,Result<Arc<Stick>,Error>> {
     let stick_authority_store = stick_authority_store.clone();
     Memoized::new(MemoizedType::Store,move |stick_cache,stick_id: &StickId| {
         let stick_authority_store = stick_authority_store.clone();
@@ -32,14 +34,14 @@ fn make_stick_cache(stick_authority_store: &AuthorityStore) -> Memoized<StickId,
 }
 
 #[derive(Clone)]
-pub struct StickStore(Memoized<StickId,Result<Arc<Stick>,DataMessage>>,PeregrineCoreBase);
+pub struct StickStore(Memoized<StickId,Result<Arc<Stick>,Error>>,PeregrineCoreBase);
 
 impl StickStore {
     pub fn new(base: &PeregrineCoreBase, stick_authority_store: &AuthorityStore) -> StickStore {
         StickStore(make_stick_cache(stick_authority_store),base.clone())
     }
 
-    pub async fn get(&self, key: &StickId) -> Result<Arc<Stick>,DataMessage> {
+    pub async fn get(&self, key: &StickId) -> Result<Arc<Stick>,Error> {
         self.1.booted.wait().await;
         self.0.get(key).await.as_ref().clone()
     }

@@ -1,4 +1,4 @@
-use anyhow::bail;
+use peregrine_toolkit::error::Error;
 use serde::Serialize;
 use serde_derive::Deserialize;
 use std::collections::HashSet;
@@ -38,11 +38,11 @@ pub enum StickTopology {
 }
 
 impl StickTopology {
-    pub fn from_number(n: u8) -> anyhow::Result<StickTopology> {
+    pub fn from_number(n: u8) -> Result<StickTopology,Error> {
         Ok(match n {
             0 => StickTopology::Linear,
             1 => StickTopology::Circular,
-            _ => bail!("bad topology number")
+            _ => { return Err(Error::operr("unknown topology")); }
         })
     }
 

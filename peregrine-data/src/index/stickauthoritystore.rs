@@ -52,11 +52,11 @@ impl AuthorityStore {
 
     }
 
-    pub async fn try_lookup(&self, stick_id: StickId) -> Result<Vec<Stick>,DataMessage> {
+    pub async fn try_lookup(&self, stick_id: StickId) -> Result<Vec<Stick>,Error> {
         let mut sticks = vec![];
         let authorities : Vec<_> = lock!(self.data).each().cloned().collect(); // as we will be waiting and don't want the lock
         for a in &authorities {
-            let mut more = a.try_lookup(self.base.dauphin.clone(),&self.program_loader,&self.base.channel_registry,stick_id.clone()).await?;
+            let mut more = a.try_lookup(self.base.all_backends.clone(),&self.base.channel_registry,stick_id.clone()).await?;
             sticks.append(&mut more);
         }
         Ok(sticks)

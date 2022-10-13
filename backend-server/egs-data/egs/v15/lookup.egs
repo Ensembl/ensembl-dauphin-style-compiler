@@ -1,6 +1,0 @@
-import "lib:std"; use "std";
-import "lib:peregrine"; use "peregrine";
-
-stick := get_stick_data("self()",get_stick_id());
-stick.tags := push(stick.tags,"extra");
-add_stick(stick);

@@ -7,7 +7,6 @@ boot="boot"
 
 [stick-authority]
 startup="sa-startup"
-lookup="sa-lookup"
 
 [egs]
 stick=["startup","lookup"]
@@ -23,8 +22,6 @@ render=["gene","gene-overview"]
 
 [begs.stick15]
 startup="sa-startup"
-lookup="sa-lookup"
-jump="sa-jump"
 
 [begs.boot15]
 boot="boot"

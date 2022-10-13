@@ -5,13 +5,12 @@ use crate::{index::stickauthority::Authority, BackendNamespace, request::core::r
 
 pub struct AuthorityRes {
     channel: BackendNamespace,
-    startup_name: String,
-    lookup_name: String
+    startup_name: String
 }
 
 impl AuthorityRes {
     pub fn build(&self) -> Authority {
-        Authority::new(&self.channel,&self.startup_name,&self.lookup_name)
+        Authority::new(&self.channel,&self.startup_name)
     }
 }
 
@@ -28,9 +27,8 @@ impl<'de> Visitor<'de> for AuthorityVisitor {
             where A: serde::de::SeqAccess<'de>, {
         let channel = st_field("channel",seq.next_element()?)?;
         let startup_name = st_field("startup_name",seq.next_element()?)?;
-        let lookup_name = st_field("lookup_name",seq.next_element()?)?;
         while let Some(IgnoredAny) = st_field("tail",seq.next_element()?)? { /* Ignore rest */ }
-        Ok(AuthorityRes { channel, startup_name, lookup_name })
+        Ok(AuthorityRes { channel, startup_name })
     }
 }
 

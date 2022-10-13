@@ -44,7 +44,7 @@ class VersionedBegsFiles(object):
         stick_authority = toml_file.get("stick-authority")
         if stick_authority != None:
             self.authority_startup_program = stick_authority["startup"]
-            self.authority_lookup_program = stick_authority["lookup"]
+            self.authority_lookup_program = stick_authority.get("lookup",None) # gone v15 onwards
             self.authority_jump_program = stick_authority.get("jump",None) # gone v15 onwards
         else:
             self.authority_startup_program = None
@@ -124,6 +124,7 @@ class BegsFiles(object):
     def authority_startup_program(self, version: Version):
         return self._bundle(version).authority_startup_program
 
+    # There is no authority_lookup_program from v15 on
     def authority_lookup_program(self, version: Version):
         return self._bundle(version).authority_lookup_program
 

@@ -1,6 +1,6 @@
 use dauphin_interp::command::{ CommandSetId, InterpLibRegister };
 use super::boot::{ 
-    AddAuthorityDeserializer, GetStickIdDeserializer, GetStickDataDeserializer, AddStickDeserializer
+    AddAuthorityDeserializer
 };
 use super::data::{ GetLaneDeserializer, GetDataDeserializer, DataStreamDeserializer, OnlyWarmDeserializer, RequestScopeDeserializer, RequestDeserializer, MakeRegionDeserializer };
 use super::decompress::{ 
@@ -33,9 +33,6 @@ pub fn std_id() -> CommandSetId {
 pub fn make_peregrine_interp() -> InterpLibRegister {
     let mut set = InterpLibRegister::new(&std_id());
     set.push(AddAuthorityDeserializer());
-    set.push(GetStickIdDeserializer());
-    set.push(GetStickDataDeserializer());
-    set.push(AddStickDeserializer());
     set.push(NewLaneDeserializer());
     set.push(AddTagDeserializer());
     set.push(AddTriggerDeserializer());

@@ -4,7 +4,7 @@ use dauphin_compile::command::{
 use dauphin_interp::command::{ CommandSetId };
 use crate::make_peregrine_interp;
 use super::boot::{
-    AddAuthorityCommandType, GetStickIdCommandType, GetStickDataCommandType, AddStickCommandType
+    AddAuthorityCommandType
 };
 use super::data::{ 
     GetLaneCommandType, GetDataCommandType, DataStreamCommandType, OnlyWarmCommandType,
@@ -32,12 +32,9 @@ pub fn peregrine_id() -> CommandSetId {
 }
 
 pub fn make_peregrine() -> CompLibRegister {
-    // next is 76; 24, 25, 39, 40, 41 are unused
+    // next is 76; 1, 2, 3, 24, 25, 39, 40, 41 are unused
     let mut set = CompLibRegister::new(&peregrine_id(),Some(make_peregrine_interp()));
     set.push("add_stick_authority",Some(0),AddAuthorityCommandType());
-    set.push("get_stick_id",Some(1),GetStickIdCommandType());
-    set.push("get_stick_data",Some(2),GetStickDataCommandType());
-    set.push("add_stick",Some(3),AddStickCommandType());
     set.push("track_new",Some(4),NewLaneCommandType());
     set.push("track_add_tag",Some(5),AddTagCommandType());
     set.push("track_add_trigger",Some(6),AddTrackCommandType());

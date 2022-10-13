@@ -11,6 +11,8 @@ impl StickReq {
             stick_id: stick_id.clone()
         })
     }
+
+    pub fn id(&self) -> &StickId { &self.stick_id }
 }
 
 impl MiniRequestVariety for StickReq {

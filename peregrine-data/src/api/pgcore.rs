@@ -90,7 +90,7 @@ impl PeregrineCore {
         }
         let channel_registry = channel_registry.build();
         let manager = RequestManager::new(&low_manager,&channel_registry);
-        let all_backends = AllBackends::new(&manager,&metrics,&messages);
+        let all_backends = AllBackends::new(&manager,&metrics);
         let base = PeregrineCoreBase {
             answer_allocator: Arc::new(Mutex::new(AnswerAllocator::new())),
             channel_registry,

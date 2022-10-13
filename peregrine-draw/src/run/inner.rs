@@ -152,8 +152,8 @@ impl PeregrineInnerAPI {
         let sound = Sound::new(&config.draw,&commander,integration.assets(),&mut messages,dom.shutdown())?;
         let jsapi = JavascriptIntegration::new();
         let channel_integrations : Vec<Rc<dyn ChannelIntegration>> = vec![
+            Rc::new(jsapi.clone()),
             Rc::new(NetworkChannel::new()),
-            Rc::new(jsapi.clone())
         ];
         let mut core = PeregrineCore::new(integration,commander.clone(),move |e| {
             routed_message(Some(commander_id),Message::DataError(e))

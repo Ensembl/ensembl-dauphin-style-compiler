@@ -8,7 +8,7 @@ use crate::shapeload::carriagebuilder::CarriageBuilder;
 use crate::train::main::datatasks::{load_stick, load_carriage};
 use crate::train::main::train::StickData;
 use crate::train::model::trainextent::TrainExtent;
-use crate::{Assets, PgCommanderTaskSpec, DrawingCarriage, BackendNamespace};
+use crate::{Assets, PgCommanderTaskSpec, DrawingCarriage, BackendNamespace, DataMessage};
 use commander::{CommanderStream, PromiseFuture};
 use peregrine_toolkit::eachorevery::eoestruct::StructBuilt;
 use peregrine_toolkit::error::err_web_drop;
@@ -125,7 +125,7 @@ impl ApiQueueCampaign {
                         self.viewport = self.viewport.set_stick(&stick_id,stick.size());
                     },
                     Err(e) => {
-                        data.base.messages.send(e.clone());
+                        data.base.messages.send(DataMessage::XXXTransitional(e.clone()));
                     }
                 }
             },

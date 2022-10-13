@@ -313,6 +313,8 @@ pub use self::shape::textshape::TextShape;
 pub use self::request::core::manager::RequestManager;
 pub use self::request::minirequests::bootchannelreq::BootChannelReq;
 pub use self::request::minirequests::bootchannelres::BootChannelRes;
+pub use self::request::minirequests::stickreq::StickReq;
+pub use self::request::minirequests::stickres::StickRes;
 pub use self::request::minirequests::jumpreq::JumpReq;
 pub use self::request::minirequests::jumpres::{ JumpLocation, JumpRes };
 pub use self::request::minirequests::datareq::DataRequest;

@@ -35,6 +35,10 @@ impl JavascriptChannel {
                     let res = self.backend.boot(req)?;
                     out.add_response(attempt.make_response_attempt(MiniResponse::BootChannel(res)));
                 },
+                MiniRequest::Stick(req) => {
+                    let res = self.backend.stickinfo(req)?;
+                    out.add_response(attempt.make_response_attempt(MiniResponse::Stick(res)));
+                },
                 _ => { 
                     log!("unimplemented");
                     out.add_response(attempt.fail("unimplemented"));
