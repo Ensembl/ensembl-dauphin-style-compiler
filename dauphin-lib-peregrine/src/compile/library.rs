@@ -2,11 +2,9 @@ use dauphin_compile::command::{
     CompLibRegister
 };
 use dauphin_interp::command::{ CommandSetId };
-use crate::compile::boot::AddJumpCommandType;
 use crate::make_peregrine_interp;
 use super::boot::{
-    AddAuthorityCommandType, GetStickIdCommandType, GetStickDataCommandType, AddStickCommandType,
-    GetJumpDataCommandType, GetJumpLocationCommandType
+    AddAuthorityCommandType, GetStickIdCommandType, GetStickDataCommandType, AddStickCommandType
 };
 use super::data::{ 
     GetLaneCommandType, GetDataCommandType, DataStreamCommandType, OnlyWarmCommandType,
@@ -30,11 +28,11 @@ use super::shape::{ WiggleCommandType, RectangleCommandType, Text2CommandType, I
 use super::switch::{ ListSwitchCommandType, SwitchStringCommandType, SwitchNumberCommandType, SwitchBooleanCommandType, SwitchNullCommandType };
 
 pub fn peregrine_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(54,0),0x430E516157E506BC)
+    CommandSetId::new("peregrine",(55,0),0x60A1CBEFA9EA11D5)
 }
 
 pub fn make_peregrine() -> CompLibRegister {
-    // next is 76, 24 and 25 are unused
+    // next is 76; 24, 25, 39, 40, 41 are unused
     let mut set = CompLibRegister::new(&peregrine_id(),Some(make_peregrine_interp()));
     set.push("add_stick_authority",Some(0),AddAuthorityCommandType());
     set.push("get_stick_id",Some(1),GetStickIdCommandType());
@@ -73,9 +71,6 @@ pub fn make_peregrine() -> CompLibRegister {
     set.push("striped",Some(36),StripedCommandType());
     set.push("barred",Some(37),BarCommandType());
     set.push("base_flip",Some(38),BaseFlipCommandType());
-    set.push("add_jump",Some(39),AddJumpCommandType());
-    set.push("get_jump_data",Some(40),GetJumpDataCommandType());
-    set.push("get_jump_location",Some(41),GetJumpLocationCommandType());
     set.push("list_switch",Some(42),ListSwitchCommandType());
     set.push("only_warm",Some(43),OnlyWarmCommandType());
     set.push("draw_image",Some(44),ImageCommandType());

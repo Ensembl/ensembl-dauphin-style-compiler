@@ -4,17 +4,13 @@ use peregrine_data::{ Builder, AccessorResolver, DataMessage };
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, AsyncBlock, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
 use peregrine_data::{ StickId, Stick, StickTopology };
-use peregrine_toolkit::log;
 use serde_cbor::Value as CborValue;
 use crate::payloads::PeregrinePayload;
 
 simple_interp_command!(AddAuthorityInterpCommand,AddAuthorityDeserializer,0,1,(0));
 simple_interp_command!(GetStickIdInterpCommand,GetStickIdDeserializer,1,1,(0));
-simple_interp_command!(GetJumpLocationInterpCommand,GetJumpLocationDeserializer,41,1,(0));
 simple_interp_command!(GetStickDataInterpCommand,GetStickDataDeserializer,2,8,(0,1,2,3,4,5,6,7));
-simple_interp_command!(GetJumpDataInterpCommand,GetJumpDataDeserializer,40,5,(0,1,2,3,4));
 simple_interp_command!(AddStickInterpCommand,AddStickDeserializer,3,6,(0,1,2,3,4,5));
-simple_interp_command!(AddJumpInterpCommand,AddJumpDeserializer,39,4,(0,1,2,3));
 
 // TODO booted is a mess,  is it needed?
 async fn add_stick_authority(context: &mut InterpContext, cmd: AddAuthorityInterpCommand) -> anyhow::Result<()> {
@@ -51,15 +47,6 @@ impl InterpCommand for GetStickIdInterpCommand {
         let my_stick_id = get_instance::<StickId>(context,"stick_id")?;
         let registers = context.registers_mut();
         registers.write(&self.0,InterpValue::Strings(vec![my_stick_id.get_id().to_string()]));
-        Ok(CommandResult::SyncResult())
-    }
-}
-
-impl InterpCommand for GetJumpLocationInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
-        let my_location = get_instance::<String>(context,"location")?;
-        let registers = context.registers_mut();
-        registers.write(&self.0,InterpValue::Strings(vec![my_location.to_string()]));
         Ok(CommandResult::SyncResult())
     }
 }
@@ -109,44 +96,6 @@ impl InterpCommand for GetStickDataInterpCommand {
     }
 }
 
-async fn get_jump(context: &mut InterpContext, cmd: GetJumpDataInterpCommand) -> anyhow::Result<()> {
-    let channel_resolver = get_instance::<AccessorResolver>(context,"channel-resolver")?;
-    let registers = context.registers_mut();
-    let locations = registers.get_strings(&cmd.4)?;
-    let mut sticks_out = vec![];
-    let mut lefts_out = vec![];
-    let mut rights_out = vec![];
-    drop(registers);
-    let pc = get_peregrine(context)?;
-    let all_backends = pc.all_backends();
-    for location in locations.iter() {
-        log!("len {}",channel_resolver.all().len());
-        for backend_namespace in channel_resolver.all().iter() {
-            let backend = all_backends.backend(backend_namespace).map_err(|x| DataMessage::XXXTransitional(x))?;
-            log!("trying {}",backend_namespace);
-            if let Some(jump_location) = backend.jump(location).await.map_err(|e| DataMessage::XXXTransitional(e))? {
-                sticks_out.push(jump_location.stick);
-                lefts_out.push(jump_location.left as f64);
-                rights_out.push(jump_location.right as f64);
-                break;
-            }
-        }
-        log!("done trying");
-    }
-    let registers = context.registers_mut();
-    registers.write(&cmd.0,InterpValue::Strings(sticks_out));
-    registers.write(&cmd.1,InterpValue::Numbers(lefts_out));
-    registers.write(&cmd.2,InterpValue::Numbers(rights_out));
-    Ok(())
-}
-
-impl InterpCommand for GetJumpDataInterpCommand {
-    fn execute(&self, _context: &mut InterpContext) -> anyhow::Result<CommandResult> {
-        let cmd = self.clone();
-        Ok(CommandResult::AsyncResult(AsyncBlock::new(Box::new(|context| Box::pin(get_jump(context,cmd))))))
-    }
-}
-
 impl InterpCommand for AddStickInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         let registers = context.registers_mut();
@@ -171,31 +120,6 @@ impl InterpCommand for AddStickInterpCommand {
         }
         let pg_sticks = get_instance::<Builder<Vec<Stick>>>(context,"sticks")?;
         pg_sticks.lock().append(&mut sticks);    
-        Ok(CommandResult::SyncResult())
-    }
-}
-
-impl InterpCommand for AddJumpInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
-        let registers = context.registers_mut();
-        let sticks = registers.get_strings(&self.1)?;
-        let lefts = registers.get_numbers(&self.2)?;
-        let rights = registers.get_numbers(&self.3)?;
-        let mut jumps = vec![];
-        if sticks.len() > 0 {
-            let mut sticks = sticks.iter().cycle();
-            let mut lefts = lefts.iter().cycle();
-            let mut rights = rights.iter().cycle();
-            let ids = registers.get_strings(&self.0)?;
-            for id in ids.iter() {
-                let stick = sticks.next().unwrap();
-                let left = lefts.next().unwrap();
-                let right = rights.next().unwrap();
-                jumps.push((id.clone(),(stick.clone(),*left as u64,*right as u64)));
-            }
-        }
-        let pg_jumps = get_instance::<Builder<Vec<(String,(String,u64,u64))>>>(context,"jumps")?;
-        pg_jumps.lock().append(&mut jumps);
         Ok(CommandResult::SyncResult())
     }
 }
