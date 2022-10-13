@@ -1,7 +1,7 @@
 use futures::Future;
 use peregrine_toolkit::error::Error;
 use peregrine_toolkit::serdetools::{st_field};
-use serde::de::{Visitor, MapAccess, DeserializeSeed};
+use serde::de::{Visitor, MapAccess, DeserializeSeed, IgnoredAny};
 use serde::{Serialize, Deserializer};
 use serde::ser::SerializeMap;
 use std::any::Any;
@@ -175,7 +175,7 @@ impl<'de> Visitor<'de> for MaxiResponseVisitor {
                 },
                 "programs" => { programs = access.next_value()? },
                 "channel" => { channel = access.next_value()? },
-                _ => {}
+                _ => { let _ : IgnoredAny = access.next_value()?; }
             }
         }
         let responses = st_field("responses",responses)?;

@@ -29,7 +29,8 @@ tags = ["gene"]
 
 
 [track.framing]
-triggers = [ ["track"] ]
+triggers = [["track"]]
+scales = [1,100,1]
 
 [track.zoomed-transcript-letters]
 program = "zoomed-transcript"

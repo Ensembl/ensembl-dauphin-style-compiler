@@ -1,5 +1,6 @@
 import logging
 from typing import Set
+import cbor2
 
 def _count_prefix(a,b):
     minlen = min(len(a),len(b))
@@ -29,7 +30,7 @@ def _build_map(data):
 def increase(data):
     prev = 0
     out = []
-    for item in sorted(data):
+    for item in data:
         out.append(item-prev)
         prev = item
     return out
@@ -48,7 +49,7 @@ class Track:
         if "program" in data:
             self._program = data["program"]
         if "scales" in data:
-            self._scales = data["scales"]
+            self._scales = [int(x) for x in data["scales"]]
         if "triggers" in data:
             self._triggers += [tuple(x) for x in data["triggers"]]
         if "extra" in data:
@@ -71,9 +72,9 @@ class Track:
             "program": dumper.program_mapping[self._program],
             "scales": self._scales,
             "tags": [dumper.tag_mapping[x] for x in self._tags],
-            "triggers": increase([dumper.switch_mapping[x] for x in self._triggers]),
-            "extra": increase([dumper.switch_mapping[x] for x in self._extra]),
-            "set": increase([dumper.switch_mapping[x] for x in self._set]),
+            "triggers": increase(sorted([dumper.switch_mapping[x] for x in self._triggers])),
+            "extra": increase(sorted([dumper.switch_mapping[x] for x in self._extra])),
+            "set": increase(sorted([dumper.switch_mapping[x] for x in self._set])),
         }
 
 class Tracks:
@@ -112,12 +113,13 @@ class Tracks:
         return (switches,programs,tags)
 
     def dump_for_wire(self):
-        TracksDump(self)
+        logging.warn(TracksDump(self).data)
+        return cbor2.dumps(TracksDump(self).data)
 
 def rotate(data):
     out = {}
     out['name'] = []
-    for (name,item) in data.items():
+    for (name,item) in sorted(data.items(), key=lambda x: x[1]['scales'][0]):
         out['name'].append(name)
         for (key,value) in item.items():
             if key not in out:
@@ -125,8 +127,19 @@ def rotate(data):
             out[key].append(value)
     return out
 
+def split_scale(data):
+    out = [[],[],[]]
+    for item in data:
+        out[0].append(item[0])
+        out[1].append(item[1])
+        out[2].append(item[2])
+    return out
+
 class TracksDump:
-    def __init__(self, tracks):
+    def __init__(self, tracks: Tracks):
+        if len(tracks._tracks) == 0:
+            self.data = None
+            return
         (switches,programs,tags) = tracks._collect()
         (switch_tree,self.switch_mapping) = _prefix_encode(switches)
         (program_list,self.program_mapping) = _build_map(programs)
@@ -134,8 +147,13 @@ class TracksDump:
         data = {}
         for (name,track) in tracks._tracks.items():
             data[name] = track._dump_for_wire(self)
-        data = rotate(data)
-        data['switch_idx'] = switch_tree
-        data['program_idx'] = program_list
-        data['tag_idx'] = tag_list
-        logging.warn("wire "+"   "+str(data))
+        self.data = rotate(data)
+        logging.warn(str(self.data))
+        (scale_start,scale_end,scale_step) = split_scale(self.data["scales"])
+        self.data['scale_start'] = scale_start
+        self.data['scale_end'] = scale_end
+        self.data['scale_step'] = scale_step
+        self.data.pop('scales',None)
+        self.data['switch_idx'] = switch_tree
+        self.data['program_idx'] = program_list
+        self.data['tag_idx'] = tag_list
