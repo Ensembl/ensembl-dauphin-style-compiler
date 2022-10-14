@@ -123,7 +123,6 @@ mod shapeload {
     mod shaperequest;
     pub(crate) mod loadshapes;
     pub(crate) mod programloader;
-    pub(crate) mod programregion;
     mod resultstore;
     pub(crate) mod programdata;
     pub(crate) mod programname;
@@ -132,7 +131,6 @@ mod shapeload {
     pub use self::shaperequest::{ Region, ShapeRequest, ShapeRequestGroup };
     pub use self::programdata::ProgramData;
     pub use self::programname::ProgramName;
-    pub use self::programregion::{ ProgramRegion, ProgramRegionBuilder };
     pub use self::resultstore::{ ShapeStore };
 }
 
@@ -294,7 +292,7 @@ pub use self::core::channel::accessorresolver::{ AccessorResolver };
 pub use self::core::channel::backendnamespace::BackendNamespace;
 pub use self::core::channel::channelintegration::{ ChannelIntegration, ChannelSender, ChannelResponse, TrivialChannelResponse, ChannelMessageDecoder, null_payload };
 pub use self::index::{ StickStore, AuthorityStore };
-pub use self::shapeload::{ Region, ProgramName, ProgramRegion, ShapeStore, DataStore, ProgramData, ProgramRegionBuilder, ShapeRequest, ShapeRequestGroup };
+pub use self::shapeload::{ Region, ProgramName, ShapeStore, DataStore, ProgramData, ShapeRequest, ShapeRequestGroup };
 pub use self::run::{ PgCommander, PgCommanderTaskSpec, PgDauphin, Commander, InstancePayload, add_task, complete_task, async_complete_task };
 pub use self::request::core::maxirequest::{ MaxiRequest };
 pub use self::request::core::maxiresponse::{ MaxiResponse, MaxiResponseDeserialize };

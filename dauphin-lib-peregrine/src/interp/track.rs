@@ -154,7 +154,6 @@ async fn data_source(context: &mut InterpContext, cmd: DataSourceInterpCommand) 
     for track_id in &track_ids {
         let track_builder = track_builder.get(*track_id)?;
         let mut track_builder = track_builder.lock().unwrap();
-        let track = track_builder.track().clone();
         track_builder.build(peregrine.switches());
     }
     Ok(())

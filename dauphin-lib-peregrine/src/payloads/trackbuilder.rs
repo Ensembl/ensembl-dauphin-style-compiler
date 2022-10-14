@@ -1,4 +1,4 @@
-use peregrine_data::{ ProgramName, ProgramRegion, ProgramRegionBuilder, Switches, Track, BackendNamespace };
+use peregrine_data::{ ProgramName, Switches, Track, BackendNamespace };
 use anyhow::{ anyhow as err };
 use peregrine_toolkit::eachorevery::eoestruct::StructBuilt;
 use std::collections::HashMap;
@@ -25,18 +25,15 @@ impl TrackBuilder {
         self.track.add_switch(path,value);
     }
 
-    pub(crate) fn track(&self) -> &Track { &self.track }
-
     pub(crate) fn add_mount(&mut self, path: &[&str], trigger: bool) {
         self.mounts.push((path.iter().map(|x| x.to_string()).collect(),trigger));
     }
 
-    pub(crate) fn build(&mut self, switches: &Switches) -> ProgramRegion {
-        let mut prb = ProgramRegionBuilder::new();
+    pub(crate) fn build(&mut self, switches: &Switches) {
         for (path,trigger) in &self.mounts {
-            prb.add_mount(&path.iter().map(|x| x.as_str()).collect::<Vec<_>>(),*trigger);
+            let path : Vec<_> = path.iter().map(|x| x.as_str()).collect();
+            switches.add_track(&path,&self.track,*trigger);
         }
-        prb.build(&self.track,switches)
     }
 }
 

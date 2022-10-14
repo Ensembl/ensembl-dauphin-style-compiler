@@ -1,20 +1,3 @@
-/*
-{
-    'name': ['ruler', 'gc', 'sequence', 'framing', 'variant', 'focus-gene', 'contig', 'gene', 'contig-shimmer'],
-    'program': [5, 3, 7, 2, 6, 1, 0, 4, 0],
-    'tags': [[], [1], [0], [], [3], [2], [0], [2], [0]],
-    'triggers': [[2], [9], [6], [5], [9], [8], [6], [10, 1, 1, 1], [6]],
-    'extra': [[4], [4], [4], [], [4], [0, 1, 3, 3], [4], [0, 1, 3, 3, 1], [4]],
-    'set': [[], [], [], [], [], [], [], [], [3]], 
-    'scale_start': [0, 0, 0, 1, 1, 9, 9, 23, 26],
-    'scale_end': [100, 100, 8, 100, 100, 60, 25, 100, 100],
-    'scale_step': [100, 3, 3, 1, 4, 60, 3, 6, 3],
-    'switch_idx': [[0, ('buttons', 'gene')], [0, ('focus',)], [0, ('ruler',)], [0, ('scale', 'shimmer')], [0, ('settings',)], [0, ('track',)], [1, ('contig',)], [0, ('focus',)], [1, ('item', 'gene')], [-1, ('gc',)], [0, ('gene-other-fwd',)], [0, ('gene-other-rev',)], [0, ('gene-pc-fwd',)], [0, ('gene-pc-rev',)]], 
-    'program_idx': ['contig', 'focus-transcript', 'framing', 'gc', 'gene-overview', 'ruler', 'variant', 'zoomed-seq'], 
-    'tag_idx': ['contig', 'gc', 'gene', 'variant']
-}
-*/
-
 use peregrine_toolkit::{error::Error, log};
 use super::{ diffset::DiffSet, switchtree::SwitchTree, trackmodel::{TrackModel, TrackModelBuilder} };
 
