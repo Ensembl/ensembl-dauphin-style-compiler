@@ -150,6 +150,8 @@ mod request {
         pub(crate) mod backend;
         pub(crate) mod backoff;
         pub(crate) mod manager;
+        pub(crate) mod maxirequest;
+        pub(crate) mod maxiresponse;
         pub(crate) mod packet;
         pub(crate) mod queue;
         pub(crate) mod request;
@@ -176,6 +178,14 @@ mod request {
         pub(crate) mod programres;
         pub(crate) mod stickreq;
         pub(crate) mod stickres;
+    }
+
+    mod tracks {
+        mod diffset;
+        mod switchtree;
+        pub(crate) mod trackdata;
+        pub(crate) mod trackmodel;
+        pub(crate) mod trackres;
     }
 }
 
@@ -286,7 +296,8 @@ pub use self::core::channel::channelintegration::{ ChannelIntegration, ChannelSe
 pub use self::index::{ StickStore, AuthorityStore };
 pub use self::shapeload::{ Region, ProgramName, ProgramRegion, ShapeStore, DataStore, ProgramData, ProgramRegionBuilder, ShapeRequest, ShapeRequestGroup };
 pub use self::run::{ PgCommander, PgCommanderTaskSpec, PgDauphin, Commander, InstancePayload, add_task, complete_task, async_complete_task };
-pub use self::request::core::packet::{ MaxiRequest, MaxiResponse, MaxiResponseDeserialize, DeserializeData };
+pub use self::request::core::maxirequest::{ MaxiRequest };
+pub use self::request::core::maxiresponse::{ MaxiResponse, MaxiResponseDeserialize };
 pub use self::request::core::request::{ MiniRequest, MiniRequestAttempt };
 pub use self::request::core::response::MiniResponse;
 pub use self::request::core::packetpriority::PacketPriority;

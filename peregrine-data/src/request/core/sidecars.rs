@@ -1,4 +1,4 @@
-use crate::{PgDauphin, run::pgdauphin::add_programs_from_response, MaxiResponse, api::MessageSender, BackendNamespace};
+use crate::{PgDauphin, run::pgdauphin::add_programs_from_response, MaxiResponse, api::MessageSender, BackendNamespace, request::tracks::trackdata::add_tracks_from_response};
 
 #[derive(Clone)]
 pub(crate) struct RequestSidecars {
@@ -14,5 +14,6 @@ impl RequestSidecars {
 
     pub(crate) async fn run(&self, response: &MaxiResponse, channel: &BackendNamespace, messages: &MessageSender) {
         add_programs_from_response(&self.pgd,channel,response,messages).await;
+        add_tracks_from_response(response);
     }
 }

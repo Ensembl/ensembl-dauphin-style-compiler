@@ -91,8 +91,8 @@ class Tracks:
                 includes[name] = value
         for (name,track_data) in data.get("track",{}).items():
             track = Track(name)
-            for name in track_data.get("include",[]):
-                track.ingest_toml(includes[name])
+            for inc_name in track_data.get("include",[]):
+                track.ingest_toml(includes[inc_name])
             track.ingest_toml(track_data)
             self._tracks[name] = track
 
@@ -114,7 +114,7 @@ class Tracks:
 
     def dump_for_wire(self):
         logging.warn(TracksDump(self).data)
-        return cbor2.dumps(TracksDump(self).data)
+        return TracksDump(self).data
 
 def rotate(data):
     out = {}
@@ -148,7 +148,6 @@ class TracksDump:
         for (name,track) in tracks._tracks.items():
             data[name] = track._dump_for_wire(self)
         self.data = rotate(data)
-        logging.warn(str(self.data))
         (scale_start,scale_end,scale_step) = split_scale(self.data["scales"])
         self.data['scale_start'] = scale_start
         self.data['scale_end'] = scale_end

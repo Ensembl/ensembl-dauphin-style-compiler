@@ -97,5 +97,4 @@ def process_packet(packet_cbor: Any, high_priority: bool) -> Any:
         tracks.merge(r.tracks)
     begs_files = data_accessor.begs_files
     metrics.send()
-    logging.warn(len(tracks.dump_for_wire()))
     return (response,[ begs_files.add_bundle(x,version) for x in bundles ],channel,tracks.dump_for_wire())

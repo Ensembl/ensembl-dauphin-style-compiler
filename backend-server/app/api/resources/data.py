@@ -35,9 +35,12 @@ router = APIRouter()
 
 # Some of our cbor is from caches and already serialised so we have to build our response ourselves
 def build_response(responses,programs,channel,tracks) -> Any:
+    num_items = 3
+    if tracks is not None:
+        num_items += 1
     with BytesIO() as fp:
         encoder = CBOREncoder(fp)
-        encoder.encode_length(5,4)
+        encoder.encode_length(5,num_items)
         encoder.encode("responses")
         encoder.encode_length(4,len(responses))
         for (id,payload) in responses:
@@ -46,8 +49,9 @@ def build_response(responses,programs,channel,tracks) -> Any:
             encoder.fp.write(payload) # this line is the key swerve
         encoder.encode("programs")
         encoder.encode(programs)
-        encoder.encode("tracks")
-        encoder.encode(tracks)
+        if tracks is not None:
+            encoder.encode("tracks-packed")
+            encoder.encode(tracks)
         encoder.encode("channel")
         encoder.encode(channel)
         return fp.getvalue()
