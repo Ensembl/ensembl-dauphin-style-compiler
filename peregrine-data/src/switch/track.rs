@@ -2,6 +2,7 @@ use std::sync::{ Arc, Mutex, MutexGuard };
 use identitynumber::{ identitynumber, hashable, orderable };
 use lazy_static::lazy_static;
 use peregrine_toolkit::eachorevery::eoestruct::StructBuilt;
+use peregrine_toolkit::lock;
 use crate::{ProgramName};
 use crate::core::{ Layout, Scale };
 use super::switchoverlay::SwitchOverlay;
@@ -36,8 +37,8 @@ impl Track {
 
     pub fn add_tag(&mut self, tag: &str) { self.tags.push(tag.to_string()); }
 
-    pub fn add_switch(&mut self, path: &[&str], value: StructBuilt) {
-        let mut switches = self.switch_overlay.lock().unwrap();
+    pub fn set_switch(&mut self, path: &[&str], value: StructBuilt) {
+        let mut switches = lock!(self.switch_overlay);
         if value.truthy() { switches.set(path,value); } else { switches.clear(path); } // XXX single call
     }
 

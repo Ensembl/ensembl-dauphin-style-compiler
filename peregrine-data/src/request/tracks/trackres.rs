@@ -1,4 +1,6 @@
 use peregrine_toolkit::{error::Error, log};
+use crate::{ProgramName, BackendNamespace};
+
 use super::{ diffset::DiffSet, switchtree::SwitchTree, trackmodel::{TrackModel, TrackModelBuilder} };
 
 #[derive(Debug)]
@@ -9,9 +11,9 @@ struct PackedTrack {
     triggers: Vec<usize>,
     extra: Vec<usize>,
     set: Vec<usize>,
-    scale_start: usize,
-    scale_end: usize,
-    scale_step: usize
+    scale_start: u64,
+    scale_end: u64,
+    scale_step: u64
 }
 
 fn lookup<T>(index: usize, array: &[T]) -> Result<&T,Error> {
@@ -19,9 +21,10 @@ fn lookup<T>(index: usize, array: &[T]) -> Result<&T,Error> {
 }
 
 impl PackedTrack {
-    fn to_track(&self, res: &PackedTrackRes) -> Result<TrackModel,Error> {
+    fn to_track(&self, backend_namespace: &BackendNamespace, res: &PackedTrackRes) -> Result<TrackModel,Error> {
         let program = lookup(self.program,&res.program_idx)?;
-        let mut builder = TrackModelBuilder::new(&self.name,program,self.scale_start,self.scale_end,self.scale_step);
+        let program_name = ProgramName(backend_namespace.clone(),program.clone());
+        let mut builder = TrackModelBuilder::new(&self.name,&program_name,self.scale_start,self.scale_end,self.scale_step);
         for tag_idx in &self.tags {
             builder.add_tag(lookup(*tag_idx,&res.tag_idx)?);
         }
@@ -46,9 +49,9 @@ pub(crate) struct PackedTrackRes {
     triggers: Vec<DiffSet>,
     extra: Vec<DiffSet>,
     set: Vec<DiffSet>,
-    scale_start: Vec<usize>,
-    scale_end: Vec<usize>,
-    scale_step: Vec<usize>,
+    scale_start: Vec<u64>,
+    scale_end: Vec<u64>,
+    scale_step: Vec<u64>,
     switch_idx: SwitchTree,
     program_idx: Vec<String>,
     tag_idx: Vec<String>
@@ -78,7 +81,6 @@ macro_rules! multizip {
 
 impl PackedTrackRes {
     fn make_packed_tracks(&self) -> Result<Vec<PackedTrack>,Error> {
-        log!("{:?}",self);
         let mut out = vec![];
         if !lengths_match!(self,name,program,tags,triggers,extra,set,scale_start,scale_end,scale_step) {
             return Err(Error::operr("Bad packet: lengths don't match"));
@@ -92,12 +94,11 @@ impl PackedTrackRes {
                 set: set.0,
             });
         });
-        log!("{:?}",out);
         Ok(out)
     }
 
-    fn to_track_models(self) -> Result<Vec<TrackModel>,Error> {
-        self.make_packed_tracks()?.drain(..).map(|t| t.to_track(&self)).collect()
+    fn to_track_models(self, backend_namespace: &BackendNamespace) -> Result<Vec<TrackModel>,Error> {
+        self.make_packed_tracks()?.drain(..).map(|t| t.to_track(backend_namespace,&self)).collect()
     }
 }
 
@@ -107,9 +108,9 @@ pub(crate) enum TrackResult {
 }
 
 impl TrackResult {
-    pub(crate) fn to_track_models(self) -> Result<Vec<TrackModel>,Error> {
+    pub(crate) fn to_track_models(self, backend_namespace: &BackendNamespace) -> Result<Vec<TrackModel>,Error> {
         Ok(match self {
-            TrackResult::Packed(p) => p.to_track_models()?,
+            TrackResult::Packed(p) => p.to_track_models(backend_namespace)?,
             TrackResult::Unpacked(u) => u
         })
     }

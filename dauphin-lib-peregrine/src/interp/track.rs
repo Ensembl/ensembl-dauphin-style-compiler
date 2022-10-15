@@ -3,6 +3,7 @@ use peregrine_data::{ AccessorResolver, DataMessage };
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult, AsyncBlock };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
 use peregrine_toolkit::eachorevery::eoestruct::StructTemplate;
+use peregrine_toolkit::lock;
 use serde_cbor::Value as CborValue;
 use crate::util::{ get_instance, get_peregrine };
 
@@ -74,7 +75,7 @@ fn add_mount(track_ids: &[usize], track_d: &[String], track_a: &[usize], track_b
         let track = peregrine.track_builder().get(*track_id)?;
         let path = &track_d[*track_a..(*track_a+*track_b)];
         let path : Vec<_> = path.iter().map(|x| x.as_str()).collect();
-        track.lock().unwrap().add_mount(&path,trigger);
+        lock!(track).add_mount(&path,trigger);
     }
     Ok(())
 }
@@ -88,7 +89,7 @@ fn track_switch(track_ids: &[usize], track_d: &[String], track_a: &[usize], trac
         let path = &track_d[*track_a..(*track_a+*track_b)];
         let path : Vec<_> = path.iter().map(|x| x.as_str()).collect();
         let value = StructTemplate::new_boolean(yn).build().unwrap();
-        track.lock().unwrap().add_switch(&path,value);
+        lock!(track).set_switch(&path,value);
     }
     Ok(())
 }

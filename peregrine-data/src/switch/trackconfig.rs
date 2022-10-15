@@ -2,7 +2,7 @@ use std::{collections::hash_map::DefaultHasher, hash::{ Hash, Hasher }};
 use std::fmt;
 use std::sync::{ Arc };
 use std::collections::HashMap;
-use peregrine_toolkit::eachorevery::eoestruct::{StructBuilt, StructTemplate, struct_to_json};
+use peregrine_toolkit::eachorevery::eoestruct::{StructBuilt, StructTemplate };
 
 use super::track::Track;
 

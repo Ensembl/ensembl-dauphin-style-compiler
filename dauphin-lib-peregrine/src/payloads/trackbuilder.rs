@@ -21,8 +21,8 @@ impl TrackBuilder {
     }
 
     pub(crate) fn add_tag(&mut self, tag: &str) { self.track.add_tag(tag); }
-    pub(crate) fn add_switch(&mut self, path: &[&str], value: StructBuilt) { 
-        self.track.add_switch(path,value);
+    pub(crate) fn set_switch(&mut self, path: &[&str], value: StructBuilt) { 
+        self.track.set_switch(path,value);
     }
 
     pub(crate) fn add_mount(&mut self, path: &[&str], trigger: bool) {

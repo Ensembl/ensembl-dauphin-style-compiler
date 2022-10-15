@@ -81,7 +81,7 @@ impl<'de> Visitor<'de> for MaxiResponseVisitor {
         let mut responses : Option<Vec<MiniResponseAttempt>> = None;
         let mut programs = None;
         let mut channel = None;
-        let mut tracks = vec![];
+        let mut tracks_packed = None;
         while let Some(key) = access.next_key()? {
             match key {
                 "responses" => { 
@@ -90,13 +90,18 @@ impl<'de> Visitor<'de> for MaxiResponseVisitor {
                 },
                 "programs" => { programs = access.next_value()? },
                 "channel" => { channel = access.next_value()? },
-                "tracks-packed" => { tracks = st_err(TrackResult::Packed(access.next_value()?).to_track_models(),"unpacking tracks")?; },
+                "tracks-packed" => { tracks_packed = Some(TrackResult::Packed(access.next_value()?)); },
                 _ => { let _ : IgnoredAny = access.next_value()?; }
             }
         }
         let responses = st_field("responses",responses)?;
         let channel = st_field("channel",channel)?;
         let programs = st_field("programs",programs)?;
+        let tracks = if let Some(tracks_packed) = tracks_packed {
+            st_err(tracks_packed.to_track_models(&channel),"unpacking tracks")?
+        } else {
+            vec![]
+        };
         Ok(MaxiResponse {
             channel, 
             responses, 

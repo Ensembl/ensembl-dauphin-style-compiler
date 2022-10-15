@@ -1,8 +1,8 @@
 use std::sync::{Arc, Mutex};
 
-use peregrine_toolkit::{eachorevery::eoestruct::{StructTemplate, StructBuilt, StructConst}, log};
+use peregrine_toolkit::{eachorevery::eoestruct::{StructTemplate, StructBuilt, StructConst}, lock};
 
-use crate::Track;
+use crate::{Track, request::tracks::trackmodel::TrackModel};
 
 use super::{trackconfiglist::TrackConfigList, switch::Switch, trackconfig::TrackConfigNode};
 
@@ -25,10 +25,10 @@ impl SwitchesData {
         triggered
     }
 
-    pub(super) fn build_track_config_list(&self, track: &Track) -> TrackConfigNode {
+    pub(super) fn build_track_config(&self, track: &Track) -> TrackConfigNode {
         let mut out = TrackConfigNode::empty();
         let overlay = track.overlay();
-        self.root.build_track_config_list(track, &mut out, &mut vec![], false,&overlay,true);
+        self.root.build_track_config(track, &mut out, &mut vec![], false,&overlay,true);
         overlay.apply(&mut out);
         out
     }
@@ -79,8 +79,15 @@ impl Switches {
         data.track_config_list = None;
     }
 
+    pub fn add_track_model(&self, model: &TrackModel) {
+        let track = model.to_track();
+        for (mount,trigger) in model.mount_points() {
+            let path = mount.iter().map(|x| x.as_str()).collect::<Vec<_>>();
+            self.add_track(&path,&track,trigger);
+        }
+    }
+
     pub fn get_track_config_list(&self) -> TrackConfigList {
-        let mut data = self.0.lock().unwrap();
-        data.get_track_config_list().clone()
+        lock!(self.0).get_track_config_list().clone()
     }
 }

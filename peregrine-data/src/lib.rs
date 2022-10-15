@@ -178,7 +178,7 @@ mod request {
         pub(crate) mod stickres;
     }
 
-    mod tracks {
+    pub(crate) mod tracks {
         mod diffset;
         mod switchtree;
         pub(crate) mod trackdata;
