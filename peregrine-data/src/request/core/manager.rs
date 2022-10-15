@@ -18,7 +18,6 @@ use crate::core::version::VersionMetadata;
 use crate::{PgCommanderTaskSpec, add_task, PacketPriority, BackendNamespace };
 use crate::api::MessageSender;
 use crate::run::{ PgCommander };
-use crate::util::message::DataMessage;
 
 #[derive(Clone)]
 pub(crate) struct LowLevelRequestManager {
@@ -46,7 +45,7 @@ impl LowLevelRequestManager {
         }
     }
 
-    pub fn message(&self, message: DataMessage) {
+    pub fn message(&self, message: Error) {
         self.messages.send(message);
     }
 
@@ -139,7 +138,7 @@ impl RequestManager {
         }
     }
 
-    pub fn message(&self, message: DataMessage) {
+    pub fn message(&self, message: Error) {
         self.low.message(message);
     }
 }

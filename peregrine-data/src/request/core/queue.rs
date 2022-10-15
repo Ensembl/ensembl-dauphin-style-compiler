@@ -97,7 +97,7 @@ impl RequestQueue {
         let res = self.send_packet(packet).await;
         self.traffic_control.notify_outcome(res.is_ok());
         if let Some(e) = &res.as_ref().err() {
-            self.messages.send(DataMessage::PacketError(self.name.clone(),e.to_string()));
+            self.messages.send(Error::operr(&format!("Error sending/receiving packet to {}: {}",self.name,e)));
         }
         res.ok().unwrap_or_else(|| packet.fail("network/backend failed"))
     }
@@ -112,7 +112,7 @@ impl RequestQueue {
         }
     }
 
-    async fn main_loop(self, matcher: AttemptMatch, sidecars: RequestSidecars) -> Result<(),DataMessage> {
+    async fn main_loop(self, matcher: AttemptMatch, sidecars: RequestSidecars) -> Result<(),Error> {
         loop {
             let request = self.build_packet().await;
             if let Some(mut request) = request {

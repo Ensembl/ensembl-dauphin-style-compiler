@@ -1,4 +1,5 @@
 use anyhow::{ self, anyhow as err };
+use peregrine_toolkit::error::Error;
 use peregrine_toolkit::lock;
 use commander::{ RunSlot };
 use std::any::Any;
@@ -113,7 +114,7 @@ async fn add_bundle(pgd: &PgDauphin, channel: &BackendNamespace, bundle: &Suppli
             }
         },
         Err(e) => {
-            messages.send(DataMessage::BadDauphinProgram(format!("{:#}",e)));
+            messages.send(Error::operr(&format!("{:#}",e)));
             for (in_channel_name,_) in bundle.name_map() {
                 pgd.mark_missing(&ProgramName(channel.clone(),in_channel_name.to_string()));
             }

@@ -1,10 +1,11 @@
-use crate::error;
+use crate::{error, log};
 
 #[derive(Clone,Debug)]
 pub enum ErrorType {
     FatalError,      // Browser should be considered crashed
     OperationError,  // Operation did not complete but other operations may succeed
-    NoSuch           // A parameter passed contained reference to missing data
+    NoSuch,          // A parameter passed contained reference to missing data
+    Temporary,       // FYI, will retry
 }
 
 #[derive(Clone,Debug)]
@@ -34,10 +35,12 @@ impl Error {
     error_ctor!(fatal,fatal_r,FatalError);
     error_ctor!(operr,oper_r,OperationError);
     error_ctor!(nosuch,nosuch_r,NoSuch);
+    error_ctor!(tmp,tmp_r,Temporary);
 
     pub fn web_deadend(&self) {
         match self.error_type {
             ErrorType::FatalError => { panic!("{}",self.message); },
+            ErrorType::Temporary => { log!("{}",self.message); },
             _ => { error!("{}",self.message); },
         }
     }

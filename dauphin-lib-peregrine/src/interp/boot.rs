@@ -8,7 +8,6 @@ use crate::payloads::PeregrinePayload;
 
 simple_interp_command!(AddAuthorityInterpCommand,AddAuthorityDeserializer,0,1,(0));
 
-// TODO booted is a mess,  is it needed?
 async fn add_stick_authority(context: &mut InterpContext, cmd: AddAuthorityInterpCommand) -> anyhow::Result<()> {
     let channel_resolver = get_instance::<AccessorResolver>(context,"channel-resolver")?;
     let registers = context.registers_mut();

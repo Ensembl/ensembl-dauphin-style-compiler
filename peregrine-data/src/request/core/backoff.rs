@@ -1,9 +1,6 @@
 use std::rc::Rc;
-
 use commander::cdr_timer;
 use peregrine_toolkit::error::Error;
-use crate::{util::message::DataMessage };
-
 use super::{manager::{LowLevelRequestManager}, request::MiniRequest, queue::QueueKey, response::MiniResponseAttempt};
 
 pub struct Backoff { 
@@ -32,15 +29,15 @@ impl Backoff {
                 Ok(r) => { return Ok(r); },
                 Err(e) => { last_error = Some(e); }
             }
-            self.manager.message(DataMessage::TemporaryBackendFailure(self.errname()));
+            self.manager.message(Error::tmp(&format!("temporary backend failure: {}",self.errname())));
             cdr_timer(500.).await; // XXX configurable
         }
-        self.manager.message(DataMessage::FatalBackendFailure(self.errname()));
+        self.manager.message(Error::operr(&format!("permanent backend failure: {}",self.errname())));
         Err(match last_error {
             Some(e) => {
-                let e = DataMessage::BackendRefused(self.errname(),e.to_string());
+                let e = Error::operr(&format!("backend {} refused: {}",self.errname(),e));
                 self.manager.message(e.clone());
-                Error::operr(&format!("{}: {}",self.errname(),e.to_string()))
+                e
             },
             None => Error::fatal("unexpected downcast error in backoff")
         })

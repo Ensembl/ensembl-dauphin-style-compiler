@@ -3,7 +3,6 @@ use crate::{PeregrineCoreBase, BackendNamespace };
 use super::stickauthority::{ Authority, load_stick_authority };
 use crate::core::{ StickId, Stick };
 use std::sync::{ Arc, Mutex };
-use crate::util::message::DataMessage;
 use peregrine_toolkit::error::Error;
 use peregrine_toolkit::lock;
 
@@ -62,7 +61,7 @@ impl AuthorityStore {
         Ok(sticks)
     }
 
-    pub async fn try_location(&self, location: &str) -> Result<Option<(String,u64,u64)>,DataMessage> {
+    pub async fn try_location(&self, location: &str) -> Result<Option<(String,u64,u64)>,Error> {
         let authorities : Vec<_> = lock!(self.data).each().cloned().collect(); // as we will be waiting and don't want the lock
         for a in &authorities {
             let more = a.try_jump(&self.base.all_backends,&self.base.channel_registry,location).await?;

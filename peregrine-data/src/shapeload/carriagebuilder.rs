@@ -1,8 +1,6 @@
 use std::sync::{Mutex, Arc};
-use peregrine_toolkit::lock;
-
-use crate::{switch::trackconfiglist::TrainTrackConfigList, api::MessageSender, ShapeRequestGroup, PeregrineCoreBase, ShapeStore, DataMessage, allotment::core::{abstractcarriage::AbstractCarriage}, PeregrineApiQueue};
-
+use peregrine_toolkit::{lock, error::Error};
+use crate::{switch::trackconfiglist::TrainTrackConfigList, api::MessageSender, ShapeRequestGroup, PeregrineCoreBase, ShapeStore, allotment::core::{abstractcarriage::AbstractCarriage}, PeregrineApiQueue};
 use crate::train::model::carriageextent::CarriageExtent;
 use super::loadshapes::{LoadMode, load_carriage_shape_list};
 
@@ -48,12 +46,13 @@ impl CarriageBuilder {
         ShapeRequestGroup::new(&self.extent.region(),&track_configs,pixel_size,self.warm)
     }
 
-    pub(crate) async fn load(&mut self, base: &PeregrineCoreBase, result_store: &ShapeStore, mode: LoadMode) -> Result<(),DataMessage> {
+    pub(crate) async fn load(&mut self, base: &PeregrineCoreBase, result_store: &ShapeStore, mode: LoadMode) -> Result<(),Error> {
         let shape_requests = self.make_shape_requests();
         let shapes = 
             load_carriage_shape_list(base,result_store,self.messages.as_ref(),shape_requests,Some(&self.extent),&mode).await
             .map_err(|errors| {
-               DataMessage::CarriageUnavailable(errors)
+                let errors = errors.iter().map(|x| x.message.clone()).collect::<Vec<_>>();
+                Error::operr(&format!("carriage unavailable: {}",errors.join(", ")))
             })?;
         match mode {
             LoadMode::Network => { return Ok(()); },

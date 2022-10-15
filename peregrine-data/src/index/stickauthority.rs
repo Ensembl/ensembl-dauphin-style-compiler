@@ -5,7 +5,6 @@ use crate::shapeload::programloader::ProgramLoader;
 use crate::{PeregrineCoreBase, BackendNamespace, AllBackends};
 use crate::core::{ StickId, Stick };
 use crate::run::{ PgDauphinTaskSpec };
-use crate::util::message::DataMessage;
 use crate::shapeload::programname::ProgramName;
 
 #[derive(Clone)]
@@ -44,11 +43,11 @@ impl Authority {
         Err(Error::operr(&format!("no such stick: {}",stick_id.get_id())))
     }
 
-    pub async fn try_jump(&self, all_backends: &AllBackends, channel_registry: &ChannelRegistry, location: &str) -> Result<Vec<(String,(String,u64,u64))>,DataMessage> {
+    pub async fn try_jump(&self, all_backends: &AllBackends, channel_registry: &ChannelRegistry, location: &str) -> Result<Vec<(String,(String,u64,u64))>,Error> {
         for backend_namespace in channel_registry.all().iter() {
-            let backend = all_backends.backend(backend_namespace).map_err(|x| DataMessage::XXXTransitional(x))?;
+            let backend = all_backends.backend(backend_namespace)?;
             log!("trying {}",backend_namespace);
-            if let Some(jump_location) = backend.jump(location).await.map_err(|e| DataMessage::XXXTransitional(e))? {
+            if let Some(jump_location) = backend.jump(location).await? {
                 return Ok(vec![(location.to_string(),(jump_location.stick,jump_location.left,jump_location.right))]);
             }
         }

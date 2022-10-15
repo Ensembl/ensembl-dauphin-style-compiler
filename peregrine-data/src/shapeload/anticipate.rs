@@ -1,6 +1,6 @@
 use std::{sync::{Arc, Mutex}};
 use commander::{CommanderStream, cdr_timer};
-use peregrine_toolkit::log_extra;
+use peregrine_toolkit::{log_extra, error::Error};
 use crate::{DataMessage, ShapeStore, PeregrineCoreBase, PgCommanderTaskSpec, Scale, add_task, core::{Layout, pixelsize::PixelSize}, shapeload::loadshapes::LoadMode, switch::trackconfiglist::TrainTrackConfigList, CarriageExtent, train::model::trainextent::TrainExtent, PeregrineApiQueue };
 use crate::shapeload::carriagebuilder::CarriageBuilder;
 
@@ -14,7 +14,7 @@ impl AnticipateTask {
         AnticipateTask { carriages, batch }
     }
 
-    async fn run(&mut self, base: &PeregrineCoreBase, result_store: &ShapeStore) -> Result<(),DataMessage> {
+    async fn run(&mut self, base: &PeregrineCoreBase, result_store: &ShapeStore) -> Result<(),Error> {
         let mut handles = vec![];
         let load_mode = if self.batch { LoadMode::Network } else { LoadMode::Batch };
         for mut carriage in self.carriages.drain(..) {

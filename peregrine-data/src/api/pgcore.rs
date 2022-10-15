@@ -11,6 +11,8 @@ use commander::PromiseFuture;
 use peregrine_dauphin_queue::{ PgDauphinQueue };
 use peregrine_message::PeregrineMessage;
 use peregrine_toolkit::eachorevery::eoestruct::StructBuilt;
+use peregrine_toolkit::error::Error;
+use peregrine_toolkit::lock;
 use peregrine_toolkit::plumbing::oneshot::OneShot;
 use peregrine_toolkit::puzzle::AnswerAllocator;
 use peregrine_toolkit_async::sync::needed::Needed;
@@ -26,15 +28,15 @@ use crate::util::message::DataMessage;
 use crate::switch::switches::Switches;
 
 #[derive(Clone)]
-pub struct MessageSender(Arc<Mutex<Box<dyn FnMut(DataMessage) + 'static + Send>>>);
+pub struct MessageSender(Arc<Mutex<Box<dyn FnMut(Error) + 'static + Send>>>);
 
 impl MessageSender {
-    pub(crate) fn new<F>(cb :F) -> MessageSender where F: FnMut(DataMessage) + 'static + Send {
+    pub(crate) fn new<F>(cb :F) -> MessageSender where F: FnMut(Error) + 'static + Send {
         MessageSender(Arc::new(Mutex::new(Box::new(cb))))
     }
 
-    pub(crate) fn send(&self,message: DataMessage) {
-        (self.0.lock().unwrap())(message);
+    pub(crate) fn send(&self,message: Error) {
+        lock!(self.0)(message);
     }
 }
 
@@ -71,7 +73,7 @@ pub struct PeregrineCore {
 
 impl PeregrineCore {
     pub fn new<M,F>(integration: Box<dyn PeregrineIntegration>, commander: M, messages: F, queue: &PeregrineApiQueue, redraw_needed: &Needed, mut channel_integrations: Vec<Rc<dyn ChannelIntegration>>) -> Result<PeregrineCore,DataMessage> 
-                where M: Commander + 'static, F: FnMut(DataMessage) + 'static + Send {
+                where M: Commander + 'static, F: FnMut(Error) + 'static + Send {
         let shutdown = OneShot::new();
         let integration = Arc::new(Mutex::new(integration));
         let graphics = Graphics::new(&integration);

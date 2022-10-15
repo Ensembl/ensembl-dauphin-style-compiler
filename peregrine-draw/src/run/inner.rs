@@ -8,7 +8,7 @@ use std::sync::{ Mutex, Arc };
 use crate::util::message::{ Message, message_register_callback, routed_message, message_register_default };
 use crate::input::translate::targetreporter::TargetReporter;
 use js_sys::Date;
-use peregrine_data::{Assets, Commander, PeregrineCore, PeregrineApiQueue, BackendNamespace, ChannelIntegration};
+use peregrine_data::{Assets, Commander, PeregrineCore, PeregrineApiQueue, BackendNamespace, ChannelIntegration, DataMessage};
 use peregrine_dauphin::peregrine_dauphin;
 use peregrine_febe_javascript::JavascriptIntegration;
 use peregrine_febe_network::NetworkChannel;
@@ -156,7 +156,7 @@ impl PeregrineInnerAPI {
             Rc::new(NetworkChannel::new()),
         ];
         let mut core = PeregrineCore::new(integration,commander.clone(),move |e| {
-            routed_message(Some(commander_id),Message::DataError(e))
+            routed_message(Some(commander_id),Message::DataError(DataMessage::XXXTransitional(e)))
         },&api_queue,&redraw_needed,channel_integrations).map_err(|e| Message::DataError(e))?;
         peregrine_dauphin(Box::new(PgDauphinIntegrationWeb()),&core);
         core.add_backend(backend);

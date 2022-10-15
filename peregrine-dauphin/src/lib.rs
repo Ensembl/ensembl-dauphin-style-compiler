@@ -1,13 +1,13 @@
 use commander::{ CommanderStream, cdr_tick };
 use peregrine_data::{ 
-    PgCommander, PgCommanderTaskSpec, InstancePayload, PeregrineCore, DataMessage, add_task
+    PgCommander, PgCommanderTaskSpec, InstancePayload, PeregrineCore, add_task
 };
 use peregrine_dauphin_queue::{ PgDauphinTaskSpec, PgDauphinRunTaskSpec, PgDauphinLoadTaskSpec };
 use dauphin_interp::{ Dauphin, CommandInterpretSuite, InterpretInstance, make_core_interp, PayloadFactory };
 use dauphin_lib_std::make_std_interp;
 use dauphin_lib_peregrine::{ make_peregrine_interp, add_peregrine_payloads };
+use peregrine_toolkit::error::Error;
 use peregrine_toolkit::log_extra;
-use peregrine_toolkit::plumbing::oneshot::OneShot;
 use std::any::Any;
 use std::collections::HashMap;
 
@@ -74,8 +74,8 @@ fn run(dauphin: &mut Dauphin, commander: &PgCommander, spec: PgDauphinRunTaskSpe
     }
 }
 
-async fn main_loop(integration: Box<dyn PgDauphinIntegration>, core: PeregrineCore) -> Result<(),DataMessage> {
-    let mut dauphin = Dauphin::new(command_suite().map_err(|e| DataMessage::DauphinIntegrationError(e.to_string()))?);
+async fn main_loop(integration: Box<dyn PgDauphinIntegration>, core: PeregrineCore) -> Result<(),Error> {
+    let mut dauphin = Dauphin::new(command_suite().map_err(|e| Error::fatal(&format!("cannot run style compiler {}",e.to_string())))?);
     integration.add_payloads(&mut dauphin);
     add_peregrine_payloads(&mut dauphin,&core.base,&core.agent_store,&core.switches);
     loop {
