@@ -115,7 +115,7 @@ impl PeregrineCore {
             shutdown
         };
         let agent_store = AgentStore::new(&base);
-        base.channel_registry.run_boot_loop(&base,&agent_store.program_loader);
+        base.channel_registry.run_boot_loop(&base);
         
         let train_set = Railway::new(&base,&agent_store.lane_store,queue.visual_blocker());
         Ok(PeregrineCore {

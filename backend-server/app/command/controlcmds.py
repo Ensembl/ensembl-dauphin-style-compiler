@@ -37,7 +37,7 @@ class BootstrapHandler(Handler):
     def process(self, data_accessor: DataAccessor, channel: Any, payload: Any, metrics: ResponseMetrics, version: Version) -> Response:
         try:
             r = Response(0,{
-                "boot": [channel,data_accessor.begs_files.boot_program(version)],
+                "boot": [channel,data_accessor.begs_files.boot_program(version)],  # should go when v14 is retired
                 "hi": channel, # should go when v14 is retired
                 "lo": channel, # should go when v14 is retired
                 "namespace":  channel,

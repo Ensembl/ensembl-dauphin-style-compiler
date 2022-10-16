@@ -1,29 +1,17 @@
 use commander::{CommanderStream, FusePromise, PromiseFuture};
-use peregrine_toolkit::{lock, error::{Error}, error_important };
-use crate::{ request::{minirequests::{bootchannelres::BootChannelRes, bootchannelreq::BootChannelReq}}, InstanceInformation, PeregrineCoreBase, shapeload::programloader::ProgramLoader, run::PgDauphinTaskSpec, DataMessage, add_task, PgCommanderTaskSpec, PacketPriority, CountingPromise, BackendNamespace};
+use peregrine_toolkit::{lock, error::{Error} };
+use crate::{ request::{minirequests::{bootchannelres::BootChannelRes, bootchannelreq::BootChannelReq}}, InstanceInformation, PeregrineCoreBase, DataMessage, add_task, PgCommanderTaskSpec, PacketPriority, CountingPromise, BackendNamespace};
 
 use super::wrappedchannelsender::WrappedChannelSender;
 
 type BootStream = CommanderStream<Option<(BackendNamespace,WrappedChannelSender,FusePromise<Result<BackendNamespace,Error>>)>>;
 
-async fn finish_bootstrap(response: &BootChannelRes, base: &PeregrineCoreBase, sender: &WrappedChannelSender, loader: &ProgramLoader) -> Result<BackendNamespace,Error> {
+async fn finish_bootstrap(response: &BootChannelRes, base: &PeregrineCoreBase, sender: &WrappedChannelSender) -> Result<BackendNamespace,Error> {
     let info = InstanceInformation::new(
         response.namespace(),response,&base.version
     );
     base.channel_registry.register_channel(response.namespace(),sender);
     lock!(base.integration).report_instance_information(&info);
-    if let Some(program) = response.program_name() {
-        let r = base.dauphin.run_program(loader,&base.channel_registry,PgDauphinTaskSpec {
-            prio: 2,
-            slot: None,
-            timeout: None,
-            program_name: program.clone(),
-            payloads: None
-        }).await;
-        if let Err(err) = r {
-            error_important!("{}",err);
-        }
-    }
     lock!(base.integration).set_assets(response.channel_assets());
     lock!(base.integration).set_assets(response.chrome_assets());
     base.queue.set_assets(response.channel_assets());
@@ -32,18 +20,18 @@ async fn finish_bootstrap(response: &BootChannelRes, base: &PeregrineCoreBase, s
     Ok(response.namespace().clone())
 }
 
-pub(super) async fn boot_channel(base: &PeregrineCoreBase, loader: &ProgramLoader, name: &BackendNamespace, sender: &WrappedChannelSender) -> Result<BackendNamespace,Error> {
+pub(super) async fn boot_channel(base: &PeregrineCoreBase, name: &BackendNamespace, sender: &WrappedChannelSender) -> Result<BackendNamespace,Error> {
     let request = BootChannelReq::new();
     let response = base.manager.submit_direct(sender,&PacketPriority::RealTime,&Some(name.clone()),request, |v| {
         v.into_variety().into_boot_channel()
     }).await?;
-    finish_bootstrap(&response,base,sender,loader).await
+    finish_bootstrap(&response,base,sender).await
 }
 
-async fn boot_loop(stream: BootStream, base: &PeregrineCoreBase, loader: &ProgramLoader, booted: &CountingPromise) -> Result<(),DataMessage> {
+async fn boot_loop(stream: BootStream, base: &PeregrineCoreBase, booted: &CountingPromise) -> Result<(),DataMessage> {
     loop {
         if let Some((name,sender,promise)) = stream.get().await {
-            promise.fuse(boot_channel(base,loader,&name,&sender).await);
+            promise.fuse(boot_channel(base,&name,&sender).await);
         } else {
             booted.unlock();
         }
@@ -78,9 +66,8 @@ impl ChannelBoot {
         Ok(())
     }
 
-    pub(crate) fn run_boot_loop(&self, base: &PeregrineCoreBase, loader: &ProgramLoader) {
+    pub(crate) fn run_boot_loop(&self, base: &PeregrineCoreBase) {
         let base2 = base.clone();
-        let loader = loader.clone();
         let booted = self.booted.clone();
         let stream = self.bootable.clone();
         add_task(&base.commander,PgCommanderTaskSpec {
@@ -89,7 +76,7 @@ impl ChannelBoot {
             slot: None,
             timeout: None,
             task: Box::pin(async move {
-                boot_loop(stream,&base2,&loader,&booted).await;
+                boot_loop(stream,&base2,&booted).await;
                 Ok(())
             }),
             stats: false

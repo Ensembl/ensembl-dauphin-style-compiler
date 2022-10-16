@@ -25,7 +25,7 @@ impl Backend {
 
     pub(crate) fn boot(&self, _req: &BootChannelReq) -> Result<BootChannelRes,Error> {
         self.callbacks.boot()?;
-        Ok(BootChannelRes::new(None,self.backend_namespace.clone(),Assets::empty(),Assets::empty(),Some(vec![15])))
+        Ok(BootChannelRes::new(self.backend_namespace.clone(),Assets::empty(),Assets::empty(),Some(vec![15])))
     }
 
     pub(crate) fn stickinfo(&self, req: &StickReq) -> Result<StickRes,Error> {

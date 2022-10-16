@@ -1,6 +1,6 @@
 use std::{collections::HashMap, rc::Rc, sync::{Arc, Mutex}};
 use peregrine_toolkit::{ lock, error::Error };
-use crate::{ChannelIntegration, BackendNamespace, DataMessage, PeregrineCoreBase, shapeload::programloader::ProgramLoader, CountingPromise };
+use crate::{ChannelIntegration, BackendNamespace, DataMessage, PeregrineCoreBase, CountingPromise };
 use super::{channelboot::{ChannelBoot }, wrappedchannelsender::WrappedChannelSender };
 
 pub struct ChannelRegistryBuilder {
@@ -44,8 +44,8 @@ impl ChannelRegistry {
         }
     }
 
-    pub(crate) fn run_boot_loop(&self, base: &PeregrineCoreBase, loader: &ProgramLoader) {
-        self.boot.run_boot_loop(base,loader);
+    pub(crate) fn run_boot_loop(&self, base: &PeregrineCoreBase) {
+        self.boot.run_boot_loop(base);
     }
 
     pub(super) fn register_channel(&self, backend_namespace: &BackendNamespace, sender:&WrappedChannelSender) {

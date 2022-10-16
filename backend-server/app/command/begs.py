@@ -40,7 +40,7 @@ class VersionedBegsFiles(object):
     def __init__(self, path: str, egs_version: int):
         with open(path) as f:
             toml_file = toml.loads(f.read())            
-        self.boot_program = toml_file["core"]["boot"]
+        self.boot_program = toml_file["core"].get("boot",None) # gone v15 onwards 
         stick_authority = toml_file.get("stick-authority")
         if stick_authority != None:
             self.authority_startup_program = stick_authority.get("startup",None) # gone v15 onwards 
