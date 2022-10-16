@@ -1,4 +1,3 @@
-use crate::shapeload::programloader::ProgramLoader;
 use crate::{PeregrineCoreBase, BackendNamespace };
 use super::stickauthority::{ Authority, load_stick_authority };
 use crate::core::{ StickId, Stick };
@@ -29,23 +28,21 @@ impl AuthorityStoreData {
 #[derive(Clone)]
 pub struct AuthorityStore {
     base: PeregrineCoreBase,
-    program_loader: ProgramLoader,
     data: Arc<Mutex<AuthorityStoreData>>
 }
 
 // TODO API-supplied stick authorities
 
 impl AuthorityStore {
-    pub fn new(base: &PeregrineCoreBase, program_loader: &ProgramLoader) -> AuthorityStore {
+    pub fn new(base: &PeregrineCoreBase) -> AuthorityStore {
         AuthorityStore {
             base: base.clone(),
-            program_loader: program_loader.clone(),
             data: Arc::new(Mutex::new(AuthorityStoreData::new()))
         }
     }
 
     pub async fn add(&self, channel: BackendNamespace) -> Result<(),Error> {
-        let stick_authority = load_stick_authority(&self.base,&self.program_loader,channel).await?;
+        let stick_authority = load_stick_authority(&self.base,channel).await?;
         lock!(self.data).add(stick_authority);
         Ok(())
 

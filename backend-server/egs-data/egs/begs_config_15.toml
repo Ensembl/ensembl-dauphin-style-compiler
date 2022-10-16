@@ -5,9 +5,6 @@
 [core]
 boot="boot"
 
-[stick-authority]
-startup="sa-startup"
-
 [egs]
 stick=["startup","lookup"]
 boot="boot"
@@ -19,9 +16,6 @@ render=["gene","gene-overview"]
 # [begs.FILENAME]
 # NAME_IN_FILE="NAME_FOR_CHANNEL"
 # ...
-
-[begs.stick15]
-startup="sa-startup"
 
 [begs.boot15]
 boot="boot"

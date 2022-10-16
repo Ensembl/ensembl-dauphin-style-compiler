@@ -15,10 +15,9 @@ pub struct AgentStore {
 
 impl AgentStore {
     pub fn new(base: &PeregrineCoreBase) -> AgentStore {
-        /* Payloads are about 4k on the wire, maybe 4x that unpacked. 1000 => ~64Mb. */
         let data_store = DataStore::new(10240,&base);
         let program_loader = ProgramLoader::new(&base);
-        let stick_authority_store = AuthorityStore::new(&base,&program_loader);
+        let stick_authority_store = AuthorityStore::new(&base);
         let stick_store = StickStore::new(&base,&stick_authority_store);
         let lane_store = ShapeStore::new(4096,&base,&program_loader);
         let jump_store = JumpStore::new(&base,&stick_authority_store);

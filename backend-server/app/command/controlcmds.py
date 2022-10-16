@@ -91,10 +91,6 @@ class StickAuthorityHandler(Handler):
             sa_start_prog = data_accessor.begs_files.authority_startup_program(version)
             sa_lookup_prog = data_accessor.begs_files.authority_lookup_program(version)
             sa_jump_prog = data_accessor.begs_files.authority_jump_program(version)
-            if sa_start_prog != None:
-                r = Response(4,[channel,sa_start_prog,sa_lookup_prog,sa_jump_prog])
-            else:
-                return Response(1,"I am not an authority")
-            return r
+            return Response(4,[channel,sa_start_prog,sa_lookup_prog,sa_jump_prog])
         except UnknownVersionException as e:
             return Response(1,e)

@@ -16,8 +16,7 @@ use super::decompress::{
 };
 use super::eoes::{EoesVarNumberCommandType, EoesVarStringCommandType, EoesVarBooleanCommandType, EoesNullCommandType, EoesArrayCommandType, EoesPairCommandType, EoesObjectCommandType, EoesConditionCommandType, EoesGroupCommandType, EoesAllCommandType, EoesVarCommandType, EoesNumberCommandType, EoesStringCommandType, EoesBooleanCommandType, EoesLateCommandType};
 use super::track::{ 
-    NewLaneCommandType, AddTagCommandType, AddTrackCommandType, DataSourceCommandType,
-    AddSwitchCommandType, SetSwitchCommandType, ClearSwitchCommandType, AppendGroupCommandType, AppendDepthCommandType
+    AppendGroupCommandType, AppendDepthCommandType
 };
 use super::geometry:: {
     PatinaFilledCommandType, PatinaHollowCommandType, DirectColourCommandType, ZMenuCommandType, PatinaZMenuCommandType, PenCommandType,
@@ -28,21 +27,16 @@ use super::shape::{ WiggleCommandType, RectangleCommandType, Text2CommandType, I
 use super::switch::{ ListSwitchCommandType, SwitchStringCommandType, SwitchNumberCommandType, SwitchBooleanCommandType, SwitchNullCommandType };
 
 pub fn peregrine_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(55,0),0x60A1CBEFA9EA11D5)
+    CommandSetId::new("peregrine",(56,0),0x9E247144094A6DF0)
 }
 
 pub fn make_peregrine() -> CompLibRegister {
-    // next is 76; 1, 2, 3, 24, 25, 39, 40, 41 are unused
+    // next is 76; 1-6, 8, 11, 24, 25, 33, 34, 39, 40, 41 are unused
     let mut set = CompLibRegister::new(&peregrine_id(),Some(make_peregrine_interp()));
     set.push("add_stick_authority",Some(0),AddAuthorityCommandType());
-    set.push("track_new",Some(4),NewLaneCommandType());
-    set.push("track_add_tag",Some(5),AddTagCommandType());
-    set.push("track_add_trigger",Some(6),AddTrackCommandType());
     set.push("wiggle",Some(7),WiggleCommandType());
-    set.push("track_apply",Some(8),DataSourceCommandType());
     set.push("patina_hollow",Some(9),PatinaHollowCommandType());
     set.push("make_request",Some(10),RequestCommandType());
-    set.push("track_add_switch",Some(11),AddSwitchCommandType());
     set.push("use_allotment",Some(12),UseAllotmentCommandType());
     set.push("direct_colour",Some(13),DirectColourCommandType());
     set.push("zmenu",Some(14),ZMenuCommandType());
@@ -62,8 +56,6 @@ pub fn make_peregrine() -> CompLibRegister {
     set.push("classify",Some(30),ClassifyCommandType());
     set.push("split_string",Some(31),SplitStringCommandType());
     set.push("switch_null",Some(32),SwitchNullCommandType());
-    set.push("track_set_switch",Some(33),SetSwitchCommandType());
-    set.push("track_clear_switch",Some(34),ClearSwitchCommandType());
     set.push("simple_colour",Some(35),SimpleColourCommandType());
     set.push("striped",Some(36),StripedCommandType());
     set.push("barred",Some(37),BarCommandType());

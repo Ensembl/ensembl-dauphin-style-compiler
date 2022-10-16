@@ -10,8 +10,7 @@ use super::decompress::{
 
 use super::eoes::{EoesVarNumberDeserializer, EoesVarStringDeserializer, EoesVarBooleanDeserializer, EoesNullDeserializer, EoesArrayDeserializer, EoesPairDeserializer, EoesObjectDeserializer, EoesConditionDeserializer, EoesGroupDeserializer, EoesAllDeserializer, EoesVarDeserializer, EoesNumberDeserializer, EoesStringDeserializer, EoesBooleanDeserializer, EoesLateDeserializer};
 use super::track::{ 
-    NewLaneDeserializer, AddTagDeserializer, AddTriggerDeserializer, DataSourceDeserializer, AddSwitchDeserializer,
-    SetSwitchDeserializer, ClearSwitchDeserializer, AppendGroupDeserializer, AppendDepthDeserializer
+    AppendGroupDeserializer, AppendDepthDeserializer
 };
 use super::geometry::{
     PatinaFilledDeserializer, PatinaHollowDeserializer, DirectColourDeserializer, ZMenuDeserializer, PatinaZMenuDeserializer,
@@ -27,16 +26,12 @@ use super::switch::{
 };
 
 pub fn std_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(55,0),0x60A1CBEFA9EA11D5)
+    CommandSetId::new("peregrine",(56,0),0x9E247144094A6DF0)
 }
 
 pub fn make_peregrine_interp() -> InterpLibRegister {
     let mut set = InterpLibRegister::new(&std_id());
     set.push(AddAuthorityDeserializer());
-    set.push(NewLaneDeserializer());
-    set.push(AddTagDeserializer());
-    set.push(AddTriggerDeserializer());
-    set.push(DataSourceDeserializer());
     set.push(GetLaneDeserializer());
     set.push(GetDataDeserializer());
     set.push(DataStreamDeserializer());
@@ -53,13 +48,10 @@ pub fn make_peregrine_interp() -> InterpLibRegister {
     set.push(PenDeserializer());
     set.push(PlotterDeserializer());
     set.push(WiggleDeserializer());
-    set.push(AddSwitchDeserializer());
     set.push(UseAllotmentDeserializer());
     set.push(SpaceBaseDeserializer());
     set.push(RectangleDeserializer());
     set.push(Text2Deserializer());
-    set.push(SetSwitchDeserializer());
-    set.push(ClearSwitchDeserializer());
     set.push(SimpleColourDeserializer());
     set.push(StripedDeserializer());
     set.push(BarredDeserializer());

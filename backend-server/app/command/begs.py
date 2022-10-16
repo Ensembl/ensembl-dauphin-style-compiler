@@ -1,9 +1,9 @@
 from core.config import BEGS_FILES, BEGS_CONFIG
 from typing import Any, List, Optional;
 import logging
-import toml
 import time
 import cbor2
+import toml
 import os.path
 from os import stat
 from model.version import Version
@@ -43,7 +43,7 @@ class VersionedBegsFiles(object):
         self.boot_program = toml_file["core"]["boot"]
         stick_authority = toml_file.get("stick-authority")
         if stick_authority != None:
-            self.authority_startup_program = stick_authority["startup"]
+            self.authority_startup_program = stick_authority.get("startup",None) # gone v15 onwards 
             self.authority_lookup_program = stick_authority.get("lookup",None) # gone v15 onwards
             self.authority_jump_program = stick_authority.get("jump",None) # gone v15 onwards
         else:
@@ -121,6 +121,7 @@ class BegsFiles(object):
     def add_bundle(self, bundle_name: str, version: Version) -> Any:
         return self._bundle(version).add_bundle(bundle_name,version)
 
+    # There is no authority_lookup_program from v15 on
     def authority_startup_program(self, version: Version):
         return self._bundle(version).authority_startup_program
 
