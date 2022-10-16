@@ -109,11 +109,8 @@ mod core {
 
 mod index {
     pub(crate) mod stickstore;
-    pub(crate) mod stickauthority;
-    pub(crate) mod stickauthoritystore;
     pub(crate) mod jumpstore;
     pub use self::stickstore::StickStore;
-    pub use self::stickauthoritystore::AuthorityStore;
 }
 
 mod shapeload {
@@ -162,8 +159,6 @@ mod request {
     }
 
     pub(crate) mod minirequests {
-        pub(crate) mod authorityreq;
-        pub(crate) mod authorityres;
         pub(crate) mod bootchannelreq;
         pub(crate) mod bootchannelres;
         pub(crate) mod datareq;
@@ -291,7 +286,7 @@ pub use self::core::{ Asset, Assets, PgdPeregrineConfig, ConfigKey, Stick, Stick
 pub use self::core::channel::accessorresolver::{ AccessorResolver };
 pub use self::core::channel::backendnamespace::BackendNamespace;
 pub use self::core::channel::channelintegration::{ ChannelIntegration, ChannelSender, ChannelResponse, TrivialChannelResponse, ChannelMessageDecoder, null_payload };
-pub use self::index::{ StickStore, AuthorityStore };
+pub use self::index::{ StickStore };
 pub use self::shapeload::{ Region, ProgramName, ShapeStore, DataStore, ProgramData, ShapeRequest, ShapeRequestGroup };
 pub use self::run::{ PgCommander, PgCommanderTaskSpec, PgDauphin, Commander, InstancePayload, add_task, complete_task, async_complete_task };
 pub use self::request::core::maxirequest::{ MaxiRequest };

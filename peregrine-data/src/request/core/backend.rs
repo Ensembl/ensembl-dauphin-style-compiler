@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::{Arc, Mutex}, rc::Rc};
 use peregrine_toolkit::{lock, error::Error};
-use crate::{ProgramName, Stick, StickId, index::stickauthority::Authority, metric::{datastreammetric::PacketDatastreamMetricBuilder, metricreporter::MetricCollector}, request::minirequests::{authorityreq::AuthorityReq, datareq::DataRequest, datares::{DataResponse}, jumpreq::JumpReq, jumpres::{JumpLocation, JumpRes}, programreq::ProgramReq, stickreq::StickReq, stickres::StickRes}, PacketPriority, BackendNamespace};
+use crate::{ProgramName, Stick, StickId, metric::{datastreammetric::PacketDatastreamMetricBuilder, metricreporter::MetricCollector}, request::minirequests::{datareq::DataRequest, datares::{DataResponse}, jumpreq::JumpReq, jumpres::{JumpLocation, JumpRes}, programreq::ProgramReq, stickreq::StickReq, stickres::StickRes}, PacketPriority, BackendNamespace};
 use super::{request::{MiniRequest}, manager::{RequestManager}, response::MiniResponseAttempt};
 
 #[derive(Clone)]
@@ -50,11 +50,6 @@ impl Backend {
             StickRes::Stick(s) => Ok(Some(s)),
             StickRes::Unknown(_) => Ok(None)
         }
-    }
-
-    pub async fn authority(&self) -> Result<Authority,Error> {
-        let request = AuthorityReq::new();
-        Ok(self.submit_hi(request, |d| d.into_variety().into_authority()).await?.build())
     }
 
     pub async fn jump(&self, location: &str) -> Result<Option<JumpLocation>,Error> {

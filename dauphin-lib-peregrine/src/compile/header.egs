@@ -9,18 +9,6 @@ struct allot {
 
 expr make_allotment(name_val,priority_val) allot { name: name_val, priority: priority_val };
 
-struct stick {
-    id: string,
-    size: number,
-    topology: number,
-    tags: vec(string)
-};
-
-proc add_stick_authority(string);
-func get_stick_id() becomes string;
-func get_stick_data(string,string) becomes stick;
-proc add_stick(stick);
-
 /* */
 
 struct laneid { value: number };

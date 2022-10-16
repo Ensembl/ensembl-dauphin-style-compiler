@@ -3,9 +3,6 @@ use dauphin_compile::command::{
 };
 use dauphin_interp::command::{ CommandSetId };
 use crate::make_peregrine_interp;
-use super::boot::{
-    AddAuthorityCommandType
-};
 use super::data::{ 
     GetLaneCommandType, GetDataCommandType, DataStreamCommandType, OnlyWarmCommandType,
     RequestCommandType, RequestScopeCommandType, MakeRegionCommandType
@@ -27,13 +24,12 @@ use super::shape::{ WiggleCommandType, RectangleCommandType, Text2CommandType, I
 use super::switch::{ ListSwitchCommandType, SwitchStringCommandType, SwitchNumberCommandType, SwitchBooleanCommandType, SwitchNullCommandType };
 
 pub fn peregrine_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(56,0),0x9E247144094A6DF0)
+    CommandSetId::new("peregrine",(57,0),0x4D34D0397884FF30)
 }
 
 pub fn make_peregrine() -> CompLibRegister {
-    // next is 76; 1-6, 8, 11, 24, 25, 33, 34, 39, 40, 41 are unused
+    // next is 76; 0-6, 8, 11, 24, 25, 33, 34, 39, 40, 41 are unused
     let mut set = CompLibRegister::new(&peregrine_id(),Some(make_peregrine_interp()));
-    set.push("add_stick_authority",Some(0),AddAuthorityCommandType());
     set.push("wiggle",Some(7),WiggleCommandType());
     set.push("patina_hollow",Some(9),PatinaHollowCommandType());
     set.push("make_request",Some(10),RequestCommandType());

@@ -1,17 +1,25 @@
 use std::sync::{ Arc };
 use peregrine_toolkit::error::Error;
 
-use crate::{ AuthorityStore, core::stick::{ Stick, StickId }};
+use crate::{ core::{stick::{ Stick, StickId }, channel::channelregistry::ChannelRegistry}, AllBackends};
 use crate::util::memoized::{ Memoized, MemoizedType };
 use crate::api::{ PeregrineCoreBase };
 
-async fn get_sticks(stick_authority_store: &AuthorityStore, stick_id: &StickId) -> Result<Vec<Stick>,Error> {
-    stick_authority_store.try_lookup(stick_id.clone()).await
+async fn get_sticks(all_backends: &AllBackends, channel_registry: &ChannelRegistry, stick_id: &StickId) -> Result<Vec<Stick>,Error> {
+    let mut sticks = vec![];
+    for backend_namespace in &channel_registry.all() {
+        let backend = all_backends.backend(backend_namespace)?;
+        let stick = backend.stick(stick_id).await?;
+        if let Some(stick) = stick {
+            sticks.push(stick);
+        }
+    }
+    Ok(sticks)
 }
 
-async fn query_stick(stick_authority_store: AuthorityStore, stick_cache: Memoized<StickId,Result<Arc<Stick>,Error>>, stick_id: StickId) -> Result<Arc<Stick>,Error> {
+async fn query_stick(all_backends: &AllBackends, channel_registry: &ChannelRegistry, stick_cache: Memoized<StickId,Result<Arc<Stick>,Error>>, stick_id: StickId) -> Result<Arc<Stick>,Error> {
     let stick_cache = stick_cache.clone();
-    let mut sticks = get_sticks(&stick_authority_store,&stick_id).await?;
+    let mut sticks = get_sticks(all_backends,channel_registry,&stick_id).await?;
     let mut out = Err(Error::operr(&format!("no such stick: {}",stick_id.get_id())));
     for stick in sticks.drain(..) {
         let stick = Arc::new(stick);
@@ -23,26 +31,34 @@ async fn query_stick(stick_authority_store: AuthorityStore, stick_cache: Memoize
     out
 }
 
-fn make_stick_cache(stick_authority_store: &AuthorityStore) -> Memoized<StickId,Result<Arc<Stick>,Error>> {
-    let stick_authority_store = stick_authority_store.clone();
+fn make_stick_cache(all_backends: &AllBackends, channel_registry: &ChannelRegistry) -> Memoized<StickId,Result<Arc<Stick>,Error>> {
+    let all_backends = all_backends.clone();
+    let channel_registry = channel_registry.clone();
     Memoized::new(MemoizedType::Store,move |stick_cache,stick_id: &StickId| {
-        let stick_authority_store = stick_authority_store.clone();
+        let all_backends = all_backends.clone();
+        let channel_registry = channel_registry.clone();    
         let stick_id = stick_id.clone();
         let stick_cache = stick_cache.clone();
-        Box::pin(async move { query_stick(stick_authority_store.clone(),stick_cache.clone(),stick_id.clone()).await })
+        Box::pin(async move { query_stick(&all_backends,&channel_registry,stick_cache.clone(),stick_id.clone()).await })
     })   
 }
 
 #[derive(Clone)]
-pub struct StickStore(Memoized<StickId,Result<Arc<Stick>,Error>>,PeregrineCoreBase);
+pub struct StickStore {
+    sticks: Memoized<StickId,Result<Arc<Stick>,Error>>,
+    base: PeregrineCoreBase
+}
 
 impl StickStore {
-    pub fn new(base: &PeregrineCoreBase, stick_authority_store: &AuthorityStore) -> StickStore {
-        StickStore(make_stick_cache(stick_authority_store),base.clone())
+    pub fn new(base: &PeregrineCoreBase) -> StickStore {
+        StickStore {
+            sticks: make_stick_cache(&base.all_backends,&base.channel_registry),
+            base: base.clone()
+        }
     }
 
     pub async fn get(&self, key: &StickId) -> Result<Arc<Stick>,Error> {
-        self.1.booted.wait().await;
-        self.0.get(key).await.as_ref().clone()
+        self.base.booted.wait().await;
+        self.sticks.get(key).await.as_ref().clone()
     }
 }

@@ -1,5 +1,4 @@
 // TODO tied failures
-use crate::request::minirequests::authorityreq::AuthorityReq;
 use crate::request::minirequests::bootchannelreq::BootChannelReq;
 use crate::request::minirequests::datareq::DataRequest;
 use crate::request::minirequests::failureres::FailureRes;
@@ -23,7 +22,6 @@ pub enum MiniRequest {
     BootChannel(BootChannelReq),
     Program(ProgramReq),
     Stick(StickReq),
-    Authority(AuthorityReq),
     Data(DataRequest),
     Jump(JumpReq),
     Metric(MetricReport)
@@ -35,7 +33,6 @@ impl MiniRequest {
             MiniRequest::BootChannel(x) => x,
             MiniRequest::Program(x) => x,
             MiniRequest::Stick(x) => x,
-            MiniRequest::Authority(x) => x,
             MiniRequest::Data(x) => x,
             MiniRequest::Jump(x) => x,
             MiniRequest::Metric(x) => x
@@ -50,7 +47,6 @@ impl Serialize for MiniRequest {
             MiniRequest::BootChannel(x) => x.serialize(serializer),
             MiniRequest::Program(x) =>  x.serialize(serializer),
             MiniRequest::Stick(x) =>  x.serialize(serializer),
-            MiniRequest::Authority(x) =>  x.serialize(serializer),
             MiniRequest::Data(x) =>  x.serialize(serializer),
             MiniRequest::Jump(x) =>  x.serialize(serializer),
             MiniRequest::Metric(x) => x.serialize(serializer)

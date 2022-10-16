@@ -1,7 +1,4 @@
 use dauphin_interp::command::{ CommandSetId, InterpLibRegister };
-use super::boot::{ 
-    AddAuthorityDeserializer
-};
 use super::data::{ GetLaneDeserializer, GetDataDeserializer, DataStreamDeserializer, OnlyWarmDeserializer, RequestScopeDeserializer, RequestDeserializer, MakeRegionDeserializer };
 use super::decompress::{ 
     Lesqlite2Deserializer, ZigzagDeserializer, DeltaDeserializer,
@@ -26,12 +23,11 @@ use super::switch::{
 };
 
 pub fn std_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(56,0),0x9E247144094A6DF0)
+    CommandSetId::new("peregrine",(57,0),0x4D34D0397884FF30)
 }
 
 pub fn make_peregrine_interp() -> InterpLibRegister {
     let mut set = InterpLibRegister::new(&std_id());
-    set.push(AddAuthorityDeserializer());
     set.push(GetLaneDeserializer());
     set.push(GetDataDeserializer());
     set.push(DataStreamDeserializer());

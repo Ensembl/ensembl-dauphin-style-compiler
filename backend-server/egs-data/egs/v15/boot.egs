@@ -2,4 +2,3 @@ import "lib:std"; use "std";
 import "lib:peregrine"; use "peregrine";
 
 //notice("running boot script 2020-08-24 23:25");
-add_stick_authority("self()");

@@ -1,7 +1,7 @@
 use std::{fmt, sync::Arc, any::Any};
 use peregrine_toolkit::{serdetools::st_field};
 use serde::{Deserializer, de::{Visitor, DeserializeSeed}};
-use crate::{request::minirequests::{authorityres::AuthorityRes, bootchannelres::BootChannelRes, datares::{DataRes, DataResDeserialize}, failureres::FailureRes, jumpres::JumpRes, programres::ProgramRes, stickres::StickRes }, core::channel::wrappedchannelsender::WrappedChannelSender};
+use crate::{request::minirequests::{bootchannelres::BootChannelRes, datares::{DataRes, DataResDeserialize}, failureres::FailureRes, jumpres::JumpRes, programres::ProgramRes, stickres::StickRes }, core::channel::wrappedchannelsender::WrappedChannelSender};
 
 pub(crate) trait MiniResponseVariety {
     fn description(&self) -> &str;
@@ -14,7 +14,6 @@ pub enum MiniResponse {
     FailureRes(FailureRes),
     Program(ProgramRes),
     Stick(StickRes),
-    Authority(AuthorityRes),
     Data(DataRes),
     Jump(JumpRes)
 }
@@ -37,7 +36,6 @@ impl MiniResponse {
             MiniResponse::FailureRes(x) => x,
             MiniResponse::Program(x) => x,
             MiniResponse::Stick(x) => x,
-            MiniResponse::Authority(x) => x,
             MiniResponse::Data(x) => x,
             MiniResponse::Jump(x) => x
         }
@@ -58,7 +56,6 @@ impl MiniResponse {
     accessor!(self,into_jump,Jump,JumpRes);
     accessor!(self,into_program,Program,ProgramRes);
     accessor!(self,into_stick,Stick,StickRes);
-    accessor!(self,into_authority,Authority,AuthorityRes);
     accessor!(self,into_data,Data,DataRes);
     accessor!(self,into_boot_channel,BootChannel,BootChannelRes);
 
@@ -83,7 +80,6 @@ impl<'de> Visitor<'de> for MiniResponseVisitor {
             1 => MiniResponse::FailureRes(st_field("opdata",seq.next_element()?)?),
             2 => MiniResponse::Program(st_field("opdata",seq.next_element()?)?),
             3 => MiniResponse::Stick(st_field("opdata",seq.next_element()?)?),
-            4 => MiniResponse::Authority(st_field("opdata",seq.next_element()?)?),
             5 => MiniResponse::Data(st_field("opdata",seq.next_element_seed(DataResDeserialize(self.0.clone(),self.1.clone()))?)?),
             6 => MiniResponse::Jump(st_field("opdata",seq.next_element()?)?),
             v => { return Err(serde::de::Error::custom(format!("unknown opcode {}",v))); }

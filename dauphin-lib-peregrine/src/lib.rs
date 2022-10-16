@@ -18,7 +18,6 @@ mod util;
 
 /* interp */
 mod interp {
-    mod boot;
     mod data;
     mod decompress;
     mod eoes;
@@ -41,7 +40,6 @@ pub use payloads::add_peregrine_payloads;
 /* compile */
 #[cfg(any(feature = "compile",test))]
 mod compile {
-    mod boot;
     mod data;
     mod decompress;
     mod eoes;
