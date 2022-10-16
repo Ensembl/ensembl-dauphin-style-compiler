@@ -1,19 +1,23 @@
-use crate::{PgDauphin, run::pgdauphin::add_programs_from_response, MaxiResponse, api::MessageSender, BackendNamespace, request::tracks::trackdata::add_tracks_from_response};
+use crate::{PgDauphin, run::pgdauphin::add_programs_from_response, MaxiResponse, api::MessageSender, BackendNamespace, request::tracks::trackdata::add_tracks_from_response, PeregrineApiQueue, Switches};
 
 #[derive(Clone)]
 pub(crate) struct RequestSidecars {
-    pgd: PgDauphin
+    pgd: PgDauphin,
+    switches: Switches,
+    queue: PeregrineApiQueue
 }
 
 impl RequestSidecars {
-    pub(crate) fn new(pgd: &PgDauphin) -> RequestSidecars {
+    pub(crate) fn new(pgd: &PgDauphin, switches: &Switches, queue: &PeregrineApiQueue) -> RequestSidecars {
         RequestSidecars {
-            pgd: pgd.clone()
+            pgd: pgd.clone(),
+            queue: queue.clone(),
+            switches: switches.clone()
         }
     }
 
     pub(crate) async fn run(&self, response: &MaxiResponse, channel: &BackendNamespace, messages: &MessageSender) {
         add_programs_from_response(&self.pgd,channel,response,messages).await;
-        add_tracks_from_response(response);
+        add_tracks_from_response(response,&self.switches,&self.queue);
     }
 }

@@ -75,7 +75,7 @@ scales = [9,60,60]
 include=["focus-gene"]
 
 [track.ruler]
-scales = [0,100,100]
+scales = [0,100,1]
 triggers = [["ruler"]]
 extra=[["settings"]]
 

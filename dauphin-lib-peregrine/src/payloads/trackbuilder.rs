@@ -32,7 +32,7 @@ impl TrackBuilder {
     pub(crate) fn build(&mut self, switches: &Switches) {
         for (path,trigger) in &self.mounts {
             let path : Vec<_> = path.iter().map(|x| x.as_str()).collect();
-            switches.add_track(&path,&self.track,*trigger);
+            //switches.add_track(&path,&self.track,*trigger);
         }
     }
 }
