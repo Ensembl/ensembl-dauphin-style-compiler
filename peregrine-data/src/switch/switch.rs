@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use peregrine_toolkit::eachorevery::eoestruct::{StructBuilt, StructTemplate};
+use super::expansion::Expansion;
 use super::switchoverlay::SwitchOverlay;
 use super::trackconfig::TrackConfigNode;
 use crate::switch::track::Track;
@@ -10,6 +11,7 @@ pub(crate) struct Switch {
     value: StructBuilt,
     tracks: Vec<Track>,
     triggers: Vec<Track>,
+    expansions: Vec<Expansion>,
     null: StructBuilt, // Convenience
 }
 
@@ -22,6 +24,7 @@ impl Switch {
             radio: false,
             tracks: vec![],
             triggers: vec![],
+            expansions: vec![],
             null
         }
     }
@@ -62,11 +65,15 @@ impl Switch {
         }
     }
 
-    pub fn add_track(&mut self, track: &Track, trigger: bool) {
+    pub(crate) fn add_track(&mut self, track: &Track, trigger: bool) {
         self.tracks.push(track.clone());
         if trigger {
             self.triggers.push(track.clone());
         }
+    }
+
+    pub(crate) fn add_expansion(&mut self, expansion: &Expansion) {
+        self.expansions.push(expansion.clone());
     }
 
     fn unset_kids(&mut self) {

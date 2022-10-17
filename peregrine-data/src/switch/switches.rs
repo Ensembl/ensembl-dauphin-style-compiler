@@ -2,9 +2,9 @@ use std::sync::{Arc, Mutex};
 
 use peregrine_toolkit::{eachorevery::eoestruct::{StructTemplate, StructBuilt, StructConst}, lock};
 
-use crate::{Track, request::tracks::trackmodel::TrackModel};
+use crate::{Track, request::tracks::{trackmodel::TrackModel, expansionmodel::ExpansionModel}};
 
-use super::{trackconfiglist::TrackConfigList, switch::Switch, trackconfig::TrackConfigNode};
+use super::{trackconfiglist::TrackConfigList, switch::Switch, trackconfig::TrackConfigNode, expansion::Expansion};
 
 pub(super) struct SwitchesData {
     root: Switch,
@@ -72,8 +72,8 @@ impl Switches {
         data.track_config_list = None;
     }
 
-    pub fn add_track(&self, path: &[&str], track: &Track, trigger: bool) {
-        let mut data = self.0.lock().unwrap();
+    fn add_track(&self, path: &[&str], track: &Track, trigger: bool) {
+        let mut data = lock!(self.0);
         let target = data.root.get_target(path);
         target.add_track(track,trigger);
         data.track_config_list = None;
@@ -84,6 +84,21 @@ impl Switches {
         for (mount,trigger) in model.mount_points() {
             let path = mount.iter().map(|x| x.as_str()).collect::<Vec<_>>();
             self.add_track(&path,&track,trigger);
+        }
+    }
+
+    fn add_expansion(&self, path: &[&str], expansion: &Expansion) {
+        let mut data = lock!(self.0);
+        let target = data.root.get_target(path);
+        target.add_expansion(expansion);
+        data.track_config_list = None;        
+    }
+
+    pub fn add_expansion_model(&self, model: &ExpansionModel) {
+        let expansion = model.to_expansion();
+        for trigger in model.triggers() {
+            let path = trigger.iter().map(|x| x.as_str()).collect::<Vec<_>>();
+            self.add_expansion(&path,&expansion);
         }
     }
 

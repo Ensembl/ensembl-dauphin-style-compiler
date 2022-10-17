@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::BackendNamespace;
+use crate::{BackendNamespace, switch::expansion::Expansion};
 
 #[derive(Debug)]
 pub struct ExpansionModelBuilder {
@@ -30,5 +30,13 @@ pub struct ExpansionModel(Arc<ExpansionModelBuilder>);
 impl ExpansionModel {
     pub fn new(builder: ExpansionModelBuilder) -> ExpansionModel {
         ExpansionModel(Arc::new(builder))
+    }
+
+    pub(crate) fn to_expansion(&self) -> Expansion {
+        Expansion::new(&self.0.name,&self.0.backend_namespace)
+    }
+
+    pub(crate) fn triggers(&self) -> &[Vec<String>] {
+        &self.0.triggers
     }
 }

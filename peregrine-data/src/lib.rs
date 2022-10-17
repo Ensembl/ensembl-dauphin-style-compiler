@@ -228,6 +228,7 @@ pub(crate) mod spacebase {
 }
 
 pub(crate) mod switch {
+    pub(crate) mod expansion;
     pub(crate) mod track;
     pub(crate) mod switch;
     pub(crate) mod switches;
