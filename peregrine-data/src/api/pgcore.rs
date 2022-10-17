@@ -75,7 +75,7 @@ impl PeregrineCore {
     pub fn new<M,F>(integration: Box<dyn PeregrineIntegration>, commander: M, messages: F, queue: &PeregrineApiQueue, redraw_needed: &Needed, mut channel_integrations: Vec<Rc<dyn ChannelIntegration>>) -> Result<PeregrineCore,DataMessage> 
                 where M: Commander + 'static, F: FnMut(Error) + 'static + Send {
         let shutdown = OneShot::new();
-        let switches = Switches::new();
+        let mut switches = Switches::new();
         let integration = Arc::new(Mutex::new(integration));
         let graphics = Graphics::new(&integration);
         let commander = PgCommander::new(Box::new(commander));
@@ -94,6 +94,7 @@ impl PeregrineCore {
         let channel_registry = channel_registry.build();
         let manager = RequestManager::new(&low_manager,&channel_registry);
         let all_backends = AllBackends::new(&manager,&metrics);
+        switches.set_all_backends(&all_backends);
         let base = PeregrineCoreBase {
             answer_allocator: Arc::new(Mutex::new(AnswerAllocator::new())),
             channel_registry,

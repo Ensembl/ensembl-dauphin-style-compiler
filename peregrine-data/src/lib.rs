@@ -163,6 +163,8 @@ mod request {
         pub(crate) mod bootchannelres;
         pub(crate) mod datareq;
         pub(crate) mod datares;
+        pub(crate) mod expandreq;
+        pub(crate) mod expandres;
         pub(crate) mod failureres;
         pub(crate) mod jumpreq;
         pub(crate) mod jumpres;

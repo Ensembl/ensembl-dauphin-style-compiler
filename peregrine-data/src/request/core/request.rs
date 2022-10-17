@@ -1,6 +1,7 @@
 // TODO tied failures
 use crate::request::minirequests::bootchannelreq::BootChannelReq;
 use crate::request::minirequests::datareq::DataRequest;
+use crate::request::minirequests::expandreq::ExpandReq;
 use crate::request::minirequests::failureres::FailureRes;
 use crate::request::minirequests::jumpreq::JumpReq;
 use crate::request::minirequests::metricreq::MetricReport;
@@ -24,7 +25,8 @@ pub enum MiniRequest {
     Stick(StickReq),
     Data(DataRequest),
     Jump(JumpReq),
-    Metric(MetricReport)
+    Metric(MetricReport),
+    Expand(ExpandReq)
 }
 
 impl MiniRequest {
@@ -35,7 +37,8 @@ impl MiniRequest {
             MiniRequest::Stick(x) => x,
             MiniRequest::Data(x) => x,
             MiniRequest::Jump(x) => x,
-            MiniRequest::Metric(x) => x
+            MiniRequest::Metric(x) => x,
+            MiniRequest::Expand(x) => x
         }
     }
 }
@@ -49,7 +52,8 @@ impl Serialize for MiniRequest {
             MiniRequest::Stick(x) =>  x.serialize(serializer),
             MiniRequest::Data(x) =>  x.serialize(serializer),
             MiniRequest::Jump(x) =>  x.serialize(serializer),
-            MiniRequest::Metric(x) => x.serialize(serializer)
+            MiniRequest::Metric(x) => x.serialize(serializer),
+            MiniRequest::Expand(x) => x.serialize(serializer),
         }
     }
 }

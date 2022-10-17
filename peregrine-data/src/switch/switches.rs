@@ -1,17 +1,33 @@
 use std::sync::{Arc, Mutex};
 
-use peregrine_toolkit::{eachorevery::eoestruct::{StructTemplate, StructBuilt, StructConst}, lock};
+use peregrine_toolkit::{eachorevery::eoestruct::{StructTemplate, StructBuilt, StructConst}, lock, error::Error};
 
-use crate::{Track, request::tracks::{trackmodel::TrackModel, expansionmodel::ExpansionModel}};
+use crate::{Track, request::tracks::{trackmodel::TrackModel, expansionmodel::ExpansionModel}, AllBackends};
 
 use super::{trackconfiglist::TrackConfigList, switch::Switch, trackconfig::TrackConfigNode, expansion::Expansion};
 
 pub(super) struct SwitchesData {
     root: Switch,
+    all_backends: Option<AllBackends>,
     track_config_list: Option<TrackConfigList>
 }
 
 impl SwitchesData {
+    fn new() -> SwitchesData {
+        let mut out = SwitchesData {
+            root: Switch::new(),
+            all_backends: None,
+            track_config_list: None
+        };
+        let tmpl_true = StructTemplate::new_boolean(true).build().ok().unwrap();
+        out.root.set(tmpl_true);
+        out
+    }
+
+    fn set_all_backends(&mut self, all_backends: &AllBackends) {
+        self.all_backends = Some(all_backends.clone());
+    }
+
     fn get_track_config_list(&mut self) -> &TrackConfigList {
         if self.track_config_list.is_none() {
             self.track_config_list = Some(TrackConfigList::new(&self));
@@ -35,21 +51,35 @@ impl SwitchesData {
 }
 
 #[derive(Clone)]
-pub struct Switches(Arc<Mutex<SwitchesData>>);
+pub struct Switches {
+    data: Arc<Mutex<SwitchesData>>,
+}
 
 impl Switches {
     pub fn new() -> Switches {
-        let out = Switches(Arc::new(Mutex::new(SwitchesData {
-            root: Switch::new(),
-            track_config_list: None
-        })));
-        let tmpl_true = StructTemplate::new_boolean(true).build().ok().unwrap();
-        out.switch(&[],tmpl_true);
-        out
+        Switches{
+            data: Arc::new(Mutex::new(SwitchesData::new()))
+        }
     }
 
-    pub fn switch(&self, path: &[&str], value: StructBuilt) {
-        let mut data = self.0.lock().unwrap();
+    pub fn set_all_backends(&mut self, all_backends: &AllBackends) {
+        lock!(self.data).set_all_backends(all_backends);
+    }
+
+    async fn run_expansions(&self, path: &[&str]) -> Result<(),Error> {
+        let mut data = lock!(self.data);
+        let all_backends = data.all_backends.clone().expect("missing all_backends");
+        let expansions = data.root.find_expansions(path);
+        drop(data);
+        for expansion in &expansions {
+            expansion.run(&all_backends).await?;
+        }
+        Ok(())
+    }
+
+    pub async fn switch(&self, path: &[&str], value: StructBuilt) -> Result<(),Error> {
+        self.run_expansions(path).await?;
+        let mut data = lock!(self.data);
         if value.truthy() {
             /* unset radio siblings */
             if path.len() > 0 {
@@ -64,16 +94,17 @@ impl Switches {
             target.set(value);
         }
         data.track_config_list = None;
+        Ok(())
     }
 
     pub fn radio_switch(&self, path: &[&str], yn: bool) {
-        let mut data = self.0.lock().unwrap();
+        let mut data = lock!(self.data);
         data.root.get_target(path).set_radio(yn);        
         data.track_config_list = None;
     }
 
     fn add_track(&self, path: &[&str], track: &Track, trigger: bool) {
-        let mut data = lock!(self.0);
+        let mut data = lock!(self.data);
         let target = data.root.get_target(path);
         target.add_track(track,trigger);
         data.track_config_list = None;
@@ -88,7 +119,7 @@ impl Switches {
     }
 
     fn add_expansion(&self, path: &[&str], expansion: &Expansion) {
-        let mut data = lock!(self.0);
+        let mut data = lock!(self.data);
         let target = data.root.get_target(path);
         target.add_expansion(expansion);
         data.track_config_list = None;        
@@ -103,6 +134,6 @@ impl Switches {
     }
 
     pub fn get_track_config_list(&self) -> TrackConfigList {
-        lock!(self.0).get_track_config_list().clone()
+        lock!(self.data).get_track_config_list().clone()
     }
 }

@@ -8,6 +8,7 @@ edition = "2018"
 
 [dependencies]
 anyhow="*"
+async-recursion="*"
 async-trait="*"
 owning_ref="*"
 serde={ version="*", features=["rc"] }

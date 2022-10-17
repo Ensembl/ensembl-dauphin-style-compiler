@@ -43,6 +43,19 @@ impl Switch {
         }
     }
 
+    // TODO expended expansions
+    pub(super) fn find_expansions(&mut self, path: &[&str]) -> Vec<Expansion> {
+        if path.len() > 0 {
+            if self.expansions.len() > 0 {
+                self.expansions.clone()
+            } else {
+                self.get_or_make(&path[0]).find_expansions(&path[1..])
+            }
+        } else {
+            vec![]
+        }
+    }
+
     pub(super) fn remove(&mut self, path: &[&str]) {
         if path.len() > 1 {
             if let Some(child) = self.kids.get_mut(&path[0].to_string()) {

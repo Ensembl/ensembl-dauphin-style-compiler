@@ -32,6 +32,7 @@
         <button id="unload">unload</button>
         <button id="tr-all-off">all tr off</button>
         <button id="tr-all-on">all tr on</button>
+        <button id="expand1">expand1</button>
         <br/>
         <div style="width: 200px; word-break: break-all;">current: <span id="current"></span></div>
         <div style="width: 200px; word-break: break-all;">target: <span id="target"></span></div>
@@ -410,6 +411,9 @@
         };
         document.getElementById("tr-all-on").onclick = function() {
           tr_all(true);
+        };
+        document.getElementById("expand1").onclick = function() {
+          genome_browser.switch(["track","expand","1"],true);
         };
         document.getElementById("unload").onclick = function() {
           document.getElementById("browser").remove();

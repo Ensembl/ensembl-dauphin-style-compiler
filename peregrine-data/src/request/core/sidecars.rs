@@ -3,7 +3,7 @@ use crate::{PgDauphin, run::pgdauphin::add_programs_from_response, MaxiResponse,
 #[derive(Clone)]
 pub(crate) struct RequestSidecars {
     pgd: PgDauphin,
-    switches: Switches,
+    switches: Box<Switches>,
     queue: PeregrineApiQueue
 }
 
@@ -12,7 +12,7 @@ impl RequestSidecars {
         RequestSidecars {
             pgd: pgd.clone(),
             queue: queue.clone(),
-            switches: switches.clone()
+            switches: Box::new(switches.clone())
         }
     }
 

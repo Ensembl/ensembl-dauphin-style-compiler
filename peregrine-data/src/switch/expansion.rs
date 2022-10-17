@@ -1,4 +1,6 @@
-use crate::BackendNamespace;
+use peregrine_toolkit::error::Error;
+
+use crate::{BackendNamespace, AllBackends};
 
 #[derive(Clone)]
 pub struct Expansion {
@@ -9,5 +11,11 @@ pub struct Expansion {
 impl Expansion {
     pub(crate) fn new(name: &str, backend_namespace: &BackendNamespace) -> Expansion {
         Expansion { name: name.to_string(), backend_namespace: backend_namespace.clone() }
+    }
+
+    pub(crate) async fn run(&self, all_backends: &AllBackends) -> Result<(),Error> {
+        let backend = all_backends.backend(&self.backend_namespace)?;
+        backend.expand(&self.name).await?;
+        Ok(())
     }
 }

@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::{Arc, Mutex}, rc::Rc};
 use peregrine_toolkit::{lock, error::Error};
-use crate::{ProgramName, Stick, StickId, metric::{datastreammetric::PacketDatastreamMetricBuilder, metricreporter::MetricCollector}, request::minirequests::{datareq::DataRequest, datares::{DataResponse}, jumpreq::JumpReq, jumpres::{JumpLocation, JumpRes}, programreq::ProgramReq, stickreq::StickReq, stickres::StickRes}, PacketPriority, BackendNamespace};
+use crate::{ProgramName, Stick, StickId, metric::{datastreammetric::PacketDatastreamMetricBuilder, metricreporter::MetricCollector}, request::minirequests::{datareq::DataRequest, datares::{DataResponse}, jumpreq::JumpReq, jumpres::{JumpLocation, JumpRes}, programreq::ProgramReq, stickreq::StickReq, stickres::StickRes, expandreq::ExpandReq}, PacketPriority, BackendNamespace};
 use super::{request::{MiniRequest}, manager::{RequestManager}, response::MiniResponseAttempt};
 
 #[derive(Clone)]
@@ -64,6 +64,12 @@ impl Backend {
     pub async fn program(&self, program_name: &ProgramName) -> Result<(),Error> {
         let req = ProgramReq::new(&program_name);
         self.submit_hi(req, |d| d.into_variety().into_program()).await?;
+        Ok(())
+    }
+
+    pub async fn expand(&self, name: &str) -> Result<(),Error> {
+        let req = ExpandReq::new(name);
+        self.submit_hi(req, |d| d.into_variety().into_expand()).await?;
         Ok(())
     }
 }

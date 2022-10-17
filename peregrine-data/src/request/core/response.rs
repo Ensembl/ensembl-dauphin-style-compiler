@@ -1,7 +1,7 @@
 use std::{fmt, sync::Arc, any::Any};
 use peregrine_toolkit::{serdetools::st_field};
 use serde::{Deserializer, de::{Visitor, DeserializeSeed}};
-use crate::{request::minirequests::{bootchannelres::BootChannelRes, datares::{DataRes, DataResDeserialize}, failureres::FailureRes, jumpres::JumpRes, programres::ProgramRes, stickres::StickRes }, core::channel::wrappedchannelsender::WrappedChannelSender};
+use crate::{request::minirequests::{bootchannelres::BootChannelRes, datares::{DataRes, DataResDeserialize}, failureres::FailureRes, jumpres::JumpRes, programres::ProgramRes, stickres::StickRes, expandres::ExpandRes }, core::channel::wrappedchannelsender::WrappedChannelSender};
 
 pub(crate) trait MiniResponseVariety {
     fn description(&self) -> &str;
@@ -15,7 +15,8 @@ pub enum MiniResponse {
     Program(ProgramRes),
     Stick(StickRes),
     Data(DataRes),
-    Jump(JumpRes)
+    Jump(JumpRes),
+    Expand(ExpandRes)
 }
 
 macro_rules! accessor {
@@ -37,7 +38,8 @@ impl MiniResponse {
             MiniResponse::Program(x) => x,
             MiniResponse::Stick(x) => x,
             MiniResponse::Data(x) => x,
-            MiniResponse::Jump(x) => x
+            MiniResponse::Jump(x) => x,
+            MiniResponse::Expand(x) => x,
         }
     }
 
@@ -58,6 +60,8 @@ impl MiniResponse {
     accessor!(self,into_stick,Stick,StickRes);
     accessor!(self,into_data,Data,DataRes);
     accessor!(self,into_boot_channel,BootChannel,BootChannelRes);
+    accessor!(self,into_expand,Expand,ExpandRes);
+
 
     #[cfg(debug_big_requests)]
     pub(crate) fn total_size(&self) -> usize { self.as_mini().total_size() }
@@ -82,6 +86,7 @@ impl<'de> Visitor<'de> for MiniResponseVisitor {
             3 => MiniResponse::Stick(st_field("opdata",seq.next_element()?)?),
             5 => MiniResponse::Data(st_field("opdata",seq.next_element_seed(DataResDeserialize(self.0.clone(),self.1.clone()))?)?),
             6 => MiniResponse::Jump(st_field("opdata",seq.next_element()?)?),
+            7 => MiniResponse::Expand(st_field("opdata",seq.next_element()?)?),
             v => { return Err(serde::de::Error::custom(format!("unknown opcode {}",v))); }
         })
     }

@@ -9,7 +9,7 @@ import cbor2
 import urllib
 from typing import Any, List, Tuple
 from .datasources import DataAccessor, DataAccessorCollection
-from .controlcmds import BootstrapHandler, ProgramHandler, ErrorHandler, StickHandler, StickAuthorityHandler
+from .controlcmds import BootstrapHandler, ProgramHandler, ErrorHandler, StickHandler, StickAuthorityHandler, ExpansionHandler
 from .metriccmd import MetricHandler
 from .datacmd import DataHandler, JumpHandler
 from util.influx import ResponseMetrics
@@ -25,7 +25,8 @@ handlers = {
     3: StickAuthorityHandler(), # doesn't exist v15 onwards
     4: DataHandler(),
     5: JumpHandler(),
-    6: MetricHandler()
+    6: MetricHandler(),
+    7: ExpansionHandler()
 }
 
 def type_to_handler(typ: int) -> Handler:

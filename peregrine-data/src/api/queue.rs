@@ -132,7 +132,7 @@ impl ApiQueueCampaign {
                 carriage.set_ready();
             },
             ApiMessage::Switch(path,value) => {
-                data.switches.switch(&path.iter().map(|x| x.as_str()).collect::<Vec<_>>(),value);
+                data.switches.switch(&path.iter().map(|x| x.as_str()).collect::<Vec<_>>(),value).await;
                 self.viewport = self.viewport.set_track_config_list(&data.switches.get_track_config_list());
             },
             ApiMessage::RadioSwitch(path,yn) => {
