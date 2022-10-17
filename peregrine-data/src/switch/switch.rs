@@ -43,7 +43,6 @@ impl Switch {
         }
     }
 
-    // TODO expended expansions
     pub(super) fn find_expansions(&mut self, path: &[&str]) -> Vec<(Expansion,String)> {
         if path.len() > 0 {
             if self.expansions.len() > 0 {
