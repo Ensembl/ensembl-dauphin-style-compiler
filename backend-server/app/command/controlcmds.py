@@ -85,6 +85,7 @@ class StickHandler(Handler):
                 "tags": [t for t in chromosome.tags]
             })
 
+# doesn't exist v15 onwards
 class StickAuthorityHandler(Handler):
     def process(self, data_accessor: DataAccessor, channel: Any, payload: Any, metrics: ResponseMetrics, version: Version) -> Response:
         try:

@@ -64,11 +64,11 @@ class Track:
         switches |= set(self._triggers)
         switches |= set(self._extra)
         switches |= set(self._set)
-        logging.warn(str(self._tags))
         return (switches,set((self._program,)),set(self._tags))
 
-    def _dump_for_wire(self, dumper):
+    def _dump_for_wire(self, dumper, name):
         return {
+            "name": name,
             "program": dumper.program_mapping[self._program],
             "scales": self._scales,
             "tags": [dumper.tag_mapping[x] for x in self._tags],
@@ -77,9 +77,34 @@ class Track:
             "set": increase(sorted([dumper.switch_mapping[x] for x in self._set])),
         }
 
+class Expansion:
+    def __init__(self,name):
+        self._name = name
+        self._channel = None
+        self._triggers = []
+
+    def ingest_toml(self,data):
+        if "name" in data:
+            self._name = data["name"]
+        if "channel" in data:
+            self._channel = tuple(data["channel"])
+        if "triggers" in data:
+            self._triggers += [tuple(x) for x in data["triggers"]]
+
+    def _collect(self) -> Set:
+        return (set(self._triggers),set([self._channel]))
+
+    def _dump_for_wire(self, dumper):
+        return {
+            "e-name": self._name,
+            "e-channel": dumper.channel_mapping[self._channel],
+            "e-triggers": increase(sorted([dumper.switch_mapping[x] for x in self._triggers]))
+        }
+
 class Tracks:
     def __init__(self,expanded_toml=None):
         self._tracks = {}
+        self._expansions = {}
         if expanded_toml is not None:
             self.ingest_toml(expanded_toml)
 
@@ -95,32 +120,38 @@ class Tracks:
                 track.ingest_toml(includes[inc_name])
             track.ingest_toml(track_data)
             self._tracks[name] = track
+        for (name,expansion_data) in data.get("expansion",{}).items():
+            expansion = Expansion(name)
+            expansion.ingest_toml(expansion_data)
+            self._expansions[name] = expansion
 
     def merge(self, other):
         # later additions get priority (ie local over remote)
-        for (name,track) in other._tracks.items():
-            self._tracks[name] = track
+        self._tracks.update(other._tracks)
+        self._expansions.update(other._expansions)
 
     def _collect(self):
         switches = set()
         programs = set()
         tags = set()
+        channels = set()
         for track in self._tracks.values():
             (more_switches,more_programs,more_tags) = track._collect()
             switches |= more_switches
             programs |= more_programs
             tags |= more_tags
-        return (switches,programs,tags)
+        for expansion in self._expansions.values():
+            (more_switches,more_channels) = expansion._collect()
+            switches |= more_switches
+            channels |= more_channels
+        return (switches,programs,tags,channels)
 
     def dump_for_wire(self):
-        logging.warn(TracksDump(self).data)
         return TracksDump(self).data
 
-def rotate(data):
+def rotate(data, key):
     out = {}
-    out['name'] = []
-    for (name,item) in sorted(data.items(), key=lambda x: x[1]['scales'][0]):
-        out['name'].append(name)
+    for (name,item) in sorted(data.items(), key=key):
         for (key,value) in item.items():
             if key not in out:
                 out[key] = []
@@ -140,19 +171,25 @@ class TracksDump:
         if len(tracks._tracks) == 0:
             self.data = None
             return
-        (switches,programs,tags) = tracks._collect()
+        (switches,programs,tags,channels) = tracks._collect()
+        (channels_idx,self.channel_mapping) = _prefix_encode(channels)
         (switch_tree,self.switch_mapping) = _prefix_encode(switches)
         (program_list,self.program_mapping) = _build_map(programs)
         (tag_list,self.tag_mapping) = _build_map(tags)
         data = {}
         for (name,track) in tracks._tracks.items():
-            data[name] = track._dump_for_wire(self)
-        self.data = rotate(data)
+            data[name] = track._dump_for_wire(self,name)
+        self.data = rotate(data,lambda x: x[1]['scales'][0])
         (scale_start,scale_end,scale_step) = split_scale(self.data["scales"])
         self.data['scale_start'] = scale_start
         self.data['scale_end'] = scale_end
         self.data['scale_step'] = scale_step
         self.data.pop('scales',None)
+        expansions = {}
+        for (name,expansion) in tracks._expansions.items():
+            expansions[name] = expansion._dump_for_wire(self)
+        self.data.update(rotate(expansions,lambda x: x[1]['e-channel']))
         self.data['switch_idx'] = switch_tree
         self.data['program_idx'] = program_list
         self.data['tag_idx'] = tag_list
+        self.data['channel_idx'] = channels_idx

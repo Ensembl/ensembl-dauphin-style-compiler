@@ -22,7 +22,7 @@ handlers = {
     0: BootstrapHandler(),
     1: ProgramHandler(),
     2: StickHandler(),
-    3: StickAuthorityHandler(),
+    3: StickAuthorityHandler(), # doesn't exist v15 onwards
     4: DataHandler(),
     5: JumpHandler(),
     6: MetricHandler()
