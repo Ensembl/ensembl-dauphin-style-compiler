@@ -68,7 +68,7 @@ Both boot-time and expansion-triggered trackconfig payloads are the same. They c
   * the name of a style program
   * one or more points in the switch tree which act as triggers
   * zero or more additional points in the switch tree to include as configuration
-  * some settings to set to fixed values when you run the style compiler program
+  * some settings to set to fixed values when you run the style program
   * some tags to force the program only to be run with particular sticks
   * some parameters to force the program only to be run at certain scales
 

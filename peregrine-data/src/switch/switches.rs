@@ -67,12 +67,16 @@ impl Switches {
     }
 
     async fn run_expansions(&self, path: &[&str]) -> Result<(),Error> {
-        let mut data = lock!(self.data);
+        let data = lock!(self.data);
         let all_backends = data.all_backends.clone().expect("missing all_backends");
-        let expansions = data.root.find_expansions(path);
         drop(data);
-        for (expansion,step) in &expansions {
-            expansion.run(&all_backends,step).await?;
+        for len in 0..path.len() {
+            let mut data = lock!(self.data);
+            let expansions = data.root.find_expansions(&path[0..len]);
+            drop(data);
+            for (expansion,step) in &expansions {
+                expansion.run(&all_backends,step).await?;
+            }    
         }
         Ok(())
     }
