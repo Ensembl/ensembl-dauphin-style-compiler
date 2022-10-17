@@ -5,7 +5,7 @@ use std::any::Any;
 use std::fmt;
 use std::mem::replace;
 use std::sync::Arc;
-use crate::{core::channel::wrappedchannelsender::WrappedChannelSender, request::tracks::{trackres::TrackResult, trackmodel::TrackModel}};
+use crate::{core::channel::wrappedchannelsender::WrappedChannelSender, request::tracks::{trackres::TrackResult, trackmodel::TrackModel, expansionmodel::ExpansionModel}};
 use crate::{BackendNamespace};
 use crate::core::programbundle::SuppliedBundle;
 use super::response::{MiniResponseAttempt, MiniResponseAttemptVecDeserialize};
@@ -20,7 +20,8 @@ pub struct MaxiResponse {
     channel: BackendNamespace,
     responses: Vec<MiniResponseAttempt>,
     programs: Vec<SuppliedBundle>,
-    tracks: Vec<TrackModel>
+    tracks: Vec<TrackModel>,
+    expansions: Vec<ExpansionModel>
 }
 
 impl MaxiResponse {
@@ -29,7 +30,8 @@ impl MaxiResponse {
             channel: channel.clone(),
             responses: vec![],
             programs: vec![],
-            tracks: vec![]
+            tracks: vec![],
+            expansions: vec![]
         }
     }
 
@@ -61,6 +63,7 @@ impl MaxiResponse {
     pub(crate) fn channel(&self) -> &BackendNamespace { &self.channel }
     pub(crate) fn programs(&self) -> &[SuppliedBundle] { &self.programs }
     pub(crate) fn tracks(&self) -> &[TrackModel] { &self.tracks }
+    pub(crate) fn expansions(&self) -> &[ExpansionModel] { &self.expansions }
     pub(crate) fn take_responses(&mut self) -> Vec<MiniResponseAttempt> {
         self.check_big_requests();
         replace(&mut self.responses,vec![])
@@ -97,16 +100,17 @@ impl<'de> Visitor<'de> for MaxiResponseVisitor {
         let responses = st_field("responses",responses)?;
         let channel = st_field("channel",channel)?;
         let programs = st_field("programs",programs)?;
-        let tracks = if let Some(tracks_packed) = tracks_packed {
+        let (tracks,expansions) = if let Some(tracks_packed) = tracks_packed {
             st_err(tracks_packed.to_track_models(&channel),"unpacking tracks")?
         } else {
-            vec![]
+            (vec![],vec![])
         };
         Ok(MaxiResponse {
             channel, 
             responses, 
             programs,
             tracks,
+            expansions
         })
     }
 }

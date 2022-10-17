@@ -25,6 +25,12 @@ impl<'de> Visitor<'de> for DiffSetVisitor {
 #[derive(Clone,Debug)]
 pub(super) struct DiffSet(pub(super) Vec<usize>);
 
+impl DiffSet {
+    pub(super) fn iter(&self) -> impl Iterator<Item=&usize> {
+        self.0.iter()
+    }
+}
+
 impl<'de> Deserialize<'de> for DiffSet {
     fn deserialize<D>(deserializer: D) -> Result<DiffSet, D::Error>
             where D: Deserializer<'de> {
