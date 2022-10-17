@@ -99,8 +99,8 @@ class StickAuthorityHandler(Handler):
 class ExpansionHandler(Handler):
     def process(self, data_accessor: DataAccessor, channel: Any, payload: Any, metrics: ResponseMetrics, version: Version) -> Response:
         try:
-            (name,) = payload
-            logging.warn("expand: {}".format(name))
+            (name,step) = payload
+            logging.warn("expand: {} {}".format(name,step))
             return Response(7,[])
         except UnknownVersionException as e:
             return Response(1,e)

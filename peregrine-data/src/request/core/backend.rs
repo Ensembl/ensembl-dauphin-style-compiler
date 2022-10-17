@@ -67,8 +67,8 @@ impl Backend {
         Ok(())
     }
 
-    pub async fn expand(&self, name: &str) -> Result<(),Error> {
-        let req = ExpandReq::new(name);
+    pub async fn expand(&self, name: &str, step: &str) -> Result<(),Error> {
+        let req = ExpandReq::new(name,step);
         self.submit_hi(req, |d| d.into_variety().into_expand()).await?;
         Ok(())
     }

@@ -71,8 +71,8 @@ impl Switches {
         let all_backends = data.all_backends.clone().expect("missing all_backends");
         let expansions = data.root.find_expansions(path);
         drop(data);
-        for expansion in &expansions {
-            expansion.run(&all_backends).await?;
+        for (expansion,step) in &expansions {
+            expansion.run(&all_backends,step).await?;
         }
         Ok(())
     }
