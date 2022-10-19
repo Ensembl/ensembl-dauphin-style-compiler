@@ -271,23 +271,32 @@
             zmenu_data_el.innerText = JSON.stringify(zmenu_data);
           }
         });
+        function delay(t, v) {
+          return new Promise(resolve => setTimeout(resolve, t, v));
+        }
         genome_browser.add_jsapi_channel("test",{
           callbacks: {
             jump: function(location) {
-              let parts = location.split(":");
-              let stick = parts.slice(1,parts.length-1).join(":");
-              if(parts.length < 3 || parts[0] != "region") { return null; }
-              let start_end = parts[parts.length-1].split("-");
-              if(start_end.length < 2) { return null; }
-              return [stick,parseInt(start_end[0]),parseInt(start_end[1])];
+              return delay(100).then(() => {
+                let parts = location.split(":");
+                let stick = parts.slice(1,parts.length-1).join(":");
+                if(parts.length < 3 || parts[0] != "region") { return null; }
+                let start_end = parts[parts.length-1].split("-");
+                if(start_end.length < 2) { return null; }
+                return [stick,parseInt(start_end[0]),parseInt(start_end[1])];
+              })
             },
             stickinfo: function(stick) {
-              console.log("stickindo "+stick);
-              return null;
+              return delay(100).then(() => {
+                console.log("stick "+stick);
+                return null;
+              })
             },
             boot: function() {
-              console.log("booting");
-              return {};
+              return delay(100).then(() => {
+                console.log("booting inside");
+                return { "A": "x" };
+              });
             }
           }
         });

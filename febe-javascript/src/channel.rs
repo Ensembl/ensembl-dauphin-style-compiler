@@ -28,15 +28,15 @@ impl JavascriptChannel {
         for attempt in maxi.requests() {
             match attempt.request() {
                 MiniRequest::Jump(req) => { 
-                    let res = self.backend.jump(req)?;
+                    let res = self.backend.jump(req).await?;
                     out.add_response(attempt.make_response_attempt(MiniResponse::Jump(res)));
                 },
                 MiniRequest::BootChannel(req) => {
-                    let res = self.backend.boot(req)?;
+                    let res = self.backend.boot(req).await?;
                     out.add_response(attempt.make_response_attempt(MiniResponse::BootChannel(res)));
                 },
                 MiniRequest::Stick(req) => {
-                    let res = self.backend.stickinfo(req)?;
+                    let res = self.backend.stickinfo(req).await?;
                     out.add_response(attempt.make_response_attempt(MiniResponse::Stick(res)));
                 },
                 _ => { 

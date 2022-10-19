@@ -13,9 +13,9 @@ impl Backend {
         Backend { backend_namespace, callbacks }
     }
 
-    pub(crate) fn jump(&self, req: &JumpReq) -> Result<JumpRes,Error> {
+    pub(crate) async fn jump(&self, req: &JumpReq) -> Result<JumpRes,Error> {
         let location = req.location();
-        if let Some((stick,left,right)) = self.callbacks.jump(location)? {
+        if let Some((stick,left,right)) = self.callbacks.jump(location).await? {
             let location = JumpLocation { stick, left, right };
             Ok(JumpRes::Found(location))
         } else {
@@ -23,13 +23,13 @@ impl Backend {
         }
     }
 
-    pub(crate) fn boot(&self, _req: &BootChannelReq) -> Result<BootChannelRes,Error> {
-        self.callbacks.boot()?;
+    pub(crate) async fn boot(&self, _req: &BootChannelReq) -> Result<BootChannelRes,Error> {
+        self.callbacks.boot().await?;
         Ok(BootChannelRes::new(self.backend_namespace.clone(),Assets::empty(),Assets::empty(),Some(vec![15])))
     }
 
-    pub(crate) fn stickinfo(&self, req: &StickReq) -> Result<StickRes,Error> {
-        match self.callbacks.stickinfo(&req.id())? {
+    pub(crate) async fn stickinfo(&self, req: &StickReq) -> Result<StickRes,Error> {
+        match self.callbacks.stickinfo(&req.id()).await? {
             Some(stick) => Ok(StickRes::Stick(stick)),
             None => Ok(StickRes::Unknown(req.id().get_id().to_string()))
         }

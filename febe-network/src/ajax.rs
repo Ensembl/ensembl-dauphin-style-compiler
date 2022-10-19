@@ -2,14 +2,11 @@ use peregrine_toolkit::error::{Error};
 use peregrine_toolkit::{pg_ok, pg_unwrap};
 use peregrine_toolkit_async::js::promise::promise_to_future;
 use peregrine_toolkit::js::timer::Timer;
-use serde_wasm_bindgen::from_value;
 use wasm_bindgen::{ JsCast };
 use js_sys::{ Uint8Array };
 use web_sys;
 use web_sys::{ AbortController, Request, RequestInit, RequestMode, Response };
-use serde_json::Value as JsonValue;
 use peregrine_toolkit::url::Url;
-use serde_cbor::Value as CborValue;
 
 pub struct PgAjax {
     method: String,
@@ -58,11 +55,6 @@ impl PgAjax {
         self.body = Some(body);
     }
 
-    pub fn set_body_cbor(&mut self, value: &CborValue) -> Result<(),Error> {
-        self.set_body(pg_ok!(serde_cbor::to_vec(&value))?);
-        Ok(())
-    }
-
     fn add_abort(&mut self, init: &mut RequestInit, timeout: Option<f64>) -> Result<(),Error> {
         let controller = pg_ok!(AbortController::new())?;
         let signal = controller.signal();
@@ -97,14 +89,6 @@ impl PgAjax {
             return Err(Error::operr(&format!("unexpected status code: {}",response.status())));
         }
         Ok(response)
-    }
-
-    pub async fn get_json(&mut self) -> Result<JsonValue,Error> {
-        self.add_request_header("Content-Type","application/json");
-        let response = self.get().await.map(|r| r.json())?.ok().unwrap();
-        let js_json = promise_to_future(response).await.ok().unwrap();
-        let json : JsonValue = Error::oper_r(from_value(js_json),"cannot serialize json")?;
-        Ok(json)
     }
 
     pub async fn get_cbor(&mut self) -> Result<Vec<u8>,Error> {
