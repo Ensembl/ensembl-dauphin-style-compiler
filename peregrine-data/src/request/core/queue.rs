@@ -43,7 +43,7 @@ pub struct RequestQueue {
 }
 
 impl RequestQueue {
-    pub(crate) fn new(key: &QueueKey, commander: &PgCommander, realtime_lock: &Blocker, matcher: &AttemptMatch, sidecars: &RequestSidecars, version: &VersionMetadata, messages: &MessageSender) -> Result<RequestQueue,Error> {
+    pub(crate) fn new(key: &QueueKey, commander: &PgCommander, realtime_lock: &Blocker, matcher: &AttemptMatch, sidecars: &RequestSidecars, version: &VersionMetadata, messages: &MessageSender, do_pace: bool) -> Result<RequestQueue,Error> {
         let batch_size = match key.priority {
             PacketPriority::RealTime => None, /* limitless */
             PacketPriority::Batch => Some(20) /* no more than 20 at a time */

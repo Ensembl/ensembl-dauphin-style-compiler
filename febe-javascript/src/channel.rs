@@ -54,4 +54,6 @@ impl ChannelSender for JavascriptChannel {
         let self2 = self.clone();
         Box::pin(self2.send(prio.clone(),data,decoder))
     }
+
+    fn backoff(&self) -> bool { false }
 }

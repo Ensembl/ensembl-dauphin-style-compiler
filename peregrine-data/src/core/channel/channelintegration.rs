@@ -39,6 +39,7 @@ pub trait ChannelSender {
     fn get_sender(&self, prio: &PacketPriority, data: MaxiRequest, decoder: ChannelMessageDecoder) -> Pin<Box<dyn Future<Output=Result<MaxiResponse,Error>>>>;
     fn deserialize_data(&self, _payload: &dyn Any, _bytes: Vec<u8>) -> Result<Option<Vec<(String,Vec<u8>)>>,String> { Ok(None) }
     fn deserialize_index(&self, _payload: &dyn Any, _index: usize) -> Result<Option<Vec<u8>>,String> { Ok(None) }
+    fn backoff(&self) -> bool;
 }
 
 pub trait ChannelIntegration {

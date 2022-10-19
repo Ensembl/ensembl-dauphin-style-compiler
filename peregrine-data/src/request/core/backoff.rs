@@ -5,14 +5,18 @@ use super::{manager::{LowLevelRequestManager}, request::MiniRequest, queue::Queu
 
 pub struct Backoff { 
     manager: LowLevelRequestManager,
-    key: QueueKey
+    key: QueueKey,
+    repeats: usize,
+    pace: bool
 }
 
 impl Backoff {
-    pub(crate) fn new(manager: &LowLevelRequestManager, key: &QueueKey) -> Backoff {
+    pub(crate) fn new(manager: &LowLevelRequestManager, key: &QueueKey, enable: bool) -> Backoff {
         Backoff {
             manager: manager.clone(),
-            key: key.clone()
+            key: key.clone(),
+            repeats: if enable { 5 } else { 1 },  // XXX configurable
+            pace: enable
         }
     }
 
@@ -23,8 +27,8 @@ impl Backoff {
     pub(crate) async fn backoff<F,T>(&mut self, req: &Rc<MiniRequest>, cb: F) -> Result<T,Error>
                                                     where F: Fn(MiniResponseAttempt) -> Result<T,String> {
         let mut last_error = None;
-        for _ in 0..5 { // XXX configurable
-            let resp = self.manager.execute(&self.key,req)?.get().await;
+        for _ in 0..self.repeats {
+            let resp = self.manager.execute(&self.key,self.pace,req)?.get().await;
             match cb(resp) {
                 Ok(r) => { return Ok(r); },
                 Err(e) => { last_error = Some(e); }

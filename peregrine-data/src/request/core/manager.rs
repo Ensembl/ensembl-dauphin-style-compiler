@@ -15,7 +15,7 @@ use super::sidecars::RequestSidecars;
 use crate::core::channel::channelregistry::{ChannelRegistry};
 use crate::core::channel::wrappedchannelsender::WrappedChannelSender;
 use crate::core::version::VersionMetadata;
-use crate::{PgCommanderTaskSpec, add_task, PacketPriority, BackendNamespace };
+use crate::{PgCommanderTaskSpec, add_task, PacketPriority, BackendNamespace, ChannelSender };
 use crate::api::MessageSender;
 use crate::run::{ PgCommander };
 
@@ -49,8 +49,8 @@ impl LowLevelRequestManager {
         self.messages.send(message);
     }
 
-    fn create_queue(&self, key: &QueueKey) -> Result<RequestQueue,Error> {
-        let queue = RequestQueue::new(key,&self.commander,&self.real_time_lock,&self.matcher,&self.sidecars,&self.version,&self.messages)?;
+    fn create_queue(&self, key: &QueueKey, do_pace: bool) -> Result<RequestQueue,Error> {
+        let queue = RequestQueue::new(key,&self.commander,&self.real_time_lock,&self.matcher,&self.sidecars,&self.version,&self.messages,do_pace)?;
         let queue2 = queue.clone();
         self.shutdown.add(move || {
             queue2.input_queue().close();
@@ -58,19 +58,19 @@ impl LowLevelRequestManager {
         Ok(queue)
     }
 
-    fn get_queue(&mut self, key: &QueueKey) -> Result<RequestQueue,Error> {
+    fn get_queue(&mut self, key: &QueueKey, do_pace: bool) -> Result<RequestQueue,Error> {
         let mut queues = lock!(self.queues);
         let missing = queues.get(&key).is_none();
         if missing {
-            let queue = self.create_queue(&key)?;
+            let queue = self.create_queue(&key,do_pace)?;
             queues.insert(key.clone(),queue);
         }
         Ok(queues.get_mut(&key).unwrap().clone()) // safe because of above insert
     }
 
-    pub(crate) fn execute(&mut self, key: &QueueKey, request: &Rc<MiniRequest>) -> Result<CommanderStream<MiniResponseAttempt>,Error> {
+    pub(crate) fn execute(&mut self, key: &QueueKey, do_pace: bool, request: &Rc<MiniRequest>) -> Result<CommanderStream<MiniResponseAttempt>,Error> {
         let (request,stream) = self.matcher.make_attempt(request);
-        self.get_queue(key)?.input_queue().add(request);
+        self.get_queue(key,do_pace)?.input_queue().add(request);
         Ok(stream.clone())
     }
 
@@ -78,11 +78,11 @@ impl LowLevelRequestManager {
         Ok(QueueKey::new(&sender,priority,&name))
     }
 
-    pub(crate) async fn submit_direct<F,T>(&self, sender: &WrappedChannelSender, priority: &PacketPriority,  name: &Option<BackendNamespace>, request: &Rc<MiniRequest>, cb: F) 
+    pub(crate) async fn submit_direct<F,T>(&self, sender: &WrappedChannelSender, priority: &PacketPriority, name: &Option<BackendNamespace>, request: &Rc<MiniRequest>, cb: F) 
                                                                     -> Result<T,Error>
                                                                     where F: Fn(MiniResponseAttempt) -> Result<T,String> {
         let key = self.make_anon_key(sender,priority,name)?;
-        let mut backoff = Backoff::new(self,&key);
+        let mut backoff = Backoff::new(self,&key,sender.backoff());
         backoff.backoff(request,cb).await
     }
 }
@@ -101,36 +101,36 @@ impl RequestManager {
         }
     }
 
-    fn make_key(&self, name: &BackendNamespace, priority: &PacketPriority) -> Result<QueueKey,Error> {
+    fn make_key(&self, name: &BackendNamespace, priority: &PacketPriority) -> Result<(QueueKey,bool),Error> {
         let sender = self.channel_registry.name_to_sender(name)?;
-        Ok(QueueKey::new(&sender,priority,&Some(name.clone())))
+        Ok((QueueKey::new(&sender,priority,&Some(name.clone())),sender.backoff()))
     }
 
     pub(crate) async fn submit<F,T>(&self, name: &BackendNamespace, priority: &PacketPriority, request: &Rc<MiniRequest>, cb: F) 
                                                                     -> Result<T,Error>
                                                                     where F: Fn(MiniResponseAttempt) -> Result<T,String> {
-        let key = self.make_key(name,priority)?;
-        let mut backoff = Backoff::new(&self.low,&key);
+        let (key,enable_backoff) = self.make_key(name,priority)?;
+        let mut backoff = Backoff::new(&self.low,&key,enable_backoff);
         backoff.backoff(request,cb).await
     }
 
-    pub(crate) async fn submit_direct<F,T>(&self, sender: &WrappedChannelSender, priority: &PacketPriority,  name: &Option<BackendNamespace>, request: MiniRequest, cb: F) 
+    pub(crate) async fn submit_direct<F,T>(&self, sender: &WrappedChannelSender, priority: &PacketPriority, name: &Option<BackendNamespace>, request: MiniRequest, cb: F) 
                                                                     -> Result<T,Error>
                                                                     where F: Fn(MiniResponseAttempt) -> Result<T,String> {
-        self.low.submit_direct(sender, priority, name, &Rc::new(request), cb).await
+        self.low.submit_direct(sender,priority,name,&Rc::new(request),cb).await
     }
 
     pub(crate) fn execute_and_forget(&self, name: &BackendNamespace, request: MiniRequest) {
         let commander = self.low.commander.clone();
         let mut manager = self.clone();
-        if let Ok(key) = self.make_key(name,&PacketPriority::Batch) {
+        if let Ok((key,_)) = self.make_key(name,&PacketPriority::Batch) {
             add_task(&commander,PgCommanderTaskSpec {
                 name: "message".to_string(),
                 prio: 11,
                 timeout: None,
                 slot: None,
                 task: Box::pin(async move { 
-                    manager.low.execute(&key,&Rc::new(request)).ok().unwrap().get().await;
+                    manager.low.execute(&key,true,&Rc::new(request)).ok().unwrap().get().await;
                     Ok(())
                 }),
                 stats: false

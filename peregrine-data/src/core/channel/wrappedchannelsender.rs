@@ -44,4 +44,8 @@ impl ChannelSender for WrappedChannelSender {
     fn deserialize_index(&self, payload: &dyn Any, index: usize) -> Result<Option<Vec<u8>>,String> { 
         self.sender.deserialize_index(payload,index)
     }
+
+    fn backoff(&self) -> bool {
+        self.sender.backoff()
+    }
 }

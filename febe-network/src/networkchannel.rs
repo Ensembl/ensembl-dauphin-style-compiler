@@ -42,6 +42,8 @@ impl ChannelSender for NetworkChannelSender {
         let value = value.drain(..).map(|(k,v)| Ok((k,cbor_into_bytes(v)?))).collect::<Result<Vec<_>,String>>()?;
         Ok(Some(value))
     }
+
+    fn backoff(&self) -> bool { true }
 }
 
 pub struct NetworkChannel {
