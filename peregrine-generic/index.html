@@ -326,6 +326,7 @@
         genome_browser.switch(["track","contig","name"],true);
         genome_browser.switch(["track","variant"],true);
         genome_browser.switch(["track","variant","name"],true);
+        genome_browser.switch(["track","expand"],true);
         genome_browser.switch(["ruler"],true);
         //genome_browser.goto(2000000,3000000);
         //genome_browser.goto(6140000,6240000);
@@ -422,7 +423,7 @@
           tr_all(true);
         };
         document.getElementById("expand1").onclick = function() {
-          genome_browser.switch(["track","expand","1"],true);
+          genome_browser.switch(["track","expand","ff0099"],true);
         };
         document.getElementById("unload").onclick = function() {
           document.getElementById("browser").remove();

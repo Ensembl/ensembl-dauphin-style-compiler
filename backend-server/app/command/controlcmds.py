@@ -106,7 +106,7 @@ class ExpansionHandler(Handler):
                 name = x["name"]
                 self._expansions[(channel,name)] = getattr(expansions,x["run"])
 
-    def _get(self, channel, name) -> Optional[Callable[[str],Any]]:
+    def _get(self, channel, name) -> Optional[Callable[[str],Optional[Tracks]]]:
         for key in [(tuple(channel),name),(None,name)]:
             if key in self._expansions:
                 return self._expansions[key]
@@ -114,10 +114,13 @@ class ExpansionHandler(Handler):
 
     def process(self, data_accessor: DataAccessor, channel: Any, payload: Any, metrics: ResponseMetrics, version: Version) -> Response:
         try:
+            r = Response(7,[])
             (name,step) = payload
             callable = self._get(channel,name)
             if callable is not None:
-                callable(step)
-            return Response(7,[])
+                tracks = callable(step)
+            if tracks is not None:
+                r.add_tracks(tracks)
+            return r
         except UnknownVersionException as e:
             return Response(1,e)

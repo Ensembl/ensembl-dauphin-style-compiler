@@ -17,6 +17,12 @@ pub enum StructBuilt {
     Condition(usize,usize,Arc<StructBuilt>)
 }
 
+impl StructBuilt {
+    pub fn is_null(&self) -> bool {
+        self == &StructBuilt::Const(StructConst::Null)
+    }
+}
+
 impl Hash for StructBuilt {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         core::mem::discriminant(self).hash(state);

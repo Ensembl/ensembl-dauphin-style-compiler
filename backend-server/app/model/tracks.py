@@ -1,5 +1,5 @@
 import logging
-from typing import Set
+from typing import List, Set
 import cbor2
 
 def _count_prefix(a,b):
@@ -54,14 +54,28 @@ def remute(data):
         return data
 
 class Track:
-    def __init__(self,name):
+    def __init__(self,name,program=None,scales=None):
+        if program is None:
+            program = name
         self._name = name
-        self._program = name
-        self._scales = None
+        self._program = program
+        self._scales = scales
         self._triggers = []
         self._extra = []
         self._tags = []
         self._set = []
+
+    def add_trigger(self, path: List[str]):
+        self._triggers.append(tuple(path))
+
+    def add_extra(self, path: List[str]):
+        self._extra.append(tuple(path))
+
+    def add_tag(self, tag: str):
+        self._tags.append(tag)
+
+    def add_set(self, path: List[str], value):
+        self._set.append((tuple(path),immute(value)))
 
     def ingest_toml(self,data):
         if "program" in data:
@@ -77,8 +91,9 @@ class Track:
         if "set" in data:
             for entry in data["set"]:
                 if isinstance(entry,list):
-                    entry = { "path": entry, "value": True }
-                self._set.append((tuple(entry["path"]),immute(entry["value"])))
+                    self.add_set(entry,True)
+                else:
+                    self.add_set(entry["path"],entry["value"])
 
     def _collect(self) -> Set:
         switches = set()
@@ -134,6 +149,9 @@ class Tracks:
         self._expansions = {}
         if expanded_toml is not None:
             self.ingest_toml(expanded_toml)
+
+    def add_track(self,name,track):
+        self._tracks[name] = track
 
     def ingest_toml(self, data):
         includes = {}
@@ -224,3 +242,9 @@ class TracksDump:
         self.data['tag_idx'] = tag_list
         self.data['channel_idx'] = channels_idx
         self.data['value_idx'] = [remute(x) for x in value_list]
+        for key in [
+                    "name", "program", "scales", "tags", "triggers",
+                    "extra", "set", "values", "e-name", "e-channel", "e-triggers"
+                ]:
+            if key not in self.data:
+                self.data[key] = []

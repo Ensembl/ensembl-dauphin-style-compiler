@@ -39,7 +39,7 @@ impl Track {
 
     pub fn set_switch(&mut self, path: &[&str], value: StructBuilt) {
         let mut switches = lock!(self.switch_overlay);
-        if value.truthy() { switches.set(path,value); } else { switches.clear(path); } // XXX single call
+        if !value.is_null() { switches.set(path,value); } else { switches.clear(path); } // XXX single call
     }
 
     pub(super) fn overlay(&self) -> MutexGuard<SwitchOverlay> { self.switch_overlay.lock().unwrap() }
