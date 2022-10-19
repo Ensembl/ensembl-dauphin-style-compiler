@@ -42,7 +42,7 @@ program = "zoomed-transcript"
 scales = [8,8,1]
 include=["gene"]
 set = [
-    ["scale","no-letters"]
+    { path = ["scale","no-letters"], value = true }
 ]
 
 [track.transcript]
@@ -120,3 +120,4 @@ name = "test"
 triggers = [
     ["track","expand"]
 ]
+run = "test"

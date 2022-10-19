@@ -78,7 +78,7 @@ impl StructBuilt {
                     value.split(visitor,data)
                 },output)?;
                 output.visit_array_end()?;
-            }
+            },
             StructBuilt::Object(values) => {
                 output.visit_object_start()?;
                 separate(&values, |kv,visitor| {

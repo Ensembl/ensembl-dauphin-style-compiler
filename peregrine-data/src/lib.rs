@@ -179,6 +179,7 @@ mod request {
         mod diffset;
         pub(crate) mod expansionmodel;
         mod switchtree;
+        mod packedtrackres;
         pub(crate) mod trackdata;
         pub(crate) mod trackmodel;
         pub(crate) mod trackres;

@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use peregrine_toolkit::{eachorevery::eoestruct::StructBuilt };
+
 use crate::{Track, ProgramName};
 
 #[derive(Debug)]
@@ -9,7 +11,7 @@ pub struct TrackModelBuilder {
     tags: Vec<String>,
     triggers: Vec<Vec<String>>,
     extra: Vec<Vec<String>>,
-    set: Vec<Vec<String>>,
+    set: Vec<(Vec<String>,StructBuilt)>,
     scale_start: u64,
     scale_end: u64,
     scale_step: u64
@@ -31,7 +33,9 @@ impl TrackModelBuilder {
     pub fn add_tag(&mut self, tag: &str) { self.tags.push(tag.to_string()) }
     pub fn add_trigger(&mut self, trigger: &[String]) { self.triggers.push(trigger.to_vec()) }
     pub fn add_extra(&mut self, extra: &[String]) { self.extra.push(extra.to_vec()) }
-    pub fn add_set(&mut self, set: &[String]) { self.set.push(set.to_vec()) }
+    pub fn add_set(&mut self, set: &[String], value: StructBuilt) { 
+        self.set.push((set.to_vec(),value));
+    }
 }
 
 #[derive(Debug)]
@@ -44,7 +48,12 @@ impl TrackModel {
 
     pub(crate) fn to_track(&self) -> Track {
         let t = self.0.as_ref();
-        Track::new(&t.program,t.scale_start,t.scale_end+1,t.scale_step)
+        let mut track = Track::new(&t.program,t.scale_start,t.scale_end+1,t.scale_step);
+        for (key,value) in &t.set {
+            let key = key.iter().map(|x| x.as_str()).collect::<Vec<_>>();
+            track.set_switch(&key,value.clone());
+        }
+        track
     }
 
     pub(crate) fn mount_points(&self) -> Vec<(Vec<String>,bool)> {
