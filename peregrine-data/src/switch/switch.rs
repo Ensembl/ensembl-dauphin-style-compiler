@@ -43,9 +43,7 @@ impl Switch {
         }
     }
 
-    pub(super) fn find_expansions(&mut self, path: &[&str]) -> Vec<(Expansion,String)> {
-        self.expansions.iter().map(|x| (x.clone(),path[0].to_string())).collect()
-    }
+    pub(super) fn find_expansions(&mut self,) -> &[Expansion] { &self.expansions }
 
     pub(super) fn remove(&mut self, path: &[&str]) {
         if path.len() > 1 {

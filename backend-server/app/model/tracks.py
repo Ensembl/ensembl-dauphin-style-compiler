@@ -106,6 +106,7 @@ class Expansion:
         self._name = name
         self._channel = None
         self._triggers = []
+        self._run = None
 
     def ingest_toml(self,data):
         if "name" in data:
@@ -114,6 +115,8 @@ class Expansion:
             self._channel = tuple(data["channel"])
         if "triggers" in data:
             self._triggers += [tuple(x) for x in data["triggers"]]
+        if "run" in data:
+            self._run = data["run"]
 
     def _collect(self) -> Set:
         return (set(self._triggers),set([self._channel]))

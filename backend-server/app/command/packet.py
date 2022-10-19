@@ -1,7 +1,7 @@
 import collections
 import imp
 import logging
-
+from model.expansions import Expansions
 from command.response import Response
 from command.coremodel import Handler
 from model.tracks import Tracks
@@ -18,6 +18,8 @@ from core.config import DEFAULT_CHANNEL
 
 data_accessor_collection = DataAccessorCollection()        
 
+expansions = Expansions()
+
 handlers = {
     0: BootstrapHandler(),
     1: ProgramHandler(),
@@ -26,7 +28,7 @@ handlers = {
     4: DataHandler(),
     5: JumpHandler(),
     6: MetricHandler(),
-    7: ExpansionHandler()
+    7: ExpansionHandler(expansions)
 }
 
 def type_to_handler(typ: int) -> Handler:

@@ -72,10 +72,10 @@ impl Switches {
         drop(data);
         for len in 0..path.len() {
             let mut data = lock!(self.data);
-            let expansions = data.root.find_expansions(&path[0..len]);
+            let expansions = data.root.get_target(&path[0..len]).find_expansions().to_vec();
             drop(data);
-            for (expansion,step) in &expansions {
-                expansion.run(&all_backends,step).await?;
+            for expansion in &expansions {
+                expansion.run(&all_backends,path[len]).await?;
             }    
         }
         Ok(())

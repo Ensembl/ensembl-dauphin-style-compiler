@@ -3,7 +3,7 @@ from model.tracks import Tracks
 import toml
 import os.path
 from core.config import ASSETS_TOML, BOOT_TRACKS_TOML, METRIC_FILE, ASSETS_DIR
-from typing import Any
+from typing import Any, Callable, Optional
 from .coremodel import Handler
 from .response import Response
 from .datasources import DataAccessor
@@ -97,10 +97,27 @@ class StickAuthorityHandler(Handler):
             return Response(1,e)
 
 class ExpansionHandler(Handler):
+    def __init__(self, expansions) -> None:
+        super().__init__()
+        self._expansions = {}
+        for x in toml.load(BOOT_TRACKS_TOML).get("expansion",{}).values():
+            if "run" in x:
+                channel = tuple(x.get("channel",None))
+                name = x["name"]
+                self._expansions[(channel,name)] = getattr(expansions,x["run"])
+
+    def _get(self, channel, name) -> Optional[Callable[[str],Any]]:
+        for key in [(tuple(channel),name),(None,name)]:
+            if key in self._expansions:
+                return self._expansions[key]
+        return None
+
     def process(self, data_accessor: DataAccessor, channel: Any, payload: Any, metrics: ResponseMetrics, version: Version) -> Response:
         try:
             (name,step) = payload
-            logging.warn("expand: {} {}".format(name,step))
+            callable = self._get(channel,name)
+            if callable is not None:
+                callable(step)
             return Response(7,[])
         except UnknownVersionException as e:
             return Response(1,e)
