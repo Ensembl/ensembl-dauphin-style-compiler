@@ -1,0 +1,22 @@
+name = "contig"
+description = """
+
+Show contigs as alternating blocks. Data endpoint depends on the scale/shimmer setting:
+if true, the "shimmer-contig" endpoint is used; if false, the "contig" endpoint is used.
+
+Uses data sequences:
+- contig_starts
+- contig_lengths
+- sense
+
+No other settings: there probably should be.
+
+"""
+
+[setting.shimmer]
+setting = ["scale","shimmer"]
+description = """
+
+If true, the "shimmer-contig" endpoint is used; if false, the "contig" endpoint is used.
+
+"""

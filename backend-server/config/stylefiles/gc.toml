@@ -1,0 +1,12 @@
+name = "gc"
+description = """
+
+Show %GC track.
+
+Uses data sequences from "gc":
+- values
+- range
+
+No settings: there probably should be.
+
+"""

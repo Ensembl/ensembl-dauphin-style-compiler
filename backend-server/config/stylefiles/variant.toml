@@ -1,0 +1,13 @@
+name = "variant"
+description = """
+
+Show variant summary track. Perhaps surprisingly, basically a wiggle track where colours are
+used rather than heights.
+
+Uses data sequences from "variant":
+- values
+- range
+
+No settings: there probably should be.
+
+"""

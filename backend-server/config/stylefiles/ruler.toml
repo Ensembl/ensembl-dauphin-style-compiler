@@ -1,0 +1,8 @@
+name = "ruler"
+description = """
+
+Draws the ruler.
+
+Doesn't use a backend endpoint, doesn't take any settings.
+
+"""

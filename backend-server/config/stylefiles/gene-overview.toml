@@ -1,0 +1,58 @@
+name = "gene-overview"
+description = """
+
+Show the non-focus genes as mere blocks when very zoomed out. (No labels, zmenus etc).
+
+Uses data sequences from gene-overview endpoint:
+- starts
+- lengths
+- gene_biotypes_keys
+- gene_biotypes_values
+- strands
+
+Uses data sequences from the transcript endponit (for the focus gene):
+- starts
+- lengths
+- gene_id
+"""
+
+[setting.focus-gene]
+setting = ["track","focus","item","gene"]
+description = """
+
+Which gene is currently the focus gene (if any)? Object with keys "genome_id" and "item_id"
+identifying current focus gene, if any.
+
+"""
+
+[setting.pc-fwd]
+setting = ["track","gene-pc-fwd"]
+description = """
+
+boolean: if true show the pc-fwd track.
+
+"""
+
+[setting.pc-rev]
+setting = ["track","gene-pc-rev"]
+description = """
+
+boolean: if true show the pc-rev track.
+
+"""
+
+[setting.other-fwd]
+setting = ["track","gene-other-fwd"]
+description = """
+
+boolean: if true show the other-fwd track.
+
+"""
+
+[setting.other-rev]
+setting = ["track","gene-other-rev"]
+description = """
+
+boolean: if true show the other-rev track.
+
+"""

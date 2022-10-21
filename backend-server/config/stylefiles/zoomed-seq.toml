@@ -1,0 +1,12 @@
+name = "zoomed-seq"
+description = """
+
+Show sequence as code blocks to replace contig track.
+
+Uses data sequences from zoomed-seq endpoint:
+- sequence
+- sequence_start
+
+No other settings: there probably should be.
+
+"""
