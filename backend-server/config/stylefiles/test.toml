@@ -1,6 +1,17 @@
+set = "ensembl-webteam/core"
 name = "test"
+version = 1
 description = """
 
-TEst case for dynamic tracks do not use.
+Test case for dynamic tracks do not use.
 
 """
+
+[setting.red]
+setting = ["colour","red"]
+
+[setting.green]
+setting = ["colour","green"]
+
+[setting.blue]
+setting = ["colour","blue"]

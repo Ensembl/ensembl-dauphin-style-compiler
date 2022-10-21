@@ -1,4 +1,6 @@
+set = "ensembl-webteam/core"
 name = "framing"
+version = 1
 description = """
 
 Put verious blank rectangles on the screen on the left, right, etc, as a background for other

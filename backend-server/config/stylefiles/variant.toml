@@ -1,4 +1,6 @@
+set = "ensembl-webteam/core"
 name = "variant"
+version = 1
 description = """
 
 Show variant summary track. Perhaps surprisingly, basically a wiggle track where colours are

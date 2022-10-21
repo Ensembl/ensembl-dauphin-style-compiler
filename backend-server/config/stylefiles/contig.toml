@@ -1,4 +1,6 @@
+set = "ensembl-webteam/core"
 name = "contig"
+version = 1
 description = """
 
 Show contigs as alternating blocks. Data endpoint depends on the scale/shimmer setting:
@@ -15,6 +17,7 @@ No other settings: there probably should be.
 
 [setting.shimmer]
 setting = ["scale","shimmer"]
+default = false
 description = """
 
 If true, the "shimmer-contig" endpoint is used; if false, the "contig" endpoint is used.

@@ -1,4 +1,6 @@
+set = "ensembl-webteam/core"
 name = "zoomed-seq"
+version = 1
 description = """
 
 Show sequence as code blocks to replace contig track.

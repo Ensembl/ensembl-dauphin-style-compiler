@@ -1,4 +1,6 @@
+set = "ensembl-webteam/core"
 name = "gene-overview"
+version = 1
 description = """
 
 Show the non-focus genes as mere blocks when very zoomed out. (No labels, zmenus etc).

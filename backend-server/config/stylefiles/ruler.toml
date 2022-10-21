@@ -1,4 +1,6 @@
+set = "ensembl-webteam/core"
 name = "ruler"
+version = 1
 description = """
 
 Draws the ruler.
