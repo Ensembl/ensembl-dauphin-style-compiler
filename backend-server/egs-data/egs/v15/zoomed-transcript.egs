@@ -555,13 +555,11 @@ enabled_tr_labels := index(tk_by_tr,[enabled_labels_tr]);
 al_trtext_by_gn := al_text_by_gn;
 
 al_text_by_gn#[enabled_gene_labels==false] := use_allotment("");
-al_text_by_gn#[switch_yn(["scale","no-labels"])] := use_allotment("");
 
 al_trtext_by_tr := index(which_gn_by_tr,[al_trtext_by_gn]);
 
 al_trtext_by_tr#[bool_show_tr==false] := use_allotment("");
 al_trtext_by_tr#[enabled_tr_labels==false] := use_allotment("");
-al_trtext_by_tr#[switch_yn(["scale","no-labels"])] := use_allotment("");
 
 textpen := pen("'IBM Plex Mono', sans-serif",text_size,normal_text_colour,[][]);
 text2(spacebase(start_gn,num_drawn_tr_gn*20-12,0),textpen,gene_name,al_text_by_gn);

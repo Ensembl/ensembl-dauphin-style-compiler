@@ -223,9 +223,6 @@ al_trtext_by_tr#[bool_show_tr==false] := "";
 al_text_by_gn#[enabled_gene_labels==false] := "";
 al_trtext_by_tr#[enabled_transcript_labels==false] := "";
 
-al_text_by_gn#[switch_yn(["scale","no-labels"])] := "";
-al_trtext_by_tr#[switch_yn(["scale","no-labels"])] := "";
-
 al_button := len([id_gn_vr]) (*) "";
 al_button#[id_gn_uv==focus_gene_id] := append_group(base_allotment,"button");
 

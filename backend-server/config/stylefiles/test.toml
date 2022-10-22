@@ -8,10 +8,10 @@ Test case for dynamic tracks do not use.
 """
 
 [setting.red]
-setting = ["colour","red"]
+description = "proportion red / 255"
 
 [setting.green]
-setting = ["colour","green"]
+description = "proportion green / 255"
 
 [setting.blue]
-setting = ["colour","blue"]
+description = "proportion blue / 255"

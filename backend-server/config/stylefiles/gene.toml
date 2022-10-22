@@ -29,7 +29,6 @@ Uses data sequences from gene endpoint:
 """
 
 [setting.focus-gene]
-setting = ["track","focus","item","gene"]
 description = """
 
 Which gene is currently the focus gene (if any)? Object with keys "genome_id" and "item_id"
@@ -38,7 +37,6 @@ identifying current focus gene, if any.
 """
 
 [setting.pc-fwd-several]
-setting = ["track","gene-pc-fwd","several"]
 default = false
 description = """
 
@@ -47,7 +45,6 @@ boolean: if true show 5 per the mini-toggle setting on the pc-fwd track.
 """
 
 [setting.pc-rev-several]
-setting = ["track","gene-pc-rev","several"]
 default = false
 description = """
 
@@ -56,7 +53,6 @@ boolean: if true show 5 per the mini-toggle setting on the pc-rev track.
 """
 
 [setting.other-fwd-several]
-setting = ["track","gene-other-fwd","several"]
 default = false
 description = """
 
@@ -65,7 +61,6 @@ boolean: if true show 5 per the mini-toggle setting on the other-fwd track.
 """
 
 [setting.other-rev-several]
-setting = ["track","gene-other-rev","several"]
 default = false
 description = """
 
@@ -74,7 +69,6 @@ boolean: if true show 5 per the mini-toggle setting on the other-rev track.
 """
 
 [setting.pc-fwd-label]
-setting = ["track","gene-pc-fwd","label"]
 default = true
 description = """
 
@@ -83,7 +77,6 @@ boolean: if true show gene label on the pc-fwd track.
 """
 
 [setting.pc-rev-label]
-setting = ["track","gene-pc-rev","label"]
 default = true
 description = """
 
@@ -92,7 +85,6 @@ boolean: if true show gene label on the pc-rev track.
 """
 
 [setting.other-fwd-label]
-setting = ["track","gene-other-fwd","label"]
 default = true
 description = """
 
@@ -101,7 +93,6 @@ boolean: if true show gene label on the other-fwd track.
 """
 
 [setting.other-rev-label]
-setting = ["track","gene-other-rev","label"]
 default = true
 description = """
 
@@ -111,7 +102,6 @@ boolean: if true show gene label on the other-rev track.
 
 
 [setting.pc-fwd]
-setting = ["track","gene-pc-fwd"]
 description = """
 
 boolean: if true show the pc-fwd track.
@@ -119,7 +109,6 @@ boolean: if true show the pc-fwd track.
 """
 
 [setting.pc-rev]
-setting = ["track","gene-pc-rev"]
 description = """
 
 boolean: if true show the pc-rev track.
@@ -127,7 +116,6 @@ boolean: if true show the pc-rev track.
 """
 
 [setting.other-fwd]
-setting = ["track","gene-other-fwd"]
 description = """
 
 boolean: if true show the other-fwd track.
@@ -135,9 +123,41 @@ boolean: if true show the other-fwd track.
 """
 
 [setting.other-rev]
-setting = ["track","gene-other-rev"]
 description = """
 
 boolean: if true show the other-rev track.
+
+"""
+
+
+[setting.pc-fwd-name]
+default = true
+description = """
+
+boolean: if true show gene track label on the pc-fwd track.
+
+"""
+
+[setting.pc-rev-name]
+default = true
+description = """
+
+boolean: if true show gene track label on the pc-rev track.
+
+"""
+
+[setting.other-fwd-name]
+default = true
+description = """
+
+boolean: if true show gene track label on the other-fwd track.
+
+"""
+
+[setting.other-rev-name]
+default = true
+description = """
+
+boolean: if true show gene track label on the other-rev track.
 
 """

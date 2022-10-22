@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use peregrine_toolkit::{eachorevery::eoestruct::StructBuilt };
+use peregrine_toolkit::{eachorevery::eoestruct::StructBuilt, log };
 
 use crate::{Track, ProgramName};
 
@@ -12,6 +12,8 @@ pub struct TrackModelBuilder {
     triggers: Vec<Vec<String>>,
     extra: Vec<Vec<String>>,
     set: Vec<(Vec<String>,StructBuilt)>,
+    settings: Vec<(String,Vec<String>)>,
+    values: Vec<(String,StructBuilt)>,
     scale_start: u64,
     scale_end: u64,
     scale_step: u64
@@ -26,8 +28,18 @@ impl TrackModelBuilder {
             triggers: vec![],
             extra: vec![],
             set: vec![], 
+            settings: vec![],
+            values: vec![],
             scale_start, scale_end, scale_step
         }
+    }
+
+    pub fn add_setting(&mut self, key: &str, path: &[String]) {
+        self.settings.push((key.to_string(),path.to_vec()));
+    }
+
+    pub fn add_value(&mut self, key: &str, value: StructBuilt) {
+        self.values.push((key.to_string(),value));
     }
 
     pub fn add_tag(&mut self, tag: &str) { self.tags.push(tag.to_string()) }
@@ -43,6 +55,7 @@ pub struct TrackModel(Arc<TrackModelBuilder>);
 
 impl TrackModel {
     pub fn new(builder: TrackModelBuilder) -> TrackModel {
+        log!("{:?} -> settings: {:?} values: {:?}",builder.name,builder.settings,builder.values);
         TrackModel(Arc::new(builder))
     }
 

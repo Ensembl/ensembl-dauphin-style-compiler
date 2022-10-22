@@ -1,11 +1,15 @@
-[include.gene]
+[include.general]
+group = "ensembl-webteam/core"
+version = 1
+
+[include.gene.general]
 triggers = [
     ["track","gene-pc-fwd"],
     ["track","gene-pc-rev"],
     ["track","gene-other-fwd"],
     ["track","gene-other-rev"]
 ]
-extra = [
+extra = [ # togo
     ["track","focus","item","gene"],
     ["settings"],
     ["focus"],
@@ -14,11 +18,37 @@ extra = [
 ]
 tags = ["gene"]
 
-[include.focus-gene]
+[include.gene.settings]
+focus-gene = ["track","focus","item","gene"]
+pc-fwd-several = ["track","gene-pc-fwd","several"]
+pc-rev-several = ["track","gene-pc-rev","several"]
+other-fwd-several = ["track","gene-other-fwd","several"]
+other-rev-several = ["track","gene-other-rev","several"]
+pc-fwd-label = ["track","gene-pc-fwd","label"]
+pc-rev-label = ["track","gene-pc-rev","label"]
+other-fwd-label = ["track","gene-other-fwd","label"]
+other-rev-label = ["track","gene-other-rev","label"]
+pc-fwd = ["track","gene-pc-fwd"]
+pc-rev = ["track","gene-pc-rev"]
+other-fwd = ["track","gene-other-fwd"]
+other-rev = ["track","gene-other-rev"]
+pc-fwd-name = ["track","gene-pc-fwd","name"]
+pc-rev-name = ["track","gene-pc-rev","name"]
+other-fwd-name = ["track","gene-other-fwd","name"]
+other-rev-name = ["track","gene-other-rev","name"]
+
+[include.transcript.settings]
+pc-fwd-several = ["track","gene-pc-fwd","several"]
+pc-rev-several = ["track","gene-pc-rev","several"]
+other-fwd-several = ["track","gene-other-fwd","several"]
+other-rev-several = ["track","gene-other-rev","several"]
+
+
+[include.focus-gene.general]
 triggers = [
     ["track","focus","item","gene"]
 ]
-extra = [
+extra = [ # togo
     ["settings"],
     ["focus"],
     ["track","focus"],
@@ -26,95 +56,147 @@ extra = [
 ]
 tags = ["gene"]
 
+[include.focus-gene.settings]
+focus-gene = ["track","focus","item","gene"]
+focus = ["track","focus"]
+focus-gene-label = ["track","focus","label"]
+focus-transcript-label = ["track","focus","transcript-label"]
+several = ["track","focus","several"]
+enabled-transcripts = ["track","focus","enabled-transcripts"]
 
 
-[track.framing]
-triggers = [["track"]]
-scales = [1,100,1]
+#
+# Tracks
+#
+
+#
+# Genes/Transcripts
+#
+
+[track.gene-overview]
+scales = [23,100,6]
+include=["gene","general"]
+
+[track.gene]
+scales = [19,22,4]
+include=["gene","general"]
+
+[track.transcript]
+scales = [9,18,6]
+include=["transcript","gene","general"]
+
+[track.zoomed-transcript-no-letters.general] # to .general for TOML spec
+program = "zoomed-transcript"
+scales = [8,8,1]
+include=["transcript","gene","general"]
+set = [ # togo
+    { path = ["scale","no-letters"], value = true }
+]
+
+[track.zoomed-transcript-no-letters.values]
+no-letters = true
 
 [track.zoomed-transcript-letters]
 program = "zoomed-transcript"
 scales = [0,7,8]
-include=["gene"]
+include=["transcript","gene","general"]
 
-[track.zoomed-transcript-no-letters]
-program = "zoomed-transcript"
-scales = [8,8,1]
-include=["gene"]
-set = [
-    { path = ["scale","no-letters"], value = true }
-]
-
-[track.transcript]
-scales = [9,18,6]
-include=["gene"]
-
-[track.gene]
-scales = [19,22,4]
-include=["gene"]
-
-[track.gene-overview]
-scales = [23,100,6]
-include=["gene"]
+[track.focus-transcript]
+scales = [9,60,60]
+include=["focus-gene","general"]
 
 [track.focus-zoomed-transcript-letters]
 program = "focus-zoomed-transcript"
 scales = [0,7,8]
-include=["focus-gene"]
+include=["focus-gene","general"]
 
-[track.focus-zoomed-transcript-no-letters]
+[track.focus-zoomed-transcript-no-letters.general]
 program = "focus-zoomed-transcript"
 scales = [8,8,1]
-include=["focus-gene"]
-set = [
+include=["focus-gene","general"]
+set = [ # togo
     ["scale","no-letters"]
 ]
 
-[track.focus-transcript]
-scales = [9,60,60]
-include=["focus-gene"]
+[track.focus-zoomed-transcript-no-letters.values]
+no-letters = true
+
+#
+# Frame
+#
+
+[track.framing]
+include = ["general"]
+triggers = [["track"]]
+scales = [1,100,1]
+
+#
+# Ruler
+#
 
 [track.ruler]
+include = ["general"]
 scales = [0,100,1]
 triggers = [["ruler"]]
-extra=[["settings"]]
+
+#
+# %GC
+#
 
 [track.gc]
+include = ["general"]
 scales = [0,100,3]
 triggers = [["track","gc"]]
-extra=[["settings"]]
 tags=["gc"]
 
+#
+# Variants
+#
+
 [track.variant]
+include = ["general"]
 scales = [1,100,4]
 triggers = [["track","gc"]]
-extra=[["settings"]]
 tags=["variant"]
 
-[track.contig-shimmer]
+#
+# Contigs and Sequences
+#
+
+[track.contig-shimmer.general]
+include = ["general"]
 program = "contig"
 scales = [26,100,3]
 triggers = [["track","contig"]]
-extra=[["settings"]]
+extra=[["settings"]] #togo
 tags=["contig"]
-set=[
+set=[ # togo
     ["scale","shimmer"]
 ]
 
+[track.contig-shimmer.values]
+shimmer = true
+
 [track.contig]
+include = ["general"]
 scales = [9,25,3]
 triggers = [["track","contig"]]
-extra=[["settings"]]
-tags=["contig"]
+extra = [["settings"]]
+tags = ["contig"]
+
 
 [track.sequence]
+include = ["general"]
 program = "zoomed-seq"
 scales = [0,8,3]
 triggers = [["track","contig"]]
-extra=[["settings"]]
 tags=["contig"]
 
 
+
+#
+# Expansions
+#
 
 [expansion.test]
 channel = ["ensembl","main"]

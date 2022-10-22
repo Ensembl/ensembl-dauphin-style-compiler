@@ -64,6 +64,8 @@ class Track:
         self._extra = []
         self._tags = []
         self._set = []
+        self._values = []
+        self._settings = []
 
     def add_trigger(self, path: List[str]):
         self._triggers.append(tuple(path))
@@ -77,7 +79,12 @@ class Track:
     def add_set(self, path: List[str], value):
         self._set.append((tuple(path),immute(value)))
 
+    def add_value(self, name: str, value):
+        self._values.append((name,immute(value)))
+
     def ingest_toml(self,data):
+        if "general" in data:
+            self.ingest_toml(data["general"])
         if "program" in data:
             self._program = data["program"]
         if "scales" in data:
@@ -88,6 +95,12 @@ class Track:
             self._extra += [tuple(x) for x in data["extra"]]
         if "tags" in data:
             self._tags += data["tags"]
+        if "values" in data:
+            for (name,value) in data["values"].items():
+                self.add_value(name,value)
+        if "settings" in data:
+            for (name,setting) in data["settings"].items():
+                self._settings.append((name,tuple(setting)))
         if "set" in data:
             for entry in data["set"]:
                 if isinstance(entry,list):
@@ -100,11 +113,17 @@ class Track:
         switches |= set(self._triggers)
         switches |= set(self._extra)
         switches |= set([x[0] for x in self._set])
+        switches |= set([x[1] for x in self._settings])
         values = set([x[1] for x in self._set])
-        return (switches,set((self._program,)),set(self._tags),values)
+        values |= set([x[1] for x in self._values])
+        keys = set([x[0] for x in self._settings])
+        keys |= set([x[0] for x in self._values])
+        return (switches,set((self._program,)),set(self._tags),values,keys)
 
     def _dump_for_wire(self, dumper, name):
         sets = sorted(self._set, key = lambda x: dumper.switch_mapping[x[0]] )
+        settings = sorted(self._settings, key = lambda x: x[0])
+        values = sorted(self._values, key = lambda x: x[0])
         return {
             "name": name,
             "program": dumper.program_mapping[self._program],
@@ -113,7 +132,11 @@ class Track:
             "triggers": increase(sorted([dumper.switch_mapping[x] for x in self._triggers])),
             "extra": increase(sorted([dumper.switch_mapping[x] for x in self._extra])),
             "set": increase([dumper.switch_mapping[x[0]] for x in sets]),
-            "values": [dumper.value_mapping[x[1]] for x in sets]
+            "values": [dumper.value_mapping[x[1]] for x in sets],
+            "values-keys": increase([dumper.key_mapping[x[0]] for x in values]),
+            "values-values": [dumper.value_mapping[x[1]] for x in values],
+            "settings-keys": increase([dumper.key_mapping[x[0]] for x in settings]),
+            "settings-values": [dumper.switch_mapping[x[1]] for x in settings],
         }
 
 class Expansion:
@@ -181,17 +204,19 @@ class Tracks:
         tags = set()
         channels = set()
         values = set()
+        keys = set()
         for track in self._tracks.values():
-            (more_switches,more_programs,more_tags,more_values) = track._collect()
+            (more_switches,more_programs,more_tags,more_values,more_keys) = track._collect()
             switches |= more_switches
             programs |= more_programs
             tags |= more_tags
             values |= more_values
+            keys |= more_keys
         for expansion in self._expansions.values():
             (more_switches,more_channels) = expansion._collect()
             switches |= more_switches
             channels |= more_channels
-        return (switches,programs,tags,channels,values)
+        return (switches,programs,tags,channels,values,keys)
 
     def dump_for_wire(self):
         return TracksDump(self).data
@@ -218,10 +243,11 @@ class TracksDump:
         if len(tracks._tracks) == 0:
             self.data = None
             return
-        (switches,programs,tags,channels,values) = tracks._collect()
+        (switches,programs,tags,channels,values,keys) = tracks._collect()
         (channels_idx,self.channel_mapping) = _prefix_encode(channels)
         (switch_tree,self.switch_mapping) = _prefix_encode(switches)
         (program_list,self.program_mapping) = _build_map(sorted(programs))
+        (key_list,self.key_mapping) = _build_map(sorted(keys))
         (tag_list,self.tag_mapping) = _build_map(sorted(tags))
         (value_list,self.value_mapping) = _build_map(values)
         data = {}
@@ -240,11 +266,13 @@ class TracksDump:
         self.data['switch_idx'] = switch_tree
         self.data['program_idx'] = program_list
         self.data['tag_idx'] = tag_list
+        self.data['key_idx'] = key_list
         self.data['channel_idx'] = channels_idx
         self.data['value_idx'] = [remute(x) for x in value_list]
         for key in [
-                    "name", "program", "scales", "tags", "triggers",
-                    "extra", "set", "values", "e-name", "e-channel", "e-triggers"
+                    "name", "program", "scales", "tags", "triggers", "extra", "set", 
+                    "values", "e-name", "e-channel", "e-triggers", "values-keys",
+                    "values-values", "settings-keys", "settings-values"
                 ]:
             if key not in self.data:
                 self.data[key] = []

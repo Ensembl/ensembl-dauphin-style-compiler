@@ -16,7 +16,6 @@ No other settings: there probably should be.
 """
 
 [setting.shimmer]
-setting = ["scale","shimmer"]
 default = false
 description = """
 

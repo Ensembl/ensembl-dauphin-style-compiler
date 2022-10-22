@@ -304,13 +304,11 @@ enabled_tr_labels := index(tk_by_tr,[enabled_labels_tr]);
 al_trtext_by_gn := al_text_by_gn;
 
 al_text_by_gn#[enabled_gene_labels==false] := use_allotment("");
-al_text_by_gn#[switch_yn(["scale","no-labels"])] := use_allotment("");
 
 al_trtext_by_tr := index(which_gn_by_tr,[al_trtext_by_gn]);
 
 al_trtext_by_tr#[bool_show_tr==false] := use_allotment("");
 al_trtext_by_tr#[enabled_tr_labels==false] := use_allotment("");
-al_trtext_by_tr#[switch_yn(["scale","no-labels"])] := use_allotment("");
 
 track_name := index(tk_by_gn,potential_track_ids);
 tk_by_tr := index(which_gn_by_tr,[tk_by_gn]);
