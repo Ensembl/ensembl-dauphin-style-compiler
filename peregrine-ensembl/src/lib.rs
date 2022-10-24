@@ -263,7 +263,7 @@ impl GenomeBrowser {
 
                                     args.set(1,JsValue::from(js_throw(JsValue::from_serde(&LocationData {
                                         stick: stick.to_string(),
-                                        start: *start as f64,
+                                        start: (1.0_f64).max(*start as f64),
                                         end: *end as f64
                                     }))));
 
@@ -275,7 +275,7 @@ impl GenomeBrowser {
 
                                     args.set(1,JsValue::from(js_throw(JsValue::from_serde(&LocationData {
                                         stick: stick.to_string(),
-                                        start: *start as f64,
+                                        start: (1.0_f64).max(*start as f64),
                                         end: *end as f64
                                     }))));
                                     
