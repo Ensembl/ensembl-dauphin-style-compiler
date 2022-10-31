@@ -1,5 +1,7 @@
 from __future__ import annotations
-from core.config import BEGS_FILES, BEGS_CONFIG
+
+from command.bundle import Bundle
+from core.config import BEGS_FILES, BEGS_CONFIG, EGS_FILES
 from typing import Any, List, Optional;
 import logging
 import time
@@ -40,7 +42,9 @@ class BegsFilesMonitor(object):
 class VersionedBegsFiles(object):
     def __init__(self, path: str, egs_version: int):
         with open(path) as f:
-            toml_file = toml.loads(f.read())            
+            toml_file = toml.loads(f.read())
+        if egs_version >= 15:
+            self._specs_path = toml_file["specs"].get("path")
         self.boot_program = toml_file["core"].get("boot",None) # gone v15 onwards 
         stick_authority = toml_file.get("stick-authority")
         if stick_authority != None:
@@ -51,25 +55,36 @@ class VersionedBegsFiles(object):
             self.authority_startup_program = None
             self.authority_lookup_program = None
             self.authority_jump_program = None
+        self._bundles = {}
         self.name_to_bundle_name = {}
-        self.program_map = {}
+        self.name_to_bundle = {}
         self._monitor = BegsFilesMonitor()
         for (name_of_bundle,mapping) in toml_file["begs"].items():
             program_path = os.path.join(
                 BEGS_FILES,
                 "{}.begs".format(name_of_bundle)
             )
+            self._bundles[name_of_bundle] = Bundle(self,name_of_bundle,program_path,egs_version)
             self._monitor.add(name_of_bundle,program_path)
             self.name_to_bundle_name[name_of_bundle] = {}
             for (name_in_bundle,name_in_channel) in mapping.items():
-                self.program_map[name_in_channel] = Bundle(self,name_of_bundle,program_path,egs_version)
+                if egs_version >= 15:
+                    spec_file = os.path.join(
+                        BEGS_FILES, self._specs_path,
+                        "{}.toml".format(name_in_bundle)
+                    )
+                    self._bundles[name_of_bundle].add_program(name_in_bundle,spec_file)
+                self.name_to_bundle[name_in_channel] = name_of_bundle
                 self.name_to_bundle_name[name_of_bundle][name_in_channel] = name_in_bundle
 
     def find_bundle(self, name: str) -> Optional[Bundle]:
-        return self.program_map.get(name,None)
+        name = self.name_to_bundle.get(name,None)
+        if name is None:
+            return None
+        return self._bundles.get(name,None)
 
     def all_bundles(self) -> Any:
-        return self.program_map.values()
+        return self._bundles.values()
 
     def load_program(self, program_path: str, egs_version: int) -> Any:
         with open(program_path,'rb') as f:
@@ -125,36 +140,3 @@ class BegsFiles(object):
     # There is no authority_jump_program from v15 on
     def authority_jump_program(self, version: Version):
         return self._bundle(version).authority_jump_program
-
-class Bundle(object):
-    def __init__(self, begs_files: BegsFiles, name: str, program_path: str, egs_version: int):
-        self.begs_files = begs_files
-        self.name = name
-        self._program = begs_files.load_program(program_path,egs_version)
-        self._egs_version = egs_version
-
-    def monitor(self, begs_files: BegsFiles, monitor: BegsFilesMonitor):
-        if self._monitor.check(self.name):
-            logging.warn("Bundle '{0}' changed. Reloading".format(self.name))
-            self._program = begs_files.load_program(monitor.path(self.name),self._egs_version)
-
-    def serialize(self) -> Any:
-        return [self.name,self._program,self.begs_files.name_to_bundle_name[self.name]]
-
-class BundleSet:
-    def __init__(self):
-        self.bundles = []
-        self._names = set()
-
-    def add(self, bundle: Bundle):
-        if bundle.name in self._names:
-            return
-        self.bundles.append(bundle)
-        self._names.add(bundle.name)
-
-    def merge(self, other: BundleSet):
-        for bundle in other.bundles:
-            self.add(bundle)
-
-    def bundle_data(self) -> Any:
-        return [ b.serialize() for b in self.bundles ]

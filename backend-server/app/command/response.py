@@ -1,5 +1,5 @@
 from typing import Any
-from command.begs import Bundle, BundleSet
+from command.bundle import Bundle, BundleSet
 from model.tracks import Tracks
 import cbor2
 

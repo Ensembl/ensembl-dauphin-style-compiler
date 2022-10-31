@@ -2,7 +2,7 @@ import collections
 import imp
 import logging
 
-from command.begs import BundleSet
+from command.bundle import BundleSet
 from model.expansions import Expansions
 from command.response import Response
 from command.coremodel import Handler

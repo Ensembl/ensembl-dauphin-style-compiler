@@ -1,5 +1,6 @@
 import logging
 from typing import List, Set
+from model.serialutil import build_map, immute, increase, remute
 import cbor2
 
 def _count_prefix(a,b):
@@ -21,37 +22,6 @@ def _prefix_encode(switches):
         prev_prefix_len = prefix_len
         prev_switch = switch
     return (tree,mapping)
-
-def _build_map(data):
-    mapping = { v: i for (i,v) in enumerate(data) }
-    return (data,mapping)
-
-def increase(data):
-    prev = 0
-    out = []
-    for item in data:
-        out.append(item-prev)
-        prev = item
-    return out
-
-def immute(data):
-    if isinstance(data,list):
-        return tuple([True] + [immute(x) for x in data])
-    elif isinstance(data,dict):
-        keys = sorted(data.keys())
-        items = [(k,immute(data[k])) for k in keys]
-        return tuple([False] + items)
-    else:
-        return data
-
-def remute(data):
-    if isinstance(data,tuple):
-        if data[0]:
-            return data[1:]
-        else:
-            return { x[0]: x[1] for x in data[1:] }
-    else:
-        return data
 
 class Track:
     def __init__(self,name,program=None,scales=None):
@@ -108,7 +78,7 @@ class Track:
                 else:
                     self.add_set(entry["path"],entry["value"])
 
-    def _collect(self) -> Set:
+    def _collect(self):
         switches = set()
         switches |= set(self._triggers)
         switches |= set(self._extra)
@@ -246,10 +216,10 @@ class TracksDump:
         (switches,programs,tags,channels,values,keys) = tracks._collect()
         (channels_idx,self.channel_mapping) = _prefix_encode(channels)
         (switch_tree,self.switch_mapping) = _prefix_encode(switches)
-        (program_list,self.program_mapping) = _build_map(sorted(programs))
-        (key_list,self.key_mapping) = _build_map(sorted(keys))
-        (tag_list,self.tag_mapping) = _build_map(sorted(tags))
-        (value_list,self.value_mapping) = _build_map(values)
+        (program_list,self.program_mapping) = build_map(sorted(programs))
+        (key_list,self.key_mapping) = build_map(sorted(keys))
+        (tag_list,self.tag_mapping) = build_map(sorted(tags))
+        (value_list,self.value_mapping) = build_map(values)
         data = {}
         for (name,track) in tracks._tracks.items():
             data[name] = track._dump_for_wire(self,name)
