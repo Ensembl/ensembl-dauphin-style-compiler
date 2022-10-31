@@ -30,11 +30,6 @@ struct PgDauphinData {
 #[derive(Clone)]
 pub struct PgDauphin(Arc<Mutex<PgDauphinData>>);
 
-
-impl PgDauphinData {
-    
-}
-
 impl PgDauphin {
     pub fn new(pdq: &PgDauphinQueue) -> anyhow::Result<PgDauphin> {
         Ok(PgDauphin(Arc::new(Mutex::new(PgDauphinData {

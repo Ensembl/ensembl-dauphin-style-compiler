@@ -28,7 +28,9 @@ class Track:
         if program is None:
             program = name
         self._name = name
-        self._program = program
+        self._program_name = program
+        self._program_set = ""
+        self._program_version = 0
         self._scales = scales
         self._triggers = []
         self._extra = []
@@ -52,11 +54,18 @@ class Track:
     def add_value(self, name: str, value):
         self._values.append((name,immute(value)))
 
-    def ingest_toml(self,data):
+    def ingest_toml(self,data,includes):
+        if "include" in data:
+            for inc_name in data["include"]:
+                self.ingest_toml(includes[inc_name],includes)
         if "general" in data:
-            self.ingest_toml(data["general"])
-        if "program" in data:
-            self._program = data["program"]
+            self.ingest_toml(data["general"],includes)
+        if "program_name" in data:
+            self._program_name = data["program_name"]
+        if "program_set" in data:
+            self._program_set = data["program_set"]
+        if "program_version" in data:
+            self._program_version = int(data["program_version"])
         if "scales" in data:
             self._scales = [int(x) for x in data["scales"]]
         if "triggers" in data:
@@ -88,7 +97,7 @@ class Track:
         values |= set([x[1] for x in self._values])
         keys = set([x[0] for x in self._settings])
         keys |= set([x[0] for x in self._values])
-        return (switches,set((self._program,)),set(self._tags),values,keys)
+        return (switches,set([self._program_name,self._program_set]),set(self._tags),values,keys)
 
     def _dump_for_wire(self, dumper, name):
         sets = sorted(self._set, key = lambda x: dumper.switch_mapping[x[0]] )
@@ -96,7 +105,9 @@ class Track:
         values = sorted(self._values, key = lambda x: x[0])
         return {
             "name": name,
-            "program": dumper.program_mapping[self._program],
+            "program_name": dumper.program_mapping[self._program_name],
+            "program_set": dumper.program_mapping[self._program_set],
+            "program_version": self._program_version,
             "scales": self._scales,
             "tags": [dumper.tag_mapping[x] for x in self._tags],
             "triggers": increase(sorted([dumper.switch_mapping[x] for x in self._triggers])),
@@ -154,9 +165,7 @@ class Tracks:
                 includes[name] = value
         for (name,track_data) in data.get("track",{}).items():
             track = Track(name)
-            for inc_name in track_data.get("include",[]):
-                track.ingest_toml(includes[inc_name])
-            track.ingest_toml(track_data)
+            track.ingest_toml(track_data,includes)
             self._tracks[name] = track
         for (name,expansion_data) in data.get("expansion",{}).items():
             expansion = Expansion(name)
@@ -228,6 +237,7 @@ class TracksDump:
         self.data['scale_start'] = scale_start
         self.data['scale_end'] = scale_end
         self.data['scale_step'] = scale_step
+        self.data["program_version"] = increase(self.data["program_version"])
         self.data.pop('scales',None)
         expansions = {}
         for (name,expansion) in tracks._expansions.items():
@@ -240,9 +250,10 @@ class TracksDump:
         self.data['channel_idx'] = channels_idx
         self.data['value_idx'] = [remute(x) for x in value_list]
         for key in [
-                    "name", "program", "scales", "tags", "triggers", "extra", "set", 
-                    "values", "e-name", "e-channel", "e-triggers", "values-keys",
-                    "values-values", "settings-keys", "settings-values"
+                    "name", "program_name", "program_set", "program_version", "scales",
+                    "tags", "triggers", "extra", "set", "values", "e-name", "e-channel",
+                    "e-triggers", "values-keys", "values-values", "settings-keys",
+                    "settings-values"
                 ]:
             if key not in self.data:
                 self.data[key] = []
