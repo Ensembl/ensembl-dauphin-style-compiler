@@ -8,7 +8,7 @@ use std::sync::{ Arc, Mutex };
 use crate::core::channel::channelregistry::ChannelRegistry;
 use crate::{MaxiResponse, BackendNamespace, AccessorResolver};
 use crate::api::MessageSender;
-use crate::core::programbundle::SuppliedBundle;
+use crate::core::program::programbundle::SuppliedBundle;
 use crate::shapeload::programloader::ProgramLoader;
 use crate::util::message::DataMessage;
 use peregrine_dauphin_queue::{ PgDauphinQueue, PgDauphinLoadTaskSpec, PgDauphinRunTaskSpec };

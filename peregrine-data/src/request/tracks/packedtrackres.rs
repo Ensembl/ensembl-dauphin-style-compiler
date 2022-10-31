@@ -1,6 +1,6 @@
-use peregrine_toolkit::{error::Error, eachorevery::eoestruct::StructBuilt };
+use peregrine_toolkit::{error::Error, eachorevery::eoestruct::StructBuilt, diffset::DiffSet, lengths_match, multizip };
 use crate::{ProgramName, BackendNamespace};
-use super::{ diffset::DiffSet, switchtree::SwitchTree, trackmodel::{TrackModel, TrackModelBuilder}, expansionmodel::{ExpansionModel, ExpansionModelBuilder} };
+use super::{ switchtree::SwitchTree, trackmodel::{TrackModel, TrackModelBuilder}, expansionmodel::{ExpansionModel, ExpansionModelBuilder} };
 
 #[derive(Debug)]
 struct PackedTrack {
@@ -121,28 +121,6 @@ pub(crate) struct PackedTrackRes {
     key_idx: Vec<String>
 }
 
-macro_rules! lengths_match {
-    ($self:expr,$first:ident,$($rest:ident),*) => {
-        (|| {
-            let len = $self.$first.len();
-            $( if $self.$rest.len() != len { return false; } )*
-            true
-        })()
-    }
-}
-
-macro_rules! multizip {
-    ($self:expr,$($arg:ident),*;$cb:expr) => {
-        {
-            use itertools::izip;
-
-            for ($($arg),*) in izip!($($self.$arg.iter().cloned()),*) {
-                $cb
-            }
-        }
-    }
-}
-
 impl PackedTrackRes {
     fn make_packed_tracks(&self) -> Result<Vec<PackedTrack>,Error> {
         let mut out = vec![];
@@ -152,7 +130,7 @@ impl PackedTrackRes {
         ) {
             return Err(Error::operr("Bad packet: lengths don't match"));
         }
-        multizip!(self,
+        multizip!(self;
             name,program,tags,triggers,extra,set,scale_start,scale_end,scale_step,values,
             values_keys,values_values,settings_keys,settings_values;
             {
@@ -177,7 +155,7 @@ impl PackedTrackRes {
         if !lengths_match!(self,name,program,tags,triggers,extra,set,scale_start,scale_end,scale_step) {
             return Err(Error::operr("Bad packet: lengths don't match"));
         }
-        multizip!(self,e_name,e_channel,e_triggers;{
+        multizip!(self;e_name,e_channel,e_triggers;{
             out.push(PackedExpansion {
                 name: e_name,
                 channel: e_channel,

@@ -88,11 +88,16 @@ mod core {
         pub(crate) mod wrappedchannelsender;
     }
 
+    pub(crate) mod program {
+        mod packedprogramspec;
+        pub(crate) mod programspec;
+        pub(crate) mod programbundle;
+    }
+
     pub(crate) mod asset;
     mod config;
     mod layout;
     pub(crate) mod pixelsize;
-    pub(crate) mod programbundle;
     mod scale;
     pub mod stick;
     pub(crate) mod version;
@@ -176,7 +181,6 @@ mod request {
     }
 
     pub(crate) mod tracks {
-        mod diffset;
         pub(crate) mod expansionmodel;
         mod switchtree;
         mod packedtrackres;

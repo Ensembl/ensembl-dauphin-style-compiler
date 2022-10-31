@@ -7,7 +7,7 @@ use std::mem::replace;
 use std::sync::Arc;
 use crate::{core::channel::wrappedchannelsender::WrappedChannelSender, request::tracks::{trackres::TrackResult, trackmodel::TrackModel, expansionmodel::ExpansionModel}};
 use crate::{BackendNamespace};
-use crate::core::programbundle::SuppliedBundle;
+use crate::core::program::programbundle::SuppliedBundle;
 use super::response::{MiniResponseAttempt, MiniResponseAttemptVecDeserialize};
 
 #[allow(unused)] // used in debug_big_requests

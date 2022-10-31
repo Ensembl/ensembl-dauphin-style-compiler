@@ -73,9 +73,12 @@ pub mod puzzle {
 pub mod approxnumber;
 pub mod boom;
 pub mod cbor;
+pub mod diffset;
 pub mod serdetools;
 pub mod console;
 pub mod error;
+#[macro_use]
+pub mod itertools;
 #[macro_use]
 pub mod lang;
 pub mod refs;

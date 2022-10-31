@@ -1,6 +1,8 @@
 use std::{collections::HashMap, fmt};
-use peregrine_toolkit::{serdetools::{st_field, ByteData}};
+use peregrine_toolkit::{serdetools::{st_field, ByteData, st_err}, log};
 use serde::{de::{Visitor, MapAccess, IgnoredAny}, Deserialize, Deserializer};
+
+use super::packedprogramspec::PackedProgramSpec;
 
 pub struct SuppliedBundle {
     bundle_name: String,
@@ -30,16 +32,23 @@ impl<'de> Visitor<'de> for ProgramBundleVisitor {
         let mut bundle_name = None;
         let mut code : Option<ByteData> = None;
         let mut name_mapping = HashMap::new();
+        let mut specs = None;
         while let Some(key) = access.next_key()? {
             match key {
                 "bundle_name" => { bundle_name = Some(access.next_value()?); },
                 "code" => { code = Some(access.next_value()?); },
                 "name_mapping" => { name_mapping = access.next_value()?; },
+                "specs" => {
+                    let mut packed : PackedProgramSpec = access.next_value()?;
+                    specs = Some(st_err(packed.to_program_models(),"program models")?);
+                },
                 _ => { let _ : IgnoredAny = access.next_value()?; }
             }
         }
         let code = st_field("code",code)?;
         let bundle_name = st_field("bundle_name",bundle_name)?;
+        let specs = st_field("specs",specs)?;
+        log!("specs: {:?}",specs);
         Ok(SuppliedBundle {
             bundle_name, program: code.data, names: name_mapping
         })

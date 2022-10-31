@@ -55,7 +55,6 @@ pub struct TrackModel(Arc<TrackModelBuilder>);
 
 impl TrackModel {
     pub fn new(builder: TrackModelBuilder) -> TrackModel {
-        log!("{:?} -> settings: {:?} values: {:?}",builder.name,builder.settings,builder.values);
         TrackModel(Arc::new(builder))
     }
 
