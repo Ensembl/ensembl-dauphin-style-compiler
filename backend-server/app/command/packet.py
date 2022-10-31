@@ -1,6 +1,8 @@
 import collections
 import imp
 import logging
+
+from command.begs import BundleSet
 from model.expansions import Expansions
 from command.response import Response
 from command.coremodel import Handler
@@ -71,7 +73,7 @@ def process_packet(packet_cbor: Any, high_priority: bool) -> Any:
     metrics = ResponseMetrics("realtime" if high_priority else "batch")
     channel = replace_empty_channel(packet_cbor["channel"])
     response = []
-    bundles = set()
+    program_data = []
     tracks = Tracks()
     local_requests = []
     remote_requests = collections.defaultdict(list)
@@ -89,15 +91,16 @@ def process_packet(packet_cbor: Any, high_priority: bool) -> Any:
     for (request,messages) in remote_requests.items():
         r = do_request_remote(request,messages,high_priority,version)
         response += [[x[0],cbor2.dumps(x[1])] for x in r["responses"]]
-        bundles |= set(r["programs"])
+        program_data |= set(r["programs"])
         if "tracks" in r:
             tracks.merge(Tracks(expanded_toml=r["tracks"]))
     # local stuff
+    bundles = BundleSet()
     for (msgid,typ,payload) in local_requests:
         r = process_local_request(data_accessor,channel,typ,payload,metrics,version)
         response.append([msgid,r.payload])
-        bundles |= r.bundles
+        bundles.merge(r.bundles)
         tracks.merge(r.tracks)
     begs_files = data_accessor.begs_files
     metrics.send()
-    return (response,[ begs_files.add_bundle(x,version) for x in bundles ],channel,tracks.dump_for_wire())
+    return (response,bundles.bundle_data(),channel,tracks.dump_for_wire())

@@ -49,7 +49,7 @@ class BootstrapHandler(Handler):
         except UnknownVersionException as e:
             return Response(1,"Backend out of date: Doesn't support egs version {}".format(e))
         for b in bundles:
-            r.bundles.add(b)
+            r.add_bundle(b)
         tracks_toml = toml.load(BOOT_TRACKS_TOML)
         r.add_tracks(Tracks(expanded_toml=tracks_toml))
         return r
@@ -66,7 +66,7 @@ class ProgramHandler(Handler):
         if bundle == None:
             return Response(1,"Unknown program {}".format(name))
         r = Response(2,[])
-        r.bundles.add(bundle)
+        r.add_bundle(bundle)
         return r
         
 class StickHandler(Handler):

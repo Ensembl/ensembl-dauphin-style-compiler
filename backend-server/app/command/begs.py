@@ -1,3 +1,4 @@
+from __future__ import annotations
 from core.config import BEGS_FILES, BEGS_CONFIG
 from typing import Any, List, Optional;
 import logging
@@ -50,9 +51,8 @@ class VersionedBegsFiles(object):
             self.authority_startup_program = None
             self.authority_lookup_program = None
             self.authority_jump_program = None
-        self.bundle_contents = {}
+        self.name_to_bundle_name = {}
         self.program_map = {}
-        self.program = {}
         self._monitor = BegsFilesMonitor()
         for (name_of_bundle,mapping) in toml_file["begs"].items():
             program_path = os.path.join(
@@ -60,20 +60,16 @@ class VersionedBegsFiles(object):
                 "{}.begs".format(name_of_bundle)
             )
             self._monitor.add(name_of_bundle,program_path)
-            self.program[name_of_bundle] = self.load_program(program_path,egs_version)
-            self.bundle_contents[name_of_bundle] = {}
+            self.name_to_bundle_name[name_of_bundle] = {}
             for (name_in_bundle,name_in_channel) in mapping.items():
-                self.program_map[name_in_channel] = (name_of_bundle,name_in_bundle)
-                self.bundle_contents[name_of_bundle][name_in_channel] = name_in_bundle
+                self.program_map[name_in_channel] = Bundle(self,name_of_bundle,program_path,egs_version)
+                self.name_to_bundle_name[name_of_bundle][name_in_channel] = name_in_bundle
 
-    def find_bundle(self, name: str) -> str:
-        v = self.program_map[name]
-        if v != None:
-            return v[0]
-        return None
+    def find_bundle(self, name: str) -> Optional[Bundle]:
+        return self.program_map.get(name,None)
 
     def all_bundles(self) -> Any:
-        return self.program.keys()
+        return self.program_map.values()
 
     def load_program(self, program_path: str, egs_version: int) -> Any:
         with open(program_path,'rb') as f:
@@ -82,12 +78,9 @@ class VersionedBegsFiles(object):
             else:
                 return f.read()
 
-    def add_bundle(self, bundle_name: str, version: Version) -> Any:
-        if self._monitor.check(bundle_name):
-            logging.warn("Bundle '{0}' changed. Reloading".format(bundle_name))
-            egs_version = version.get_egs()
-            self.program[bundle_name] = self.load_program(self._monitor.path(bundle_name),egs_version)
-        return Bundle(self,bundle_name).serialize(self.program[bundle_name])
+    def add_bundle(self, bundle: Bundle) -> Any:
+        bundle.monitor(self,self._monitor)
+        return bundle.serialize()
 
 class BegsFiles(object):
     def __init__(self):
@@ -112,14 +105,14 @@ class BegsFiles(object):
     def boot_program(self, version: Version) -> str:
         return self._bundle(version).boot_program
 
-    def find_bundle(self, name: str, version: Version) -> str:
+    def find_bundle(self, name: str, version: Version) -> Optional[Bundle]:
         return self._bundle(version).find_bundle(name)
 
     def all_bundles(self, version: Version) -> Any:
         return self._bundle(version).all_bundles()
 
     def add_bundle(self, bundle_name: str, version: Version) -> Any:
-        return self._bundle(version).add_bundle(bundle_name,version)
+        return self._bundle(version).add_bundle(bundle_name)
 
     # There is no authority_lookup_program from v15 on
     def authority_startup_program(self, version: Version):
@@ -134,9 +127,34 @@ class BegsFiles(object):
         return self._bundle(version).authority_jump_program
 
 class Bundle(object):
-    def __init__(self, begs_files: BegsFiles, name: str):
+    def __init__(self, begs_files: BegsFiles, name: str, program_path: str, egs_version: int):
         self.begs_files = begs_files
         self.name = name
+        self._program = begs_files.load_program(program_path,egs_version)
+        self._egs_version = egs_version
 
-    def serialize(self, program: Any) -> Any:
-        return [self.name,program,self.begs_files.bundle_contents[self.name]]
+    def monitor(self, begs_files: BegsFiles, monitor: BegsFilesMonitor):
+        if self._monitor.check(self.name):
+            logging.warn("Bundle '{0}' changed. Reloading".format(self.name))
+            self._program = begs_files.load_program(monitor.path(self.name),self._egs_version)
+
+    def serialize(self) -> Any:
+        return [self.name,self._program,self.begs_files.name_to_bundle_name[self.name]]
+
+class BundleSet:
+    def __init__(self):
+        self.bundles = []
+        self._names = set()
+
+    def add(self, bundle: Bundle):
+        if bundle.name in self._names:
+            return
+        self.bundles.append(bundle)
+        self._names.add(bundle.name)
+
+    def merge(self, other: BundleSet):
+        for bundle in other.bundles:
+            self.add(bundle)
+
+    def bundle_data(self) -> Any:
+        return [ b.serialize() for b in self.bundles ]
