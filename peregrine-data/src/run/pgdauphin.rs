@@ -21,9 +21,26 @@ pub struct PgDauphinTaskSpec {
     pub payloads: Option<HashMap<String,Box<dyn Any>>>
 }
 
+#[derive(Clone)]
+struct InternalName {
+    backend_namespace: BackendNamespace,
+    bundle_name: String,
+    in_bundle_name: String
+}
+
+impl InternalName {
+    fn new(backend_namespace: &BackendNamespace, bundle_name: &str, in_bundle_name: &str) -> InternalName {
+        InternalName {
+            backend_namespace: backend_namespace.clone(),
+            bundle_name: bundle_name.to_string(),
+            in_bundle_name: in_bundle_name.to_string()
+        }
+    }
+}
+
 struct PgDauphinData {
     pdq: PgDauphinQueue,
-    names: HashMap<ProgramName,Option<(String,String)>>,
+    names: HashMap<ProgramName,Option<InternalName>>
 }
 
 #[derive(Clone)]
@@ -55,7 +72,8 @@ impl PgDauphin {
 
     fn register(&self, backend_namespace: &BackendNamespace, program_name: &ProgramName, name_of_bundle: &str, name_in_bundle: &str) {
         let binary_name = self.binary_name(backend_namespace,name_of_bundle);
-        lock!(self.0).names.insert(program_name.clone(),Some((binary_name,name_in_bundle.to_string())));
+        let internal_name = InternalName::new(backend_namespace,&binary_name,name_in_bundle);
+        lock!(self.0).names.insert(program_name.clone(),Some(internal_name));
     }
 
     pub fn is_present(&self, program_name: &ProgramName) -> bool {
@@ -73,17 +91,18 @@ impl PgDauphin {
             loader.load(&program_name).await?;
         }
         let data = lock!(self.0);
-        let (bundle_name,in_bundle_name) = data.names.get(&program_name).as_ref().unwrap().as_ref()
+        let internal_name = data.names.get(&program_name).as_ref().unwrap().as_ref()
             .ok_or(Error::operr(&format!("failed channel/program {:?}",program_name)))?.clone();
         let mut payloads = spec.payloads.unwrap_or_else(|| HashMap::new());
-        payloads.insert("channel-resolver".to_string(),Box::new(AccessorResolver::new(registry,&spec.program_name.xxx_backendnamespace())));
+        payloads.insert("channel-resolver".to_string(),Box::new(AccessorResolver::new(registry,&internal_name.backend_namespace)));
         let pdq = data.pdq.clone();
         drop(data);
         pdq.run(PgDauphinRunTaskSpec {
             prio: spec.prio,
             slot: spec.slot,
             timeout: spec.timeout,
-            bundle_name, in_bundle_name,
+            bundle_name: internal_name.bundle_name.to_string(), 
+            in_bundle_name: internal_name.in_bundle_name.to_string(),
             payloads
         }).await.map_err(|e| Error::operr(&format!("Cannot run {:?}: {}",program_name,e)))
     }
