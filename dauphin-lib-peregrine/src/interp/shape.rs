@@ -3,8 +3,8 @@ use std::sync::{Arc, Mutex};
 use anyhow::anyhow as err;
 use peregrine_toolkit::lock;
 use crate::simple_interp_command;
-use peregrine_data::{SpaceBaseArea, PartialSpaceBase, ProgramShapesBuilder, BackendNamespace};
-use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult };
+use peregrine_data::{SpaceBaseArea, PartialSpaceBase, ProgramShapesBuilder, AccessorResolver, DataMessage};
+use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult, AsyncBlock };
 use dauphin_interp::runtime::{ InterpContext, Register };
 use serde_cbor::Value as CborValue;
 use crate::util::{get_instance, get_peregrine, vec_to_eoe};
@@ -103,28 +103,34 @@ impl InterpCommand for RunningTextInterpCommand {
     }
 }
 
-impl InterpCommand for ImageInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
-        let registers = context.registers_mut();
-        let spacebase_id = registers.get_indexes(&self.0)?.to_vec();
-        let images = vec_to_eoe(registers.get_strings(&self.1)?.to_vec());
-        let allotment_id = vec_to_eoe(registers.get_indexes(&self.2)?.to_vec());
-        drop(registers);
-        let self_channel = get_instance::<BackendNamespace>(context,"channel")?;
-        let peregrine = get_peregrine(context)?;
-        let geometry = peregrine.geometry_builder();
-        let spacebase = geometry.spacebase(spacebase_id[0] as u32)?.as_ref().clone();
-        if spacebase.len() > 0 {
-            let allotments = allotment_id.map_results(|id| {
-                geometry.allotment(*id as u32).map(|x| x.as_ref().clone())
-            })?.index(|a| a.name().clone());
-            if images.len() != Some(0) && allotments.len() != Some(0) {
-                let spacebase = spacebase.replace_allotments(allotments);
-                let zoo = get_instance::<Arc<Mutex<Option<ProgramShapesBuilder>>>>(context,"out")?;
-                lock!(zoo).as_mut().unwrap().add_image(&self_channel,spacebase,images)?;
-            }
+async fn image_command(context: &mut InterpContext, cmd: ImageInterpCommand) -> anyhow::Result<()> {
+    let registers = context.registers_mut();
+    let spacebase_id = registers.get_indexes(&cmd.0)?.to_vec();
+    let images = vec_to_eoe(registers.get_strings(&cmd.1)?.to_vec());
+    let allotment_id = vec_to_eoe(registers.get_indexes(&cmd.2)?.to_vec());
+    drop(registers);
+    let channel_resolver = get_instance::<AccessorResolver>(context,"channel-resolver")?;
+    let self_channel = channel_resolver.resolve("self://").await.map_err(|e| DataMessage::XXXTransitional(e))?;
+    let peregrine = get_peregrine(context)?;
+    let geometry = peregrine.geometry_builder();
+    let spacebase = geometry.spacebase(spacebase_id[0] as u32)?.as_ref().clone();
+    if spacebase.len() > 0 {
+        let allotments = allotment_id.map_results(|id| {
+            geometry.allotment(*id as u32).map(|x| x.as_ref().clone())
+        })?.index(|a| a.name().clone());
+        if images.len() != Some(0) && allotments.len() != Some(0) {
+            let spacebase = spacebase.replace_allotments(allotments);
+            let zoo = get_instance::<Arc<Mutex<Option<ProgramShapesBuilder>>>>(context,"out")?;
+            lock!(zoo).as_mut().unwrap().add_image(&self_channel,spacebase,images)?;
         }
-        Ok(CommandResult::SyncResult())
+    }
+    Ok(())
+}
+
+impl InterpCommand for ImageInterpCommand {
+    fn execute(&self, _context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+        let cmd = self.clone();
+        Ok(CommandResult::AsyncResult(AsyncBlock::new(Box::new(|context| Box::pin(image_command(context,cmd))))))
     }
 }
 

@@ -53,8 +53,8 @@ impl PgDauphin {
         self.add_binary_direct(&self.binary_name(channel,name_of_bundle),cbor).await
     }
 
-    pub fn register(&self, program_name: &ProgramName, name_of_bundle: &str, name_in_bundle: &str) {
-        let binary_name = self.binary_name(program_name.xxx_backendnamespace(),name_of_bundle);
+    fn register(&self, backend_namespace: &BackendNamespace, program_name: &ProgramName, name_of_bundle: &str, name_in_bundle: &str) {
+        let binary_name = self.binary_name(backend_namespace,name_of_bundle);
         lock!(self.0).names.insert(program_name.clone(),Some((binary_name,name_in_bundle.to_string())));
     }
 
@@ -76,7 +76,6 @@ impl PgDauphin {
         let (bundle_name,in_bundle_name) = data.names.get(&program_name).as_ref().unwrap().as_ref()
             .ok_or(Error::operr(&format!("failed channel/program {:?}",program_name)))?.clone();
         let mut payloads = spec.payloads.unwrap_or_else(|| HashMap::new());
-        payloads.insert("channel".to_string(),Box::new(program_name.xxx_backendnamespace().clone()));
         payloads.insert("channel-resolver".to_string(),Box::new(AccessorResolver::new(registry,&spec.program_name.xxx_backendnamespace())));
         let pdq = data.pdq.clone();
         drop(data);
@@ -97,7 +96,7 @@ async fn add_bundle(pgd: &PgDauphin, channel: &BackendNamespace, bundle: &Suppli
             for spec in specs {
                 let program_name = spec.name();
                 let in_bundle_name = spec.in_bundle_name();
-                pgd.register(&program_name,bundle.bundle_name(),in_bundle_name);
+                pgd.register(channel,&program_name,bundle.bundle_name(),in_bundle_name);
             }
         },
         Err(e) => {
