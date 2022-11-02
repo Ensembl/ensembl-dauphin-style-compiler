@@ -1,8 +1,9 @@
-from .begs import BegsFiles
+from model.tracks import Tracks
+from .begs import BegsFiles, ProgramInventory
 from model.datamodel import DataModel
 from model.datalocator import DataSourceResolver
 from model.memcached import Memcached
-from core.config import MEMCACHED_PREFIX, MEMCACHED_BUMP_ON_RESTART
+from core.config import BOOT_TRACKS_TOML, MEMCACHED_PREFIX, MEMCACHED_BUMP_ON_RESTART
 
 class DataAccessor:
     def __init__(self, version: int):
@@ -11,8 +12,11 @@ class DataAccessor:
     def reload(self, version: int):
         self.resolver : DataSourceResolver = DataSourceResolver(version)
         self.begs_files = BegsFiles()
+        self.program_inventory = ProgramInventory(version)
         self.data_model = DataModel()
         self.cache = Memcached(MEMCACHED_PREFIX,MEMCACHED_BUMP_ON_RESTART)
+        self.boot_tracks = Tracks(BOOT_TRACKS_TOML)
+        self.supported_versions = [9,10,11,12,13,14,15]
 
 class DataAccessorCollection:
     def __init__(self):

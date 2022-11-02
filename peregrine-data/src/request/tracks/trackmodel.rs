@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
-use peregrine_toolkit::{eachorevery::eoestruct::StructBuilt, log };
+use peregrine_toolkit::{eachorevery::eoestruct::StructBuilt };
 
-use crate::{Track, ProgramName};
+use crate::{Track, shapeload::programname::ProgramName};
 
 #[derive(Debug)]
 pub struct TrackModelBuilder {

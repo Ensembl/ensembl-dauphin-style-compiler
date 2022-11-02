@@ -1,16 +1,23 @@
 from __future__ import annotations
-import logging, os.path
+import logging, os.path, cbor2
 from model.programs import AllProgramSpecs, ProgramSpec
 from typing import Any
 from core.config import EGS_FILES
 
 class Bundle:
-    def __init__(self, begs_files, name: str, program_path: str, egs_version: int):
-        self.begs_files = begs_files
+    def __init__(self, name: str, program_path: str, egs_version: int, name_map = None):
         self.name = name
         self._specs = AllProgramSpecs()
-        self._program = begs_files.load_program(program_path,egs_version)
+        self._program = self.load_program(program_path,egs_version)
         self._egs_version = egs_version
+        self._name_map = name_map
+
+    def load_program(self, program_path: str, egs_version: int) -> Any:
+        with open(program_path,'rb') as f:
+            if egs_version < 15:
+                return cbor2.loads(f.read())
+            else:
+                return f.read()
 
     def add_program(self, name: str, spec_path: str):
         if self._egs_version >= 15:
@@ -18,20 +25,19 @@ class Bundle:
                 raise Exception("missing spec file {}".format(spec_path))
             self._specs.add(ProgramSpec(name,spec_path))
 
-    def monitor(self, begs_files, monitor):
+    def monitor(self, monitor):
         if self._monitor.check(self.name):
             logging.warn("Bundle '{0}' changed. Reloading".format(self.name))
-            self._program = begs_files.load_program(monitor.path(self.name),self._egs_version)
+            self._program = self.load_program(monitor.path(self.name),self._egs_version)
 
     def serialize(self) -> Any:
         logging.warn(str(self._specs.serialize()))
         if self._egs_version < 15:
-            return [self.name,self._program,self.begs_files.name_to_bundle_name[self.name]]
+            return [self.name,self._program,self._name_map]
         else:
             return {
                 'bundle_name': self.name,
                 'code': self._program,
-                'name_mapping': self.begs_files.name_to_bundle_name[self.name],
                 'specs': self._specs.serialize()
             }
 

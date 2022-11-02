@@ -2,6 +2,8 @@ use std::collections::HashMap;
 
 use peregrine_toolkit::{error::Error, eachorevery::eoestruct::StructBuilt};
 
+use crate::{shapeload::programname::ProgramName, BackendNamespace};
+
 use super::packedprogramspec::PackedProgramSpec;
 
 #[derive(Clone,Debug)]
@@ -21,20 +23,16 @@ impl ProgramSetting {
 
 #[derive(Clone,Debug)]
 pub(crate) struct ProgramModel {
-    name: String,
+    name: ProgramName,
     in_bundle_name: String,
-    set: String,
-    version: usize,
     settings: HashMap<String,ProgramSetting>
 }
 
 impl ProgramModel {
-    pub fn new(set: &str, name: &str, version: usize, in_bundle_name: &str) -> ProgramModel {
+    pub fn new(name: &ProgramName, in_bundle_name: &str) -> ProgramModel {
         ProgramModel {
-            name: name.to_string(), 
+            name: name.clone(), 
             in_bundle_name: in_bundle_name.to_string(),
-            set: set.to_string(),
-            version,
             settings: HashMap::new()
         }
     }
@@ -42,6 +40,9 @@ impl ProgramModel {
     pub fn add_setting(&mut self, name: &str, setting: ProgramSetting) {
         self.settings.insert(name.to_string(),setting);
     }
+
+    pub fn name(&self) -> &ProgramName { &self.name }
+    pub fn in_bundle_name(&self) -> &str { &self.in_bundle_name }
 }
 
 pub(crate) enum ProgramSpec {
@@ -50,10 +51,10 @@ pub(crate) enum ProgramSpec {
 }
 
 impl ProgramSpec {
-    pub(crate) fn to_program_models(&mut self) -> Result<Vec<ProgramModel>,Error> {
+    pub(crate) fn to_program_models(&self, backend_namespace: &BackendNamespace) -> Result<Vec<ProgramModel>,Error> {
         match self {
             ProgramSpec::Umpacked(m) => Ok(m.clone()),
-            ProgramSpec::Packed(m) => m.to_program_models()
+            ProgramSpec::Packed(m) => m.to_program_models(backend_namespace)
         }
     }
 }

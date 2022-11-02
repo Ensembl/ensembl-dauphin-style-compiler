@@ -1,6 +1,11 @@
-[include.general]
-program_set = "ensembl-webteam/core"
-program_version = 1
+include_files = [
+    "tracks-include.toml"
+]
+
+from_bundles = [
+    "boot",
+    "test"
+]
 
 [include.gene.general]
 triggers = [

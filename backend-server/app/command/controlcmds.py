@@ -36,31 +36,41 @@ def load_assets(chrome: bool):
 class BootstrapHandler(Handler):
     def process(self, data_accessor: DataAccessor, channel: Any, payload: Any, metrics: ResponseMetrics, version: Version) -> Response:
         try:
-            r = Response(0,{
-                "boot": [channel,data_accessor.begs_files.boot_program(version)],  # should go when v14 is retired
-                "hi": channel, # should go when v14 is retired
-                "lo": channel, # should go when v14 is retired
-                "namespace":  channel,
-                "assets": load_assets(False),
-                "chrome-assets": load_assets(True),
-                "supports": data_accessor.begs_files.versions()
-            })
-            bundles = data_accessor.begs_files.all_bundles(version)
+            if version.get_egs() < 15:
+                r = Response(0,{
+                    "boot": [channel,data_accessor.begs_files.boot_program(version)],
+                    "hi": channel,
+                    "lo": channel,
+                    "namespace":  channel,
+                    "assets": load_assets(False),
+                    "chrome-assets": load_assets(True),
+                    "supports": data_accessor.supported_versions
+                })
+                bundles = data_accessor.begs_files.boot_bundles(version)
+            else:
+                r = Response(0,{
+                    "namespace":  channel,
+                    "assets": load_assets(False),
+                    "chrome-assets": load_assets(True),
+                    "supports": data_accessor.supported_versions
+                })
+                bundles = data_accessor.program_inventory.boot_bundles(version.get_egs())
         except UnknownVersionException as e:
             return Response(1,"Backend out of date: Doesn't support egs version {}".format(e))
         for b in bundles:
             r.add_bundle(b)
-        tracks_toml = toml.load(BOOT_TRACKS_TOML)
-        r.add_tracks(Tracks(expanded_toml=tracks_toml))
+        r.add_tracks(data_accessor.boot_tracks)
         return r
 
 class ProgramHandler(Handler):
     def process(self, data_accessor: DataAccessor, channel: Any, payload: Any, metrics: ResponseMetrics, version: Version) -> Response:
-        (want_channel, name) = payload
-        if want_channel != channel:
-            return Response(1,"Only know of programs in my own channel")
+        logging.warn("ProgramHandler {}".format(payload))
+        (prog_set,name,prog_version) = payload
         try:
-            bundle = data_accessor.begs_files.find_bundle(name,version)
+            if version.get_egs() < 15:
+                bundle = data_accessor.begs_files.find_bundle(name,version)
+            else:
+                bundle = data_accessor.program_inventory.find_bundle(prog_set,name,prog_version)
         except UnknownVersionException as e:
             return Response(1,e)
         if bundle == None:
@@ -99,14 +109,21 @@ class StickAuthorityHandler(Handler):
 class ExpansionHandler(Handler):
     def __init__(self, expansions) -> None:
         super().__init__()
+        self._expansions_obj = expansions
+        self._expansions = None
+
+    def _load_expansions(self, data_accessor: DataAccessor):
+        if self._expansions is not None:
+            return
         self._expansions = {}
-        for x in toml.load(BOOT_TRACKS_TOML).get("expansion",{}).values():
+        for x in data_accessor.boot_tracks.get("expansion",{}).values():
             if "run" in x:
                 channel = tuple(x.get("channel",None))
                 name = x["name"]
-                self._expansions[(channel,name)] = getattr(expansions,x["run"])
+                self._expansions[(channel,name)] = getattr(self._expansions_obj,x["run"])
 
-    def _get(self, channel, name) -> Optional[Callable[[str],Optional[Tracks]]]:
+    def _get(self, data_accessor: DataAccessor, channel, name) -> Optional[Callable[[str],Optional[Tracks]]]:
+        self._load_expansions(data_accessor)
         for key in [(tuple(channel),name),(None,name)]:
             if key in self._expansions:
                 return self._expansions[key]
@@ -116,7 +133,7 @@ class ExpansionHandler(Handler):
         try:
             r = Response(7,[])
             (name,step) = payload
-            callable = self._get(channel,name)
+            callable = self._get(data_accessor,channel,name)
             if callable is not None:
                 tracks = callable(step)
             if tracks is not None:

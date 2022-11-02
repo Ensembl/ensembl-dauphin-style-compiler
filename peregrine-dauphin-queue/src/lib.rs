@@ -1,6 +1,5 @@
 use anyhow;
 use commander::{ RunSlot, CommanderStream };
-use serde_cbor::Value as CborValue;
 use std::any::Any;
 use std::collections::HashMap;
 use peregrine_toolkit::plumbing::oneshot::OneShot;

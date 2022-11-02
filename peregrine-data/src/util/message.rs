@@ -3,7 +3,6 @@ use std::{ hash::{ Hash, Hasher }, fmt };
 use std::collections::hash_map::{ DefaultHasher };
 use std::error::Error;
 use crate::{BackendNamespace};
-use crate::shapeload::programname::ProgramName;
 use crate::core::stick::StickId;
 use peregrine_message::{ MessageKind, MessageAction, MessageLikelihood, PeregrineMessage };
 use peregrine_config::ConfigError;
@@ -39,9 +38,7 @@ pub enum DataMessage {
     NoSuchStick(StickId),
     NoSuchJump(String),
     CarriageUnavailable(Vec<DataMessage>),
-    DauphinProgramDidNotLoad(ProgramName),
     DauphinIntegrationError(String),
-    DauphinRunError(ProgramName,String),
     DauphinProgramMissing(String),
     DataUnavailable(BackendNamespace,Box<DataMessage>),
     TunnelError(Arc<Mutex<dyn PeregrineMessage>>),
@@ -112,9 +109,7 @@ impl PeregrineMessage for DataMessage {
             DataMessage::NoSuchJump(s) => (12,calculate_hash(s)),
             DataMessage::NoSuchStick(s) => (19,calculate_hash(s)),
             DataMessage::CarriageUnavailable(_) => (20,calculate_hash(&())),
-            DataMessage::DauphinProgramDidNotLoad(name) => (21,calculate_hash(name)),
             DataMessage::DauphinIntegrationError(e) => (22,calculate_hash(e)),
-            DataMessage::DauphinRunError(p,e) => (23,calculate_hash(&(p,e))),
             DataMessage::DauphinProgramMissing(p) => (24,calculate_hash(p)),
             DataMessage::DataUnavailable(c,e) => (14,calculate_hash(&(c,e.code()))),
             DataMessage::NoSuchAllotment(a) => (25,calculate_hash(a)),
@@ -162,9 +157,7 @@ impl PeregrineMessage for DataMessage {
             DataMessage::NoSuchJump(jump) => format!("no such jump: {}",jump),
             DataMessage::CarriageUnavailable(causes) =>
                 format!("carriage unavilable. causes = [{}]",causes.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(", ")),
-            DataMessage::DauphinProgramDidNotLoad(name) => format!("dauphin program '{}' did not load",name),
             DataMessage::DauphinIntegrationError(message) => format!("dauphin integration error: {}",message),
-            DataMessage::DauphinRunError(program,message) => format!("error running dauphin program '{}': {}",program,message),
             DataMessage::DauphinProgramMissing(program) => format!("dauphin program '{}' missing",program),
             DataMessage::DataUnavailable(channel,e) => format!("data unavialable '{}', channel={}",e.to_string(),channel),
             DataMessage::NoSuchAllotment(allotment) => format!("no such allotment '{}'",allotment),
@@ -207,9 +200,7 @@ impl PeregrineMessage for DataMessage {
             DataMessage::NoSuchJump(location) => format!("no such jump: {}",location),
             DataMessage::CarriageUnavailable(causes) =>
                 format!("carriage unavilable. causes = [{}]",causes.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(", ")),
-            DataMessage::DauphinProgramDidNotLoad(name) => format!("dauphin program '{}' did not load",name),
             DataMessage::DauphinIntegrationError(message) => format!("dauphin integration error: {}",message),
-            DataMessage::DauphinRunError(program,message) => format!("error running dauphin program '{}': {}",program,message),
             DataMessage::DauphinProgramMissing(program) => format!("dauphin program '{}' missing",program),
             DataMessage::DataUnavailable(channel,e) => format!("data unavialable '{}', channel={}",e.to_string(),channel),
             DataMessage::NoSuchAllotment(allotment) => format!("no such allotment '{}'",allotment),

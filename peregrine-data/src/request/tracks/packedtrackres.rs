@@ -1,5 +1,5 @@
 use peregrine_toolkit::{error::Error, eachorevery::eoestruct::StructBuilt, diffset::DiffSet, lengths_match, multizip, log };
-use crate::{ProgramName, BackendNamespace, shapeload::programname::ProgramName2};
+use crate::{BackendNamespace, shapeload::programname::ProgramName};
 use super::{ switchtree::SwitchTree, trackmodel::{TrackModel, TrackModelBuilder}, expansionmodel::{ExpansionModel, ExpansionModelBuilder} };
 
 #[derive(Debug)]
@@ -31,8 +31,8 @@ impl PackedTrack {
         let program_set = lookup(self.program_set,&res.program_idx)?;
         let program_name = lookup(self.program_name,&res.program_idx)?;
         log!("set {:?} name {:?} version {:?}",program_set,program_name,self.program_version);
-        let program_name = ProgramName2::new(program_set,program_name,self.program_version);
-        let mut builder = TrackModelBuilder::new(&self.name,&ProgramName(backend_namespace.clone(),program_name.xxx_name().to_string()),self.scale_start,self.scale_end,self.scale_step);
+        let program_name = ProgramName::new(program_set,program_name,self.program_version,backend_namespace);
+        let mut builder = TrackModelBuilder::new(&self.name,&program_name,self.scale_start,self.scale_end,self.scale_step);
         for tag_idx in &self.tags {
             builder.add_tag(lookup(*tag_idx,&res.tag_idx)?);
         }

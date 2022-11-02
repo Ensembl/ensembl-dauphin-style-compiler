@@ -1,3 +1,5 @@
+use peregrine_toolkit::error::err_web_drop;
+
 use crate::{PgDauphin, run::pgdauphin::add_programs_from_response, MaxiResponse, api::MessageSender, BackendNamespace, request::tracks::trackdata::add_tracks_from_response, PeregrineApiQueue, Switches};
 
 #[derive(Clone)]
@@ -17,7 +19,7 @@ impl RequestSidecars {
     }
 
     pub(crate) async fn run(&self, response: &MaxiResponse, channel: &BackendNamespace, messages: &MessageSender) {
-        add_programs_from_response(&self.pgd,channel,response,messages).await;
+        err_web_drop(add_programs_from_response(&self.pgd,channel,response,messages).await);
         add_tracks_from_response(response,&self.switches,&self.queue);
     }
 }

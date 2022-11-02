@@ -1,7 +1,7 @@
-import logging
+import logging, os.path
 from typing import List, Set
 from model.serialutil import build_map, immute, increase, remute
-import cbor2
+import cbor2, toml
 
 def _count_prefix(a,b):
     minlen = min(len(a),len(b))
@@ -148,24 +148,34 @@ class Expansion:
         }
 
 class Tracks:
-    def __init__(self,expanded_toml=None):
+    def __init__(self,path=None):
         self._tracks = {}
         self._expansions = {}
-        if expanded_toml is not None:
-            self.ingest_toml(expanded_toml)
+        self._path = path
+        self._includes = {}
+        if path is not None:
+            self.ingest_toml({
+                'include_files': [path]
+            })
 
     def add_track(self,name,track):
         self._tracks[name] = track
 
-    def ingest_toml(self, data):
-        includes = {}
+    def ingest_toml(self, data, seen = set()):
+        if "include_files" in data and self._path is not None:
+            for filename in data["include_files"]:
+                file_path = os.path.join(os.path.dirname(self._path),filename)
+                if file_path in seen:
+                    raise Exception("loop in include_files")
+                tracks_toml = toml.load(file_path)
+                self.ingest_toml(tracks_toml,seen|set([file_path]))
         includes_data = data.get("include",None)
         if includes_data is not None:
             for (name,value) in includes_data.items():
-                includes[name] = value
+                self._includes[name] = value
         for (name,track_data) in data.get("track",{}).items():
             track = Track(name)
-            track.ingest_toml(track_data,includes)
+            track.ingest_toml(track_data,self._includes)
             self._tracks[name] = track
         for (name,expansion_data) in data.get("expansion",{}).items():
             expansion = Expansion(name)

@@ -3,7 +3,7 @@ use identitynumber::{ identitynumber, hashable, orderable };
 use lazy_static::lazy_static;
 use peregrine_toolkit::eachorevery::eoestruct::StructBuilt;
 use peregrine_toolkit::lock;
-use crate::{ProgramName};
+use crate::shapeload::programname::ProgramName;
 use crate::core::{ Layout, Scale };
 use super::switchoverlay::SwitchOverlay;
 

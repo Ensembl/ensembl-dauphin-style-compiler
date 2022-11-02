@@ -34,10 +34,10 @@ async fn make_unfiltered_shapes(base: PeregrineCoreBase, program_loader: Program
         timeout: None,
         program_name: request.track().track().program_name().clone(),
         payloads: Some(payloads)
-    }).await.map_err(|e| Error::operr(&format!("dauphin program failed: {}",e.to_string())))?;
+    }).await.map_err(|e| Error::operr(&format!("dauphin program failed: {:?}",e)))?;
     let took_ms = cdr_current_time() - start;
     let net_time_ms = *net_ms.lock().unwrap();
-    base.metrics.program_run(&request.track().track().program_name().1,request.region().scale().get_index(),!mode.build_shapes(),net_time_ms,took_ms);
+    base.metrics.program_run(&request.track().track().program_name().indicative_name(),request.region().scale().get_index(),!mode.build_shapes(),net_time_ms,took_ms);
     let shapes = lock!(shapes).take().unwrap().to_abstract_shapes_container();
     Ok(Arc::new(shapes))
 }

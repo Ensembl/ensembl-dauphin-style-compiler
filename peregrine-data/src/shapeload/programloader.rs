@@ -1,6 +1,8 @@
 use peregrine_toolkit::error::Error;
 
-use crate::{PeregrineCoreBase, PgCommanderTaskSpec, ProgramName, add_task, util::memoized::{Memoized, MemoizedType}};
+use crate::{PeregrineCoreBase, PgCommanderTaskSpec, add_task, util::memoized::{Memoized, MemoizedType}};
+
+use super::programname::ProgramName;
 
 fn make_program_loader(base: &PeregrineCoreBase) -> Memoized<ProgramName,Result<(),Error>> {
     let base = base.clone();
@@ -8,10 +10,10 @@ fn make_program_loader(base: &PeregrineCoreBase) -> Memoized<ProgramName,Result<
         let base = base.clone();
         let program_name = program_name.clone();
         Box::pin(async move { 
-            let backend = base.all_backends.backend(&program_name.0)?;
+            let backend = base.all_backends.backend(&program_name.xxx_backendnamespace())?;
             backend.program(&program_name).await?;
             if !base.dauphin.is_present(&program_name) {
-                return Err(Error::operr(&format!("program did not load: {}",program_name)));
+                return Err(Error::operr(&format!("program did not load: {:?}",program_name)));
             }
             Ok(())
         })

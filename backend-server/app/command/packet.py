@@ -92,8 +92,9 @@ def process_packet(packet_cbor: Any, high_priority: bool) -> Any:
         r = do_request_remote(request,messages,high_priority,version)
         response += [[x[0],cbor2.dumps(x[1])] for x in r["responses"]]
         program_data |= set(r["programs"])
-        if "tracks" in r:
-            tracks.merge(Tracks(expanded_toml=r["tracks"]))
+        if "tracks" in r and len(r["tracks"])>0:
+            raise Exception("UNIMPLEMENTED: adding to track payloads")
+            #tracks.merge(Tracks(expanded_toml=r["tracks"]))
     # local stuff
     bundles = BundleSet()
     for (msgid,typ,payload) in local_requests:
@@ -101,6 +102,5 @@ def process_packet(packet_cbor: Any, high_priority: bool) -> Any:
         response.append([msgid,r.payload])
         bundles.merge(r.bundles)
         tracks.merge(r.tracks)
-    begs_files = data_accessor.begs_files
     metrics.send()
     return (response,bundles.bundle_data(),channel,tracks.dump_for_wire())
