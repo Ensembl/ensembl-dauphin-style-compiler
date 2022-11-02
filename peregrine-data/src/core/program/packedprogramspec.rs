@@ -1,6 +1,5 @@
 use peregrine_toolkit::{diffset::DiffSet, eachorevery::eoestruct::StructBuilt, error::Error, lengths_match, multizip};
-use crate::{shapeload::programname::ProgramName, BackendNamespace};
-
+use crate::{shapeload::programname::ProgramName};
 use super::programspec::{ProgramModel, ProgramSetting};
 
 fn lookup<T>(index: usize, array: &[T]) -> Result<&T,Error> {
@@ -16,12 +15,11 @@ struct PackedProgram {
 }
 
 impl PackedProgram {
-    fn to_program_model(&self, res: &PackedProgramSpec, backend_namespace: &BackendNamespace) -> Result<ProgramModel,Error> {
+    fn to_program_model(&self, res: &PackedProgramSpec) -> Result<ProgramModel,Error> {
         let program_name = ProgramName::new(
             lookup(self.set,&res.name_idx)?,
             lookup(self.name,&res.name_idx)?,
-            self.version,
-            backend_namespace
+            self.version
         );
         let mut model = ProgramModel::new(
             &program_name,
@@ -78,7 +76,7 @@ impl PackedProgramSpec {
         Ok(out)
     }
 
-    pub(crate) fn to_program_models(&self, backend_namespace: &BackendNamespace) -> Result<Vec<ProgramModel>,Error> {
-        self.make_packed_programs()?.iter().map(|x| x.to_program_model(&self,backend_namespace)).collect()
+    pub(crate) fn to_program_models(&self) -> Result<Vec<ProgramModel>,Error> {
+        self.make_packed_programs()?.iter().map(|x| x.to_program_model(&self)).collect()
     }
 }

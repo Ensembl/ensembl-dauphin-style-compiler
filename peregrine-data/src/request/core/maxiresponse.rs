@@ -101,7 +101,7 @@ impl<'de> Visitor<'de> for MaxiResponseVisitor {
         let channel = st_field("channel",channel)?;
         let programs = st_field("programs",programs)?;
         let (tracks,expansions) = if let Some(tracks_packed) = tracks_packed {
-            st_err(tracks_packed.to_track_models(&channel),"unpacking tracks")?
+            st_err(tracks_packed.to_track_models(),"unpacking tracks")?
         } else {
             (vec![],vec![])
         };

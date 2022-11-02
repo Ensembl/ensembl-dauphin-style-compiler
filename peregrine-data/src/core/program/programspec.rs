@@ -51,10 +51,10 @@ pub(crate) enum ProgramSpec {
 }
 
 impl ProgramSpec {
-    pub(crate) fn to_program_models(&self, backend_namespace: &BackendNamespace) -> Result<Vec<ProgramModel>,Error> {
+    pub(crate) fn to_program_models(&self) -> Result<Vec<ProgramModel>,Error> {
         match self {
             ProgramSpec::Umpacked(m) => Ok(m.clone()),
-            ProgramSpec::Packed(m) => m.to_program_models(backend_namespace)
+            ProgramSpec::Packed(m) => m.to_program_models()
         }
     }
 }

@@ -1,5 +1,4 @@
 use peregrine_toolkit::{error::Error};
-use crate::{ BackendNamespace};
 use super::{ trackmodel::{TrackModel}, expansionmodel::{ExpansionModel}, packedtrackres::PackedTrackRes };
 
 pub(crate) enum TrackResult {
@@ -8,9 +7,9 @@ pub(crate) enum TrackResult {
 }
 
 impl TrackResult {
-    pub(crate) fn to_track_models(self, backend_namespace: &BackendNamespace) -> Result<(Vec<TrackModel>,Vec<ExpansionModel>),Error> {
+    pub(crate) fn to_track_models(self) -> Result<(Vec<TrackModel>,Vec<ExpansionModel>),Error> {
         Ok(match self {
-            TrackResult::Packed(mut p) => (p.to_track_models(backend_namespace)?,p.to_expansion_models()?),
+            TrackResult::Packed(mut p) => (p.to_track_models()?,p.to_expansion_models()?),
             TrackResult::Unpacked(t,e) => (t,e)
         })
     }

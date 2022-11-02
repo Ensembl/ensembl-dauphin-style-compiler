@@ -27,11 +27,11 @@ fn lookup<T>(index: usize, array: &[T]) -> Result<&T,Error> {
 }
 
 impl PackedTrack {
-    fn to_track(&self, backend_namespace: &BackendNamespace, res: &PackedTrackRes) -> Result<TrackModel,Error> {
+    fn to_track(&self, res: &PackedTrackRes) -> Result<TrackModel,Error> {
         let program_set = lookup(self.program_set,&res.program_idx)?;
         let program_name = lookup(self.program_name,&res.program_idx)?;
         log!("set {:?} name {:?} version {:?}",program_set,program_name,self.program_version);
-        let program_name = ProgramName::new(program_set,program_name,self.program_version,backend_namespace);
+        let program_name = ProgramName::new(program_set,program_name,self.program_version);
         let mut builder = TrackModelBuilder::new(&self.name,&program_name,self.scale_start,self.scale_end,self.scale_step);
         for tag_idx in &self.tags {
             builder.add_tag(lookup(*tag_idx,&res.tag_idx)?);
@@ -174,8 +174,8 @@ impl PackedTrackRes {
         Ok(out)
     }
 
-    pub(super) fn to_track_models(&mut self, backend_namespace: &BackendNamespace) -> Result<Vec<TrackModel>,Error> {
-        self.make_packed_tracks()?.drain(..).map(|t| t.to_track(backend_namespace,&self)).collect()
+    pub(super) fn to_track_models(&mut self) -> Result<Vec<TrackModel>,Error> {
+        self.make_packed_tracks()?.drain(..).map(|t| t.to_track(&self)).collect()
     }
 
     pub(super) fn to_expansion_models(&mut self) -> Result<Vec<ExpansionModel>,Error> {

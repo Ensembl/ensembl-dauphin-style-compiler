@@ -109,7 +109,7 @@ impl PgDauphin {
 }
 
 async fn add_bundle(pgd: &PgDauphin, channel: &BackendNamespace, bundle: &SuppliedBundle, messages: &MessageSender) -> Result<(),Error> {
-    let specs = bundle.specs().to_program_models(channel)?;
+    let specs = bundle.specs().to_program_models()?;
     match pgd.add_binary(&channel,bundle.bundle_name(),bundle.program()).await {
         Ok(_) => {
             for spec in specs {
