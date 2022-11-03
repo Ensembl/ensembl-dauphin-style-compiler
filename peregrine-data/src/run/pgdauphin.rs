@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use std::sync::{ Arc, Mutex };
 use crate::core::channel::channelregistry::ChannelRegistry;
 use crate::core::program::programspec::ProgramModel;
-use crate::{MaxiResponse, BackendNamespace, AccessorResolver};
+use crate::{MaxiResponse, BackendNamespace, AccessorResolver, LoadMode};
 use crate::api::MessageSender;
 use crate::core::program::programbundle::SuppliedBundle;
 use crate::shapeload::programloader::ProgramLoader;
@@ -14,7 +14,6 @@ use peregrine_dauphin_queue::{ PgDauphinQueue, PgDauphinLoadTaskSpec, PgDauphinR
 use crate::shapeload::programname::{ProgramName};
 
 pub struct PgDauphinTaskSpec {
-    pub prio: u8, 
     pub program_name: ProgramName,
     pub payloads: Option<HashMap<String,Box<dyn Any>>>
 }
@@ -85,7 +84,7 @@ impl PgDauphin {
         data.names.insert(program_name.clone(),None);
     }
 
-    pub async fn run_program(&self, loader: &ProgramLoader, registry: &ChannelRegistry, spec: PgDauphinTaskSpec) -> Result<(),Error> {
+    pub async fn run_program(&self, loader: &ProgramLoader, registry: &ChannelRegistry, spec: PgDauphinTaskSpec, mode: &LoadMode) -> Result<(),Error> {
         let program_name = spec.program_name.clone();
         if !self.is_present(&program_name) {
             loader.load(&program_name).await?;
@@ -98,7 +97,7 @@ impl PgDauphin {
         let pdq = data.pdq.clone();
         drop(data);
         pdq.run(PgDauphinRunTaskSpec {
-            prio: spec.prio,
+            prio: if mode.high_priority() { 2 } else { 9 },
             slot: None,
             timeout: None,
             bundle_name: internal_name.bundle_name.to_string(), 

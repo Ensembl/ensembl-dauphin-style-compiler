@@ -10,7 +10,9 @@ use peregrine_data::DataMessage;
 use peregrine_data::DataRequest;
 use peregrine_data::ObjectBuilder;
 use peregrine_data::LoadMode;
+use peregrine_data::RunReport;
 use peregrine_data::{PacketPriority, Region, Scale, ShapeRequest, StickId};
+use peregrine_toolkit::lock;
 use serde_cbor::Value as CborValue;
 
 simple_interp_command!(GetLaneInterpCommand,GetLaneDeserializer,21,3,(0,1,2));
@@ -59,8 +61,8 @@ async fn get(context: &mut InterpContext, cmd: GetDataInterpCommand) -> anyhow::
     drop(peregrine);
     let registers = context.registers_mut();
     registers.write(&cmd.0,InterpValue::Indexes(vec![data_id as usize]));
-    let total_net_time = get_instance::<Arc<Mutex<f64>>>(context,"net_time")?;
-    *total_net_time.lock().unwrap() += took_ms;
+    let total_net_time = get_instance::<Arc<Mutex<RunReport>>>(context,"report")?;
+    lock!(total_net_time).net_ms += took_ms;
     Ok(())
 }
 

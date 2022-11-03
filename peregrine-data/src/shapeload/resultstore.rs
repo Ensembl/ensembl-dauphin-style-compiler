@@ -14,27 +14,40 @@ use crate::api::{ PeregrineCoreBase };
 use crate::run::{ PgDauphinTaskSpec };
 use peregrine_toolkit::{lock};
 
+pub struct RunReport {
+    pub net_ms: f64
+}
+
+impl RunReport {
+    fn new() -> RunReport {
+        RunReport {
+            net_ms: 0.
+        }
+    }
+}
+
 async fn make_unfiltered_shapes(base: PeregrineCoreBase, program_loader: ProgramLoader, request: ShapeRequest, mode: LoadMode) -> Result<Arc<AbstractShapesContainer>,Error> {
     base.booted.wait().await;
     let mut payloads = HashMap::new();
     let shapes = Arc::new(Mutex::new(Some(ProgramShapesBuilder::new(&lock!(base.assets).clone()))));
-    let net_ms = Arc::new(Mutex::new(0.));
+    let run_report = Arc::new(Mutex::new(RunReport::new()));
     /* This is what is being requested */
     payloads.insert("request".to_string(),Box::new(request.clone()) as Box<dyn Any>);
     /* This is where the output goes */
     payloads.insert("out".to_string(),Box::new(shapes.clone()) as Box<dyn Any>);
     /* Temporary instances of types needed by scripts */
     payloads.insert("builder".to_string(),Box::new(ObjectBuilder::new()) as Box<dyn Any>);
-    payloads.insert("net_time".to_string(),Box::new(net_ms.clone()) as Box<dyn Any>);
+    /* A report about resources consumed by script */
+    payloads.insert("report".to_string(),Box::new(run_report.clone()) as Box<dyn Any>);
+    /* Context of request (eg priority) */
     payloads.insert("mode".to_string(),Box::new(mode.clone()) as Box<dyn Any>);
     let start = cdr_current_time();
     base.dauphin.run_program(&program_loader,&base.channel_registry,PgDauphinTaskSpec {
-        prio: if mode.high_priority() { 2 } else { 9 },
         program_name: request.track().track().program_name().clone(),
         payloads: Some(payloads)
-    }).await.map_err(|e| Error::operr(&format!("dauphin program failed: {:?}",e)))?;
+    },&mode).await.map_err(|e| Error::operr(&format!("dauphin program failed: {:?}",e)))?;
     let took_ms = cdr_current_time() - start;
-    let net_time_ms = *net_ms.lock().unwrap();
+    let net_time_ms = lock!(run_report).net_ms;
     base.metrics.program_run(&request.track().track().program_name().indicative_name(),request.region().scale().get_index(),!mode.build_shapes(),net_time_ms,took_ms);
     let shapes = lock!(shapes).take().unwrap().to_abstract_shapes_container();
     Ok(Arc::new(shapes))
