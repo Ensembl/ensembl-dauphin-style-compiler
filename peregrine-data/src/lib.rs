@@ -125,7 +125,6 @@ mod shapeload {
     mod objectbuilder;
     mod shaperequest;
     pub(crate) mod loadshapes;
-    pub(crate) mod programloader;
     mod resultstore;
     pub(crate) mod programname;
 

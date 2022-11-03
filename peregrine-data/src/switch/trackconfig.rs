@@ -1,4 +1,4 @@
-use std::{collections::hash_map::DefaultHasher, hash::{ Hash, Hasher }};
+use std::{collections::{hash_map::DefaultHasher, BTreeMap}, hash::{ Hash, Hasher }};
 use std::fmt;
 use std::sync::{ Arc };
 use std::collections::HashMap;
@@ -98,18 +98,21 @@ impl Hash for TrackConfigNode {
 pub struct TrackConfig {
     track: Track,
     hash: u64,
-    values: Arc<TrackConfigNode>
+    values: Arc<TrackConfigNode>,
+    values2: Arc<BTreeMap<String,StructBuilt>>
 }
 
 impl TrackConfig {
     pub(super) fn new(track: &Track, root: TrackConfigNode) -> TrackConfig {
+        let values2 = BTreeMap::new();
         let mut state = DefaultHasher::new();
         root.hash_value().hash(&mut state);
         track.hash(&mut state);
         TrackConfig {
             track: track.clone(),
             hash: state.finish(),
-            values: Arc::new(root)
+            values: Arc::new(root),
+            values2: Arc::new(values2)
         }
     }
 

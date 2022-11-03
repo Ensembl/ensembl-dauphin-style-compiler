@@ -82,19 +82,20 @@ impl PeregrineCore {
         let metrics = MetricCollector::new(&commander,&shutdown);
         let messages = MessageSender::new(messages);
         let dauphin_queue = PgDauphinQueue::new(&shutdown);
-        let dauphin = PgDauphin::new(&dauphin_queue).map_err(|e| DataMessage::DauphinIntegrationError(format!("could not create: {}",e)))?;
-        let version = VersionMetadata::new();
-        let sidecars = RequestSidecars::new(&dauphin,&switches,&queue);
-        let low_manager = LowLevelRequestManager::new(&sidecars,&commander,&shutdown,&messages,&version);
         let booted = CountingPromise::new();
         let mut channel_registry = ChannelRegistryBuilder::new(&booted);
         for itn in channel_integrations.drain(..) {
             channel_registry.add(itn);
         }
         let channel_registry = channel_registry.build();
+        let dauphin = PgDauphin::new(&dauphin_queue,&channel_registry).map_err(|e| DataMessage::DauphinIntegrationError(format!("could not create: {}",e)))?;
+        let version = VersionMetadata::new();
+        let sidecars = RequestSidecars::new(&dauphin,&switches,&queue);
+        let low_manager = LowLevelRequestManager::new(&sidecars,&commander,&shutdown,&messages,&version);
         let manager = RequestManager::new(&low_manager,&channel_registry);
         let all_backends = AllBackends::new(&manager,&metrics);
         switches.set_all_backends(&all_backends);
+        dauphin.set_all_backends(&all_backends);
         let base = PeregrineCoreBase {
             answer_allocator: Arc::new(Mutex::new(AnswerAllocator::new())),
             channel_registry,

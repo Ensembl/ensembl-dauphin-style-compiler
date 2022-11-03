@@ -6,10 +6,9 @@ use std::collections::HashMap;
 use std::sync::{ Arc, Mutex };
 use crate::core::channel::channelregistry::ChannelRegistry;
 use crate::core::program::programspec::ProgramModel;
-use crate::{MaxiResponse, BackendNamespace, AccessorResolver, LoadMode};
+use crate::{MaxiResponse, BackendNamespace, AccessorResolver, LoadMode, AllBackends};
 use crate::api::MessageSender;
 use crate::core::program::programbundle::SuppliedBundle;
-use crate::shapeload::programloader::ProgramLoader;
 use peregrine_dauphin_queue::{ PgDauphinQueue, PgDauphinLoadTaskSpec, PgDauphinRunTaskSpec };
 use crate::shapeload::programname::{ProgramName};
 
@@ -19,16 +18,16 @@ pub struct PgDauphinTaskSpec {
 }
 
 #[derive(Clone)]
-struct InternalName {
+struct Program {
     backend_namespace: BackendNamespace,
     program: ProgramModel,
     bundle_name: String,
     in_bundle_name: String
 }
 
-impl InternalName {
-    fn new(backend_namespace: &BackendNamespace, program: &ProgramModel, bundle_name: &str, in_bundle_name: &str) -> InternalName {
-        InternalName {
+impl Program {
+    fn new(backend_namespace: &BackendNamespace, program: &ProgramModel, bundle_name: &str, in_bundle_name: &str) -> Program {
+        Program {
             backend_namespace: backend_namespace.clone(),
             bundle_name: bundle_name.to_string(),
             program: program.clone(),
@@ -39,18 +38,38 @@ impl InternalName {
 
 struct PgDauphinData {
     pdq: PgDauphinQueue,
-    names: HashMap<ProgramName,Option<InternalName>>
+    programs: HashMap<ProgramName,Option<Program>>,
+    all_backends: Option<AllBackends>,
+    channel_registry: ChannelRegistry
 }
 
 #[derive(Clone)]
 pub struct PgDauphin(Arc<Mutex<PgDauphinData>>);
 
 impl PgDauphin {
-    pub fn new(pdq: &PgDauphinQueue) -> anyhow::Result<PgDauphin> {
+    pub fn new(pdq: &PgDauphinQueue, channel_registry: &ChannelRegistry) -> anyhow::Result<PgDauphin> {
         Ok(PgDauphin(Arc::new(Mutex::new(PgDauphinData {
             pdq: pdq.clone(),
-            names: HashMap::new(),
+            programs: HashMap::new(),
+            all_backends: None,
+            channel_registry: channel_registry.clone()
         }))))
+    }
+
+    async fn load_program(&self, program_name: &ProgramName) -> Result<(),Error> {
+        let data = lock!(self.0);
+        for backend_namespace in &data.channel_registry.all() {
+            if let Some(all_backends) = &data.all_backends {
+                let backend = all_backends.backend(backend_namespace)?;
+                backend.program(program_name).await?;   
+                if data.programs.contains_key(program_name) { break; } 
+            }
+        }
+        Ok(())    
+    }
+
+    pub(crate) fn set_all_backends(&self, all_backends: &AllBackends) {
+        lock!(self.0).all_backends = Some(all_backends.clone());
     }
 
     async fn add_binary_direct(&self, binary_name: &str, data: &[u8]) -> anyhow::Result<()> {
@@ -71,39 +90,42 @@ impl PgDauphin {
 
     fn register(&self, backend_namespace: &BackendNamespace, program: &ProgramModel, name_of_bundle: &str) {
         let binary_name = self.binary_name(backend_namespace,name_of_bundle);
-        let internal_name = InternalName::new(backend_namespace,program,&binary_name,program.in_bundle_name());
-        lock!(self.0).names.insert(program.name().clone(),Some(internal_name));
+        let internal_name = Program::new(backend_namespace,program,&binary_name,program.in_bundle_name());
+        lock!(self.0).programs.insert(program.name().clone(),Some(internal_name));
     }
 
     pub fn is_present(&self, program_name: &ProgramName) -> bool {
-        lock!(self.0).names.get(program_name).and_then(|x| x.as_ref()).is_some()
+        lock!(self.0).programs.get(program_name).and_then(|x| x.as_ref()).is_some()
     }
 
     pub fn mark_missing(&self, program_name: &ProgramName) {
         let mut data = lock!(self.0);
-        data.names.insert(program_name.clone(),None);
+        data.programs.insert(program_name.clone(),None);
     }
 
-    pub async fn run_program(&self, loader: &ProgramLoader, registry: &ChannelRegistry, spec: PgDauphinTaskSpec, mode: &LoadMode) -> Result<(),Error> {
-        let program_name = spec.program_name.clone();
+    async fn get_program(&self, program_name: &ProgramName) -> Result<Program,Error> {
+        let program_name = program_name.clone();
         if !self.is_present(&program_name) {
-            loader.load(&program_name).await?;
+            self.load_program(&program_name).await?;
         }
         let data = lock!(self.0);
-        let internal_name = data.names.get(&program_name).as_ref().unwrap().as_ref()
-            .ok_or(Error::operr(&format!("failed channel/program {:?}",program_name)))?.clone();
+        Ok(data.programs.get(&program_name).as_ref().unwrap().as_ref()
+            .ok_or(Error::operr(&format!("failed channel/program {:?}",program_name)))?.clone())
+    }
+
+    pub async fn run_program(&self, registry: &ChannelRegistry, spec: PgDauphinTaskSpec, mode: &LoadMode) -> Result<(),Error> {
+        let program = self.get_program(&spec.program_name).await?;
         let mut payloads = spec.payloads.unwrap_or_else(|| HashMap::new());
-        payloads.insert("channel-resolver".to_string(),Box::new(AccessorResolver::new(registry,&internal_name.backend_namespace)));
-        let pdq = data.pdq.clone();
-        drop(data);
+        payloads.insert("channel-resolver".to_string(),Box::new(AccessorResolver::new(registry,&program.backend_namespace)));
+        let pdq = lock!(self.0).pdq.clone();
         pdq.run(PgDauphinRunTaskSpec {
             prio: if mode.high_priority() { 2 } else { 9 },
             slot: None,
             timeout: None,
-            bundle_name: internal_name.bundle_name.to_string(), 
-            in_bundle_name: internal_name.in_bundle_name.to_string(),
+            bundle_name: program.bundle_name.to_string(), 
+            in_bundle_name: program.in_bundle_name.to_string(),
             payloads
-        }).await.map_err(|e| Error::operr(&format!("Cannot run {:?}: {}",program_name,e)))
+        }).await.map_err(|e| Error::operr(&format!("Cannot run {:?}: {}",program.program.name().indicative_name(),e)))
     }
 }
 

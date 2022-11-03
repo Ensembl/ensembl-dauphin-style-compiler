@@ -6,7 +6,6 @@ use crate::{ProgramShapesBuilder, ObjectBuilder };
 use std::any::Any;
 use std::sync::{ Arc };
 use crate::shape::{AbstractShapesContainer};
-use super::programloader::ProgramLoader;
 use super::loadshapes::LoadMode;
 use super::shaperequest::ShapeRequest;
 use crate::util::memoized::{ Memoized, MemoizedType };
@@ -26,7 +25,7 @@ impl RunReport {
     }
 }
 
-async fn make_unfiltered_shapes(base: PeregrineCoreBase, program_loader: ProgramLoader, request: ShapeRequest, mode: LoadMode) -> Result<Arc<AbstractShapesContainer>,Error> {
+async fn make_unfiltered_shapes(base: PeregrineCoreBase, request: ShapeRequest, mode: LoadMode) -> Result<Arc<AbstractShapesContainer>,Error> {
     base.booted.wait().await;
     let mut payloads = HashMap::new();
     let shapes = Arc::new(Mutex::new(Some(ProgramShapesBuilder::new(&lock!(base.assets).clone()))));
@@ -42,28 +41,26 @@ async fn make_unfiltered_shapes(base: PeregrineCoreBase, program_loader: Program
     /* Context of request (eg priority) */
     payloads.insert("mode".to_string(),Box::new(mode.clone()) as Box<dyn Any>);
     let start = cdr_current_time();
-    base.dauphin.run_program(&program_loader,&base.channel_registry,PgDauphinTaskSpec {
-        program_name: request.track().track().program_name().clone(),
+    base.dauphin.run_program(&base.channel_registry,PgDauphinTaskSpec {
+        program_name: request.track().track().program().clone(),
         payloads: Some(payloads)
     },&mode).await.map_err(|e| Error::operr(&format!("dauphin program failed: {:?}",e)))?;
     let took_ms = cdr_current_time() - start;
     let net_time_ms = lock!(run_report).net_ms;
-    base.metrics.program_run(&request.track().track().program_name().indicative_name(),request.region().scale().get_index(),!mode.build_shapes(),net_time_ms,took_ms);
+    base.metrics.program_run(&request.track().track().program().indicative_name(),request.region().scale().get_index(),!mode.build_shapes(),net_time_ms,took_ms);
     let shapes = lock!(shapes).take().unwrap().to_abstract_shapes_container();
     Ok(Arc::new(shapes))
 }
 
-fn make_unfiltered_cache(kind: MemoizedType, base: &PeregrineCoreBase, program_loader: &ProgramLoader, mode: LoadMode) -> Memoized<ShapeRequest,Result<Arc<AbstractShapesContainer>,Error>> {
+fn make_unfiltered_cache(kind: MemoizedType, base: &PeregrineCoreBase, mode: LoadMode) -> Memoized<ShapeRequest,Result<Arc<AbstractShapesContainer>,Error>> {
     let base2 = base.clone();
-    let program_loader = program_loader.clone();
     let mode = mode.clone();
     Memoized::new(kind,move |_,request: &ShapeRequest| {
         let base = base2.clone();
-        let program_loader = program_loader.clone(); 
         let request2 = request.clone();   
         let mode = mode.clone();
         Box::pin(async move {
-            make_unfiltered_shapes(base,program_loader,request2.clone(),mode.clone()).await
+            make_unfiltered_shapes(base,request2.clone(),mode.clone()).await
         })
     })
 }
@@ -96,13 +93,13 @@ pub struct ShapeStore {
 }
 
 impl ShapeStore {
-    pub fn new(cache_size: usize, base: &PeregrineCoreBase, program_loader: &ProgramLoader) -> ShapeStore {
+    pub fn new(cache_size: usize, base: &PeregrineCoreBase) -> ShapeStore {
         // XXX both caches separate sizes
-        let unfiltered_cache = make_unfiltered_cache(MemoizedType::Cache(cache_size),base,program_loader,LoadMode::RealTime);
+        let unfiltered_cache = make_unfiltered_cache(MemoizedType::Cache(cache_size),base,LoadMode::RealTime);
         let filtered_cache = make_filtered_cache(MemoizedType::Cache(cache_size),unfiltered_cache);
-        let batch_unfiltered_cache = make_unfiltered_cache(MemoizedType::None,base,program_loader,LoadMode::Batch);
+        let batch_unfiltered_cache = make_unfiltered_cache(MemoizedType::None,base,LoadMode::Batch);
         let batch_filtered_cache = make_filtered_cache(MemoizedType::None,batch_unfiltered_cache);
-        let network_unfiltered_cache = make_unfiltered_cache(MemoizedType::None,base,program_loader,LoadMode::Network);
+        let network_unfiltered_cache = make_unfiltered_cache(MemoizedType::None,base,LoadMode::Network);
         let network_filtered_cache = make_filtered_cache(MemoizedType::None,network_unfiltered_cache);
         ShapeStore {
             realtime: filtered_cache,
