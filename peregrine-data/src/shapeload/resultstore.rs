@@ -2,7 +2,7 @@ use std::sync::Mutex;
 use commander::cdr_current_time;
 use peregrine_toolkit::error::Error;
 use std::collections::HashMap;
-use crate::{ProgramShapesBuilder, PacketPriority};
+use crate::{ProgramShapesBuilder };
 use std::any::Any;
 use std::sync::{ Arc };
 use crate::shape::{AbstractShapesContainer};
@@ -17,21 +17,19 @@ use peregrine_toolkit::{lock};
 
 async fn make_unfiltered_shapes(base: PeregrineCoreBase, program_loader: ProgramLoader, request: ShapeRequest, mode: LoadMode) -> Result<Arc<AbstractShapesContainer>,Error> {
     base.booted.wait().await;
-    let priority = if mode.high_priority() { PacketPriority::RealTime } else { PacketPriority::Batch };
     let mut payloads = HashMap::new();
     let shapes = Arc::new(Mutex::new(Some(ProgramShapesBuilder::new(&lock!(base.assets).clone()))));
     let net_ms = Arc::new(Mutex::new(0.));
+    /* This is what is being requested */
     payloads.insert("request".to_string(),Box::new(request.clone()) as Box<dyn Any>);
+    /* This is where the output goes */
     payloads.insert("out".to_string(),Box::new(shapes.clone()) as Box<dyn Any>);
     payloads.insert("data".to_string(),Box::new(ProgramData::new()) as Box<dyn Any>);
-    payloads.insert("priority".to_string(),Box::new(priority) as Box<dyn Any>);
-    payloads.insert("only_warm".to_string(),Box::new(!mode.build_shapes()) as Box<dyn Any>);
     payloads.insert("net_time".to_string(),Box::new(net_ms.clone()) as Box<dyn Any>);
+    payloads.insert("mode".to_string(),Box::new(mode.clone()) as Box<dyn Any>);
     let start = cdr_current_time();
     base.dauphin.run_program(&program_loader,&base.channel_registry,PgDauphinTaskSpec {
         prio: if mode.high_priority() { 2 } else { 9 },
-        slot: None,
-        timeout: None,
         program_name: request.track().track().program_name().clone(),
         payloads: Some(payloads)
     }).await.map_err(|e| Error::operr(&format!("dauphin program failed: {:?}",e)))?;

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use peregrine_toolkit::{error::Error, eachorevery::eoestruct::StructBuilt};
 
-use crate::{shapeload::programname::ProgramName, BackendNamespace};
+use crate::{shapeload::programname::ProgramName };
 
 use super::packedprogramspec::PackedProgramSpec;
 

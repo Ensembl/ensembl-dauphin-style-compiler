@@ -17,11 +17,10 @@
 use std::any::Any;
 use dauphin_interp::runtime::{ Payload, PayloadFactory };
 use dauphin_interp::{ Dauphin };
-use peregrine_data::{AgentStore, CountingPromise, PeregrineCoreBase };
+use peregrine_data::{AgentStore };
 use super::geometrybuilder::GeometryBuilder;
 
 pub struct PeregrinePayload {
-    booted: CountingPromise,
     agent_store: AgentStore,
     geometry_builder: GeometryBuilder
 }
@@ -33,29 +32,25 @@ impl Payload for PeregrinePayload {
 }
 
 impl PeregrinePayload {
-    fn new(agent_store: &AgentStore, booted: &CountingPromise) -> PeregrinePayload {
+    fn new(agent_store: &AgentStore) -> PeregrinePayload {
         PeregrinePayload {
-            booted: booted.clone(),
             agent_store: agent_store.clone(),
             geometry_builder: GeometryBuilder::new(),
         }
     }
 
     pub fn agent_store(&self) -> &AgentStore { &self.agent_store }
-    pub fn booted(&self) -> &CountingPromise { &self.booted }
     pub fn geometry_builder(&self) -> &GeometryBuilder { &self.geometry_builder }
 }
 
 #[derive(Clone)]
 pub struct PeregrinePayloadFactory {
-    agent_store: AgentStore,
-    booted: CountingPromise
+    agent_store: AgentStore
 }
 
 impl PeregrinePayloadFactory {
-    pub fn new(base: &PeregrineCoreBase, agent_store: &AgentStore) -> PeregrinePayloadFactory {
+    pub fn new(agent_store: &AgentStore) -> PeregrinePayloadFactory {
         PeregrinePayloadFactory {
-            booted: base.booted.clone(),
             agent_store: agent_store.clone(),
         }
     }
@@ -63,10 +58,10 @@ impl PeregrinePayloadFactory {
 
 impl PayloadFactory for PeregrinePayloadFactory {
     fn make_payload(&self) -> Box<dyn Payload> {
-        Box::new(PeregrinePayload::new(&self.agent_store,&self.booted))
+        Box::new(PeregrinePayload::new(&self.agent_store))
     }
 }
 
-pub fn add_peregrine_payloads(dauphin: &mut Dauphin, base: &PeregrineCoreBase,agent_store: &AgentStore) {
-    dauphin.add_payload_factory("peregrine","core",Box::new(PeregrinePayloadFactory::new(&base,agent_store)));
+pub fn add_peregrine_payloads(dauphin: &mut Dauphin, agent_store: &AgentStore) {
+    dauphin.add_payload_factory("peregrine","core",Box::new(PeregrinePayloadFactory::new(agent_store)));
 }

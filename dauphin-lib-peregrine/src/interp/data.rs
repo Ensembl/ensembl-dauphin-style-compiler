@@ -7,6 +7,7 @@ use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
 use peregrine_data::AccessorResolver;
 use peregrine_data::DataMessage;
 use peregrine_data::DataRequest;
+use peregrine_data::LoadMode;
 use peregrine_data::{PacketPriority, ProgramData, Region, Scale, ShapeRequest, StickId};
 use serde_cbor::Value as CborValue;
 
@@ -20,9 +21,9 @@ simple_interp_command!(MakeRegionInterpCommand,MakeRegionDeserializer,75,6,(0,1,
 
 impl InterpCommand for OnlyWarmInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
-        let warm = get_instance::<bool>(context,"only_warm")?;
+        let mode = get_instance::<LoadMode>(context,"mode")?;
         let registers = context.registers_mut();
-        registers.write(&self.0,InterpValue::Boolean(vec![warm]));
+        registers.write(&self.0,InterpValue::Boolean(vec![!mode.build_shapes()]));
         Ok(CommandResult::SyncResult())
     }
 }
@@ -41,7 +42,8 @@ impl InterpCommand for GetLaneInterpCommand {
 
 async fn get(context: &mut InterpContext, cmd: GetDataInterpCommand) -> anyhow::Result<()> {
     let program_data = get_instance::<ProgramData>(context,"data")?;
-    let priority = get_instance::<PacketPriority>(context,"priority")?;
+    let mode = get_instance::<LoadMode>(context,"mode")?;
+    let priority = if mode.high_priority() { PacketPriority::RealTime } else { PacketPriority::Batch };
     let registers = context.registers();
     let request_id = registers.get_indexes(&cmd.1)?[0] as u32;
     drop(registers);

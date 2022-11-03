@@ -1,11 +1,11 @@
 use anyhow::{ self };
 use peregrine_toolkit::error::Error;
 use peregrine_toolkit::lock;
-use commander::{ RunSlot };
 use std::any::Any;
 use std::collections::HashMap;
 use std::sync::{ Arc, Mutex };
 use crate::core::channel::channelregistry::ChannelRegistry;
+use crate::core::program::programspec::ProgramModel;
 use crate::{MaxiResponse, BackendNamespace, AccessorResolver};
 use crate::api::MessageSender;
 use crate::core::program::programbundle::SuppliedBundle;
@@ -15,8 +15,6 @@ use crate::shapeload::programname::{ProgramName};
 
 pub struct PgDauphinTaskSpec {
     pub prio: u8, 
-    pub slot: Option<RunSlot>, 
-    pub timeout: Option<f64>,
     pub program_name: ProgramName,
     pub payloads: Option<HashMap<String,Box<dyn Any>>>
 }
@@ -24,15 +22,17 @@ pub struct PgDauphinTaskSpec {
 #[derive(Clone)]
 struct InternalName {
     backend_namespace: BackendNamespace,
+    program: ProgramModel,
     bundle_name: String,
     in_bundle_name: String
 }
 
 impl InternalName {
-    fn new(backend_namespace: &BackendNamespace, bundle_name: &str, in_bundle_name: &str) -> InternalName {
+    fn new(backend_namespace: &BackendNamespace, program: &ProgramModel, bundle_name: &str, in_bundle_name: &str) -> InternalName {
         InternalName {
             backend_namespace: backend_namespace.clone(),
             bundle_name: bundle_name.to_string(),
+            program: program.clone(),
             in_bundle_name: in_bundle_name.to_string()
         }
     }
@@ -70,10 +70,10 @@ impl PgDauphin {
         self.add_binary_direct(&self.binary_name(channel,name_of_bundle),cbor).await
     }
 
-    fn register(&self, backend_namespace: &BackendNamespace, program_name: &ProgramName, name_of_bundle: &str, name_in_bundle: &str) {
+    fn register(&self, backend_namespace: &BackendNamespace, program: &ProgramModel, name_of_bundle: &str) {
         let binary_name = self.binary_name(backend_namespace,name_of_bundle);
-        let internal_name = InternalName::new(backend_namespace,&binary_name,name_in_bundle);
-        lock!(self.0).names.insert(program_name.clone(),Some(internal_name));
+        let internal_name = InternalName::new(backend_namespace,program,&binary_name,program.in_bundle_name());
+        lock!(self.0).names.insert(program.name().clone(),Some(internal_name));
     }
 
     pub fn is_present(&self, program_name: &ProgramName) -> bool {
@@ -99,8 +99,8 @@ impl PgDauphin {
         drop(data);
         pdq.run(PgDauphinRunTaskSpec {
             prio: spec.prio,
-            slot: spec.slot,
-            timeout: spec.timeout,
+            slot: None,
+            timeout: None,
             bundle_name: internal_name.bundle_name.to_string(), 
             in_bundle_name: internal_name.in_bundle_name.to_string(),
             payloads
@@ -113,9 +113,7 @@ async fn add_bundle(pgd: &PgDauphin, channel: &BackendNamespace, bundle: &Suppli
     match pgd.add_binary(&channel,bundle.bundle_name(),bundle.program()).await {
         Ok(_) => {
             for spec in specs {
-                let program_name = spec.name();
-                let in_bundle_name = spec.in_bundle_name();
-                pgd.register(channel,&program_name,bundle.bundle_name(),in_bundle_name);
+                pgd.register(channel,&spec,bundle.bundle_name());
             }
         },
         Err(e) => {
