@@ -21,15 +21,19 @@ use super::geometry:: {
     BarCommandType, BpRangeCommandType, SpotColourCommandType, PpcCommandType, StyleCommandType, PatinaSwitchCommandType, PatinaMetadataCommandType, BackgroundCommandType
 };
 use super::shape::{ WiggleCommandType, RectangleCommandType, Text2CommandType, ImageCommandType, EmptyCommandType, RunningTextCommandType };
-use super::switch::{ ListSwitchCommandType, SwitchStringCommandType, SwitchNumberCommandType, SwitchBooleanCommandType, SwitchNullCommandType };
+use super::switch::{ ListSwitchCommandType, SwitchStringCommandType, SwitchNumberCommandType, SwitchBooleanCommandType, SwitchNullCommandType, SettingBooleanCommandType, SettingNullCommandType, SettingNumberCommandType, SettingStringCommandType };
 
 pub fn peregrine_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(57,0),0x4D34D0397884FF30)
+    CommandSetId::new("peregrine",(58,0),0x43AB939D306D0FAE)
 }
 
 pub fn make_peregrine() -> CompLibRegister {
-    // next is 76; 0-6, 8, 11, 24, 25, 33, 34, 39, 40, 41 are unused
+    // next is 76; 4-6, 8, 11, 24, 25, 33, 34, 39, 40, 41 are unused
     let mut set = CompLibRegister::new(&peregrine_id(),Some(make_peregrine_interp()));
+    set.push("setting_string",Some(0),SettingStringCommandType());
+    set.push("setting_number",Some(1),SettingNumberCommandType());
+    set.push("setting_boolean",Some(2),SettingBooleanCommandType());
+    set.push("setting_null",Some(3),SettingNullCommandType());
     set.push("wiggle",Some(7),WiggleCommandType());
     set.push("patina_hollow",Some(9),PatinaHollowCommandType());
     set.push("make_request",Some(10),RequestCommandType());

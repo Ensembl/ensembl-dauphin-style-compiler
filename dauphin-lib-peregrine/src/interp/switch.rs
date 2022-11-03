@@ -7,6 +7,10 @@ use serde_cbor::Value as CborValue;
 use crate::util::get_instance;
 use anyhow::anyhow as err;
 
+simple_interp_command!(SettingStringInterpCommand,SettingStringDeserializer,0,3,(0,1,2));
+simple_interp_command!(SettingNumberInterpCommand,SettingNumberDeserializer,1,3,(0,1,2));
+simple_interp_command!(SettingBooleanInterpCommand,SettingBooleanDeserializer,2,3,(0,1,2));
+simple_interp_command!(SettingNullInterpCommand,SettingNullDeserializer,3,3,(0,1,2));
 simple_interp_command!(ListSwitchInterpCommand,ListSwitchDeserializer,42,4,(0,1,2,3));
 simple_interp_command!(SwitchStringInterpCommand,SwitchStringDeserializer,71,3,(0,1,2));
 simple_interp_command!(SwitchNumberInterpCommand,SwitchNumberDeserializer,72,3,(0,1,2));
@@ -113,6 +117,70 @@ impl InterpCommand for SwitchBooleanInterpCommand {
 }
 
 impl InterpCommand for SwitchNullInterpCommand {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+        let values = switch_value(&self.1,&self.2,context,true)?;
+        let mut out = vec![];
+        for value in values {
+            out.push(if let StructConst::Null = value { true } else { false });
+        }
+        let registers = context.registers_mut();
+        registers.write(&self.0,InterpValue::Boolean(out));
+        Ok(CommandResult::SyncResult())
+    }
+}
+
+impl InterpCommand for SettingStringInterpCommand {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+        let values = switch_value(&self.1,&self.2,context,false)?;
+        let mut out = vec![];
+        for value in values {
+            let v = match value {
+                StructConst::String(s) => s,
+                StructConst::Number(n) => n.to_string(),
+                StructConst::Boolean(b) => if b { "true" } else { "false" }.to_string(),
+                StructConst::Null => "".to_string()
+            };
+            out.push(v);
+        }
+        let registers = context.registers_mut();
+        registers.write(&self.0,InterpValue::Strings(out));
+        Ok(CommandResult::SyncResult())
+    }
+}
+
+impl InterpCommand for SettingNumberInterpCommand {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+        let values = switch_value(&self.1,&self.2,context,false)?;
+        let mut out = vec![];
+        for value in values {
+            let v = match value {
+                StructConst::String(s) => s.parse::<f64>().ok().unwrap_or(0.),
+                StructConst::Number(n) => n,
+                StructConst::Boolean(b) => if b { 1. } else { 0. },
+                StructConst::Null => 0.
+            };
+            out.push(v);
+        }
+        let registers = context.registers_mut();
+        registers.write(&self.0,InterpValue::Numbers(out));
+        Ok(CommandResult::SyncResult())
+    }
+}
+
+impl InterpCommand for SettingBooleanInterpCommand {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+        let values = switch_value(&self.1,&self.2,context,false)?;
+        let mut out = vec![];
+        for value in values {
+            out.push(value.truthy());
+        }
+        let registers = context.registers_mut();
+        registers.write(&self.0,InterpValue::Boolean(out));
+        Ok(CommandResult::SyncResult())
+    }
+}
+
+impl InterpCommand for SettingNullInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         let values = switch_value(&self.1,&self.2,context,true)?;
         let mut out = vec![];

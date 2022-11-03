@@ -2,7 +2,6 @@ use std::sync::Arc;
 use peregrine_toolkit::{eachorevery::eoestruct::StructBuilt, error::Error };
 use crate::{Track, shapeload::programname::ProgramName, PgDauphin };
 
-#[derive(Debug)]
 pub struct TrackModelBuilder {
     name: String,
     program: ProgramName,
@@ -48,7 +47,7 @@ impl TrackModelBuilder {
     }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Clone)]
 pub struct TrackModel {
     builder: Arc<TrackModelBuilder>
 }

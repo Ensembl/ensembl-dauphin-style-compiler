@@ -35,7 +35,7 @@ impl PackedProgram {
     }
 }
 
-#[derive(serde_derive::Deserialize,Debug)]
+#[derive(serde_derive::Deserialize)]
 pub(crate) struct PackedProgramSpec {
     /* tracks */
     name: DiffSet,

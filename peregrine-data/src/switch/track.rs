@@ -10,7 +10,6 @@ use super::switchoverlay::SwitchOverlay;
 identitynumber!(IDS);
 
 #[derive(Clone)]
-#[cfg_attr(debug_assertions,derive(Debug))]
 pub struct Track {
     id: u64,
     min_scale: u64,

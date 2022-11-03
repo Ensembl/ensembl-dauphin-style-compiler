@@ -1,7 +1,9 @@
 use std::sync::Mutex;
 use commander::cdr_current_time;
+use peregrine_toolkit::eachorevery::eoestruct::StructBuilt;
 use peregrine_toolkit::error::Error;
 use std::collections::HashMap;
+use crate::core::program::programspec::ProgramModel;
 use crate::{ProgramShapesBuilder, ObjectBuilder };
 use std::any::Any;
 use std::sync::{ Arc };
@@ -25,21 +27,40 @@ impl RunReport {
     }
 }
 
-async fn make_unfiltered_shapes(base: PeregrineCoreBase, request: ShapeRequest, mode: LoadMode) -> Result<Arc<AbstractShapesContainer>,Error> {
-    base.booted.wait().await;
-    let mut payloads = HashMap::new();
-    let shapes = Arc::new(Mutex::new(Some(ProgramShapesBuilder::new(&lock!(base.assets).clone()))));
-    let run_report = Arc::new(Mutex::new(RunReport::new()));
-    /* This is what is being requested */
+fn make_settings(program: &ProgramModel) -> HashMap<String,StructBuilt> {
+    let mut out = HashMap::new();
+    program.apply_defaults(&mut out);
+    out
+}
+
+fn add_payloads(payloads: &mut HashMap<String,Box<dyn Any>>,
+        request: &ShapeRequest, mode: &LoadMode, run_report: &Arc<Mutex<RunReport>>, 
+        shapes: &Arc<Mutex<Option<ProgramShapesBuilder>>>) {
+    /* This is the region requested */
     payloads.insert("request".to_string(),Box::new(request.clone()) as Box<dyn Any>);
+
+    /* These are the settings */
+    payloads.insert("settings".to_string(),Box::new(Arc::new(make_settings(request.track().track().program()))) as Box<dyn Any>);
+
     /* This is where the output goes */
     payloads.insert("out".to_string(),Box::new(shapes.clone()) as Box<dyn Any>);
+
     /* Temporary instances of types needed by scripts */
     payloads.insert("builder".to_string(),Box::new(ObjectBuilder::new()) as Box<dyn Any>);
+
     /* A report about resources consumed by script */
     payloads.insert("report".to_string(),Box::new(run_report.clone()) as Box<dyn Any>);
+
     /* Context of request (eg priority) */
     payloads.insert("mode".to_string(),Box::new(mode.clone()) as Box<dyn Any>);
+}
+
+async fn make_unfiltered_shapes(base: PeregrineCoreBase, request: ShapeRequest, mode: LoadMode) -> Result<Arc<AbstractShapesContainer>,Error> {
+    base.booted.wait().await;
+    let shapes = Arc::new(Mutex::new(Some(ProgramShapesBuilder::new(&lock!(base.assets).clone()))));
+    let mut payloads = HashMap::new();
+    let run_report = Arc::new(Mutex::new(RunReport::new()));
+    add_payloads(&mut payloads,&request,&mode,&run_report,&shapes);
     let start = cdr_current_time();
     base.dauphin.run_program(&base.channel_registry,PgDauphinTaskSpec {
         program_name: request.track().track().program().name().clone(),

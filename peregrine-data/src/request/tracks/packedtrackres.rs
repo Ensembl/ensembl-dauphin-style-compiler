@@ -86,7 +86,7 @@ impl PackedExpansion {
     }
 }
 
-#[derive(serde_derive::Deserialize,Debug)]
+#[derive(serde_derive::Deserialize)]
 pub(crate) struct PackedTrackRes {
     /* tracks */
     name: Vec<String>,
