@@ -1,9 +1,7 @@
 use std::sync::Mutex;
 use commander::cdr_current_time;
-use peregrine_toolkit::eachorevery::eoestruct::StructBuilt;
 use peregrine_toolkit::error::Error;
 use std::collections::HashMap;
-use crate::core::program::programspec::ProgramModel;
 use crate::{ProgramShapesBuilder, ObjectBuilder };
 use std::any::Any;
 use std::sync::{ Arc };
@@ -27,20 +25,11 @@ impl RunReport {
     }
 }
 
-fn make_settings(program: &ProgramModel) -> HashMap<String,StructBuilt> {
-    let mut out = HashMap::new();
-    program.apply_defaults(&mut out);
-    out
-}
-
 fn add_payloads(payloads: &mut HashMap<String,Box<dyn Any>>,
         request: &ShapeRequest, mode: &LoadMode, run_report: &Arc<Mutex<RunReport>>, 
         shapes: &Arc<Mutex<Option<ProgramShapesBuilder>>>) {
     /* This is the region requested */
     payloads.insert("request".to_string(),Box::new(request.clone()) as Box<dyn Any>);
-
-    /* These are the settings */
-    payloads.insert("settings".to_string(),Box::new(Arc::new(make_settings(request.track().track().program()))) as Box<dyn Any>);
 
     /* This is where the output goes */
     payloads.insert("out".to_string(),Box::new(shapes.clone()) as Box<dyn Any>);

@@ -104,7 +104,9 @@ pub struct TrackConfig {
 
 impl TrackConfig {
     pub(super) fn new(track: &Track, root: TrackConfigNode) -> TrackConfig {
-        let values2 = BTreeMap::new();
+        let mut values2 = BTreeMap::new();
+        let program = track.program();
+        program.apply_defaults(&mut values2);
         let mut state = DefaultHasher::new();
         root.hash_value().hash(&mut state);
         track.hash(&mut state);
@@ -120,6 +122,7 @@ impl TrackConfig {
 
     pub fn list(&self, path: &[&str]) -> Option<Vec<String>> { self.values.list(path) }
     pub fn value(&self, path: &[&str]) -> Option<&StructBuilt> { self.values.value(path) }
+    pub fn value2(&self, name: &str) -> Option<&StructBuilt> { self.values2.get(name) }
 
     #[cfg(debug_assertions)]
     fn list_configs(&self, out: &mut Vec<Vec<String>>) {

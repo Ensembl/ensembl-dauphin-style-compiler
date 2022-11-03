@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::{HashMap, BTreeMap}, sync::Arc};
 
 use peregrine_toolkit::{error::Error, eachorevery::eoestruct::StructBuilt};
 
@@ -53,10 +53,11 @@ impl ProgramModel {
 
     pub fn in_bundle_name(&self) -> &str { &self.0.in_bundle_name }
 
-    pub fn apply_defaults(&self, settings: &mut HashMap<String,StructBuilt>) {
-        for (key,value) in self.0.settings.iter() {
-            if !settings.contains_key(key) {
-                settings.insert(key.to_string(),value.default.clone());
+    pub fn apply_defaults(&self, settings: &mut BTreeMap<String,StructBuilt>) {
+        for (_key,value) in self.0.settings.iter() {
+            let name = &value.name;
+            if !settings.contains_key(name) {
+                settings.insert(name.to_string(),value.default.clone());
             }
         }
     }

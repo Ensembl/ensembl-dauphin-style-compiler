@@ -129,9 +129,32 @@ impl InterpCommand for SwitchNullInterpCommand {
     }
 }
 
+fn setting_value(r1: &Register, r2: &Register, context: &mut InterpContext, is_null_test: bool) -> anyhow::Result<Vec<StructConst>> {
+    let registers = context.registers_mut();
+    let switch_data = registers.get_strings(r1)?.to_vec();
+    let contents_data = registers.get_strings(r2)?.to_vec();
+    drop(registers);
+    let request = get_instance::<ShapeRequest>(context,"request")?;
+    let config = request.track();
+    let settings = &switch_data.iter().map(|x| x.as_str()).collect::<Vec<_>>();
+    let mut out = vec![];
+    //TODO flattens without keeping record, should have advanced option to preserve structure.
+    for setting in settings {
+        let mut value = if let Some(value) = config.value2(&setting) {
+            value_to_atom(value,&contents_data).map_err(|e| err!(e))?
+        } else if is_null_test && contents_data.len() == 0 {
+            vec![StructConst::Null]
+        } else {
+            vec![]
+        };
+        out.append(&mut value);
+    }
+    Ok(out)
+}
+
 impl InterpCommand for SettingStringInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
-        let values = switch_value(&self.1,&self.2,context,false)?;
+        let values = setting_value(&self.1,&self.2,context,false)?;
         let mut out = vec![];
         for value in values {
             let v = match value {
@@ -150,7 +173,7 @@ impl InterpCommand for SettingStringInterpCommand {
 
 impl InterpCommand for SettingNumberInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
-        let values = switch_value(&self.1,&self.2,context,false)?;
+        let values = setting_value(&self.1,&self.2,context,false)?;
         let mut out = vec![];
         for value in values {
             let v = match value {
@@ -169,7 +192,7 @@ impl InterpCommand for SettingNumberInterpCommand {
 
 impl InterpCommand for SettingBooleanInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
-        let values = switch_value(&self.1,&self.2,context,false)?;
+        let values = setting_value(&self.1,&self.2,context,false)?;
         let mut out = vec![];
         for value in values {
             out.push(value.truthy());
@@ -182,7 +205,7 @@ impl InterpCommand for SettingBooleanInterpCommand {
 
 impl InterpCommand for SettingNullInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
-        let values = switch_value(&self.1,&self.2,context,true)?;
+        let values = setting_value(&self.1,&self.2,context,true)?;
         let mut out = vec![];
         for value in values {
             out.push(if let StructConst::Null = value { true } else { false });
