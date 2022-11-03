@@ -2,7 +2,7 @@ use std::sync::Mutex;
 use commander::cdr_current_time;
 use peregrine_toolkit::error::Error;
 use std::collections::HashMap;
-use crate::{ProgramShapesBuilder, GeometryBuilder };
+use crate::{ProgramShapesBuilder, ObjectBuilder };
 use std::any::Any;
 use std::sync::{ Arc };
 use crate::shape::{AbstractShapesContainer};
@@ -12,7 +12,6 @@ use super::shaperequest::ShapeRequest;
 use crate::util::memoized::{ Memoized, MemoizedType };
 use crate::api::{ PeregrineCoreBase };
 use crate::run::{ PgDauphinTaskSpec };
-use crate::shapeload::programdata::ProgramData;
 use peregrine_toolkit::{lock};
 
 async fn make_unfiltered_shapes(base: PeregrineCoreBase, program_loader: ProgramLoader, request: ShapeRequest, mode: LoadMode) -> Result<Arc<AbstractShapesContainer>,Error> {
@@ -24,8 +23,8 @@ async fn make_unfiltered_shapes(base: PeregrineCoreBase, program_loader: Program
     payloads.insert("request".to_string(),Box::new(request.clone()) as Box<dyn Any>);
     /* This is where the output goes */
     payloads.insert("out".to_string(),Box::new(shapes.clone()) as Box<dyn Any>);
-    payloads.insert("builder".to_string(),Box::new(GeometryBuilder::new()) as Box<dyn Any>);
-    payloads.insert("data".to_string(),Box::new(ProgramData::new()) as Box<dyn Any>);
+    /* Temporary instances of types needed by scripts */
+    payloads.insert("builder".to_string(),Box::new(ObjectBuilder::new()) as Box<dyn Any>);
     payloads.insert("net_time".to_string(),Box::new(net_ms.clone()) as Box<dyn Any>);
     payloads.insert("mode".to_string(),Box::new(mode.clone()) as Box<dyn Any>);
     let start = cdr_current_time();

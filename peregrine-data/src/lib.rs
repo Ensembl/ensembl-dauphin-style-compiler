@@ -122,20 +122,18 @@ mod shapeload {
     pub(crate) mod anticipate;
     pub(crate) mod carriagebuilder;
     mod datastore;
-    mod geometrybuilder;
+    mod objectbuilder;
     mod shaperequest;
     pub(crate) mod loadshapes;
     pub(crate) mod programloader;
     mod resultstore;
-    pub(crate) mod programdata;
     pub(crate) mod programname;
 
     pub use self::datastore::{ DataStore };
     pub use self::shaperequest::{ Region, ShapeRequest, ShapeRequestGroup };
     pub use self::loadshapes::LoadMode;
-    pub use self::programdata::ProgramData;
     pub use self::resultstore::{ ShapeStore };
-    pub use self::geometrybuilder::GeometryBuilder;
+    pub use self::objectbuilder::ObjectBuilder;
 }
 
 mod metric {
@@ -298,7 +296,7 @@ pub use self::core::channel::accessorresolver::{ AccessorResolver };
 pub use self::core::channel::backendnamespace::BackendNamespace;
 pub use self::core::channel::channelintegration::{ ChannelIntegration, ChannelSender, ChannelResponse, TrivialChannelResponse, ChannelMessageDecoder, null_payload };
 pub use self::index::{ StickStore };
-pub use self::shapeload::{ Region, ShapeStore, DataStore, ProgramData, ShapeRequest, ShapeRequestGroup, LoadMode, GeometryBuilder };
+pub use self::shapeload::{ Region, ShapeStore, DataStore, ShapeRequest, ShapeRequestGroup, LoadMode, ObjectBuilder };
 pub use self::run::{ PgCommander, PgCommanderTaskSpec, PgDauphin, Commander, InstancePayload, add_task, complete_task, async_complete_task };
 pub use self::request::core::maxirequest::{ MaxiRequest };
 pub use self::request::core::maxiresponse::{ MaxiResponse, MaxiResponseDeserialize };
