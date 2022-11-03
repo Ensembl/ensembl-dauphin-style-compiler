@@ -189,12 +189,12 @@ potential_tracks_base := [
     ""
 ];
 
+notice(format([setting_boolean("pc-fwd-label",[][])]));
+
 potential_background_tracks := [append_group(potential_tracks_base[],["background"][])];
 use_allotment_names(background_allotment_names,enabled_tracks,potential_background_tracks);
 
 expanded_genes := list_switch(["buttons","gene","expand"]);
-
-//notice(format([setting_string("pc-fwd-label",[][])]));
 
 /*
  * Which allotment and track does data go into?

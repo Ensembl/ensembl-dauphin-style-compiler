@@ -43,6 +43,19 @@ impl Switch {
         }
     }
 
+    pub(super) fn get_value(&self, path: &[&str]) -> &StructBuilt {
+        if path.len() > 0 {
+            if !self.value.truthy() { return &self.null; }
+            if let Some(kid) = self.kids.get(&path[0].to_string()) {
+                kid.get_value(&path[1..])
+            } else {
+                &self.null
+            }
+        } else {
+            &self.value
+        }
+    }
+
     pub(super) fn find_expansions(&mut self,) -> &[Expansion] { &self.expansions }
 
     pub(super) fn remove(&mut self, path: &[&str]) {

@@ -4,7 +4,7 @@ use std::sync::{ Arc };
 use std::collections::HashMap;
 use peregrine_toolkit::eachorevery::eoestruct::{StructBuilt, StructTemplate };
 
-use super::track::Track;
+use super::{track::Track, switches::SwitchesData};
 
 #[derive(Clone)]
 #[cfg_attr(debug_assertions,derive(Debug))]
@@ -103,13 +103,14 @@ pub struct TrackConfig {
 }
 
 impl TrackConfig {
-    pub(super) fn new(track: &Track, root: TrackConfigNode) -> TrackConfig {
+    pub(super) fn new(track: &Track, root: TrackConfigNode, switches_data: &SwitchesData) -> TrackConfig {
         let program = track.program();
         let mapping = track.mapping();
-        let mut values2 = mapping.apply();
+        let mut values2 = mapping.apply(switches_data);
         program.apply_defaults(&mut values2);
         let mut state = DefaultHasher::new();
         root.hash_value().hash(&mut state);
+        values2.hash(&mut state);
         track.hash(&mut state);
         TrackConfig {
             track: track.clone(),

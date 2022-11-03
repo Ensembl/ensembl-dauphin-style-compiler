@@ -6,7 +6,7 @@ use crate::{Track, request::tracks::{trackmodel::TrackModel, expansionmodel::Exp
 
 use super::{trackconfiglist::TrackConfigList, switch::Switch, trackconfig::TrackConfigNode, expansion::Expansion};
 
-pub(super) struct SwitchesData {
+pub(crate) struct SwitchesData {
     root: Switch,
     all_backends: Option<AllBackends>,
     track_config_list: Option<TrackConfigList>
@@ -22,6 +22,10 @@ impl SwitchesData {
         let tmpl_true = StructTemplate::new_boolean(true).build().ok().unwrap();
         out.root.set(tmpl_true);
         out
+    }
+
+    pub(crate) fn get_value(&self, path: &[&str]) -> StructBuilt {
+        self.root.get_value(path).clone()
     }
 
     fn set_all_backends(&mut self, all_backends: &AllBackends) {

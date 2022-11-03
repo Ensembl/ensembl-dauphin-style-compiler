@@ -1,6 +1,6 @@
 use std::{sync::Arc, collections::BTreeMap};
-use peregrine_toolkit::{eachorevery::eoestruct::StructBuilt, error::Error, log };
-use crate::{Track, shapeload::programname::ProgramName, PgDauphin };
+use peregrine_toolkit::{eachorevery::eoestruct::StructBuilt, error::Error };
+use crate::{Track, shapeload::programname::ProgramName, PgDauphin, switch::switches::SwitchesData };
 
 pub(crate) struct TrackMappingBuilder {
     settings: Vec<(String,Vec<String>)>,
@@ -32,10 +32,14 @@ impl TrackMapping {
         TrackMapping(Arc::new(builder))
     }
 
-    pub(crate) fn apply(&self) -> BTreeMap<String,StructBuilt> {
+    pub(crate) fn apply(&self, switches_data: &SwitchesData) -> BTreeMap<String,StructBuilt> {
         let mut out = BTreeMap::new();
         for (key,value) in &self.0.values {
             out.insert(key.to_string(),value.clone());
+        }
+        for (key,path) in &self.0.settings {
+            let path_str = path.iter().map(|x| x.as_str()).collect::<Vec<_>>();
+            out.insert(key.to_string(),switches_data.get_value(&path_str));
         }
         out
     }
