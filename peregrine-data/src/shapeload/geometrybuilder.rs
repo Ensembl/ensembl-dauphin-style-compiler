@@ -1,7 +1,7 @@
 use anyhow::{ anyhow as err, bail };
 use core::f64;
 use std::sync::{ Arc, Mutex };
-use peregrine_data::{Colour, DirectColour, Patina, Pen, Plotter, ZMenu, SpaceBase, LeafRequest, DataRequest, Background};
+use crate::{Colour, DirectColour, Patina, Pen, Plotter, ZMenu, SpaceBase, LeafRequest, DataRequest, Background};
 use owning_ref::ArcRef;
 use peregrine_toolkit::{lock, eachorevery::eoestruct::{StructVarGroup, StructTemplate, StructVar, StructPair}};
 
@@ -90,6 +90,7 @@ macro_rules! builder_type {
     };
 }
 
+#[derive(Clone)]
 pub struct GeometryBuilder(Arc<Mutex<GeometryBuilderData>>);
 
 impl GeometryBuilder {

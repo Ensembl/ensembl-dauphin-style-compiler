@@ -2,7 +2,7 @@ use std::sync::Mutex;
 use commander::cdr_current_time;
 use peregrine_toolkit::error::Error;
 use std::collections::HashMap;
-use crate::{ProgramShapesBuilder };
+use crate::{ProgramShapesBuilder, GeometryBuilder };
 use std::any::Any;
 use std::sync::{ Arc };
 use crate::shape::{AbstractShapesContainer};
@@ -24,6 +24,7 @@ async fn make_unfiltered_shapes(base: PeregrineCoreBase, program_loader: Program
     payloads.insert("request".to_string(),Box::new(request.clone()) as Box<dyn Any>);
     /* This is where the output goes */
     payloads.insert("out".to_string(),Box::new(shapes.clone()) as Box<dyn Any>);
+    payloads.insert("builder".to_string(),Box::new(GeometryBuilder::new()) as Box<dyn Any>);
     payloads.insert("data".to_string(),Box::new(ProgramData::new()) as Box<dyn Any>);
     payloads.insert("net_time".to_string(),Box::new(net_ms.clone()) as Box<dyn Any>);
     payloads.insert("mode".to_string(),Box::new(mode.clone()) as Box<dyn Any>);

@@ -30,7 +30,6 @@ mod interp {
 pub use interp::library::make_peregrine_interp;
 
 mod payloads {
-    mod geometrybuilder;
     mod payload;
     pub use payload::{ PeregrinePayloadFactory, PeregrinePayload, add_peregrine_payloads };
 }

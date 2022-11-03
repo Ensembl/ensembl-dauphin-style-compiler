@@ -1,12 +1,14 @@
 use std::sync::Mutex;
 use std::sync::Arc;
 use crate::simple_interp_command;
-use crate::util::{ get_instance, get_peregrine };
+use crate::util::get_peregrine;
+use crate::util::{ get_instance };
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, AsyncBlock, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
 use peregrine_data::AccessorResolver;
 use peregrine_data::DataMessage;
 use peregrine_data::DataRequest;
+use peregrine_data::GeometryBuilder;
 use peregrine_data::LoadMode;
 use peregrine_data::{PacketPriority, ProgramData, Region, Scale, ShapeRequest, StickId};
 use serde_cbor::Value as CborValue;
@@ -47,9 +49,10 @@ async fn get(context: &mut InterpContext, cmd: GetDataInterpCommand) -> anyhow::
     let registers = context.registers();
     let request_id = registers.get_indexes(&cmd.1)?[0] as u32;
     drop(registers);
+    let geometry = get_instance::<GeometryBuilder>(context,"builder")?;
     let peregrine = get_peregrine(context)?;
     let data_store = peregrine.agent_store().data_store.clone();
-    let request = peregrine.geometry_builder().request(request_id)?;
+    let request = geometry.request(request_id)?;
     let (result,took_ms) = data_store.get(&request,&priority).await.map_err(|e| DataMessage::XXXTransitional(e))?;
     let data_id = program_data.add(result);
     drop(peregrine);
@@ -98,10 +101,8 @@ async fn request_interp_command(context: &mut InterpContext, cmd: RequestInterpC
     let channel = channel_resolver.resolve(&channel_name).await.map_err(|e| DataMessage::XXXTransitional(e))?;
     let request = DataRequest::new(&channel,&prog_name,&region);
     drop(registers);
-    let peregrine = get_peregrine(context)?;
-    let geometry_builder = peregrine.geometry_builder();
+    let geometry_builder = get_instance::<GeometryBuilder>(context,"builder")?;
     let id = geometry_builder.add_request(request);
-    drop(peregrine);
     let registers = context.registers_mut();
     registers.write(&cmd.0,InterpValue::Indexes(vec![id as usize]));
     Ok(())
@@ -121,12 +122,10 @@ impl InterpCommand for RequestScopeInterpCommand {
         let key = registers.get_strings(&self.2)?[0].to_owned();
         let values = registers.get_strings(&self.3)?.to_vec();
         drop(registers);
-        let peregrine = get_peregrine(context)?;
-        let geometry_builder = peregrine.geometry_builder();
+        let geometry_builder = get_instance::<GeometryBuilder>(context,"builder")?;
         let request = geometry_builder.request(request_id)?;
         let request = request.add_scope(&key,&values);
         let new_id = geometry_builder.add_request(request);
-        drop(peregrine);
         let registers = context.registers_mut();
         registers.write(&self.0,InterpValue::Indexes(vec![new_id as usize]));
         Ok(CommandResult::SyncResult())

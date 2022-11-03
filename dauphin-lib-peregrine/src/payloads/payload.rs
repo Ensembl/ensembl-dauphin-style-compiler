@@ -17,12 +17,10 @@
 use std::any::Any;
 use dauphin_interp::runtime::{ Payload, PayloadFactory };
 use dauphin_interp::{ Dauphin };
-use peregrine_data::{AgentStore };
-use super::geometrybuilder::GeometryBuilder;
+use peregrine_data::{ AgentStore };
 
 pub struct PeregrinePayload {
-    agent_store: AgentStore,
-    geometry_builder: GeometryBuilder
+    agent_store: AgentStore
 }
 
 impl Payload for PeregrinePayload {
@@ -34,13 +32,11 @@ impl Payload for PeregrinePayload {
 impl PeregrinePayload {
     fn new(agent_store: &AgentStore) -> PeregrinePayload {
         PeregrinePayload {
-            agent_store: agent_store.clone(),
-            geometry_builder: GeometryBuilder::new(),
+            agent_store: agent_store.clone()
         }
     }
 
     pub fn agent_store(&self) -> &AgentStore { &self.agent_store }
-    pub fn geometry_builder(&self) -> &GeometryBuilder { &self.geometry_builder }
 }
 
 #[derive(Clone)]
