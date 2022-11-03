@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use peregrine_toolkit::{eachorevery::eoestruct::{StructTemplate, StructBuilt, StructConst}, lock, error::Error};
 
-use crate::{Track, request::tracks::{trackmodel::TrackModel, expansionmodel::ExpansionModel}, AllBackends};
+use crate::{Track, request::tracks::{trackmodel::TrackModel, expansionmodel::ExpansionModel}, AllBackends, PgDauphin};
 
 use super::{trackconfiglist::TrackConfigList, switch::Switch, trackconfig::TrackConfigNode, expansion::Expansion};
 
@@ -114,12 +114,13 @@ impl Switches {
         data.track_config_list = None;
     }
 
-    pub fn add_track_model(&self, model: &TrackModel) {
-        let track = model.to_track();
+    pub async fn add_track_model(&self, model: &TrackModel, pgd: &PgDauphin) -> Result<(),Error> {
+        let track = model.to_track(pgd).await?;
         for (mount,trigger) in model.mount_points() {
             let path = mount.iter().map(|x| x.as_str()).collect::<Vec<_>>();
             self.add_track(&path,&track,trigger);
         }
+        Ok(())
     }
 
     fn add_expansion(&self, path: &[&str], expansion: &Expansion) {

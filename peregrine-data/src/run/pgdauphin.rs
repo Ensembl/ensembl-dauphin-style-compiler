@@ -113,6 +113,11 @@ impl PgDauphin {
             .ok_or(Error::operr(&format!("failed channel/program {:?}",program_name)))?.clone())
     }
 
+    pub(crate) async fn get_program_model(&self, program_name: &ProgramName) -> Result<ProgramModel,Error> {
+        let program = self.get_program(program_name).await?;
+        Ok(program.program)
+    }
+
     pub async fn run_program(&self, registry: &ChannelRegistry, spec: PgDauphinTaskSpec, mode: &LoadMode) -> Result<(),Error> {
         let program = self.get_program(&spec.program_name).await?;
         let mut payloads = spec.payloads.unwrap_or_else(|| HashMap::new());

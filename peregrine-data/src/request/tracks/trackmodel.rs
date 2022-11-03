@@ -1,8 +1,6 @@
 use std::sync::Arc;
-
-use peregrine_toolkit::{eachorevery::eoestruct::StructBuilt };
-
-use crate::{Track, shapeload::programname::ProgramName};
+use peregrine_toolkit::{eachorevery::eoestruct::StructBuilt, error::Error };
+use crate::{Track, shapeload::programname::ProgramName, PgDauphin };
 
 #[derive(Debug)]
 pub struct TrackModelBuilder {
@@ -50,26 +48,31 @@ impl TrackModelBuilder {
     }
 }
 
-#[derive(Debug)]
-pub struct TrackModel(Arc<TrackModelBuilder>);
+#[derive(Debug,Clone)]
+pub struct TrackModel {
+    builder: Arc<TrackModelBuilder>
+}
 
 impl TrackModel {
     pub fn new(builder: TrackModelBuilder) -> TrackModel {
-        TrackModel(Arc::new(builder))
+        TrackModel {
+            builder: Arc::new(builder)
+        }
     }
 
-    pub(crate) fn to_track(&self) -> Track {
-        let t = self.0.as_ref();
-        let mut track = Track::new(&t.program,t.scale_start,t.scale_end+1,t.scale_step);
+    pub(crate) async fn to_track(&self, loader: &PgDauphin) -> Result<Track,Error> {
+        let program = loader.get_program_model(&self.builder.program).await?;
+        let t = self.builder.as_ref();
+        let mut track = Track::new(&program,t.scale_start,t.scale_end+1,t.scale_step);
         for (key,value) in &t.set {
             let key = key.iter().map(|x| x.as_str()).collect::<Vec<_>>();
             track.set_switch(&key,value.clone());
         }
-        track
+        Ok(track)
     }
 
     pub(crate) fn mount_points(&self) -> Vec<(Vec<String>,bool)> {
-        let t = self.0.as_ref();
+        let t = self.builder.as_ref();
         let mut out : Vec<_> = t.triggers.iter().map(|x| (x.to_vec(),true)).collect();
         out.append(&mut t.extra.iter().map(|x| (x.to_vec(),false)).collect());
         out

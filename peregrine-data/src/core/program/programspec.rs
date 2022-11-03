@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 use peregrine_toolkit::{error::Error, eachorevery::eoestruct::StructBuilt};
 
@@ -21,16 +21,16 @@ impl ProgramSetting {
     }
 }
 
-#[derive(Clone,Debug)]
-pub(crate) struct ProgramModel {
+#[derive(Debug)]
+pub(crate) struct ProgramModelBuilder {
     name: ProgramName,
     in_bundle_name: String,
     settings: HashMap<String,ProgramSetting>
 }
 
-impl ProgramModel {
-    pub fn new(name: &ProgramName, in_bundle_name: &str) -> ProgramModel {
-        ProgramModel {
+impl ProgramModelBuilder {
+    pub fn new(name: &ProgramName, in_bundle_name: &str) -> ProgramModelBuilder {
+        ProgramModelBuilder {
             name: name.clone(), 
             in_bundle_name: in_bundle_name.to_string(),
             settings: HashMap::new()
@@ -40,9 +40,20 @@ impl ProgramModel {
     pub fn add_setting(&mut self, name: &str, setting: ProgramSetting) {
         self.settings.insert(name.to_string(),setting);
     }
+}
 
-    pub fn name(&self) -> &ProgramName { &self.name }
-    pub fn in_bundle_name(&self) -> &str { &self.in_bundle_name }
+#[derive(Clone,Debug)]
+pub(crate) struct ProgramModel(Arc<ProgramModelBuilder>);
+
+impl ProgramModel {
+    pub(crate) fn new(builder: ProgramModelBuilder) -> ProgramModel {
+        ProgramModel(Arc::new(builder))
+    }
+}
+
+impl ProgramModel {
+    pub fn name(&self) -> &ProgramName { &self.0.name }
+    pub fn in_bundle_name(&self) -> &str { &self.0.in_bundle_name }
 }
 
 pub(crate) enum ProgramSpec {

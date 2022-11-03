@@ -1,6 +1,6 @@
 use peregrine_toolkit::{diffset::DiffSet, eachorevery::eoestruct::StructBuilt, error::Error, lengths_match, multizip};
 use crate::{shapeload::programname::ProgramName};
-use super::programspec::{ProgramModel, ProgramSetting};
+use super::programspec::{ProgramModel, ProgramSetting, ProgramModelBuilder};
 
 fn lookup<T>(index: usize, array: &[T]) -> Result<&T,Error> {
     array.get(index).ok_or_else(|| Error::operr("bad track packet"))
@@ -21,7 +21,7 @@ impl PackedProgram {
             lookup(self.name,&res.name_idx)?,
             self.version
         );
-        let mut model = ProgramModel::new(
+        let mut model = ProgramModelBuilder::new(
             &program_name,
             lookup(self.in_bundle_name,&res.name_idx)?
         );
@@ -31,7 +31,7 @@ impl PackedProgram {
             let setting = ProgramSetting::new(name,default.clone());
             model.add_setting(name,setting);
         }
-        Ok(model)
+        Ok(ProgramModel::new(model))
     }
 }
 

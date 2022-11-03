@@ -1,11 +1,11 @@
-use peregrine_toolkit::{ serdetools::{st_field, st_err}};
+use peregrine_toolkit::{ serdetools::{st_field }};
 use serde::de::{Visitor, MapAccess, DeserializeSeed, IgnoredAny};
 use serde::{Deserializer};
 use std::any::Any;
 use std::fmt;
 use std::mem::replace;
 use std::sync::Arc;
-use crate::{core::{channel::wrappedchannelsender::WrappedChannelSender }, request::tracks::{trackres::TrackResult, trackmodel::TrackModel, expansionmodel::ExpansionModel}};
+use crate::{core::{channel::wrappedchannelsender::WrappedChannelSender }, request::tracks::{trackres::TrackResult}};
 use crate::{BackendNamespace};
 use crate::core::program::programbundle::SuppliedBundle;
 use super::response::{MiniResponseAttempt, MiniResponseAttemptVecDeserialize};
@@ -20,8 +20,7 @@ pub struct MaxiResponse {
     channel: BackendNamespace,
     responses: Vec<MiniResponseAttempt>,
     programs: Vec<SuppliedBundle>,
-    tracks: Vec<TrackModel>,
-    expansions: Vec<ExpansionModel>
+    tracks: TrackResult
 }
 
 impl MaxiResponse {
@@ -30,8 +29,7 @@ impl MaxiResponse {
             channel: channel.clone(),
             responses: vec![],
             programs: vec![],
-            tracks: vec![],
-            expansions: vec![]
+            tracks: TrackResult::None
         }
     }
 
@@ -62,8 +60,7 @@ impl MaxiResponse {
 
     pub(crate) fn channel(&self) -> &BackendNamespace { &self.channel }
     pub(crate) fn programs(&self) -> &[SuppliedBundle] { &self.programs }
-    pub(crate) fn tracks(&self) -> &[TrackModel] { &self.tracks }
-    pub(crate) fn expansions(&self) -> &[ExpansionModel] { &self.expansions }
+    pub(crate) fn tracks(&self) -> &TrackResult { &self.tracks }
     pub(crate) fn take_responses(&mut self) -> Vec<MiniResponseAttempt> {
         self.check_big_requests();
         replace(&mut self.responses,vec![])
@@ -84,7 +81,7 @@ impl<'de> Visitor<'de> for MaxiResponseVisitor {
         let mut responses : Option<Vec<MiniResponseAttempt>> = None;
         let mut programs = None;
         let mut channel = None;
-        let mut tracks_packed = None;
+        let mut tracks = TrackResult::None;
         while let Some(key) = access.next_key()? {
             match key {
                 "responses" => { 
@@ -93,24 +90,18 @@ impl<'de> Visitor<'de> for MaxiResponseVisitor {
                 },
                 "programs" => { programs = access.next_value()? },
                 "channel" => { channel = access.next_value()? },
-                "tracks-packed" => { tracks_packed = Some(TrackResult::Packed(access.next_value()?)); },
+                "tracks-packed" => { tracks = TrackResult::Packed(access.next_value()?); },
                 _ => { let _ : IgnoredAny = access.next_value()?; }
             }
         }
         let responses = st_field("responses",responses)?;
         let channel = st_field("channel",channel)?;
         let programs = st_field("programs",programs)?;
-        let (tracks,expansions) = if let Some(tracks_packed) = tracks_packed {
-            st_err(tracks_packed.to_track_models(),"unpacking tracks")?
-        } else {
-            (vec![],vec![])
-        };
         Ok(MaxiResponse {
             channel, 
             responses, 
             programs,
-            tracks,
-            expansions
+            tracks
         })
     }
 }

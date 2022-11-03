@@ -24,7 +24,7 @@ impl ExpansionModelBuilder {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct ExpansionModel(Arc<ExpansionModelBuilder>);
 
 impl ExpansionModel {

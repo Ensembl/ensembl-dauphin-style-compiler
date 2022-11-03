@@ -20,6 +20,6 @@ impl RequestSidecars {
 
     pub(crate) async fn run(&self, response: &MaxiResponse, channel: &BackendNamespace, messages: &MessageSender) {
         err_web_drop(add_programs_from_response(&self.pgd,channel,response,messages).await);
-        add_tracks_from_response(response,&self.switches,&self.queue);
+        err_web_drop(add_tracks_from_response(response,&self.switches,&self.queue,&self.pgd).await);
     }
 }

@@ -1,5 +1,5 @@
 use peregrine_toolkit::{error::Error, eachorevery::eoestruct::StructBuilt, diffset::DiffSet, lengths_match, multizip, log };
-use crate::{BackendNamespace, shapeload::programname::ProgramName};
+use crate::{BackendNamespace, shapeload::programname::ProgramName };
 use super::{ switchtree::SwitchTree, trackmodel::{TrackModel, TrackModelBuilder}, expansionmodel::{ExpansionModel, ExpansionModelBuilder} };
 
 #[derive(Debug)]
@@ -27,7 +27,7 @@ fn lookup<T>(index: usize, array: &[T]) -> Result<&T,Error> {
 }
 
 impl PackedTrack {
-    fn to_track(&self, res: &PackedTrackRes) -> Result<TrackModel,Error> {
+    async fn to_track(&self, res: &PackedTrackRes) -> Result<TrackModel,Error> {
         let program_set = lookup(self.program_set,&res.program_idx)?;
         let program_name = lookup(self.program_name,&res.program_idx)?;
         log!("set {:?} name {:?} version {:?}",program_set,program_name,self.program_version);
@@ -174,11 +174,15 @@ impl PackedTrackRes {
         Ok(out)
     }
 
-    pub(super) fn to_track_models(&mut self) -> Result<Vec<TrackModel>,Error> {
-        self.make_packed_tracks()?.drain(..).map(|t| t.to_track(&self)).collect()
+    pub(super) async fn to_track_models(&self) -> Result<Vec<TrackModel>,Error> {
+        let mut tracks = vec![];
+        for track in self.make_packed_tracks()? {
+            tracks.push(track.to_track(&self).await?);
+        }
+        Ok(tracks)
     }
 
-    pub(super) fn to_expansion_models(&mut self) -> Result<Vec<ExpansionModel>,Error> {
+    pub(super) fn to_expansion_models(&self) -> Result<Vec<ExpansionModel>,Error> {
         self.make_packed_expansions()?.drain(..).map(|t| t.to_expansion(&self)).collect()
     }    
 }
