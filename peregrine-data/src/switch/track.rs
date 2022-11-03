@@ -5,6 +5,7 @@ use peregrine_toolkit::eachorevery::eoestruct::StructBuilt;
 use peregrine_toolkit::lock;
 use crate::core::program::programspec::ProgramModel;
 use crate::core::{ Layout, Scale };
+use crate::request::tracks::trackmodel::TrackMapping;
 use super::switchoverlay::SwitchOverlay;
 
 identitynumber!(IDS);
@@ -16,6 +17,7 @@ pub struct Track {
     max_scale: u64,
     scale_jump: u64,
     program: ProgramModel,
+    mapping: TrackMapping,
     tags: Vec<String>,
     switch_overlay: Arc<Mutex<SwitchOverlay>>
 }
@@ -24,11 +26,12 @@ hashable!(Track,id);
 orderable!(Track,id);
 
 impl Track {
-    pub(crate) fn new(program: &ProgramModel, min_scale: u64, max_scale: u64, scale_jump: u64) -> Track { 
+    pub(crate) fn new(program: &ProgramModel, mapping: &TrackMapping, min_scale: u64, max_scale: u64, scale_jump: u64) -> Track { 
         Track {
             id: IDS.next(),
             min_scale, max_scale, scale_jump,
             program: program.clone(),
+            mapping: mapping.clone(),
             tags: vec![],
             switch_overlay: Arc::new(Mutex::new(SwitchOverlay::new()))
         }
@@ -44,6 +47,7 @@ impl Track {
     pub(super) fn overlay(&self) -> MutexGuard<SwitchOverlay> { self.switch_overlay.lock().unwrap() }
 
     pub(crate) fn program(&self) -> &ProgramModel { &self.program }
+    pub(crate) fn mapping(&self) -> &TrackMapping { &self.mapping }
     pub fn id(&self) -> u64 { self.id }
     pub fn scale(&self) -> (u64,u64) { (self.min_scale,self.max_scale) }
     pub fn max_scale_jump(&self) -> u64 { self.scale_jump }

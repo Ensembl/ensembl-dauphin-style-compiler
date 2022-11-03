@@ -194,7 +194,7 @@ use_allotment_names(background_allotment_names,enabled_tracks,potential_backgrou
 
 expanded_genes := list_switch(["buttons","gene","expand"]);
 
-notice(format([setting_string("pc-fwd-label",[][])]));
+//notice(format([setting_string("pc-fwd-label",[][])]));
 
 /*
  * Which allotment and track does data go into?

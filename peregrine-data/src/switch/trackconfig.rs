@@ -104,8 +104,9 @@ pub struct TrackConfig {
 
 impl TrackConfig {
     pub(super) fn new(track: &Track, root: TrackConfigNode) -> TrackConfig {
-        let mut values2 = BTreeMap::new();
         let program = track.program();
+        let mapping = track.mapping();
+        let mut values2 = mapping.apply();
         program.apply_defaults(&mut values2);
         let mut state = DefaultHasher::new();
         root.hash_value().hash(&mut state);

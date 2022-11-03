@@ -49,13 +49,13 @@ impl PackedTrack {
             );
         }
         for (key_idx,switch_idx) in self.settings_keys.iter().zip(&self.settings_values) {
-            builder.add_setting(
+            builder.mapping_mut().add_setting(
                 lookup(*key_idx,&res.key_idx)?,
                 lookup(*switch_idx,&res.switch_idx.0)?
             );
         }
         for (key_idx,value_idx) in self.values_keys.iter().zip(&self.values_values) {
-            builder.add_value(
+            builder.mapping_mut().add_value(
                 lookup(*key_idx,&res.key_idx)?,
                 lookup(*value_idx,&res.value_idx)?.clone(),
             );
