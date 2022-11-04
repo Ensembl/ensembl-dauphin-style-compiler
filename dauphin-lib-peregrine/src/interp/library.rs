@@ -19,11 +19,11 @@ use super::shape::{
 };
 
 use super::switch::{
-    ListSwitchDeserializer, SwitchStringDeserializer, SwitchNumberDeserializer, SwitchBooleanDeserializer, SwitchNullDeserializer, SettingStringDeserializer, SettingNumberDeserializer, SettingBooleanDeserializer, SettingNullDeserializer
+    ListSwitchDeserializer, SettingStringDeserializer, SettingNumberDeserializer, SettingBooleanDeserializer, SettingNullDeserializer
 };
 
 pub fn std_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(58,0),0x43AB939D306D0FAE)
+    CommandSetId::new("peregrine",(59,0),0xD6752629A00A1708)
 }
 
 pub fn make_peregrine_interp() -> InterpLibRegister {
@@ -86,10 +86,6 @@ pub fn make_peregrine_interp() -> InterpLibRegister {
     set.push(EoesBooleanDeserializer());
     set.push(EoesLateDeserializer());
     set.push(BackgroundDeserializer());
-    set.push(SwitchStringDeserializer());
-    set.push(SwitchNumberDeserializer());
-    set.push(SwitchBooleanDeserializer());
-    set.push(SwitchNullDeserializer());
     set.push(RunningTextDeserializer());
     set.push(MakeRegionDeserializer());
     set

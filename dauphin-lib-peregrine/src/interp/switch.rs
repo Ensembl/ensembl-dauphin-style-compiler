@@ -12,10 +12,6 @@ simple_interp_command!(SettingNumberInterpCommand,SettingNumberDeserializer,1,3,
 simple_interp_command!(SettingBooleanInterpCommand,SettingBooleanDeserializer,2,3,(0,1,2));
 simple_interp_command!(SettingNullInterpCommand,SettingNullDeserializer,3,3,(0,1,2));
 simple_interp_command!(ListSwitchInterpCommand,ListSwitchDeserializer,42,4,(0,1,2,3));
-simple_interp_command!(SwitchStringInterpCommand,SwitchStringDeserializer,71,3,(0,1,2));
-simple_interp_command!(SwitchNumberInterpCommand,SwitchNumberDeserializer,72,3,(0,1,2));
-simple_interp_command!(SwitchBooleanInterpCommand,SwitchBooleanDeserializer,73,3,(0,1,2));
-simple_interp_command!(SwitchNullInterpCommand,SwitchNullDeserializer,32,3,(0,1,2));
 
 impl InterpCommand for ListSwitchInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
@@ -44,89 +40,6 @@ fn value_to_atom(value: &StructBuilt, contents: &[String]) -> Result<Vec<StructC
         .map_err(|e| struct_error_to_string(e))?
         .drain(..).filter_map(|x| x).collect::<Vec<_>>()
     )
-}
-
-fn switch_value(r1: &Register, r2: &Register, context: &mut InterpContext, is_null_test: bool) -> anyhow::Result<Vec<StructConst>> {
-    let registers = context.registers_mut();
-    let switch_data = registers.get_strings(r1)?.to_vec();
-    let contents_data = registers.get_strings(r2)?.to_vec();
-    drop(registers);
-    let request = get_instance::<ShapeRequest>(context,"request")?;
-    let config = request.track();
-    let path = &switch_data.iter().map(|x| x.as_str()).collect::<Vec<_>>();
-    Ok(if let Some(value) = config.value(&path) {
-        value_to_atom(value,&contents_data).map_err(|e| err!(e))?
-    } else {
-        if is_null_test && contents_data.len() == 0 {
-            vec![StructConst::Null]
-        } else {
-            vec![]
-        }
-    })
-}
-
-impl InterpCommand for SwitchStringInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
-        let values = switch_value(&self.1,&self.2,context,false)?;
-        let mut out = vec![];
-        for value in values {
-            let v = match value {
-                StructConst::String(s) => s,
-                StructConst::Number(n) => n.to_string(),
-                StructConst::Boolean(b) => if b { "true" } else { "false" }.to_string(),
-                StructConst::Null => "".to_string()
-            };
-            out.push(v);
-        }
-        let registers = context.registers_mut();
-        registers.write(&self.0,InterpValue::Strings(out));
-        Ok(CommandResult::SyncResult())
-    }
-}
-
-impl InterpCommand for SwitchNumberInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
-        let values = switch_value(&self.1,&self.2,context,false)?;
-        let mut out = vec![];
-        for value in values {
-            let v = match value {
-                StructConst::String(s) => s.parse::<f64>().ok().unwrap_or(0.),
-                StructConst::Number(n) => n,
-                StructConst::Boolean(b) => if b { 1. } else { 0. },
-                StructConst::Null => 0.
-            };
-            out.push(v);
-        }
-        let registers = context.registers_mut();
-        registers.write(&self.0,InterpValue::Numbers(out));
-        Ok(CommandResult::SyncResult())
-    }
-}
-
-impl InterpCommand for SwitchBooleanInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
-        let values = switch_value(&self.1,&self.2,context,false)?;
-        let mut out = vec![];
-        for value in values {
-            out.push(value.truthy());
-        }
-        let registers = context.registers_mut();
-        registers.write(&self.0,InterpValue::Boolean(out));
-        Ok(CommandResult::SyncResult())
-    }
-}
-
-impl InterpCommand for SwitchNullInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
-        let values = switch_value(&self.1,&self.2,context,true)?;
-        let mut out = vec![];
-        for value in values {
-            out.push(if let StructConst::Null = value { true } else { false });
-        }
-        let registers = context.registers_mut();
-        registers.write(&self.0,InterpValue::Boolean(out));
-        Ok(CommandResult::SyncResult())
-    }
 }
 
 fn setting_value(r1: &Register, r2: &Register, context: &mut InterpContext, is_null_test: bool) -> anyhow::Result<Vec<StructConst>> {

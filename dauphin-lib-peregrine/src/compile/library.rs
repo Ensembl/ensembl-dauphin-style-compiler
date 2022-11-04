@@ -21,14 +21,14 @@ use super::geometry:: {
     BarCommandType, BpRangeCommandType, SpotColourCommandType, PpcCommandType, StyleCommandType, PatinaSwitchCommandType, PatinaMetadataCommandType, BackgroundCommandType
 };
 use super::shape::{ WiggleCommandType, RectangleCommandType, Text2CommandType, ImageCommandType, EmptyCommandType, RunningTextCommandType };
-use super::switch::{ ListSwitchCommandType, SwitchStringCommandType, SwitchNumberCommandType, SwitchBooleanCommandType, SwitchNullCommandType, SettingBooleanCommandType, SettingNullCommandType, SettingNumberCommandType, SettingStringCommandType };
+use super::switch::{ ListSwitchCommandType, SettingBooleanCommandType, SettingNullCommandType, SettingNumberCommandType, SettingStringCommandType };
 
 pub fn peregrine_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(58,0),0x43AB939D306D0FAE)
+    CommandSetId::new("peregrine",(59,0),0xD6752629A00A1708)
 }
 
 pub fn make_peregrine() -> CompLibRegister {
-    // next is 76; 4-6, 8, 11, 24, 25, 33, 34, 39, 40, 41 are unused
+    // next is 76; 4-6, 8, 11, 24, 25, 32-34, 39, 40, 41, 71-73 are unused
     let mut set = CompLibRegister::new(&peregrine_id(),Some(make_peregrine_interp()));
     set.push("setting_string",Some(0),SettingStringCommandType());
     set.push("setting_number",Some(1),SettingNumberCommandType());
@@ -55,7 +55,6 @@ pub fn make_peregrine() -> CompLibRegister {
     set.push("patina_filled",Some(29),PatinaFilledCommandType());
     set.push("classify",Some(30),ClassifyCommandType());
     set.push("split_string",Some(31),SplitStringCommandType());
-    set.push("switch_null",Some(32),SwitchNullCommandType());
     set.push("simple_colour",Some(35),SimpleColourCommandType());
     set.push("striped",Some(36),StripedCommandType());
     set.push("barred",Some(37),BarCommandType());
@@ -89,9 +88,6 @@ pub fn make_peregrine() -> CompLibRegister {
     set.push("eoes_boolean",Some(68),EoesBooleanCommandType());
     set.push("eoes_late",Some(69),EoesLateCommandType());
     set.push("background",Some(70),BackgroundCommandType());
-    set.push("switch_string",Some(71),SwitchStringCommandType());
-    set.push("switch_number",Some(72),SwitchNumberCommandType());
-    set.push("switch_boolean",Some(73),SwitchBooleanCommandType());
     set.push("running_text",Some(74),RunningTextCommandType());
     set.push("make_region",Some(75),MakeRegionCommandType());
     set.add_header("peregrine",include_str!("header.egs"));
