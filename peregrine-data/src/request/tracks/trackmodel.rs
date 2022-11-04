@@ -50,8 +50,6 @@ pub struct TrackModelBuilder {
     program: ProgramName,
     tags: Vec<String>,
     triggers: Vec<Vec<String>>,
-    extra: Vec<Vec<String>>,
-    set: Vec<(Vec<String>,StructBuilt)>,
     mapping: Option<TrackMappingBuilder>,
     scale_start: u64,
     scale_end: u64,
@@ -65,8 +63,6 @@ impl TrackModelBuilder {
             program: program.clone(),
             tags: vec![], 
             triggers: vec![],
-            extra: vec![],
-            set: vec![], 
             mapping: Some(TrackMappingBuilder::new()),
             scale_start, scale_end, scale_step
         }
@@ -75,10 +71,6 @@ impl TrackModelBuilder {
     pub(crate) fn mapping_mut(&mut self) -> &mut TrackMappingBuilder { self.mapping.as_mut().unwrap() }
     pub fn add_tag(&mut self, tag: &str) { self.tags.push(tag.to_string()) }
     pub fn add_trigger(&mut self, trigger: &[String]) { self.triggers.push(trigger.to_vec()) }
-    pub fn add_extra(&mut self, extra: &[String]) { self.extra.push(extra.to_vec()) }
-    pub fn add_set(&mut self, set: &[String], value: StructBuilt) { 
-        self.set.push((set.to_vec(),value));
-    }
 }
 
 #[derive(Clone)]
@@ -98,18 +90,10 @@ impl TrackModel {
     pub(crate) async fn to_track(&self, loader: &PgDauphin) -> Result<Track,Error> {
         let program = loader.get_program_model(&self.builder.program).await?;
         let t = self.builder.as_ref();
-        let mut track = Track::new(&program,&self.track_mapping,t.scale_start,t.scale_end+1,t.scale_step);
-        for (key,value) in &t.set {
-            let key = key.iter().map(|x| x.as_str()).collect::<Vec<_>>();
-            track.set_switch(&key,value.clone());
-        }
-        Ok(track)
+        Ok(Track::new(&program,&self.track_mapping,t.scale_start,t.scale_end+1,t.scale_step))
     }
 
     pub(crate) fn mount_points(&self) -> Vec<(Vec<String>,bool)> {
-        let t = self.builder.as_ref();
-        let mut out : Vec<_> = t.triggers.iter().map(|x| (x.to_vec(),true)).collect();
-        out.append(&mut t.extra.iter().map(|x| (x.to_vec(),false)).collect());
-        out
+        self.builder.triggers.iter().map(|x| (x.to_vec(),true)).collect()
     }
 }

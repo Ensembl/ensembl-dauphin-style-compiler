@@ -14,13 +14,6 @@ triggers = [
     ["track","gene-other-fwd"],
     ["track","gene-other-rev"]
 ]
-extra = [ # togo
-    ["track","focus","item","gene"],
-    ["settings"],
-    ["focus"],
-    ["track","focus"],
-    ["buttons","gene"]
-]
 tags = ["gene"]
 
 [include.gene.settings]
@@ -52,12 +45,6 @@ other-rev-several = ["track","gene-other-rev","several"]
 [include.focus-gene.general]
 triggers = [
     ["track","focus","item","gene"]
-]
-extra = [ # togo
-    ["settings"],
-    ["focus"],
-    ["track","focus"],
-    ["buttons","gene"]
 ]
 tags = ["gene"]
 
@@ -94,9 +81,6 @@ include=["transcript","gene","general"]
 program_name = "zoomed-transcript"
 scales = [7,8,2]
 include=["transcript","gene","general"]
-set = [ # togo
-    { path = ["scale","no-letters"], value = true }
-]
 
 [track.zoomed-transcript-no-letters.values]
 scale-no-letters = true
@@ -119,9 +103,6 @@ include=["focus-gene","general"]
 program_name = "focus-zoomed-transcript"
 scales = [8,8,1]
 include=["focus-gene","general"]
-set = [ # togo
-    ["scale","no-letters"]
-]
 
 [track.focus-zoomed-transcript-no-letters.values]
 scale-no-letters = true
@@ -179,11 +160,7 @@ include = ["general"]
 program_name = "contig"
 scales = [26,100,3]
 triggers = [["track","contig"]]
-extra=[["settings"]] #togo
 tags=["contig"]
-set=[ # togo
-    ["scale","shimmer"]
-]
 
 [track.contig-shimmer.values]
 shimmer = true
@@ -192,7 +169,6 @@ shimmer = true
 include = ["general"]
 scales = [9,25,3]
 triggers = [["track","contig"]]
-extra = [["settings"]]
 tags = ["contig"]
 
 [track.contig.settings]

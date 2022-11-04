@@ -33,23 +33,15 @@ class Track:
         self._program_version = 0
         self._scales = scales
         self._triggers = []
-        self._extra = []
         self._tags = []
-        self._set = []
         self._values = []
         self._settings = []
 
     def add_trigger(self, path: List[str]):
         self._triggers.append(tuple(path))
 
-    def add_extra(self, path: List[str]):
-        self._extra.append(tuple(path))
-
     def add_tag(self, tag: str):
         self._tags.append(tag)
-
-    def add_set(self, path: List[str], value):
-        self._set.append((tuple(path),immute(value)))
 
     def add_value(self, name: str, value):
         self._values.append((name,immute(value)))
@@ -70,8 +62,6 @@ class Track:
             self._scales = [int(x) for x in data["scales"]]
         if "triggers" in data:
             self._triggers += [tuple(x) for x in data["triggers"]]
-        if "extra" in data:
-            self._extra += [tuple(x) for x in data["extra"]]
         if "tags" in data:
             self._tags += data["tags"]
         if "values" in data:
@@ -80,27 +70,17 @@ class Track:
         if "settings" in data:
             for (name,setting) in data["settings"].items():
                 self._settings.append((name,tuple(setting)))
-        if "set" in data:
-            for entry in data["set"]:
-                if isinstance(entry,list):
-                    self.add_set(entry,True)
-                else:
-                    self.add_set(entry["path"],entry["value"])
 
     def _collect(self):
         switches = set()
         switches |= set(self._triggers)
-        switches |= set(self._extra)
-        switches |= set([x[0] for x in self._set])
         switches |= set([x[1] for x in self._settings])
-        values = set([x[1] for x in self._set])
-        values |= set([x[1] for x in self._values])
+        values = set([x[1] for x in self._values])
         keys = set([x[0] for x in self._settings])
         keys |= set([x[0] for x in self._values])
         return (switches,set([self._program_name,self._program_set]),set(self._tags),values,keys)
 
     def _dump_for_wire(self, dumper, name):
-        sets = sorted(self._set, key = lambda x: dumper.switch_mapping[x[0]] )
         settings = sorted(self._settings, key = lambda x: x[0])
         values = sorted(self._values, key = lambda x: x[0])
         return {
@@ -111,9 +91,6 @@ class Track:
             "scales": self._scales,
             "tags": [dumper.tag_mapping[x] for x in self._tags],
             "triggers": increase(sorted([dumper.switch_mapping[x] for x in self._triggers])),
-            "extra": increase(sorted([dumper.switch_mapping[x] for x in self._extra])),
-            "set": increase([dumper.switch_mapping[x[0]] for x in sets]),
-            "values": [dumper.value_mapping[x[1]] for x in sets],
             "values-keys": increase([dumper.key_mapping[x[0]] for x in values]),
             "values-values": [dumper.value_mapping[x[1]] for x in values],
             "settings-keys": increase([dumper.key_mapping[x[0]] for x in settings]),
@@ -261,7 +238,7 @@ class TracksDump:
         self.data['value_idx'] = [remute(x) for x in value_list]
         for key in [
                     "name", "program_name", "program_set", "program_version", "scales",
-                    "tags", "triggers", "extra", "set", "values", "e-name", "e-channel",
+                    "tags", "triggers", "set", "values", "e-name", "e-channel",
                     "e-triggers", "values-keys", "values-values", "settings-keys",
                     "settings-values"
                 ]:

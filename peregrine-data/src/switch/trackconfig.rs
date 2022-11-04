@@ -57,24 +57,6 @@ impl TrackConfigNode {
             Some(self.kids.keys().cloned().collect())
         }
     }
-
-    pub fn value(&self, path: &[&str]) -> Option<&StructBuilt> {
-        if path.len() > 0 {
-            self.kids.get(path[0]).and_then(|x| x.value(&path[1..]))
-        } else {
-            Some(&self.value)
-        }
-    }
-
-    #[cfg(debug_assertions)]
-    fn list_configs(&self, out: &mut Vec<Vec<String>>, path: &mut Vec<String>) {
-        for (kid_name,kid) in self.kids.iter() {
-            path.push(kid_name.to_string());
-            out.push(path.to_vec());
-            kid.list_configs(out,path);
-            path.pop();
-        }
-    }
 }
 
 pub(super) fn hashmap_hasher<H: Hasher, K: Hash+PartialEq+Eq+PartialOrd+Ord, V: Hash>(map: &HashMap<K,V>, state: &mut H) {
@@ -123,26 +105,17 @@ impl TrackConfig {
     pub fn track(&self) -> &Track { &self.track }
 
     pub fn list(&self, path: &[&str]) -> Option<Vec<String>> { self.values.list(path) }
-    pub fn value(&self, path: &[&str]) -> Option<&StructBuilt> { self.values.value(path) }
     pub fn value2(&self, name: &str) -> Option<&StructBuilt> { self.values2.get(name) }
-
-    #[cfg(debug_assertions)]
-    fn list_configs(&self, out: &mut Vec<Vec<String>>) {
-        self.values.list_configs(out,&mut vec![]);
-    }
 }
 
 #[cfg(debug_assertions)]
 impl fmt::Debug for TrackConfig {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let mut track_config_list = vec![];
-        self.list_configs(&mut track_config_list);
-        let mut track_config_list : Vec<_> = track_config_list.iter().map(|x| {
-            x.join(".")
-        }).collect();
-        track_config_list.sort();
-        let track_config_list = track_config_list.join(";");
-        write!(f,"{:?}({}) ",self.track.id(),&track_config_list)?;
+        let settings = self.values2.iter().map(|(key,value)| 
+            {
+                format!("{}={:?}",key,value)
+            }).collect::<Vec<_>>();
+        write!(f,"{:?} {}",self.track.id(),settings.join("; "))?;
         Ok(())
     }
 }

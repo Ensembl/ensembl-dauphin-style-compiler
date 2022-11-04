@@ -1,4 +1,4 @@
-use peregrine_toolkit::{error::Error, eachorevery::eoestruct::StructBuilt, diffset::DiffSet, lengths_match, multizip, log };
+use peregrine_toolkit::{error::Error, eachorevery::eoestruct::StructBuilt, diffset::DiffSet, lengths_match, multizip };
 use crate::{BackendNamespace, shapeload::programname::ProgramName };
 use super::{ switchtree::SwitchTree, trackmodel::{TrackModel, TrackModelBuilder}, expansionmodel::{ExpansionModel, ExpansionModelBuilder} };
 
@@ -10,9 +10,6 @@ struct PackedTrack {
     program_version: usize,
     tags: Vec<usize>,
     triggers: Vec<usize>,
-    extra: Vec<usize>,
-    set: Vec<usize>,
-    values: Vec<usize>,
     settings_keys: Vec<usize>,
     settings_values: Vec<usize>,
     values_keys: Vec<usize>,
@@ -30,7 +27,6 @@ impl PackedTrack {
     async fn to_track(&self, res: &PackedTrackRes) -> Result<TrackModel,Error> {
         let program_set = lookup(self.program_set,&res.program_idx)?;
         let program_name = lookup(self.program_name,&res.program_idx)?;
-        log!("set {:?} name {:?} version {:?}",program_set,program_name,self.program_version);
         let program_name = ProgramName::new(program_set,program_name,self.program_version);
         let mut builder = TrackModelBuilder::new(&self.name,&program_name,self.scale_start,self.scale_end,self.scale_step);
         for tag_idx in &self.tags {
@@ -38,15 +34,6 @@ impl PackedTrack {
         }
         for trigger_idx in &self.triggers {
             builder.add_trigger(lookup(*trigger_idx,&res.switch_idx.0)?);
-        }
-        for extra_idx in &self.extra {
-            builder.add_extra(lookup(*extra_idx,&res.switch_idx.0)?);
-        }
-        for (set_idx,value_idx) in self.set.iter().zip(&self.values) {
-            builder.add_set(
-                lookup(*set_idx,&res.switch_idx.0)?,
-                lookup(*value_idx,&res.value_idx)?.clone(),
-            );
         }
         for (key_idx,switch_idx) in self.settings_keys.iter().zip(&self.settings_values) {
             builder.mapping_mut().add_setting(
@@ -95,12 +82,9 @@ pub(crate) struct PackedTrackRes {
     program_version: DiffSet,
     tags: Vec<DiffSet>,
     triggers: Vec<DiffSet>,
-    extra: Vec<DiffSet>,
-    set: Vec<DiffSet>,
     scale_start: Vec<u64>,
     scale_end: Vec<u64>,
     scale_step: Vec<u64>,
-    values: Vec<Vec<usize>>,
     #[serde(rename = "values-keys")]
     values_keys: Vec<DiffSet>,
     #[serde(rename = "values-values")]
@@ -131,14 +115,14 @@ impl PackedTrackRes {
     fn make_packed_tracks(&self) -> Result<Vec<PackedTrack>,Error> {
         let mut out = vec![];
         if !lengths_match!(self,
-            name,program_name,program_set,program_version,tags,triggers,extra,set,scale_start,scale_end,scale_step,values,
+            name,program_name,program_set,program_version,tags,triggers,scale_start,scale_end,scale_step,
             values_keys,values_values,settings_keys,settings_values
         ) {
             return Err(Error::operr("Bad packet: lengths don't match"));
         }
         multizip!(self;
-            name,program_name,program_set,program_version,tags,triggers,extra,set,
-            scale_start,scale_end,scale_step,values,
+            name,program_name,program_set,program_version,tags,triggers,
+            scale_start,scale_end,scale_step,
             values_keys,values_values,settings_keys,settings_values;
             {
             out.push(PackedTrack {
@@ -147,9 +131,6 @@ impl PackedTrackRes {
                 scale_start,scale_end,scale_step,
                 tags: tags.0,
                 triggers: triggers.0,
-                extra: extra.0,
-                set: set.0,
-                values: values,
                 settings_keys: settings_keys.0,
                 settings_values,
                 values_keys: values_keys.0,
