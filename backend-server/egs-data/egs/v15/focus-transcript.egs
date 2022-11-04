@@ -47,8 +47,7 @@ import "file:common.egs"; use "common";
  *    (potentially substantial) data is effectively cached when navigating.
  */
 
-focus_genome_id := switch_string(["track","focus","item","gene"][],["genome_id"][]);
-focus_gene_id := switch_string(["track","focus","item","gene"][],["item_id"][]);
+get_focus_gene(focus_genome_id,focus_gene_id);
 
 /* Get the data */
 

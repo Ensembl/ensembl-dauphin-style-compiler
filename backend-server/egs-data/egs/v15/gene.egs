@@ -118,8 +118,7 @@ allotment_idx := len([id_gn_vr]) (*) 0;
 allotment_idx#[strand > 0] (+=) 2;
 allotment_idx#[in(gene_biotype,["protein_coding"])] (+=) 1;
 
-focus_genome_id := switch_string(["track","focus","item","gene"][],["genome_id"][]);
-focus_gene_id := switch_string(["track","focus","item","gene"][],["item_id"][]);
+get_focus_gene(focus_genome_id,focus_gene_id);
 
 allotment_idx#[id_gn_uv==focus_gene_id] := 4;
 

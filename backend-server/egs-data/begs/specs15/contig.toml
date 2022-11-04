@@ -22,7 +22,7 @@ If true, the "shimmer-contig" endpoint is used; if false, the "contig" endpoint 
 """
 
 [setting.name]
-default = true
+default = false
 description = """
 
 boolean: if true show track label.

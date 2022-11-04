@@ -189,8 +189,6 @@ potential_tracks_base := [
     ""
 ];
 
-notice(format([setting_boolean("pc-fwd-label",[][])]));
-
 potential_background_tracks := [append_group(potential_tracks_base[],["background"][])];
 use_allotment_names(background_allotment_names,enabled_tracks,potential_background_tracks);
 
@@ -209,8 +207,7 @@ tk_by_gn := len([id_gn_vr]) (*) 0;
 tk_by_gn#[strand>0] (+=) 2;
 tk_by_gn#[in(gene_biotype,["protein_coding"])] (+=) 1;
 
-focus_genome_id := switch_string(["track","focus","item","gene"][],["genome_id"][]);
-focus_gene_id := switch_string(["track","focus","item","gene"][],["item_id"][]);
+get_focus_gene(focus_genome_id,focus_gene_id);
 
 tk_by_gn#[id_gn_uv==focus_gene_id] := 4;
 

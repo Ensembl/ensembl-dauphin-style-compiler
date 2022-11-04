@@ -90,20 +90,20 @@ include=["gene","general"]
 scales = [9,18,6]
 include=["transcript","gene","general"]
 
-[track.zoomed-transcript-no-letters.general] # to .general for TOML spec
+[track.zoomed-transcript-no-letters.general]
 program_name = "zoomed-transcript"
-scales = [8,8,1]
+scales = [7,8,2]
 include=["transcript","gene","general"]
 set = [ # togo
     { path = ["scale","no-letters"], value = true }
 ]
 
 [track.zoomed-transcript-no-letters.values]
-no-letters = true
+scale-no-letters = true
 
 [track.zoomed-transcript-letters]
 program_name = "zoomed-transcript"
-scales = [0,7,8]
+scales = [0,6,7]
 include=["transcript","gene","general"]
 
 [track.focus-transcript]
@@ -124,7 +124,7 @@ set = [ # togo
 ]
 
 [track.focus-zoomed-transcript-no-letters.values]
-no-letters = true
+scale-no-letters = true
 
 #
 # Frame
@@ -198,10 +198,23 @@ tags = ["contig"]
 [track.contig.settings]
 name = ["track","contig","name"]
 
+[track.sequence-no-letters.general]
+include = ["general"]
+program_name = "zoomed-seq"
+scales = [7,8,2]
+triggers = [["track","contig"]]
+tags=["contig"]
+
+[track.sequence-no-letters.settings]
+name = ["track","contig","name"]
+
+[track.sequence-no-letters.values]
+scale-no-letters = true
+
 [track.sequence.general]
 include = ["general"]
 program_name = "zoomed-seq"
-scales = [0,8,3]
+scales = [0,6,3]
 triggers = [["track","contig"]]
 tags=["contig"]
 

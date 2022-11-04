@@ -3,9 +3,9 @@ import "lib:peregrine"; use "peregrine";
 
 style("tracks/track/special/",["min-height","priority","report"][],["32","2","track;switch-id=special"][]);
 
-red := switch_number(["colour","red"][],[][]);
-green := switch_number(["colour","green"][],[][]);
-blue := switch_number(["colour","blue"][],[][]);
+red := setting_number("red",[][]);
+green := setting_number("green",[][]);
+blue := setting_number("blue",[][]);
 
 colour := patina_filled(simple_colour(direct_colour(red,green,blue,255)));
 

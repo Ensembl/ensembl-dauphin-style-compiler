@@ -2,8 +2,7 @@ import "lib:std"; use "std";
 import "lib:peregrine"; use "peregrine";
 import "file:common.egs"; use "common";
 
-focus_genome_id := switch_string(["track","focus","item","gene"][],["genome_id"][]);
-focus_gene_id := switch_string(["track","focus","item","gene"][],["item_id"][]);
+get_focus_gene(focus_genome_id,focus_gene_id);
 
 /* 
  * actually get the data from the server

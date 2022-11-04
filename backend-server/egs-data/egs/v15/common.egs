@@ -11,6 +11,11 @@ expr setting_yn(path) ((push([setting_boolean(path,[][])],false))[@==0]);
 expr setting_seqstr(path) (setting_string(path,["*"][]));
 expr setting_isnull(path) (setting_null(path,[][]));
 
+stmt get_focus_gene(focus_genome_id,focus_gene_id) {
+    focus_genome_id := setting_string("focus-gene",["genome_id"][]);
+    focus_gene_id := setting_string("focus-gene",["item_id"][]);
+}
+
 stmt use_allotments(our_allotments,enabled_tracks,potential_tracks) {
     tracks_used := ["","","","",""];
     tracks_used[enabled_tracks] := potential_tracks[enabled_tracks];

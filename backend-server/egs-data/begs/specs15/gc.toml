@@ -12,7 +12,7 @@ Uses data sequences from "gc":
 """
 
 [setting.name]
-default = true
+default = false
 description = """
 
 boolean: if true show track label.

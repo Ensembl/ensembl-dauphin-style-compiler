@@ -37,7 +37,7 @@ import "file:common.egs"; use "common";
  * idx_tr_in_gn_by_ex: for each exon, it is in the 1st, 2nd, 3rd, etc transcript of its gene
  */
 
-no_letters := switch_yn(["scale","no-letters"]);
+no_letters := setting_yn("scale-no-letters");
 
 /* 
  * actually get the data from the server
@@ -199,8 +199,7 @@ which_tr_by_thex := which_tr_by_ex#[thick_exons];
  * Allotments
  */
 
-focus_genome_id := switch_string(["track","focus","item","gene"][],["genome_id"][]);
-focus_gene_id := switch_string(["track","focus","item","gene"][],["item_id"][]);
+get_focus_gene(focus_genome_id,focus_gene_id);
 
 expanded_genes := list_switch(["buttons","gene","expand"]);
 

@@ -14,7 +14,7 @@ Uses data sequences from "variant":
 
 
 [setting.name]
-default = true
+default = false
 description = """
 
 boolean: if true show track label.

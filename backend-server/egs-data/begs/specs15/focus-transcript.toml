@@ -51,7 +51,7 @@ boolean which when true means the focus track is on.
 """
 
 [setting.focus-gene-label]
-default = true
+default = false
 description = """
 
 boolean which when true means the focus track gene labels should be shown.
@@ -59,7 +59,7 @@ boolean which when true means the focus track gene labels should be shown.
 """
 
 [setting.focus-transcript-label]
-default = true
+default = false
 description = """
 
 boolean which when true means the focus track transcript labels should be shown.
@@ -82,7 +82,7 @@ list of transcript ids to show in focus track.
 """
 
 [setting.name]
-default = true
+default = false
 description = """
 
 boolean: if true show track label on the focus track.

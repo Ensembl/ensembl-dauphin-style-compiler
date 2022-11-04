@@ -2,7 +2,7 @@ import "lib:std"; use "std";
 import "lib:peregrine"; use "peregrine";
 import "file:common.egs"; use "common";
 
-endpoint := ["contig","shimmer-contig"][(@==1)==switch_yn(["scale","shimmer"])];
+endpoint := ["contig","shimmer-contig"][(@==1)==setting_yn("shimmer")];
 
 req := make_request("self()",endpoint,get_region());
 data := get_data(req);

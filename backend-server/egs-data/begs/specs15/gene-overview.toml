@@ -56,7 +56,7 @@ boolean: if true show the other-rev track.
 
 
 [setting.pc-fwd-name]
-default = true
+default = false
 description = """
 
 boolean: if true show gene track label on the pc-fwd track.
@@ -64,7 +64,7 @@ boolean: if true show gene track label on the pc-fwd track.
 """
 
 [setting.pc-rev-name]
-default = true
+default = false
 description = """
 
 boolean: if true show gene track label on the pc-rev track.
@@ -72,7 +72,7 @@ boolean: if true show gene track label on the pc-rev track.
 """
 
 [setting.other-fwd-name]
-default = true
+default = false
 description = """
 
 boolean: if true show gene track label on the other-fwd track.
@@ -80,7 +80,7 @@ boolean: if true show gene track label on the other-fwd track.
 """
 
 [setting.other-rev-name]
-default = true
+default = false
 description = """
 
 boolean: if true show gene track label on the other-rev track.

@@ -9,6 +9,12 @@ Uses data sequences from zoomed-seq endpoint:
 - sequence
 - sequence_start
 
-No other settings: there probably should be.
+"""
+
+[setting.scale-no-letters]
+default = false
+description = """
+
+boolean which when true means that no individual base letters will be shown due to the scale.
 
 """
