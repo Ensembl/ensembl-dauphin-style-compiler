@@ -213,7 +213,7 @@ tk_by_gn#[id_gn_uv==focus_gene_id] := 4;
  * Manage the "several" setting.
  */
 
-gene_tracks_enabled_property(several_tracks,"several");
+gene_tracks_enabled_several(several_tracks);
 
 SEVERAL := 5;
 
@@ -543,8 +543,8 @@ pt_zmenu_gn := patina_zmenu(zmenu_tmpl,
     [[gene_name_by_tr],[id_gn_uv_by_tr],[id_gn_vr_by_tr],[track_name_by_tr],["gene"],
      [gene_desc_by_tr],[gene_biotype_by_tr],[transcript_strand_string]][]);
 
-gene_tracks_enabled_property(enabled_labels,"label");
-gene_tracks_enabled_property(enabled_labels_tr,"transcript-label");
+gene_tracks_enabled_label(enabled_labels);
+gene_tracks_enabled_transcript_label(enabled_labels_tr);
 
 /* gene labels */
 

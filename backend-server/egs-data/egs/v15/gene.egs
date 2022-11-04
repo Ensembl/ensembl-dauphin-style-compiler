@@ -136,7 +136,7 @@ track_name := index(allotment_idx,potential_track_ids);
  * Filter labels by which tracks are configured to have labels
  */
 
-gene_tracks_enabled_property(enabled_labels,"label");
+gene_tracks_enabled_label(enabled_labels);
 
 enabled_gene_labels := index(allotment_idx,[enabled_labels]);
 

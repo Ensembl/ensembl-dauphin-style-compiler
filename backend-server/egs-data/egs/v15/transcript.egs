@@ -222,7 +222,7 @@ transcript_allotment_colour_idx := index(which_gn_by_tr,[allotment_colour_idx]);
  * Manage the "several" setting.
  */
 
-gene_tracks_enabled_property(several_tracks,"several");
+gene_tracks_enabled_several(several_tracks);
 
 SEVERAL := 5;
 
@@ -296,8 +296,8 @@ alienate(allotment);
  * Filter labels by which tracks are configured to have labels
  */
 
-gene_tracks_enabled_property(enabled_labels,"label");
-gene_tracks_enabled_property(enabled_labels_tr,"transcript-label");
+gene_tracks_enabled_label(enabled_labels);
+gene_tracks_enabled_transcript_label(enabled_labels_tr);
 
 enabled_gene_labels := index(tk_by_gn,[enabled_labels]);
 tk_by_tr := index(which_gn_by_tr,[tk_by_gn]);

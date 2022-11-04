@@ -93,3 +93,11 @@ description = """
 list of transcript ids to show in focus track.
 
 """
+
+[setting.name]
+default = true
+description = """
+
+boolean: if true show track label on the focus track.
+
+"""

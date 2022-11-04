@@ -27,8 +27,7 @@ p := plotter(32,colour);
 wiggle(x_range[@==0],x_range[@==1],p,values,true,allotment);
 
 /* track names */
-draw_track_name("%GC",["track","gc","name"],allotment_track_name);
-
+draw_track_name("%GC","name",allotment_track_name);
 
 /* track category */
 draw_track_category("G",[allotment_letter]);

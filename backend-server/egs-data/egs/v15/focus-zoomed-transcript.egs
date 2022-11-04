@@ -523,7 +523,7 @@ report_all(id_tr_vr,id_gn_uv,focus_gene_id,which_gn_by_tr,use_allotment("tracks/
 
 focus_label := [concat(concat(gene_name#[focus_gene_id==id_gn_uv]," "),focus_gene_id),""];
 focus_label := focus_label[@==0];
-draw_track_name(focus_label,["track","focus","name"],allotment_label);
+draw_track_name(focus_label,"name",allotment_label);
 
 /* chevrons */
 focus_strand := strand#[id_gn_uv==focus_gene_id];

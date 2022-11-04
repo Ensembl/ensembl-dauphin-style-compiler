@@ -11,8 +11,6 @@ Uses data sequences:
 - contig_lengths
 - sense
 
-No other settings: there probably should be.
-
 """
 
 [setting.shimmer]
@@ -20,5 +18,13 @@ default = false
 description = """
 
 If true, the "shimmer-contig" endpoint is used; if false, the "contig" endpoint is used.
+
+"""
+
+[setting.name]
+default = true
+description = """
+
+boolean: if true show track label.
 
 """

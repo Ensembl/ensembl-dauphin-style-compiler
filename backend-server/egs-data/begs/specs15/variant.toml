@@ -10,6 +10,13 @@ Uses data sequences from "variant":
 - values
 - range
 
-No settings: there probably should be.
+"""
+
+
+[setting.name]
+default = true
+description = """
+
+boolean: if true show track label.
 
 """

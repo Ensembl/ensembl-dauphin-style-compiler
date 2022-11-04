@@ -68,7 +68,7 @@ focus-gene-label = ["track","focus","label"]
 focus-transcript-label = ["track","focus","transcript-label"]
 several = ["track","focus","several"]
 enabled-transcripts = ["track","focus","enabled-transcripts"]
-
+name = ["track","focus","name"]
 
 #
 # Tracks
@@ -148,21 +148,27 @@ triggers = [["ruler"]]
 # %GC
 #
 
-[track.gc]
+[track.gc.general]
 include = ["general"]
 scales = [0,100,3]
 triggers = [["track","gc"]]
 tags=["gc"]
 
+[track.gc.settings]
+name = ["track","gc","name"]
+
 #
 # Variants
 #
 
-[track.variant]
+[track.variant.general]
 include = ["general"]
 scales = [1,100,4]
-triggers = [["track","gc"]]
+triggers = [["track","variant"]]
 tags=["variant"]
+
+[track.variant.settings]
+name = ["track","variant","name"]
 
 #
 # Contigs and Sequences
@@ -182,21 +188,25 @@ set=[ # togo
 [track.contig-shimmer.values]
 shimmer = true
 
-[track.contig]
+[track.contig.general]
 include = ["general"]
 scales = [9,25,3]
 triggers = [["track","contig"]]
 extra = [["settings"]]
 tags = ["contig"]
 
+[track.contig.settings]
+name = ["track","contig","name"]
 
-[track.sequence]
+[track.sequence.general]
 include = ["general"]
 program_name = "zoomed-seq"
 scales = [0,8,3]
 triggers = [["track","contig"]]
 tags=["contig"]
 
+[track.sequence.settings]
+name = ["track","contig","name"]
 
 
 #
