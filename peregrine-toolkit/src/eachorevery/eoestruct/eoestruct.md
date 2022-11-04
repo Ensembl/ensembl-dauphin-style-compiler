@@ -18,7 +18,59 @@ The answer is: with EoEStruct.
 
 EoEStruct is well covered by very comprehensive unit tests.
 
-## Generating more conventional data
+The most important type in EoEStruct is `StructBuilt`. This compactly represents conventionally-structured data. This document is divided into two parts:
+
+1. Getting EoEs out of conventional data
+2. Generating more conventional datafrom EoEs
+
+## Getting EoEs out of conventional data
+
+Sometimes you have some conventional data (in a `StructBuilt`) and you want to extract some EoEs for inside your style program.
+
+To extract such data you need to specify the path (an array of strings describing which bit of the data you want) and pass it to `struct_select`. You will get a vector of optional `StructConst`s out. A `StructConst` is one of the leaf types in the JSON data-model (number, boolean, string, null). It is optional because it may be missing for any given object. For example, you may have a structure comprising an array of objects and the key you want simply not be present in some of those objects. You can then (hopefully!) build this result into your EoE.
+
+What remains is the syntax for a path.
+
+### Path syntax
+
+A path is an array of strings. Those strings can be
+
+1. a string representing a key in an object;
+2. a stringified integer representing the index in an array;
+3. `*` representing all instances in an array.
+
+For example, if you want all the start co-ordinates, `[w0,w1,...]` from a structure like this:
+
+```
+[
+    { "start": w0, "end", x0, "height": y0, "colour": z0 },
+    { "start": w1, "end", x1, "height": y1, "colour": z1 }
+]
+```
+
+then the path is `["*","start"]`.
+
+But for the end-coordinate `[x0,x1,...]` of data like this:
+
+```
+{
+    "objects": [
+        { "range": [w0,x0] },
+        { "range": [w1,x1] },
+        { "range": [w2,x2] },
+        { "range": [w3,x3] },
+        { "range": [w4,x4] }
+    ]
+}
+```
+
+then the path is `["objects","*","1"]`.
+
+That's all there is to it! (For late values, see the later section in this document).
+
+## Generating more conventional datafrom EoEs
+
+Sometimes you have some EoEs and want conventional data to serialise. `StructBuilt`s can be serialised into json, but how do you get one for your data and template? You build a `StructTemplate` and then call `build()` on it. This is much more fiddly than the other way around because you need to specify how you want the data strcutured.
 
 Say you have a bunch of EoEs representing some data, for example, one contains start coordinates, one end coordinates, one height, one colours, and so on, and you with to create some conventional data-structure for reporting, with the schema below:
 
@@ -31,9 +83,9 @@ Say you have a bunch of EoEs representing some data, for example, one contains s
 
 where `w, x, y, z` etc are EoEs. To do this, you use a `StructTemplate`.
 
-A StructTemplate is a tree. You build leaf StructTemplates out of constants and EoEs and combine them to build a single template. You can then serialize this finished StructTemplate and you will get your nicely formatted JSON out. The data remains as compact as it is in the EoEs: nowhere is it expanded out into a very long string or giant data structure.
+A StructTemplate is a tree. You build leaf StructTemplates out of constants and EoEs and combine them to build your single template. You can then, for example, serialize this finished StructTemplate and you will get your nicely formatted JSON out. The data remains as compact as it is in the EoEs: nowhere is it expanded out into a very long string nor to giant data structure.
 
-This is directly analagous to the way you would build such an object programatically in any other language, first out of your constants and variables, later built into arrays, objects etc, and when finished emit it. However, EoEStruct has some special types to make things more useful in our context.
+This is directly analagous to the way you would build such an object programatically in any other language, first out of your constants and variables, later built into arrays, objects etc, and when finished emit it. Though, EoEStruct has some special types to make things more useful in our context it is basically the same process.
 
 ### Constant StructTemplates
 
@@ -48,7 +100,7 @@ The simplest StructTemplate is a constant. This always emits that exact constant
 
 ### Adding variables
 
-Chances are your data-structure isn't a constant, so you'll need to introduce some variables, in the form of EoEs. To do this you need a StructVarGroup. You can just create these whenevery you wish:
+Chances are your data-structure isn't a constant, so you'll need to introduce some variables, in the form of EoEs. To do this you need a `StructVarGroup`. You can just create these whenever you wish:
 
 ```
     pub fn new() -> StructVarGroup;
@@ -66,19 +118,21 @@ Once you have a StructVarGroup, you can start putting each of your EoEs into it 
 
 ### Iterating through groups of EoEs
 
-Now you've created a `StructVarGroup` with some values in it, there will be a point in your template where you want one entry per element of the EoEs in that group. For example, in our motivating example of the array of objects, this will be the array at the top level (but need not be in general).
+Now you've created a `StructVarGroup` with some values in it, there will be a point in your template where you want one entry per element of the EoEs in that group. For example, in our motivating example of the array of objects, this will be the array at the very top level of the template (but need not be, in general).
 
 ```
     pub fn new_all(vars: &mut StructVarGroup, expr: StructTemplate) -> StructTemplate;
 ```
 
-expr is the sub-template for each element.  If you like, this works a bit like a "for" loop.
+`expr` is the sub-template for each element.  If you like, this template node works a bit like a "for" loop.
 
-At the moment we don't have any way of accessing the values of our EoE in that sub-template, which we need!
+At the moment we don't have any way of accessing the values of our EoE in that sub-template, which we certainly need for it to be useful! Do it like this:
 
 ```
     pub fn new_var(input: &StructVar) -> StructTemplate;
 ```
+
+Of course, this template must be inside a relevant `new_all` for that variable.
 
 ### Simple Example
 
