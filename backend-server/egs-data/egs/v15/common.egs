@@ -3,10 +3,6 @@ use "peregrine";
 
 module "common";
 
-expr switch_yn(path) ((push([switch_boolean(path[],[][])],false))[@==0]);
-expr switch_seqstr(path) (switch_string(path[],["*"][]));
-expr switch_isnull(path) (switch_null(path[],[][]));
-
 expr setting_yn(path) ((push([setting_boolean(path,[][])],false))[@==0]);
 expr setting_seqstr(path) (setting_string(path,["*"][]));
 expr setting_isnull(path) (setting_null(path,[][]));
@@ -173,7 +169,7 @@ stmt calc_focus_transcripts_shown(s_bool_show_tr,s_id_gn,s_id_tr,s_which_gn_by_t
 
     /* Calc based on several setting */
     SEVERAL := 5;
-    several_setting := switch_yn(["track","focus","several"]);
+    several_setting := setting_yn("several");
     limit := 1;
     limit#[several_setting] := SEVERAL;
 
@@ -185,11 +181,11 @@ stmt calc_focus_transcripts_shown(s_bool_show_tr,s_id_gn,s_id_tr,s_which_gn_by_t
     sv_bool_show_tr#[s_idx_tr_in_gn<limit_gn_by_tr] := true;
 
     /* Enabled based on enabled setting */
-    enabled_transcripts := switch_seqstr(["track","focus","enabled-transcripts"]);
+    enabled_transcripts := setting_seqstr("enabled-transcripts");
     et_bool_show_tr := in(s_id_tr,[enabled_transcripts]);
 
     /* Choose */
-    enabled_is_null := switch_isnull(["track","focus","enabled-transcripts"]);
+    enabled_is_null := setting_isnull("enabled-transcripts");
     s_bool_show_tr := et_bool_show_tr;
     s_bool_show_tr#[enabled_is_null] := sv_bool_show_tr;
 }

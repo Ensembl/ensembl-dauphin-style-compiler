@@ -107,8 +107,6 @@ sequence := [letter_string(seq_data,"sequence")];
 sequence_rev := [base_flip(sequence[])];
 sequence_start := [positive_seq(seq_data,"sequence_start")][@==0];
 
-focus_enabled_track := switch_yn(["track","focus"]);
-
 /*
 
 / <- stack
@@ -139,8 +137,8 @@ style("**/main/main/*/diagram/thick-over",["depth"][],["4"][]);
 style("**/main/main/*/diagram/thick-far-over",["depth"][],["5"][]);
 style("**/main/background/content",["depth","padding-top"][],["-10","32"][]);
 
-enabled_gene_labels := switch_yn(["track","focus","label"]);
-enabled_transcript_labels := switch_yn(["track","focus","transcript-label"]);
+enabled_gene_labels := setting_yn("focus-gene-label");
+enabled_transcript_labels := setting_yn("focus-transcript-label");
 
 /* apply solidity in thick region ... */
 /* ... find thick limits for each exon */
@@ -175,13 +173,8 @@ calc_focus_transcripts_shown(bool_show_tr,id_gn_vr,id_tr_vr,which_gn_by_tr,id_gn
 
 base_allotment := append_group("tracks/track/focus/main/main",focus_gene_id);
 
-allotment_label := "";
-allotment_label#[focus_enabled_track] := "tracks/track/focus/title/content";
-allotment_label := use_allotment(allotment_label);
-
-allotment_letter := "";
-allotment_letter#[focus_enabled_track] := "tracks/track/focus/main/letter/content";
-allotment_letter := use_allotment(allotment_letter);
+allotment_label := use_allotment("tracks/track/focus/title/content");
+allotment_letter := use_allotment("tracks/track/focus/main/letter/content");
 
 al_over_by_tr := len([id_tr_vr]) (*) "";
 al_over_by_tr#[bool_show_tr] := append_group(base_allotment,"diagram/over");
@@ -510,8 +503,7 @@ draw_track_category("G",[allotment_letter]);
 draw_focus_swatch(allotment_letter);
 
 /* red-dotted lines */
-dots_allotment := use_allotment(["","dots/content"][(@==1)==(switch_yn(["track","focus"]))]);
-red_dotted(focus_start,focus_end,dots_allotment,comma_format(focus_start),comma_format(focus_end));
+red_dotted(focus_start,focus_end,use_allotment("dots/content"),comma_format(focus_start),comma_format(focus_end));
 
 /* report transcripts shown */
 report_shown(bool_show_tr,id_tr_vr,use_allotment("tracks/track/focus"));

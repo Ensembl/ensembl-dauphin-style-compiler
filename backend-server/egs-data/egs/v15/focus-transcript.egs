@@ -126,8 +126,6 @@ end_thex := end_thex#[thick_exons];
  * What are the current track settings?
  */
 
-focus_enabled_track := switch_yn(["track","focus"]);
-
 /*
 
 / <- stack
@@ -157,8 +155,8 @@ style("**/main/main/*/diagram/over",["depth"][],["2"][]);
 style("**/main/main/*/diagram/far-over",["depth"][],["3"][]);
 style("**/main/background/content",["depth","padding-top"][],["-10","32"][]);
 
-enabled_gene_labels := switch_yn(["track","focus","label"]);
-enabled_transcript_labels := switch_yn(["track","focus","transcript-label"]);
+enabled_gene_labels := setting_yn("focus-gene-label");
+enabled_transcript_labels := setting_yn("focus-transcript-label");
 
 expand_base := len([id_gn_vr]) (*) "buttons/gene/expand";
 expand_switches := append_group(expand_base,id_gn_vr);
@@ -175,17 +173,9 @@ num_drawn_tr_gn := count(drawn_tr_gn,len([id_gn_vr]));
 idx_tr_in_gn_by_ex :=  index(which_tr_by_ex,[idx_drawn_tr_gn]);
 idx_tr_in_gn_by_thex := idx_tr_in_gn_by_ex#[thick_exons];
 
-allotment_label := "";
-allotment_label#[focus_enabled_track] := "tracks/track/focus/title/content";
-allotment_label := use_allotment(allotment_label);
-
-allotment_letter := "";
-allotment_letter#[focus_enabled_track] := "tracks/track/focus/main/letter/content";
-allotment_letter := use_allotment(allotment_letter);
-
-allotment_wallpaper := "";
-allotment_wallpaper#[focus_enabled_track] := "tracks/track/focus/main/background/content";
-allotment_wallpaper := use_allotment(allotment_wallpaper);
+allotment_label := use_allotment("tracks/track/focus/title/content");
+allotment_letter := use_allotment("tracks/track/focus/main/letter/content");
+allotment_wallpaper := use_allotment("tracks/track/focus/main/background/content");
 
 base_allotment := append_group("tracks/track/focus/main/main",focus_gene_id);
 
@@ -379,8 +369,7 @@ draw_track_category("G",[allotment_letter]);
 draw_focus_swatch(allotment_letter);
 
 /* red-dotted lines */
-al_dots := use_allotment(["","dots/content"][(@==1)==(switch_yn(["track","focus"]))]);
-red_dotted(start_focus,end_focus,al_dots,comma_format(start_focus),comma_format(end_focus));
+red_dotted(start_focus,end_focus,use_allotment("dots/content"),comma_format(start_focus),comma_format(end_focus));
 
 /* blue button */
 //draw_lozenges(start_gn,num_drawn_tr_gn,id_gn_vr,expanded_genes,al_button);
