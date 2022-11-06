@@ -11,10 +11,14 @@ pub struct StructVar {
 impl StructVar {
     fn to_const(&self) -> Option<StructConst> { self.value.to_const() }
 
-    fn new(group:&mut StructVarGroup, value: StructVarValue) -> StructVar {
+    pub(super) fn new(group:&mut StructVarGroup, value: StructVarValue) -> StructVar {
         let id = StructValueId::new();
         group.0.push(id.clone());
         StructVar { value, id }
+    }
+
+    pub fn new_value(group:&mut StructVarGroup, value: &StructVarValue) -> StructVar {
+        Self::new(group,value.clone())
     }
 
     pub fn new_number(group:&mut StructVarGroup, input: EachOrEvery<f64>) -> StructVar {

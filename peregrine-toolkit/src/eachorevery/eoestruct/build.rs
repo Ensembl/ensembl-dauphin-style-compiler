@@ -1,6 +1,6 @@
 use std::sync::Arc;
 use crate::eachorevery::{EachOrEveryGroupCompatible, EachOrEvery};
-use super::{eoestruct::{StructVarValue, StructValueId, StructResult, StructError, struct_error}, StructTemplate, structbuilt::StructBuilt};
+use super::{eoestruct::{StructVarValue, StructValueId, StructResult, StructError, struct_error}, StructTemplate, structbuilt::StructBuilt, StructPair, StructVar, StructVarGroup};
 
 struct Binding {
     id: StructValueId,
@@ -101,5 +101,48 @@ impl StructTemplate {
 
     pub fn build(&self) -> Result<StructBuilt,StructError> {
         self.make(&mut vec![],0,true)
+    }
+}
+
+impl StructBuilt {
+    fn unmake(&self, vars: &mut Vec<Vec<Option<StructVar>>>) -> Result<StructTemplate,StructError> {
+        Ok(match self {
+            StructBuilt::Var(depth,index) => {
+                StructTemplate::Var(vars[*depth][*index].clone().unwrap())
+            },
+            StructBuilt::Const(c) => StructTemplate::Const(c.clone()),
+            StructBuilt::Array(e, _) => {
+                let entries = e.as_ref().map_results(|e|
+                    e.unmake(vars)
+                )?;
+                StructTemplate::Array(Arc::new(entries))
+            },
+            StructBuilt::Object(p) => {
+                let pairs = p.as_ref().map_results(|(k,b)| 
+                    Ok::<_,StructError>(StructPair(k.to_string(),b.unmake(vars)?))
+                )?;
+                StructTemplate::Object(Arc::new(pairs))
+            },
+            StructBuilt::All(values,expr) => {
+                let mut group = StructVarGroup::new();
+                let our_vars = values.iter().map(|v| {
+                    v.as_ref().map(|v|
+                        StructVar::new(&mut group,v.as_ref().clone())
+                    )
+                }).collect::<Vec<_>>();
+                let ids = our_vars.iter().filter_map(|x| x.as_ref()).map(|v| v.id).collect();
+                vars.push(our_vars);
+                let value = expr.unmake(vars)?;
+                vars.pop();
+                StructTemplate::All(ids,Arc::new(value))
+            },
+            StructBuilt::Condition(depth, index, expr) => {
+                StructTemplate::Condition(vars[*depth][*index].clone().unwrap(),Arc::new(expr.unmake(vars)?))
+            }
+        })
+    }
+
+    pub fn unbuild(&self) -> Result<StructTemplate,StructError> {
+        self.unmake(&mut vec![])
     }
 }

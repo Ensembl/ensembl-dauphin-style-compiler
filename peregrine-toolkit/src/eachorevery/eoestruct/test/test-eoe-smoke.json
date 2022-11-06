@@ -131,7 +131,7 @@
         {}
     ],
     [
-        "length zero buttom",
+        "length zero bottom",
         ["!a","!b"],[],
         {
             "?a": [false,true,true],

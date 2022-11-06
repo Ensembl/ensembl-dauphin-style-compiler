@@ -18,10 +18,11 @@ The answer is: with EoEStruct.
 
 EoEStruct is well covered by very comprehensive unit tests.
 
-The most important type in EoEStruct is `StructBuilt`. This compactly represents conventionally-structured data. This document is divided into two parts:
+The most important type in EoEStruct is `StructBuilt`. This compactly represents conventionally-structured data. This document is divided into three parts of increasing complexity:
 
 1. Getting EoEs out of conventional data
 2. Generating more conventional datafrom EoEs
+3. (Limited) modification of EoEStructs.
 
 ## Getting EoEs out of conventional data
 
@@ -83,9 +84,9 @@ Say you have a bunch of EoEs representing some data, for example, one contains s
 
 where `w, x, y, z` etc are EoEs. To do this, you use a `StructTemplate`.
 
-A StructTemplate is a tree. You build leaf StructTemplates out of constants and EoEs and combine them to build your single template. You can then, for example, serialize this finished StructTemplate and you will get your nicely formatted JSON out. The data remains as compact as it is in the EoEs: nowhere is it expanded out into a very long string nor to giant data structure.
+A StructTemplate is a tree which works a bit like a schema for this data. You build leaf StructTemplates out of constants and EoEs, and combine them to build your single template. You can then, for example, serialize this finished StructTemplate and you will get your nicely formatted JSON out. The data remains as compact as it is in the EoEs: nowhere is it expanded out into a very long string nor to giant data structure.
 
-This is directly analagous to the way you would build such an object programatically in any other language, first out of your constants and variables, later built into arrays, objects etc, and when finished emit it. Though, EoEStruct has some special types to make things more useful in our context it is basically the same process.
+This is directly analagous to the way you would build such an object programatically in any other language, first out of your constants and variables, later built into arrays, objects etc, and when finished emit it. However, EoEStruct has some special types to make things more useful in our context, without looping and creating messy intermediate objects internally. But it is basically the same process.
 
 ### Constant StructTemplates
 
@@ -108,7 +109,7 @@ Chances are your data-structure isn't a constant, so you'll need to introduce so
 
 All the EoEs in a StructVarGroup are iterated through together (for example, you'd have a single group for your start and end co-ordinates, biotypes, etc).
 
-Once you have a StructVarGroup, you can start putting each of your EoEs into it as `StructVar`s.
+Once you have a StructVarGroup, you can start putting each of your EoEs into `StructVar`s.
 
 ```
     pub fn new_number(group:&mut StructVarGroup, input: EachOrEvery<f64>) -> StructVar;
@@ -129,7 +130,7 @@ Now you've created a `StructVarGroup` with some values in it, there will be a po
 At the moment we don't have any way of accessing the values of our EoE in that sub-template, which we certainly need for it to be useful! Do it like this:
 
 ```
-    pub fn new_var(input: &StructVar) -> StructTemplate;
+    pub fn new_var(input: &StructVar) -> StructTemplate
 ```
 
 Of course, this template must be inside a relevant `new_all` for that variable.
@@ -237,9 +238,9 @@ Sometimes you want to add an EoE *after* a template has been generated, it's jus
 Template generation takes a non-trivial amount of time, so it makes sense not to do it too often, but "late" variables are a little slower and more awkward than regular variables if there is no need to use them.
 
 ```
-    pub fn new_late(group:&mut StructVarGroup) -> StructVar;
-    pub fn new() -> LateValues { LateValues(HashMap::new()) }
-    pub fn add(&mut self, var: &StructVar, val: &StructVar) -> StructResult; // in LateValues
+    pub fn new_late(group:&mut StructVarGroup) -> StructVar
+    pub fn new() -> LateValues
+    pub fn add(&mut self, var: &StructVar, val: &StructVar) -> StructResult // in LateValues
 ```
 
 ### Actually serialising
@@ -247,3 +248,101 @@ Template generation takes a non-trivial amount of time, so it makes sense not to
 The actual method to serialise is `eoestack_run` but you will usually use a convenience function for the serialisation format of your choice, for exmaple `struct_to_json`.
 
 To use these you will need a `StructBuilt` not your `StructTemplate`. Use `StructTemplate::build()` to acheive create it.
+
+### Advanced: Building templates from JSON
+
+Building templates programatically can be painful, so the library a way of specifying them in JSON. This isn't as useful as it seems, as it turns out building templates is usually best hardwired, but is useful for unit-tests etc and probably has further niche cases.
+
+Building templates uses `struct_from_json` which takes a list of "all" strings, a list of "if" strings, and a JSON template. The "all" and "if" strings are strings with special meaning in the template, and the list could come from the same source as the template or be hardwired in the call, as appropriate for the use case.
+
+Every type in the supplied json template is copied across verbatim to the `StructTemplate` generated except for objects and strings, and even objects and strings are copied across verbatim *unless* they meet certainconditions:
+* Objects are only special if they conatain a key in the "all" or "if" list supplied. 
+* Strings are only special if the match a variable name established in an All (see below)
+
+If the object contains a key in the "all" list then an `All` is generated in the template. The matching key is taken to be the sub-expression of the `All` and all other keys the names of variables with the given value. For example, if `!` is in the Alls list, then
+
+```
+{
+    "!": ["var","z"],
+    "var": ["a","b","c"]
+}
+```
+
+Will expand to `[["a","z"],["b","z"],["c","z"]]`. The `!` in the outer object established it as an `All` node and that meant the other key `var` was made a variable with contents `["a","b","c"]`. The inner template was set to `["var","z"]` where the `"var"` was mapped to the newly-established variable and the `"z"`, not matching any variable became a literal `"z"`. A more realistic example might be (again with `!` as our all string):
+
+```
+{
+    "!": {
+        "start": "start",
+        "end": "end",
+        "colour": "blue"
+    },
+    "start": [1000000,1100000,1200000],
+    "end": [1000100,1100100,1200100]
+}
+```
+
+If an object has no keys matching an all, it is tested as to whether it matches an if. If it does then a `Condition` node is created at this point. The if key used should also, by this point in the tree, have been bound to a variable by an `All` node. The contents of the key are used as the subtemplate and the value of the key as a variable used as the condition. This is probably best explained by example. Let's extend the above example. Say we have an EoE of booleans and when that boolean is true want to have the key `"very_special": true` added to our object, otherwise no key being present. Let's call this array `&special`. We would add the string `"&special"` to the ifs list and modify our template above to say:
+
+```
+{
+    "!": {
+        "start": "start",
+        "end": "end",
+        "colour": "blue",
+        "&special": { "very_special": true }
+    },
+    "start": [1000000,1100000,1200000],
+    "end": [1000100,1100100,1200100],
+    "&special": [true,false,false]
+}
+```
+
+Note that we use `&special` as a variable in the outer all and then use that same string within its template (the `!` key) to establish the condition node. We get:
+
+```
+[
+    { "start": 1000000, "end": 1000100, "very_special": true },
+    { "start": 1100000, "end": 1100100 },
+    { "start": 1200000, "end": 1200100 }
+]
+```
+
+## (Limited) modification of EoEStructs
+
+StructTemplates can be modified with replace(). This takes a path to a part of the template and a replacement value. Note that a "path" here is a little different here to the general seletion case from `StructBuilt`, as you are modifying the whole template, without reference to the data. For example, when selecting from an `All` element, it makes sense to talk about the 1st, 2nd, etc element. When accessing or modifying the template itself, this is meaningless.
+
+* All nodes *must* have `*` in the path.
+* Array nodes *must* have an integer in the path.
+* Condition nodes must have a `&` in the path to go into their contents.
+* Condition nodes always count in an array index.
+
+```
+    fn replace(&self, path: &[&str], value: StructTemplate, copy: &[(&[&str],&[&str])]) -> Result<StructTemplate,StructError>
+
+```
+
+In some rare cases you may wish to refer to parts of the old sub-template in the replacement (especially its variables). For example, you might emit variables A and B as [A,B] and want to replace it with [B,A] without replacing any of the machinery higher up in the tree which enumerates through A and B. This effectively means "copying" some nodes from one template to another. To do this you pass a list of "path pairs" mapping the path to the variable in the replaced template to the path in the new. The old path is rooted at the entire template level (and so can actually validly refer to variables beyond the replaced part) whereas the target path is relative to the replacement part only. If you don't know that you need this, the `copy` argument can be blznk.
+
+You can extract parts of a template using a path with `extract` and `extract_value`.
+
+```
+    fn extract(&self, path: &[&str]) -> Result<StructTemplate,StructError>
+    fn extract_value(&self, path: &[&str]) -> Result<StructVarValue,StructError>
+```
+
+You can also replace the EoE value used in a `Var` or a `Condition` using the method:
+
+```
+    fn substitute(&self, path: &[&str], value: StructVar) -> Result<StructTemplate,StructError>
+```
+
+Note that the group of the replacement is ignored, only the value is copied, using the group of the old `Var` or `Condition`node; indeed, this is the value of this method. If you try to use `replace()` with free variables they will be of the wrong group and so the template won't build, so use `substitute()` instead.
+
+It may seem a litte mysterious as to why you would want to do any of this. Note, however that `StructBuilt`s are immutable objects and are often used for storing arbitrary json-modelled values. If you *do* want to modify them, you can convert them *back* to a `StructTemplate`, replace somde contents and then rebuild. You "unbuild" with this method.
+
+```
+    fn unbuild(&self) -> Result<StructTemplate,StructError>
+```
+
+But essentially any need for modification (rather than selecting andremaking) should be seen as an unfortunate hack, as it requires too much knowledge of how the `StructBuilt` was made.

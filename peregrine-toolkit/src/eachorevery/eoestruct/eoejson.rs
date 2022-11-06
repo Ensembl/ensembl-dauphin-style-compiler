@@ -192,8 +192,8 @@ impl StructSelectorVisitor for SelectJsonArray {
     }
 }
 
-pub fn select_to_json(data: &StructBuilt, path: &[String], lates: Option<&LateValues>) -> JsonValue {
+pub fn select_to_json(data: &StructBuilt, path: &[String], lates: Option<&LateValues>) -> Result<JsonValue,StructError> {
     let mut out = SelectJsonArray { output: vec![] };
-    data.select(lates,path,&mut out);
-    JsonValue::Array(out.output)
+    data.select(lates,path,&mut out)?;
+    Ok(JsonValue::Array(out.output))
 }
