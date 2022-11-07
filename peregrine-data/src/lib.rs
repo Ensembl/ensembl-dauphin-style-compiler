@@ -210,14 +210,16 @@ mod shape {
     pub(crate) mod textshape;
     pub(crate) mod shape;
     mod programshapes;
+    mod settingmode;
     mod zmenu;
     mod zmenufixed;
     mod wiggleshape;
 
     pub use self::core::{ 
         Patina, Pen, Colour, DirectColour, Plotter, DrawnType, Hotspot, PenGeometry,
-        Background, AttachmentPoint, SettingMode
+        Background, AttachmentPoint
     };
+    pub use self::settingmode::SettingMode;
     pub use self::shape::{ ShapeDemerge, Shape };
     pub use self::zmenu::ZMenu;
     pub use self::abstractshapescontainer::AbstractShapesContainer;

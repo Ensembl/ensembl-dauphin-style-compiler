@@ -199,3 +199,11 @@ description = """
 boolean: if true show gene track label on the other-rev track.
 
 """
+
+[setting.expanded]
+default = []
+description = """
+
+list of strings. Gene IDs for expanded genes.
+
+"""

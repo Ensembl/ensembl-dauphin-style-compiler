@@ -18,7 +18,7 @@ use peregrine_toolkit::puzzle::AnswerAllocator;
 use peregrine_toolkit_async::sync::needed::Needed;
 use std::rc::Rc;
 use std::sync::{ Arc, Mutex };
-use crate::{AllBackends, Assets, Commander, CountingPromise, PgCommander, PgDauphin, BackendNamespace, ChannelIntegration };
+use crate::{AllBackends, Assets, Commander, CountingPromise, PgCommander, PgDauphin, BackendNamespace, ChannelIntegration, SettingMode };
 use crate::api::PeregrineApiQueue;
 use crate::api::queue::ApiMessage;
 use crate::api::AgentStore;
@@ -151,6 +151,10 @@ impl PeregrineCore {
 
     pub fn switch(&self, path: &[&str], value: StructBuilt) {
         self.base.queue.push(ApiMessage::Switch(path.iter().map(|x| x.to_string()).collect(),value));
+    }
+
+    pub fn update_switch(&self, path: &[&str], value: SettingMode) {
+        self.base.queue.push(ApiMessage::UpdateSwitch(path.iter().map(|x| x.to_string()).collect(),value));
     }
 
     pub fn radio_switch(&self, path: &[&str], yn: bool) {

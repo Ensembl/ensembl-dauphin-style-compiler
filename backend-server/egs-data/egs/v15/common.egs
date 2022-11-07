@@ -208,12 +208,12 @@ stmt draw_labels(s_idx_drawn_tr_gn,s_which_gn_by_tr,s_start_gn,s_end_gn,s_gene_n
     /* find last trs of each gene so that we can offset them */
     num_drawn_tr_gn_by_tr := index(which_gn_by_tr,[num_drawn_tr_gn]);
     last_tr := s_idx_drawn_tr_gn == num_drawn_tr_gn_by_tr-1;
-    last_tr#[s_enabled_gene_labels==false] := false;
+    enabled_gene_labels_by_tr := index(s_which_gn_by_tr,[s_enabled_gene_labels]);
+    last_tr#[enabled_gene_labels_by_tr==false] := false;
     label_id_tr#[last_tr] := concat(len([label_id_tr#[last_tr]]) (*) " \0c-",label_id_tr#[last_tr]);
     genelabel_by_tr := index(s_which_gn_by_tr,[s_gene_name]);
     genelabel_by_tr := concat(len([genelabel_by_tr]) (*) "\0c6F8190",genelabel_by_tr);
     label_id_tr#[last_tr] := concat(genelabel_by_tr#[last_tr],label_id_tr#[last_tr]);
-
     running_text(tr_label_start,tr_label_end,s_textpen_blue,label_id_tr,al_label_by_tr);
 }
 
@@ -231,13 +231,12 @@ stmt draw_lozenges(starts,y_offsets,ids,expanded_ids,allt) {
     textpen_lozenge := pen("'IBM Plex Mono', sans-serif",12,white_text_colour,blue_text_bgd);
     text2(blue_top_left,textpen_lozenge,button_text,allt);
 
-    expand_base := len([ids]) (*) "buttons/gene/expand";
-    expand_switches := append_group(expand_base,ids);
+    expanded_ids := setting_seqstr("expanded");
 
-    sense := len([expand_switches]) (*) true;
+    sense := len([ids]) (*) true;
     sense#[in(ids,[expanded_ids])] := false;
 
-    blue_hotspot_patina := patina_switch(expand_switches,sense);
+    blue_hotspot_patina := patina_setting_member("expanded",ids,sense);
 
     rectangle(blue_top_left,blue_bottom_right,blue_hotspot_patina,allt);
 }

@@ -8,7 +8,7 @@ use crate::shapeload::carriagebuilder::CarriageBuilder;
 use crate::train::main::datatasks::{load_stick, load_carriage};
 use crate::train::main::train::StickData;
 use crate::train::model::trainextent::TrainExtent;
-use crate::{Assets, PgCommanderTaskSpec, DrawingCarriage, BackendNamespace };
+use crate::{Assets, PgCommanderTaskSpec, DrawingCarriage, BackendNamespace, SettingMode };
 use commander::{CommanderStream, PromiseFuture};
 use peregrine_toolkit::eachorevery::eoestruct::StructBuilt;
 use peregrine_toolkit::error::err_web_drop;
@@ -22,9 +22,9 @@ use super::pgcore::PeregrineCore;
  *    SetPosition
  *    SetBpPerScreen
  *    SetMinPxPerCarriage
- *    SetSwitch
- *    ClearSwitch
+ *    Switch
  *    RadioSwitch
+ *    UpdateSwitch
  *    RegenerateTrackConfig
  *    SetStick
  *
@@ -63,6 +63,7 @@ use super::pgcore::PeregrineCore;
     SetStick(StickId),
     SetMinPxPerCarriage(u32),
     Switch(Vec<String>,StructBuilt),
+    UpdateSwitch(Vec<String>,SettingMode),
     RadioSwitch(Vec<String>,bool),
     RegenerateTrackConfig,
     Jump(String,PromiseFuture<Option<(StickId,f64,f64)>>),
@@ -133,6 +134,10 @@ impl ApiQueueCampaign {
             },
             ApiMessage::Switch(path,value) => {
                 data.switches.switch(&path.iter().map(|x| x.as_str()).collect::<Vec<_>>(),value).await;
+                self.viewport = self.viewport.set_track_config_list(&data.switches.get_track_config_list());
+            },
+            ApiMessage::UpdateSwitch(path,value) => {
+                data.switches.update_switch(&path.iter().map(|x| x.as_str()).collect::<Vec<_>>(),value).await;
                 self.viewport = self.viewport.set_track_config_list(&data.switches.get_track_config_list());
             },
             ApiMessage::RadioSwitch(path,yn) => {

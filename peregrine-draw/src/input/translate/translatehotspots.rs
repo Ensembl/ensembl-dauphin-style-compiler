@@ -24,8 +24,10 @@ fn process_hotspot_event(api: &LockedPeregrineInnerAPI, x: f64, y: f64) -> Resul
                 }
             },
             HotspotEntryDetails::Setting(value) => {
-                let (setting,value) = value.value();
-                log!("setting {:?} gets {:?}",setting,value);
+                let (path,value) = value.value();
+                log!("setting {:?} gets {:?}",path,value);
+                let path = path.iter().map(|x| x.as_str()).collect::<Vec<_>>();
+                api.data_api.update_switch(&path,value);
             }
         }
     }

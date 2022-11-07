@@ -1,5 +1,5 @@
 use std::{sync::Arc, collections::{BTreeMap, HashMap}};
-use peregrine_toolkit::{eachorevery::eoestruct::StructBuilt, error::Error, log };
+use peregrine_toolkit::{eachorevery::eoestruct::StructBuilt, error::Error };
 use crate::{Track, shapeload::programname::ProgramName, PgDauphin, switch::switches::SwitchesData };
 
 pub(crate) struct TrackMappingBuilder {
@@ -45,7 +45,6 @@ impl TrackMapping {
     }
 
     pub fn get_switch(&self, setting: &str) -> Option<&[String]> {
-        log!("get {:?} from {:?}",setting,self.0.settings);
         self.0.settings.get(setting).map(|x| x.as_slice())
     }
 }

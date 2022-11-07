@@ -1,8 +1,8 @@
 use anyhow::{anyhow as err, bail};
-use peregrine_toolkit::eachorevery::{EachOrEvery, EachOrEveryGroupCompatible, EachOrEveryFilter};
-use peregrine_toolkit::{lock, log};
+use peregrine_toolkit::eachorevery::{EachOrEvery, EachOrEveryGroupCompatible};
+use peregrine_toolkit::{lock};
 use crate::simple_interp_command;
-use peregrine_data::{Colour, DirectColour, DrawnType, Patina, Pen, Plotter, ShapeRequest, ZMenu, SpaceBase, ProgramShapesBuilder, Hotspot, Background, AttachmentPoint, ObjectBuilder, SettingMode, ProgramModel, TrackMapping};
+use peregrine_data::{Colour, DirectColour, DrawnType, Patina, Pen, Plotter, ShapeRequest, ZMenu, SpaceBase, ProgramShapesBuilder, Hotspot, Background, AttachmentPoint, ObjectBuilder, SettingMode, TrackMapping};
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
 use serde_cbor::Value as CborValue;
@@ -351,6 +351,8 @@ impl InterpCommand for PatinaSettingSetInterpCommand {
             (vec_to_eoe(keys),vec_to_eoe(senses))
         };
         drop(registers);
+        let mapping = get_instance::<TrackMapping>(context,"track-mapping")?;
+        let switches = keys.map(|x| mapping.get_switch(x));
         let mut compat = EachOrEveryGroupCompatible::new(None);
         compat.add(&keys);
         compat.add(&senses);
@@ -359,19 +361,20 @@ impl InterpCommand for PatinaSettingSetInterpCommand {
         } else {
             bail!("incompatible values");
         };
-        let mapping = get_instance::<TrackMapping>(context,"track-mapping")?;
-        let switches = keys.map(|x| mapping.get_switch(x));
-        let filter = switches.make_filter(len,|x| x.is_some());
-        let switches = switches.filter(&filter);
-        let senses = senses.filter(&filter);
         let values = izip!(
-                switches.iter(len).unwrap(),
-                senses.iter(len).unwrap()
+            switches.iter(len).unwrap(),
+            senses.iter(len).unwrap()
         );
+        let mut settings = vec![];
+        for (switch,sense) in values {
+            settings.push(if let Some(switch) = switch {
+                (switch.to_vec(),SettingMode::Set(*sense))
+            } else {
+                (vec![],SettingMode::None)
+            });
+        }
         let geometry_builder = get_instance::<ObjectBuilder>(context,"builder")?;
-        let values = values
-            .map(|(k,b)| (k.unwrap().to_vec(),SettingMode::Set(*b))).collect::<Vec<_>>();
-        let patina = Patina::Hotspot(Hotspot::Setting(EachOrEvery::each(values)));
+        let patina = Patina::Hotspot(Hotspot::Setting(EachOrEvery::each(settings)));
         let patina_id = geometry_builder.add_patina(patina) as usize;
         let registers = context.registers_mut();
         registers.write(&self.0,InterpValue::Indexes(vec![
@@ -397,7 +400,6 @@ impl InterpCommand for PatinaSettingMemberInterpCommand {
         let geometry_builder = get_instance::<ObjectBuilder>(context,"builder")?;
         let mapping = get_instance::<TrackMapping>(context,"track-mapping")?;
         let switches = keys.map(|x| mapping.get_switch(x));
-        log!("switches! {:?}",switches);
         let mut compat = EachOrEveryGroupCompatible::new(None);
         compat.add(&keys);
         compat.add(&values);
@@ -407,19 +409,20 @@ impl InterpCommand for PatinaSettingMemberInterpCommand {
         } else {
             bail!("incompatible values");
         };
-        let filter = switches.make_filter(len,|x| x.is_some());
-        let switches = switches.filter(&filter);
-        let values = values.filter(&filter);
-        let senses = senses.filter(&filter);
         let values = izip!(
             switches.iter(len).unwrap(),
             values.iter(len).unwrap(),
             senses.iter(len).unwrap()
         );
-        let values = 
-            values
-            .map(|(k,v,b)| (k.unwrap().to_vec(),SettingMode::Member(v.clone(),*b))).collect::<Vec<_>>();
-        let patina = Patina::Hotspot(Hotspot::Setting(EachOrEvery::each(values)));
+        let mut settings = vec![];
+        for (switch,value,sense) in values {
+            settings.push(if let Some(switch) = switch {
+                (switch.to_vec(),SettingMode::Member(value.to_string(),*sense))
+            } else {
+                (vec![],SettingMode::None)
+            });
+        }
+        let patina = Patina::Hotspot(Hotspot::Setting(EachOrEvery::each(settings)));
         let patina_id = geometry_builder.add_patina(patina) as usize;
         let registers = context.registers_mut();
         registers.write(&self.0,InterpValue::Indexes(vec![

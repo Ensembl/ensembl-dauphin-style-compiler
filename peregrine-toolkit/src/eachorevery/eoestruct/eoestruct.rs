@@ -42,7 +42,7 @@ impl StructVarGroup {
 }
 
 #[cfg_attr(debug_assertions,derive(Debug))]
-#[derive(Clone)]
+#[derive(Clone,PartialEq)]
 pub enum StructConst {
     Number(f64),
     String(String),

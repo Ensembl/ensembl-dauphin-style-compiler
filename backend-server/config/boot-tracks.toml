@@ -34,6 +34,7 @@ pc-fwd-name = ["track","gene-pc-fwd","name"]
 pc-rev-name = ["track","gene-pc-rev","name"]
 other-fwd-name = ["track","gene-other-fwd","name"]
 other-rev-name = ["track","gene-other-rev","name"]
+expanded = ["buttons"]
 
 [include.transcript.settings]
 pc-fwd-several = ["track","gene-pc-fwd","several"]
@@ -56,7 +57,7 @@ focus-transcript-label = ["track","focus","transcript-label"]
 several = ["track","focus","several"]
 enabled-transcripts = ["track","focus","enabled-transcripts"]
 name = ["track","focus","name"]
-expanded = ["buttons","gene","expand"]
+expanded = ["buttons"]
 
 #
 # Tracks

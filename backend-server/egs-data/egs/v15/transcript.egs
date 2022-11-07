@@ -192,7 +192,7 @@ potential_tracks_base := [
 potential_background_tracks := [append_group(potential_tracks_base[],["background"][])];
 use_allotment_names(background_allotment_names,enabled_tracks,potential_background_tracks);
 
-expanded_genes := list_switch(["buttons","gene","expand"]);
+expanded_genes := setting_seqstr("expanded");
 
 /*
  * Which allotment and track does data go into?
@@ -222,9 +222,6 @@ transcript_allotment_colour_idx := index(which_gn_by_tr,[allotment_colour_idx]);
 gene_tracks_enabled_several(several_tracks);
 
 SEVERAL := 5;
-
-expand_base := len([id_gn_vr]) (*) "buttons/gene/expand";
-expand_switches := append_group(expand_base,id_gn_vr);
 
 bool_sv_by_gn := index(tk_by_gn,[several_tracks]);
 bool_sv_by_gn#[in(id_gn_vr,[expanded_genes])] := true;
@@ -301,9 +298,6 @@ tk_by_tr := index(which_gn_by_tr,[tk_by_gn]);
 enabled_tr_labels := index(tk_by_tr,[enabled_labels_tr]);
 
 al_trtext_by_gn := al_text_by_gn;
-
-al_text_by_gn#[enabled_gene_labels==false] := use_allotment("");
-
 al_trtext_by_tr := index(which_gn_by_tr,[al_trtext_by_gn]);
 
 al_trtext_by_tr#[bool_show_tr==false] := use_allotment("");
@@ -475,21 +469,4 @@ draw_track_category("G",allotments_letter);
 
 /* lozenges */
 
-draw_lozenges(start_gn,num_drawn_tr_gn,id_gn_vr,expanded_genes,button_allotment);
-
-blue_top_left := spacebase(start_gn,num_drawn_tr_gn*20+6,0);
-blue_bottom_right := spacebase(start_gn,num_drawn_tr_gn*20+32,32);
-blue_colour := simple_colour(direct_colour(239,154,52,255));
-
-button_text := len([start_gn]) (*) " + ";
-button_text#[in(id_gn_vr,[expanded_genes])] := " – ";
-
-textpen_lozenge := pen("'IBM Plex Mono', sans-serif",text_size*1.2,white_text_colour,blue_text_bgd);
-text2(blue_top_left,textpen_lozenge,button_text,button_allotment);
-
-sense := len([expand_switches]) (*) true;
-sense#[in(id_gn_vr,[expanded_genes])] := false;
-
-blue_hotspot_patina := patina_switch(expand_switches,sense);
-
-rectangle(blue_top_left,blue_bottom_right,blue_hotspot_patina,button_allotment);
+//draw_lozenges(start_gn,num_drawn_tr_gn,id_gn_vr,expanded_genes,button_allotment);

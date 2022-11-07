@@ -1,7 +1,7 @@
 use std::{collections::{hash_map::DefaultHasher}, hash::{Hash, Hasher}, sync::Arc};
-use peregrine_toolkit::eachorevery::{EachOrEveryFilter, EachOrEvery, eoestruct::StructTemplate};
+use peregrine_toolkit::eachorevery::{EachOrEveryFilter, EachOrEvery, eoestruct::{StructTemplate}};
 
-use super::zmenu::ZMenu;
+use super::{zmenu::ZMenu, settingmode::SettingMode};
 
 #[derive(Clone,Debug,PartialEq,Eq,Hash)]
 pub struct DirectColour(pub u8,pub u8,pub u8,pub u8);
@@ -110,13 +110,6 @@ pub enum Colour {
 pub enum DrawnType {
     Fill,
     Stroke(f64)
-}
-
-#[derive(Clone)]
-#[cfg_attr(debug_assertions,derive(Debug))]
-pub enum SettingMode {
-    Set(bool),
-    Member(String,bool)
 }
 
 #[derive(Clone)]

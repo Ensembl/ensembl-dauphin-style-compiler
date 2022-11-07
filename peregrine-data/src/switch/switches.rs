@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use peregrine_toolkit::{eachorevery::eoestruct::{StructTemplate, StructBuilt, StructConst}, lock, error::Error};
 
-use crate::{Track, request::tracks::{trackmodel::TrackModel, expansionmodel::ExpansionModel}, AllBackends, PgDauphin};
+use crate::{Track, request::tracks::{trackmodel::TrackModel, expansionmodel::ExpansionModel}, AllBackends, PgDauphin, SettingMode};
 
 use super::{trackconfiglist::TrackConfigList, switch::Switch, trackconfig::TrackConfigNode, expansion::Expansion};
 
@@ -52,6 +52,23 @@ impl SwitchesData {
         overlay.apply(&mut out);
         out
     }
+
+    fn switch_inner(&mut self, path: &[&str], value: StructBuilt) {
+        if value.truthy() {
+            /* unset radio siblings */
+            if path.len() > 0 {
+                let parent = self.root.get_target(&path[0..(path.len()-1)]);
+                parent.clear_if_radio();
+            }
+        }
+        if value == StructBuilt::Const(StructConst::Null) {
+            self.root.remove(path);
+        } else {
+            let target = self.root.get_target(path);
+            target.set(value);
+        }
+        self.track_config_list = None;
+    }
 }
 
 #[derive(Clone)]
@@ -88,20 +105,15 @@ impl Switches {
     pub async fn switch(&self, path: &[&str], value: StructBuilt) -> Result<(),Error> {
         self.run_expansions(path).await?;
         let mut data = lock!(self.data);
-        if value.truthy() {
-            /* unset radio siblings */
-            if path.len() > 0 {
-                let parent = data.root.get_target(&path[0..(path.len()-1)]);
-                parent.clear_if_radio();
-            }
-        }
-        if value == StructBuilt::Const(StructConst::Null) {
-            data.root.remove(path);
-        } else {
-            let target = data.root.get_target(path);
-            target.set(value);
-        }
-        data.track_config_list = None;
+        data.switch_inner(path,value);
+        Ok(())
+    }
+
+    pub async fn update_switch(&self, path: &[&str], value: SettingMode) -> Result<(),Error> {
+        self.run_expansions(path).await?;
+        let mut data = lock!(self.data);
+        let new = value.update(data.get_value(path))?;
+        data.switch_inner(path,new);
         Ok(())
     }
 
