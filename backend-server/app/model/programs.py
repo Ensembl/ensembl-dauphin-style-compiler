@@ -1,5 +1,5 @@
 from typing import Any
-from model.serialutil import build_map, immute, increase, remute
+from model.serialutil import build_map, immute, increase, remute, immute_key
 import toml
 
 class ProgramSetting:
@@ -33,7 +33,7 @@ class ProgramSpec:
     def _dump_for_wire(self, dumper) -> Any:
         settings = sorted(self._settings, key = lambda x: x._name)
         keys = [s._name for s in settings]
-        defaults = [s._default for s in settings]
+        defaults = [immute(s._default) for s in settings]
         return {
             'in_bundle_name': dumper.name_mapping[self._in_bundle_name],
             'set': dumper.name_mapping[self._set],
@@ -81,7 +81,7 @@ class ProgramsDump:
         (names,keys,values) = specs._collect()
         (name_list,self.name_mapping) = build_map(sorted(names))
         (key_list,self.key_mapping) = build_map(sorted(keys))
-        (value_list,self.value_mapping) = build_map(sorted(values))
+        (value_list,self.value_mapping) = build_map(sorted(values, key = immute_key()))
         data = []
         for spec in specs._specs:
             data.append(spec._dump_for_wire(self))

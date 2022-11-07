@@ -30,6 +30,9 @@ simple_command!(StyleCommand,StyleCommandType,"peregrine","style",3,(0,1,2));
 simple_command!(PatinaSwitchCommand,PatinaSwitchCommandType,"peregrine","patina_switch",3,(0,1,2));
 simple_command!(PatinaMMetadataName,PatinaMetadataCommandType,"peregrine","patina_metadata",4,(0,1,2,3));
 simple_command!(BackgroundCommand,BackgroundCommandType,"peregrine","background",3,(0,1,2));
+simple_command!(PatinaSettingSetCommand,PatinaSettingSetCommandType,"peregrine","patina_setting_set",3,(0,1,2));
+simple_command!(PatinaSettingMemberCommand,PatinaSettingMemberCommandType,"peregrine","patina_setting_member",4,(0,1,2,3));
+
 
 /* 0: out/patina  1: zmenu  2: key/D  3: key/A  4: key/B  5: value/D  6: value/A  7: value/B */
 pub struct PatinaZMenuCommand(Register,Register,Register,Register,Register,Register,Register,Register);

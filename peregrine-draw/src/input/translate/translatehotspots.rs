@@ -22,6 +22,10 @@ fn process_hotspot_event(api: &LockedPeregrineInnerAPI, x: f64, y: f64) -> Resul
                     let tmpl_null = StructTemplate::new_null().build().ok().unwrap();
                     api.data_api.switch(&path,tmpl_null);
                 }
+            },
+            HotspotEntryDetails::Setting(value) => {
+                let (setting,value) = value.value();
+                log!("setting {:?} gets {:?}",setting,value);
             }
         }
     }

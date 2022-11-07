@@ -1,8 +1,8 @@
-use anyhow::anyhow as err;
-use peregrine_toolkit::eachorevery::EachOrEvery;
+use anyhow::{anyhow as err, bail};
+use peregrine_toolkit::eachorevery::{EachOrEvery, EachOrEveryGroupCompatible};
 use peregrine_toolkit::{lock};
 use crate::simple_interp_command;
-use peregrine_data::{Colour, DirectColour, DrawnType, Patina, Pen, Plotter, ShapeRequest, ZMenu, SpaceBase, ProgramShapesBuilder, Hotspot, Background, AttachmentPoint, ObjectBuilder};
+use peregrine_data::{Colour, DirectColour, DrawnType, Patina, Pen, Plotter, ShapeRequest, ZMenu, SpaceBase, ProgramShapesBuilder, Hotspot, Background, AttachmentPoint, ObjectBuilder, SettingMode};
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
 use serde_cbor::Value as CborValue;
@@ -10,6 +10,7 @@ use std::cmp::max;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use crate::util::{get_instance, vec_to_eoe};
+use itertools::izip;
 
 simple_interp_command!(ZMenuInterpCommand,ZMenuDeserializer,14,2,(0,1));
 simple_interp_command!(PatinaZMenuInterpCommand,PatinaZMenuDeserializer,15,8,(0,1,2,3,4,5,6,7));
@@ -30,6 +31,8 @@ simple_interp_command!(StyleInterpCommand,StyleDeserializer,50,3,(0,1,2));
 simple_interp_command!(PatinaSwitchInterpCommand,PatinaSwitchDeserializer,51,3,(0,1,2));
 simple_interp_command!(PatinaMetadataInterpCommand,PatinaMetadataDeserializer,54,4,(0,1,2,3));
 simple_interp_command!(BackgroundInterpCommand,BackgroundDeserializer,70,3,(0,1,2));
+simple_interp_command!(PatinaSettingSetInterpCommand,PatinaSettingSetDeserializer,4,3,(0,1,2));
+simple_interp_command!(PatinaSettingMemberInterpCommand,PatinaSettingMemberDeserializer,5,4,(0,1,2,3));
 
 impl InterpCommand for BpRangeInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
@@ -327,6 +330,75 @@ impl InterpCommand for PatinaSwitchInterpCommand {
         let geometry_builder = get_instance::<ObjectBuilder>(context,"builder")?;
         let values = vec_to_eoe(make_switches(&key,&sense)?);
         let patina = Patina::Hotspot(Hotspot::Switch(values));
+        let patina_id = geometry_builder.add_patina(patina) as usize;
+        let registers = context.registers_mut();
+        registers.write(&self.0,InterpValue::Indexes(vec![
+            patina_id
+        ]));
+        Ok(CommandResult::SyncResult())
+    }
+}
+
+/* 0: out/patina  1: setting  2: bool */
+impl InterpCommand for PatinaSettingSetInterpCommand {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+        let registers = context.registers_mut();
+        let keys = registers.get_strings(&self.1)?.to_vec();
+        let senses = registers.get_boolean(&self.2)?.to_vec();
+        let (keys,senses) = if keys.len() == 1 && senses.len() == 1 {
+            (EachOrEvery::each(keys),EachOrEvery::each(senses))
+        } else {
+            (vec_to_eoe(keys),vec_to_eoe(senses))
+        };
+        drop(registers);
+        let mut compat = EachOrEveryGroupCompatible::new(None);
+        compat.add(&keys);
+        compat.add(&senses);
+        let values = if let Some(len) = compat.len() {
+            izip!(keys.iter(len).unwrap(),senses.iter(len).unwrap())
+        } else {
+            bail!("incompatible values");
+        };
+        let geometry_builder = get_instance::<ObjectBuilder>(context,"builder")?;
+        let values = values
+            .map(|(k,b)| (k.clone(),SettingMode::Set(*b))).collect::<Vec<_>>();
+        let patina = Patina::Hotspot(Hotspot::Setting(EachOrEvery::each(values)));
+        let patina_id = geometry_builder.add_patina(patina) as usize;
+        let registers = context.registers_mut();
+        registers.write(&self.0,InterpValue::Indexes(vec![
+            patina_id
+        ]));
+        Ok(CommandResult::SyncResult())
+    }
+}
+
+/* 0: out/patina  1: setting 2: value  3: bool */
+impl InterpCommand for PatinaSettingMemberInterpCommand {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+        let registers = context.registers_mut();
+        let keys = registers.get_strings(&self.1)?.to_vec();
+        let values = registers.get_strings(&self.2)?.to_vec();
+        let senses = registers.get_boolean(&self.3)?.to_vec();
+        let (keys,values,senses) = if keys.len() == 1 && values.len() == 1 && senses.len() == 1 {
+            (EachOrEvery::each(keys),EachOrEvery::each(values),EachOrEvery::each(senses))
+        } else {
+            (vec_to_eoe(keys),vec_to_eoe(values),vec_to_eoe(senses))
+        };
+        drop(registers);
+        let geometry_builder = get_instance::<ObjectBuilder>(context,"builder")?;
+        let mut compat = EachOrEveryGroupCompatible::new(None);
+        compat.add(&keys);
+        compat.add(&values);
+        compat.add(&senses);
+        let values = if let Some(len) = compat.len() {
+            izip!(keys.iter(len).unwrap(),values.iter(len).unwrap(),senses.iter(len).unwrap())
+        } else {
+            bail!("incompatible values {:?}/{:?}/{:?}",keys.len(),values.len(),senses.len());
+        };
+        let values = 
+            values
+            .map(|(k,v,b)| (k.to_string(),SettingMode::Member(v.clone(),*b))).collect::<Vec<_>>();
+        let patina = Patina::Hotspot(Hotspot::Setting(EachOrEvery::each(values)));
         let patina_id = geometry_builder.add_patina(patina) as usize;
         let registers = context.registers_mut();
         registers.write(&self.0,InterpValue::Indexes(vec![

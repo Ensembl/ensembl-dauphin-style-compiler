@@ -18,22 +18,24 @@ use super::track::{
 use super::geometry:: {
     PatinaFilledCommandType, PatinaHollowCommandType, DirectColourCommandType, ZMenuCommandType, PatinaZMenuCommandType, PenCommandType,
     PlotterCommandType, UseAllotmentCommandType, SpaceBaseCommandType, SimpleColourCommandType, StripedCommandType,
-    BarCommandType, BpRangeCommandType, SpotColourCommandType, PpcCommandType, StyleCommandType, PatinaSwitchCommandType, PatinaMetadataCommandType, BackgroundCommandType
+    BarCommandType, BpRangeCommandType, SpotColourCommandType, PpcCommandType, StyleCommandType, PatinaSwitchCommandType, PatinaMetadataCommandType, BackgroundCommandType, PatinaSettingSetCommandType, PatinaSettingMemberCommandType
 };
 use super::shape::{ WiggleCommandType, RectangleCommandType, Text2CommandType, ImageCommandType, EmptyCommandType, RunningTextCommandType };
 use super::switch::{ ListSwitchCommandType, SettingBooleanCommandType, SettingNullCommandType, SettingNumberCommandType, SettingStringCommandType };
 
 pub fn peregrine_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(59,0),0xD6752629A00A1708)
+    CommandSetId::new("peregrine",(60,0),0x7BEAC30AA3C0A535)
 }
 
 pub fn make_peregrine() -> CompLibRegister {
-    // next is 76; 4-6, 8, 11, 24, 25, 32-34, 39, 40, 41, 71-73 are unused
+    // next is 76; 6, 8, 11, 24, 25, 32-34, 39, 40, 41, 71-73 are unused
     let mut set = CompLibRegister::new(&peregrine_id(),Some(make_peregrine_interp()));
     set.push("setting_string",Some(0),SettingStringCommandType());
     set.push("setting_number",Some(1),SettingNumberCommandType());
     set.push("setting_boolean",Some(2),SettingBooleanCommandType());
     set.push("setting_null",Some(3),SettingNullCommandType());
+    set.push("patina_setting_set",Some(4),PatinaSettingSetCommandType());
+    set.push("patina_setting_member",Some(5),PatinaSettingMemberCommandType());
     set.push("wiggle",Some(7),WiggleCommandType());
     set.push("patina_hollow",Some(9),PatinaHollowCommandType());
     set.push("make_request",Some(10),RequestCommandType());

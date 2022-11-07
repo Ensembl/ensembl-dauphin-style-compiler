@@ -158,9 +158,6 @@ style("**/main/background/content",["depth","padding-top"][],["-10","32"][]);
 enabled_gene_labels := setting_yn("focus-gene-label");
 enabled_transcript_labels := setting_yn("focus-transcript-label");
 
-expand_base := len([id_gn_vr]) (*) "buttons/gene/expand";
-expand_switches := append_group(expand_base,id_gn_vr);
-
 calc_focus_transcripts_shown(bool_show_tr,id_gn_vr,id_tr_vr,which_gn_by_tr,id_gn_uv,focus_gene_id,idx_tr_in_gn);
 
 /* index the rest (by gene) */
@@ -223,7 +220,7 @@ al_blanking_by_ex := use_allotment(al_blanking_by_ex);
 al_farover_by_thex := use_allotment(al_farover_by_thex);
 al_button := use_allotment(al_button);
 
-expanded_genes := list_switch(["buttons","gene","expand"]);
+expanded_genes := setting_seqstr("expanded");
 
 /* 
  * focus object
@@ -372,9 +369,8 @@ draw_focus_swatch(allotment_letter);
 red_dotted(start_focus,end_focus,use_allotment("dots/content"),comma_format(start_focus),comma_format(end_focus));
 
 /* blue button */
-//draw_lozenges(start_gn,num_drawn_tr_gn,id_gn_vr,expanded_genes,al_button);
+draw_lozenges(start_gn,num_drawn_tr_gn,id_gn_vr,expanded_genes,al_button);
 
-/*
 blue_top_left := spacebase(start_gn,num_drawn_tr_gn*20+6,0);
 blue_bottom_right := spacebase(start_gn,num_drawn_tr_gn*20+32,32);
 blue_colour := simple_colour(direct_colour(239,154,52,255));
@@ -385,16 +381,16 @@ button_colour#[in(id_gn_vr,[expanded_genes])] := green_colour;
 button_patina := patina_filled(button_colour);
 
 // DISABLED FOR 0.4.2
-//text2(blue_top_left,textpen_lozenge," + ",al_button);
+text2(blue_top_left,textpen_lozenge," + ",al_button);
 
-sense := len([expand_switches]) (*) true;
-sense#[in(id_gn_vr,[expanded_genes])] := false;
+sense := in(id_gn_vr,[focus_gene_id]) == false;
 
-blue_hotspot_patina := patina_switch(expand_switches,sense);
+//blue_hotspot_patina := patina_switch(expand_switches,sense);
+blue_hotspot_patina := patina_setting_member("expanded",focus_gene_id,sense);
+
 
 // DISABLED FOR 0.4.2
-//rectangle(blue_top_left,blue_bottom_right,blue_hotspot_patina,al_button);
-*/
+rectangle(blue_top_left,blue_bottom_right,blue_hotspot_patina,al_button);
 
 /* report transcripts shown */
 report_shown(bool_show_tr,id_tr_vr,use_allotment("tracks/track/focus/main/background/content"));

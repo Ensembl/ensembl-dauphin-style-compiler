@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 use peregrine_data::DataMessage;
-use peregrine_toolkit_async::sync::{blocker::{Blocker, Lockout, self}, needed::Needed};
+use peregrine_toolkit_async::sync::{blocker::{Blocker, Lockout}, needed::Needed};
 use peregrine_toolkit::{lock, plumbing::oneshot::OneShot};
 use crate::{Message, PgCommanderWeb, run::{PgConfigKey, PgPeregrineConfig, report::Report}, util::debounce::Debounce};
 
@@ -110,7 +110,7 @@ impl TargetReporter {
     async fn force_applier(&self) -> Result<(),Message> {
         let blocker = lock!(self.0).blocker.clone();
         blocker.wait().await;
-        let mut state = lock!(self.0);
+        let state = lock!(self.0);
         let ready = lock!(state.in_stage).is_ready();
         if ready && state.force_needed.is_needed() {
             *lock!(state.out_stage) = lock!(state.in_stage).clone();
@@ -143,7 +143,7 @@ impl TargetReporter {
     }
 
     pub fn set_x(&self, x: f64) {
-        let mut state = lock!(self.0);
+        let state = lock!(self.0);
         let changed = lock!(state.in_stage).x != Some(x);
         lock!(state.in_stage).x = Some(x);
         if changed {
@@ -152,7 +152,7 @@ impl TargetReporter {
     }
 
     pub fn set_bp(&self, bp: f64) {
-        let mut state = lock!(self.0);
+        let state = lock!(self.0);
         let changed = lock!(state.in_stage).bp_per_screen != Some(bp);
         lock!(state.in_stage).bp_per_screen = Some(bp);
         if changed {

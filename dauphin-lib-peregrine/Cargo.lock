@@ -209,6 +209,7 @@ dependencies = [
  "dauphin_interp",
  "dauphin_test_harness",
  "inflate",
+ "itertools",
  "owning_ref",
  "peregrine_data",
  "peregrine_toolkit",

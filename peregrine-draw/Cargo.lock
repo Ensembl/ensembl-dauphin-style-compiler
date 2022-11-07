@@ -156,6 +156,7 @@ dependencies = [
  "anyhow",
  "dauphin_interp",
  "inflate",
+ "itertools",
  "owning_ref",
  "peregrine_data",
  "peregrine_toolkit",

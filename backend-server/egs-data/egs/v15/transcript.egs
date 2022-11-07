@@ -475,9 +475,7 @@ draw_track_category("G",allotments_letter);
 
 /* lozenges */
 
-//draw_lozenges(start_gn,num_drawn_tr_gn,id_gn_vr,expanded_genes,button_allotment);
-
-/*
+draw_lozenges(start_gn,num_drawn_tr_gn,id_gn_vr,expanded_genes,button_allotment);
 
 blue_top_left := spacebase(start_gn,num_drawn_tr_gn*20+6,0);
 blue_bottom_right := spacebase(start_gn,num_drawn_tr_gn*20+32,32);
@@ -490,10 +488,8 @@ textpen_lozenge := pen("'IBM Plex Mono', sans-serif",text_size*1.2,white_text_co
 text2(blue_top_left,textpen_lozenge,button_text,button_allotment);
 
 sense := len([expand_switches]) (*) true;
-sense#[in(gene_id,[expanded_genes])] := false;
+sense#[in(id_gn_vr,[expanded_genes])] := false;
 
 blue_hotspot_patina := patina_switch(expand_switches,sense);
 
 rectangle(blue_top_left,blue_bottom_right,blue_hotspot_patina,button_allotment);
-
-*/

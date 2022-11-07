@@ -88,3 +88,11 @@ description = """
 boolean: if true show track label on the focus track.
 
 """
+
+[setting.expanded]
+default = []
+description = """
+
+list of strings. Gene IDs for expanded genes.
+
+"""
