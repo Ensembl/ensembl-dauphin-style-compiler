@@ -2,6 +2,7 @@ use std::sync::Mutex;
 use commander::cdr_current_time;
 use peregrine_toolkit::error::Error;
 use std::collections::HashMap;
+use crate::run::pgdauphin::PgDauphinTaskSpec;
 use crate::{ProgramShapesBuilder, ObjectBuilder };
 use std::any::Any;
 use std::sync::{ Arc };
@@ -10,7 +11,6 @@ use super::loadshapes::LoadMode;
 use super::shaperequest::ShapeRequest;
 use crate::util::memoized::{ Memoized, MemoizedType };
 use crate::api::{ PeregrineCoreBase };
-use crate::run::{ PgDauphinTaskSpec };
 use peregrine_toolkit::{lock};
 
 pub struct RunReport {
@@ -52,7 +52,8 @@ async fn make_unfiltered_shapes(base: PeregrineCoreBase, request: ShapeRequest, 
     add_payloads(&mut payloads,&request,&mode,&run_report,&shapes);
     let start = cdr_current_time();
     base.dauphin.run_program(&base.channel_registry,PgDauphinTaskSpec {
-        program_name: request.track().track().program().name().clone(),
+        program: request.track().track().program().clone(),
+        mapping: request.track().track().mapping().clone(),
         payloads: Some(payloads)
     },&mode).await.map_err(|e| Error::operr(&format!("dauphin program failed: {:?}",e)))?;
     let took_ms = cdr_current_time() - start;

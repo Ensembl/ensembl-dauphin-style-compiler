@@ -1,8 +1,8 @@
 use anyhow::{anyhow as err, bail};
-use peregrine_toolkit::eachorevery::{EachOrEvery, EachOrEveryGroupCompatible};
-use peregrine_toolkit::{lock};
+use peregrine_toolkit::eachorevery::{EachOrEvery, EachOrEveryGroupCompatible, EachOrEveryFilter};
+use peregrine_toolkit::{lock, log};
 use crate::simple_interp_command;
-use peregrine_data::{Colour, DirectColour, DrawnType, Patina, Pen, Plotter, ShapeRequest, ZMenu, SpaceBase, ProgramShapesBuilder, Hotspot, Background, AttachmentPoint, ObjectBuilder, SettingMode};
+use peregrine_data::{Colour, DirectColour, DrawnType, Patina, Pen, Plotter, ShapeRequest, ZMenu, SpaceBase, ProgramShapesBuilder, Hotspot, Background, AttachmentPoint, ObjectBuilder, SettingMode, ProgramModel, TrackMapping};
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
 use serde_cbor::Value as CborValue;
@@ -354,14 +354,23 @@ impl InterpCommand for PatinaSettingSetInterpCommand {
         let mut compat = EachOrEveryGroupCompatible::new(None);
         compat.add(&keys);
         compat.add(&senses);
-        let values = if let Some(len) = compat.len() {
-            izip!(keys.iter(len).unwrap(),senses.iter(len).unwrap())
+        let len = if let Some(len) = compat.len() {
+            len
         } else {
             bail!("incompatible values");
         };
+        let mapping = get_instance::<TrackMapping>(context,"track-mapping")?;
+        let switches = keys.map(|x| mapping.get_switch(x));
+        let filter = switches.make_filter(len,|x| x.is_some());
+        let switches = switches.filter(&filter);
+        let senses = senses.filter(&filter);
+        let values = izip!(
+                switches.iter(len).unwrap(),
+                senses.iter(len).unwrap()
+        );
         let geometry_builder = get_instance::<ObjectBuilder>(context,"builder")?;
         let values = values
-            .map(|(k,b)| (k.clone(),SettingMode::Set(*b))).collect::<Vec<_>>();
+            .map(|(k,b)| (k.unwrap().to_vec(),SettingMode::Set(*b))).collect::<Vec<_>>();
         let patina = Patina::Hotspot(Hotspot::Setting(EachOrEvery::each(values)));
         let patina_id = geometry_builder.add_patina(patina) as usize;
         let registers = context.registers_mut();
@@ -386,18 +395,30 @@ impl InterpCommand for PatinaSettingMemberInterpCommand {
         };
         drop(registers);
         let geometry_builder = get_instance::<ObjectBuilder>(context,"builder")?;
+        let mapping = get_instance::<TrackMapping>(context,"track-mapping")?;
+        let switches = keys.map(|x| mapping.get_switch(x));
+        log!("switches! {:?}",switches);
         let mut compat = EachOrEveryGroupCompatible::new(None);
         compat.add(&keys);
         compat.add(&values);
         compat.add(&senses);
-        let values = if let Some(len) = compat.len() {
-            izip!(keys.iter(len).unwrap(),values.iter(len).unwrap(),senses.iter(len).unwrap())
+        let len = if let Some(len) = compat.len() {
+            len
         } else {
-            bail!("incompatible values {:?}/{:?}/{:?}",keys.len(),values.len(),senses.len());
+            bail!("incompatible values");
         };
+        let filter = switches.make_filter(len,|x| x.is_some());
+        let switches = switches.filter(&filter);
+        let values = values.filter(&filter);
+        let senses = senses.filter(&filter);
+        let values = izip!(
+            switches.iter(len).unwrap(),
+            values.iter(len).unwrap(),
+            senses.iter(len).unwrap()
+        );
         let values = 
             values
-            .map(|(k,v,b)| (k.to_string(),SettingMode::Member(v.clone(),*b))).collect::<Vec<_>>();
+            .map(|(k,v,b)| (k.unwrap().to_vec(),SettingMode::Member(v.clone(),*b))).collect::<Vec<_>>();
         let patina = Patina::Hotspot(Hotspot::Setting(EachOrEvery::each(values)));
         let patina_id = geometry_builder.add_patina(patina) as usize;
         let registers = context.registers_mut();

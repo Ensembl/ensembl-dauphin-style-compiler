@@ -6,15 +6,17 @@ use std::collections::HashMap;
 use std::sync::{ Arc, Mutex };
 use crate::core::channel::channelregistry::ChannelRegistry;
 use crate::core::program::programspec::ProgramModel;
+use crate::request::tracks::trackmodel::TrackMapping;
 use crate::{MaxiResponse, BackendNamespace, AccessorResolver, LoadMode, AllBackends};
 use crate::api::MessageSender;
 use crate::core::program::programbundle::SuppliedBundle;
 use peregrine_dauphin_queue::{ PgDauphinQueue, PgDauphinLoadTaskSpec, PgDauphinRunTaskSpec };
 use crate::shapeload::programname::{ProgramName};
 
-pub struct PgDauphinTaskSpec {
-    pub program_name: ProgramName,
-    pub payloads: Option<HashMap<String,Box<dyn Any>>>
+pub(crate) struct PgDauphinTaskSpec {
+    pub(crate) program: ProgramModel,
+    pub(crate) mapping: TrackMapping,
+    pub(crate) payloads: Option<HashMap<String,Box<dyn Any>>>
 }
 
 #[derive(Clone)]
@@ -118,10 +120,12 @@ impl PgDauphin {
         Ok(program.program)
     }
 
-    pub async fn run_program(&self, registry: &ChannelRegistry, spec: PgDauphinTaskSpec, mode: &LoadMode) -> Result<(),Error> {
-        let program = self.get_program(&spec.program_name).await?;
+    pub(crate) async fn run_program(&self, registry: &ChannelRegistry, spec: PgDauphinTaskSpec, mode: &LoadMode) -> Result<(),Error> {
+        let program = self.get_program(&spec.program.name()).await?;
         let mut payloads = spec.payloads.unwrap_or_else(|| HashMap::new());
         payloads.insert("channel-resolver".to_string(),Box::new(AccessorResolver::new(registry,&program.backend_namespace)));
+        payloads.insert("program-spec".to_string(),Box::new(spec.program.clone()) as Box::<dyn Any>);
+        payloads.insert("track-mapping".to_string(),Box::new(spec.mapping.clone()) as Box::<dyn Any>);
         let pdq = lock!(self.0).pdq.clone();
         pdq.run(PgDauphinRunTaskSpec {
             prio: if mode.high_priority() { 2 } else { 9 },

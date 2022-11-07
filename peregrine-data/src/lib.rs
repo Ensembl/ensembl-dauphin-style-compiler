@@ -107,6 +107,7 @@ mod core {
     pub use self::config::{ PgdPeregrineConfig, ConfigKey };
     pub use self::layout::Layout;
     pub use self::scale::Scale;
+    pub use self::program::programspec::{ ProgramModel, ProgramSetting };
     pub use stick::{ StickId, Stick, StickTopology };
     pub use self::asset::{ Asset, Assets };
     pub use viewport::Viewport;
@@ -195,7 +196,7 @@ mod run {
     pub mod pgdauphin;
     pub use self::pgcommander::Commander;
     pub use self::pgcommander::{ PgCommander, PgCommanderTaskSpec, add_task, complete_task, async_complete_task };
-    pub use self::pgdauphin::{ PgDauphin, PgDauphinTaskSpec };
+    pub use self::pgdauphin::{ PgDauphin };
     pub use self::instancepayload::InstancePayload;
 }
 
@@ -290,7 +291,7 @@ pub use self::allotment::core::leafrequest::LeafRequest;
 pub use self::allotment::style::style::LeafStyle;
 pub use self::allotment::globals::{ allotmentmetadata::GlobalAllotmentMetadata, playingfield::PlayingField };
 pub use self::api::{ PeregrineCore, PeregrineCoreBase, PeregrineIntegration, PeregrineApiQueue, TrainIdentity, CarriageSpeed, AgentStore, InstanceInformation };
-pub use self::core::{ Asset, Assets, PgdPeregrineConfig, ConfigKey, Stick, StickId, StickTopology, Scale, Viewport };
+pub use self::core::{ Asset, Assets, PgdPeregrineConfig, ConfigKey, Stick, StickId, StickTopology, Scale, Viewport, ProgramModel, ProgramSetting };
 pub use self::core::channel::accessorresolver::{ AccessorResolver };
 pub use self::core::channel::backendnamespace::BackendNamespace;
 pub use self::core::channel::channelintegration::{ ChannelIntegration, ChannelSender, ChannelResponse, TrivialChannelResponse, ChannelMessageDecoder, null_payload };
@@ -323,6 +324,7 @@ pub use self::spacebase::{
 pub use self::shape::rectangleshape::RectangleShape;
 pub use self::shape::textshape::TextShape;
 pub use self::request::core::manager::RequestManager;
+pub use self::request::tracks::trackmodel::TrackMapping;
 pub use self::request::minirequests::bootchannelreq::BootChannelReq;
 pub use self::request::minirequests::bootchannelres::BootChannelRes;
 pub use self::request::minirequests::stickreq::StickReq;

@@ -32,10 +32,10 @@ impl SwitchProxy {
     }
 }
 
-pub struct SettingProxy(Rc<EachOrEvery<(String,SettingMode)>>,usize);
+pub struct SettingProxy(Rc<EachOrEvery<(Vec<String>,SettingMode)>>,usize);
 
 impl SettingProxy {
-    pub fn value(&self) -> (String,SettingMode) {
+    pub fn value(&self) -> (Vec<String>,SettingMode) {
         self.0.get(self.1).unwrap().clone()
     }
 }
@@ -54,10 +54,10 @@ impl SwitchGenerator {
 }
 
 #[derive(Clone)]
-struct SettingGenerator(Rc<EachOrEvery<(String,SettingMode)>>);
+struct SettingGenerator(Rc<EachOrEvery<(Vec<String>,SettingMode)>>);
 
 impl SettingGenerator {
-    fn new(values: &EachOrEvery<(String,SettingMode)>) -> SettingGenerator {
+    fn new(values: &EachOrEvery<(Vec<String>,SettingMode)>) -> SettingGenerator {
         SettingGenerator(Rc::new(values.clone()))
     }
 

@@ -1,22 +1,22 @@
-use std::{sync::Arc, collections::BTreeMap};
-use peregrine_toolkit::{eachorevery::eoestruct::StructBuilt, error::Error };
+use std::{sync::Arc, collections::{BTreeMap, HashMap}};
+use peregrine_toolkit::{eachorevery::eoestruct::StructBuilt, error::Error, log };
 use crate::{Track, shapeload::programname::ProgramName, PgDauphin, switch::switches::SwitchesData };
 
 pub(crate) struct TrackMappingBuilder {
-    settings: Vec<(String,Vec<String>)>,
+    settings: HashMap<String,Vec<String>>,
     values: Vec<(String,StructBuilt)>,
 }
 
 impl TrackMappingBuilder {
     fn new() -> TrackMappingBuilder {
         TrackMappingBuilder {
-            settings: vec![],
+            settings: HashMap::new(),
             values: vec![]
         }
     }
 
     pub(crate) fn add_setting(&mut self, key: &str, path: &[String]) {
-        self.settings.push((key.to_string(),path.to_vec()));
+        self.settings.insert(key.to_string(),path.to_vec());
     }
 
     pub(crate) fn add_value(&mut self, key: &str, value: StructBuilt) {
@@ -25,7 +25,7 @@ impl TrackMappingBuilder {
 }
 
 #[derive(Clone)]
-pub(crate) struct TrackMapping(Arc<TrackMappingBuilder>);
+pub struct TrackMapping(Arc<TrackMappingBuilder>);
 
 impl TrackMapping {
     fn new(builder: TrackMappingBuilder) -> TrackMapping {
@@ -42,6 +42,11 @@ impl TrackMapping {
             out.insert(key.to_string(),switches_data.get_value(&path_str));
         }
         out
+    }
+
+    pub fn get_switch(&self, setting: &str) -> Option<&[String]> {
+        log!("get {:?} from {:?}",setting,self.0.settings);
+        self.0.settings.get(setting).map(|x| x.as_slice())
     }
 }
 

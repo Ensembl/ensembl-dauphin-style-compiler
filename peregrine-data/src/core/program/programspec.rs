@@ -7,7 +7,7 @@ use crate::{shapeload::programname::ProgramName };
 use super::packedprogramspec::PackedProgramSpec;
 
 #[derive(Clone)]
-pub(crate) struct ProgramSetting {
+pub struct ProgramSetting {
     name: String,
     default: StructBuilt
 }
@@ -42,7 +42,7 @@ impl ProgramModelBuilder {
 }
 
 #[derive(Clone)]
-pub(crate) struct ProgramModel(Arc<ProgramModelBuilder>);
+pub struct ProgramModel(Arc<ProgramModelBuilder>);
 
 impl ProgramModel {
     pub(crate) fn new(builder: ProgramModelBuilder) -> ProgramModel {
@@ -52,6 +52,9 @@ impl ProgramModel {
     pub fn name(&self) -> &ProgramName { &self.0.name }
 
     pub fn in_bundle_name(&self) -> &str { &self.0.in_bundle_name }
+    pub fn get_setting(&self, setting: &str) -> Option<&ProgramSetting> {
+        self.0.settings.get(setting)
+    }
 
     pub fn apply_defaults(&self, settings: &mut BTreeMap<String,StructBuilt>) {
         for (_key,value) in self.0.settings.iter() {

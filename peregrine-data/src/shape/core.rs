@@ -124,7 +124,7 @@ pub enum SettingMode {
 pub enum Hotspot {
     ZMenu(ZMenu,Vec<(String,EachOrEvery<String>)>),
     Switch(EachOrEvery<(Vec<String>,bool)>),
-    Setting(EachOrEvery<(String,SettingMode)>)
+    Setting(EachOrEvery<(Vec<String>,SettingMode)>)
 }
 
 impl Hotspot {
