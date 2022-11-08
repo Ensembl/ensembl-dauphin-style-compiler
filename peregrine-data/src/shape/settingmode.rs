@@ -26,6 +26,7 @@ fn member(old: &StructValue, value: &StructConst, yn: bool) -> StructValue {
         if !duplicate {
             out.push(StructValue::Const(value.clone()));
         }
+        out.sort();
     } else {
         /* remove */
         out = template_iter(old).drain(..)
