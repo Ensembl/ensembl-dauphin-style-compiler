@@ -1,9 +1,6 @@
 use std::sync::{Arc, Mutex};
-
-use peregrine_toolkit::{eachorevery::eoestruct::{ StructConst, StructValue}, lock, error::Error, log};
-
+use peregrine_toolkit::{eachorevery::eoestruct::{ StructConst, StructValue}, lock, error::Error};
 use crate::{Track, request::tracks::{trackmodel::TrackModel, expansionmodel::ExpansionModel}, AllBackends, PgDauphin, SettingMode};
-
 use super::{trackconfiglist::TrackConfigList, switch::Switch, expansion::Expansion};
 
 pub(crate) struct SwitchesData {
@@ -97,7 +94,6 @@ impl Switches {
     pub async fn switch(&self, path: &[&str], value: StructValue) -> Result<(),Error> {
         self.run_expansions(path).await?;
         let mut data = lock!(self.data);
-        log!("switch {:?} to {:?}",path,value);
         data.switch_inner(path,value);
         Ok(())
     }

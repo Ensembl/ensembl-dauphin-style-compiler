@@ -33,7 +33,7 @@ pub(crate) fn load_carriage(base: &mut PeregrineCoreBase, shape_store: &ShapeSto
 }
 
 async fn load_one_stick(base: &mut PeregrineCoreBase, stick_store: &StickStore, train_extent: &TrainExtent, stick_data: &Arc<Mutex<StickData>>) -> Result<(),Error> {
-    let output = stick_store.get(&train_extent.layout().stick()).await;
+    let output = stick_store.get(train_extent.layout().stick().get_id()).await;
     let data = match output {
         Ok(value) => StickData::Ready(value),
         Err(e) => {

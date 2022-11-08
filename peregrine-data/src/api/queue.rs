@@ -122,7 +122,7 @@ impl ApiQueueCampaign {
             ApiMessage::SetStick(stick_id) => {
                 match data.agent_store.stick_store.get(&stick_id).await.as_ref().map(|x| x.as_ref()) {
                     Ok(stick) => {
-                        self.viewport = self.viewport.set_stick(&stick_id,stick.size());
+                        self.viewport = self.viewport.set_stick(stick);
                     },
                     Err(e) => {
                         data.base.messages.send(e.clone());

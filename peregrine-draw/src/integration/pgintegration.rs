@@ -64,7 +64,7 @@ impl PeregrineIntegration for PgIntegration {
         self.stage.lock().unwrap().notify_current(viewport);
         if let Ok(layout) = viewport.layout() {
             let stick = layout.stick();
-            self.report.set_stick(&stick.to_string());
+            self.report.set_stick(&stick.get_id().to_string());
             if let (Ok(x),Ok(bp)) = (viewport.position(),viewport.bp_per_screen()) {
                 self.report.set_x_bp(x);
                 self.report.set_bp_per_screen(bp);

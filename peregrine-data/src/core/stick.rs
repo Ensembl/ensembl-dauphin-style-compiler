@@ -3,6 +3,7 @@ use serde::Serialize;
 use serde_derive::Deserialize;
 use std::collections::HashSet;
 use std::fmt::{ self, Display, Formatter };
+use std::hash::Hash;
 
 #[derive(Clone,Debug,Hash,PartialEq,Eq,Deserialize)]
 #[serde(transparent)]
@@ -55,11 +56,24 @@ impl StickTopology {
 }
 
 #[derive(Clone)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub struct Stick {
     id: StickId,
     size: u64,
     topology: StickTopology,
     tags: HashSet<String>
+}
+
+impl PartialEq for Stick {
+    fn eq(&self, other: &Self) -> bool { self.id == other.id }
+}
+
+impl Eq for Stick {}
+
+impl Hash for Stick {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.id.hash(state);
+    }
 }
 
 impl Stick {

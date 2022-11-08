@@ -31,6 +31,6 @@ impl CarriageExtent {
     }
 
     pub(crate) fn region(&self) -> Region {
-        Region::new(self.train.layout().stick(),self.index,self.train.scale())
+        Region::new(self.train.layout().stick().get_id(),self.index,self.train.scale())
     }
 }
