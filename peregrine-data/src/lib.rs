@@ -241,7 +241,6 @@ pub(crate) mod switch {
     pub(crate) mod track;
     pub(crate) mod switch;
     pub(crate) mod switches;
-    pub(crate) mod switchoverlay;
     pub(crate) mod trackconfig;
     pub(crate) mod trackconfiglist;
 }

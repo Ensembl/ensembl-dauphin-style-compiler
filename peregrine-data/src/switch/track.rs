@@ -1,12 +1,8 @@
-use std::sync::{ Arc, Mutex };
 use identitynumber::{ identitynumber, hashable, orderable };
 use lazy_static::lazy_static;
-use peregrine_toolkit::eachorevery::eoestruct::StructBuilt;
-use peregrine_toolkit::lock;
 use crate::core::program::programspec::ProgramModel;
 use crate::core::{ Layout, Scale };
 use crate::request::tracks::trackmodel::TrackMapping;
-use super::switchoverlay::SwitchOverlay;
 
 identitynumber!(IDS);
 
@@ -18,8 +14,7 @@ pub struct Track {
     scale_jump: u64,
     program: ProgramModel,
     mapping: TrackMapping,
-    tags: Vec<String>,
-    switch_overlay: Arc<Mutex<SwitchOverlay>>
+    tags: Vec<String>
 }
 
 hashable!(Track,id);
@@ -32,17 +27,11 @@ impl Track {
             min_scale, max_scale, scale_jump,
             program: program.clone(),
             mapping: mapping.clone(),
-            tags: vec![],
-            switch_overlay: Arc::new(Mutex::new(SwitchOverlay::new()))
+            tags: vec![]
         }
     }
 
     pub fn add_tag(&mut self, tag: &str) { self.tags.push(tag.to_string()); }
-
-    pub fn set_switch(&mut self, path: &[&str], value: StructBuilt) {
-        let mut switches = lock!(self.switch_overlay);
-        if !value.is_null() { switches.set(path,value); } else { switches.clear(path); } // XXX single call
-    }
 
     pub(crate) fn program(&self) -> &ProgramModel { &self.program }
     pub(crate) fn mapping(&self) -> &TrackMapping { &self.mapping }
