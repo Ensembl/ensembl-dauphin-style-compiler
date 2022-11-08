@@ -1,8 +1,5 @@
 use std::{collections::{HashSet, hash_map::DefaultHasher, HashMap}, hash::{Hasher, Hash}};
-
 use peregrine_toolkit::eachorevery::eoestruct::StructBuilt;
-
-use super::trackconfig::TrackConfigNode;
 
 /* A SwitchOverlay contains those values which are explicitly added to a track as part of the
  * track config process rather than by the integration (using this object's set and clear methods).
@@ -45,11 +42,5 @@ impl SwitchOverlay {
 
     pub(crate) fn clear(&mut self, path: &[&str]) {
         self.full_set.remove(&path.iter().map(|x| x.to_string()).collect::<Vec<_>>());
-    }
-
-    pub(super) fn apply(&self, node: &mut TrackConfigNode) {
-        for (path,value) in &self.full_set {
-            node.add_path(&path.iter().map(|x| x.as_str()).collect::<Vec<_>>(),value.clone());
-        }
     }
 }

@@ -28,7 +28,6 @@ simple_interp_command!(BpRangeInterpCommand,BpRangeDeserializer,45,1,(0));
 simple_interp_command!(SpotColourInterpCommand,SpotColourDeserializer,46,2,(0,1));
 simple_interp_command!(PpcInterpCommand,PpcDeserializer,49,1,(0));
 simple_interp_command!(StyleInterpCommand,StyleDeserializer,50,3,(0,1,2));
-simple_interp_command!(PatinaSwitchInterpCommand,PatinaSwitchDeserializer,51,3,(0,1,2));
 simple_interp_command!(PatinaMetadataInterpCommand,PatinaMetadataDeserializer,54,4,(0,1,2,3));
 simple_interp_command!(BackgroundInterpCommand,BackgroundDeserializer,70,3,(0,1,2));
 simple_interp_command!(PatinaSettingSetInterpCommand,PatinaSettingSetDeserializer,4,3,(0,1,2));
@@ -308,33 +307,6 @@ impl InterpCommand for PatinaZMenuInterpCommand {
         }
         let registers = context.registers_mut();
         registers.write(&self.0,InterpValue::Indexes(payload));
-        Ok(CommandResult::SyncResult())
-    }
-}
-
-fn make_switches(key: &[String], sense: &[bool]) -> anyhow::Result<Vec<(Vec<String>,bool)>> {
-    let mut out = vec![];
-    for (key,sense) in key.iter().zip(sense.iter().cycle()) {
-        out.push((key.split("/").map(|x| x.to_string()).collect(),*sense));
-    }
-    Ok(out)
-}
-
-/* 0: out/patina  1: key  2: bool */
-impl InterpCommand for PatinaSwitchInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
-        let registers = context.registers_mut();
-        let key = registers.get_strings(&self.1)?.to_vec();
-        let sense = registers.get_boolean(&self.2)?;
-        drop(registers);
-        let geometry_builder = get_instance::<ObjectBuilder>(context,"builder")?;
-        let values = vec_to_eoe(make_switches(&key,&sense)?);
-        let patina = Patina::Hotspot(Hotspot::Switch(values));
-        let patina_id = geometry_builder.add_patina(patina) as usize;
-        let registers = context.registers_mut();
-        registers.write(&self.0,InterpValue::Indexes(vec![
-            patina_id
-        ]));
         Ok(CommandResult::SyncResult())
     }
 }

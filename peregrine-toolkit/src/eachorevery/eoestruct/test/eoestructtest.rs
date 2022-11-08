@@ -1,6 +1,6 @@
 
 use std::{str::FromStr, collections::hash_map::DefaultHasher, hash::{Hash, Hasher}, fmt::Debug};
-use crate::{eachorevery::{eoestruct::{eoejson::{struct_to_json, struct_from_json, array_to_var, select_to_json }, structtemplate::{StructVar, StructPair}, StructTemplate, eoestructdata::{DataVisitor}, StructBuilt}, EachOrEvery}};
+use crate::{eachorevery::{eoestruct::{eoejson::{struct_to_json, struct_from_json, array_to_var, select_to_json }, structtemplate::{StructVar, StructPair}, StructTemplate, eoestructdata::{DataVisitor}, StructBuilt, structvalue::StructValue}, EachOrEvery}};
 use serde_json::{Value as JsonValue, Number, Map as JsonMap };
 
 use super::super::eoestruct::{StructResult, StructConst, StructVarGroup, LateValues, StructVarValue };
@@ -21,7 +21,7 @@ macro_rules! json_get {
         fn $name(value: &JsonValue) -> $typ {
             match value {
                 JsonValue::$var(v) => v.clone(),
-                _ => panic!("malformatted test data")
+                _ => panic!("malformed test data")
             }
         }
                 
@@ -227,6 +227,55 @@ fn run_extract_case(value: &JsonValue, fail: bool) {
     }
 }
 
+fn run_value_cases(value: &JsonValue) {
+    let data = StructValue::new_json_value(&value[0]);
+    for success in json_array(&value[1]) {
+        let parts = json_array(&success);
+        let path = json_array_of_strings(&parts[0]);
+        let path = to_str_vec(&path);
+        /* extract test */
+        let got = data.extract(&path).expect("path failed");
+        assert_eq!(json_fix_numbers(&got.to_json_value()),json_fix_numbers(&parts[1]));
+        /* replace test */
+        for repl in json_array(&value[3]) {
+            let data = StructValue::new_json_value(&value[0]);
+            let repl = StructValue::new_json_value(&repl);
+            let modified = data.replace(&path, repl.clone(), &vec![]).expect("replace failed");
+            let got = modified.extract(&path).expect("path failed");
+            assert_eq!(&got,&repl);
+            let data = StructValue::new_json_value(&value[0]);
+            let repl = StructValue::new_number(23.1);
+            let modified = data.replace(&path, repl.clone(), &vec![]).expect("replace failed");
+            let got = modified.extract(&path).expect("path failed");
+            assert_eq!(&got,&repl);
+        }
+    }
+    for failure in json_array(&value[2]) {
+        let path = json_array_of_strings(&failure);
+        let path = to_str_vec(&path);
+        assert!(data.extract(&path).is_err());
+    }
+    /* built test */
+    let built = data.to_built();
+    let built_json = struct_to_json(&built,None).expect("unbuildable");
+    assert_eq!(json_fix_numbers(&value[0]),json_fix_numbers(&built_json));
+    /* serialise test */
+    let expect_str = serde_json::to_string(&json_fix_numbers(&value[0])).expect("unserialisable A");
+    let got_str = serde_json::to_string(&data).expect("unserialisable B");
+    assert_eq!(expect_str,got_str);
+}
+
+fn run_value_sort_cases(value: &JsonValue) {
+    let parts = json_array(value);
+    println!("ruuning {}\n",json_string(&parts[0]));
+    let mut got = json_array(&parts[1]).iter().map(|x| StructValue::new_json_value(x)).collect::<Vec<_>>();
+    got.sort();
+    let expect = json_array(&parts[2]).iter().map(|x| StructValue::new_json_value(x)).collect::<Vec<_>>();
+    for (got,expect) in got.iter().zip(expect.iter()) {
+        assert_eq!(got,expect);
+    }
+}
+
 fn run_case_buildfail(value: &JsonValue) {
     let parts = json_array(value);
     println!("ruuning {}\n",json_string(&parts[0]));
@@ -290,15 +339,18 @@ run_cases!(test_rebuild_expandfail,"test-eoe-expandfail.json",run_case_expandfai
 run_cases!(test_parsefail,"test-eoe-parsefail.json",run_case_parsefail);
 run_cases!(test_visitor,"test-visitor.json",visitor_case);
 run_cases!(test_select,"test-select.json",select_case);
+run_cases!(test_value_smoke,"test-eoe-value.json",run_value_cases);
+run_cases!(test_value_ordering_smoke,"test-eoe-value-ordering.json",run_value_sort_cases);
+
 
 #[test]
 fn test_eoestruct_free() {
     /* corner case not testable with the available harnesses */
     let mut group = StructVarGroup::new();
-    let template = StructTemplate::new_array(EachOrEvery::each(vec![
+    let template = StructTemplate::new_array(vec![
         StructTemplate::new_boolean(true),
         StructTemplate::new_var(&StructVar::new_boolean(&mut group,EachOrEvery::each(vec![false,true])))
-    ]));
+    ]);
     assert_eq!(template.build().err().expect("unexpected success"),"free variable in template");
 }
 
@@ -308,26 +360,16 @@ fn test_eoestruct_every() {
     let every = StructVar::new_boolean(&mut group,EachOrEvery::every(false));
     let each = StructVar::new_number(&mut group,EachOrEvery::each(vec![1.,2.]));
     let template = StructTemplate::new_all(&mut group,
-    StructTemplate::new_array(EachOrEvery::each(vec![
+    StructTemplate::new_array(vec![
         StructTemplate::new_boolean(true),
         StructTemplate::new_var(&every),
         StructTemplate::new_var(&each)
-    ]))
-    );
+    ]));
     let debug = format!("{:?}",template);
     assert_eq!("Aab.( [true,false,b=<1.0,2.0>] )",debug);
     let output = struct_to_json(&template.build().ok().expect("unexpected error"),None).ok().unwrap();
     let wanted = JsonValue::from_str("[[true,false,1],[true,false,2]]").ok().unwrap();
     assert_eq!(&json_fix_numbers(&wanted),&json_fix_numbers(&output));
-}
-
-#[test]
-fn test_infinite_array() {
-    let template = StructTemplate::new_object(EachOrEvery::each(vec![
-        StructPair::new("a",StructTemplate::new_number(42.)),
-        StructPair::new("b",StructTemplate::new_array(EachOrEvery::every(StructTemplate::new_number(77.))))
-    ]));
-    assert_eq!(template.build().err().expect("unexpected success"),"no infinite arrays in json");
 }
 
 #[test]
@@ -337,22 +379,14 @@ fn test_late_infinite_array() {
     let infinite = StructVar::new_number(&mut group,EachOrEvery::every(77.));
     let template = 
         StructTemplate::new_all(&mut group,
-            StructTemplate::new_object(EachOrEvery::each(vec![
+            StructTemplate::new_object(vec![
                 StructPair::new("a",StructTemplate::new_number(42.)),
                 StructPair::new("b",StructTemplate::new_var(&late))
-            ])));
+            ]));
     let mut lates = LateValues::new();
     lates.add(&late,&infinite).ok().unwrap();
     let output = struct_to_json(&template.build().ok().expect("unexpected error"),Some(&lates));
     assert_eq!(output.err().expect("unexpected success"),"no infinite recursion allowed");
-}
-
-#[test]
-fn test_infinite_object() {
-    let template = StructTemplate::new_object(EachOrEvery::every(
-        StructPair::new("a",StructTemplate::new_number(42.)),
-    ));
-    assert_eq!(template.build().err().expect("unexpected success"),"no infinite objects in json");
 }
 
 #[test]
@@ -371,7 +405,7 @@ fn test_infinite_all() {
 #[test]
 fn test_eoe_smoke_array() {
     let pattern = vec![0,1,2,3,1,2,3,1,2,1];
-    let start = EachOrEvery::each(pattern.clone()).index(|x| *x);
+    let start = pattern.clone();
     let options = vec![
         StructTemplate::new_number(0.),
         StructTemplate::new_string("1".to_string()),
@@ -387,7 +421,7 @@ fn test_eoe_smoke_array() {
     let cmp = JsonValue::Array(
         pattern.iter().map(|x| output_options[*x].clone()).collect::<Vec<_>>()
     );
-    let template = StructTemplate::new_array(start.map(|x| { options[*x].clone() }));
+    let template = StructTemplate::new_array(start.iter().map(|x| { options[*x].clone() }).collect());
     let output = struct_to_json(&template.build().ok().expect("unexpected error"),None).ok().unwrap();
     assert_eq!(json_fix_numbers(&output),json_fix_numbers(&cmp));
 }
@@ -422,9 +456,9 @@ fn test_bind_to_early() {
 #[test]
 fn test_missing_late() {
     let mut group = StructVarGroup::new();
-    let template = StructTemplate::new_array(EachOrEvery::each(vec![
+    let template = StructTemplate::new_array(vec![
         StructTemplate::new_var(&StructVar::new_late(&mut group))
-    ]));
+    ]);
     assert_eq!(template.build().err().expect("unexpected success"),"free variable in template");
 }
 

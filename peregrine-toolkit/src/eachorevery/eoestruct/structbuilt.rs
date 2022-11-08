@@ -3,23 +3,21 @@ use std::{sync::Arc, collections::hash_map::DefaultHasher};
 use std::hash::{Hash, Hasher};
 use serde::de::{Visitor, MapAccess};
 use serde::{Deserializer, Deserialize};
-
-use crate::eachorevery::EachOrEvery;
 use super::eoestruct::{StructConst, StructVarValue};
 
 #[derive(Clone)]
 pub enum StructBuilt {
     Var(usize,usize),
     Const(StructConst),
-    Array(Arc<EachOrEvery<StructBuilt>>,bool),
-    Object(Arc<EachOrEvery<(String,StructBuilt)>>),
+    Array(Arc<Vec<StructBuilt>>,bool),
+    Object(Arc<Vec<(String,StructBuilt)>>),
     All(Vec<Option<Arc<StructVarValue>>>,Arc<StructBuilt>),
     Condition(usize,usize,Arc<StructBuilt>)
 }
 
 impl StructBuilt {
     pub fn is_null(&self) -> bool {
-        self == &StructBuilt::Const(StructConst::Null)
+        if let StructBuilt::Const(StructConst::Null) = self { true } else { false }
     }
 }
 
@@ -36,7 +34,6 @@ impl Hash for StructBuilt {
         }
     }
 }
-
 impl PartialEq for StructBuilt {
     fn eq(&self, other: &Self) -> bool {
         let mut self_hash = DefaultHasher::new();
@@ -70,7 +67,7 @@ impl<'de> Visitor<'de> for StructBuiltVisitor {
             where A: serde::de::SeqAccess<'de> {
         let mut data : Vec<StructBuilt> = vec![];
         while let Some(value) = seq.next_element()? { data.push(value); }
-        Ok(StructBuilt::Array(Arc::new(EachOrEvery::each(data)),false))
+        Ok(StructBuilt::Array(Arc::new(data),false))
     }
 
     fn visit_map<M>(self, mut access: M) -> Result<Self::Value, M::Error>
@@ -79,7 +76,7 @@ impl<'de> Visitor<'de> for StructBuiltVisitor {
         while let Some((key,value)) = access.next_entry()? {
             data.push((key,value));
         }
-        Ok(StructBuilt::Object(Arc::new(EachOrEvery::each(data))))
+        Ok(StructBuilt::Object(Arc::new(data)))
     }
 
     fn visit_bool<E>(self, v: bool) -> Result<Self::Value, E>

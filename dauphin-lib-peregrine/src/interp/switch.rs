@@ -11,29 +11,6 @@ simple_interp_command!(SettingStringInterpCommand,SettingStringDeserializer,0,3,
 simple_interp_command!(SettingNumberInterpCommand,SettingNumberDeserializer,1,3,(0,1,2));
 simple_interp_command!(SettingBooleanInterpCommand,SettingBooleanDeserializer,2,3,(0,1,2));
 simple_interp_command!(SettingNullInterpCommand,SettingNullDeserializer,3,3,(0,1,2));
-simple_interp_command!(ListSwitchInterpCommand,ListSwitchDeserializer,42,4,(0,1,2,3));
-
-impl InterpCommand for ListSwitchInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
-        let registers = context.registers_mut();
-        let path_data = registers.get_strings(&self.1)?.to_vec();
-        let path_offset = registers.get_indexes(&self.2)?.to_vec();
-        let path_length = registers.get_indexes(&self.3)?.to_vec();
-        drop(registers);
-        let request = get_instance::<ShapeRequest>(context,"request")?;
-        let config = request.track();
-        let mut out = vec![];
-        for (offset,length) in path_offset.iter().zip(path_length.iter().cycle()) {
-            let path = path_data[*offset..(*offset+*length)].iter().map(|x| x.as_str()).collect::<Vec<_>>();
-            if let Some(values) = config.list(&path) {
-                out.extend(values.iter().map(|x| x.to_string()));
-            }
-        }
-        let registers = context.registers_mut();
-        registers.write(&self.0,InterpValue::Strings(out));
-        Ok(CommandResult::SyncResult())
-    }
-}
 
 fn value_to_atom(value: &StructBuilt, contents: &[String]) -> Result<Vec<StructConst>,String> {
     Ok(struct_select(value,contents,None)
@@ -53,7 +30,7 @@ fn setting_value(r1: &Register, r2: &Register, context: &mut InterpContext, is_n
     let mut out = vec![];
     //TODO flattens without keeping record, should have advanced option to preserve structure.
     for setting in settings {
-        let mut value = if let Some(value) = config.value2(&setting) {
+        let mut value = if let Some(value) = config.value(&setting) {
             value_to_atom(value,&contents_data).map_err(|e| err!(e))?
         } else if is_null_test && contents_data.len() == 0 {
             vec![StructConst::Null]

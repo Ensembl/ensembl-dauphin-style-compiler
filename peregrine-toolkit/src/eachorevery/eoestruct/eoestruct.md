@@ -158,10 +158,8 @@ You can add objects to a StructTemplate. Such objects are made out of pairs of k
 An EoE is created of these pairs to make an object StructTemplate.
 
 ```
-    pub fn new_object(input: EachOrEvery<StructPair>) -> StructTemplate;
+    pub fn new_object(input: Vec<StructPair>) -> StructTemplate;
 ```
-
-(Though, for exciting corner-cases the argument is itself is an EoE, you'll almost always want an EachOrEvery::each([]) here, and so you can imagine that it simply takes a vector of pairs.
 
 ### More realistic example
 
@@ -178,10 +176,10 @@ You could do it like this:
   let var_start = StructVar::new_number(group,start);
   let var_end = StructVar::new_number(group,end);
 
-  let element = StructTemplate::new_object(EachOrEvery::each([
+  let element = StructTemplate::new_object(vec![
       StructPair::new("start",StructTemplate::new_var(var_start)),
       StructPair::new("end",StructTemplate::new_var(var_end))
-  ]));
+  ]);
   let template = StructTemplate::new_all(group,element);
 ```
 
@@ -200,13 +198,13 @@ For which `new_array` is provided and which you can do like this:
   let var_start = StructVar::new_number(group,start);
   let var_end = StructVar::new_number(group,end);
 
-  let range_tuple = StructTemplate::new_array(EachOrEvery::each([
+  let range_tuple = StructTemplate::new_array(vec![
       StructTemplate::new_var(var_start),
       StructTemplate::new_var(var_end)
   ]);
-  let element = StructTemplate::new_object(EachOrEvery::each([
+  let element = StructTemplate::new_objectvec![
       StructPair::new("range",range_tuple)
-  ]));
+  ]);
   let template = StructTemplate::new_all(group,element);
 ```
 

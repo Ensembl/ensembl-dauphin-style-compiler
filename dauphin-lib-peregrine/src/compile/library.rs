@@ -18,17 +18,17 @@ use super::track::{
 use super::geometry:: {
     PatinaFilledCommandType, PatinaHollowCommandType, DirectColourCommandType, ZMenuCommandType, PatinaZMenuCommandType, PenCommandType,
     PlotterCommandType, UseAllotmentCommandType, SpaceBaseCommandType, SimpleColourCommandType, StripedCommandType,
-    BarCommandType, BpRangeCommandType, SpotColourCommandType, PpcCommandType, StyleCommandType, PatinaSwitchCommandType, PatinaMetadataCommandType, BackgroundCommandType, PatinaSettingSetCommandType, PatinaSettingMemberCommandType
+    BarCommandType, BpRangeCommandType, SpotColourCommandType, PpcCommandType, StyleCommandType, PatinaMetadataCommandType, BackgroundCommandType, PatinaSettingSetCommandType, PatinaSettingMemberCommandType
 };
 use super::shape::{ WiggleCommandType, RectangleCommandType, Text2CommandType, ImageCommandType, EmptyCommandType, RunningTextCommandType };
-use super::switch::{ ListSwitchCommandType, SettingBooleanCommandType, SettingNullCommandType, SettingNumberCommandType, SettingStringCommandType };
+use super::switch::{ SettingBooleanCommandType, SettingNullCommandType, SettingNumberCommandType, SettingStringCommandType };
 
 pub fn peregrine_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(60,0),0x7BEAC30AA3C0A535)
+    CommandSetId::new("peregrine",(61,0),0xA70743CF8F6074EC)
 }
 
 pub fn make_peregrine() -> CompLibRegister {
-    // next is 76; 6, 8, 11, 24, 25, 32-34, 39, 40, 41, 71-73 are unused
+    // next is 76; 6, 8, 11, 24, 25, 32-34, 39-42, 51, 71-73 are unused
     let mut set = CompLibRegister::new(&peregrine_id(),Some(make_peregrine_interp()));
     set.push("setting_string",Some(0),SettingStringCommandType());
     set.push("setting_number",Some(1),SettingNumberCommandType());
@@ -61,7 +61,6 @@ pub fn make_peregrine() -> CompLibRegister {
     set.push("striped",Some(36),StripedCommandType());
     set.push("barred",Some(37),BarCommandType());
     set.push("base_flip",Some(38),BaseFlipCommandType());
-    set.push("list_switch",Some(42),ListSwitchCommandType());
     set.push("only_warm",Some(43),OnlyWarmCommandType());
     set.push("draw_image",Some(44),ImageCommandType());
     set.push("bp_range",Some(45),BpRangeCommandType());
@@ -70,7 +69,6 @@ pub fn make_peregrine() -> CompLibRegister {
     set.push("append_depth",Some(48),AppendDepthCommandType());
     set.push("px_per_carriage",Some(49),PpcCommandType());
     set.push("style",Some(50),StyleCommandType());
-    set.push("patina_switch",Some(51),PatinaSwitchCommandType());
     set.push("request_scope",Some(52),RequestScopeCommandType());
     set.push("empty",Some(53),EmptyCommandType());
     set.push("patina_metadata",Some(54),PatinaMetadataCommandType());

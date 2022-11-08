@@ -1,8 +1,6 @@
 use std::collections::HashMap;
 use peregrine_toolkit::eachorevery::eoestruct::{StructBuilt, StructTemplate};
 use super::expansion::Expansion;
-use super::switchoverlay::SwitchOverlay;
-use super::trackconfig::TrackConfigNode;
 use crate::switch::track::Track;
 
 pub(crate) struct Switch {
@@ -102,19 +100,6 @@ impl Switch {
         out.extend(self.triggers.iter().cloned());
         for kid in self.kids.values() {
             kid.get_triggered(out);
-        }
-    }
-
-    pub(super) fn build_track_config<'a>(&'a self, want_track: &Track, out: &mut TrackConfigNode, path: &mut Vec<&'a str>,mut active: bool, overlay: &SwitchOverlay, also_kids: bool) {
-        if self.tracks.contains(want_track) { active = true; }
-        if active { out.add_path(path,self.value.clone()); }
-        let kids = self.kids.iter();
-        if also_kids {
-            for (kid_name,kid) in kids {
-                path.push(kid_name);
-                kid.build_track_config(want_track,out,path,active,overlay,kid.value.truthy());
-                path.pop();
-            }
         }
     }
 }

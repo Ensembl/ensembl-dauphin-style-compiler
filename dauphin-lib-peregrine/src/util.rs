@@ -79,12 +79,3 @@ pub(crate) fn vec_to_eoe<X: Clone>(input: Vec<X>) -> EachOrEvery<X> {
     if input.len() == 1 { EachOrEvery::every(input.get(0).unwrap().clone()) }
     else { EachOrEvery::each(input) } 
 }
-
-pub(crate) fn vec_to_eoe_or_one<X: Clone>(mut input: Vec<Vec<X>>) -> Vec<EachOrEvery<X>> {
-    let all_one = input.iter().all(|x| x.len()==1);
-    if all_one {
-        input.drain(..).map(|x| EachOrEvery::each(x)).collect()
-    } else {
-        input.drain(..).map(|x| vec_to_eoe(x)).collect()
-    }
-}

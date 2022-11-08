@@ -2,7 +2,9 @@ use crate::{eachorevery::{EachOrEvery, EachOrEveryGroupCompatible}, approxnumber
 use hashbrown::HashMap;
 use identitynumber::{ identitynumber };
 use lazy_static::lazy_static;
-use std::hash::{Hash};
+use ordered_float::OrderedFloat;
+use serde::Serialize;
+use std::{hash::{Hash}, cmp::Ordering};
 use super::StructVar;
 
 identitynumber!(IDS);
@@ -42,13 +44,24 @@ impl StructVarGroup {
 }
 
 #[cfg_attr(debug_assertions,derive(Debug))]
-#[derive(Clone,PartialEq)]
+#[derive(Clone)]
 pub enum StructConst {
     Number(f64),
     String(String),
     Boolean(bool),
     Null
 }
+
+#[derive(PartialOrd,Ord,PartialEq,Eq)]
+enum OrderableConstEnum<'a> {
+    Number(OrderedFloat<f64>),
+    String(&'a str),
+    Boolean(bool),
+    Null
+}
+
+#[derive(PartialOrd,Ord,PartialEq,Eq)]
+struct OrderableConst<'a>(u8,OrderableConstEnum<'a>);
 
 impl StructConst {
     pub fn truthy(&self) -> bool {
@@ -59,9 +72,38 @@ impl StructConst {
             StructConst::Null => false
         }
     }
+
+    fn orderable<'a>(&'a self) -> OrderableConst<'a> {
+        match self {
+            StructConst::Number(n) => OrderableConst(2,OrderableConstEnum::Number(OrderedFloat(*n))),
+            StructConst::String(s) => OrderableConst(3,OrderableConstEnum::String(s)),
+            StructConst::Boolean(b) => OrderableConst(1,OrderableConstEnum::Boolean(*b)),
+            StructConst::Null => OrderableConst(0,OrderableConstEnum::Null)
+        }
+    }
 }
 
-const SIG_FIG : i32 = 6;
+impl PartialOrd for StructConst {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        self.orderable().partial_cmp(&other.orderable())
+    }
+}
+
+impl Ord for StructConst {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.orderable().cmp(&other.orderable())
+    }
+}
+
+impl PartialEq for StructConst {
+    fn eq(&self, other: &Self) -> bool {
+        self.orderable().eq(&other.orderable())
+    }
+}
+
+impl Eq for StructConst {}
+
+const SIG_FIG : i32 = 14; // In theory 15 preserved by f64
 
 impl Hash for StructConst {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
@@ -71,6 +113,18 @@ impl Hash for StructConst {
             StructConst::String(s) => s.hash(state),
             StructConst::Boolean(b) => b.hash(state),
             StructConst::Null => {}
+        }
+    }
+}
+
+impl Serialize for StructConst {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+            where S: serde::Serializer {
+        match self {
+            StructConst::Number(n) => serializer.serialize_f64(*n),
+            StructConst::String(s) => serializer.serialize_str(s),
+            StructConst::Boolean(b) => serializer.serialize_bool(*b),
+            StructConst::Null => serializer.serialize_none()
         }
     }
 }

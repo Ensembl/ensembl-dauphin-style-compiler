@@ -1,23 +1,19 @@
 use std::sync::Arc;
-use crate::eachorevery::{EachOrEvery, EachOrEveryGroupCompatible};
-use super::{eoestruct::{StructConst, StructVarValue, StructResult, struct_error, StructError, LateValues}, eoestructdata::DataVisitor, structbuilt::StructBuilt};
+use crate::eachorevery::{EachOrEveryGroupCompatible};
+use super::{eoestruct::{StructConst, StructVarValue, StructResult, struct_error, StructError, LateValues}, eoestructdata::DataVisitor, structbuilt::StructBuilt, structvalue::StructValue};
 
 pub trait StructSelectorVisitor {
     fn constant(&mut self, constant: &StructConst) -> StructResult;
     fn missing(&mut self) -> StructResult;
 }
 
-fn separate<'a,F,Y>(input: &EachOrEvery<Y>, mut cb: F, visitor: &mut dyn DataVisitor) -> StructResult
-        where F: FnMut(&Y,&mut dyn DataVisitor) -> StructResult {
+fn separate<'a,F,Y>(input: &mut dyn Iterator<Item=Y>, mut cb: F, visitor: &mut dyn DataVisitor) -> StructResult
+        where F: FnMut(Y,&mut dyn DataVisitor) -> StructResult {
     let mut first = true;
-    if let Some(len) = input.len() {
-        for item in input.iter(len).unwrap() {
-            if !first { visitor.visit_separator()?; }
-            cb(item,visitor)?;
-            first = false;
-        }
-    } else {
-        return Err(struct_error("expanding infinitely"));
+    for item in input {
+        if !first { visitor.visit_separator()?; }
+        cb(item,visitor)?;
+        first = false;
     }
     Ok(())        
 }
@@ -74,14 +70,14 @@ impl StructBuilt {
             },
             StructBuilt::Array(values,_) => {
                 output.visit_array_start()?;
-                separate(&values,|value,visitor| {
+                separate(&mut values.iter(),|value,visitor| {
                     value.split(visitor,data)
                 },output)?;
                 output.visit_array_end()?;
             },
             StructBuilt::Object(values) => {
                 output.visit_object_start()?;
-                separate(&values, |kv,visitor| {
+                separate(&mut values.iter(), |kv,visitor| {
                     visitor.visit_pair_start(&kv.0)?;
                     kv.1.split(visitor,data)?;
                     visitor.visit_pair_end(&kv.0)
@@ -138,32 +134,24 @@ impl StructBuilt {
             StructBuilt::Array(array,has_conditions) => {
                 if path.len() == 0 { visitor.missing()?; return Ok(()); }
                 if &path[0] == "*" {
-                    if let Some(len) = array.len() {
-                        for value in array.iter(len).unwrap() {
-                            value.do_select(visitor,data,&path[1..])?;
-                        }
-                    } else {
-                        return Err(struct_error("expanding infinitely"));
+                    for value in array.iter() {
+                        value.do_select(visitor,data,&path[1..])?;
                     }
                 } else if let Some(offset) = path[0].parse::<usize>().ok() {
                     if *has_conditions {
-                        if let Some(len) = array.len() {
-                            let mut cur_offset = 0;
-                            let mut items = array.iter(len).unwrap();
-                            while let Some(next) = items.next() {
-                                if next.is_present(data)? {
-                                    if cur_offset == offset {
-                                        next.do_select(visitor,data,&path[1..])?;
-                                        return Ok(());
-                                    }
-                                    cur_offset += 1;
+                        let mut cur_offset = 0;
+                        let mut items = array.iter();
+                        while let Some(next) = items.next() {
+                            if next.is_present(data)? {
+                                if cur_offset == offset {
+                                    next.do_select(visitor,data,&path[1..])?;
+                                    return Ok(());
                                 }
+                                cur_offset += 1;
                             }
-                            visitor.missing()?;
-                            return Ok(())
-                        } else {
-                            return Err(struct_error("expanding infinitely"));
                         }
+                        visitor.missing()?;
+                        return Ok(())
                     } else {
                         if let Some(value) = array.get(offset) {
                             value.do_select(visitor,data,&path[1..])?;
@@ -177,20 +165,16 @@ impl StructBuilt {
             },
             StructBuilt::Object(obj) => {
                 if path.len() == 0 { visitor.missing()?; return Ok(()); }
-                if let Some(len) = obj.len() {
-                    let mut result = None;
-                    for (key,value) in obj.iter(len).unwrap() { // TODO to hash?
-                        if key == &path[0] {
-                            result = Some(value);
-                        }
+                let mut result = None;
+                for (key,value) in obj.iter() { // TODO to hash?
+                    if key == &path[0] {
+                        result = Some(value);
                     }
-                    if let Some(value) = result {
-                        value.do_select(visitor,data,&path[1..])?;
-                    } else {
-                        visitor.missing()?;
-                    }
+                }
+                if let Some(value) = result {
+                    value.do_select(visitor,data,&path[1..])?;
                 } else {
-                    return Err(struct_error("expanding infinitely"));
+                    visitor.missing()?;
                 }
             },
             StructBuilt::All(vars,expr) => {
@@ -230,6 +214,37 @@ impl StructBuilt {
 
     pub fn select(&self, lates: Option<&LateValues>, path: &[String], visitor: &mut dyn StructSelectorVisitor) -> StructResult {
         self.do_select(visitor,&mut GlobalState { alls: vec![], lates },path)
+    }
+}
+
+impl StructValue {
+    fn split(&self, output: &mut dyn DataVisitor, data: &mut GlobalState) -> StructResult {
+        match self {
+            StructValue::Const(value) => {
+                output.visit_const(value)?;
+            },
+            StructValue::Array(values) => {
+                output.visit_array_start()?;
+                separate(&mut values.iter(),|value,visitor| {
+                    value.split(visitor,data)
+                },output)?;
+                output.visit_array_end()?;
+            },
+            StructValue::Object(values) => {
+                output.visit_object_start()?;
+                separate(&mut values.iter(), |kv,visitor| {
+                    visitor.visit_pair_start(&kv.0)?;
+                    kv.1.split(visitor,data)?;
+                    visitor.visit_pair_end(&kv.0)
+                },output)?;
+                output.visit_object_end()?;
+            }
+        }
+        Ok(())
+    }
+
+    pub fn expand(&self, lates: Option<&LateValues>, output: &mut dyn DataVisitor) -> StructResult {
+        self.split(output,&mut GlobalState { alls: vec![], lates })
     }
 }
 

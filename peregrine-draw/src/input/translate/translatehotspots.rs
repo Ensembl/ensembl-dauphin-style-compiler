@@ -1,5 +1,5 @@
 use commander::CommanderStream;
-use peregrine_toolkit::{log, eachorevery::eoestruct::StructTemplate};
+use peregrine_toolkit::{log};
 
 use crate::{Message, PeregrineInnerAPI, PgCommanderWeb, input::{InputEvent, InputEventKind, low::lowlevel::LowLevelInput}, run::inner::LockedPeregrineInnerAPI, shape::layers::drawingzmenus::HotspotEntryDetails};
 
@@ -10,18 +10,6 @@ fn process_hotspot_event(api: &LockedPeregrineInnerAPI, x: f64, y: f64) -> Resul
         match event {
             HotspotEntryDetails::ZMenu(z) => {
                 zmenus.push(z.value());
-            },
-            HotspotEntryDetails::Switch(value) => {
-                let (path,yn) = value.value();
-                let path = path.iter().map(|x| x.as_str()).collect::<Vec<_>>();
-                log!("switch hotspot {:?}",value.value());
-                if yn {
-                    let tmpl_true = StructTemplate::new_boolean(true).build().ok().unwrap();
-                    api.data_api.switch(&path,tmpl_true);
-                } else {
-                    let tmpl_null = StructTemplate::new_null().build().ok().unwrap();
-                    api.data_api.switch(&path,tmpl_null);
-                }
             },
             HotspotEntryDetails::Setting(value) => {
                 let (path,value) = value.value();

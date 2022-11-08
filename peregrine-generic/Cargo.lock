@@ -666,6 +666,7 @@ dependencies = [
  "identitynumber",
  "js-sys",
  "lazy_static 1.4.0",
+ "ordered-float",
  "serde",
  "serde_bytes",
  "serde_cbor",

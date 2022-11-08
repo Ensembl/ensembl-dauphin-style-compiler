@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use peregrine_toolkit::{eachorevery::{eoestruct::{StructBuilt, StructTemplate, StructConst}, EachOrEvery}, error::Error};
+use peregrine_toolkit::{eachorevery::{eoestruct::{StructBuilt, StructTemplate, StructConst}}, error::Error};
 
 fn const_matches(a: &StructTemplate, b: &StructConst) -> bool {
     if let StructTemplate::Const(a) = a {
@@ -9,34 +9,30 @@ fn const_matches(a: &StructTemplate, b: &StructConst) -> bool {
     }
 }
 
-fn template_iter(data: &StructTemplate) -> Result<Vec<&StructTemplate>,Error> {
-    Ok(match data {
+fn template_iter(data: &StructTemplate) ->Vec<StructTemplate> {
+    match data {
         StructTemplate::Array(a) => {
-            if let Some(len) = a.len() {
-                a.iter(len).unwrap().collect::<Vec<_>>()
-            } else {
-                return Err(Error::operr("cannot update infinite array"));
-            }
+            a.as_ref().clone()
         },
         _ => { vec![] }
-    })
+    }
 }
 
 fn member(old: &StructTemplate, value: &StructConst, yn: bool) -> Result<StructTemplate,Error> {
     let mut out = vec![];
     if yn {
         /* insert */
-        let duplicate = template_iter(old)?.drain(..).any(|x| const_matches(x,value));
+        let duplicate = template_iter(old).drain(..).any(|x| const_matches(&x,value));
         if !duplicate {
             out.push(StructTemplate::Const(value.clone()));
         }
     } else {
         /* remove */
-        out = template_iter(old)?.drain(..)
+        out = template_iter(old).drain(..)
             .filter(|x| !const_matches(x,value))
-            .cloned().collect();
+            .collect();
     }
-    Ok(StructTemplate::Array(Arc::new(EachOrEvery::each(out))))
+    Ok(StructTemplate::Array(Arc::new(out)))
 }
 
 #[derive(Clone)]

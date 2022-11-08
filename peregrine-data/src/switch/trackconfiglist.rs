@@ -42,8 +42,7 @@ impl TrackConfigList {
     pub(super) fn new(switches_data: &SwitchesData) -> TrackConfigList {
         let mut builder = HashMap::new();
         for track in &switches_data.get_triggered() {
-            let config = switches_data.build_track_config(&track);
-            builder.insert(track.clone(),Arc::new(TrackConfig::new(&track,config,switches_data)));
+            builder.insert(track.clone(),Arc::new(TrackConfig::new(&track,switches_data)));
         }
         let mut hasher = DefaultHasher::new();
         hashmap_hasher(&builder,&mut hasher);

@@ -1,4 +1,4 @@
-use std::sync::{ Arc, Mutex, MutexGuard };
+use std::sync::{ Arc, Mutex };
 use identitynumber::{ identitynumber, hashable, orderable };
 use lazy_static::lazy_static;
 use peregrine_toolkit::eachorevery::eoestruct::StructBuilt;
@@ -43,8 +43,6 @@ impl Track {
         let mut switches = lock!(self.switch_overlay);
         if !value.is_null() { switches.set(path,value); } else { switches.clear(path); } // XXX single call
     }
-
-    pub(super) fn overlay(&self) -> MutexGuard<SwitchOverlay> { self.switch_overlay.lock().unwrap() }
 
     pub(crate) fn program(&self) -> &ProgramModel { &self.program }
     pub(crate) fn mapping(&self) -> &TrackMapping { &self.mapping }

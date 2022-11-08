@@ -84,10 +84,10 @@ impl InterpCommand for EoesNullInterpCommand {
 impl InterpCommand for EoesArrayInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         let registers = context.registers();
-        let inner_ids = EachOrEvery::each(registers.get_numbers(&self.1)?.iter().map(|x| *x as u32).collect::<Vec<_>>());
+        let inner_ids = registers.get_numbers(&self.1)?.iter().map(|x| *x as u32).collect::<Vec<_>>();
         drop(registers);
         let geometry_builder = get_instance::<ObjectBuilder>(context,"builder")?;
-        let inners = inner_ids.map_results(|id| geometry_builder.eoetmpl(*id).map(|x| x.as_ref().clone()))?;
+        let inners = inner_ids.iter().map(|id| geometry_builder.eoetmpl(*id).map(|x| x.as_ref().clone())).collect::<Result<Vec<_>,_>>()?;
         let id = geometry_builder.add_eoetmpl(StructTemplate::new_array(inners));
         let registers = context.registers_mut();
         registers.write(&self.0,InterpValue::Indexes(vec![id as usize]));    
@@ -113,10 +113,10 @@ impl InterpCommand for EoesPairInterpCommand {
 impl InterpCommand for EoesObjectInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         let registers = context.registers();
-        let inner_ids = EachOrEvery::each(registers.get_numbers(&self.1)?.iter().map(|x| *x as u32).collect::<Vec<_>>());
+        let inner_ids = registers.get_numbers(&self.1)?.iter().map(|x| *x as u32).collect::<Vec<_>>();
         drop(registers);
         let geometry_builder = get_instance::<ObjectBuilder>(context,"builder")?;
-        let inners = inner_ids.map_results(|id| geometry_builder.eoepair(*id).map(|x| x.as_ref().clone()))?;
+        let inners = inner_ids.iter().map(|id| geometry_builder.eoepair(*id).map(|x| x.as_ref().clone())).collect::<Result<Vec<_>,_>>()?;
         let id = geometry_builder.add_eoetmpl(StructTemplate::new_object(inners));
         let registers = context.registers_mut();
         registers.write(&self.0,InterpValue::Indexes(vec![id as usize]));    

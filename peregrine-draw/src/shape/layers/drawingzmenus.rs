@@ -24,32 +24,11 @@ const VERT_ZONE_HEIGHT : u64 = 200;
  * max bp and use bp_in_carriage to convert to maximum proportion of carriage.
  */
 
-pub struct SwitchProxy(Rc<EachOrEvery<(Vec<String>,bool)>>,usize);
-
-impl SwitchProxy {
-    pub fn value(&self) -> (Vec<String>,bool) {
-        self.0.get(self.1).unwrap().clone()
-    }
-}
-
 pub struct SettingProxy(Rc<EachOrEvery<(Vec<String>,SettingMode)>>,usize);
 
 impl SettingProxy {
     pub fn value(&self) -> (Vec<String>,SettingMode) {
         self.0.get(self.1).unwrap().clone()
-    }
-}
-
-#[derive(Clone)]
-struct SwitchGenerator(Rc<EachOrEvery<(Vec<String>,bool)>>);
-
-impl SwitchGenerator {
-    fn new(values: &EachOrEvery<(Vec<String>,bool)>) -> SwitchGenerator {
-        SwitchGenerator(Rc::new(values.clone()))
-    }
-
-    fn make_proxy(&self, index: usize) -> SwitchProxy {
-        SwitchProxy(self.0.clone(),index)
     }
 }
 
@@ -68,7 +47,6 @@ impl SettingGenerator {
 
 enum HotspotUnscaledEntryDetails {
     ZMenu(ZMenuGenerator),
-    Switch(SwitchGenerator),
     Setting(SettingGenerator)
 }
 
@@ -90,13 +68,6 @@ impl HotspotUnscaledEntry {
                     details: HotspotUnscaledEntryDetails::ZMenu(details),
                     area
                 }      
-            },
-            Hotspot::Switch(values) => {
-                let details = SwitchGenerator::new(values);
-                HotspotUnscaledEntry {
-                    details: HotspotUnscaledEntryDetails::Switch(details),
-                    area
-                }
             },
             Hotspot::Setting(values) => {
                 let details = SettingGenerator::new(values);
@@ -140,7 +111,6 @@ impl DrawingHotspotsBuilder {
 #[derive(Clone)]
 pub(crate) enum HotspotEntryDetails {
     ZMenu(Rc<ZMenuProxy>),
-    Switch(Rc<SwitchProxy>),
     Setting(Rc<SettingProxy>)
 }
 
@@ -149,9 +119,6 @@ impl HotspotEntryDetails {
         match unscaled {
             HotspotUnscaledEntryDetails::ZMenu(generator) => {
                 HotspotEntryDetails::ZMenu(Rc::new(generator.make_proxy(index)))
-            },
-            HotspotUnscaledEntryDetails::Switch(generator) => {
-                HotspotEntryDetails::Switch(Rc::new(generator.make_proxy(index)))
             },
             HotspotUnscaledEntryDetails::Setting(generator) => {
                 HotspotEntryDetails::Setting(Rc::new(generator.make_proxy(index)))

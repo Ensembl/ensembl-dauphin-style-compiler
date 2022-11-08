@@ -12,18 +12,19 @@ use super::track::{
 use super::geometry::{
     PatinaFilledDeserializer, PatinaHollowDeserializer, DirectColourDeserializer, ZMenuDeserializer, PatinaZMenuDeserializer,
     PenDeserializer, PlotterDeserializer, UseAllotmentDeserializer, SpaceBaseDeserializer, SimpleColourDeserializer,
-    StripedDeserializer, BarredDeserializer, BpRangeDeserializer, SpotColourDeserializer, PpcDeserializer, StyleDeserializer, PatinaSwitchDeserializer, PatinaMetadataDeserializer, BackgroundDeserializer, PatinaSettingSetDeserializer, PatinaSettingMemberDeserializer
+    StripedDeserializer, BarredDeserializer, BpRangeDeserializer, SpotColourDeserializer, PpcDeserializer, StyleDeserializer,
+    PatinaMetadataDeserializer, BackgroundDeserializer, PatinaSettingSetDeserializer, PatinaSettingMemberDeserializer
 };
 use super::shape::{
     WiggleDeserializer, RectangleDeserializer, Text2Deserializer, ImageDeserializer, EmptyDeserializer, RunningTextDeserializer,
 };
 
 use super::switch::{
-    ListSwitchDeserializer, SettingStringDeserializer, SettingNumberDeserializer, SettingBooleanDeserializer, SettingNullDeserializer
+    SettingStringDeserializer, SettingNumberDeserializer, SettingBooleanDeserializer, SettingNullDeserializer
 };
 
 pub fn std_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(60,0),0x7BEAC30AA3C0A535)
+    CommandSetId::new("peregrine",(61,0),0xA70743CF8F6074EC)
 }
 
 pub fn make_peregrine_interp() -> InterpLibRegister {
@@ -58,7 +59,6 @@ pub fn make_peregrine_interp() -> InterpLibRegister {
     set.push(StripedDeserializer());
     set.push(BarredDeserializer());
     set.push(BaseFlipDeserializer());
-    set.push(ListSwitchDeserializer());
     set.push(OnlyWarmDeserializer());
     set.push(ImageDeserializer());
     set.push(BpRangeDeserializer());
@@ -67,7 +67,6 @@ pub fn make_peregrine_interp() -> InterpLibRegister {
     set.push(AppendDepthDeserializer());
     set.push(PpcDeserializer());
     set.push(StyleDeserializer());
-    set.push(PatinaSwitchDeserializer());
     set.push(RequestDeserializer());
     set.push(RequestScopeDeserializer());
     set.push(EmptyDeserializer());

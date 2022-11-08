@@ -4,7 +4,7 @@ use peregrine_toolkit::{eachorevery::eoestruct::{StructTemplate, StructBuilt, St
 
 use crate::{Track, request::tracks::{trackmodel::TrackModel, expansionmodel::ExpansionModel}, AllBackends, PgDauphin, SettingMode};
 
-use super::{trackconfiglist::TrackConfigList, switch::Switch, trackconfig::TrackConfigNode, expansion::Expansion};
+use super::{trackconfiglist::TrackConfigList, switch::Switch, expansion::Expansion};
 
 pub(crate) struct SwitchesData {
     root: Switch,
@@ -43,14 +43,6 @@ impl SwitchesData {
         let mut triggered = vec![];
         self.root.get_triggered(&mut triggered);
         triggered
-    }
-
-    pub(super) fn build_track_config(&self, track: &Track) -> TrackConfigNode {
-        let mut out = TrackConfigNode::empty();
-        let overlay = track.overlay();
-        self.root.build_track_config(track, &mut out, &mut vec![], false,&overlay,true);
-        overlay.apply(&mut out);
-        out
     }
 
     fn switch_inner(&mut self, path: &[&str], value: StructBuilt) {
