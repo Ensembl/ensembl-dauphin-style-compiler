@@ -96,13 +96,10 @@ impl Switch {
     }
 
     pub(super) fn get_triggered(&self, out: &mut Vec<Track>) {
-        log!("node truth={:?} ({:?}) triggers={:?}",self.value.truthy(),self.value,self.triggers.len());
         if !self.value.truthy() { return; }
         out.extend(self.triggers.iter().cloned());
         for (name,kid) in self.kids.iter() {
-            log!("kid {}",name);
             kid.get_triggered(out);
-            log!("/kid {}",name);
         }
     }
 }
