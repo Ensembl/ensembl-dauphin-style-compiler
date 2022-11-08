@@ -1,4 +1,4 @@
-use peregrine_toolkit::{diffset::DiffSet, eachorevery::eoestruct::StructBuilt, error::Error, lengths_match, multizip};
+use peregrine_toolkit::{diffset::DiffSet, eachorevery::eoestruct::{StructValue}, error::Error, lengths_match, multizip};
 use crate::{shapeload::programname::ProgramName};
 use super::programspec::{ProgramModel, ProgramSetting, ProgramModelBuilder};
 
@@ -48,7 +48,7 @@ pub(crate) struct PackedProgramSpec {
     /* indexes all to the above */
     name_idx: Vec<String>,
     key_idx: Vec<String>,
-    value_idx: Vec<StructBuilt>,
+    value_idx: Vec<StructValue>,
 }
 
 impl PackedProgramSpec {

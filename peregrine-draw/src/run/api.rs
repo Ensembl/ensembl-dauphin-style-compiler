@@ -1,6 +1,6 @@
 use crate::util::message::{ Message };
 use peregrine_toolkit::console::{set_printer, Severity};
-use peregrine_toolkit::eachorevery::eoestruct::{StructBuilt, struct_to_json};
+use peregrine_toolkit::eachorevery::eoestruct::{StructValue};
 use peregrine_toolkit::{log_extra, log_important};
 use peregrine_toolkit_async::sync::blocker::Blocker;
 use peregrine_toolkit_async::sync::needed::Needed;
@@ -57,7 +57,7 @@ enum DrawMessage {
     Goto(f64,f64),
     SetY(f64),
     SetStick(StickId),
-    Switch(Vec<String>,StructBuilt),
+    Switch(Vec<String>,StructValue),
     RadioSwitch(Vec<String>,bool),
     SetMessageReporter(Box<dyn FnMut(&Message) + 'static + Send>),
     DebugAction(u8),
@@ -73,7 +73,7 @@ impl std::fmt::Debug for DrawMessage {
             DrawMessage::Goto(centre,scale) => write!(f,"Goto({:?},{:?})",centre,scale),
             DrawMessage::SetY(y) => write!(f,"SetY({:?})",y),
             DrawMessage::SetStick(stick)  => write!(f,"SetStick({:?})",stick),
-            DrawMessage::Switch(path,value) => write!(f,"Switch({:?},{:?})",path,struct_to_json(value,None)),
+            DrawMessage::Switch(path,value) => write!(f,"Switch({:?},{:?})",path,value.to_json_value().to_string()),
             DrawMessage::RadioSwitch(path,yn)  => write!(f,"RadioSwitch({:?},{:?})",path,yn),
             DrawMessage::SetMessageReporter(_) => write!(f,"SetMessageReporter(...)"),
             DrawMessage::DebugAction(index)  => write!(f,"DebugAction({:?})",index),
@@ -178,7 +178,7 @@ impl PeregrineAPI {
         self.queue.add(Some(DrawMessage::Sync()));
     }
 
-    pub fn switch(&self, path: &[&str], value: StructBuilt) {
+    pub fn switch(&self, path: &[&str], value: StructValue) {
         self.queue.add(Some(DrawMessage::Switch(path.iter().map(|x| x.to_string()).collect(),value)));
     }
 

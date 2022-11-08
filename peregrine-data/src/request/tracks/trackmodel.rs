@@ -1,10 +1,10 @@
 use std::{sync::Arc, collections::{BTreeMap, HashMap}};
-use peregrine_toolkit::{eachorevery::eoestruct::StructBuilt, error::Error };
+use peregrine_toolkit::{eachorevery::eoestruct::{StructValue}, error::Error };
 use crate::{Track, shapeload::programname::ProgramName, PgDauphin, switch::switches::SwitchesData };
 
 pub(crate) struct TrackMappingBuilder {
     settings: HashMap<String,Vec<String>>,
-    values: Vec<(String,StructBuilt)>,
+    values: Vec<(String,StructValue)>,
 }
 
 impl TrackMappingBuilder {
@@ -19,7 +19,7 @@ impl TrackMappingBuilder {
         self.settings.insert(key.to_string(),path.to_vec());
     }
 
-    pub(crate) fn add_value(&mut self, key: &str, value: StructBuilt) {
+    pub(crate) fn add_value(&mut self, key: &str, value: StructValue) {
         self.values.push((key.to_string(),value));
     }
 }
@@ -32,7 +32,7 @@ impl TrackMapping {
         TrackMapping(Arc::new(builder))
     }
 
-    pub(crate) fn apply(&self, switches_data: &SwitchesData) -> BTreeMap<String,StructBuilt> {
+    pub(crate) fn apply(&self, switches_data: &SwitchesData) -> BTreeMap<String,StructValue> {
         let mut out = BTreeMap::new();
         for (key,value) in &self.0.values {
             out.insert(key.to_string(),value.clone());

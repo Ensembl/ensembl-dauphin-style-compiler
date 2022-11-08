@@ -255,8 +255,8 @@ fn run_value_cases(value: &JsonValue) {
         let path = to_str_vec(&path);
         assert!(data.extract(&path).is_err());
     }
-    /* built test */
-    let built = data.to_built();
+    /* build test */
+    let built = data.build();
     let built_json = struct_to_json(&built,None).expect("unbuildable");
     assert_eq!(json_fix_numbers(&value[0]),json_fix_numbers(&built_json));
     /* serialise test */

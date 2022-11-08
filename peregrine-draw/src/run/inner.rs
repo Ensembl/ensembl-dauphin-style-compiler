@@ -13,7 +13,7 @@ use peregrine_dauphin::peregrine_dauphin;
 use peregrine_febe_javascript::JavascriptIntegration;
 use peregrine_febe_network::NetworkChannel;
 use peregrine_message::MessageKind;
-use peregrine_toolkit::eachorevery::eoestruct::StructBuilt;
+use peregrine_toolkit::eachorevery::eoestruct::{StructValue};
 use peregrine_toolkit::error::err_web_drop;
 use peregrine_toolkit::log;
 use peregrine_toolkit::plumbing::distributor::Distributor;
@@ -195,7 +195,7 @@ impl PeregrineInnerAPI {
         self.input.set_artificial(name,start);
     }
 
-    pub(crate) fn switch(&self, path: &[&str], value: StructBuilt) {
+    pub(crate) fn switch(&self, path: &[&str], value: StructValue) {
         self.data_api.switch(path,value);
     }
 

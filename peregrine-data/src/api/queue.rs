@@ -10,7 +10,7 @@ use crate::train::main::train::StickData;
 use crate::train::model::trainextent::TrainExtent;
 use crate::{Assets, PgCommanderTaskSpec, DrawingCarriage, BackendNamespace, SettingMode };
 use commander::{CommanderStream, PromiseFuture};
-use peregrine_toolkit::eachorevery::eoestruct::StructBuilt;
+use peregrine_toolkit::eachorevery::eoestruct::{StructValue};
 use peregrine_toolkit::error::err_web_drop;
 use peregrine_toolkit::{log_extra, lock};
 use peregrine_toolkit_async::sync::blocker::{Blocker, Lockout};
@@ -62,7 +62,7 @@ use super::pgcore::PeregrineCore;
     SetBpPerScreen(f64),
     SetStick(StickId),
     SetMinPxPerCarriage(u32),
-    Switch(Vec<String>,StructBuilt),
+    Switch(Vec<String>,StructValue),
     UpdateSwitch(Vec<String>,SettingMode),
     RadioSwitch(Vec<String>,bool),
     RegenerateTrackConfig,

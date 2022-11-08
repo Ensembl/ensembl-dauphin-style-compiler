@@ -1,30 +1,30 @@
 use std::sync::Arc;
-use peregrine_toolkit::{eachorevery::{eoestruct::{StructBuilt, StructTemplate, StructConst}}, error::Error};
+use peregrine_toolkit::{eachorevery::{eoestruct::{ StructConst, StructValue}}};
 
-fn const_matches(a: &StructTemplate, b: &StructConst) -> bool {
-    if let StructTemplate::Const(a) = a {
+fn const_matches(a: &StructValue, b: &StructConst) -> bool {
+    if let StructValue::Const(a) = a {
         a == b
     } else {
         false
     }
 }
 
-fn template_iter(data: &StructTemplate) ->Vec<StructTemplate> {
+fn template_iter(data: &StructValue) ->Vec<StructValue> {
     match data {
-        StructTemplate::Array(a) => {
+        StructValue::Array(a) => {
             a.as_ref().clone()
         },
         _ => { vec![] }
     }
 }
 
-fn member(old: &StructTemplate, value: &StructConst, yn: bool) -> Result<StructTemplate,Error> {
+fn member(old: &StructValue, value: &StructConst, yn: bool) -> StructValue {
     let mut out = vec![];
     if yn {
         /* insert */
         let duplicate = template_iter(old).drain(..).any(|x| const_matches(&x,value));
         if !duplicate {
-            out.push(StructTemplate::Const(value.clone()));
+            out.push(StructValue::Const(value.clone()));
         }
     } else {
         /* remove */
@@ -32,7 +32,7 @@ fn member(old: &StructTemplate, value: &StructConst, yn: bool) -> Result<StructT
             .filter(|x| !const_matches(x,value))
             .collect();
     }
-    Ok(StructTemplate::Array(Arc::new(out)))
+    StructValue::Array(Arc::new(out))
 }
 
 #[derive(Clone)]
@@ -44,19 +44,15 @@ pub enum SettingMode {
 }
 
 impl SettingMode {
-    pub fn update(&self, old: StructBuilt) -> Result<StructBuilt,Error> {
+    pub fn update(&self, old: StructValue) -> StructValue {
         let out = match self {
             SettingMode::Set(value) => {
-                let tmpl = StructTemplate::new_boolean(*value);
-                tmpl.build().map_err(|_| Error::fatal("cannot build booleans!"))
+                StructValue::new_boolean(*value)
             }
-            SettingMode::Member(value, yn) => {                
-                let old_tmpl = old.unbuild().map_err(|_| Error::operr("cannot update data"))?;
-                Ok(member(&old_tmpl,&StructConst::String(value.to_string()),*yn)
-                    .map(|x| x.build())?
-                    .map_err(|_| Error::operr("cannot rebuild data"))?)
+            SettingMode::Member(value, yn) => {
+                member(&old,&StructConst::String(value.to_string()),*yn)
             },
-            SettingMode::None => { Ok(old.clone()) }
+            SettingMode::None => { old.clone() }
         };
         out
     }

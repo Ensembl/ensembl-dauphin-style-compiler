@@ -7,7 +7,7 @@ The fundamental structure for data in the genome browser is the "EachOrEvery" (E
 1. a finite sequence of values, resembling an array ("each")
 2. a conceptually-infinitely long repeating sequence of a single value ("every").
 
-These cannot be nested, and so are flat, sequence data-structures representing, say, a list of start co-ordinates, biotypes, colours, etc. A group of EoEs can be iterated through together. The iteration terminates when the finite EoEs end (of which there must be at least one, and all must be the same length).
+These cannot be nested, and so are flat-sequence data-structures representing, say, a list of start co-ordinates, biotypes, colours, etc. A group of EoEs can be iterated through together. The iteration terminates when the finite EoEs end (of which there must be at least one, and all must be the same length).
 
 The question arises as to map this to more conventional data-structures such as represented in JSON, transforming in "both directions", ie:
 
@@ -23,6 +23,30 @@ The most important type in EoEStruct is `StructBuilt`. This compactly represents
 1. Getting EoEs out of conventional data
 2. Generating more conventional datafrom EoEs
 3. (Limited) modification of EoEStructs.
+
+EoEStruct also implements StructValue, a much simpler data-structure representing a JSON "constant", ie an arbitrary json data-structure which doesn't use EoEs. This resembles json_serde::Value, but has some nice properties like efficient copies by using Arcs internally and ordering and equality and areserializable via serde (not only into JSON!).
+
+## StructValue Basics
+
+When all you want to do is represent some JSON data without reference to EoEs, use StructValues. There are constructors and a way of going forward and backward to the serde form.
+
+```
+    fn new_number(input: f64) -> StructValue;
+    fn new_string(input: String) -> StructValue;
+    fn new_boolean(input: bool) -> StructValue;
+    fn new_null() -> StructValue;
+    fn new_array(input: Vec<StructValue>) -> StructValue;
+    fn new_object(mut input: Vec<(String,StructValue)>) -> StructValue;
+    fn new_expand(input: &StructBuilt, lates: Option<&LateValues>) -> Result<StructValue,StructError>;
+    fn new_json_value(value: &JsonValue) -> StructValue;
+    fn to_json_value(&self) -> JsonValue;
+```
+
+As well as implementing Serialize, Deseriailize, PartialOrd, Ord, PartialEq, Eq, and Hash you can also extract and replace parts of values just like with StructTemplates. See the relevant sections later in this document. You can convert StructValues into StructBuilts for the use of other operations described in this document. Unlike with StructTemplate, this is guaranteed to succeed.
+
+```
+    pub fn build(&self) -> StructBuilt;
+```
 
 ## Getting EoEs out of conventional data
 

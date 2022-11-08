@@ -1,4 +1,4 @@
-use peregrine_toolkit::{error::Error, eachorevery::eoestruct::StructBuilt, diffset::DiffSet, lengths_match, multizip };
+use peregrine_toolkit::{error::Error, eachorevery::eoestruct::{StructValue}, diffset::DiffSet, lengths_match, multizip };
 use crate::{BackendNamespace, shapeload::programname::ProgramName };
 use super::{ switchtree::SwitchTree, trackmodel::{TrackModel, TrackModelBuilder}, expansionmodel::{ExpansionModel, ExpansionModelBuilder} };
 
@@ -107,7 +107,7 @@ pub(crate) struct PackedTrackRes {
     program_idx: Vec<String>,
     tag_idx: Vec<String>,
     channel_idx: SwitchTree,
-    value_idx: Vec<StructBuilt>,
+    value_idx: Vec<StructValue>,
     key_idx: Vec<String>
 }
 

@@ -1,4 +1,4 @@
-use super::{eoestructdata::DataVisitor, eoestruct::{StructConst, StructResult, struct_error}, StructBuilt};
+use super::{eoestructdata::DataVisitor, eoestruct::{StructConst, StructResult, struct_error}, StructBuilt, StructValue};
 
 /* Falsy values are:
  * false, 0, "", [], {}, null
@@ -46,4 +46,14 @@ pub(super) fn truthy(input: &StructBuilt) -> bool {
 
 impl StructBuilt {
     pub fn truthy(&self) -> bool { truthy(self) }
+}
+
+impl StructValue {
+    pub fn truthy(&self) -> bool {
+        match self {
+            StructValue::Const(c) => c.truthy(),
+            StructValue::Array(a) => a.len() != 0,
+            StructValue::Object(obj) => obj.len() != 0
+        }
+    }
 }

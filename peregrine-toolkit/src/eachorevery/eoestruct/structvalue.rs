@@ -1,4 +1,4 @@
-use std::{sync::Arc, fmt, collections::BTreeMap, cmp::Ordering};
+use std::{sync::Arc, fmt, collections::BTreeMap, cmp::Ordering, hash::Hash };
 use serde::{de::{Visitor, MapAccess}, Deserialize, Deserializer, Serialize, ser::{SerializeSeq, SerializeMap}};
 use super::{StructConst, eoestructdata::{DataStackTransformer, eoestack_run}, StructBuilt, eoestruct::{LateValues}, StructError };
 use serde_json::{Value as JsonValue, Number};
@@ -111,15 +111,15 @@ impl StructValue {
         }
     }
 
-    pub fn to_built(&self) -> StructBuilt {
+    pub fn build(&self) -> StructBuilt {
         match self {
             StructValue::Const(c) => StructBuilt::Const(c.clone()),
             StructValue::Array(a) => {
-                StructBuilt::Array(Arc::new(a.iter().map(|x| x.to_built()).collect()),false)
+                StructBuilt::Array(Arc::new(a.iter().map(|x| x.build()).collect()),false)
             },
             StructValue::Object(j) => {
                 StructBuilt::Object(Arc::new(j.iter().map(|(k,v)| {
-                    (k.to_string(),v.to_built())
+                    (k.to_string(),v.build())
                 }).collect()))
             }
         }
@@ -146,6 +146,17 @@ impl PartialEq for StructValue {
 }
 
 impl Eq for StructValue {}
+
+impl Hash for StructValue {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        core::mem::discriminant(self).hash(state);
+        match self {
+            StructValue::Const(c) => c.hash(state),
+            StructValue::Array(a) => a.hash(state),
+            StructValue::Object(obj) => obj.hash(state)
+        }
+    }
+}
 
 macro_rules! sv_ds_number {
     ($name:ident,$type:ty) => {

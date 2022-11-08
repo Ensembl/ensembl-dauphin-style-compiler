@@ -10,7 +10,7 @@ use crate::train::main::railway::Railway;
 use commander::PromiseFuture;
 use peregrine_dauphin_queue::{ PgDauphinQueue };
 use peregrine_message::PeregrineMessage;
-use peregrine_toolkit::eachorevery::eoestruct::StructBuilt;
+use peregrine_toolkit::eachorevery::eoestruct::{StructValue};
 use peregrine_toolkit::error::Error;
 use peregrine_toolkit::lock;
 use peregrine_toolkit::plumbing::oneshot::OneShot;
@@ -149,7 +149,7 @@ impl PeregrineCore {
         p.await
     }
 
-    pub fn switch(&self, path: &[&str], value: StructBuilt) {
+    pub fn switch(&self, path: &[&str], value: StructValue) {
         self.base.queue.push(ApiMessage::Switch(path.iter().map(|x| x.to_string()).collect(),value));
     }
 

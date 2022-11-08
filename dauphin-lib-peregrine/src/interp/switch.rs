@@ -1,6 +1,6 @@
 use crate::simple_interp_command;
 use peregrine_data::ShapeRequest;
-use peregrine_toolkit::eachorevery::eoestruct::{StructBuilt, StructConst, struct_select, struct_error_to_string};
+use peregrine_toolkit::eachorevery::eoestruct::{StructConst, StructValue};
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
 use serde_cbor::Value as CborValue;
@@ -12,11 +12,21 @@ simple_interp_command!(SettingNumberInterpCommand,SettingNumberDeserializer,1,3,
 simple_interp_command!(SettingBooleanInterpCommand,SettingBooleanDeserializer,2,3,(0,1,2));
 simple_interp_command!(SettingNullInterpCommand,SettingNullDeserializer,3,3,(0,1,2));
 
-fn value_to_atom(value: &StructBuilt, contents: &[String]) -> Result<Vec<StructConst>,String> {
-    Ok(struct_select(value,contents,None)
-        .map_err(|e| struct_error_to_string(e))?
-        .drain(..).filter_map(|x| x).collect::<Vec<_>>()
-    )
+fn to_const(value: &StructValue) -> Option<StructConst> {
+    match value {
+        StructValue::Const(c) => Some(c.clone()),
+        _ => None
+    }
+}
+
+fn value_to_atom(value: &StructValue, contents: &[String]) -> Result<Vec<StructConst>,String> {
+    let contents = contents.iter().map(|x| x.as_str()).collect::<Vec<_>>();
+    Ok(match value.extract(&contents).ok() {
+        Some(StructValue::Const(c)) => vec![c],
+        Some(StructValue::Array(a)) => a.iter().filter_map(|x| to_const(x)).collect(),
+        Some(StructValue::Object(obj)) => obj.keys().map(|x| StructConst::String(x.clone())).collect(),
+        None => vec![]
+    })
 }
 
 fn setting_value(r1: &Register, r2: &Register, context: &mut InterpContext, is_null_test: bool) -> anyhow::Result<Vec<StructConst>> {

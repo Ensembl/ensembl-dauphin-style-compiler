@@ -1,21 +1,21 @@
 use std::collections::HashMap;
-use peregrine_toolkit::eachorevery::eoestruct::{StructBuilt, StructTemplate};
+use peregrine_toolkit::{eachorevery::eoestruct::StructValue, log};
 use super::expansion::Expansion;
 use crate::switch::track::Track;
 
 pub(crate) struct Switch {
     kids: HashMap<String,Switch>,
     radio: bool,
-    value: StructBuilt,
+    value: StructValue,
     tracks: Vec<Track>,
     triggers: Vec<Track>,
     expansions: Vec<Expansion>,
-    null: StructBuilt, // Convenience
+    null: StructValue // Convenience
 }
 
 impl Switch {
     pub(super) fn new() -> Switch {
-        let null = StructTemplate::new_null().build().ok().unwrap();
+        let null = StructValue::new_null();
         Switch {
             kids: HashMap::new(),
             value: null.clone(),
@@ -41,7 +41,7 @@ impl Switch {
         }
     }
 
-    pub(super) fn get_value(&self, path: &[&str]) -> &StructBuilt {
+    pub(super) fn get_value(&self, path: &[&str]) -> &StructValue {
         if path.len() > 0 {
             if !self.value.truthy() { return &self.null; }
             if let Some(kid) = self.kids.get(&path[0].to_string()) {
@@ -66,7 +66,7 @@ impl Switch {
         }
     }
 
-    pub(super) fn set(&mut self, value: StructBuilt) {
+    pub(super) fn set(&mut self, value: StructValue) {
         self.value = value;
     }
 
@@ -96,10 +96,13 @@ impl Switch {
     }
 
     pub(super) fn get_triggered(&self, out: &mut Vec<Track>) {
+        log!("node truth={:?} ({:?}) triggers={:?}",self.value.truthy(),self.value,self.triggers.len());
         if !self.value.truthy() { return; }
         out.extend(self.triggers.iter().cloned());
-        for kid in self.kids.values() {
+        for (name,kid) in self.kids.iter() {
+            log!("kid {}",name);
             kid.get_triggered(out);
+            log!("/kid {}",name);
         }
     }
 }

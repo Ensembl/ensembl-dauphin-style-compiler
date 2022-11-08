@@ -6,7 +6,7 @@ use wasm_bindgen::{prelude::*, JsCast};
 use peregrine_draw::{Endstop, Message, PeregrineAPI, PeregrineConfig, PgCommanderWeb};
 use peregrine_data::{ StickId, zmenu_to_json };
 use peregrine_message::{MessageKind, PeregrineMessage};
-use peregrine_toolkit::{ log, warn, error_important, eachorevery::eoestruct::{StructTemplate, struct_from_json}, js::jstojsonvalue::js_to_json};
+use peregrine_toolkit::{ log, warn, error_important, eachorevery::eoestruct::{StructValue}, js::jstojsonvalue::js_to_json};
 use web_sys::{ Element };
 use serde::{Serialize, Deserialize};
 use serde_json::{ Map as JsonMap, Value as JsonValue };
@@ -154,7 +154,7 @@ impl GenomeBrowser {
         /*
          * You have to turn on tracks _per se_, but we always want tracks.
          */
-        let tmpl_true = StructTemplate::new_boolean(true).build().ok().unwrap();
+        let tmpl_true = StructValue::new_boolean(true);
         self.api.switch(&["track"],tmpl_true.clone());
         self.api.switch(&["track","focus"],tmpl_true.clone());
         self.api.switch(&["track","focus","item"],tmpl_true.clone());
@@ -204,13 +204,13 @@ impl GenomeBrowser {
     }
     
     pub fn set_switch(&self, path: &JsValue) {
-        let tmpl_true = StructTemplate::new_boolean(true).build().ok().unwrap();
+        let tmpl_true = StructValue::new_boolean(true);
         let path : Vec<String> = from_value(path.clone()).unwrap();
         self.api.switch(&path.iter().map(|x| x.as_str()).collect::<Vec<_>>(),tmpl_true);
     }
 
     pub fn clear_switch(&self, path: &JsValue) {
-        let tmpl_false = StructTemplate::new_boolean(false).build().ok().unwrap();
+        let tmpl_false = StructValue::new_boolean(false);
         let path : Vec<String> = from_value(path.clone()).unwrap();
         self.api.switch(&path.iter().map(|x| x.as_str()).collect::<Vec<_>>(),tmpl_false);
     }
@@ -218,11 +218,8 @@ impl GenomeBrowser {
     pub fn switch(&self, path: &JsValue, value: &JsValue) {
         let path : Vec<String> = from_value(path.clone()).unwrap();
         if let Ok(json) = js_to_json(value) {
-            if let Ok((template,_)) = struct_from_json(vec![],vec![],&json) {
-                if let Ok(build) = template.build() {
-                    self.api.switch(&path.iter().map(|x| x.as_str()).collect::<Vec<_>>(),build);
-                }
-            }
+            let value = StructValue::new_json_value(&json);
+            self.api.switch(&path.iter().map(|x| x.as_str()).collect::<Vec<_>>(),value);
         }
     }
 

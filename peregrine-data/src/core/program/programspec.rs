@@ -1,6 +1,6 @@
 use std::{collections::{HashMap, BTreeMap}, sync::Arc};
 
-use peregrine_toolkit::{error::Error, eachorevery::eoestruct::StructBuilt};
+use peregrine_toolkit::{error::Error, eachorevery::eoestruct::{StructValue}};
 
 use crate::{shapeload::programname::ProgramName };
 
@@ -9,11 +9,11 @@ use super::packedprogramspec::PackedProgramSpec;
 #[derive(Clone)]
 pub struct ProgramSetting {
     name: String,
-    default: StructBuilt
+    default: StructValue
 }
 
 impl ProgramSetting {
-    pub fn new(name: &str, default: StructBuilt) -> ProgramSetting {
+    pub fn new(name: &str, default: StructValue) -> ProgramSetting {
         ProgramSetting {
             name: name.to_string(),
             default
@@ -56,7 +56,7 @@ impl ProgramModel {
         self.0.settings.get(setting)
     }
 
-    pub fn apply_defaults(&self, settings: &mut BTreeMap<String,StructBuilt>) {
+    pub fn apply_defaults(&self, settings: &mut BTreeMap<String,StructValue>) {
         for (_key,value) in self.0.settings.iter() {
             let name = &value.name;
             if !settings.contains_key(name) {

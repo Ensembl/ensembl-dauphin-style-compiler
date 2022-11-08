@@ -2,7 +2,7 @@ use std::{collections::{hash_map::DefaultHasher, BTreeMap}, hash::{ Hash, Hasher
 use std::fmt;
 use std::sync::{ Arc };
 use std::collections::HashMap;
-use peregrine_toolkit::{eachorevery::eoestruct::{StructBuilt }};
+use peregrine_toolkit::{eachorevery::eoestruct::StructValue};
 
 use super::{track::Track, switches::SwitchesData};
 
@@ -20,7 +20,7 @@ pub(super) fn hashmap_hasher<H: Hasher, K: Hash+PartialEq+Eq+PartialOrd+Ord, V: 
 pub struct TrackConfig {
     track: Track,
     hash: u64,
-    values: Arc<BTreeMap<String,StructBuilt>>
+    values: Arc<BTreeMap<String,StructValue>>
 }
 
 impl TrackConfig {
@@ -40,7 +40,7 @@ impl TrackConfig {
     }
 
     pub fn track(&self) -> &Track { &self.track }
-    pub fn value(&self, name: &str) -> Option<&StructBuilt> { self.values.get(name) }
+    pub fn value(&self, name: &str) -> Option<&StructValue> { self.values.get(name) }
 }
 
 #[cfg(debug_assertions)]

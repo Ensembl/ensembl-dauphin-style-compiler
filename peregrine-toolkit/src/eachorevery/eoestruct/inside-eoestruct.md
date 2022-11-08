@@ -13,13 +13,14 @@ Core definitions
 * `eoestruct.rs` -- miscellaneous, short core definitions
 * `structtemplate.rs` -- basic definitions of `StructTemplate`, `StructVar`, and `StructPair`
 * `structbuilt.rs` -- basic definition of `StructBuilt`
+* `structvalue/rs` -- basic definition of `StructValue` and the various traits it implements.
 
 Core algorithms
 
 * `build.rs` -- algorithm behind `StructTemplate::build()` and `StructBuilt::unbuild()`
 * `expand.rs` -- the two algorithms behind `StructBuilt::select()`, and `StructBuilt::expand()`
 * `eoestructdata.rs` -- `eoestack_run`, basic controller for all codecs
-* `replace.rs` -- the algorithms behind `StructTemplate::replace()`, `StructTemplate::extract()`, `StructTemplate::extract_value()` and `StructTemplate::substitute()`
+* `replace.rs` -- the algorithms behind `replace()`, `extract()` for `StructTemplate` and `StructValue`, `StructTemplate::extract_value()` and `StructTemplate::substitute()`
 
 Codecs
 

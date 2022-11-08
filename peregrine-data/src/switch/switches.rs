@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use peregrine_toolkit::{eachorevery::eoestruct::{StructTemplate, StructBuilt, StructConst}, lock, error::Error};
+use peregrine_toolkit::{eachorevery::eoestruct::{ StructConst, StructValue}, lock, error::Error, log};
 
 use crate::{Track, request::tracks::{trackmodel::TrackModel, expansionmodel::ExpansionModel}, AllBackends, PgDauphin, SettingMode};
 
@@ -19,15 +19,15 @@ impl SwitchesData {
             all_backends: None,
             track_config_list: None
         };
-        let tmpl_true = StructTemplate::new_boolean(true).build().ok().unwrap();
+        let tmpl_true = StructValue::new_boolean(true);
         out.root.set(tmpl_true);
         out
     }
 
-    pub(crate) fn get_value(&self, path: &[&str]) -> StructBuilt {
+    pub(crate) fn get_value(&self, path: &[&str]) -> StructValue {
         self.root.get_value(path).clone()
     }
-
+    
     fn set_all_backends(&mut self, all_backends: &AllBackends) {
         self.all_backends = Some(all_backends.clone());
     }
@@ -45,7 +45,7 @@ impl SwitchesData {
         triggered
     }
 
-    fn switch_inner(&mut self, path: &[&str], value: StructBuilt) {
+    fn switch_inner(&mut self, path: &[&str], value: StructValue) {
         if value.truthy() {
             /* unset radio siblings */
             if path.len() > 0 {
@@ -53,7 +53,7 @@ impl SwitchesData {
                 parent.clear_if_radio();
             }
         }
-        if value == StructBuilt::Const(StructConst::Null) {
+        if value == StructValue::Const(StructConst::Null) {
             self.root.remove(path);
         } else {
             let target = self.root.get_target(path);
@@ -94,9 +94,10 @@ impl Switches {
         Ok(())
     }
 
-    pub async fn switch(&self, path: &[&str], value: StructBuilt) -> Result<(),Error> {
+    pub async fn switch(&self, path: &[&str], value: StructValue) -> Result<(),Error> {
         self.run_expansions(path).await?;
         let mut data = lock!(self.data);
+        log!("switch {:?} to {:?}",path,value);
         data.switch_inner(path,value);
         Ok(())
     }
@@ -104,7 +105,7 @@ impl Switches {
     pub async fn update_switch(&self, path: &[&str], value: SettingMode) -> Result<(),Error> {
         self.run_expansions(path).await?;
         let mut data = lock!(self.data);
-        let new = value.update(data.get_value(path))?;
+        let new = value.update(data.get_value(path));
         data.switch_inner(path,new);
         Ok(())
     }
