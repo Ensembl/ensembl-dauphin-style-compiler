@@ -12,13 +12,14 @@ class Species(object):
     Args:
         genome_id ():
     """
-    def __init__(self, genome_id, best_name, names):
+    def __init__(self, genome_id, best_name, names, tags):
         self.genome_id = genome_id
         self.genome_path = self.genome_id
         self.wire_id = re.sub(r'\W', '_', self.genome_id)
         self.chromosomes = {}
         self.best_name = best_name
         self._names = names
+        self._tags = tags
         self.alias_prefixes = [self.wire_id]
 
     def _load_ncd(self, data_accessor, variety, wire_id, missing_ok = False):
@@ -65,7 +66,7 @@ class Species(object):
         hash_value = self._load_ncd(data_accessor, "chrom-hashes", wire_id, missing_ok=True)
         if hash_value is not None:
             size = int(self._load_ncd(data_accessor, "chrom-sizes", wire_id)[0])
-            return Chromosome(wire_id, size, hash_value[0], self)
+            return Chromosome(wire_id, size, hash_value[0], self,self._tags)
         else:
             return None
 

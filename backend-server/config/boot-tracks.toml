@@ -14,7 +14,6 @@ triggers = [
     ["track","gene-other-fwd"],
     ["track","gene-other-rev"]
 ]
-tags = "#has-genes"
 
 [include.gene.settings]
 focus-gene = ["track","focus","item","gene"]
@@ -47,7 +46,6 @@ other-rev-several = ["track","gene-other-rev","several"]
 triggers = [
     ["track","focus","item","gene"]
 ]
-tags = "#has-genes"
 
 [include.focus-gene.settings]
 focus-gene = ["track","focus","item","gene"]
@@ -135,7 +133,6 @@ triggers = [["ruler"]]
 include = ["general"]
 scales = [0,100,3]
 triggers = [["track","gc"]]
-tags= "#has-gc"
 
 [track.gc.settings]
 name = ["track","gc","name"]
@@ -162,7 +159,6 @@ include = ["general"]
 program_name = "contig"
 scales = [26,100,3]
 triggers = [["track","contig"]]
-tags= "#has-contigs"
 
 [track.contig-shimmer.values]
 shimmer = true
@@ -171,7 +167,6 @@ shimmer = true
 include = ["general"]
 scales = [9,25,3]
 triggers = [["track","contig"]]
-tags =  "#has-contigs"
 
 [track.contig.settings]
 name = ["track","contig","name"]
@@ -181,7 +176,6 @@ include = ["general"]
 program_name = "zoomed-seq"
 scales = [7,8,2]
 triggers = [["track","contig"]]
-tags= "#has-contigs"
 
 [track.sequence-no-letters.settings]
 name = ["track","contig","name"]
@@ -194,7 +188,6 @@ include = ["general"]
 program_name = "zoomed-seq"
 scales = [0,6,3]
 triggers = [["track","contig"]]
-tags= "#has-contigs"
 
 [track.sequence.settings]
 name = ["track","contig","name"]

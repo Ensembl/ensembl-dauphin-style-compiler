@@ -48,9 +48,7 @@ impl Track {
     }
 
     pub fn available(&self, layout: &Layout, scale: &Scale) -> bool {
-        // XXX filter on layout
-        let tags = layout.stick().check_tags(&self.tags);
-        log!("tags={:?} ({:?})",tags,&self.tags);
+        if !layout.stick().check_tags(&self.tags) { log!("missing track {:?}!",self.program.name()); return false; }
         let want_scale = scale.get_index();
         if want_scale < self.min_scale || want_scale >= self.max_scale { return false; }
         true

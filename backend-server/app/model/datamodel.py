@@ -56,8 +56,9 @@ class DataModel(object):
                 print(species_conf)
                 all_names = list(species_conf["other_names"])
                 all_names.append(species_conf["best_name"])
+                tags = set(species_conf.get("tags",[]))
                 try:
-                    species_object = Species(species_conf["path"],species_conf['best_name'],all_names)
+                    species_object = Species(species_conf["path"],species_conf['best_name'],all_names,tags)
                     self._species[species_object.wire_id] = species_object
                     for alias_prefix in all_names:
                         self._species_aliases[alias_prefix] = species_object.wire_id

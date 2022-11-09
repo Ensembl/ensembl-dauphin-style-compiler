@@ -6,6 +6,7 @@ other_names = [
     "homo_sapiens_GCA_000001405_28",
     "grch38"
 ]
+tags = ["has-variants"]
 
 [species.grch37]
 path = "homo_sapiens_GCA_000001405.14"
@@ -15,6 +16,7 @@ other_names = [
     "homo_sapiens_GCA_000001405_14",
     "grch37"
 ]
+tags = ["has-variants"]
 
 [species.wheat]
 path = "triticum_aestivum_GCA_900519105.1"
@@ -24,6 +26,7 @@ other_names = [
     "triticum_aestivum_GCA_900519105_1",
     "wheat"
 ]
+tags = ["has-variants"]
 
 [species.yeast]
 path = "saccharomyces_cerevisiae_GCA_000146045.2"
@@ -33,6 +36,7 @@ other_names = [
     "saccharomyces_cerevisiae_GCA_000146045_2",
     "yeast"
 ]
+tags = ["has-variants"]
 
 [species.plasmodium]
 path = "plasmodium_falciparum_GCA_000002765.2"
