@@ -106,6 +106,14 @@ Note that what we would need is just some algorithm implemented in the genome-br
 
 See `boot-tracks.toml` for the current, temporary way of creating these payloads. Though using toml is a temporary solution, the data used is real.
 
-## Challenges for other people
+* a challenge for the UI teamp: how to manage the switch tree -- up to the UI team
 
-* how to manage the switch tree -- up to the UI team
+## Expansions
+
+In effect, track payloads attach as limpets to parts of the switch tree, causing things to happen when a switch is set. But what about when the number of tracks is too large to deliver all the payloads at boot time? This is what expansions are for. Expansions are another schema-based payload which comes from the backend.
+
+Expansions also attach to parts of the switch tree. Whenever the UI first ventures into part of a tree to set a setting, before that can happen, any attached expansions are run. When an expansion is run it contacts the backend and the backend can provide any new track-payloads to insert into the tree. These track payloads are added _before_ the setting is applied and so may well be instantly triggered!
+
+An expansion has a name (a string used as an ID) to provide when "phoning home" to give the backend some context as to the expansion triggered. It also takes a backend-namespace (a string-pair identifying the backend to use when responding, used throughout the genome browser) and the places to attach the expansion.
+
+The idea is that though it may not be possible at boot time to attach all tracks, the expansions can be attached. Then any remaining tracks can come along, in dribs-and-drabs, lazily loaded just before a switch is set. In theory an expansion can even add further expansions further down the tree.
