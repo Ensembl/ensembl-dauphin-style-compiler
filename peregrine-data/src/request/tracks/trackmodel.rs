@@ -52,7 +52,7 @@ impl TrackMapping {
 pub struct TrackModelBuilder {
     name: String,
     program: ProgramName,
-    tags: Vec<String>,
+    tags: String,
     triggers: Vec<Vec<String>>,
     mapping: Option<TrackMappingBuilder>,
     scale_start: u64,
@@ -61,11 +61,11 @@ pub struct TrackModelBuilder {
 }
 
 impl TrackModelBuilder {
-    pub fn new(name: &str, program: &ProgramName, scale_start: u64, scale_end: u64, scale_step: u64) -> TrackModelBuilder {
+    pub fn new(name: &str, program: &ProgramName, scale_start: u64, scale_end: u64, scale_step: u64, tags: &str) -> TrackModelBuilder {
         TrackModelBuilder {
             name: name.to_string(),
             program: program.clone(),
-            tags: vec![], 
+            tags: tags.to_string(),
             triggers: vec![],
             mapping: Some(TrackMappingBuilder::new()),
             scale_start, scale_end, scale_step
@@ -73,7 +73,6 @@ impl TrackModelBuilder {
     }
 
     pub(crate) fn mapping_mut(&mut self) -> &mut TrackMappingBuilder { self.mapping.as_mut().unwrap() }
-    pub fn add_tag(&mut self, tag: &str) { self.tags.push(tag.to_string()) }
     pub fn add_trigger(&mut self, trigger: &[String]) { self.triggers.push(trigger.to_vec()) }
 }
 
@@ -94,7 +93,7 @@ impl TrackModel {
     pub(crate) async fn to_track(&self, loader: &PgDauphin) -> Result<Track,Error> {
         let program = loader.get_program_model(&self.builder.program).await?;
         let t = self.builder.as_ref();
-        Ok(Track::new(&program,&self.track_mapping,t.scale_start,t.scale_end+1,t.scale_step))
+        Track::new(&program,&self.track_mapping,t.scale_start,t.scale_end+1,t.scale_step,&t.tags)
     }
 
     pub(crate) fn mount_points(&self) -> Vec<(Vec<String>,bool)> {

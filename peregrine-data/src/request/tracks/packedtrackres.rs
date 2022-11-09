@@ -8,7 +8,7 @@ struct PackedTrack {
     program_set: usize,
     program_name: usize,
     program_version: usize,
-    tags: Vec<usize>,
+    tags: usize,
     triggers: Vec<usize>,
     settings_keys: Vec<usize>,
     settings_values: Vec<usize>,
@@ -28,10 +28,8 @@ impl PackedTrack {
         let program_set = lookup(self.program_set,&res.program_idx)?;
         let program_name = lookup(self.program_name,&res.program_idx)?;
         let program_name = ProgramName::new(program_set,program_name,self.program_version);
-        let mut builder = TrackModelBuilder::new(&self.name,&program_name,self.scale_start,self.scale_end,self.scale_step);
-        for tag_idx in &self.tags {
-            builder.add_tag(lookup(*tag_idx,&res.tag_idx)?);
-        }
+        let tags = lookup(self.tags,&res.tag_idx)?;
+        let mut builder = TrackModelBuilder::new(&self.name,&program_name,self.scale_start,self.scale_end,self.scale_step,&tags);
         for trigger_idx in &self.triggers {
             builder.add_trigger(lookup(*trigger_idx,&res.switch_idx.0)?);
         }
@@ -80,7 +78,7 @@ pub(crate) struct PackedTrackRes {
     program_name: Vec<usize>,
     program_set: Vec<usize>,
     program_version: DiffSet,
-    tags: Vec<DiffSet>,
+    tags: Vec<usize>,
     triggers: Vec<DiffSet>,
     scale_start: Vec<u64>,
     scale_end: Vec<u64>,
@@ -129,7 +127,7 @@ impl PackedTrackRes {
                 name,
                 program_name, program_set, program_version,
                 scale_start,scale_end,scale_step,
-                tags: tags.0,
+                tags,
                 triggers: triggers.0,
                 settings_keys: settings_keys.0,
                 settings_values,

@@ -5,6 +5,8 @@ use std::collections::HashSet;
 use std::fmt::{ self, Display, Formatter };
 use std::hash::Hash;
 
+use super::tagpred::TagPred;
+
 #[derive(Clone,Debug,Hash,PartialEq,Eq,Deserialize)]
 #[serde(transparent)]
 pub struct StickId(String);
@@ -89,4 +91,8 @@ impl Stick {
     pub fn size(&self) -> u64 { self.size }
     pub fn tags(&self) -> &HashSet<String> { &self.tags }
     pub fn topology(&self) -> &StickTopology { &self.topology }
+
+    pub(crate) fn check_tags(&self, pred: &TagPred) -> bool {
+        pred.evaluate(&self.tags,&self.id.get_id())
+    }
 }

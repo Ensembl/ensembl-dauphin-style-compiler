@@ -31,7 +31,7 @@ class Chromosome(object):
         self.name = name
         self.size = size
         self.topology = "linear"
-        self.tags = set(["local"])
+        self.tags = set(["has-genes","has-variants","has-gc","has-contigs"])
         self.seq_hash = seq_hash
         self.genome_id = species.genome_id
         self.stick_name = "{0}:{1}".format(

@@ -105,7 +105,7 @@ mod test {
     use std::{sync::{Arc, Mutex}, collections::{HashMap}};
     use peregrine_toolkit::{puzzle::{AnswerAllocator}};
     use crate::{allotment::{core::{allotmentname::AllotmentName, boxpositioncontext::BoxPositionContext, trainstate::CarriageTrainStateSpec}, stylespec::{stylegroup::AllotmentStyleGroup, styletreebuilder::StyleTreeBuilder, styletree::StyleTree}, util::{bppxconverter::BpPxConverter, rangeused::RangeUsed}, globals::{allotmentmetadata::{LocalAllotmentMetadata, GlobalAllotmentMetadataBuilder, GlobalAllotmentMetadata}, bumping::{GlobalBumpBuilder, GlobalBump}, trainpersistent::TrainPersistent}, builder::stylebuilder::make_transformable}, LeafRequest, shape::metadata::{AbstractMetadata, AbstractMetadataBuilder}};
-    use serde_json::Value as JsonValue;
+    use serde_json::{Value as JsonValue, Number};
 
     fn make_pendings(names: &[&str], heights: &[f64], pixel_range: &[RangeUsed<f64>], style: &AllotmentStyleGroup) -> Vec<LeafRequest> {
         let heights = if heights.len() > 0 {
@@ -204,8 +204,9 @@ mod test {
     }
 
     fn check_metadata(a: &HashMap<String,JsonValue>, key: &str, cmp: &str) {
+        let cmp : JsonValue = serde_json::from_str(cmp).expect("bad cmp");
         if let Some(value) = a.get(key) {
-            assert_eq!(cmp.to_string(),value.clone())
+            assert_eq!(cmp,value.clone())
         }
     }
 
@@ -263,19 +264,20 @@ mod test {
         let (a,b) = (&metadata[0],&metadata[1]);
         assert!(a.contains_key("offset"));
         let (a,b) = 
-            if a.get("offset").map(|x| x.to_string()) == Some("\"0\"".to_string()) { 
+            if a.get("offset").map(|x| x.to_string()) == Some("0.0".to_string()) { 
                 (a,b) 
-            } else if b.get("offset").map(|x| x.to_string()) == Some("\"0\"".to_string()) { 
+            } else if b.get("offset").map(|x| x.to_string()) == Some("0.0".to_string()) { 
                 (b,a)
             } else {
+                println!("A {:?} B {:?}",a.get("offset").map(|x| x.to_string()),b.get("offset").map(|x| x.to_string()));
                 assert!(false);
                 panic!();
             };
-        check_metadata(a,"type","track");
-        check_metadata(a,"offset","0");
-        check_metadata(a,"height","21");
-        check_metadata(b,"type","track");
-        check_metadata(b,"offset","21");
-        check_metadata(b,"height","3");
+        check_metadata(a,"type","\"track\"");
+        check_metadata(a,"offset","0.0");
+        check_metadata(a,"height","21.0");
+        check_metadata(b,"type","\"track\"");
+        check_metadata(b,"offset","21.0");
+        check_metadata(b,"height","3.0");
     }
 }

@@ -33,7 +33,7 @@ class Track:
         self._program_version = 0
         self._scales = scales
         self._triggers = []
-        self._tags = []
+        self._tags = ""
         self._values = []
         self._settings = []
 
@@ -63,7 +63,7 @@ class Track:
         if "triggers" in data:
             self._triggers += [tuple(x) for x in data["triggers"]]
         if "tags" in data:
-            self._tags += data["tags"]
+            self._tags =  data["tags"]
         if "values" in data:
             for (name,value) in data["values"].items():
                 self.add_value(name,value)
@@ -78,7 +78,7 @@ class Track:
         values = set([x[1] for x in self._values])
         keys = set([x[0] for x in self._settings])
         keys |= set([x[0] for x in self._values])
-        return (switches,set([self._program_name,self._program_set]),set(self._tags),values,keys)
+        return (switches,set([self._program_name,self._program_set]),set([self._tags]),values,keys)
 
     def _dump_for_wire(self, dumper, name):
         settings = sorted(self._settings, key = lambda x: x[0])
@@ -89,7 +89,7 @@ class Track:
             "program_set": dumper.program_mapping[self._program_set],
             "program_version": self._program_version,
             "scales": self._scales,
-            "tags": [dumper.tag_mapping[x] for x in self._tags],
+            "tags": dumper.tag_mapping[self._tags],
             "triggers": increase(sorted([dumper.switch_mapping[x] for x in self._triggers])),
             "values-keys": increase([dumper.key_mapping[x[0]] for x in values]),
             "values-values": [dumper.value_mapping[x[1]] for x in values],

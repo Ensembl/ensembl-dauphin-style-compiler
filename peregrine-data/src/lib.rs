@@ -100,6 +100,7 @@ mod core {
     pub(crate) mod pixelsize;
     mod scale;
     pub mod stick;
+    pub(crate) mod tagpred;
     pub(crate) mod version;
     mod viewport;
     pub(crate) mod data;
