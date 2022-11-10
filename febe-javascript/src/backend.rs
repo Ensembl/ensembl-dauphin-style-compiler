@@ -1,4 +1,4 @@
-use peregrine_data::{JumpReq, JumpRes, JumpLocation, BootChannelReq, BootChannelRes, Assets, BackendNamespace, StickReq, StickRes};
+use peregrine_data::{JumpReq, JumpRes, JumpLocation, BootChannelReq, BootChannelRes, Assets, BackendNamespace, StickReq, StickRes, ExpandRes, ExpandReq};
 use peregrine_toolkit::error::Error;
 use crate::{callbacks::Callbacks, sidecars::JsSidecar};
 
@@ -13,13 +13,14 @@ impl Backend {
         Backend { backend_namespace, callbacks }
     }
 
-    pub(crate) async fn jump(&self, req: &JumpReq) -> Result<JumpRes,Error> {
+    pub(crate) async fn jump(&self, req: &JumpReq) -> Result<(JumpRes,JsSidecar),Error> {
         let location = req.location();
-        if let Some((stick,left,right)) = self.callbacks.jump(location).await? {
+        let (result,sidecar) = self.callbacks.jump(location).await?;
+        if let Some((stick,left,right)) = result {
             let location = JumpLocation { stick, left, right };
-            Ok(JumpRes::Found(location))
+            Ok((JumpRes::Found(location),sidecar))
         } else {
-            Ok(JumpRes::NotFound)
+            Ok((JumpRes::NotFound,sidecar))
         }
     }
 
@@ -28,10 +29,15 @@ impl Backend {
         Ok((BootChannelRes::new(self.backend_namespace.clone(),Assets::empty(),Assets::empty(),Some(vec![15])),sidecar))
     }
 
-    pub(crate) async fn stickinfo(&self, req: &StickReq) -> Result<StickRes,Error> {
+    pub(crate) async fn expansion(&self, req: &ExpandReq) -> Result<(ExpandRes,JsSidecar),Error> {
+        let sidecar = self.callbacks.expansion(req.name(),req.step()).await?;
+        Ok((ExpandRes,sidecar))
+    }
+
+    pub(crate) async fn stickinfo(&self, req: &StickReq) -> Result<(StickRes,JsSidecar),Error> {
         match self.callbacks.stickinfo(&req.id()).await? {
-            Some(stick) => Ok(StickRes::Stick(stick)),
-            None => Ok(StickRes::Unknown(req.id().get_id().to_string()))
+            (Some(stick),sidecar) => Ok((StickRes::Stick(stick),sidecar)),
+            (None,sidecar) => Ok((StickRes::Unknown(req.id().get_id().to_string()),sidecar))
         }
     }
 }

@@ -336,3 +336,5 @@ pub use self::request::minirequests::jumpreq::JumpReq;
 pub use self::request::minirequests::jumpres::{ JumpLocation, JumpRes };
 pub use self::request::minirequests::datareq::DataRequest;
 pub use self::request::minirequests::datares::{ DataRes, DataResponse };
+pub use self::request::minirequests::expandreq::{ ExpandReq };
+pub use self::request::minirequests::expandres::{ ExpandRes };

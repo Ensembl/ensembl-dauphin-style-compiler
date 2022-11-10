@@ -29,8 +29,9 @@ impl JavascriptChannel {
         for attempt in maxi.requests() {
             match attempt.request() {
                 MiniRequest::Jump(req) => { 
-                    let res = self.backend.jump(req).await?;
+                    let (res,sidecar) = self.backend.jump(req).await?;
                     out.add_response(attempt.make_response_attempt(MiniResponse::Jump(res)));
+                    sidecars.merge(sidecar);
                 },
                 MiniRequest::BootChannel(req) => {
                     let (res,sidecar) = self.backend.boot(req).await?;
@@ -38,8 +39,14 @@ impl JavascriptChannel {
                     sidecars.merge(sidecar);
                 },
                 MiniRequest::Stick(req) => {
-                    let res = self.backend.stickinfo(req).await?;
+                    let (res,sidecar) = self.backend.stickinfo(req).await?;
                     out.add_response(attempt.make_response_attempt(MiniResponse::Stick(res)));
+                    sidecars.merge(sidecar);
+                },
+                MiniRequest::Expand(req) => {
+                    let (res,sidecar) = self.backend.expansion(req).await?;
+                    out.add_response(attempt.make_response_attempt(MiniResponse::Expand(res)));
+                    sidecars.merge(sidecar);
                 },
                 _ => { 
                     log!("unimplemented");

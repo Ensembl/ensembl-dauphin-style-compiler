@@ -12,7 +12,10 @@ impl ExpandReq {
             name: name.to_string(),
             step: step.to_string()
         })
-    }    
+    }
+
+    pub fn name(&self) -> &str { &self.name }
+    pub fn step(&self) -> &str { &self.step }
 }
 
 impl MiniRequestVariety for ExpandReq {

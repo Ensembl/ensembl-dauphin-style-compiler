@@ -33,6 +33,7 @@
         <button id="tr-all-off">all tr off</button>
         <button id="tr-all-on">all tr on</button>
         <button id="expand1">expand1</button>
+        <button id="expand2">expand2</button>
         <br/>
         <div style="width: 200px; word-break: break-all;">current: <span id="current"></span></div>
         <div style="width: 200px; word-break: break-all;">target: <span id="target"></span></div>
@@ -283,13 +284,17 @@
                 if(parts.length < 3 || parts[0] != "region") { return null; }
                 let start_end = parts[parts.length-1].split("-");
                 if(start_end.length < 2) { return null; }
-                return [stick,parseInt(start_end[0]),parseInt(start_end[1])];
+                return {
+                  "stick": stick,
+                  "left": parseInt(start_end[0]),
+                  "right": parseInt(start_end[1])
+                };
               })
             },
             stickinfo: function(stick) {
               return delay(100).then(() => {
                 console.log("stick "+stick);
-                return null;
+                return {};
               })
             },
             boot: function() {
@@ -324,6 +329,35 @@
                    }
                 ];
                 return { expansions, tracks };
+              });
+            },
+            expand: function(name,step) {
+              return delay(100).then(() => {
+                console.log("expand",name,step);
+                if(name == "js-expansion") {
+                  let tracks = [
+                   {
+                    "program": ["ensembl-webteam/core","test",2],
+                    "tags": "",
+                    "triggers": [
+                      ["tracks","user","step"]
+                    ],
+                    "settings": {
+                      "green": ["setting","green"]
+                    },
+                    "values": {
+                      "red": parseInt(step),
+                      "blue": 100.0
+                    },
+                    "scale_start": 0,
+                    "scale_end": 60,
+                    "scale_step": 1
+                    }
+                  ];
+                  return { tracks };
+                } else {
+                  return {};
+                }
               });
             }
           }
@@ -452,6 +486,9 @@
         };
         document.getElementById("expand1").onclick = function() {
           genome_browser.switch(["track","expand","ff0099"],true);
+        };
+        document.getElementById("expand2").onclick = function() {
+          genome_browser.switch(["tracks","user","78"],true);
         };
         document.getElementById("unload").onclick = function() {
           document.getElementById("browser").remove();
