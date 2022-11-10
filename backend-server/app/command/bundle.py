@@ -19,11 +19,13 @@ class Bundle:
             else:
                 return f.read()
 
-    def add_program(self, name: str, spec_path: str):
+    def add_program(self, name: str, spec_path: str) -> ProgramSpec:
         if self._egs_version >= 15:
             if not os.path.exists(spec_path):
                 raise Exception("missing spec file {}".format(spec_path))
-            self._specs.add(ProgramSpec(name,spec_path))
+            out = ProgramSpec(name,spec_path)
+            self._specs.add(out)
+            return out
 
     def monitor(self, monitor):
         if self._monitor.check(self.name):

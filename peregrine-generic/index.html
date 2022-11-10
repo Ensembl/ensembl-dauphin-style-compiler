@@ -294,8 +294,36 @@
             },
             boot: function() {
               return delay(100).then(() => {
-                console.log("booting inside");
-                return { "A": "x" };
+                console.log("booting inside",this);
+                let expansions = [
+                   {
+                     "name": "js-expansion",
+                     "backend_namespace": this.backend_namespace,
+                     "triggers": [
+                       ["tracks","user"]
+                     ]
+                   }
+                ];
+                let tracks = [
+                   {
+                    "program": ["ensembl-webteam/core","test",2],
+                    "tags": "",
+                    "triggers": [
+                      ["tracks","user2"]
+                    ],
+                    "settings": {
+                      "green": ["setting","green"]
+                    },
+                    "values": {
+                      "red": 100.0,
+                      "blue": 0.0
+                    },
+                    "scale_start": 0,
+                    "scale_end": 60,
+                    "scale_step": 1
+                   }
+                ];
+                return { expansions, tracks };
               });
             }
           }

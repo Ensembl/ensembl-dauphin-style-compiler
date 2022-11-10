@@ -8,6 +8,9 @@ edition = "2018"
 wasm-bindgen=">=0.2.77"
 serde-wasm-bindgen="*"
 js-sys="*"
+serde="*"
+serde_json="*"
+serde_derive="*"
 
 [dependencies.web-sys]
 version="*"

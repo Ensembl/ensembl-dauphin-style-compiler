@@ -1,6 +1,6 @@
 use std::{sync::{Arc, Mutex}, collections::HashMap };
 use peregrine_data::{ChannelIntegration, ChannelSender, BackendNamespace };
-use peregrine_toolkit::{ lock, error::Error, log };
+use peregrine_toolkit::{ lock, error::Error };
 use wasm_bindgen::JsValue;
 use crate::channel::JavascriptChannel;
 
@@ -25,7 +25,6 @@ impl JavascriptIntegration {
 impl ChannelIntegration for JavascriptIntegration {
     fn make_channel(&self, name: &str) -> Option<(Arc<dyn ChannelSender>,Option<BackendNamespace>)> {
         if let Some((prefix,suffix)) = name.split_once(":") {
-            log!("try prefix='{}' suffix='{}'",prefix,suffix);
             if prefix == "jsapi" {
                 if let Some(channel) = lock!(self.channels).get(suffix) {
                     return Some((channel.clone(),Some(channel.backend_namespace().clone())));

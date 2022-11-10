@@ -20,11 +20,11 @@ pub trait MiniRequestVariety {
 }
 
 pub enum MiniRequest {
-    BootChannel(BootChannelReq),
+    BootChannel(BootChannelReq), // y
     Program(ProgramReq),
-    Stick(StickReq),
+    Stick(StickReq), // y
     Data(DataRequest),
-    Jump(JumpReq),
+    Jump(JumpReq), // y
     Metric(MetricReport),
     Expand(ExpandReq)
 }

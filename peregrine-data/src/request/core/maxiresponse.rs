@@ -5,7 +5,7 @@ use std::any::Any;
 use std::fmt;
 use std::mem::replace;
 use std::sync::Arc;
-use crate::{core::{channel::wrappedchannelsender::WrappedChannelSender }, request::tracks::{trackres::TrackResult}};
+use crate::{core::{channel::wrappedchannelsender::WrappedChannelSender }, request::tracks::{trackres::TrackResult}, TrackModel, ExpansionModel};
 use crate::{BackendNamespace};
 use crate::core::program::programbundle::SuppliedBundle;
 use super::response::{MiniResponseAttempt, MiniResponseAttemptVecDeserialize};
@@ -35,6 +35,10 @@ impl MaxiResponse {
 
     pub fn add_response(&mut self, response: MiniResponseAttempt) {
         self.responses.push(response);
+    }
+
+    pub fn set_track_payload(&mut self, tracks: Vec<TrackModel>, expansions: Vec<ExpansionModel>) {
+        self.tracks = TrackResult::Unpacked(tracks,expansions);
     }
 
     #[cfg(debug_big_requests)]
@@ -113,6 +117,6 @@ impl<'de> DeserializeSeed<'de> for MaxiResponseDeserialize {
 
     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
             where D: Deserializer<'de> {
-        deserializer.deserialize_seq(MaxiResponseVisitor(self.0.clone(),self.1.clone()))
+        deserializer.deserialize_map(MaxiResponseVisitor(self.0.clone(),self.1.clone()))
     }
 }

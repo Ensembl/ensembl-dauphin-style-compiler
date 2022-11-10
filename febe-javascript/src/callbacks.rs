@@ -3,7 +3,7 @@ use peregrine_data::{Stick, StickTopology, StickId};
 use peregrine_toolkit::error::Error;
 use peregrine_toolkit_async::js::promise::promise_to_future;
 use wasm_bindgen::JsValue;
-use crate::jsutil::{to_function, to_array, to_string, to_int, to_hashmap};
+use crate::{jsutil::{to_function, to_array, to_string, to_int, to_hashmap}, sidecars::JsSidecar};
 
 #[derive(Clone)]
 pub(crate) struct Callbacks {
@@ -14,8 +14,7 @@ pub(crate) struct Callbacks {
 }
 
 impl Callbacks {
-    pub(crate) fn new(this: Option<JsValue>) -> Callbacks {
-        let this = this.unwrap_or(JsValue::NULL);
+    pub(crate) fn new(this: JsValue) -> Callbacks {
         Callbacks {
             this,
             jump: None,
@@ -50,13 +49,16 @@ impl Callbacks {
         }
     }
 
-    pub(crate) async fn boot(&self) -> Result<(),Error> {
+    pub(crate) async fn boot(&self) -> Result<JsSidecar,Error> {
         if let Some(boot) = &self.boot {
             let promise = Error::oper_r(boot.call0(&self.this),"boot callback")?;
             let out = Error::oper_r(promise_to_future(promise.into()).await,"boot callback")?;
-            let _out = to_hashmap(out)?;
+            let out = to_hashmap(out)?;
+            let sidecar = JsSidecar::new_js(&out)?;
+            Ok(sidecar)
+        } else {
+            Ok(JsSidecar::new_empty())
         }
-        Ok(())
     }
 
     pub(crate) async fn stickinfo(&self, id: &StickId) -> Result<Option<Stick>,Error> {

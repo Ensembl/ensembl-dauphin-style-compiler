@@ -74,7 +74,7 @@ class ProgramHandler(Handler):
         except UnknownVersionException as e:
             return Response(1,e)
         if bundle == None:
-            return Response(1,"Unknown program {}".format(name))
+            return Response(1,"Unknown program {}//{}//{}".format(prog_set,name,prog_version))
         r = Response(2,[])
         r.add_bundle(bundle)
         return r

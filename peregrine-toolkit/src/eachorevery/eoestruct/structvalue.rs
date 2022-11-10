@@ -239,6 +239,6 @@ impl<'de> Visitor<'de> for StructValueVisitor {
 impl<'de> Deserialize<'de> for StructValue {
     fn deserialize<D>(deserializer: D) -> Result<StructValue, D::Error>
             where D: Deserializer<'de> {
-        deserializer.deserialize_map(StructValueVisitor)
+        deserializer.deserialize_any(StructValueVisitor)
     }
 }

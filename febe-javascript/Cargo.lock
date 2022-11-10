@@ -379,7 +379,10 @@ dependencies = [
  "peregrine_data",
  "peregrine_toolkit",
  "peregrine_toolkit_async",
+ "serde",
  "serde-wasm-bindgen",
+ "serde_derive",
+ "serde_json",
  "wasm-bindgen",
  "web-sys",
 ]

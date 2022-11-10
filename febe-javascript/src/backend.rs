@@ -1,6 +1,6 @@
 use peregrine_data::{JumpReq, JumpRes, JumpLocation, BootChannelReq, BootChannelRes, Assets, BackendNamespace, StickReq, StickRes};
 use peregrine_toolkit::error::Error;
-use crate::callbacks::Callbacks;
+use crate::{callbacks::Callbacks, sidecars::JsSidecar};
 
 #[derive(Clone)]
 pub(crate) struct Backend {
@@ -23,9 +23,9 @@ impl Backend {
         }
     }
 
-    pub(crate) async fn boot(&self, _req: &BootChannelReq) -> Result<BootChannelRes,Error> {
-        self.callbacks.boot().await?;
-        Ok(BootChannelRes::new(self.backend_namespace.clone(),Assets::empty(),Assets::empty(),Some(vec![15])))
+    pub(crate) async fn boot(&self, _req: &BootChannelReq) -> Result<(BootChannelRes,JsSidecar),Error> {
+        let sidecar = self.callbacks.boot().await?;
+        Ok((BootChannelRes::new(self.backend_namespace.clone(),Assets::empty(),Assets::empty(),Some(vec![15])),sidecar))
     }
 
     pub(crate) async fn stickinfo(&self, req: &StickReq) -> Result<StickRes,Error> {

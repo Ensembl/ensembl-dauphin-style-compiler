@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Tuple
 from model.serialutil import build_map, immute, increase, remute, immute_key
 import toml
 
@@ -42,6 +42,9 @@ class ProgramSpec:
             'keys': increase([dumper.key_mapping[x] for x in keys]),
             'defaults': increase([dumper.value_mapping[x] for x in defaults]),
         }
+
+    def full_name(self) -> Tuple[str,str,int]:
+        return (self._set,self._name,self._version)
 
 class AllProgramSpecs:
     def __init__(self):

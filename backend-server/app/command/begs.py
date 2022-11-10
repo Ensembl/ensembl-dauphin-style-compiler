@@ -215,7 +215,9 @@ class ProgramInventory:
                 for (begs_name,program_set,program_name,program_version) in one_file.all_programs():
                     if begs_name not in all_specs:
                         raise Exception("missing spec for {}".format(begs_name))
-                    self._bundle[name].add_program(begs_name,all_specs[begs_name])
+                    program_spec = self._bundle[name].add_program(begs_name,all_specs[begs_name])
+                    if program_spec.full_name() != (program_set,program_name,program_version):
+                        raise Exception("version mismatch {} vs {}".format(program_spec.full_name(),(program_set,program_name,program_version)))
                     full_name = (program_set,program_name,program_version)
                     self._map_to_bundle[full_name] = (name,begs_name)
                     programs.append(full_name)
@@ -229,7 +231,9 @@ class ProgramInventory:
         return [ self._bundle[name] for name in self._boot_bundles.get(egs_version,[]) ]
 
     def find_bundle(self, program_set: str, program_name: str, program_version: int):
-        (bundle_name,_) = self._map_to_bundle[(program_set,program_name,program_version)]
+        (bundle_name,_) = self._map_to_bundle.get((program_set,program_name,program_version),(None,None))
+        if bundle_name is None:
+            return None
         return self._bundle[bundle_name]
 
 class BegsFiles(object):

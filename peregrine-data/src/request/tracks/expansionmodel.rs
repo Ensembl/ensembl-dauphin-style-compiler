@@ -1,8 +1,8 @@
-use std::sync::Arc;
-
+use std::{sync::Arc };
+use serde::{Deserialize, Deserializer };
 use crate::{BackendNamespace, switch::expansion::Expansion};
 
-#[derive(Debug)]
+#[derive(Debug,serde_derive::Deserialize)]
 pub struct ExpansionModelBuilder {
     name: String,
     backend_namespace: BackendNamespace,
@@ -38,5 +38,13 @@ impl ExpansionModel {
 
     pub(crate) fn triggers(&self) -> &[Vec<String>] {
         &self.0.triggers
+    }
+}
+
+impl<'de> Deserialize<'de> for ExpansionModel {
+    fn deserialize<D>(deserializer: D) -> Result<ExpansionModel, D::Error>
+            where D: Deserializer<'de> {
+        let builder = ExpansionModelBuilder::deserialize(deserializer)?;
+        Ok(ExpansionModel(Arc::new(builder)))
     }
 }

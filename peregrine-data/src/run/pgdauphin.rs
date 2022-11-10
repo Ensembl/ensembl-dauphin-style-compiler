@@ -59,12 +59,16 @@ impl PgDauphin {
     }
 
     async fn load_program(&self, program_name: &ProgramName) -> Result<(),Error> {
-        let data = lock!(self.0);
-        for backend_namespace in &data.channel_registry.all() {
-            if let Some(all_backends) = &data.all_backends {
+        let obj = lock!(self.0);
+        let all_backends = obj.all_backends.clone();
+        let channel_registry = obj.channel_registry.clone();
+        let programs = obj.programs.clone();
+        drop(obj);
+        for backend_namespace in &channel_registry.all() {
+            if let Some(all_backends) = &all_backends {
                 let backend = all_backends.backend(backend_namespace)?;
                 backend.program(program_name).await?;   
-                if data.programs.contains_key(program_name) { break; } 
+                if programs.contains_key(program_name) { break; } 
             }
         }
         Ok(())    
@@ -75,7 +79,10 @@ impl PgDauphin {
     }
 
     async fn add_binary_direct(&self, binary_name: &str, data: &[u8]) -> anyhow::Result<()> {
-        lock!(self.0).pdq.load(PgDauphinLoadTaskSpec {
+        let obj = lock!(self.0);
+        let pdq = obj.pdq.clone();
+        drop(obj);
+        pdq.load(PgDauphinLoadTaskSpec {
             bundle_name: binary_name.to_string(),
             data: data.to_vec()
         }).await
@@ -111,8 +118,11 @@ impl PgDauphin {
             self.load_program(&program_name).await?;
         }
         let data = lock!(self.0);
-        Ok(data.programs.get(&program_name).as_ref().unwrap().as_ref()
-            .ok_or(Error::operr(&format!("failed channel/program {:?}",program_name)))?.clone())
+        if let Some(Some(program)) = data.programs.get(&program_name) {
+            Ok(program.clone())
+        } else {
+            Err(Error::operr(&format!("failed channel/program {:?}",program_name)))
+        }
     }
 
     pub(crate) async fn get_program_model(&self, program_name: &ProgramName) -> Result<ProgramModel,Error> {

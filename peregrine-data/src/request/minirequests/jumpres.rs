@@ -57,7 +57,6 @@ impl<'de> Deserialize<'de> for JumpRes {
     }
 }
 
-
 impl MiniResponseVariety for JumpRes {
     fn description(&self) -> &str { "jump" }
 }

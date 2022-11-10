@@ -29,7 +29,7 @@ impl PackedTrack {
         let program_name = lookup(self.program_name,&res.program_idx)?;
         let program_name = ProgramName::new(program_set,program_name,self.program_version);
         let tags = lookup(self.tags,&res.tag_idx)?;
-        let mut builder = TrackModelBuilder::new(&self.name,&program_name,self.scale_start,self.scale_end,self.scale_step,&tags);
+        let mut builder = TrackModelBuilder::new(&program_name,self.scale_start,self.scale_end,self.scale_step,&tags);
         for trigger_idx in &self.triggers {
             builder.add_trigger(lookup(*trigger_idx,&res.switch_idx.0)?);
         }

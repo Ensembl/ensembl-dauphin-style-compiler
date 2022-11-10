@@ -2,7 +2,7 @@ use std::{ pin::Pin, future::Future };
 use peregrine_data::{ ChannelSender, BackendNamespace, PacketPriority, MaxiRequest, ChannelMessageDecoder, MaxiResponse, MiniRequest, MiniResponse};
 use peregrine_toolkit::{error::Error, log };
 use wasm_bindgen::JsValue;
-use crate::{payloadextract::PayloadExtractor, backend::Backend};
+use crate::{payloadextract::PayloadExtractor, backend::Backend, sidecars::JsSidecar};
 
 #[derive(Clone)]
 pub struct JavascriptChannel {
@@ -12,8 +12,8 @@ pub struct JavascriptChannel {
 
 impl JavascriptChannel {
     pub(crate) fn new(name: &str, payload: JsValue) -> Result<JavascriptChannel,Error> {
-        let payload = PayloadExtractor::new(payload)?;
         let backend_namespace = BackendNamespace::new("jsapi",name);
+        let payload = PayloadExtractor::new(payload,&backend_namespace)?;
 
         Ok(JavascriptChannel {
             backend: Backend::new(backend_namespace.clone(),payload.callbacks),
@@ -25,6 +25,7 @@ impl JavascriptChannel {
 
     async fn send(self, _prio: PacketPriority, maxi: MaxiRequest, _decoder: ChannelMessageDecoder) -> Result<MaxiResponse,Error> {
         let mut out = MaxiResponse::empty(&self.backend_namespace);
+        let mut sidecars = JsSidecar::new_empty();
         for attempt in maxi.requests() {
             match attempt.request() {
                 MiniRequest::Jump(req) => { 
@@ -32,8 +33,9 @@ impl JavascriptChannel {
                     out.add_response(attempt.make_response_attempt(MiniResponse::Jump(res)));
                 },
                 MiniRequest::BootChannel(req) => {
-                    let res = self.backend.boot(req).await?;
+                    let (res,sidecar) = self.backend.boot(req).await?;
                     out.add_response(attempt.make_response_attempt(MiniResponse::BootChannel(res)));
+                    sidecars.merge(sidecar);
                 },
                 MiniRequest::Stick(req) => {
                     let res = self.backend.stickinfo(req).await?;
@@ -45,6 +47,7 @@ impl JavascriptChannel {
                 }
             }
         }
+        sidecars.add_to_response(&mut out);
         Ok(out)
     }
 }

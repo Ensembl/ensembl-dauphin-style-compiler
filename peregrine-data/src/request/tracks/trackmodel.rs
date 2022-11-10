@@ -1,17 +1,19 @@
-use std::{sync::Arc, collections::{BTreeMap, HashMap}};
+use std::{sync::Arc, collections::{BTreeMap, HashMap}, mem};
 use peregrine_toolkit::{eachorevery::eoestruct::{StructValue}, error::Error };
+use serde::{Deserialize, Deserializer};
 use crate::{Track, shapeload::programname::ProgramName, PgDauphin, switch::switches::SwitchesData };
 
+#[derive(Debug,serde_derive::Deserialize)]
 pub(crate) struct TrackMappingBuilder {
     settings: HashMap<String,Vec<String>>,
-    values: Vec<(String,StructValue)>,
+    values: HashMap<String,StructValue>,
 }
 
 impl TrackMappingBuilder {
     fn new() -> TrackMappingBuilder {
         TrackMappingBuilder {
             settings: HashMap::new(),
-            values: vec![]
+            values: HashMap::new()
         }
     }
 
@@ -20,11 +22,11 @@ impl TrackMappingBuilder {
     }
 
     pub(crate) fn add_value(&mut self, key: &str, value: StructValue) {
-        self.values.push((key.to_string(),value));
+        self.values.insert(key.to_string(),value);
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone,Debug)]
 pub struct TrackMapping(Arc<TrackMappingBuilder>);
 
 impl TrackMapping {
@@ -49,34 +51,34 @@ impl TrackMapping {
     }
 }
 
+#[derive(serde_derive::Deserialize,Debug)]
 pub struct TrackModelBuilder {
-    name: String,
     program: ProgramName,
     tags: String,
     triggers: Vec<Vec<String>>,
-    mapping: Option<TrackMappingBuilder>,
+    #[serde(flatten)]
+    mapping: TrackMappingBuilder,
     scale_start: u64,
     scale_end: u64,
     scale_step: u64
 }
 
 impl TrackModelBuilder {
-    pub fn new(name: &str, program: &ProgramName, scale_start: u64, scale_end: u64, scale_step: u64, tags: &str) -> TrackModelBuilder {
+    pub fn new(program: &ProgramName, scale_start: u64, scale_end: u64, scale_step: u64, tags: &str) -> TrackModelBuilder {
         TrackModelBuilder {
-            name: name.to_string(),
             program: program.clone(),
             tags: tags.to_string(),
             triggers: vec![],
-            mapping: Some(TrackMappingBuilder::new()),
+            mapping: TrackMappingBuilder::new(),
             scale_start, scale_end, scale_step
         }
     }
 
-    pub(crate) fn mapping_mut(&mut self) -> &mut TrackMappingBuilder { self.mapping.as_mut().unwrap() }
+    pub(crate) fn mapping_mut(&mut self) -> &mut TrackMappingBuilder { &mut self.mapping }
     pub fn add_trigger(&mut self, trigger: &[String]) { self.triggers.push(trigger.to_vec()) }
 }
 
-#[derive(Clone)]
+#[derive(Clone,Debug)]
 pub struct TrackModel {
     builder: Arc<TrackModelBuilder>,
     track_mapping: TrackMapping
@@ -84,8 +86,9 @@ pub struct TrackModel {
 
 impl TrackModel {
     pub fn new(mut builder: TrackModelBuilder) -> TrackModel {
+        let mapping = mem::replace(&mut builder.mapping,TrackMappingBuilder::new());
         TrackModel {
-            track_mapping: TrackMapping::new(builder.mapping.take().unwrap()),
+            track_mapping: TrackMapping::new(mapping),
             builder: Arc::new(builder)
         }
     }
@@ -98,5 +101,12 @@ impl TrackModel {
 
     pub(crate) fn mount_points(&self) -> Vec<(Vec<String>,bool)> {
         self.builder.triggers.iter().map(|x| (x.to_vec(),true)).collect()
+    }
+}
+
+impl<'de> Deserialize<'de> for TrackModel {
+    fn deserialize<D>(deserializer: D) -> Result<TrackModel, D::Error>
+            where D: Deserializer<'de> {
+        Ok(TrackModel::new(TrackModelBuilder::deserialize(deserializer)?))
     }
 }
