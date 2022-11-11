@@ -14,6 +14,7 @@ use peregrine_data::RunReport;
 use peregrine_data::{PacketPriority, Region, Scale, ShapeRequest, StickId};
 use peregrine_toolkit::lock;
 use serde_cbor::Value as CborValue;
+use anyhow::anyhow as error;
 
 simple_interp_command!(GetLaneInterpCommand,GetLaneDeserializer,21,3,(0,1,2));
 simple_interp_command!(GetDataInterpCommand,GetDataDeserializer,22,2,(0,1));
@@ -86,7 +87,7 @@ impl InterpCommand for DataStreamInterpCommand {
         let mut out = vec![];
         for name in names {
             let values = data.get(&name)?;
-            out.push(values.data().to_vec()); // XXX critical-path copy. Use Arc's to avoid, but involves significant changes in dauphin
+            out.push(values.data_as_bytes().map_err(|_| error!("not bytes"))?.to_vec()); // XXX critical-path copy. Use Arc's to avoid, but involves significant changes in dauphin
         }
         let registers = context.registers_mut();
         registers.write(&self.0,InterpValue::Bytes(out));

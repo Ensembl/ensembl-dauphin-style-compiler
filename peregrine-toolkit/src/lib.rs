@@ -90,6 +90,7 @@ pub mod error;
 pub mod itertools;
 #[macro_use]
 pub mod lang;
+pub mod lesqlite2;
 pub mod refs;
 pub mod sample;
 pub mod time;

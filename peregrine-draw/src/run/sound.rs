@@ -1,3 +1,4 @@
+use js_sys::JsString;
 use peregrine_data::Asset;
 use peregrine_data::Assets;
 use peregrine_data::BackendNamespace;
@@ -8,7 +9,7 @@ use peregrine_toolkit_async::js::promise::promise_to_future;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::Mutex;
-use js_sys::{ Uint8Array};
+use js_sys::{ Uint8Array };
 use wasm_bindgen::{JsCast, JsValue, prelude::Closure};
 use web_sys::{ AudioContext, AudioBufferSourceNode, AudioBuffer, AudioContextState };
 use commander::{CommanderStream, PromiseFuture};
@@ -40,7 +41,7 @@ impl SoundState {
         let bytes = asset.bytes();
         if bytes.is_none() { return Ok(None); }
         let bytes = bytes.unwrap();
-        let promise = self.audio_context()?.decode_audio_data(&Uint8Array::from(bytes.data().as_ref().as_ref()).buffer())?;
+        let promise = self.audio_context()?.decode_audio_data(&Uint8Array::from(bytes.data_as_bytes().map_err(|_| JsValue::from(""))?.as_ref().as_ref()).buffer())?;
         let audio_buffer = promise_to_future(promise).await?.dyn_into::<AudioBuffer>()?;
         Ok(Some(audio_buffer))
     }

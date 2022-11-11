@@ -1,0 +1,286 @@
+// NZL+1 expr delta_seq(stream,name) delta(zigzag(lesqlite2(data_stream(stream,name))));
+// SZ+1 expr string_seq(stream,name) split_string(data_stream(stream,name))[];
+// SC+1 expr letter_string(stream,name) std::split_characters(data_stream(stream,name))[];
+// NUL+1 expr positive_seq(stream,name) lesqlite2(data_stream(stream,name));
+// SYNULZ+2 expr classified_seq(stream,keys,values) classify(string_seq(stream,keys),positive_seq(stream,values));
+// BB+1 expr bool_seq(stream,name) std::bytes_to_bool(data_stream(stream,name));
+
+use std::{str::{Chars, from_utf8}, sync::{Arc}, fmt};
+use peregrine_toolkit::{lesqlite2::lesqlite2_decode, serdetools::{st_field, ByteData}};
+use serde::{Deserialize, Deserializer, de::{Visitor, self}};
+
+use super::data::{ReceivedData, ReceivedDataType};
+
+fn pop(data: &mut Vec<ReceivedData>) -> Result<ReceivedData,()> {
+    data.pop().ok_or(())
+}
+
+pub enum UnsignedNumberAlgorithm {
+    Array(ReceivedData),
+    Lesqlite2(ReceivedData),
+    Delta(Box<UnsignedNumberAlgorithm>)
+}
+
+impl UnsignedNumberAlgorithm {
+    fn new<'a>(code: &mut Chars<'a>, data: &mut Vec<ReceivedData>) -> Result<UnsignedNumberAlgorithm,()> {
+        Ok(match code.next() {
+            Some('A') => UnsignedNumberAlgorithm::Array(pop(data)?),
+            Some('L') => UnsignedNumberAlgorithm::Lesqlite2(pop(data)?),
+            Some('D') => UnsignedNumberAlgorithm::Delta(Box::new(UnsignedNumberAlgorithm::new(code,data)?)),
+            _ => { return Err(()); }
+        })
+    }
+
+    fn specify<'a>(code: &mut Chars<'a>, spec: &mut Vec<ReceivedDataType>) -> Result<(),()> {
+         match code.next() {
+            Some('A') => { spec.push(ReceivedDataType::Numbers); },
+            Some('L') => { spec.push(ReceivedDataType::Bytes); },
+            Some('D') => { UnsignedNumberAlgorithm::specify(code,spec); },
+            _ => { return Err(()); }
+        }
+        Ok(())
+    }
+
+    fn make<'a> (&self) -> Result<Arc<Vec<f64>>,()> {
+        match self {
+            UnsignedNumberAlgorithm::Array(data) => {
+                Ok(data.data_as_numbers()?.clone())
+            },
+            UnsignedNumberAlgorithm::Lesqlite2(data) => {
+                Ok(Arc::new(lesqlite2_decode(data.data_as_bytes()?)?))
+            },
+            UnsignedNumberAlgorithm::Delta(inner) => {
+                let mut prev = 0.;
+                Ok(Arc::new(inner.make()?.iter().map(|v| {
+                    prev += v;
+                    prev
+                }).collect()))
+            }
+        }
+    }
+}
+
+pub enum NumberAlgorithm {
+    Array(ReceivedData),
+    Zigzag(UnsignedNumberAlgorithm),
+    Unsigned(UnsignedNumberAlgorithm)
+}
+
+impl NumberAlgorithm {
+    fn new<'a>(code: &mut Chars<'a>, data: &mut Vec<ReceivedData>) -> Result<NumberAlgorithm,()> {
+        Ok(match code.next() {
+            Some('A') => NumberAlgorithm::Array(pop(data)?),
+            Some('Z') => NumberAlgorithm::Zigzag(UnsignedNumberAlgorithm::new(code,data)?),
+            Some('U') => NumberAlgorithm::Unsigned(UnsignedNumberAlgorithm::new(code,data)?),
+            _ => { return Err(()); }
+        })
+    }
+
+    fn specify<'a>(code: &mut Chars<'a>, spec: &mut Vec<ReceivedDataType>) -> Result<(),()> {
+        Ok(match code.next() {
+            Some('A') => { spec.push(ReceivedDataType::Numbers); },
+            Some('Z') => { UnsignedNumberAlgorithm::specify(code,spec); }
+            Some('U') => { UnsignedNumberAlgorithm::specify(code,spec); },
+            _ => { return Err(()); }
+        })
+    }
+
+    fn make<'a>(&self) -> Result<Arc<Vec<f64>>,()> {
+        match self {
+            NumberAlgorithm::Array(data) => { 
+                Ok(data.data_as_numbers()?.clone())
+            },
+            NumberAlgorithm::Zigzag(data) => {
+                Ok(Arc::new(data.make()?.iter().map(|v| {
+                    let v = *v as i64;
+                    (if v%2 == 1 { -((v+1)/2) } else { v/2 }) as f64
+                }).collect()))
+            }
+            NumberAlgorithm::Unsigned(u) => { u.make() }
+        }
+    }
+}
+
+pub enum StringAlgorithm {
+    Array(ReceivedData),
+    CharacterSplit(ReceivedData),
+    ZeroSplit(ReceivedData),
+    Classify(UnsignedNumberAlgorithm,Box<StringAlgorithm>)
+}
+
+impl StringAlgorithm {
+    fn new<'a>(code: &mut Chars<'a>, data: &mut Vec<ReceivedData>) -> Result<StringAlgorithm,()> {
+        Ok(match code.next() {
+            Some('A') => StringAlgorithm::Array(pop(data)?),
+            Some('C') => StringAlgorithm::CharacterSplit(pop(data)?),
+            Some('Z') => StringAlgorithm::ZeroSplit(pop(data)?),
+            Some('Y') => {
+                let index = UnsignedNumberAlgorithm::new(code,data)?;
+                let values = StringAlgorithm::new(code,data)?;
+                StringAlgorithm::Classify(index,Box::new(values))
+            },
+            _ => { return Err(()); }
+        })
+    }
+
+    fn specify<'a>(code: &mut Chars<'a>, spec: &mut Vec<ReceivedDataType>) -> Result<(),()> {
+        match code.next() {
+            Some('A') => { spec.push(ReceivedDataType::Strings); },
+            Some('C') => { spec.push(ReceivedDataType::Bytes); },
+            Some('Z') => { spec.push(ReceivedDataType::Bytes); },
+            Some('Y') => {
+                UnsignedNumberAlgorithm::specify(code,spec)?;
+                StringAlgorithm::specify(code,spec)?;
+            },
+            _ => { return Err(()); }
+        }
+        Ok(())
+    }
+
+    fn make<'a> (&self) -> Result<Arc<Vec<String>>,()> {
+        match self {
+            StringAlgorithm::Array(data) => {
+                Ok(data.data_as_strings()?.clone())
+            },
+            StringAlgorithm::CharacterSplit(data) => {
+                let bytes = from_utf8(data.data_as_bytes()?).map_err(|_| ())?;
+                Ok(Arc::new(bytes.chars().map(|x| x.to_string()).collect()))
+            },
+            StringAlgorithm::ZeroSplit(data) => {
+                let bytes = from_utf8(data.data_as_bytes()?).map_err(|_| ())?;
+                Ok(Arc::new(bytes.split("\0").map(|x| x.to_string()).collect()))
+            },
+            StringAlgorithm::Classify(index,values) => {
+                let values = values.make()?;
+                let out = index.make()?.iter().map(|p| {
+                    let p = *p as usize;
+                    if p < values.len() { Ok(values[p].clone()) } else { Err(()) }
+                }).collect::<Result<Vec<_>,_>>()?;
+                Ok(Arc::new(out))
+            }
+        }
+    }
+}
+
+pub enum BooleanAlgorithm {
+    Array(ReceivedData),
+    Bytes(ReceivedData)
+}
+
+impl BooleanAlgorithm {
+    fn new<'a>(code: &mut Chars<'a>, data: &mut Vec<ReceivedData>) -> Result<BooleanAlgorithm,()> {
+        Ok(match code.next() {
+            Some('A') => BooleanAlgorithm::Array(pop(data)?),
+            Some('B') => BooleanAlgorithm::Bytes(pop(data)?),
+            _ => { return Err(()); }
+        })
+    }
+
+    fn specify<'a>(code: &mut Chars<'a>, spec: &mut Vec<ReceivedDataType>) -> Result<(),()> {
+        match code.next() {
+            Some('A') => { spec.push(ReceivedDataType::Booleans); },
+            Some('B') => { spec.push(ReceivedDataType::Bytes); },
+            _ => { return Err(()); }
+        }
+        Ok(())
+    }
+
+    fn make<'a> (&self) -> Result<Arc<Vec<bool>>,()> {
+        match self {
+            BooleanAlgorithm::Array(data) => {
+                Ok(data.data_as_booleans()?.clone())
+            },
+            BooleanAlgorithm::Bytes(data) => {
+                Ok(Arc::new(data.data_as_bytes()?.iter().map(|x| *x!=0).collect()))
+            }
+        }
+    }
+}
+
+pub enum DataAlgorithm {
+    Numbers(NumberAlgorithm),
+    Strings(StringAlgorithm),
+    Booleans(BooleanAlgorithm)
+}
+
+impl DataAlgorithm {
+    fn new(code: &str, data: &mut Vec<ReceivedData>) -> Result<DataAlgorithm,()> {
+        let mut code = code.chars();
+        Ok(match code.next() {
+            Some('N') => DataAlgorithm::Numbers(NumberAlgorithm::new(&mut code,data)?),
+            Some('S') => DataAlgorithm::Strings(StringAlgorithm::new(&mut code,data)?),
+            Some('B') => DataAlgorithm::Booleans(BooleanAlgorithm::new(&mut code,data)?),
+            _ => { return Err(()); }
+        })
+    }
+
+    fn specify(code: &str) -> Result<Vec<ReceivedDataType>,()> {
+        let mut code = code.chars();
+        let mut spec = vec![];
+        match code.next() {
+            Some('N') => { NumberAlgorithm::specify(&mut code,&mut spec)?; },
+            Some('S') => { StringAlgorithm::specify(&mut code,&mut spec)?; },
+            Some('B') => { BooleanAlgorithm::specify(&mut code,&mut spec)?; },
+            _ => { return Err(()); }
+        }
+        Ok(spec)
+    }
+
+    pub fn to_received_data(&self) -> Result<ReceivedData,()> {
+        match self {
+            DataAlgorithm::Numbers(n) => { 
+                Ok(ReceivedData::new_arc_numbers(&n.make()?))
+            },
+            DataAlgorithm::Strings(s) => {
+                Ok(ReceivedData::new_arc_strings(&s.make()?))
+            },
+            DataAlgorithm::Booleans(b) => {
+                Ok(ReceivedData::new_arc_booleans(&b.make()?))
+            }
+        }
+    }
+}
+
+struct DataAlgorithmVisitor;
+
+impl<'de> Visitor<'de> for DataAlgorithmVisitor {
+    type Value = DataAlgorithm;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter.write_str("a DataAlgorithm")
+    }
+
+    fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+            where A: serde::de::SeqAccess<'de> {
+        let code = st_field("group",seq.next_element()?)?;
+        let mut data = vec![];
+        for variety in DataAlgorithm::specify(code).map_err(|_| de::Error::custom("bad data format"))? {
+            match variety {
+                ReceivedDataType::Bytes => {
+                    let value = st_field("expected bytes",seq.next_element::<ByteData>().ok().flatten())?.data;
+                    data.push(ReceivedData::new_bytes(value));
+                },
+                ReceivedDataType::Booleans => {
+                    let value = st_field("expected bools",seq.next_element::<Vec<bool>>().ok().flatten())?;
+                    data.push(ReceivedData::new_booleans(value));
+                },
+                ReceivedDataType::Numbers => {
+                    let value = st_field("expected numbers",seq.next_element::<Vec<f64>>().ok().flatten())?;
+                    data.push(ReceivedData::new_numbers(value));
+                },
+                ReceivedDataType::Strings => {
+                    let value = st_field("expected strings",seq.next_element::<Vec<String>>().ok().flatten())?;
+                    data.push(ReceivedData::new_strings(value));
+                }
+            }
+        }
+        Ok(DataAlgorithm::new(code,&mut data).map_err(|_| de::Error::custom("bad data format"))?)
+    }
+}
+
+impl<'de> Deserialize<'de> for DataAlgorithm {
+    fn deserialize<D>(deserializer: D) -> Result<DataAlgorithm, D::Error>
+            where D: Deserializer<'de> {
+        deserializer.deserialize_seq(DataAlgorithmVisitor)
+    }
+}

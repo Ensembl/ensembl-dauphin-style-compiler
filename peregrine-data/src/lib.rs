@@ -94,6 +94,7 @@ mod core {
         pub(crate) mod programbundle;
     }
 
+    pub(crate) mod dataalgorithm;
     pub(crate) mod asset;
     mod config;
     mod layout;

@@ -75,7 +75,7 @@ impl<'de> Visitor<'de> for AssetVisitor {
             match key {
                 "data" => { 
                     let data : ByteData = access.next_value()?;
-                    bytes = Some(ReceivedData::new(data.data));
+                    bytes = Some(ReceivedData::new_bytes(data.data));
                 },
                 key => {
                     let value : ForceString = access.next_value()?;

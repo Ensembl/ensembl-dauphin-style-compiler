@@ -108,8 +108,7 @@ impl InterpCommand for DeltaInterpCommand {
         for v in data.iter() {
             let v = *v as i64;
             prev += v;
-            out.push(prev as f64);
-            
+            out.push(prev as f64);            
         }
         registers.write(&self.0,InterpValue::Numbers(out));
         Ok(CommandResult::SyncResult())

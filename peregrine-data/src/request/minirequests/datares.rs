@@ -6,6 +6,7 @@ use std::any::Any;
 use std::fmt;
 use std::sync::Arc;
 use std::{collections::HashMap};
+use crate::core::dataalgorithm::DataAlgorithm;
 use crate::{ChannelSender};
 use crate::core::channel::wrappedchannelsender::WrappedChannelSender;
 use crate::request::core::response::MiniResponseVariety;
@@ -14,6 +15,7 @@ use crate::core::data::ReceivedData;
 
 pub struct DataRes {
     data: HashMap<String,ReceivedData>,
+    data2: HashMap<String,ReceivedData>,
     invariant: bool
 }
 
@@ -45,22 +47,43 @@ impl<'de> Visitor<'de> for DataVisitor {
 
     fn visit_map<M>(self, mut access: M) -> Result<Self::Value, M::Error>
             where M: MapAccess<'de> {
-        let mut data : Option<HashMap<_,_>> = None;
+        let mut data : Option<HashMap<String,Vec<u8>>> = None;
+        let mut data2 : Option<HashMap<String,DataAlgorithm>> = None;
         let mut indexes : Option<HashMap<String,usize>> = None;
+        let mut indexes2 : Option<HashMap<String,usize>> = None;
         let mut invariant = false;
         while let Some(key) = access.next_key()? {
+            /* undo domain-specific compression */
             match key {
+                /* values are present as some domain-compressed thing */
                 "data" => { 
                     let bytes : ByteData = access.next_value()?;
                     let values = self.0.deserialize_data(&self.1,bytes.data).map_err(|e| de::Error::custom(e))?;
                     data = Some(st_field("data deserializer",values)?.drain(..).collect());
                 },
                 "values" => {
-                    data = access.next_value()?;
+                    /* values are present as map From strings to bytes */
+                    data = Some(access.next_value()?);
                 },
                 "indexes" => {
+                    /* values are present as indexes into an index stream */
                     indexes = Some(access.next_value()?);
                 },
+                /***/
+                "data2" => { 
+                    let bytes : ByteData = access.next_value()?;
+                    let values = self.0.deserialize_data2(&self.1,bytes.data).map_err(|e| de::Error::custom(e))?;
+                    data2 = Some(st_field("data deserializer",values)?.drain(..).collect());
+                },
+                "values2" => {
+                    /* values are present as map From strings to bytes */
+                    data2 = Some(access.next_value()?);
+                },
+                "indexes2" => {
+                    /* values are present as indexes into an index stream */
+                    indexes2 = Some(access.next_value()?);
+                },
+                /***/
                 "__invariant" => { invariant = access.next_value()? },
                 _ => {}
             }
@@ -73,11 +96,16 @@ impl<'de> Visitor<'de> for DataVisitor {
             data = Some(values)
         }
         let mut data = st_field("data",data)?;
+        let mut data2 = data2.unwrap_or_else(|| HashMap::new());
         let data = st_err(data.drain().map(|(k,v)| {
-            Ok((k,ReceivedData::new(v)))
+            Ok((k,ReceivedData::new_bytes(v)))
         }).collect::<Result<HashMap<String,ReceivedData>,String>>(),"corrupt payload/C")?;
+        let data2 = data2.drain().map(|(k,v)| {
+            Ok((k,v.to_received_data()?))
+        }).collect::<Result<_,()>>().map_err(|_| de::Error::custom("cannot create data"))?;
         Ok(DataRes {
             data, 
+            data2,
             invariant
         })
     }
