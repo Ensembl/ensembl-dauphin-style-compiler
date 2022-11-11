@@ -18,8 +18,9 @@ impl RequestSidecars {
         }
     }
 
+    /* although add_programs_from_response is async, it can't cause a network request */
     pub(crate) async fn run(&self, response: &MaxiResponse, channel: &BackendNamespace, messages: &MessageSender) {
-        err_web_drop(add_programs_from_response(&self.pgd,channel,response,messages).await);
-        err_web_drop(add_tracks_from_response(response,&self.switches,&self.queue,&self.pgd).await);
+        err_web_drop(add_programs_from_response(&self.pgd,channel,response,messages).await); // fine
+        err_web_drop(add_tracks_from_response(response,&self.switches,&self.queue,&self.pgd));
     }
 }

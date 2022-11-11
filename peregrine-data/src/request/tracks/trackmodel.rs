@@ -1,19 +1,19 @@
-use std::{sync::Arc, collections::{BTreeMap, HashMap}, mem};
+use std::{sync::Arc, collections::BTreeMap, mem};
 use peregrine_toolkit::{eachorevery::eoestruct::{StructValue}, error::Error };
 use serde::{Deserialize, Deserializer};
 use crate::{Track, shapeload::programname::ProgramName, PgDauphin, switch::switches::SwitchesData };
 
-#[derive(Debug,serde_derive::Deserialize)]
+#[derive(Debug,serde_derive::Deserialize,PartialEq,Eq,Hash,PartialOrd,Ord)]
 pub(crate) struct TrackMappingBuilder {
-    settings: HashMap<String,Vec<String>>,
-    values: HashMap<String,StructValue>,
+    settings: BTreeMap<String,Vec<String>>,
+    values: BTreeMap<String,StructValue>,
 }
 
 impl TrackMappingBuilder {
     fn new() -> TrackMappingBuilder {
         TrackMappingBuilder {
-            settings: HashMap::new(),
-            values: HashMap::new()
+            settings: BTreeMap::new(),
+            values: BTreeMap::new()
         }
     }
 
@@ -26,7 +26,7 @@ impl TrackMappingBuilder {
     }
 }
 
-#[derive(Clone,Debug)]
+#[derive(Clone,Debug,PartialEq,Eq,Hash,PartialOrd,Ord)]
 pub struct TrackMapping(Arc<TrackMappingBuilder>);
 
 impl TrackMapping {
@@ -51,7 +51,7 @@ impl TrackMapping {
     }
 }
 
-#[derive(serde_derive::Deserialize,Debug)]
+#[derive(serde_derive::Deserialize,Debug,PartialEq,Eq,Hash,PartialOrd,Ord)]
 pub struct TrackModelBuilder {
     program: ProgramName,
     tags: String,
@@ -78,7 +78,7 @@ impl TrackModelBuilder {
     pub fn add_trigger(&mut self, trigger: &[String]) { self.triggers.push(trigger.to_vec()) }
 }
 
-#[derive(Clone,Debug)]
+#[derive(Clone,Debug,PartialEq,Eq,Hash,PartialOrd,Ord)]
 pub struct TrackModel {
     builder: Arc<TrackModelBuilder>,
     track_mapping: TrackMapping
@@ -98,6 +98,9 @@ impl TrackModel {
         let t = self.builder.as_ref();
         Track::new(&program,&self.track_mapping,t.scale_start,t.scale_end+1,t.scale_step,&t.tags)
     }
+
+    pub(crate) fn program(&self) -> &ProgramName { &self.builder.program }
+    pub(crate) fn mapping(&self) -> &TrackMapping { &self.track_mapping }
 
     pub(crate) fn mount_points(&self) -> Vec<(Vec<String>,bool)> {
         self.builder.triggers.iter().map(|x| (x.to_vec(),true)).collect()

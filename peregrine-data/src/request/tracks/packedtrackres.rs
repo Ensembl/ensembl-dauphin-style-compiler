@@ -7,7 +7,7 @@ struct PackedTrack {
     name: String,
     program_set: usize,
     program_name: usize,
-    program_version: usize,
+    program_version: u32,
     tags: usize,
     triggers: Vec<usize>,
     settings_keys: Vec<usize>,
@@ -24,7 +24,7 @@ fn lookup<T>(index: usize, array: &[T]) -> Result<&T,Error> {
 }
 
 impl PackedTrack {
-    async fn to_track(&self, res: &PackedTrackRes) -> Result<TrackModel,Error> {
+    fn to_track(&self, res: &PackedTrackRes) -> Result<TrackModel,Error> {
         let program_set = lookup(self.program_set,&res.program_idx)?;
         let program_name = lookup(self.program_name,&res.program_idx)?;
         let program_name = ProgramName::new(program_set,program_name,self.program_version);
@@ -125,7 +125,7 @@ impl PackedTrackRes {
             {
             out.push(PackedTrack {
                 name,
-                program_name, program_set, program_version,
+                program_name, program_set, program_version: program_version as u32,
                 scale_start,scale_end,scale_step,
                 tags,
                 triggers: triggers.0,
@@ -153,10 +153,10 @@ impl PackedTrackRes {
         Ok(out)
     }
 
-    pub(super) async fn to_track_models(&self) -> Result<Vec<TrackModel>,Error> {
+    pub(super) fn to_track_models(&self) -> Result<Vec<TrackModel>,Error> {
         let mut tracks = vec![];
         for track in self.make_packed_tracks()? {
-            tracks.push(track.to_track(&self).await?);
+            tracks.push(track.to_track(&self)?);
         }
         Ok(tracks)
     }

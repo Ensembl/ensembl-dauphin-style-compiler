@@ -11,7 +11,7 @@ use crate::train::model::trainextent::TrainExtent;
 use crate::{Assets, PgCommanderTaskSpec, DrawingCarriage, BackendNamespace, SettingMode };
 use commander::{CommanderStream, PromiseFuture};
 use peregrine_toolkit::eachorevery::eoestruct::{StructValue};
-use peregrine_toolkit::error::err_web_drop;
+use peregrine_toolkit::error::{err_web_drop, Error};
 use peregrine_toolkit::{log_extra, lock};
 use peregrine_toolkit_async::sync::blocker::{Blocker, Lockout};
 use super::pgcore::PeregrineCore;
@@ -56,7 +56,7 @@ use super::pgcore::PeregrineCore;
 
  pub(crate) enum ApiMessage {
     AddBackend(String),
-    ApplicationReady,
+    WaitForApplicationReady,
     TransitionComplete,
     SetPosition(f64),
     SetBpPerScreen(f64),
@@ -90,9 +90,14 @@ impl ApiQueueCampaign {
         }
     }
 
+    async fn regenerate_tracks(&mut self, data: &mut PeregrineCore) -> Result<(),Error> {
+        self.viewport = self.viewport.set_track_config_list(&data.switches.get_track_config_list().await?);
+        Ok(())
+    }
+
     async fn run_message(&mut self, data: &mut PeregrineCore, message: ApiMessage) {
         match message {
-            ApiMessage::ApplicationReady => {
+            ApiMessage::WaitForApplicationReady => {
                 data.base.channel_registry.booted().await;
             },
             ApiMessage::AddBackend(access) => {
@@ -134,18 +139,18 @@ impl ApiQueueCampaign {
             },
             ApiMessage::Switch(path,value) => {
                 data.switches.switch(&path.iter().map(|x| x.as_str()).collect::<Vec<_>>(),value).await;
-                self.viewport = self.viewport.set_track_config_list(&data.switches.get_track_config_list());
+                err_web_drop(self.regenerate_tracks(data).await);
             },
             ApiMessage::UpdateSwitch(path,value) => {
                 data.switches.update_switch(&path.iter().map(|x| x.as_str()).collect::<Vec<_>>(),value).await;
-                self.viewport = self.viewport.set_track_config_list(&data.switches.get_track_config_list());
+                err_web_drop(self.regenerate_tracks(data).await);
             },
             ApiMessage::RadioSwitch(path,yn) => {
                 data.switches.radio_switch(&path.iter().map(|x| x.as_str()).collect::<Vec<_>>(),yn);
-                self.viewport = self.viewport.set_track_config_list(&data.switches.get_track_config_list());
+                err_web_drop(self.regenerate_tracks(data).await);
             },
             ApiMessage::RegenerateTrackConfig => {
-                self.viewport = self.viewport.set_track_config_list(&data.switches.get_track_config_list());
+                err_web_drop(self.regenerate_tracks(data).await);
             },
             ApiMessage::ReportMetric(channel,metric) => {
                 data.base.manager.execute_and_forget(&channel,MiniRequest::Metric(metric));
@@ -199,7 +204,7 @@ impl PeregrineApiQueue {
     pub(crate) fn visual_blocker(&self) -> &Blocker { &self.visual_blocker }
 
     pub(crate) fn run(&self, data: &mut PeregrineCore) {
-        self.push(ApiMessage::ApplicationReady);
+        self.push(ApiMessage::WaitForApplicationReady);
         let mut self2 = self.clone();
         let mut data2 = data.clone();
         add_task::<()>(&data.base.commander,PgCommanderTaskSpec {

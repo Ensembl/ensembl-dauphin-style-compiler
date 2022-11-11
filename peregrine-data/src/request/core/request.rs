@@ -26,10 +26,11 @@ pub enum MiniRequest {
     Data(DataRequest),
     Jump(JumpReq), // y
     Metric(MetricReport),
-    Expand(ExpandReq)
+    Expand(ExpandReq) // y
 }
 
 impl MiniRequest {
+    // XXX to toolkit as macro
     pub fn as_mini(&self) -> &dyn MiniRequestVariety {
         match self {
             MiniRequest::BootChannel(x) => x,

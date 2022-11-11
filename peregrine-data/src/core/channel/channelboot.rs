@@ -6,11 +6,10 @@ use super::wrappedchannelsender::WrappedChannelSender;
 
 type BootStream = CommanderStream<Option<(BackendNamespace,WrappedChannelSender,FusePromise<Result<BackendNamespace,Error>>)>>;
 
-async fn finish_bootstrap(response: &BootChannelRes, base: &PeregrineCoreBase, sender: &WrappedChannelSender) -> Result<BackendNamespace,Error> {
+fn finish_bootstrap(response: &BootChannelRes, base: &PeregrineCoreBase) -> Result<BackendNamespace,Error> {
     let info = InstanceInformation::new(
         response.namespace(),response,&base.version
     );
-    base.channel_registry.register_channel(response.namespace(),sender);
     lock!(base.integration).report_instance_information(&info);
     lock!(base.integration).set_assets(response.channel_assets());
     lock!(base.integration).set_assets(response.chrome_assets());
@@ -22,10 +21,11 @@ async fn finish_bootstrap(response: &BootChannelRes, base: &PeregrineCoreBase, s
 
 pub(super) async fn boot_channel(base: &PeregrineCoreBase, name: &BackendNamespace, sender: &WrappedChannelSender) -> Result<BackendNamespace,Error> {
     let request = BootChannelReq::new();
+    base.channel_registry.register_channel(name,sender);
     let response = base.manager.submit_direct(sender,&PacketPriority::RealTime,&Some(name.clone()),request, |v| {
         v.into_variety().into_boot_channel()
     }).await?;
-    finish_bootstrap(&response,base,sender).await
+    finish_bootstrap(&response,base)
 }
 
 async fn boot_loop(stream: BootStream, base: &PeregrineCoreBase, booted: &CountingPromise) -> Result<(),DataMessage> {

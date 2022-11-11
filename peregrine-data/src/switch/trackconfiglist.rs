@@ -1,10 +1,33 @@
-use std::{collections::hash_map::DefaultHasher, hash::{ Hash, Hasher }};
+use std::{collections::{hash_map::DefaultHasher, BTreeMap, BTreeSet}, hash::{ Hash, Hasher }};
 use std::fmt;
 use std::sync::{ Arc };
 use std::collections::HashMap;
-use super::{track::Track, switches::SwitchesData};
+use peregrine_toolkit::{error::Error, eachorevery::eoestruct::StructValue};
+use peregrine_toolkit_async::sync::{asynconce::AsyncOnce};
+use super::{track::Track, switches::{SwitchesData}};
 use super::trackconfig::{ TrackConfig, hashmap_hasher };
-use crate::core::{ Layout, Scale };
+use crate::{core::{ Layout, Scale }, PgDauphin, TrackModel};
+
+#[derive(Clone)]
+pub(crate) struct TrackConfigListBuilder(AsyncOnce<Result<TrackConfigList,Error>>,u64);
+
+impl TrackConfigListBuilder {
+    pub(super) fn new(switches_data: &SwitchesData, pgd: &PgDauphin) -> TrackConfigListBuilder {
+        let builder = switches_data.get_triggered().iter().map(|model| {
+            let settings = model.mapping().apply(switches_data);
+            (model.clone(),settings)
+        }).collect::<BTreeSet<_>>();
+        let mut hasher = DefaultHasher::new();
+        builder.hash(&mut hasher);
+        let hash = hasher.finish();
+        let pgd = pgd.clone();
+        TrackConfigListBuilder(AsyncOnce::new(Box::pin(async move {
+            TrackConfigList::new(builder,hash,&pgd).await
+        })),hash)
+    }
+
+    pub async fn track_config_list(&self) -> Result<TrackConfigList,Error> { self.0.get().await }
+}
 
 #[derive(Clone)]
 pub struct TrackConfigList {
@@ -39,17 +62,22 @@ impl fmt::Debug for TrackConfigList {
 }
 
 impl TrackConfigList {
-    pub(super) fn new(switches_data: &SwitchesData) -> TrackConfigList {
-        let mut builder = HashMap::new();
-        for track in &switches_data.get_triggered() {
-            builder.insert(track.clone(),Arc::new(TrackConfig::new(&track,switches_data)));
+    async fn new(models: BTreeSet<(TrackModel,BTreeMap<String,StructValue>)>, hash: u64, pgd: &PgDauphin) -> Result<TrackConfigList,Error> {
+        let mut configs = HashMap::new();
+        for (model, settings) in models.iter() {
+            let mut settings = settings.clone();
+            let track = model.to_track(&pgd).await?;
+            track.program().apply_defaults(&mut settings);
+            configs.insert(track.clone(),Arc::new(TrackConfig::new(&track,settings)));
         }
-        let mut hasher = DefaultHasher::new();
-        hashmap_hasher(&builder,&mut hasher);
-        TrackConfigList {
-            configs: Arc::new(builder),
-            hash: hasher.finish()
-        }
+        Ok(TrackConfigList {
+            configs: Arc::new(configs),
+            hash
+        })
+    }
+
+    pub(crate) fn compatible_with(&self, builder: &TrackConfigListBuilder) -> bool {
+        self.hash == builder.1
     }
 
     pub(crate) fn get_track(&self, track: &Track) -> Option<Arc<TrackConfig>> {

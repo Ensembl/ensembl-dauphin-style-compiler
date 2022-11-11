@@ -1,12 +1,12 @@
-use std::sync::{Arc, Mutex};
-use peregrine_toolkit::{eachorevery::eoestruct::{ StructConst, StructValue}, lock, error::Error};
-use crate::{Track, request::tracks::{trackmodel::TrackModel, expansionmodel::ExpansionModel}, AllBackends, PgDauphin, SettingMode};
-use super::{trackconfiglist::TrackConfigList, switch::Switch, expansion::Expansion};
+use std::{sync::{Arc, Mutex}, collections::HashSet};
+use peregrine_toolkit::{eachorevery::eoestruct::{ StructConst, StructValue}, lock, error::Error, log};
+use crate::{request::tracks::{trackmodel::TrackModel, expansionmodel::ExpansionModel}, AllBackends, PgDauphin, SettingMode};
+use super::{trackconfiglist::{TrackConfigList, TrackConfigListBuilder}, switch::Switch, expansion::Expansion};
 
 pub(crate) struct SwitchesData {
     root: Switch,
     all_backends: Option<AllBackends>,
-    track_config_list: Option<TrackConfigList>
+    track_config_list_builder: Option<TrackConfigListBuilder>
 }
 
 impl SwitchesData {
@@ -14,10 +14,9 @@ impl SwitchesData {
         let mut out = SwitchesData {
             root: Switch::new(),
             all_backends: None,
-            track_config_list: None
+            track_config_list_builder: None
         };
-        let tmpl_true = StructValue::new_boolean(true);
-        out.root.set(tmpl_true);
+        out.root.set(StructValue::new_boolean(true));
         out
     }
 
@@ -29,15 +28,15 @@ impl SwitchesData {
         self.all_backends = Some(all_backends.clone());
     }
 
-    fn get_track_config_list(&mut self) -> &TrackConfigList {
-        if self.track_config_list.is_none() {
-            self.track_config_list = Some(TrackConfigList::new(&self));
+    fn get_track_config_list_builder(&mut self, loader: &PgDauphin) -> &TrackConfigListBuilder {
+        if self.track_config_list_builder.is_none() {
+            self.track_config_list_builder = Some(TrackConfigListBuilder::new(self,loader))
         }
-        self.track_config_list.as_ref().unwrap()
+        self.track_config_list_builder.as_ref().unwrap()
     }
 
-    pub(super) fn get_triggered(&self) -> Vec<Track> {
-        let mut triggered = vec![];
+    pub(super) fn get_triggered(&self) -> HashSet<TrackModel> {
+        let mut triggered = HashSet::new();
         self.root.get_triggered(&mut triggered);
         triggered
     }
@@ -56,19 +55,21 @@ impl SwitchesData {
             let target = self.root.get_target(path);
             target.set(value);
         }
-        self.track_config_list = None;
+        self.track_config_list_builder = None;
     }
 }
 
 #[derive(Clone)]
 pub struct Switches {
     data: Arc<Mutex<SwitchesData>>,
+    loader: PgDauphin
 }
 
 impl Switches {
-    pub fn new() -> Switches {
-        Switches{
-            data: Arc::new(Mutex::new(SwitchesData::new()))
+    pub fn new(loader: &PgDauphin) -> Switches {
+        Switches {
+            data: Arc::new(Mutex::new(SwitchesData::new())),
+            loader: loader.clone()
         }
     }
 
@@ -109,21 +110,20 @@ impl Switches {
     pub fn radio_switch(&self, path: &[&str], yn: bool) {
         let mut data = lock!(self.data);
         data.root.get_target(path).set_radio(yn);        
-        data.track_config_list = None;
+        data.track_config_list_builder = None;
     }
 
-    fn add_track(&self, path: &[&str], track: &Track, trigger: bool) {
+    fn add_track(&self, path: &[&str], track: &TrackModel, trigger: bool) {
         let mut data = lock!(self.data);
         let target = data.root.get_target(path);
         target.add_track(track,trigger);
-        data.track_config_list = None;
+        data.track_config_list_builder = None;
     }
 
-    pub async fn add_track_model(&self, model: &TrackModel, pgd: &PgDauphin) -> Result<(),Error> {
-        let track = model.to_track(pgd).await?;
+    pub fn add_track_model(&self, model: &TrackModel, pgd: &PgDauphin) -> Result<(),Error> {
         for (mount,trigger) in model.mount_points() {
             let path = mount.iter().map(|x| x.as_str()).collect::<Vec<_>>();
-            self.add_track(&path,&track,trigger);
+            self.add_track(&path,&model,trigger);
         }
         Ok(())
     }
@@ -132,7 +132,7 @@ impl Switches {
         let mut data = lock!(self.data);
         let target = data.root.get_target(path);
         target.add_expansion(expansion);
-        data.track_config_list = None;        
+        data.track_config_list_builder = None;        
     }
 
     pub fn add_expansion_model(&self, model: &ExpansionModel) {
@@ -143,7 +143,19 @@ impl Switches {
         }
     }
 
-    pub fn get_track_config_list(&self) -> TrackConfigList {
-        lock!(self.data).get_track_config_list().clone()
+    /* Building is async, by which time we mayhave another builder so may need to retry. */
+    pub async fn get_track_config_list(&self) -> Result<TrackConfigList,Error> {
+        let mut out : Option<TrackConfigList> = None;
+        loop {
+            let mut data = lock!(self.data);
+            let builder = data.get_track_config_list_builder(&self.loader).clone();
+            if let Some(out) = &out {
+                if out.compatible_with(&builder) {
+                    return Ok(out.clone());
+                }
+            }
+            drop(data);
+            out = Some(builder.track_config_list().await?);
+        }
     }
 }

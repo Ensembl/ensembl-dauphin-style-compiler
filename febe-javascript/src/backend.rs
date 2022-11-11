@@ -1,4 +1,4 @@
-use peregrine_data::{JumpReq, JumpRes, JumpLocation, BootChannelReq, BootChannelRes, Assets, BackendNamespace, StickReq, StickRes, ExpandRes, ExpandReq};
+use peregrine_data::{JumpReq, JumpRes, JumpLocation, BootChannelReq, BootChannelRes, Assets, BackendNamespace, StickReq, StickRes, ExpandRes, ExpandReq, ProgramReq, ProgramRes};
 use peregrine_toolkit::error::Error;
 use crate::{callbacks::Callbacks, sidecars::JsSidecar};
 
@@ -32,6 +32,12 @@ impl Backend {
     pub(crate) async fn expansion(&self, req: &ExpandReq) -> Result<(ExpandRes,JsSidecar),Error> {
         let sidecar = self.callbacks.expansion(req.name(),req.step()).await?;
         Ok((ExpandRes,sidecar))
+    }
+
+    pub(crate) async fn program(&self, req: &ProgramReq) -> Result<(ProgramRes,JsSidecar),Error> {
+        let name = req.name();
+        let sidecar = self.callbacks.program(name.group(),name.name(),name.version()).await?;
+        Ok((ProgramRes,sidecar))
     }
 
     pub(crate) async fn stickinfo(&self, req: &StickReq) -> Result<(StickRes,JsSidecar),Error> {

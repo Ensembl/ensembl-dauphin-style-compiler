@@ -1,6 +1,6 @@
 use peregrine_toolkit::error::Error;
 use peregrine_toolkit_async::sync::blocker::{Blocker};
-use peregrine_toolkit::{log_extra};
+use peregrine_toolkit::{log_extra, log};
 use crate::core::channel::wrappedchannelsender::WrappedChannelSender;
 use crate::core::version::VersionMetadata;
 use crate::{PacketPriority, BackendNamespace, MaxiResponse, MaxiRequest};
@@ -43,7 +43,7 @@ pub struct RequestQueue {
 }
 
 impl RequestQueue {
-    pub(crate) fn new(key: &QueueKey, commander: &PgCommander, realtime_lock: &Blocker, matcher: &AttemptMatch, sidecars: &RequestSidecars, version: &VersionMetadata, messages: &MessageSender, do_pace: bool) -> Result<RequestQueue,Error> {
+    pub(crate) fn new(key: &QueueKey, commander: &PgCommander, realtime_lock: &Blocker, matcher: &AttemptMatch, sidecars: &RequestSidecars, version: &VersionMetadata, messages: &MessageSender) -> Result<RequestQueue,Error> {
         let batch_size = match key.priority {
             PacketPriority::RealTime => None, /* limitless */
             PacketPriority::Batch => Some(20) /* no more than 20 at a time */
@@ -121,7 +121,6 @@ impl RequestQueue {
                 break;
             }
         }
-        log_extra!("connection manager shutting down");
         Ok(())
     }
 }

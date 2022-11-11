@@ -1,9 +1,7 @@
-use std::{collections::{HashMap, BTreeMap}, sync::Arc};
-
+use std::{collections::{HashMap, BTreeMap}, sync::Arc, fmt};
 use peregrine_toolkit::{error::Error, eachorevery::eoestruct::{StructValue}};
-
+use serde::{Deserializer, de::{MapAccess, Visitor}, Deserialize};
 use crate::{shapeload::programname::ProgramName };
-
 use super::packedprogramspec::PackedProgramSpec;
 
 #[derive(Clone)]
@@ -21,9 +19,43 @@ impl ProgramSetting {
     }
 }
 
+#[derive(serde_derive::Deserialize)]
+pub struct NamelessProgramSetting {
+    default: StructValue
+}
+
+struct SettingsVisitor;
+
+impl<'de> Visitor<'de> for SettingsVisitor {
+    type Value = HashMap<String,ProgramSetting>;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter.write_str("a A settings hash")
+    }
+
+    fn visit_map<M>(self, mut access: M) -> Result<Self::Value, M::Error>
+            where M: MapAccess<'de> {
+        let mut out = HashMap::new();
+        while let Some(name) = access.next_key::<String>()? {
+            let value : NamelessProgramSetting = access.next_value()?;
+            out.insert(name.clone(),ProgramSetting {
+                name,
+                default: value.default
+            });
+        }
+        Ok(out)
+    }
+}
+
+fn settings_ds<'de,D>(deserializer: D) -> Result<HashMap<String,ProgramSetting>,D::Error> where D: Deserializer<'de> {
+    deserializer.deserialize_seq(SettingsVisitor)
+}
+
+#[derive(serde_derive::Deserialize)]
 pub(crate) struct ProgramModelBuilder {
     name: ProgramName,
     in_bundle_name: String,
+    #[serde(deserialize_with = "settings_ds",default)]
     settings: HashMap<String,ProgramSetting>
 }
 
@@ -67,15 +99,29 @@ impl ProgramModel {
 }
 
 pub(crate) enum ProgramSpec {
-    Umpacked(Vec<ProgramModel>),
+    Unpacked(Vec<ProgramModel>),
     Packed(PackedProgramSpec)
 }
 
 impl ProgramSpec {
     pub(crate) fn to_program_models(&self) -> Result<Vec<ProgramModel>,Error> {
         match self {
-            ProgramSpec::Umpacked(m) => Ok(m.clone()),
+            ProgramSpec::Unpacked(m) => Ok(m.clone()),
             ProgramSpec::Packed(m) => m.to_program_models()
         }
+    }
+}
+
+impl<'de> Deserialize<'de> for ProgramModel {
+    fn deserialize<D>(deserializer: D) -> Result<ProgramModel, D::Error>
+            where D: Deserializer<'de> {
+        Ok(ProgramModel::new(ProgramModelBuilder::deserialize(deserializer)?))
+    }
+}
+
+impl<'de> Deserialize<'de> for ProgramSpec {
+    fn deserialize<D>(deserializer: D) -> Result<ProgramSpec, D::Error>
+            where D: Deserializer<'de> {
+        Ok(ProgramSpec::Unpacked(<Vec<ProgramModel>>::deserialize(deserializer)?))
     }
 }

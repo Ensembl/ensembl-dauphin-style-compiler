@@ -73,10 +73,9 @@ class ProgramHandler(Handler):
                 bundle = data_accessor.program_inventory.find_bundle(prog_set,name,prog_version)
         except UnknownVersionException as e:
             return Response(1,e)
-        if bundle == None:
-            return Response(1,"Unknown program {}//{}//{}".format(prog_set,name,prog_version))
         r = Response(2,[])
-        r.add_bundle(bundle)
+        if bundle != None:
+            r.add_bundle(bundle)
         return r
         
 class StickHandler(Handler):

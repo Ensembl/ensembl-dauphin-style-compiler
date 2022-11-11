@@ -75,7 +75,6 @@ impl PeregrineCore {
     pub fn new<M,F>(integration: Box<dyn PeregrineIntegration>, commander: M, messages: F, queue: &PeregrineApiQueue, redraw_needed: &Needed, mut channel_integrations: Vec<Rc<dyn ChannelIntegration>>) -> Result<PeregrineCore,DataMessage> 
                 where M: Commander + 'static, F: FnMut(Error) + 'static + Send {
         let shutdown = OneShot::new();
-        let mut switches = Switches::new();
         let integration = Arc::new(Mutex::new(integration));
         let graphics = Graphics::new(&integration);
         let commander = PgCommander::new(Box::new(commander));
@@ -88,7 +87,8 @@ impl PeregrineCore {
             channel_registry.add(itn);
         }
         let channel_registry = channel_registry.build();
-        let dauphin = PgDauphin::new(&dauphin_queue,&channel_registry).map_err(|e| DataMessage::DauphinIntegrationError(format!("could not create: {}",e)))?;
+        let dauphin = PgDauphin::new(&dauphin_queue,&channel_registry,&booted).map_err(|e| DataMessage::DauphinIntegrationError(format!("could not create: {}",e)))?;
+        let mut switches = Switches::new(&dauphin);
         let version = VersionMetadata::new();
         let sidecars = RequestSidecars::new(&dauphin,&switches,&queue);
         let low_manager = LowLevelRequestManager::new(&sidecars,&commander,&shutdown,&messages,&version);

@@ -85,6 +85,8 @@ impl IdentityNumber {
 #[macro_export]
 macro_rules! identitynumber {
     ($ident: ident) => {
+        pub use lazy_static::*;
+
         lazy_static! {
             static ref $ident : $crate::IdentityNumber = $crate::IdentityNumber::new();
         }    

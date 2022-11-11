@@ -12,7 +12,9 @@ impl ProgramReq {
         MiniRequest::Program(ProgramReq {
             program_name: program_name.clone()
         })
-    }    
+    }
+
+    pub fn name(&self) -> &ProgramName { &self.program_name }
 }
 
 impl MiniRequestVariety for ProgramReq {

@@ -4,7 +4,7 @@ use std::sync::{ Arc };
 use std::collections::HashMap;
 use peregrine_toolkit::{eachorevery::eoestruct::StructValue};
 
-use super::{track::Track, switches::SwitchesData};
+use super::{track::Track};
 
 pub(super) fn hashmap_hasher<H: Hasher, K: Hash+PartialEq+Eq+PartialOrd+Ord, V: Hash>(map: &HashMap<K,V>, state: &mut H) {
     let mut kids : Vec<_> = map.keys().collect();
@@ -24,11 +24,7 @@ pub struct TrackConfig {
 }
 
 impl TrackConfig {
-    pub(super) fn new(track: &Track, switches_data: &SwitchesData) -> TrackConfig {
-        let program = track.program();
-        let mapping = track.mapping();
-        let mut values = mapping.apply(switches_data);
-        program.apply_defaults(&mut values);
+    pub(super) fn new(track: &Track, values: BTreeMap<String,StructValue>) -> TrackConfig {
         let mut state = DefaultHasher::new();
         values.hash(&mut state);
         track.hash(&mut state);

@@ -31,6 +31,13 @@ macro_rules! accessor {
 }
 
 impl MiniResponse {
+    pub fn callback_before_sidecars(&self) -> bool {
+        match self {
+            MiniResponse::BootChannel(_) => true,
+            _ => false
+        }
+    }
+
     fn as_mini(&self) -> &dyn MiniResponseVariety {
         match self {
             MiniResponse::BootChannel(x) => x,
@@ -114,6 +121,7 @@ impl MiniResponseAttempt {
     }
 
     pub(crate) fn message_id(&self) -> u64 { self.msg_id }
+    pub(crate) fn as_variety(&self) -> &MiniResponse { &self.variety }
     pub(crate) fn into_variety(self) -> MiniResponse { self.variety }
 
     #[allow(unused)] // used in debug_big_requests

@@ -161,7 +161,6 @@ impl PeregrineInnerAPI {
         peregrine_dauphin(Box::new(PgDauphinIntegrationWeb()),&core);
         core.add_backend(backend);
         report.run(&commander,&dom.shutdown());
-        core.application_ready();
         message_sender.add(Some(Message::Ready));
         let out = PeregrineInnerAPI {
             config: config.draw.clone(),
@@ -181,6 +180,7 @@ impl PeregrineInnerAPI {
             jsapi
         };
         input.set_api(dom,&config.draw,&out,&commander,&target_reporter,&out.webgl)?;
+        core.application_ready();
         message_sender.add(Some(Message::Ready));
         dom.shutdown().add(move || {
             api_queue.shutdown();

@@ -1,13 +1,13 @@
 use anyhow::{ self };
 use peregrine_toolkit::error::Error;
-use peregrine_toolkit::lock;
+use peregrine_toolkit::{lock, log};
 use std::any::Any;
 use std::collections::HashMap;
 use std::sync::{ Arc, Mutex };
 use crate::core::channel::channelregistry::ChannelRegistry;
 use crate::core::program::programspec::ProgramModel;
 use crate::request::tracks::trackmodel::TrackMapping;
-use crate::{MaxiResponse, BackendNamespace, AccessorResolver, LoadMode, AllBackends};
+use crate::{MaxiResponse, BackendNamespace, AccessorResolver, LoadMode, AllBackends, CountingPromise};
 use crate::api::MessageSender;
 use crate::core::program::programbundle::SuppliedBundle;
 use peregrine_dauphin_queue::{ PgDauphinQueue, PgDauphinLoadTaskSpec, PgDauphinRunTaskSpec };
@@ -46,16 +46,16 @@ struct PgDauphinData {
 }
 
 #[derive(Clone)]
-pub struct PgDauphin(Arc<Mutex<PgDauphinData>>);
+pub struct PgDauphin(Arc<Mutex<PgDauphinData>>,CountingPromise);
 
 impl PgDauphin {
-    pub fn new(pdq: &PgDauphinQueue, channel_registry: &ChannelRegistry) -> anyhow::Result<PgDauphin> {
+    pub fn new(pdq: &PgDauphinQueue, channel_registry: &ChannelRegistry, booted: &CountingPromise) -> anyhow::Result<PgDauphin> {
         Ok(PgDauphin(Arc::new(Mutex::new(PgDauphinData {
             pdq: pdq.clone(),
             programs: HashMap::new(),
             all_backends: None,
             channel_registry: channel_registry.clone()
-        }))))
+        })),booted.clone()))
     }
 
     async fn load_program(&self, program_name: &ProgramName) -> Result<(),Error> {
@@ -67,11 +67,11 @@ impl PgDauphin {
         for backend_namespace in &channel_registry.all() {
             if let Some(all_backends) = &all_backends {
                 let backend = all_backends.backend(backend_namespace)?;
-                backend.program(program_name).await?;   
-                if programs.contains_key(program_name) { break; } 
+                backend.program(program_name).await?;
+                if let Some(Some(_)) = programs.get(program_name) { break; }
             }
         }
-        Ok(())    
+        Ok(())
     }
 
     pub(crate) fn set_all_backends(&self, all_backends: &AllBackends) {
@@ -150,7 +150,7 @@ impl PgDauphin {
 
 async fn add_bundle(pgd: &PgDauphin, channel: &BackendNamespace, bundle: &SuppliedBundle, messages: &MessageSender) -> Result<(),Error> {
     let specs = bundle.specs().to_program_models()?;
-    match pgd.add_binary(&channel,bundle.bundle_name(),bundle.program()).await {
+    match pgd.add_binary(&channel,bundle.bundle_name(),bundle.code()).await {
         Ok(_) => {
             for spec in specs {
                 pgd.register(channel,&spec,bundle.bundle_name());

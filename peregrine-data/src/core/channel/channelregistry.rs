@@ -48,7 +48,7 @@ impl ChannelRegistry {
         self.boot.run_boot_loop(base);
     }
 
-    pub(super) fn register_channel(&self, backend_namespace: &BackendNamespace, sender:&WrappedChannelSender) {
+    pub(crate) fn register_channel(&self, backend_namespace: &BackendNamespace, sender:&WrappedChannelSender) {
         lock!(self.channels).insert(backend_namespace.clone(),sender.clone());
     }
 

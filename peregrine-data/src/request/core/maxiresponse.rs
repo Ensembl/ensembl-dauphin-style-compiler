@@ -5,7 +5,7 @@ use std::any::Any;
 use std::fmt;
 use std::mem::replace;
 use std::sync::Arc;
-use crate::{core::{channel::wrappedchannelsender::WrappedChannelSender }, request::tracks::{trackres::TrackResult}, TrackModel, ExpansionModel};
+use crate::{core::{channel::wrappedchannelsender::WrappedChannelSender, program::programbundle::PackedSuppliedBundle }, request::tracks::{trackres::TrackResult}, TrackModel, ExpansionModel};
 use crate::{BackendNamespace};
 use crate::core::program::programbundle::SuppliedBundle;
 use super::response::{MiniResponseAttempt, MiniResponseAttemptVecDeserialize};
@@ -39,6 +39,10 @@ impl MaxiResponse {
 
     pub fn set_track_payload(&mut self, tracks: Vec<TrackModel>, expansions: Vec<ExpansionModel>) {
         self.tracks = TrackResult::Unpacked(tracks,expansions);
+    }
+
+    pub fn set_bundle_payload(&mut self, bundles: Vec<SuppliedBundle>) {
+        self.programs = bundles;
     }
 
     #[cfg(debug_big_requests)]
@@ -89,10 +93,9 @@ impl<'de> Visitor<'de> for MaxiResponseVisitor {
         while let Some(key) = access.next_key()? {
             match key {
                 "responses" => { 
-                    //total_size = Self::total_size(&v).ok().unwrap_or(0);
                     responses = Some(access.next_value_seed(MiniResponseAttemptVecDeserialize(self.0.clone(),self.1.clone()))?);
                 },
-                "programs" => { programs = access.next_value()? },
+                "programs" => { programs = access.next_value::<Option<Vec<PackedSuppliedBundle>>>()? },
                 "channel" => { channel = access.next_value()? },
                 "tracks-packed" => { tracks = TrackResult::Packed(access.next_value()?); },
                 _ => { let _ : IgnoredAny = access.next_value()?; }
@@ -100,7 +103,8 @@ impl<'de> Visitor<'de> for MaxiResponseVisitor {
         }
         let responses = st_field("responses",responses)?;
         let channel = st_field("channel",channel)?;
-        let programs = st_field("programs",programs)?;
+        let mut programs = st_field("programs",programs)?;
+        let programs = programs.drain(..).map(|x| x.0).collect::<Vec<_>>();
         Ok(MaxiResponse {
             channel, 
             responses, 

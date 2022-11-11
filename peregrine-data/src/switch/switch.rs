@@ -1,14 +1,14 @@
-use std::collections::HashMap;
-use peregrine_toolkit::{eachorevery::eoestruct::StructValue, log};
+use std::collections::{HashMap, HashSet};
+use peregrine_toolkit::{eachorevery::eoestruct::StructValue};
 use super::expansion::Expansion;
-use crate::switch::track::Track;
+use crate::TrackModel;
 
 pub(crate) struct Switch {
     kids: HashMap<String,Switch>,
     radio: bool,
     value: StructValue,
-    tracks: Vec<Track>,
-    triggers: Vec<Track>,
+    tracks: Vec<TrackModel>,
+    triggers: Vec<TrackModel>,
     expansions: Vec<Expansion>,
     null: StructValue // Convenience
 }
@@ -78,7 +78,7 @@ impl Switch {
         }
     }
 
-    pub(crate) fn add_track(&mut self, track: &Track, trigger: bool) {
+    pub(crate) fn add_track(&mut self, track: &TrackModel, trigger: bool) {
         self.tracks.push(track.clone());
         if trigger {
             self.triggers.push(track.clone());
@@ -95,7 +95,7 @@ impl Switch {
         }
     }
 
-    pub(super) fn get_triggered(&self, out: &mut Vec<Track>) {
+    pub(super) fn get_triggered(&self, out: &mut HashSet<TrackModel>) {
         if !self.value.truthy() { return; }
         out.extend(self.triggers.iter().cloned());
         for (name,kid) in self.kids.iter() {

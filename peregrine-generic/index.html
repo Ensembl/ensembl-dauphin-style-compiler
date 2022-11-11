@@ -311,7 +311,7 @@
                 ];
                 let tracks = [
                    {
-                    "program": ["ensembl-webteam/core","test",2],
+                    "program": ["special","test",1],
                     "tags": "",
                     "triggers": [
                       ["tracks","user2"]
@@ -359,6 +359,10 @@
                   return {};
                 }
               });
+            },
+            program: function(group,name,version) {
+              console.log("program",group,name,version);
+              return {};
             }
           }
         });

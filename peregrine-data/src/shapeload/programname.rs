@@ -7,15 +7,18 @@ use serde::{Serialize, ser::SerializeSeq, de::Visitor, Deserialize, Deserializer
 pub struct ProgramName {
     group: String,
     name: String,
-    version: usize
+    version: u32
 }
 
 impl ProgramName {
-    pub fn new(group: &str, name: &str, version: usize) -> ProgramName {
+    pub fn new(group: &str, name: &str, version: u32) -> ProgramName {
         ProgramName { group: group.to_string(), name: name.to_string(), version }
     }
 
     pub fn indicative_name(&self) -> String { format!("{}::{}::{}",self.group,self.name,self.version) }
+    pub fn group(&self) -> &str { &self.group }
+    pub fn name(&self) -> &str { &self.name }
+    pub fn version(&self) -> u32 { self.version }
 }
 
 impl Serialize for ProgramName {

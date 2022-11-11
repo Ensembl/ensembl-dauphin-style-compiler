@@ -5,20 +5,22 @@ use super::{packedprogramspec::PackedProgramSpec, programspec::{ProgramSpec}};
 
 pub struct SuppliedBundle {
     bundle_name: String,
-    program: Vec<u8>,
+    code: Vec<u8>,
     specs: ProgramSpec
 }
 
 impl SuppliedBundle {
     pub(crate) fn bundle_name(&self) -> &str { &self.bundle_name }
-    pub(crate) fn program(&self) -> &[u8] { &self.program }
+    pub(crate) fn code(&self) -> &[u8] { &self.code }
     pub(crate) fn specs(&self) -> &ProgramSpec { &self.specs }
 }
 
-struct ProgramBundleVisitor;
+pub struct PackedSuppliedBundle(pub SuppliedBundle);
 
-impl<'de> Visitor<'de> for ProgramBundleVisitor {
-    type Value = SuppliedBundle;
+struct PackedProgramBundleVisitor;
+
+impl<'de> Visitor<'de> for PackedProgramBundleVisitor {
+    type Value = PackedSuppliedBundle;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         formatter.write_str("a SuppliedBundle")
@@ -43,15 +45,32 @@ impl<'de> Visitor<'de> for ProgramBundleVisitor {
         let code = st_field("code",code)?;
         let bundle_name = st_field("bundle_name",bundle_name)?;
         let specs = st_field("specs",specs)?;
-        Ok(SuppliedBundle {
-            bundle_name, program: code.data, specs
-        })
+        Ok(PackedSuppliedBundle(SuppliedBundle {
+            bundle_name, code: code.data, specs
+        }))
     }
 }
 
-impl<'de> Deserialize<'de> for SuppliedBundle {
-    fn deserialize<D>(deserializer: D) -> Result<SuppliedBundle, D::Error>
+impl<'de> Deserialize<'de> for PackedSuppliedBundle {
+    fn deserialize<D>(deserializer: D) -> Result<PackedSuppliedBundle, D::Error>
             where D: Deserializer<'de> {
-        deserializer.deserialize_map(ProgramBundleVisitor)
+        deserializer.deserialize_map(PackedProgramBundleVisitor)
+    }
+}
+
+#[derive(serde_derive::Deserialize)]
+pub struct UnpackedSuppliedBundle {
+    bundle_name: String,
+    code: ByteData,
+    specs: ProgramSpec
+}
+
+impl UnpackedSuppliedBundle {
+    pub fn to_supplied_bundle(self) -> SuppliedBundle {
+        SuppliedBundle {
+            bundle_name: self.bundle_name,
+            code: self.code.data,
+            specs: self.specs
+        }
     }
 }

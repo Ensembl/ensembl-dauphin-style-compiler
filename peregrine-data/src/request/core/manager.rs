@@ -50,7 +50,7 @@ impl LowLevelRequestManager {
     }
 
     fn create_queue(&self, key: &QueueKey, do_pace: bool) -> Result<RequestQueue,Error> {
-        let queue = RequestQueue::new(key,&self.commander,&self.real_time_lock,&self.matcher,&self.sidecars,&self.version,&self.messages,do_pace)?;
+        let queue = RequestQueue::new(key,&self.commander,&self.real_time_lock,&self.matcher,&self.sidecars,&self.version,&self.messages)?;
         let queue2 = queue.clone();
         self.shutdown.add(move || {
             queue2.input_queue().close();

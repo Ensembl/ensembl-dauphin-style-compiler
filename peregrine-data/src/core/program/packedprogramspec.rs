@@ -19,7 +19,7 @@ impl PackedProgram {
         let program_name = ProgramName::new(
             lookup(self.set,&res.name_idx)?,
             lookup(self.name,&res.name_idx)?,
-            self.version
+            self.version as u32
         );
         let mut model = ProgramModelBuilder::new(
             &program_name,
