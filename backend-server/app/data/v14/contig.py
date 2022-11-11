@@ -6,7 +6,7 @@ from model.bigbed import get_bigbed
 from model.chromosome import Chromosome
 from command.exceptionres import DataException
 from .numbers import lesqlite2, compress
-from .util import starts_and_ends
+from .util import starts_and_ends, starts_and_ends2
 
 DOMINO_COUNT = 200
 """
@@ -99,7 +99,11 @@ def get_contig(data_accessor: DataAccessor, chrom: Chromosome, panel: Panel, do_
         "sense": lesqlite2(senses)
     }
     starts_and_ends(out, positions, "contig")
-    return out
+    out2 = {
+        "sense": ["NRL",lesqlite2(senses)]
+    }
+    starts_and_ends2(out2, positions, "contig")
+    return [out,out2]
 
 
 class ContigDataHandler2(DataHandler):

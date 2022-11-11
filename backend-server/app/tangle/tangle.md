@@ -2,46 +2,40 @@
 
 ## Introduction
 
-Each tangle.comprises one or more sources connected to one or more drains. In the middle is a
-process which transfers from source to drain, applying some transformation in the process.
-known as a tangle.
+Each tangle comprises one or more sources connected to one or more drains. In the middle is a process which transfers from source to drain, applying some transformation in the process, known as a tangle.
 
-Each drain expects to receive a key name and a series of bytes.
-Each source provides "some" information per row, of a type understood by the tanlge.
+Each drain expects to receive a key name and a series of bytes. Each source provides information in some structure per row, the type of which is understood by that tangle.
 
-Tangles come in a number of types. These tangletypes are stored in the tangle-registry which
-is initialised in code at startup. The tangle chosen from the tangleregistry is determined
-by the keys in the config (and potentially the values of those keys).
+Tangles come in a number of types. These tangletypes are stored in the tangle-registry which is initialised in code at startup. The tangle chosen from the tangle-registry is determined by the keys in the config (and potentially the values of those keys).
 
-A tangle identifies the values of some keys as sources. Sources are chosen from the
-available source types based on the value of those fields. A source is configured with a string and
-string-to-toml dictionary. sourcetype is chosen by the .type key and the main string is detemined by the .field subkey. Other keys are passed in the dict. Should a
-string be used instead of subkeys, the default source is used with an empty dict.
+A tangle identifies some keys in the config as being used to specify sources. Sources are chosen from the available source-types based on the values of those fields. Each source is of a certain type and each instance of the type is configurable by a "main string" and an essentially arbitrary additional dict.
 
-Most keys are passed to the tangle to use in configuration as is wished. However, some keys
-are used to control operation of serialisation.
+The source's type is chosen by the .type subkey and the main string is detemined by the .field subkey. Other keys are passed in the additional dict. Should a string be used instead of such a dict of subkeys, the default source is used and with an empty additional dict. This is very common as the default type is usually sensible and additional config optional.
 
-* input -- the input to use
+Most tangle keys are passed to the tangle to use in configuration as is wished on a type-specificbasis.
 
-* condition -- these tangles are only called at all if the condition is perent in the run. This
-allows subsets of information to be delievered in different circumstances.
+However, some keys are used to control operation of serialisation itself and are examined before (or instead of!) the tangle itself.
 
-* first -- the value of this field is a source. For each value of this source only the
+* `input` -- the input to use for this tangle if not the default. Very rarely needed.
+
+* `condition` -- tangles with this key are only called at all if the condition is perent in the run. This allows subsets of information to be delievered in different circumstances.
+
+* `first` -- the value of this field is a source. For each value of this source only the
 first is emitted.
 
 ## Common keys
 
 Although tangle types can support other keys as they wish, they try to adhere to conventions to make things consistent. In the Tangle types section below, if a key is mentioned as supported with no further info, it is assumed to be as per the definition in this section.
 
-* `name` -- string value naming the drain. Where a tangle produces multiple drains the given name is used as the "base" for the name. If this key is not provided, the tangle name is used instead.
+* `name` -- string value naming the drain. Where a tangle produces multiple drains, the name given here is used as the "base" for the name along with suffixes for each (by default). If this key is not provided, the tangle name is used instead.
 
-* `X_name` -- where multiple drains are created usually they are composed by standard rules from `name`. Hoever, individual drains can be named with these keys.
+* `X_name` -- where multiple drains are created usually they are composed by standard rules from `name` as described above. Hoever, individual drains can be named with these keys.
 
-* `uncompressed` -- do not perform final byte compression. Useful for debugging, etc.
+* `uncompressed` -- do not perform the final byte compression step. Useful for debugging, etc.
 
 ## Tangle Types
 
-You can add to the tangleregistry, but the following are registered by default and are the most common.
+You can add to the tangle-registry, but the following are registered by default and are the most common.
 
 ### string tangle
 
@@ -82,5 +76,3 @@ Creates two drains, each of numbers, named `X_starts` and `X_lengths` coding sta
 Creates a stream containing integers which tend to be the _number_ of some entities (ie tending to be positive and monotonically decreasing from zero).
 
 *Additional keys:* `name`, `delta` if true encodes as differences. `positive` number is guaranteed to be >= 0.
-
-

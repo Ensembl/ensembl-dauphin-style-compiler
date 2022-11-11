@@ -50,8 +50,6 @@ impl<'de> Visitor<'de> for DataVisitor {
             where M: MapAccess<'de> {
         let mut data : Option<HashMap<String,Vec<u8>>> = None;
         let mut data2 : Option<HashMap<String,DataAlgorithm>> = None;
-        let mut indexes : Option<HashMap<String,usize>> = None;
-        let mut indexes2 : Option<HashMap<String,usize>> = None;
         let mut invariant = false;
         while let Some(key) = access.next_key()? {
             /* undo domain-specific compression */
@@ -66,35 +64,19 @@ impl<'de> Visitor<'de> for DataVisitor {
                     /* values are present as map From strings to bytes */
                     data = Some(access.next_value()?);
                 },
-                "indexes" => {
-                    /* values are present as indexes into an index stream */
-                    indexes = Some(access.next_value()?);
-                },
                 /***/
                 "data2" => { 
                     let bytes : ByteData = access.next_value()?;
-                    let values = self.0.deserialize_data2(&self.1,bytes.data).map_err(|e| de::Error::custom(e))?;
-                    data2 = Some(st_field("data deserializer",values)?.drain(..).collect());
+                    data2 = self.0.deserialize_data2(&self.1,bytes.data).map_err(|e| de::Error::custom(e))?;
                 },
                 "values2" => {
                     /* values are present as map From strings to bytes */
                     data2 = Some(access.next_value()?);
                 },
-                "indexes2" => {
-                    /* values are present as indexes into an index stream */
-                    indexes2 = Some(access.next_value()?);
-                },
                 /***/
                 "__invariant" => { invariant = access.next_value()? },
                 _ => {}
             }
-        }
-        if let Some(mut indexes) = indexes {
-            let values = indexes.drain().map(|(k,v)| {
-                let value = self.0.deserialize_index(self.1.as_ref(),v).map_err(|e| de::Error::custom(e))?;
-                Ok((k,st_field("index deserial",value)?))
-            }).collect::<Result<HashMap<_,_>,_>>()?;
-            data = Some(values)
         }
         let mut data = st_field("data",data)?;
         let mut data2 = data2.unwrap_or_else(|| HashMap::new());

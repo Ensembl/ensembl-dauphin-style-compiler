@@ -1,4 +1,4 @@
-use std::{sync::Arc, pin::Pin, any::Any};
+use std::{sync::Arc, pin::Pin, any::Any, collections::HashMap};
 use futures::{Future};
 use peregrine_toolkit::error::Error;
 use crate::{MaxiRequest, PacketPriority, MaxiResponse, BackendNamespace, MaxiResponseDeserialize, core::{data::ReceivedData, dataalgorithm::DataAlgorithm}};
@@ -38,7 +38,7 @@ pub fn null_payload() -> Arc<dyn Any> { Arc::new(()) }
 pub trait ChannelSender {
     fn get_sender(&self, prio: &PacketPriority, data: MaxiRequest, decoder: ChannelMessageDecoder) -> Pin<Box<dyn Future<Output=Result<MaxiResponse,Error>>>>;
     fn deserialize_data(&self, _payload: &dyn Any, _bytes: Vec<u8>) -> Result<Option<Vec<(String,Vec<u8>)>>,String> { Ok(None) }
-    fn deserialize_data2(&self, _payload: &dyn Any, _bytes: Vec<u8>) -> Result<Option<Vec<(String,DataAlgorithm)>>,String> { Ok(None) }
+    fn deserialize_data2(&self, _payload: &dyn Any, _bytes: Vec<u8>) -> Result<Option<HashMap<String,DataAlgorithm>>,String> { Ok(None) }
     fn deserialize_index(&self, _payload: &dyn Any, _index: usize) -> Result<Option<Vec<u8>>,String> { Ok(None) }
     fn backoff(&self) -> bool;
 }

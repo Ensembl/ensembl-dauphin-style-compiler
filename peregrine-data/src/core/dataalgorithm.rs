@@ -15,18 +15,16 @@ fn pop(data: &mut Vec<ReceivedData>) -> Result<ReceivedData,()> {
     data.pop().ok_or(())
 }
 
-pub enum UnsignedNumberAlgorithm {
+pub enum NumberSourceAlgorithm {
     Array(ReceivedData),
     Lesqlite2(ReceivedData),
-    Delta(Box<UnsignedNumberAlgorithm>)
 }
 
-impl UnsignedNumberAlgorithm {
-    fn new<'a>(code: &mut Chars<'a>, data: &mut Vec<ReceivedData>) -> Result<UnsignedNumberAlgorithm,()> {
+impl NumberSourceAlgorithm {
+    fn new<'a>(code: &mut Chars<'a>, data: &mut Vec<ReceivedData>) -> Result<NumberSourceAlgorithm,()> {
         Ok(match code.next() {
-            Some('A') => UnsignedNumberAlgorithm::Array(pop(data)?),
-            Some('L') => UnsignedNumberAlgorithm::Lesqlite2(pop(data)?),
-            Some('D') => UnsignedNumberAlgorithm::Delta(Box::new(UnsignedNumberAlgorithm::new(code,data)?)),
+            Some('A') => NumberSourceAlgorithm::Array(pop(data)?),
+            Some('L') => NumberSourceAlgorithm::Lesqlite2(pop(data)?),
             _ => { return Err(()); }
         })
     }
@@ -35,7 +33,6 @@ impl UnsignedNumberAlgorithm {
          match code.next() {
             Some('A') => { spec.push(ReceivedDataType::Numbers); },
             Some('L') => { spec.push(ReceivedDataType::Bytes); },
-            Some('D') => { UnsignedNumberAlgorithm::specify(code,spec); },
             _ => { return Err(()); }
         }
         Ok(())
@@ -43,15 +40,55 @@ impl UnsignedNumberAlgorithm {
 
     fn make<'a> (&self) -> Result<Arc<Vec<f64>>,()> {
         match self {
-            UnsignedNumberAlgorithm::Array(data) => {
+            NumberSourceAlgorithm::Array(data) => {
                 Ok(data.data_as_numbers()?.clone())
             },
-            UnsignedNumberAlgorithm::Lesqlite2(data) => {
+            NumberSourceAlgorithm::Lesqlite2(data) => {
                 Ok(Arc::new(lesqlite2_decode(data.data_as_bytes()?)?))
+            }
+        }
+    }
+}
+
+pub enum NumberAlgorithm {
+    Raw(NumberSourceAlgorithm),
+    Zigzag(Box<NumberAlgorithm>),
+    Delta(Box<NumberAlgorithm>)
+}
+
+impl NumberAlgorithm {
+    fn new<'a>(code: &mut Chars<'a>, data: &mut Vec<ReceivedData>) -> Result<NumberAlgorithm,()> {
+        Ok(match code.next() {
+            Some('R') => NumberAlgorithm::Raw(NumberSourceAlgorithm::new(code,data)?),
+            Some('Z') => NumberAlgorithm::Zigzag(Box::new(NumberAlgorithm::new(code,data)?)),
+            Some('D') => NumberAlgorithm::Delta(Box::new(NumberAlgorithm::new(code,data)?)),
+            _ => { return Err(()); }
+        })
+    }
+
+    fn specify<'a>(code: &mut Chars<'a>, spec: &mut Vec<ReceivedDataType>) -> Result<(),()> {
+        Ok(match code.next() {
+            Some('R') => { NumberSourceAlgorithm::specify(code,spec)?; },
+            Some('Z') => { NumberAlgorithm::specify(code,spec)?; },
+            Some('D') => { NumberAlgorithm::specify(code,spec)?; },
+            _ => { return Err(()); }
+        })
+    }
+
+    fn make<'a>(&self) -> Result<Arc<Vec<f64>>,()> {
+        match self {
+            NumberAlgorithm::Raw(inner) => { 
+                inner.make()
             },
-            UnsignedNumberAlgorithm::Delta(inner) => {
+            NumberAlgorithm::Zigzag(data) => {
+                Ok(Arc::new(data.make()?.iter().map(|v| {
+                    let v = *v as i64;
+                    (if v%2 == 1 { -((v+1)/2) } else { v/2 }) as f64
+                }).collect()))
+            },
+            NumberAlgorithm::Delta(data) => {
                 let mut prev = 0.;
-                Ok(Arc::new(inner.make()?.iter().map(|v| {
+                Ok(Arc::new(data.make()?.iter().map(|v| {
                     prev += v;
                     prev
                 }).collect()))
@@ -60,52 +97,11 @@ impl UnsignedNumberAlgorithm {
     }
 }
 
-pub enum NumberAlgorithm {
-    Array(ReceivedData),
-    Zigzag(UnsignedNumberAlgorithm),
-    Unsigned(UnsignedNumberAlgorithm)
-}
-
-impl NumberAlgorithm {
-    fn new<'a>(code: &mut Chars<'a>, data: &mut Vec<ReceivedData>) -> Result<NumberAlgorithm,()> {
-        Ok(match code.next() {
-            Some('A') => NumberAlgorithm::Array(pop(data)?),
-            Some('Z') => NumberAlgorithm::Zigzag(UnsignedNumberAlgorithm::new(code,data)?),
-            Some('U') => NumberAlgorithm::Unsigned(UnsignedNumberAlgorithm::new(code,data)?),
-            _ => { return Err(()); }
-        })
-    }
-
-    fn specify<'a>(code: &mut Chars<'a>, spec: &mut Vec<ReceivedDataType>) -> Result<(),()> {
-        Ok(match code.next() {
-            Some('A') => { spec.push(ReceivedDataType::Numbers); },
-            Some('Z') => { UnsignedNumberAlgorithm::specify(code,spec); }
-            Some('U') => { UnsignedNumberAlgorithm::specify(code,spec); },
-            _ => { return Err(()); }
-        })
-    }
-
-    fn make<'a>(&self) -> Result<Arc<Vec<f64>>,()> {
-        match self {
-            NumberAlgorithm::Array(data) => { 
-                Ok(data.data_as_numbers()?.clone())
-            },
-            NumberAlgorithm::Zigzag(data) => {
-                Ok(Arc::new(data.make()?.iter().map(|v| {
-                    let v = *v as i64;
-                    (if v%2 == 1 { -((v+1)/2) } else { v/2 }) as f64
-                }).collect()))
-            }
-            NumberAlgorithm::Unsigned(u) => { u.make() }
-        }
-    }
-}
-
 pub enum StringAlgorithm {
     Array(ReceivedData),
     CharacterSplit(ReceivedData),
     ZeroSplit(ReceivedData),
-    Classify(UnsignedNumberAlgorithm,Box<StringAlgorithm>)
+    Classify(NumberSourceAlgorithm,Box<StringAlgorithm>)
 }
 
 impl StringAlgorithm {
@@ -115,7 +111,7 @@ impl StringAlgorithm {
             Some('C') => StringAlgorithm::CharacterSplit(pop(data)?),
             Some('Z') => StringAlgorithm::ZeroSplit(pop(data)?),
             Some('Y') => {
-                let index = UnsignedNumberAlgorithm::new(code,data)?;
+                let index = NumberSourceAlgorithm::new(code,data)?;
                 let values = StringAlgorithm::new(code,data)?;
                 StringAlgorithm::Classify(index,Box::new(values))
             },
@@ -129,7 +125,7 @@ impl StringAlgorithm {
             Some('C') => { spec.push(ReceivedDataType::Bytes); },
             Some('Z') => { spec.push(ReceivedDataType::Bytes); },
             Some('Y') => {
-                UnsignedNumberAlgorithm::specify(code,spec)?;
+                NumberSourceAlgorithm::specify(code,spec)?;
                 StringAlgorithm::specify(code,spec)?;
             },
             _ => { return Err(()); }

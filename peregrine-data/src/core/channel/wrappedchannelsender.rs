@@ -1,7 +1,7 @@
-use std::{sync::Arc, pin::Pin, fmt, any::Any};
+use std::{sync::Arc, pin::Pin, fmt, any::Any, collections::HashMap};
 use futures::Future;
 use peregrine_toolkit::error::Error;
-use crate::{MaxiRequest, PacketPriority, MaxiResponse, ChannelSender};
+use crate::{MaxiRequest, PacketPriority, MaxiResponse, ChannelSender, DataAlgorithm};
 use lazy_static::lazy_static;
 use identitynumber::{identitynumber, hashable };
 
@@ -39,6 +39,10 @@ impl ChannelSender for WrappedChannelSender {
 
     fn deserialize_data(&self, payload: &dyn Any, bytes: Vec<u8>) -> Result<Option<Vec<(String,Vec<u8>)>>,String> {
         self.sender.deserialize_data(payload,bytes)
+    }
+
+    fn deserialize_data2(&self, payload: &dyn Any, bytes: Vec<u8>) -> Result<Option<HashMap<String,DataAlgorithm>>,String> {
+        self.sender.deserialize_data2(payload,bytes)
     }
 
     fn deserialize_index(&self, payload: &dyn Any, index: usize) -> Result<Option<Vec<u8>>,String> { 

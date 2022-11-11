@@ -35,6 +35,23 @@ def starts_and_ends(result: dict, sizes: List[Tuple[int, int]], name: str):
     result[name + 'starts'] = lesqlite2(zigzag(delta([x[0] for x in sizes])))
     result[name + 'lengths'] = lesqlite2(zigzag(delta([x[1] - x[0] for x in sizes])))
 
+def starts_and_ends2(result: dict, sizes: List[Tuple[int, int]], name: str):
+    """
+
+    Args:
+        result (dict):
+        sizes (List[Tuple[int, int]]):
+        name (str):
+
+    Returns:
+
+    """
+    if name:
+        name += "_"
+    else:
+        name = ""
+    result[name + 'starts'] = ["NDZRL",lesqlite2(zigzag(delta([x[0] for x in sizes])))]
+    result[name + 'lengths'] = ["NDZRL",lesqlite2(zigzag(delta([x[1] - x[0] for x in sizes])))]
 
 def starts_and_lengths(result: dict, sizes: List[Tuple[int, int]], name: str):
     """

@@ -7,6 +7,7 @@ use serde::de::{DeserializeSeed};
 use crate::ajax::PgAjax;
 use peregrine_toolkit::url::Url;
 use std::any::Any;
+use std::collections::HashMap;
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::{ Arc };
@@ -43,7 +44,7 @@ impl ChannelSender for NetworkChannelSender {
         Ok(Some(value))
     }
 
-    fn deserialize_data2(&self, _payload: &dyn Any, bytes: Vec<u8>) -> Result<Option<Vec<(String,DataAlgorithm)>>,String> {
+    fn deserialize_data2(&self, _payload: &dyn Any, bytes: Vec<u8>) -> Result<Option<HashMap<String,DataAlgorithm>>,String> {
         let bytes = inflate_bytes_zlib(&bytes).map_err(|e| format!("cannot uncompress: {}",e))?;
         Ok(Some(serde_cbor::from_slice(&bytes).map_err(|e| format!("corrupt payload/A: {}",e))?))
     }
