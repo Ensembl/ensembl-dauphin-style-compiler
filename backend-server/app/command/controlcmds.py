@@ -111,22 +111,12 @@ class ExpansionHandler(Handler):
         self._expansions_obj = expansions
         self._expansions = None
 
-    def _load_expansions(self, data_accessor: DataAccessor):
-        if self._expansions is not None:
-            return
-        self._expansions = {}
-        for x in data_accessor.boot_tracks.get("expansion",{}).values():
-            if "run" in x:
-                channel = tuple(x.get("channel",None))
-                name = x["name"]
-                self._expansions[(channel,name)] = getattr(self._expansions_obj,x["run"])
-
-    def _get(self, data_accessor: DataAccessor, channel, name) -> Optional[Callable[[str],Optional[Tracks]]]:
-        self._load_expansions(data_accessor)
-        for key in [(tuple(channel),name),(None,name)]:
-            if key in self._expansions:
-                return self._expansions[key]
-        return None
+    def _get(self, data_accessor: DataAccessor, channel, name):
+        expansion = data_accessor.boot_tracks.get_expansion(name)
+        if expansion is not None:
+            return getattr(self._expansions_obj,expansion.callback())
+        else:
+            return None
 
     def process(self, data_accessor: DataAccessor, channel: Any, payload: Any, metrics: ResponseMetrics, version: Version) -> Response:
         try:

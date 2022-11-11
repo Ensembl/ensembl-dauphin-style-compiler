@@ -1,5 +1,5 @@
 import logging, os.path
-from typing import List, Set
+from typing import List, Optional, Set
 from model.serialutil import build_map, immute, increase, remute
 import cbor2, toml
 
@@ -24,13 +24,11 @@ def _prefix_encode(switches):
     return (tree,mapping)
 
 class Track:
-    def __init__(self,name,program=None,scales=None):
-        if program is None:
-            program = name
+    def __init__(self,name,program_name="",scales=None,program_group = "",program_version = 0):
         self._name = name
-        self._program_name = program
-        self._program_set = ""
-        self._program_version = 0
+        self._program_name = program_name
+        self._program_set = program_group
+        self._program_version = program_version
         self._scales = scales
         self._triggers = []
         self._tags = ""
@@ -114,6 +112,9 @@ class Expansion:
         if "run" in data:
             self._run = data["run"]
 
+    def callback(self):
+        return self._run
+
     def _collect(self) -> Set:
         return (set(self._triggers),set([self._channel]))
 
@@ -151,7 +152,7 @@ class Tracks:
             for (name,value) in includes_data.items():
                 self._includes[name] = value
         for (name,track_data) in data.get("track",{}).items():
-            track = Track(name)
+            track = Track(name,program_name=name)
             track.ingest_toml(track_data,self._includes)
             self._tracks[name] = track
         for (name,expansion_data) in data.get("expansion",{}).items():
@@ -186,6 +187,9 @@ class Tracks:
 
     def dump_for_wire(self):
         return TracksDump(self).data
+
+    def get_expansion(self, name) -> Optional[Expansion]:
+        return self._expansions.get(name)
 
 def rotate(data, key):
     out = {}

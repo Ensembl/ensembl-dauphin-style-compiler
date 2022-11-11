@@ -7,7 +7,7 @@ class Expansions:
         red = int(step[0:2],16)
         green = int(step[2:4],16)
         blue = int(step[4:6],16)
-        track = Track(step,program='test',scales=[0,100,1])
+        track = Track(step,program_group="ensembl-webteam/core",program_name='test',program_version=2,scales=[0,100,1])
         track.add_trigger(["track","expand",step])
         track.add_value("red",red)
         track.add_value("green",green)
