@@ -1,4 +1,5 @@
 use anyhow::anyhow as err;
+use peregrine_toolkit::log;
 use peregrine_toolkit::serdetools::{st_field, st_err, ByteData };
 use serde::de::{Visitor, MapAccess, DeserializeSeed, self, };
 use serde::{Deserializer};
@@ -100,9 +101,12 @@ impl<'de> Visitor<'de> for DataVisitor {
         let data = st_err(data.drain().map(|(k,v)| {
             Ok((k,ReceivedData::new_bytes(v)))
         }).collect::<Result<HashMap<String,ReceivedData>,String>>(),"corrupt payload/C")?;
-        let data2 = data2.drain().map(|(k,v)| {
+        let data2 : HashMap<String,ReceivedData> = data2.drain().map(|(k,v)| {
             Ok((k,v.to_received_data()?))
         }).collect::<Result<_,()>>().map_err(|_| de::Error::custom("cannot create data"))?;
+        if data2.len() > 0 {
+            log!("data2: {:?}",data2);
+        }
         Ok(DataRes {
             data, 
             data2,

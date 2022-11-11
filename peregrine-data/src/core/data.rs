@@ -3,6 +3,7 @@ use std::{sync::Arc};
 pub enum ReceivedDataType { Bytes, Booleans, Numbers, Strings }
 
 // XXX merge with geometry builder as pattern in toolkit
+#[cfg_attr(debug_assertions,derive(Debug))]
 #[derive(Clone)]
 pub enum ReceivedData {
     Bytes(Arc<Vec<u8>>),
