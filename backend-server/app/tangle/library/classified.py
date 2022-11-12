@@ -24,6 +24,9 @@ class ClassifiedTangling(Tangling):
         self._emit_strings(out,run_config,'keys_name',state[1])
         self._emit_number(out,run_config,'values_name',state[2])
 
+    def finish2(self, out, state, run_config):
+        self._emit2(["SYRLZ","SYRAA"],out,run_config,'name',[state[1],state[2]])
+
 class ClassifiedTangler(Tangler):
     def __init__(self):
         super().__init__([TanglerConfigBuilder([

@@ -22,13 +22,16 @@ class Tangling:
             value = bytes(value)
         out[name] = value
 
-    def _emit_number2(self,spec,out,run_config,key,value):
+    def _emit2(self,spec,out,run_config,key,values):
         name = self._config[key]
         if run_config.to_bytes:
-            spec += "RL"
+            spec = spec[0]
         else:
-            spec += "RA"
-        out[name] = [spec,value]
+            spec = spec[1]
+        out[name] = [spec] + values
+
+    def _emit_number2(self,spec,out,run_config,key,value):
+        self._emit2([spec+"RL",spec+"RA"],out,run_config,key,[value])
 
     def row(self, row, state, _run_config):
         self._getter.get(row,state)

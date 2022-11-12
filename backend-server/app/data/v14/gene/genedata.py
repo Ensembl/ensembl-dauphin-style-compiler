@@ -105,17 +105,11 @@ def extract_gene_data(data_accessor: DataAccessor, panel: Panel, include_exons: 
 def extract_gene_overview_data(data_accessor: DataAccessor, chrom: Chromosome, start: int, end: int, with_ids: bool, accept: str) -> Response:
     item = chrom.item_path("transcripts")
     data = get_bigbed(data_accessor,item,start,end)
-    lines = [ TranscriptFileLine(x) for x in data ]
-    out = {}
     tangle = TANGLE_OVERVIEW_WITH_IDS if with_ids else TANGLE_OVERVIEW
-    tangle.run(out,{ "tr_bigbed": lines },**accept_to_tangling_config(accept))
-    data = get_bigbed(data_accessor,item,start,end)
     lines = [ TranscriptFileLine(x) for x in data ]
-    out2 = tangle.run2({},{ "tr_bigbed": lines },**accept_to_tangling_config(accept))
-    out2 = { k: data_algorithm(v[0],v[1]) for (k,v) in out2.items() }
-    for (k,v) in out2.items():
-        out.pop(k)
-    return [out,out2]
+    out = tangle.run2({},{ "tr_bigbed": lines },**accept_to_tangling_config(accept))
+    out = { k: data_algorithm(v[0],v[1]) for (k,v) in out.items() }
+    return [{},out]
 
 def for_id(scope):
     genome_id = scope.get("genome")

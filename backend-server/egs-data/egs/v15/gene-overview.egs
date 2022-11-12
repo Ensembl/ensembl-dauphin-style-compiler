@@ -33,9 +33,9 @@ end_focus := end_gn#[id_gn_uv==focus_gene_id];
  */
 
 /* To the main data */
-start := delta_seq(data,"starts");
-end := start + delta_seq(data,"lengths");
-gene_biotype := classified_seq(data,"gene_biotypes_keys","gene_biotypes_values");
+start := data_number(data,"starts");
+end := start + data_number(data,"lengths");
+gene_biotype := data_string(data,"gene_biotypes");
 strand := data_number(data,"strands");
 
 /* 

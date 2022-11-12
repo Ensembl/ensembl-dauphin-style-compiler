@@ -32,6 +32,10 @@ class IntervalTangling(Tangling):
         self._emit_number(out,run_config,'starts_name',zigzag(delta(state[0])))
         self._emit_number(out,run_config,'lengths_name',zigzag(delta(state[1])))
 
+    def finish2(self, out, state, run_config):
+        self._emit_number2("NDZ",out,run_config,'starts_name',state[0])
+        self._emit_number2("NDZ",out,run_config,'lengths_name',state[1])
+
 class IntervalTangler(Tangler):
     def __init__(self):
         super().__init__([

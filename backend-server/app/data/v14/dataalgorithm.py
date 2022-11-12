@@ -58,7 +58,7 @@ class StringAlgorithm:
         elif self._code == "C":
             expr.append(value.encode("utf8"))
         elif self._code == "Z":
-            expr.append("\0".join([v.encode("utf8") for v in value]))
+            expr.append(b"\0".join([v.encode("utf8") for v in value]))
         elif self._code == "Y":
             values = list(set(value))
             lookup = { k: i for (i,k) in enumerate(values) }
