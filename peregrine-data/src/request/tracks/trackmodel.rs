@@ -3,7 +3,8 @@ use peregrine_toolkit::{eachorevery::eoestruct::{StructValue}, error::Error };
 use serde::{Deserialize, Deserializer};
 use crate::{Track, shapeload::programname::ProgramName, PgDauphin, switch::switches::SwitchesData };
 
-#[derive(Debug,serde_derive::Deserialize,PartialEq,Eq,Hash,PartialOrd,Ord)]
+#[cfg_attr(debug_assertions,derive(Debug))]
+#[derive(serde_derive::Deserialize,PartialEq,Eq,Hash,PartialOrd,Ord)]
 pub(crate) struct TrackMappingBuilder {
     settings: BTreeMap<String,Vec<String>>,
     values: BTreeMap<String,StructValue>,
@@ -26,7 +27,8 @@ impl TrackMappingBuilder {
     }
 }
 
-#[derive(Clone,Debug,PartialEq,Eq,Hash,PartialOrd,Ord)]
+#[cfg_attr(debug_assertions,derive(Debug))]
+#[derive(Clone,PartialEq,Eq,Hash,PartialOrd,Ord)]
 pub struct TrackMapping(Arc<TrackMappingBuilder>);
 
 impl TrackMapping {
@@ -51,7 +53,8 @@ impl TrackMapping {
     }
 }
 
-#[derive(serde_derive::Deserialize,Debug,PartialEq,Eq,Hash,PartialOrd,Ord)]
+#[cfg_attr(debug_assertions,derive(Debug))]
+#[derive(serde_derive::Deserialize,PartialEq,Eq,Hash,PartialOrd,Ord)]
 pub struct TrackModelBuilder {
     program: ProgramName,
     tags: String,
@@ -78,7 +81,8 @@ impl TrackModelBuilder {
     pub fn add_trigger(&mut self, trigger: &[String]) { self.triggers.push(trigger.to_vec()) }
 }
 
-#[derive(Clone,Debug,PartialEq,Eq,Hash,PartialOrd,Ord)]
+#[cfg_attr(debug_assertions,derive(Debug))]
+#[derive(Clone,PartialEq,Eq,Hash,PartialOrd,Ord)]
 pub struct TrackModel {
     builder: Arc<TrackModelBuilder>,
     track_mapping: TrackMapping

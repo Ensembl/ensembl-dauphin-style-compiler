@@ -328,6 +328,7 @@ pub use self::spacebase::{
 };
 pub use self::shape::rectangleshape::RectangleShape;
 pub use self::shape::textshape::TextShape;
+pub use self::core::data::ReceivedData;
 pub use self::request::core::manager::RequestManager;
 pub use self::request::tracks::trackmodel::{ TrackMapping, TrackModel };
 pub use self::request::tracks::expansionmodel::ExpansionModel;

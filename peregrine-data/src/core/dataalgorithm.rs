@@ -15,6 +15,7 @@ fn pop(data: &mut Vec<ReceivedData>) -> Result<ReceivedData,()> {
     data.pop().ok_or(())
 }
 
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub enum NumberSourceAlgorithm {
     Array(ReceivedData),
     Lesqlite2(ReceivedData),
@@ -50,6 +51,7 @@ impl NumberSourceAlgorithm {
     }
 }
 
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub enum NumberAlgorithm {
     Raw(NumberSourceAlgorithm),
     Zigzag(Box<NumberAlgorithm>),
@@ -97,11 +99,12 @@ impl NumberAlgorithm {
     }
 }
 
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub enum StringAlgorithm {
     Array(ReceivedData),
     CharacterSplit(ReceivedData),
     ZeroSplit(ReceivedData),
-    Classify(NumberSourceAlgorithm,Box<StringAlgorithm>)
+    Classify(NumberAlgorithm,Box<StringAlgorithm>)
 }
 
 impl StringAlgorithm {
@@ -111,7 +114,7 @@ impl StringAlgorithm {
             Some('C') => StringAlgorithm::CharacterSplit(pop(data)?),
             Some('Z') => StringAlgorithm::ZeroSplit(pop(data)?),
             Some('Y') => {
-                let index = NumberSourceAlgorithm::new(code,data)?;
+                let index = NumberAlgorithm::new(code,data)?;
                 let values = StringAlgorithm::new(code,data)?;
                 StringAlgorithm::Classify(index,Box::new(values))
             },
@@ -125,7 +128,7 @@ impl StringAlgorithm {
             Some('C') => { spec.push(ReceivedDataType::Bytes); },
             Some('Z') => { spec.push(ReceivedDataType::Bytes); },
             Some('Y') => {
-                NumberSourceAlgorithm::specify(code,spec)?;
+                NumberAlgorithm::specify(code,spec)?;
                 StringAlgorithm::specify(code,spec)?;
             },
             _ => { return Err(()); }
@@ -158,6 +161,7 @@ impl StringAlgorithm {
     }
 }
 
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub enum BooleanAlgorithm {
     Array(ReceivedData),
     Bytes(ReceivedData)
@@ -193,6 +197,7 @@ impl BooleanAlgorithm {
     }
 }
 
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub enum DataAlgorithm {
     Numbers(NumberAlgorithm),
     Strings(StringAlgorithm),
@@ -202,6 +207,7 @@ pub enum DataAlgorithm {
 impl DataAlgorithm {
     fn new(code: &str, data: &mut Vec<ReceivedData>) -> Result<DataAlgorithm,()> {
         let mut code = code.chars();
+        data.reverse();
         Ok(match code.next() {
             Some('N') => DataAlgorithm::Numbers(NumberAlgorithm::new(&mut code,data)?),
             Some('S') => DataAlgorithm::Strings(StringAlgorithm::new(&mut code,data)?),

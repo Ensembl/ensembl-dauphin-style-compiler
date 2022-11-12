@@ -1,5 +1,5 @@
 use anyhow::anyhow as err;
-use peregrine_toolkit::log;
+use peregrine_toolkit::{debug_log};
 use peregrine_toolkit::serdetools::{st_field, st_err, ByteData };
 use serde::de::{Visitor, MapAccess, DeserializeSeed, self, };
 use serde::{Deserializer};
@@ -28,10 +28,19 @@ impl DataRes {
     }
 
     fn get(&self, name: &str) -> anyhow::Result<&ReceivedData> {
-        self.data.get(name).ok_or_else(|| err!("no such data {}: have {}",
-            name,
-            self.data.keys().cloned().collect::<Vec<_>>().join(", ")
-        ))
+        self.data.get(name)
+            .ok_or_else(|| err!("no such data {}: have {}",
+                name,
+                self.data.keys().cloned().collect::<Vec<_>>().join(", ")
+            ))
+    }
+
+    fn get2(&self, name: &str) -> anyhow::Result<&ReceivedData> {
+        self.data2.get(name)
+            .ok_or_else(|| err!("no such data {}: have {}",
+                name,
+                self.data.keys().cloned().collect::<Vec<_>>().join(", ")
+            ))
     }
 
     fn is_invariant(&self) -> bool { self.invariant }
@@ -87,7 +96,7 @@ impl<'de> Visitor<'de> for DataVisitor {
             Ok((k,v.to_received_data()?))
         }).collect::<Result<_,()>>().map_err(|_| de::Error::custom("cannot create data"))?;
         if data2.len() > 0 {
-            log!("data2: {:?}",data2);
+            debug_log!("data2: {:?}",data2);
         }
         Ok(DataRes {
             data, 
@@ -130,6 +139,7 @@ impl DataResponse {
     }
 
     pub fn get(&self, name: &str) -> anyhow::Result<&ReceivedData> { self.0.get(name) }
+    pub fn get2(&self, name: &str) -> anyhow::Result<&ReceivedData> { self.0.get2(name) }
 
     pub(crate) fn is_invariant(&self) -> bool { self.0.is_invariant() }
 }

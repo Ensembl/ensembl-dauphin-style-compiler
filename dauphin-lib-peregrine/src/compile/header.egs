@@ -139,6 +139,10 @@ stmt indented_rectangle_on_genome(dstart,dend,height,patina,allt) {
 func get_region() becomes region;
 func get_data(request) becomes datasource;
 
+func data_number(datasource,string) becomes number;
+func data_string(datasource,string) becomes string;
+func data_boolean(datasource,string) becomes boolean;
+
 func data_stream(datasource,string) becomes bytes;
 func lesqlite2(bytes) becomes number;
 func zigzag(number) becomes number;

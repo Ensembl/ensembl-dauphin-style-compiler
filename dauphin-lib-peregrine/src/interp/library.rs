@@ -1,5 +1,5 @@
 use dauphin_interp::command::{ CommandSetId, InterpLibRegister };
-use super::data::{ GetLaneDeserializer, GetDataDeserializer, DataStreamDeserializer, OnlyWarmDeserializer, RequestScopeDeserializer, RequestDeserializer, MakeRegionDeserializer };
+use super::data::{ GetLaneDeserializer, GetDataDeserializer, DataStreamDeserializer, OnlyWarmDeserializer, RequestScopeDeserializer, RequestDeserializer, MakeRegionDeserializer, DataNumberDeserializer, DataStringDeserializer, DataBooleanDeserializer };
 use super::decompress::{ 
     Lesqlite2Deserializer, ZigzagDeserializer, DeltaDeserializer,
     ClassifyDeserializer, SplitStringDeserializer, BaseFlipDeserializer
@@ -24,7 +24,7 @@ use super::switch::{
 };
 
 pub fn std_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(61,0),0xA70743CF8F6074EC)
+    CommandSetId::new("peregrine",(62,0),0x7D8EE218C4C4784B)
 }
 
 pub fn make_peregrine_interp() -> InterpLibRegister {
@@ -32,6 +32,9 @@ pub fn make_peregrine_interp() -> InterpLibRegister {
     set.push(SettingStringDeserializer());
     set.push(SettingNumberDeserializer());
     set.push(SettingBooleanDeserializer());
+    set.push(DataNumberDeserializer());
+    set.push(DataStringDeserializer());
+    set.push(DataBooleanDeserializer());
     set.push(PatinaSettingSetDeserializer());
     set.push(PatinaSettingMemberDeserializer());
     set.push(SettingNullDeserializer());

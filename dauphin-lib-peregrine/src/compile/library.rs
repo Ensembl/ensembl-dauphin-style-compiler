@@ -5,7 +5,7 @@ use dauphin_interp::command::{ CommandSetId };
 use crate::make_peregrine_interp;
 use super::data::{ 
     GetLaneCommandType, GetDataCommandType, DataStreamCommandType, OnlyWarmCommandType,
-    RequestCommandType, RequestScopeCommandType, MakeRegionCommandType
+    RequestCommandType, RequestScopeCommandType, MakeRegionCommandType, DataNumberCommandType, DataStringCommandType, DataBooleanCommandType
 };
 use super::decompress::{
     Lesqlite2CommandType, ZigzagCommandType, DeltaCommandType,
@@ -24,11 +24,11 @@ use super::shape::{ WiggleCommandType, RectangleCommandType, Text2CommandType, I
 use super::switch::{ SettingBooleanCommandType, SettingNullCommandType, SettingNumberCommandType, SettingStringCommandType };
 
 pub fn peregrine_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(61,0),0xA70743CF8F6074EC)
+    CommandSetId::new("peregrine",(62,0),0x7D8EE218C4C4784B)
 }
 
 pub fn make_peregrine() -> CompLibRegister {
-    // next is 76; 6, 8, 11, 24, 25, 32-34, 39-42, 51, 71-73 are unused
+    // next is 76; 24, 25, 32-34, 39-42, 51, 71-73 are unused
     let mut set = CompLibRegister::new(&peregrine_id(),Some(make_peregrine_interp()));
     set.push("setting_string",Some(0),SettingStringCommandType());
     set.push("setting_number",Some(1),SettingNumberCommandType());
@@ -36,9 +36,12 @@ pub fn make_peregrine() -> CompLibRegister {
     set.push("setting_null",Some(3),SettingNullCommandType());
     set.push("patina_setting_set",Some(4),PatinaSettingSetCommandType());
     set.push("patina_setting_member",Some(5),PatinaSettingMemberCommandType());
+    set.push("data_number",Some(6),DataNumberCommandType());
     set.push("wiggle",Some(7),WiggleCommandType());
+    set.push("data_string",Some(8),DataStringCommandType());
     set.push("patina_hollow",Some(9),PatinaHollowCommandType());
     set.push("make_request",Some(10),RequestCommandType());
+    set.push("data_string",Some(11),DataBooleanCommandType());
     set.push("use_allotment",Some(12),UseAllotmentCommandType());
     set.push("direct_colour",Some(13),DirectColourCommandType());
     set.push("zmenu",Some(14),ZMenuCommandType());

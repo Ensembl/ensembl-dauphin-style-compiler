@@ -3,7 +3,8 @@ use serde::{de::{Visitor, MapAccess}, Deserialize, Deserializer, Serialize, ser:
 use super::{StructConst, eoestructdata::{DataStackTransformer, eoestack_run}, StructBuilt, eoestruct::{LateValues}, StructError };
 use serde_json::{Value as JsonValue, Number};
 
-#[derive(Clone,Debug)]
+#[cfg_attr(debug_assertions,derive(Debug))]
+#[derive(Clone)]
 pub enum StructValue {
     Const(StructConst),
     Array(Arc<Vec<StructValue>>),

@@ -1,5 +1,6 @@
 use std::{sync::Arc};
 
+#[derive(Debug)]
 pub enum ReceivedDataType { Bytes, Booleans, Numbers, Strings }
 
 // XXX merge with geometry builder as pattern in toolkit

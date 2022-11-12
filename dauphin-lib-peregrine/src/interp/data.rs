@@ -10,12 +10,16 @@ use peregrine_data::DataMessage;
 use peregrine_data::DataRequest;
 use peregrine_data::ObjectBuilder;
 use peregrine_data::LoadMode;
+use peregrine_data::ReceivedData;
 use peregrine_data::RunReport;
 use peregrine_data::{PacketPriority, Region, Scale, ShapeRequest, StickId};
 use peregrine_toolkit::lock;
 use serde_cbor::Value as CborValue;
 use anyhow::anyhow as error;
 
+simple_interp_command!(DataNumberInterpCommand,DataNumberDeserializer,6,3,(0,1,2));
+simple_interp_command!(DataStringInterpCommand,DataStringDeserializer,8,3,(0,1,2));
+simple_interp_command!(DataBooleanInterpCommand,DataBooleanDeserializer,11,3,(0,1,2));
 simple_interp_command!(GetLaneInterpCommand,GetLaneDeserializer,21,3,(0,1,2));
 simple_interp_command!(GetDataInterpCommand,GetDataDeserializer,22,2,(0,1));
 simple_interp_command!(DataStreamInterpCommand,DataStreamDeserializer,23,3,(0,1,2));
@@ -58,7 +62,6 @@ async fn get(context: &mut InterpContext, cmd: GetDataInterpCommand) -> anyhow::
     let request = geometry.request(request_id)?;
     let (result,took_ms) = data_store.get(&request,&priority).await.map_err(|e| DataMessage::XXXTransitional(e))?;
     let data_id = geometry.add_data(result);
-    //let data_id = program_data.add(result);
     drop(peregrine);
     let registers = context.registers_mut();
     registers.write(&cmd.0,InterpValue::Indexes(vec![data_id as usize]));
@@ -80,9 +83,7 @@ impl InterpCommand for DataStreamInterpCommand {
         let data_id = registers.get_indexes(&self.1)?[0];
         let names : Vec<String> = registers.get_strings(&self.2)?.iter().cloned().collect();
         drop(registers);
-        //let program_data = get_instance::<ProgramData>(context,"data")?;
         let geometry = get_instance::<ObjectBuilder>(context,"builder")?;
-        //let data = program_data.get(data_id as u32)?;
         let data = geometry.data(data_id as u32)?.as_ref().clone();
         let mut out = vec![];
         for name in names {
@@ -92,6 +93,66 @@ impl InterpCommand for DataStreamInterpCommand {
         let registers = context.registers_mut();
         registers.write(&self.0,InterpValue::Bytes(out));
         Ok(CommandResult::SyncResult())
+    }
+}
+
+fn get_data<'a,F,G,X>(context: &mut InterpContext, reg0: &Register, reg1: &Register, reg2: &Register, cb_each: F, cb_all: G) -> anyhow::Result<CommandResult<'a>>
+        where F: Fn(&ReceivedData) -> Result<X,()>, G: FnOnce(Vec<X>) -> InterpValue {
+    let registers = context.registers_mut();
+    let data_id = registers.get_indexes(reg1)?[0];
+    let names : Vec<String> = registers.get_strings(reg2)?.iter().cloned().collect();
+    drop(registers);
+    let geometry = get_instance::<ObjectBuilder>(context,"builder")?;
+    let data = geometry.data(data_id as u32)?.as_ref().clone();
+    let mut out = vec![];
+    for name in names {
+        let values = data.get2(&name)?;
+        out.push(cb_each(values).map_err(|_| error!("unecpected type"))?); // XXX critical-path copy. Use Arc's to avoid, but involves significant changes in dauphin
+    }
+    let registers = context.registers_mut();
+    registers.write(reg0,cb_all(out));
+    Ok(CommandResult::SyncResult())
+}
+
+impl InterpCommand for DataNumberInterpCommand {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+        get_data(context,&self.0,&self.1,&self.2, move |data| {
+            data.data_as_numbers().cloned()
+        },|mut data| {
+            let mut out = vec![];
+            for more in data.drain(..) {
+                out.extend(more.iter());
+            }
+            InterpValue::Numbers(out)
+        })
+    }
+}
+
+impl InterpCommand for DataStringInterpCommand {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+        get_data(context,&self.0,&self.1,&self.2, move |data| {
+            data.data_as_strings().cloned()
+        },|mut data| {
+            let mut out = vec![];
+            for more in data.drain(..) {
+                out.extend(more.iter().cloned());
+            }
+            InterpValue::Strings(out)
+        })
+    }
+}
+
+impl InterpCommand for DataBooleanInterpCommand {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+        get_data(context,&self.0,&self.1,&self.2, move |data| {
+            data.data_as_booleans().cloned()
+        },|mut data| {
+            let mut out = vec![];
+            for more in data.drain(..) {
+                out.extend(more.iter());
+            }
+            InterpValue::Boolean(out)
+        })
     }
 }
 

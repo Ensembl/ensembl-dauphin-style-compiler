@@ -8,9 +8,13 @@ req := make_request("self()",endpoint,get_region());
 data := get_data(req);
 halt(only_warm(),[data]);
 
-start := delta_seq(data,"contig_starts");
-end := start + delta_seq(data,"contig_lengths");
-sense := positive_seq(data,"sense");
+start := data_number(data,"contig_starts");
+end := start + data_number(data,"contig_lengths");
+sense := data_number(data,"sense");
+
+//start := delta_seq(data,"contig_starts");
+//end := start + delta_seq(data,"contig_lengths");
+//sense := positive_seq(data,"sense");
 
 allotment := use_allotment("tracks/track/contig/main/main/content");
 allotment_track_name := use_allotment("tracks/track/contig/title/content");
