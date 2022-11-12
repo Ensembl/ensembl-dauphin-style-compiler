@@ -95,7 +95,6 @@ class DataAlgorithm:
             raise Exception("bad code")
 
     def make(self, data):
-        data.reverse()
         expr = []
         self._kid.make(expr,data)
         return expr

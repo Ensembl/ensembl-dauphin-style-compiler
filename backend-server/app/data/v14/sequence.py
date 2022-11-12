@@ -1,10 +1,9 @@
-import logging
 from typing import Dict
 from command.coremodel import DataHandler, Panel, DataAccessor
 from command.response import Response
 from model.chromosome import Chromosome
 from command.exceptionres import DataException
-from .numbers import lesqlite2, compress
+from .numbers import lesqlite2
 
 def retrieve_range(data_accessor: DataAccessor,chrom: Chromosome, panel: Panel):
     item = chrom.item_seq_path("seqs")
@@ -16,7 +15,6 @@ def sequence_blocks8(out: Dict[str,bytes], data_accessor: DataAccessor, chrom: C
     if not dummy:
         line = list(" " * (panel.end-panel.start+2))
         sequence = retrieve_range(data_accessor,chrom,panel)
-        logging.error("line len = {0} seq len {1}".format(len(line),len(sequence)))
         for (offset,letter) in enumerate(sequence):
             line[offset] = letter if letter in "CGAT" else " "
     out['sequence'] = ("".join(line)).encode("utf8")

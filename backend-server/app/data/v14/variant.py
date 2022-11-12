@@ -3,7 +3,7 @@ from command.response import Response
 from command.exceptionres import DataException
 from model.bigbed import get_bigwig_stats, get_bigwig
 from model.chromosome import Chromosome
-from .numbers import delta, zigzag, lesqlite2, compress
+from data.v14.dataalgorithm import data_algorithm
 
 SCALE = 4000
 
@@ -19,10 +19,10 @@ def get_variant_stats(data_accessor: DataAccessor, chrom: Chromosome, panel: Pan
         step = SCALE
     data = bytearray([round(x) for x in data])
     out = {
-        "values": lesqlite2(zigzag(delta(data))),
-        "range": lesqlite2([start, end, step])
+        "values": data_algorithm("NDZRL",data),
+        "range": data_algorithm("NRL",[start,end,step])
     }
-    return out
+    return [{},out]
 
 
 def get_variant_exact(data_accessor: DataAccessor, chrom: Chromosome, panel: Panel) -> Response:
@@ -37,10 +37,10 @@ def get_variant_exact(data_accessor: DataAccessor, chrom: Chromosome, panel: Pan
         step = SCALE
     data = bytearray([round(x) for x in data])
     out = {
-        "values": lesqlite2(zigzag(delta(data))),
-        "range": lesqlite2([start, end, step])
+        "values": data_algorithm("NDZRL",data),
+        "range": data_algorithm("NRL",[start,end,step])
     }
-    return out
+    return [{},out]
 
 
 def get_variant(data_accessor: DataAccessor, chrom: Chromosome, panel: Panel) -> Response:

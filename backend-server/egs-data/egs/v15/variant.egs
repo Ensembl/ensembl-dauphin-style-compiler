@@ -6,8 +6,8 @@ req := make_request("self()","variant",get_region());
 data := get_data(req);
 halt(only_warm(),[data]);
 
-values := delta_seq(data,"values");
-x_range := [positive_seq(data,"range")];
+values := data_number(data,"values");
+x_range := [data_number(data,"range")];
 
 allotment := use_allotment("tracks/track/variant/main/main/content");
 allotment_track_name := use_allotment("tracks/track/variant/title/content");

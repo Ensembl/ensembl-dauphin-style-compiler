@@ -7,8 +7,6 @@ from command.response import Response
 from model.bigbed import get_bigbed
 from model.chromosome import Chromosome
 from command.exceptionres import DataException
-from .numbers import lesqlite2, zigzag,delta
-from .util import starts_and_ends
 
 DOMINO_COUNT = 200
 """
