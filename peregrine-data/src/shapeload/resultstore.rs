@@ -44,7 +44,7 @@ fn add_payloads(payloads: &mut HashMap<String,Box<dyn Any>>,
     payloads.insert("mode".to_string(),Box::new(mode.clone()) as Box<dyn Any>);
 }
 
-async fn make_unfiltered_shapes(base: PeregrineCoreBase, request: ShapeRequest, mode: LoadMode) -> Result<Arc<AbstractShapesContainer>,Error> {
+async fn make_unfiltered_shapes(base: PeregrineCoreBase, request: ShapeRequest, mode: LoadMode, will_discard_output: bool) -> Result<Arc<AbstractShapesContainer>,Error> {
     base.booted.wait().await;
     let shapes = Arc::new(Mutex::new(Some(ProgramShapesBuilder::new(&lock!(base.assets).clone()))));
     let mut payloads = HashMap::new();
@@ -58,12 +58,15 @@ async fn make_unfiltered_shapes(base: PeregrineCoreBase, request: ShapeRequest, 
     },&mode).await.map_err(|e| Error::operr(&format!("dauphin program failed: {:?}",e)))?;
     let took_ms = cdr_current_time() - start;
     let net_time_ms = lock!(run_report).net_ms;
+    if will_discard_output {
+        return Ok(Arc::new(AbstractShapesContainer::empty()))
+    }
     base.metrics.program_run(&request.track().track().program().name().indicative_name(),request.region().scale().get_index(),!mode.build_shapes(),net_time_ms,took_ms);
     let shapes = lock!(shapes).take().unwrap().to_abstract_shapes_container();
     Ok(Arc::new(shapes))
 }
 
-fn make_unfiltered_cache(kind: MemoizedType, base: &PeregrineCoreBase, mode: LoadMode) -> Memoized<ShapeRequest,Result<Arc<AbstractShapesContainer>,Error>> {
+fn make_unfiltered_cache(kind: MemoizedType, base: &PeregrineCoreBase, mode: LoadMode, will_discard_output: bool) -> Memoized<ShapeRequest,Result<Arc<AbstractShapesContainer>,Error>> {
     let base2 = base.clone();
     let mode = mode.clone();
     Memoized::new(kind,move |_,request: &ShapeRequest| {
@@ -71,7 +74,7 @@ fn make_unfiltered_cache(kind: MemoizedType, base: &PeregrineCoreBase, mode: Loa
         let request2 = request.clone();   
         let mode = mode.clone();
         Box::pin(async move {
-            make_unfiltered_shapes(base,request2.clone(),mode.clone()).await
+            make_unfiltered_shapes(base,request2.clone(),mode.clone(),will_discard_output).await
         })
     })
 }
@@ -106,11 +109,11 @@ pub struct ShapeStore {
 impl ShapeStore {
     pub fn new(cache_size: usize, base: &PeregrineCoreBase) -> ShapeStore {
         // XXX both caches separate sizes
-        let unfiltered_cache = make_unfiltered_cache(MemoizedType::Cache(cache_size),base,LoadMode::RealTime);
+        let unfiltered_cache = make_unfiltered_cache(MemoizedType::Cache(cache_size),base,LoadMode::RealTime,false);
         let filtered_cache = make_filtered_cache(MemoizedType::Cache(cache_size),unfiltered_cache);
-        let batch_unfiltered_cache = make_unfiltered_cache(MemoizedType::None,base,LoadMode::Batch);
+        let batch_unfiltered_cache = make_unfiltered_cache(MemoizedType::Cache(cache_size),base,LoadMode::Batch,false);
         let batch_filtered_cache = make_filtered_cache(MemoizedType::None,batch_unfiltered_cache);
-        let network_unfiltered_cache = make_unfiltered_cache(MemoizedType::None,base,LoadMode::Network);
+        let network_unfiltered_cache = make_unfiltered_cache(MemoizedType::Cache(cache_size),base,LoadMode::Network,true);
         let network_filtered_cache = make_filtered_cache(MemoizedType::None,network_unfiltered_cache);
         ShapeStore {
             realtime: filtered_cache,
@@ -121,9 +124,11 @@ impl ShapeStore {
 
     pub async fn run(&self, lane: &ShapeRequest, mode: &LoadMode) -> Arc<Result<Arc<AbstractShapesContainer>,Error>> {
         match mode {
+            /* really get the shapes, we really want them, NOW! */
             LoadMode::RealTime => {
                 self.realtime.get(lane).await
             },
+            /* really get the shapes, we may need them in the future */
             LoadMode::Batch => {
                 if let Some(value) = self.realtime.try_get(lane) {
                     value
@@ -133,6 +138,7 @@ impl ShapeStore {
                     value
                 }
             },
+            /* run the network requests, don't worry about the output */
             LoadMode::Network => {
                 if let Some(value) = self.realtime.try_get(lane) {
                     value

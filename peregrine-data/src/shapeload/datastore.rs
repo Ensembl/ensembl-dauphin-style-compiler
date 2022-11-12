@@ -11,7 +11,19 @@ use crate::util::memoized::{ Memoized, MemoizedType };
 
 // TODO Memoized errors with retry semantics
 
+#[cfg(debug_data_requests)]
+fn debug_data_requests(request: &DataRequest){
+    use peregrine_toolkit::log;
+
+    log!("DataRequest for {:?}",request);
+}
+
+#[cfg(not(debug_data_requests))]
+#[allow(unused)]
+fn debug_data_requests(request: &DataRequest) {}
+
 async fn run(base: PeregrineCoreBase, request: DataRequest, priority: PacketPriority) -> Result<DataResponse,Error> {
+    debug_data_requests(&request);
     let backend = base.all_backends.backend(request.channel())?;
     backend.data(&request,&priority).await
 }
@@ -55,9 +67,14 @@ impl DataStore {
                 self.cache.get(&request).await.as_ref().clone()
             },
             PacketPriority::Batch => {
-                let data = self.batch_cache.get(&request).await;
-                self.cache.warm(&request,data.as_ref().clone());
-                data.as_ref().clone()
+                if let Some(value) = self.cache.try_underway(&request).await {
+                    /* Already in main cache, don't pull again */
+                    value.as_ref().clone()
+                } else {
+                    let data = self.batch_cache.get(&request).await;
+                    self.cache.warm(&request,data.as_ref().clone());
+                    data.as_ref().clone()
+                }
             }
         };
         if let Ok(response) = &response{

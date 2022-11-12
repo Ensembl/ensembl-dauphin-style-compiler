@@ -27,6 +27,9 @@ fi
 if [ "x$CFG_DEBUG_BIG_REQUESTS" = "xyes" ] ; then
   FLAGS="$FLAGS --cfg debug_big_requests"
 fi
+if [ "x$CFG_DEBUG_DATA_REQUESTS" = "xyes" ] ; then
+  FLAGS="$FLAGS --cfg debug_data_requests"
+fi
 if [ "x$CFG_DISABLE_ANTICIPATE" = "xyes" ] ; then
   FLAGS="$FLAGS --cfg disable_anticipate"
 fi

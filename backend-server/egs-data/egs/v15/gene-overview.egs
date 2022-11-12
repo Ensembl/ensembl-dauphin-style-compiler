@@ -36,7 +36,7 @@ end_focus := end_gn#[id_gn_uv==focus_gene_id];
 start := delta_seq(data,"starts");
 end := start + delta_seq(data,"lengths");
 gene_biotype := classified_seq(data,"gene_biotypes_keys","gene_biotypes_values");
-strand := positive_seq(data,"strands");
+strand := data_number(data,"strands");
 
 /* 
  * What are the current track settings?

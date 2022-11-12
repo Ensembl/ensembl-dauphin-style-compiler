@@ -22,8 +22,22 @@ class Tangling:
             value = bytes(value)
         out[name] = value
 
+    def _emit_number2(self,spec,out,run_config,key,value):
+        name = self._config[key]
+        if run_config.to_bytes:
+            spec += "RL"
+        else:
+            spec += "RA"
+        out[name] = [spec,value]
+
     def row(self, row, state, _run_config):
         self._getter.get(row,state)
+
+    def finish(self, out, state, run_config):
+        raise NotImplementedError
+
+    def finish2(self, out, state, run_config):
+        pass
 
 class AtomicTangling(Tangling):
     def __init__(self, config, our_config, key, ctor):

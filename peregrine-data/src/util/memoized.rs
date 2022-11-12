@@ -85,7 +85,25 @@ impl<K: Clone+Eq+Hash,V> MemoizedState<K,V> {
         };
         (p,fuse)
     }
+}
 
+impl<K: Clone+Eq+Hash,V: 'static> MemoizedState<K,V> {
+    fn try_underway(&mut self, key: &K) -> PromiseFuture<Option<Arc<V>>> {
+        let p = PromiseFuture::new();
+        if let Some(value) = self.known.get(key) {
+            /* already known: satisfy immediately; don't run future */
+            p.satisfy(Some(value.clone()));
+        } else if let Some(fuse) = self.pending.get_mut(key) {
+            /* already pending: add to list; don't run future */
+            let fuse2 = FusePromise::new();
+            fuse.add_downstream(&fuse2,|x| Some(x.clone()));
+            fuse2.add(p.clone());
+        } else {
+            /* not known: create a future and tell caller to run */
+            p.satisfy(None);
+        };
+        p
+    }
 }
 
 #[derive(Clone)]
@@ -121,5 +139,12 @@ impl<K: Clone+Hash+Eq,V> Memoized<K,V> {
 
     pub fn try_get(&self, key: &K) -> Option<Arc<V>> {
         lock!(self.state).try_get(key)
+    }
+}
+
+impl<K: Clone+Hash+Eq,V: 'static> Memoized<K,V> {
+    pub async fn try_underway(&self, key: &K) -> Option<Arc<V>> {
+        let p = lock!(self.state).try_underway(key);
+        p.await
     }
 }

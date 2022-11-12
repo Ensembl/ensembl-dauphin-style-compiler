@@ -12,6 +12,7 @@ from .transcriptorder import sort_data_by_transcript_priority
 from .transcriptfilter import filter_lines_by_criteria
 from tangle.tangle import TangleFactory
 from model.datalocator import AccessItem
+from data.v14.dataalgorithm import data_algorithm
 from ncd import NCDRead
 
 # We might be asked for very zoomed-in views even when zoomed out for example if we are zoomed
@@ -70,7 +71,6 @@ def update_panel_from_id(data_accessor: DataAccessor, panel: Panel, for_id: Tupl
 
 # For non-focus genes we need to make
 # sure we include all the transcripts even ones which start&end completely off-panel.
-
 def extract_data_for_lines(out, data, for_id: Optional[Tuple[str,str]], include_exons: bool, accept: str) -> Response:
     lines = [ TranscriptFileLine(row) for row in data ]
 
@@ -109,7 +109,13 @@ def extract_gene_overview_data(data_accessor: DataAccessor, chrom: Chromosome, s
     out = {}
     tangle = TANGLE_OVERVIEW_WITH_IDS if with_ids else TANGLE_OVERVIEW
     tangle.run(out,{ "tr_bigbed": lines },**accept_to_tangling_config(accept))
-    return out
+    data = get_bigbed(data_accessor,item,start,end)
+    lines = [ TranscriptFileLine(x) for x in data ]
+    out2 = tangle.run2({},{ "tr_bigbed": lines },**accept_to_tangling_config(accept))
+    out2 = { k: data_algorithm(v[0],v[1]) for (k,v) in out2.items() }
+    for (k,v) in out2.items():
+        out.pop(k)
+    return [out,out2]
 
 def for_id(scope):
     genome_id = scope.get("genome")
