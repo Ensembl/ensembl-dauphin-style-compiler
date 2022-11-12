@@ -53,10 +53,12 @@ class StringAlgorithm:
             raise Exception("bad code")
 
     def make(self, expr: List[Any],value):
-        if self._code == "A" or self._code == "C":
+        if self._code == "A":
             expr.append(value)
+        elif self._code == "C":
+            expr.append(value.encode("utf8"))
         elif self._code == "Z":
-            expr.append("\0".join(value))
+            expr.append("\0".join([v.encode("utf8") for v in value]))
         elif self._code == "Y":
             values = list(set(value))
             lookup = { k: i for (i,k) in enumerate(values) }

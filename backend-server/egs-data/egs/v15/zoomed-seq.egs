@@ -8,9 +8,9 @@ req := make_request("self()","zoomed-seq",get_region());
 data := get_data(req);
 halt(only_warm(),[data]);
 
-sequence := [letter_string(data,"sequence")];
+sequence := [data_string(data,"sequence")];
 sequence_rev := [base_flip(sequence[])];
-sequence_start := [positive_seq(data,"sequence_start")][@==0];
+sequence_start := [data_number(data,"sequence_start")][@==0];
 
 bp := [bp_range()];
 range(pos_seq,seq_idx,bp[@==0],bp[@==1]);

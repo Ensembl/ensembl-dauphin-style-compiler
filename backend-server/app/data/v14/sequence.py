@@ -3,7 +3,7 @@ from command.coremodel import DataHandler, Panel, DataAccessor
 from command.response import Response
 from model.chromosome import Chromosome
 from command.exceptionres import DataException
-from .numbers import lesqlite2
+from data.v14.dataalgorithm import data_algorithm
 
 def retrieve_range(data_accessor: DataAccessor,chrom: Chromosome, panel: Panel):
     item = chrom.item_seq_path("seqs")
@@ -17,8 +17,9 @@ def sequence_blocks8(out: Dict[str,bytes], data_accessor: DataAccessor, chrom: C
         sequence = retrieve_range(data_accessor,chrom,panel)
         for (offset,letter) in enumerate(sequence):
             line[offset] = letter if letter in "CGAT" else " "
-    out['sequence'] = ("".join(line)).encode("utf8")
-    out['sequence_start'] = lesqlite2([panel.start])
+    out['sequence'] = data_algorithm("SC","".join(line))
+    out['sequence_start'] = data_algorithm("NRL",[panel.start])
+    return [{},out]
 
 class ZoomedSeqDataHandler(DataHandler):
     def process_data(self, data_accessor: DataAccessor, panel: Panel, scope, accept) -> Response:
@@ -26,5 +27,4 @@ class ZoomedSeqDataHandler(DataHandler):
         if chrom == None:
             raise DataException(1,"Unknown chromosome {0}".format(panel.stick))
         out = {}
-        sequence_blocks8(out,data_accessor,chrom,panel,False)
-        return out
+        return sequence_blocks8(out,data_accessor,chrom,panel,False)
