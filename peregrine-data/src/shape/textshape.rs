@@ -1,4 +1,4 @@
-use peregrine_toolkit::{eachorevery::{EachOrEveryFilter, EachOrEvery}, log};
+use peregrine_toolkit::{eachorevery::{EachOrEveryFilter, EachOrEvery}};
 
 use crate::{DataMessage, Pen, ShapeDemerge, Shape, SpaceBase, allotment::{transformers::{transformers::{Transformer, TransformerVariety}}, style::{style::LeafStyle}, util::rangeused::RangeUsed, core::allotmentname::AllotmentName}, CoordinateSystem, LeafRequest, SpaceBaseArea, PartialSpaceBase};
 use std::{hash::Hash, sync::Arc};

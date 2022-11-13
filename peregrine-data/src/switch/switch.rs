@@ -98,7 +98,7 @@ impl Switch {
     pub(super) fn get_triggered(&self, out: &mut HashSet<TrackModel>) {
         if !self.value.truthy() { return; }
         out.extend(self.triggers.iter().cloned());
-        for (name,kid) in self.kids.iter() {
+        for kid in self.kids.values() {
             kid.get_triggered(out);
         }
     }

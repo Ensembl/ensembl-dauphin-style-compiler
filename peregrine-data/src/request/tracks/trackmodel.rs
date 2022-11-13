@@ -103,7 +103,6 @@ impl TrackModel {
         Track::new(&program,&self.track_mapping,t.scale_start,t.scale_end+1,t.scale_step,&t.tags)
     }
 
-    pub(crate) fn program(&self) -> &ProgramName { &self.builder.program }
     pub(crate) fn mapping(&self) -> &TrackMapping { &self.track_mapping }
 
     pub(crate) fn mount_points(&self) -> Vec<(Vec<String>,bool)> {

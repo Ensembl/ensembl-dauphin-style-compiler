@@ -1,5 +1,5 @@
 use std::{sync::{Arc, Mutex}, collections::HashSet};
-use peregrine_toolkit::{eachorevery::eoestruct::{ StructConst, StructValue}, lock, error::Error, log};
+use peregrine_toolkit::{eachorevery::eoestruct::{ StructConst, StructValue}, lock, error::Error};
 use crate::{request::tracks::{trackmodel::TrackModel, expansionmodel::ExpansionModel}, AllBackends, PgDauphin, SettingMode};
 use super::{trackconfiglist::{TrackConfigList, TrackConfigListBuilder}, switch::Switch, expansion::Expansion};
 
@@ -120,7 +120,7 @@ impl Switches {
         data.track_config_list_builder = None;
     }
 
-    pub fn add_track_model(&self, model: &TrackModel, pgd: &PgDauphin) -> Result<(),Error> {
+    pub fn add_track_model(&self, model: &TrackModel) -> Result<(),Error> {
         for (mount,trigger) in model.mount_points() {
             let path = mount.iter().map(|x| x.as_str()).collect::<Vec<_>>();
             self.add_track(&path,&model,trigger);

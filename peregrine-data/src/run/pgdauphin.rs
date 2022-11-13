@@ -1,6 +1,6 @@
 use anyhow::{ self };
 use peregrine_toolkit::error::Error;
-use peregrine_toolkit::{lock, log};
+use peregrine_toolkit::{lock};
 use std::any::Any;
 use std::collections::HashMap;
 use std::sync::{ Arc, Mutex };

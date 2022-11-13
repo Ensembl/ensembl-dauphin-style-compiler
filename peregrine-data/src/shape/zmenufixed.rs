@@ -238,7 +238,7 @@ struct ZMenuBuild{
 
 impl ZMenuBuild {
     fn build(zmenu: &ZMenu, data: &HashMap<String,EachOrEvery<String>>) -> (ZMenuBuild,KeyedValues<ZMenuKey,ValueSource>) {
-        let metadata = data.iter().map(|(k,v)| (k.to_string(),ValueSource::new(k,data))).collect::<HashMap<_,_>>();
+        let metadata = data.keys().map(|k| (k.to_string(),ValueSource::new(k,data))).collect::<HashMap<_,_>>();
         let mut values : KeyedValues<ZMenuKey,ValueSource> = KeyedValues::new();
         let build = ZMenuBuild {
             metadata,
