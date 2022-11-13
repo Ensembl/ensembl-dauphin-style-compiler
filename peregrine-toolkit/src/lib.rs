@@ -81,7 +81,6 @@ pub mod puzzle {
 
 pub mod approxnumber;
 pub mod boom;
-pub mod cbor;
 pub mod diffset;
 pub mod serdetools;
 pub mod console;
