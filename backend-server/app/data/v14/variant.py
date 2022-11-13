@@ -18,12 +18,10 @@ def get_variant_stats(data_accessor: DataAccessor, chrom: Chromosome, panel: Pan
     if step == 0:
         step = SCALE
     data = bytearray([round(x) for x in data])
-    out = {
+    return {
         "values": data_algorithm("NDZRL",data),
         "range": data_algorithm("NRL",[start,end,step])
     }
-    return [{},out]
-
 
 def get_variant_exact(data_accessor: DataAccessor, chrom: Chromosome, panel: Panel) -> Response:
     item = chrom.item_path("variant-summary")
@@ -36,11 +34,10 @@ def get_variant_exact(data_accessor: DataAccessor, chrom: Chromosome, panel: Pan
     if step == 0:
         step = SCALE
     data = bytearray([round(x) for x in data])
-    out = {
+    return {
         "values": data_algorithm("NDZRL",data),
         "range": data_algorithm("NRL",[start,end,step])
     }
-    return [{},out]
 
 
 def get_variant(data_accessor: DataAccessor, chrom: Chromosome, panel: Panel) -> Response:

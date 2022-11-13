@@ -100,7 +100,7 @@ def extract_gene_data(data_accessor: DataAccessor, panel: Panel, include_exons: 
     out = { k: data_algorithm(v[0],v[1]) for (k,v) in out.items() }
     if for_id is not None:
         out['__invariant'] = True
-    return [{},out]
+    return out
 
 def extract_gene_overview_data(data_accessor: DataAccessor, chrom: Chromosome, start: int, end: int, with_ids: bool, accept: str) -> Response:
     item = chrom.item_path("transcripts")
@@ -109,7 +109,7 @@ def extract_gene_overview_data(data_accessor: DataAccessor, chrom: Chromosome, s
     lines = [ TranscriptFileLine(x) for x in data ]
     out = tangle.run2({},{ "tr_bigbed": lines },**accept_to_tangling_config(accept))
     out = { k: data_algorithm(v[0],v[1]) for (k,v) in out.items() }
-    return [{},out]
+    return out
 
 def for_id(scope):
     genome_id = scope.get("genome")
@@ -136,5 +136,4 @@ class GeneOverviewDataHandler(DataHandler):
         chrom = data_accessor.data_model.stick(data_accessor,panel.stick)
         if chrom == None:
             return Response(1,"Unknown chromosome {0}".format(panel.stick))
-        out = extract_gene_overview_data(data_accessor,chrom,panel.start,panel.end,False,accept)
-        return out
+        return extract_gene_overview_data(data_accessor,chrom,panel.start,panel.end,False,accept)

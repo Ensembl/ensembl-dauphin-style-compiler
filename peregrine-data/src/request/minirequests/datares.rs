@@ -1,6 +1,5 @@
 use anyhow::anyhow as err;
-use peregrine_toolkit::{debug_log};
-use peregrine_toolkit::serdetools::{st_field, st_err, ByteData };
+use peregrine_toolkit::serdetools::{st_field, ByteData };
 use serde::de::{Visitor, MapAccess, DeserializeSeed, self, };
 use serde::{Deserializer};
 use std::any::Any;
@@ -16,7 +15,6 @@ use crate::core::data::ReceivedData;
 
 pub struct DataRes {
     data: HashMap<String,ReceivedData>,
-    data2: HashMap<String,ReceivedData>,
     invariant: bool
 }
 
@@ -27,19 +25,11 @@ impl DataRes {
         }
     }
 
-    fn get(&self, name: &str) -> anyhow::Result<&ReceivedData> {
+    fn get2(&self, name: &str) -> anyhow::Result<&ReceivedData> {
         self.data.get(name)
             .ok_or_else(|| err!("no such data {}: have {}",
                 name,
                 self.data.keys().cloned().collect::<Vec<_>>().join(", ")
-            ))
-    }
-
-    fn get2(&self, name: &str) -> anyhow::Result<&ReceivedData> {
-        self.data2.get(name)
-            .ok_or_else(|| err!("no such data {}: have {}",
-                name,
-                self.data2.keys().cloned().collect::<Vec<_>>().join(", ")
             ))
     }
 
@@ -57,48 +47,29 @@ impl<'de> Visitor<'de> for DataVisitor {
 
     fn visit_map<M>(self, mut access: M) -> Result<Self::Value, M::Error>
             where M: MapAccess<'de> {
-        let mut data : Option<HashMap<String,Vec<u8>>> = None;
-        let mut data2 : Option<HashMap<String,DataAlgorithm>> = None;
+        let mut data : Option<HashMap<String,DataAlgorithm>> = None;
         let mut invariant = false;
         while let Some(key) = access.next_key()? {
             /* undo domain-specific compression */
             match key {
-                /* values are present as some domain-compressed thing */
                 "data" => { 
                     let bytes : ByteData = access.next_value()?;
-                    let values = self.0.deserialize_data(&self.1,bytes.data).map_err(|e| de::Error::custom(e))?;
-                    data = Some(st_field("data deserializer",values)?.drain(..).collect());
+                    data = self.0.deserialize_data(&self.1,bytes.data).map_err(|e| de::Error::custom(e))?;
                 },
                 "values" => {
-                    /* values are present as map From strings to bytes */
                     data = Some(access.next_value()?);
                 },
-                /***/
-                "data2" => { 
-                    let bytes : ByteData = access.next_value()?;
-                    data2 = self.0.deserialize_data2(&self.1,bytes.data).map_err(|e| de::Error::custom(e))?;
-                },
-                "values2" => {
-                    /* values are present as map From strings to bytes */
-                    data2 = Some(access.next_value()?);
-                },
-                /***/
                 "__invariant" => { invariant = access.next_value()? },
                 _ => {}
             }
         }
         let mut data = st_field("data",data)?;
-        let mut data2 = data2.unwrap_or_else(|| HashMap::new());
-        let data = st_err(data.drain().map(|(k,v)| {
-            Ok((k,ReceivedData::new_bytes(v)))
-        }).collect::<Result<HashMap<String,ReceivedData>,String>>(),"corrupt payload/C")?;
-        let data2 : HashMap<String,ReceivedData> = data2.drain().map(|(k,v)| {
+        let data : HashMap<String,ReceivedData> = data.drain().map(|(k,v)| {
             Ok((k,v.to_received_data()?))
         }).collect::<Result<_,()>>().map_err(|_| de::Error::custom("cannot create data"))?;
-        //debug_log!("data2: {:?}",data2);
+        //debug_log!("data: {:?}",data);
         Ok(DataRes {
-            data, 
-            data2,
+            data,
             invariant
         })
     }
@@ -136,7 +107,6 @@ impl DataResponse {
         self.0.account(account_builder);
     }
 
-    pub fn get(&self, name: &str) -> anyhow::Result<&ReceivedData> { self.0.get(name) }
     pub fn get2(&self, name: &str) -> anyhow::Result<&ReceivedData> { self.0.get2(name) }
 
     pub(crate) fn is_invariant(&self) -> bool { self.0.is_invariant() }

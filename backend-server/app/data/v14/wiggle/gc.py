@@ -32,11 +32,10 @@ def _get_gc(data_accessor: DataAccessor, chrom: Chromosome, panel: Panel) -> Res
 
     data = [1.0 if x is None else x for x in data]
     data = bytearray([round(x / SCALE) for x in data])
-    out = {
+    return {
         "values": data_algorithm("NDZRL",data),
         "range": data_algorithm("NRL",[start, end])
     }
-    return [{},out]
 
 class WiggleDataHandler2(DataHandler):
     def process_data(self, data_accessor: DataAccessor, panel: Panel, _scope, accept) -> Response:

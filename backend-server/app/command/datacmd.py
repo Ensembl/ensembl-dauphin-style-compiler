@@ -95,13 +95,12 @@ class DataHandler(Handler):
         try:
             if version.get_egs() < 14:
                 out = handler.process_data(data_accessor,panel,scope)
+            elif version.get_egs() < 15:
+                raise Exception("EEP!")
             else:
                 data = handler.process_data(data_accessor,panel,scope,accept)
-                data2 = {}
-                if isinstance(data,list):
-                    (data,data2) = tuple(data)
-                invariant = data.pop('__invariant',False) or data2.pop('__invariant',False)
-                out = Response(5,{'data': compress_payload(data), 'data2': compress_payload(data2), '__invariant': invariant })
+                invariant = data.pop('__invariant',False)
+                out = Response(5,{ 'data': compress_payload(data), '__invariant': invariant })
         except DataException as e:
             out = e.to_response()
         time_taken_ms = (time.time() - start) * 1000.0

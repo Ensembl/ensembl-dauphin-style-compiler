@@ -1,6 +1,5 @@
 use js_sys::Date;
 use peregrine_data::{ChannelIntegration, PacketPriority, MaxiRequest, ChannelSender, BackendNamespace, ChannelMessageDecoder, MaxiResponse, null_payload, DataAlgorithm };
-use peregrine_toolkit::cbor::{cbor_into_drained_map, cbor_into_bytes};
 use peregrine_toolkit::error::Error;
 use serde_cbor::Deserializer;
 use serde::de::{DeserializeSeed};
@@ -36,15 +35,7 @@ impl ChannelSender for NetworkChannelSender {
         Box::pin(send_wrap(url.clone(),prio.clone(),data,Some(30.),self.cache_buster.clone(),decoder))
     }
 
-    fn deserialize_data(&self, _payload: &dyn Any, bytes: Vec<u8>) -> Result<Option<Vec<(String,Vec<u8>)>>,String> {
-        let bytes = inflate_bytes_zlib(&bytes).map_err(|e| format!("cannot uncompress: {}",e))?;
-        let value = serde_cbor::from_slice(&bytes).map_err(|e| format!("corrupt payload/A: {}",e))?;
-        let mut value = cbor_into_drained_map(value).map_err(|e| format!("corrupt payload/B: {}",e))?;
-        let value = value.drain(..).map(|(k,v)| Ok((k,cbor_into_bytes(v)?))).collect::<Result<Vec<_>,String>>()?;
-        Ok(Some(value))
-    }
-
-    fn deserialize_data2(&self, _payload: &dyn Any, bytes: Vec<u8>) -> Result<Option<HashMap<String,DataAlgorithm>>,String> {
+    fn deserialize_data(&self, _payload: &dyn Any, bytes: Vec<u8>) -> Result<Option<HashMap<String,DataAlgorithm>>,String> {
         let bytes = inflate_bytes_zlib(&bytes).map_err(|e| format!("cannot uncompress: {}",e))?;
         Ok(Some(serde_cbor::from_slice(&bytes).map_err(|e| format!("corrupt payload/A: {}",e))?))
     }

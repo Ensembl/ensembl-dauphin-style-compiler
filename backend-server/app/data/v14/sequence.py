@@ -19,7 +19,7 @@ def sequence_blocks8(out: Dict[str,bytes], data_accessor: DataAccessor, chrom: C
             line[offset] = letter if letter in "CGAT" else " "
     out['sequence'] = data_algorithm("SC","".join(line))
     out['sequence_start'] = data_algorithm("NRL",[panel.start])
-    return [{},out]
+    return out
 
 class ZoomedSeqDataHandler(DataHandler):
     def process_data(self, data_accessor: DataAccessor, panel: Panel, scope, accept) -> Response:

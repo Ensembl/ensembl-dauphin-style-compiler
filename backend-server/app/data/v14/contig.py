@@ -95,12 +95,11 @@ def get_contig(data_accessor: DataAccessor, chrom: Chromosome, panel: Panel, do_
         senses.append(sense == '+')
     if do_shimmer:
         (positions, senses) = shimmer(positions, senses, panel.start, panel.end)
-    out2 = {
+    return {
         "sense": data_algorithm("NRL",senses),
         'contig_starts': data_algorithm("NDZRL",[x[0] for x in positions]),
         'contig_lengths': data_algorithm("NDZRL",[x[1] - x[0] for x in positions]),
     }
-    return [{},out2]
 
 class ContigDataHandler2(DataHandler):
     def process_data(self, data_accessor: DataAccessor, panel: Panel, scope, accept) -> Response:
