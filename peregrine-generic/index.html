@@ -292,7 +292,7 @@
               })
             },
             data: function(name,stick,scale,index,scope) {
-              console.log("data");
+              console.log("data "+stick+" "+scale+" "+index+" "+scope);
               return {};
             },
             stickinfo: function(stick) {
@@ -309,7 +309,7 @@
                      "name": "js-expansion",
                      "backend_namespace": this.backend_namespace,
                      "triggers": [
-                       ["tracks","user"]
+                       ["track","user"]
                      ]
                    }
                 ];
@@ -318,7 +318,7 @@
                     "program": ["special","test",1],
                     "tags": "",
                     "triggers": [
-                      ["tracks","user2"]
+                      ["track","user2"]
                     ],
                     "settings": {
                       "green": ["setting","green"]
@@ -331,23 +331,22 @@
                     "scale_end": 60,
                     "scale_step": 1
                    }
-                ];
+                  ];
                 return { expansions, tracks };
               });
             },
             expand: function(name,step) {
               return delay(100).then(() => {
-                console.log("expand",name,step);
                 if(name == "js-expansion") {
                   let tracks = [
                    {
-                    "program": ["ensembl-webteam/core","test",2],
+                    "program": ["ensembl-webteam/core","test-with-data",1],
                     "tags": "",
                     "triggers": [
-                      ["tracks","user",step]
+                      ["track","user",step]
                     ],
                     "settings": {
-                      "green": ["setting","green"]
+                      "green": ["settings","green"]
                     },
                     "values": {
                       "red": parseInt(step),
@@ -358,6 +357,7 @@
                     "scale_step": 1
                     }
                   ];
+                  console.log("expand",name,step);
                   return { tracks };
                 } else {
                   return {};
@@ -496,7 +496,9 @@
           genome_browser.switch(["track","expand","ff0099"],true);
         };
         document.getElementById("expand2").onclick = function() {
-          genome_browser.switch(["tracks","user","78"],true);
+          genome_browser.switch(["settings","green"],50);
+          genome_browser.switch(["track","user"],true);
+          genome_browser.switch(["track","user","78"],true);
         };
         document.getElementById("unload").onclick = function() {
           document.getElementById("browser").remove();

@@ -5,9 +5,9 @@ use js_sys::{ Array, JSON };
 use serde_wasm_bindgen::from_value;
 use wasm_bindgen::{prelude::*, JsCast};
 use peregrine_draw::{Endstop, Message, PeregrineAPI, PeregrineConfig, PgCommanderWeb};
-use peregrine_data::{StickId, zmenu_to_json };
+use peregrine_data::{StickId, zmenu_to_json, DataMessage };
 use peregrine_message::{MessageKind, PeregrineMessage};
-use peregrine_toolkit::{ warn, log, eachorevery::eoestruct::{StructValue}, js::jstojsonvalue::js_to_json};
+use peregrine_toolkit::{ warn, log, eachorevery::eoestruct::{StructValue}, js::jstojsonvalue::js_to_json, error::ErrorType};
 use web_sys::{ Element };
 use serde::{Serialize, Deserialize};
 use serde_json::{ Map as JsonMap, Value as JsonValue };
@@ -229,10 +229,17 @@ impl GenomeBrowser {
                     let this = JsValue::null(); 
                     match message.kind() {
                         MessageKind::Error => {
-                            /* func("error",error_as_string) */
-                            let kind = JsValue::from("error");
-                            let msg = JsValue::from(message.to_string().as_str());
-                            let _ = closure.call2(&this,&kind,&msg);            
+                            let mut skip = false;
+                            if let Message::DataError(DataMessage::XXXTransitional(x)) = message {
+                                if let ErrorType::Temporary = x.error_type {
+                                    skip = true;
+                                }
+                            }
+                            if !skip {
+                                let kind = JsValue::from("error");
+                                let msg = JsValue::from(message.to_string().as_str());
+                                let _ = closure.call2(&this,&kind,&msg);
+                            }
                         },
                         MessageKind::Interface => {
                             match message {

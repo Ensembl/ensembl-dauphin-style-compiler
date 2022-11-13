@@ -1,6 +1,7 @@
 use peregrine_toolkit::{ identitynumber, hashable, orderable };
 use peregrine_toolkit::error::Error;
 use peregrine_toolkit::log;
+use crate::BackendNamespace;
 use crate::core::program::programspec::ProgramModel;
 use crate::core::tagpred::TagPred;
 use crate::core::{ Layout, Scale };
@@ -15,6 +16,7 @@ pub struct Track {
     max_scale: u64,
     scale_jump: u64,
     program: ProgramModel,
+    track_base: BackendNamespace,
     mapping: TrackMapping,
     tags: TagPred
 }
@@ -23,11 +25,12 @@ hashable!(Track,id);
 orderable!(Track,id);
 
 impl Track {
-    pub(crate) fn new(program: &ProgramModel, mapping: &TrackMapping, min_scale: u64, max_scale: u64, scale_jump: u64, tag_pred: &str) -> Result<Track,Error> { 
+    pub(crate) fn new(program: &ProgramModel, track_base: &BackendNamespace, mapping: &TrackMapping, min_scale: u64, max_scale: u64, scale_jump: u64, tag_pred: &str) -> Result<Track,Error> { 
         Ok(Track {
             id: IDS.next(),
             min_scale, max_scale, scale_jump,
             program: program.clone(),
+            track_base: track_base.clone(),
             mapping: mapping.clone(),
             tags: TagPred::new(tag_pred)?
         })
@@ -35,6 +38,7 @@ impl Track {
 
     pub(crate) fn program(&self) -> &ProgramModel { &self.program }
     pub(crate) fn mapping(&self) -> &TrackMapping { &self.mapping }
+    pub(crate) fn track_base(&self) -> &BackendNamespace { &self.track_base }
     pub fn id(&self) -> u64 { self.id }
     pub fn scale(&self) -> (u64,u64) { (self.min_scale,self.max_scale) }
     pub fn max_scale_jump(&self) -> u64 { self.scale_jump }

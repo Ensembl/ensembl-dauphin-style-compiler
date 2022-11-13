@@ -23,7 +23,7 @@ fn lookup<T>(index: usize, array: &[T]) -> Result<&T,Error> {
 }
 
 impl PackedTrack {
-    fn to_track(&self, res: &PackedTrackRes) -> Result<TrackModel,Error> {
+    fn to_track(&self, res: &PackedTrackRes, track_base: &BackendNamespace) -> Result<TrackModel,Error> {
         let program_set = lookup(self.program_set,&res.program_idx)?;
         let program_name = lookup(self.program_name,&res.program_idx)?;
         let program_name = ProgramName::new(program_set,program_name,self.program_version);
@@ -44,7 +44,7 @@ impl PackedTrack {
                 lookup(*value_idx,&res.value_idx)?.clone(),
             );
         }
-        Ok(TrackModel::new(builder))
+        Ok(TrackModel::new(builder,track_base))
     }
 }
 
@@ -150,10 +150,10 @@ impl PackedTrackRes {
         Ok(out)
     }
 
-    pub(super) fn to_track_models(&self) -> Result<Vec<TrackModel>,Error> {
+    pub(super) fn to_track_models(&self, track_base: &BackendNamespace) -> Result<Vec<TrackModel>,Error> {
         let mut tracks = vec![];
         for track in self.make_packed_tracks()? {
-            tracks.push(track.to_track(&self)?);
+            tracks.push(track.to_track(&self,track_base)?);
         }
         Ok(tracks)
     }

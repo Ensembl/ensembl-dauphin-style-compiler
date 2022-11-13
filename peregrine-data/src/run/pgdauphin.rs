@@ -15,6 +15,7 @@ use crate::shapeload::programname::{ProgramName};
 
 pub(crate) struct PgDauphinTaskSpec {
     pub(crate) program: ProgramModel,
+    pub(crate) track_base: BackendNamespace,
     pub(crate) mapping: TrackMapping,
     pub(crate) payloads: Option<HashMap<String,Box<dyn Any>>>
 }
@@ -133,7 +134,7 @@ impl PgDauphin {
     pub(crate) async fn run_program(&self, registry: &ChannelRegistry, spec: PgDauphinTaskSpec, mode: &LoadMode) -> Result<(),Error> {
         let program = self.get_program(&spec.program.name()).await?;
         let mut payloads = spec.payloads.unwrap_or_else(|| HashMap::new());
-        payloads.insert("channel-resolver".to_string(),Box::new(AccessorResolver::new(registry,&program.backend_namespace)));
+        payloads.insert("channel-resolver".to_string(),Box::new(AccessorResolver::new(registry,&program.backend_namespace,&spec.track_base)));
         payloads.insert("program-spec".to_string(),Box::new(spec.program.clone()) as Box::<dyn Any>);
         payloads.insert("track-mapping".to_string(),Box::new(spec.mapping.clone()) as Box::<dyn Any>);
         let pdq = lock!(self.0).pdq.clone();

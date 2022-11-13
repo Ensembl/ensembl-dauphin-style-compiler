@@ -54,6 +54,7 @@ async fn make_unfiltered_shapes(base: PeregrineCoreBase, request: ShapeRequest, 
     base.dauphin.run_program(&base.channel_registry,PgDauphinTaskSpec {
         program: request.track().track().program().clone(),
         mapping: request.track().track().mapping().clone(),
+        track_base: request.track().track().track_base().clone(),
         payloads: Some(payloads)
     },&mode).await.map_err(|e| Error::operr(&format!("dauphin program failed: {:?}",e)))?;
     let took_ms = cdr_current_time() - start;

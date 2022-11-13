@@ -24,7 +24,7 @@ path="test15.begs"
 program_set="ensembl-webteam/core"
 program_version=1
 specs_path="specs15"
-programs = [ "test" ]
+programs = [ "test", "test-with-data" ]
 
 [file.test.mapping.test]
 program_name="test"

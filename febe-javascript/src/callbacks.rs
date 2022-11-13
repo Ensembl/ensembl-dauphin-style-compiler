@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use js_sys::{Function, JsString, Number, Promise };
-use peregrine_data::{Stick, StickTopology, StickId, DataRequest, DataRes, DataAlgorithm, ReceivedData};
+use peregrine_data::{Stick, StickTopology, StickId, DataRequest, DataRes, DataAlgorithm, ReceivedData, BackendNamespace};
 use peregrine_toolkit::{error::Error};
 use peregrine_toolkit_async::js::promise::promise_to_future;
 use wasm_bindgen::JsValue;
@@ -22,6 +22,7 @@ async fn finish_promise(value: &JsValue) -> Result<JsValue,Error> {
 
 #[derive(Clone)]
 pub(crate) struct Callbacks {
+    track_base: BackendNamespace,
     this: JsValue,
     jump: Option<Function>,
     boot: Option<Function>,
@@ -32,9 +33,10 @@ pub(crate) struct Callbacks {
 }
 
 impl Callbacks {
-    pub(crate) fn new(this: JsValue) -> Callbacks {
+    pub(crate) fn new(this: JsValue, track_base: &BackendNamespace) -> Callbacks {
         Callbacks {
             this,
+            track_base: track_base.clone(),
             jump: None,
             boot: None,
             stickinfo: None,
@@ -62,7 +64,7 @@ impl Callbacks {
             let promise = Error::oper_r(jump.call1(&self.this,&JsString::from(location)),"jump callback")?;
             let out = finish_promise(&promise).await?;
             let out = to_hashmap(out)?;
-            let sidecar = JsSidecar::new_js(&out)?;
+            let sidecar = JsSidecar::new_js(&out,&self.track_base)?;
             if !out.contains_key("stick") { return Ok((None,sidecar)); }
             Ok((Some((
                 to_string(out.get("stick").unwrap())?,
@@ -79,7 +81,7 @@ impl Callbacks {
             let promise = Error::oper_r(boot.call0(&self.this),"boot callback")?;
             let out = finish_promise(&promise).await?;
             let out = to_hashmap(out)?;
-            let sidecar = JsSidecar::new_js(&out)?;
+            let sidecar = JsSidecar::new_js(&out,&self.track_base)?;
             Ok(sidecar)
         } else {
             Ok(JsSidecar::new_empty())
@@ -118,7 +120,7 @@ impl Callbacks {
             let promise = Error::oper_r(cb.apply(&self.this,&args),"data callback")?;
             let out = finish_promise(&promise).await?;
             let mut out = to_hashmap(out)?;
-            let sidecar = JsSidecar::new_js(&out)?;
+            let sidecar = JsSidecar::new_js(&out,&self.track_base)?;
             let invariant = out.get("invariant").map(|x| x.is_truthy()).unwrap_or(false);
             let res = out.remove("data").map(|data| {
                 self.ds_all_datastreams(data)
@@ -134,7 +136,7 @@ impl Callbacks {
             let promise = Error::oper_r(expansion.call2(&self.this,&JsString::from(name),&JsString::from(step)),"expansion callback")?;
             let out = finish_promise(&promise).await?;
             let out = to_hashmap(out)?;
-            let sidecar = JsSidecar::new_js(&out)?;
+            let sidecar = JsSidecar::new_js(&out,&self.track_base)?;
             Ok(sidecar)
         } else {
             Ok(JsSidecar::new_empty())
@@ -146,7 +148,7 @@ impl Callbacks {
             let promise = Error::oper_r(program.call3(&self.this,&JsString::from(group),&JsString::from(name),&Number::from(version)),"program callback")?;
             let out = finish_promise(&promise).await?;
             let out = to_hashmap(out)?;
-            let sidecar = JsSidecar::new_js(&out)?;
+            let sidecar = JsSidecar::new_js(&out,&self.track_base)?;
             Ok(sidecar)
         } else {
             Ok(JsSidecar::new_empty())
@@ -158,7 +160,7 @@ impl Callbacks {
             let promise = Error::oper_r(stick_info.call1(&self.this,&JsString::from(id.get_id())),"stick callback")?;
             let out = finish_promise(&promise).await?;
             let out = to_hashmap(out)?;
-            let sidecar = JsSidecar::new_js(&out)?;
+            let sidecar = JsSidecar::new_js(&out,&self.track_base)?;
             if !out.contains_key("size") { return Ok((None,sidecar)); }
             let size = to_int(out.get("size").unwrap())?;
 

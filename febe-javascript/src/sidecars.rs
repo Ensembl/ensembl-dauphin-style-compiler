@@ -1,9 +1,10 @@
 use std::{collections::HashMap, mem};
 use js_sys::Array;
-use peregrine_data::{TrackModel, ExpansionModel, MaxiResponse, SuppliedBundle, UnpackedSuppliedBundle};
+use peregrine_data::{TrackModel, ExpansionModel, MaxiResponse, SuppliedBundle, UnpackedSuppliedBundle, TrackModelDeserialize, BackendNamespace};
 use peregrine_toolkit::{error::Error };
+use serde_wasm_bindgen::Deserializer;
 use wasm_bindgen::JsValue;
-use serde::Deserialize;
+use serde::{Deserialize, de::DeserializeSeed};
 
 fn js_array_extract<T>(value: &JsValue) -> Result<Vec<T>,Error> where for<'de> T: Deserialize<'de> {
     if !Array::is_array(value) { return Err(Error::operr("expected array")) }
@@ -17,6 +18,16 @@ fn js_array_extract<T>(value: &JsValue) -> Result<Vec<T>,Error> where for<'de> T
     }
 }
 
+fn js_array_extract_track(value: &JsValue, track_namespace: &BackendNamespace) -> Result<Vec<TrackModel>,Error> {
+    if !Array::is_array(value) { return Err(Error::operr("expected array")) }
+    let value = Array::from(value);
+    value.iter().map(|x| {
+        let mut deserializer = Deserializer::from(x);
+        let deserialize = TrackModelDeserialize(track_namespace.clone());
+        Error::oper_r(deserialize.deserialize(deserializer),"packet error")
+    }).collect::<Result<Vec<_>,_>>()
+}
+
 pub(crate) struct JsSidecar {
     tracks: Vec<TrackModel>,
     expansions: Vec<ExpansionModel>,
@@ -28,12 +39,12 @@ impl JsSidecar {
         JsSidecar { tracks: vec![], expansions: vec![], programs: vec![] }
     }
 
-    pub(crate) fn new_js(data: &HashMap<String,JsValue>) -> Result<JsSidecar,Error> {
+    pub(crate) fn new_js(data: &HashMap<String,JsValue>, track_base: &BackendNamespace) -> Result<JsSidecar,Error> {
         let expansions = data.get("expansions").map(|x| {
             js_array_extract(x)
         }).transpose()?.unwrap_or(vec![]);
         let tracks = data.get("tracks").map(|x| {
-            js_array_extract(x)
+            js_array_extract_track(x,track_base)
         }).transpose()?.unwrap_or(vec![]);
         let programs = data.get("bundles").map(|x| {
             Ok(js_array_extract(x)?.drain(..).map(|x: UnpackedSuppliedBundle| x.to_supplied_bundle()).collect())

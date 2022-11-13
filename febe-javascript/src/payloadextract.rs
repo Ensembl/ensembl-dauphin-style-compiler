@@ -37,7 +37,7 @@ impl PayloadExtractor {
             payload: top_level.remove("payload").unwrap_or(JsValue::NULL),
             backend_namespace: backend_namespace.clone()
         };
-        let mut callbacks = Callbacks::new(this.to_jsvalue()?);
+        let mut callbacks = Callbacks::new(this.to_jsvalue()?,backend_namespace);
         if let Some(callbacks_js) = top_level.remove("callbacks") {
             for (name,value) in to_hashmap(callbacks_js)? {
                 callbacks.add(&name,value)?;

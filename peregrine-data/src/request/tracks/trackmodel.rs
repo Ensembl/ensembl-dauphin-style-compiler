@@ -1,7 +1,7 @@
 use std::{sync::Arc, collections::BTreeMap, mem};
 use peregrine_toolkit::{eachorevery::eoestruct::{StructValue}, error::Error };
-use serde::{Deserialize, Deserializer};
-use crate::{Track, shapeload::programname::ProgramName, PgDauphin, switch::switches::SwitchesData };
+use serde::{Deserialize, Deserializer, de::DeserializeSeed};
+use crate::{Track, shapeload::programname::ProgramName, PgDauphin, switch::switches::SwitchesData, BackendNamespace };
 
 #[cfg_attr(debug_assertions,derive(Debug))]
 #[derive(serde_derive::Deserialize,PartialEq,Eq,Hash,PartialOrd,Ord)]
@@ -85,14 +85,16 @@ impl TrackModelBuilder {
 #[derive(Clone,PartialEq,Eq,Hash,PartialOrd,Ord)]
 pub struct TrackModel {
     builder: Arc<TrackModelBuilder>,
+    track_base: BackendNamespace,
     track_mapping: TrackMapping
 }
 
 impl TrackModel {
-    pub fn new(mut builder: TrackModelBuilder) -> TrackModel {
+    pub fn new(mut builder: TrackModelBuilder, track_base: &BackendNamespace) -> TrackModel {
         let mapping = mem::replace(&mut builder.mapping,TrackMappingBuilder::new());
         TrackModel {
             track_mapping: TrackMapping::new(mapping),
+            track_base: track_base.clone(),
             builder: Arc::new(builder)
         }
     }
@@ -100,7 +102,7 @@ impl TrackModel {
     pub(crate) async fn to_track(&self, loader: &PgDauphin) -> Result<Track,Error> {
         let program = loader.get_program_model(&self.builder.program).await?;
         let t = self.builder.as_ref();
-        Track::new(&program,&self.track_mapping,t.scale_start,t.scale_end+1,t.scale_step,&t.tags)
+        Track::new(&program,&self.track_base,&self.track_mapping,t.scale_start,t.scale_end+1,t.scale_step,&t.tags)
     }
 
     pub(crate) fn mapping(&self) -> &TrackMapping { &self.track_mapping }
@@ -110,9 +112,14 @@ impl TrackModel {
     }
 }
 
-impl<'de> Deserialize<'de> for TrackModel {
-    fn deserialize<D>(deserializer: D) -> Result<TrackModel, D::Error>
+pub struct TrackModelDeserialize(pub BackendNamespace);
+
+impl<'de> DeserializeSeed<'de> for TrackModelDeserialize {
+    type Value = TrackModel;
+
+    fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
             where D: Deserializer<'de> {
-        Ok(TrackModel::new(TrackModelBuilder::deserialize(deserializer)?))
+        let builder = TrackModelBuilder::deserialize(deserializer)?;
+        Ok(TrackModel::new(builder,&self.0))
     }
 }

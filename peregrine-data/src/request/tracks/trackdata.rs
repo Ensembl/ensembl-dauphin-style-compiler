@@ -2,7 +2,8 @@ use peregrine_toolkit::{error::Error};
 use crate::{MaxiResponse, PeregrineApiQueue, Switches };
 
 pub(crate) fn add_tracks_from_response(response: &MaxiResponse, switches: &Switches, queue: &PeregrineApiQueue) -> Result<(),Error> {
-    let (tracks,expansions) = response.tracks().to_track_models()?;
+    let track_base = response.channel();
+    let (tracks,expansions) = response.tracks().to_track_models(track_base)?;
     for track in &tracks {
         switches.add_track_model(track)?;
     }
