@@ -4,7 +4,6 @@ use super::{ switchtree::SwitchTree, trackmodel::{TrackModel, TrackModelBuilder}
 
 #[derive(Debug)]
 struct PackedTrack {
-    name: String,
     program_set: usize,
     program_name: usize,
     program_version: u32,
@@ -74,7 +73,6 @@ impl PackedExpansion {
 #[derive(serde_derive::Deserialize)]
 pub(crate) struct PackedTrackRes {
     /* tracks */
-    name: Vec<String>,
     program_name: Vec<usize>,
     program_set: Vec<usize>,
     program_version: DiffSet,
@@ -113,18 +111,17 @@ impl PackedTrackRes {
     fn make_packed_tracks(&self) -> Result<Vec<PackedTrack>,Error> {
         let mut out = vec![];
         if !lengths_match!(self,
-            name,program_name,program_set,program_version,tags,triggers,scale_start,scale_end,scale_step,
+            program_name,program_set,program_version,tags,triggers,scale_start,scale_end,scale_step,
             values_keys,values_values,settings_keys,settings_values
         ) {
             return Err(Error::operr("Bad packet: lengths don't match"));
         }
         multizip!(self;
-            name,program_name,program_set,program_version,tags,triggers,
+            program_name,program_set,program_version,tags,triggers,
             scale_start,scale_end,scale_step,
             values_keys,values_values,settings_keys,settings_values;
             {
             out.push(PackedTrack {
-                name,
                 program_name, program_set, program_version: program_version as u32,
                 scale_start,scale_end,scale_step,
                 tags,

@@ -78,11 +78,10 @@ class Track:
         keys |= set([x[0] for x in self._values])
         return (switches,set([self._program_name,self._program_set]),set([self._tags]),values,keys)
 
-    def _dump_for_wire(self, dumper, name):
+    def _dump_for_wire(self, dumper):
         settings = sorted(self._settings, key = lambda x: x[0])
         values = sorted(self._values, key = lambda x: x[0])
         return {
-            "name": name,
             "program_name": dumper.program_mapping[self._program_name],
             "program_set": dumper.program_mapping[self._program_set],
             "program_version": self._program_version,
@@ -222,7 +221,7 @@ class TracksDump:
         (value_list,self.value_mapping) = build_map(values)
         data = {}
         for (name,track) in tracks._tracks.items():
-            data[name] = track._dump_for_wire(self,name)
+            data[name] = track._dump_for_wire(self)
         self.data = rotate(data,lambda x: x[1]['scales'][0])
         (scale_start,scale_end,scale_step) = split_scale(self.data["scales"])
         self.data['scale_start'] = scale_start
@@ -241,7 +240,7 @@ class TracksDump:
         self.data['channel_idx'] = channels_idx
         self.data['value_idx'] = [remute(x) for x in value_list]
         for key in [
-                    "name", "program_name", "program_set", "program_version", "scales",
+                    "program_name", "program_set", "program_version", "scales",
                     "tags", "triggers", "set", "values", "e-name", "e-channel",
                     "e-triggers", "values-keys", "values-values", "settings-keys",
                     "settings-values"
