@@ -1,5 +1,5 @@
 use commander::CommanderStream;
-use peregrine_toolkit::{log};
+use peregrine_toolkit::{debug_log};
 
 use crate::{Message, PeregrineInnerAPI, PgCommanderWeb, input::{InputEvent, InputEventKind, low::lowlevel::LowLevelInput}, run::inner::LockedPeregrineInnerAPI, shape::layers::drawingzmenus::HotspotEntryDetails};
 
@@ -13,7 +13,7 @@ fn process_hotspot_event(api: &LockedPeregrineInnerAPI, x: f64, y: f64) -> Resul
             },
             HotspotEntryDetails::Setting(value) => {
                 let (path,value) = value.value();
-                log!("setting {:?} gets {:?}",path,value);
+                debug_log!("setting {:?} gets {:?}",path,value);
                 let path = path.iter().map(|x| x.as_str()).collect::<Vec<_>>();
                 api.data_api.update_switch(&path,value);
             }

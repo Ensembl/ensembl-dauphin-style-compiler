@@ -143,10 +143,10 @@ func data_number(datasource,string) becomes number;
 func data_string(datasource,string) becomes string;
 func data_boolean(datasource,string) becomes boolean;
 
-func data_stream(datasource,string) becomes bytes;
-func lesqlite2(bytes) becomes number;
-func zigzag(number) becomes number;
-func delta(number) becomes number;
+func data_stream(datasource,string) becomes bytes; // togo
+func lesqlite2(bytes) becomes number; // togo
+func zigzag(number) becomes number; // togo
+func delta(number) becomes number; // togo
 func alternate(number) becomes number;
 func classify(string,number) becomes string;
 func split_string(bytes) becomes vec(string);

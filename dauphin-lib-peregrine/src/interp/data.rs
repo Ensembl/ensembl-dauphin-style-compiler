@@ -22,7 +22,6 @@ simple_interp_command!(DataStringInterpCommand,DataStringDeserializer,8,3,(0,1,2
 simple_interp_command!(DataBooleanInterpCommand,DataBooleanDeserializer,11,3,(0,1,2));
 simple_interp_command!(GetLaneInterpCommand,GetLaneDeserializer,21,3,(0,1,2));
 simple_interp_command!(GetDataInterpCommand,GetDataDeserializer,22,2,(0,1));
-simple_interp_command!(DataStreamInterpCommand,DataStreamDeserializer,23,3,(0,1,2));
 simple_interp_command!(OnlyWarmInterpCommand,OnlyWarmDeserializer,43,1,(0));
 simple_interp_command!(RequestInterpCommand,RequestDeserializer,10,6,(0,1,2,3,4,5));
 simple_interp_command!(RequestScopeInterpCommand,RequestScopeDeserializer,52,4,(0,1,2,3));
@@ -74,25 +73,6 @@ impl InterpCommand for GetDataInterpCommand {
     fn execute(&self, _context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         let cmd = self.clone();
         Ok(CommandResult::AsyncResult(AsyncBlock::new(Box::new(|context| Box::pin(get(context,cmd))))))
-    }
-}
-
-impl InterpCommand for DataStreamInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
-        let registers = context.registers_mut();
-        let data_id = registers.get_indexes(&self.1)?[0];
-        let names : Vec<String> = registers.get_strings(&self.2)?.iter().cloned().collect();
-        drop(registers);
-        let geometry = get_instance::<ObjectBuilder>(context,"builder")?;
-        let data = geometry.data(data_id as u32)?.as_ref().clone();
-        let mut out = vec![];
-        for name in names {
-            let values = data.get(&name)?;
-            out.push(values.data_as_bytes().map_err(|_| error!("not bytes"))?.to_vec()); // XXX critical-path copy. Use Arc's to avoid, but involves significant changes in dauphin
-        }
-        let registers = context.registers_mut();
-        registers.write(&self.0,InterpValue::Bytes(out));
-        Ok(CommandResult::SyncResult())
     }
 }
 

@@ -4,12 +4,11 @@ use dauphin_compile::command::{
 use dauphin_interp::command::{ CommandSetId };
 use crate::make_peregrine_interp;
 use super::data::{ 
-    GetLaneCommandType, GetDataCommandType, DataStreamCommandType, OnlyWarmCommandType,
+    GetLaneCommandType, GetDataCommandType, OnlyWarmCommandType,
     RequestCommandType, RequestScopeCommandType, MakeRegionCommandType, DataNumberCommandType, DataStringCommandType, DataBooleanCommandType
 };
 use super::decompress::{
-    Lesqlite2CommandType, ZigzagCommandType, DeltaCommandType,
-    ClassifyCommandType, SplitStringCommandType, BaseFlipCommandType
+    SplitStringCommandType, BaseFlipCommandType
 };
 use super::eoes::{EoesVarNumberCommandType, EoesVarStringCommandType, EoesVarBooleanCommandType, EoesNullCommandType, EoesArrayCommandType, EoesPairCommandType, EoesObjectCommandType, EoesConditionCommandType, EoesGroupCommandType, EoesAllCommandType, EoesVarCommandType, EoesNumberCommandType, EoesStringCommandType, EoesBooleanCommandType, EoesLateCommandType};
 use super::track::{ 
@@ -24,11 +23,11 @@ use super::shape::{ WiggleCommandType, RectangleCommandType, Text2CommandType, I
 use super::switch::{ SettingBooleanCommandType, SettingNullCommandType, SettingNumberCommandType, SettingStringCommandType };
 
 pub fn peregrine_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(62,0),0x7D8EE218C4C4784B)
+    CommandSetId::new("peregrine",(63,0),0x37CB1D4CD6C637F6)
 }
 
 pub fn make_peregrine() -> CompLibRegister {
-    // next is 76; 24, 25, 32-34, 39-42, 51, 71-73 are unused
+    // next is 76; 23-28, 30, 32-34, 39-42, 51, 71-73 are unused
     let mut set = CompLibRegister::new(&peregrine_id(),Some(make_peregrine_interp()));
     set.push("setting_string",Some(0),SettingStringCommandType());
     set.push("setting_number",Some(1),SettingNumberCommandType());
@@ -53,12 +52,7 @@ pub fn make_peregrine() -> CompLibRegister {
     set.push("rectangle",Some(20),RectangleCommandType());
     set.push("get_region",Some(21),GetLaneCommandType());
     set.push("get_data",Some(22),GetDataCommandType());
-    set.push("data_stream",Some(23),DataStreamCommandType());
-    set.push("lesqlite2",Some(26),Lesqlite2CommandType());
-    set.push("zigzag",Some(27),ZigzagCommandType());
-    set.push("delta",Some(28),DeltaCommandType());
     set.push("patina_filled",Some(29),PatinaFilledCommandType());
-    set.push("classify",Some(30),ClassifyCommandType());
     set.push("split_string",Some(31),SplitStringCommandType());
     set.push("simple_colour",Some(35),SimpleColourCommandType());
     set.push("striped",Some(36),StripedCommandType());

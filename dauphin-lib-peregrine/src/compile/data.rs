@@ -15,7 +15,6 @@ simple_command!(RequestCommand,RequestCommandType,"peregrine","make_request",6,(
 simple_command!(RequestScopeCommand,RequestScopeCommandType,"peregrine","request_scope",4,(0,1,2,3));
 simple_command!(GetDataCommand,GetDataCommandType,"peregrine","get_data",2,(0,1));
 simple_command!(OnlyWarmCommand,OnlyWarmCommandType,"peregrine","only_warm",1,(0));
-simple_command!(DataStreamCommand,DataStreamCommandType,"peregrine","data_stream",3,(0,1,2));
 simple_command!(DataNumberCommand,DataNumberCommandType,"peregrine","data_number",3,(0,1,2));
 simple_command!(DataStringCommand,DataStringCommandType,"peregrine","data_string",3,(0,1,2));
 simple_command!(DataBooleanCommand,DataBooleanCommandType,"peregrine","data_boolean",3,(0,1,2));

@@ -13,9 +13,9 @@ use crate::util::memoized::{ Memoized, MemoizedType };
 
 #[cfg(debug_data_requests)]
 fn debug_data_requests(request: &DataRequest){
-    use peregrine_toolkit::log;
+    use peregrine_toolkit::debug_log;
 
-    log!("DataRequest for {:?}",request);
+    debug_log!("DataRequest for {:?}",request);
 }
 
 #[cfg(not(debug_data_requests))]

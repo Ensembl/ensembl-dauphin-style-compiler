@@ -1,8 +1,7 @@
 use dauphin_interp::command::{ CommandSetId, InterpLibRegister };
-use super::data::{ GetLaneDeserializer, GetDataDeserializer, DataStreamDeserializer, OnlyWarmDeserializer, RequestScopeDeserializer, RequestDeserializer, MakeRegionDeserializer, DataNumberDeserializer, DataStringDeserializer, DataBooleanDeserializer };
+use super::data::{ GetLaneDeserializer, GetDataDeserializer, OnlyWarmDeserializer, RequestScopeDeserializer, RequestDeserializer, MakeRegionDeserializer, DataNumberDeserializer, DataStringDeserializer, DataBooleanDeserializer };
 use super::decompress::{ 
-    Lesqlite2Deserializer, ZigzagDeserializer, DeltaDeserializer,
-    ClassifyDeserializer, SplitStringDeserializer, BaseFlipDeserializer
+    SplitStringDeserializer, BaseFlipDeserializer
 };
 
 use super::eoes::{EoesVarNumberDeserializer, EoesVarStringDeserializer, EoesVarBooleanDeserializer, EoesNullDeserializer, EoesArrayDeserializer, EoesPairDeserializer, EoesObjectDeserializer, EoesConditionDeserializer, EoesGroupDeserializer, EoesAllDeserializer, EoesVarDeserializer, EoesNumberDeserializer, EoesStringDeserializer, EoesBooleanDeserializer, EoesLateDeserializer};
@@ -24,7 +23,7 @@ use super::switch::{
 };
 
 pub fn std_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(62,0),0x7D8EE218C4C4784B)
+    CommandSetId::new("peregrine",(63,0),0x37CB1D4CD6C637F6)
 }
 
 pub fn make_peregrine_interp() -> InterpLibRegister {
@@ -40,12 +39,7 @@ pub fn make_peregrine_interp() -> InterpLibRegister {
     set.push(SettingNullDeserializer());
     set.push(GetLaneDeserializer());
     set.push(GetDataDeserializer());
-    set.push(DataStreamDeserializer());
-    set.push(Lesqlite2Deserializer());
-    set.push(ZigzagDeserializer());
-    set.push(DeltaDeserializer());
     set.push(PatinaFilledDeserializer());
-    set.push(ClassifyDeserializer());
     set.push(SplitStringDeserializer());
     set.push(PatinaHollowDeserializer());
     set.push(DirectColourDeserializer());
