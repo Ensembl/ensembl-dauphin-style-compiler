@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use js_sys::Function;
 use js_sys::JsString;
 use js_sys::Number;
+use js_sys::Reflect;
 use peregrine_toolkit::{error::Error };
 use wasm_bindgen::{ JsValue, JsCast };
 use js_sys::Object as JsObject;
@@ -9,6 +10,25 @@ use js_sys::Array as JsArray;
 
 pub(crate) fn to_array(value: &JsValue) -> Result<JsArray,Error> {
     value.clone().dyn_into().map_err(|e| Error::operr(&format!("expected array: {:?}",e)))
+}
+
+pub(crate) fn from_map<F,V,X>(value: &mut dyn Iterator<Item=(&String,&V)>, cb: F) -> Result<JsObject,Error>
+        where X: JsCast, F: Fn(&V) -> X {
+    let out = JsObject::new();
+    for (k,v) in value {
+        Reflect::set(&out, &k.into(), &cb(v).into())
+            .map_err(|e| Error::operr(&format!("cannot set value: {:?}",e)))?;
+    }
+    Ok(out)
+}
+
+pub(crate) fn from_list<F,V,X>(value: &mut dyn Iterator<Item=&V>, cb: F) -> JsArray
+        where X: JsCast, F: Fn(&V) -> X {
+    let out = JsArray::new();
+    for (i,v) in value.enumerate() {
+        out.set(i as u32,cb(v).into());
+    }
+    out
 }
 
 pub(crate) fn to_object(value: JsValue) -> Result<JsObject,Error> {

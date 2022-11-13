@@ -1,4 +1,4 @@
-use peregrine_data::{JumpReq, JumpRes, JumpLocation, BootChannelReq, BootChannelRes, Assets, BackendNamespace, StickReq, StickRes, ExpandRes, ExpandReq, ProgramReq, ProgramRes};
+use peregrine_data::{JumpReq, JumpRes, JumpLocation, BootChannelReq, BootChannelRes, Assets, BackendNamespace, StickReq, StickRes, ExpandRes, ExpandReq, ProgramReq, ProgramRes, DataRequest, DataRes};
 use peregrine_toolkit::error::Error;
 use crate::{callbacks::Callbacks, sidecars::JsSidecar};
 
@@ -27,6 +27,10 @@ impl Backend {
     pub(crate) async fn boot(&self, _req: &BootChannelReq) -> Result<(BootChannelRes,JsSidecar),Error> {
         let sidecar = self.callbacks.boot().await?;
         Ok((BootChannelRes::new(self.backend_namespace.clone(),Assets::empty(),Assets::empty(),Some(vec![15])),sidecar))
+    }
+
+    pub(crate) async fn data(&self, req: &DataRequest) -> Result<(DataRes,JsSidecar),Error> {
+        self.callbacks.data(req).await
     }
 
     pub(crate) async fn expansion(&self, req: &ExpandReq) -> Result<(ExpandRes,JsSidecar),Error> {

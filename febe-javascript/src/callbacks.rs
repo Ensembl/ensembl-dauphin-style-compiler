@@ -1,10 +1,10 @@
 use std::collections::HashMap;
-use js_sys::{Function, JsString, Number, Promise};
-use peregrine_data::{Stick, StickTopology, StickId};
+use js_sys::{Function, JsString, Number, Promise };
+use peregrine_data::{Stick, StickTopology, StickId, DataRequest, DataRes, DataAlgorithm, ReceivedData};
 use peregrine_toolkit::{error::Error};
 use peregrine_toolkit_async::js::promise::promise_to_future;
 use wasm_bindgen::JsValue;
-use crate::{jsutil::{to_function, to_array, to_string, to_int, to_hashmap}, sidecars::JsSidecar};
+use crate::{jsutil::{to_function, to_array, to_string, to_int, to_hashmap, from_map, from_list}, sidecars::JsSidecar};
 
 // XXX factor into toolkit
 fn map_field<'a,X>(data: &'a HashMap<String,X>, field: &str) -> Result<&'a X,Error> {
@@ -28,6 +28,7 @@ pub(crate) struct Callbacks {
     stickinfo: Option<Function>,
     expansion: Option<Function>,
     program: Option<Function>,
+    data: Option<Function>,
 }
 
 impl Callbacks {
@@ -38,7 +39,8 @@ impl Callbacks {
             boot: None,
             stickinfo: None,
             expansion: None,
-            program: None
+            program: None,
+            data: None
         }
     }
 
@@ -49,6 +51,7 @@ impl Callbacks {
             "stickinfo" => { self.stickinfo = Some(to_function(value)?); },
             "expand" => { self.expansion = Some(to_function(value)?); },
             "program" => { self.program = Some(to_function(value)?); },
+            "data" => { self.data = Some(to_function(value)?); },
             _ => {}
         }
         Ok(())
@@ -80,6 +83,49 @@ impl Callbacks {
             Ok(sidecar)
         } else {
             Ok(JsSidecar::new_empty())
+        }
+    }
+
+    fn data_args(&self, req: &DataRequest) -> Result<Vec<JsValue>,Error> {
+        let region = req.region();
+        let scope = from_map(&mut req.scope().iter(),|x| { 
+            JsValue::from(from_list(&mut x.iter(), |y| JsString::from(y.clone())))
+        })?; /* scope */
+        Ok(vec![
+            req.name().into(), /* request name */
+            region.stick().get_id().into(), /* stick name */
+            region.scale().get_index().into(), /* scale */
+            region.index().into(), /* index */
+            scope.into(), /* scope */
+        ])
+    }
+
+    fn ds_one_datastream(&self, v: JsValue) -> Result<ReceivedData,Error> {
+        let x : Result<DataAlgorithm,_> = serde_wasm_bindgen::from_value(v);
+        let y = x.map_err(|e| Error::operr(&format!("cannot deserialize: {:?}",e)))?;
+        y.to_received_data().map_err(|_| Error::operr("cannot deserialize"))
+    }
+
+    fn ds_all_datastreams(&self, data: JsValue) -> Result<HashMap<String,ReceivedData>,Error> {
+        to_hashmap(data)?.drain().map(|(k,v)| {
+            Ok((k,self.ds_one_datastream(v)?))
+        }).collect()
+    }
+
+    pub(crate) async fn data(&self, req: &DataRequest) -> Result<(DataRes,JsSidecar),Error> {
+        if let Some(cb) = &self.data {
+            let args = from_list(&mut self.data_args(req)?.iter(),|x| x.clone());
+            let promise = Error::oper_r(cb.apply(&self.this,&args),"data callback")?;
+            let out = finish_promise(&promise).await?;
+            let mut out = to_hashmap(out)?;
+            let sidecar = JsSidecar::new_js(&out)?;
+            let invariant = out.get("invariant").map(|x| x.is_truthy()).unwrap_or(false);
+            let res = out.remove("data").map(|data| {
+                self.ds_all_datastreams(data)
+            }).transpose()?.ok_or_else(|| Error::operr("missing data"))?;
+            Ok((DataRes::new(res,invariant),sidecar))
+        } else {
+            Err(Error::operr("missing data endpoibnt"))
         }
     }
 

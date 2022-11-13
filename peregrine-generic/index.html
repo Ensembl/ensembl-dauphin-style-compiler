@@ -291,6 +291,10 @@
                 };
               })
             },
+            data: function(name,stick,scale,index,scope) {
+              console.log("data");
+              return {};
+            },
             stickinfo: function(stick) {
               return delay(100).then(() => {
                 console.log("stick "+stick);
@@ -340,7 +344,7 @@
                     "program": ["ensembl-webteam/core","test",2],
                     "tags": "",
                     "triggers": [
-                      ["tracks","user","step"]
+                      ["tracks","user",step]
                     ],
                     "settings": {
                       "green": ["setting","green"]

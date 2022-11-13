@@ -53,6 +53,11 @@ impl JavascriptChannel {
                     out.add_response(attempt.make_response_attempt(MiniResponse::Program(res)));
                     sidecars.merge(sidecar);
                 },
+                MiniRequest::Data(req) => {
+                    let (res,sidecar) = self.backend.data(req).await?;
+                    out.add_response(attempt.make_response_attempt(MiniResponse::Data(res)));
+                    sidecars.merge(sidecar);
+                },
                 _ => { 
                     log!("unimplemented");
                     out.add_response(attempt.fail("unimplemented"));

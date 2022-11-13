@@ -1,6 +1,6 @@
 use anyhow::anyhow as err;
 use peregrine_toolkit::serdetools::{st_field, ByteData };
-use serde::de::{Visitor, MapAccess, DeserializeSeed, self, };
+use serde::de::{Visitor, MapAccess, DeserializeSeed, self, IgnoredAny, };
 use serde::{Deserializer};
 use std::any::Any;
 use std::fmt;
@@ -19,6 +19,10 @@ pub struct DataRes {
 }
 
 impl DataRes {
+    pub fn new(data: HashMap<String,ReceivedData>, invariant: bool) -> DataRes {
+        DataRes { data, invariant }
+    }
+
     pub(crate) fn account(&self, account_builder: &PacketDatastreamMetricBuilder) {
         for (name,data) in &self.data {
             account_builder.add(name,data.len());
@@ -60,7 +64,7 @@ impl<'de> Visitor<'de> for DataVisitor {
                     data = Some(access.next_value()?);
                 },
                 "__invariant" => { invariant = access.next_value()? },
-                _ => {}
+                _ => { let _ : IgnoredAny = access.next_value()?; }
             }
         }
         let mut data = st_field("data",data)?;

@@ -1,10 +1,3 @@
-// NZL+1 expr delta_seq(stream,name) delta(zigzag(lesqlite2(data_stream(stream,name))));
-// SZ+1 expr string_seq(stream,name) split_string(data_stream(stream,name))[];
-// SC+1 expr letter_string(stream,name) std::split_characters(data_stream(stream,name))[];
-// NUL+1 expr positive_seq(stream,name) lesqlite2(data_stream(stream,name));
-// SYNULZ+2 expr classified_seq(stream,keys,values) classify(string_seq(stream,keys),positive_seq(stream,values));
-// BB+1 expr bool_seq(stream,name) std::bytes_to_bool(data_stream(stream,name));
-
 use std::{str::{Chars, from_utf8}, sync::{Arc}, fmt};
 use peregrine_toolkit::{lesqlite2::lesqlite2_decode, serdetools::{st_field, ByteData}};
 use serde::{Deserialize, Deserializer, de::{Visitor, self}};
