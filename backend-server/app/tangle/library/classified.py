@@ -10,7 +10,7 @@ class ClassifiedTangling(Tangling):
         super().__init__(our_config,Getter(config,our_config,[("classify",str)],[],self._add))
 
     def create(self):
-        return ({},[],[])
+        return ({},[],[],[])
 
     def _add(self, state, value):
         index = state[0].get(value,-1)
@@ -19,13 +19,14 @@ class ClassifiedTangling(Tangling):
             state[0][value] = index
             state[1].append(value)
         state[2].append(index)
+        state[3].append(value)
 
     def finish(self, out, state, run_config):
         self._emit_strings(out,run_config,'keys_name',state[1])
         self._emit_number(out,run_config,'values_name',state[2])
 
     def finish2(self, out, state, run_config):
-        self._emit2(["SYRLZ","SYRAA"],out,run_config,'name',[state[1],state[2]])
+        self._emit2(["SYRLZ","SYRAA"],out,run_config,'name',[state[3]])
 
 class ClassifiedTangler(Tangler):
     def __init__(self):

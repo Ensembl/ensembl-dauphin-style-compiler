@@ -12,10 +12,6 @@ start := data_number(data,"contig_starts");
 end := start + data_number(data,"contig_lengths");
 sense := data_number(data,"sense");
 
-//start := delta_seq(data,"contig_starts");
-//end := start + delta_seq(data,"contig_lengths");
-//sense := positive_seq(data,"sense");
-
 allotment := use_allotment("tracks/track/contig/main/main/content");
 allotment_track_name := use_allotment("tracks/track/contig/title/content");
 allotment_letter := use_allotment("tracks/track/contig/main/letter/content");

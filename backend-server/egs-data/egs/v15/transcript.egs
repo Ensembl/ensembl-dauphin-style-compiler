@@ -52,43 +52,43 @@ halt(only_warm(),[data]);
  * the transforms applied there in reverse order.
  */
 
-id_gn_uv := string_seq(data,"gene_id");
-id_gn_vo := string_seq(data,"gene_id_version");
+id_gn_uv := data_string(data,"gene_id");
+id_gn_vo := data_string(data,"gene_id_version");
 id_gn_vr := concat(id_gn_uv,id_gn_vo);
-gene_name := string_seq(data,"gene_names");
-gene_desc := string_seq(data,"gene_descs");
-start_gn := delta_seq(data,"starts");
-end_gn := start_gn + delta_seq(data,"lengths");
-start_tr := delta_seq(data,"transcripts_starts");
-end_tr := start_tr + delta_seq(data,"transcripts_lengths");
-gene_designation := classified_seq(data,"gene_designation_keys","gene_designation_values");
-transcript_designation := classified_seq(data,"transcript_designation_keys","transcript_designation_values");
-gene_biotype := classified_seq(data,"gene_biotypes_keys","gene_biotypes_values");
-strand := positive_seq(data,"strands");
-id_tr_uv := string_seq(data,"transcript_id");
-id_tr_vo := string_seq(data,"transcript_id_version");
+gene_name := data_string(data,"gene_names");
+gene_desc := data_string(data,"gene_descs");
+start_gn := data_number(data,"starts");
+end_gn := start_gn + data_number(data,"lengths");
+start_tr := data_number(data,"transcripts_starts");
+end_tr := start_tr + data_number(data,"transcripts_lengths");
+gene_designation := data_string(data,"gene_designation");
+transcript_designation := data_string(data,"transcript_designation");
+gene_biotype := data_string(data,"gene_biotypes");
+strand := data_number(data,"strands");
+id_tr_uv := data_string(data,"transcript_id");
+id_tr_vo := data_string(data,"transcript_id_version");
 id_tr_vr := concat(id_tr_uv,id_tr_vo);
-transcript_biotype := classified_seq(data,"transcript_biotypes_keys","transcript_biotypes_values");
+transcript_biotype := data_string(data,"transcript_biotypes");
 strand_string := len([strand]) (*) "reverse strand";
 strand_string#[strand>0] := "forward strand";
 
 /* transcript stuff */
-num_tr_by_gn := delta_seq(data,"transcript_counts");
+num_tr_by_gn := data_number(data,"transcript_counts");
 which_gn_by_tr := derun(num_tr_by_gn);
 start_gn_by_tr := index(which_gn_by_tr,[start_gn]);
 end_gn_by_tr := index(which_gn_by_tr,[end_gn]);
 id_gn_by_tr := index(which_gn_by_tr,[id_gn_vr]);
 
 /* exon stuff */
-start_thex := delta_seq(data,"thicks_starts");
-end_thex := start_thex + delta_seq(data,"thicks_lengths");
+start_thex := data_number(data,"thicks_starts");
+end_thex := start_thex + data_number(data,"thicks_lengths");
 
-which_tr_by_ex := derun(delta_seq(data,"transcript_exon_counts"));
+which_tr_by_ex := derun(data_number(data,"transcript_exon_counts"));
 which_gn_by_ex := index(which_tr_by_ex,[which_gn_by_tr]);
-idx_tr_in_gn := run(delta_seq(data,"transcript_counts"));
+idx_tr_in_gn := run(data_number(data,"transcript_counts"));
 
-start_ex := delta_seq(data,"transcript_exon_starts");
-end_ex := start_ex + delta_seq(data,"transcript_exon_lengths");
+start_ex := data_number(data,"transcript_exon_starts");
+end_ex := start_ex + data_number(data,"transcript_exon_lengths");
 id_gn_by_ex := index(which_gn_by_ex,[id_gn_vr]);
 exon_gene_biotype := index(which_gn_by_ex,[gene_biotype]);
 exon_strand := index(which_gn_by_ex,[strand]);

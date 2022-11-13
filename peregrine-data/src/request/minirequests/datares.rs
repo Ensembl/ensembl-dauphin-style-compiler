@@ -39,7 +39,7 @@ impl DataRes {
         self.data2.get(name)
             .ok_or_else(|| err!("no such data {}: have {}",
                 name,
-                self.data.keys().cloned().collect::<Vec<_>>().join(", ")
+                self.data2.keys().cloned().collect::<Vec<_>>().join(", ")
             ))
     }
 
@@ -95,9 +95,7 @@ impl<'de> Visitor<'de> for DataVisitor {
         let data2 : HashMap<String,ReceivedData> = data2.drain().map(|(k,v)| {
             Ok((k,v.to_received_data()?))
         }).collect::<Result<_,()>>().map_err(|_| de::Error::custom("cannot create data"))?;
-        //if data2.len() > 0 {
-            //debug_log!("data2: {:?}",data2);
-        //}
+        //debug_log!("data2: {:?}",data2);
         Ok(DataRes {
             data, 
             data2,

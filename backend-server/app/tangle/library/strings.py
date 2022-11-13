@@ -10,6 +10,9 @@ class SimpleStringTangling(AtomicTangling):
     def finish(self, out, state, run_config):
         self._emit_strings(out,run_config,'name',state)
 
+    def finish2(self, out, state, run_config):
+        self._emit_strings2("S",out,run_config,'name',state)
+
 class SimpleStringTangler(Tangler):
     def __init__(self):
         super().__init__([TanglerConfigBuilder([
@@ -46,6 +49,9 @@ class ComplexStringTangling(Tangling):
 
     def finish(self, out, state, run_config):
         self._emit_strings(out,run_config,'name',state)
+
+    def finish2(self, out, state, run_config):
+        self._emit_strings2("S",out,run_config,'name',state)
 
 class ComplexStringTangler(Tangler):
     def __init__(self):

@@ -20,9 +20,9 @@ focus_data := get_data(req);
 
 halt(only_warm(),[data,focus_data]);
 
-start_gn := delta_seq(focus_data,"starts");
-end_gn := start_gn + delta_seq(focus_data,"lengths");
-id_gn_uv := string_seq(focus_data,"gene_id");
+start_gn := data_number(focus_data,"starts");
+end_gn := start_gn + data_number(focus_data,"lengths");
+id_gn_uv := data_string(focus_data,"gene_id");
 
 start_focus := start_gn#[id_gn_uv==focus_gene_id];
 end_focus := end_gn#[id_gn_uv==focus_gene_id];

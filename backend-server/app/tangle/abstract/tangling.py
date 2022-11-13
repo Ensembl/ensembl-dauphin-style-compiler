@@ -14,6 +14,9 @@ class Tangling:
             value = value.encode("utf8")
         out[name] = value
 
+    def _emit_strings2(self,spec,out,run_config,key,value):
+        self._emit2([spec+"Z",spec+"A"],out,run_config,key,[value])
+
     def _emit_number(self,out,run_config,key,value):
         name = self._config[key]
         if run_config.to_bytes:
