@@ -1,6 +1,6 @@
 use std::{str::{Chars, from_utf8}, sync::{Arc}, fmt};
 use peregrine_toolkit::{lesqlite2::lesqlite2_decode, serdetools::{st_field, ByteData}};
-use serde::{Deserialize, Deserializer, de::{Visitor, self}};
+use serde::{Deserialize, Deserializer, de::{Visitor, self, IgnoredAny}};
 
 use super::data::{ReceivedData, ReceivedDataType};
 
@@ -38,7 +38,7 @@ impl NumberSourceAlgorithm {
                 Ok(data.data_as_numbers()?.clone())
             },
             NumberSourceAlgorithm::Lesqlite2(data) => {
-                Ok(Arc::new(lesqlite2_decode(data.data_as_bytes()?)?))
+                Ok(Arc::new(lesqlite2_decode(&data.data_as_bytes()?)?))
             }
         }
     }
@@ -135,11 +135,13 @@ impl StringAlgorithm {
                 Ok(data.data_as_strings()?.clone())
             },
             StringAlgorithm::CharacterSplit(data) => {
-                let bytes = from_utf8(data.data_as_bytes()?).map_err(|_| ())?;
+                let bytes = data.data_as_bytes()?;
+                let bytes = from_utf8(&bytes).map_err(|_| ())?;
                 Ok(Arc::new(bytes.chars().map(|x| x.to_string()).collect()))
             },
             StringAlgorithm::ZeroSplit(data) => {
-                let bytes = from_utf8(data.data_as_bytes()?).map_err(|_| ())?;
+                let bytes = data.data_as_bytes()?;
+                let bytes = from_utf8(&bytes).map_err(|_| ())?;
                 Ok(Arc::new(bytes.split("\0").map(|x| x.to_string()).collect()))
             },
             StringAlgorithm::Classify(index,values) => {
@@ -194,7 +196,8 @@ impl BooleanAlgorithm {
 pub enum DataAlgorithm {
     Numbers(NumberAlgorithm),
     Strings(StringAlgorithm),
-    Booleans(BooleanAlgorithm)
+    Booleans(BooleanAlgorithm),
+    Empty
 }
 
 impl DataAlgorithm {
@@ -205,6 +208,7 @@ impl DataAlgorithm {
             Some('N') => DataAlgorithm::Numbers(NumberAlgorithm::new(&mut code,data)?),
             Some('S') => DataAlgorithm::Strings(StringAlgorithm::new(&mut code,data)?),
             Some('B') => DataAlgorithm::Booleans(BooleanAlgorithm::new(&mut code,data)?),
+            Some('E') => DataAlgorithm::Empty,
             _ => { return Err(()); }
         })
     }
@@ -216,6 +220,7 @@ impl DataAlgorithm {
             Some('N') => { NumberAlgorithm::specify(&mut code,&mut spec)?; },
             Some('S') => { StringAlgorithm::specify(&mut code,&mut spec)?; },
             Some('B') => { BooleanAlgorithm::specify(&mut code,&mut spec)?; },
+            Some('E') => {},
             _ => { return Err(()); }
         }
         Ok(spec)
@@ -231,6 +236,9 @@ impl DataAlgorithm {
             },
             DataAlgorithm::Booleans(b) => {
                 Ok(ReceivedData::new_arc_booleans(&b.make()?))
+            },
+            DataAlgorithm::Empty => {
+                Ok(ReceivedData::new_empty())
             }
         }
     }
@@ -247,9 +255,9 @@ impl<'de> Visitor<'de> for DataAlgorithmVisitor {
 
     fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
             where A: serde::de::SeqAccess<'de> {
-        let code = st_field("group",seq.next_element()?)?;
+        let code : String = st_field("group",seq.next_element()?)?;
         let mut data = vec![];
-        for variety in DataAlgorithm::specify(code).map_err(|_| de::Error::custom("bad data format"))? {
+        for variety in DataAlgorithm::specify(&code).map_err(|_| de::Error::custom("bad data format"))? {
             match variety {
                 ReceivedDataType::Bytes => {
                     let value = st_field("expected bytes",seq.next_element::<ByteData>().ok().flatten())?.data;
@@ -266,10 +274,14 @@ impl<'de> Visitor<'de> for DataAlgorithmVisitor {
                 ReceivedDataType::Strings => {
                     let value = st_field("expected strings",seq.next_element::<Vec<String>>().ok().flatten())?;
                     data.push(ReceivedData::new_strings(value));
+                },
+                ReceivedDataType::Empty => {
+                    let _ : IgnoredAny = st_field("expected empty",seq.next_element::<IgnoredAny>().ok().flatten())?;
+                    data.push(ReceivedData::new_empty());
                 }
             }
         }
-        Ok(DataAlgorithm::new(code,&mut data).map_err(|_| de::Error::custom("bad data format"))?)
+        Ok(DataAlgorithm::new(&code,&mut data).map_err(|_| de::Error::custom("bad data format"))?)
     }
 }
 

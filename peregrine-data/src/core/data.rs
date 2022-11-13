@@ -1,7 +1,7 @@
 use std::{sync::Arc};
 
 #[derive(Debug)]
-pub enum ReceivedDataType { Bytes, Booleans, Numbers, Strings }
+pub enum ReceivedDataType { Bytes, Booleans, Numbers, Strings, Empty }
 
 // XXX merge with geometry builder as pattern in toolkit
 #[cfg_attr(debug_assertions,derive(Debug))]
@@ -10,7 +10,8 @@ pub enum ReceivedData {
     Bytes(Arc<Vec<u8>>),
     Booleans(Arc<Vec<bool>>),
     Numbers(Arc<Vec<f64>>),
-    Strings(Arc<Vec<String>>)
+    Strings(Arc<Vec<String>>),
+    Empty
 }
 
 impl ReceivedData {
@@ -34,13 +35,15 @@ impl ReceivedData {
     pub fn new_booleans(data: Vec<bool>) -> ReceivedData { Self::new_arc_booleans(&Arc::new(data)) }
     pub fn new_numbers(data: Vec<f64>) -> ReceivedData { Self::new_arc_numbers(&Arc::new(data)) }
     pub fn new_strings(data: Vec<String>) -> ReceivedData { Self::new_arc_strings(&Arc::new(data)) }
+    pub fn new_empty() -> ReceivedData { Self::Empty }
 
     pub fn variety(&self) -> ReceivedDataType {
         match self {
             ReceivedData::Bytes(_) => ReceivedDataType::Bytes,
             ReceivedData::Booleans(_) => ReceivedDataType::Booleans,
             ReceivedData::Numbers(_) => ReceivedDataType::Numbers,
-            ReceivedData::Strings(_) => ReceivedDataType::Strings
+            ReceivedData::Strings(_) => ReceivedDataType::Strings,
+            ReceivedData::Empty => ReceivedDataType::Empty
         }
     }
 
@@ -50,33 +53,38 @@ impl ReceivedData {
             ReceivedData::Booleans(x) => x.len(),
             ReceivedData::Numbers(x) => x.len(),
             ReceivedData::Strings(x) => x.len(),
+            ReceivedData::Empty => 0
         }
     }
 
-    pub fn data_as_bytes(&self) -> Result<&Arc<Vec<u8>>,()> {
+    pub fn data_as_bytes(&self) -> Result<Arc<Vec<u8>>,()> {
         match self {
-            ReceivedData::Bytes(x) => Ok(&x),
+            ReceivedData::Bytes(x) => Ok(x.clone()),
+            ReceivedData::Empty => Ok(Arc::new(vec![])),
             _ => Err(())
         }
     }
 
-    pub fn data_as_booleans(&self) -> Result<&Arc<Vec<bool>>,()> {
+    pub fn data_as_booleans(&self) -> Result<Arc<Vec<bool>>,()> {
         match self {
-            ReceivedData::Booleans(x) => Ok(&x),
+            ReceivedData::Booleans(x) => Ok(x.clone()),
+            ReceivedData::Empty => Ok(Arc::new(vec![])),
             _ => Err(())
         }
     }
 
-    pub fn data_as_numbers(&self) -> Result<&Arc<Vec<f64>>,()> {
+    pub fn data_as_numbers(&self) -> Result<Arc<Vec<f64>>,()> {
         match self {
-            ReceivedData::Numbers(x) => Ok(&x),
+            ReceivedData::Numbers(x) => Ok(x.clone()),
+            ReceivedData::Empty => Ok(Arc::new(vec![])),
             _ => Err(())
         }
     }
 
-    pub fn data_as_strings(&self) -> Result<&Arc<Vec<String>>,()> {
+    pub fn data_as_strings(&self) -> Result<Arc<Vec<String>>,()> {
         match self {
-            ReceivedData::Strings(x) => Ok(&x),
+            ReceivedData::Strings(x) => Ok(x.clone()),
+            ReceivedData::Empty => Ok(Arc::new(vec![])),
             _ => Err(())
         }
     }

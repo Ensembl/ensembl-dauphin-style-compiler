@@ -291,9 +291,14 @@
                 };
               })
             },
-            data: function(name,stick,scale,index,scope) {
-              console.log("data "+stick+" "+scale+" "+index+" "+scope);
-              return {};
+            data: function(source,stick,scale,index,scope) {
+              console.log("data "+source+" "+stick+" "+scale+" "+index+" "+scope);
+              return {
+                "data": {
+                  "start": [86200000,86400000],
+                  "end": [86300000,86500000]
+                }
+              };
             },
             stickinfo: function(stick) {
               return delay(100).then(() => {
@@ -496,6 +501,7 @@
           genome_browser.switch(["track","expand","ff0099"],true);
         };
         document.getElementById("expand2").onclick = function() {
+          genome_browser.switch(["settings"],true);
           genome_browser.switch(["settings","green"],50);
           genome_browser.switch(["track","user"],true);
           genome_browser.switch(["track","user","78"],true);

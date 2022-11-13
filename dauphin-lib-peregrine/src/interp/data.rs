@@ -97,7 +97,7 @@ fn get_data<'a,F,G,X>(context: &mut InterpContext, reg0: &Register, reg1: &Regis
 impl InterpCommand for DataNumberInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         get_data(context,&self.0,&self.1,&self.2, move |data| {
-            data.data_as_numbers().cloned()
+            data.data_as_numbers()
         },|mut data| {
             let mut out = vec![];
             for more in data.drain(..) {
@@ -111,7 +111,7 @@ impl InterpCommand for DataNumberInterpCommand {
 impl InterpCommand for DataStringInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         get_data(context,&self.0,&self.1,&self.2, move |data| {
-            data.data_as_strings().cloned()
+            data.data_as_strings()
         },|mut data| {
             let mut out = vec![];
             for more in data.drain(..) {
@@ -125,7 +125,7 @@ impl InterpCommand for DataStringInterpCommand {
 impl InterpCommand for DataBooleanInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         get_data(context,&self.0,&self.1,&self.2, move |data| {
-            data.data_as_booleans().cloned()
+            data.data_as_booleans()
         },|mut data| {
             let mut out = vec![];
             for more in data.drain(..) {
