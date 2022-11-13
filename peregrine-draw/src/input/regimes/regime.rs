@@ -117,8 +117,6 @@ impl Regime {
     pub(crate) fn new(config: &PgPeregrineConfig) -> Result<Regime,Message> {
         let user_drag_config = make_drag_axis_config(config,&PgConfigKey::UserDragLethargy)?;
         let mut instructed_drag_config = make_drag_axis_config(config,&PgConfigKey::InstructedDragLethargy)?;
-        let self_drag_config = make_drag_axis_config(config,&PgConfigKey::SelfDragLethargy)?;
-        let w_config = make_axis_config(config,&PgConfigKey::WindowLethargy)?;
         let goto_rho_config = config.get_f64(&PgConfigKey::GotoRho)?;
         let goto_v_config = config.get_f64(&PgConfigKey::GotoV)?;
         let goto_max_s_config = config.get_f64(&PgConfigKey::GotoMaxS)?;

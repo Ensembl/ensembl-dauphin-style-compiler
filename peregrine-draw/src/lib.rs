@@ -117,7 +117,7 @@ mod shape {
     }
 
     pub(crate) mod util {
-        pub(super) mod iterators;
+        pub(super) mod eoethrow;
         pub(crate) mod arrayutil;
     }
 }

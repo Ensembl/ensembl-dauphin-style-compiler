@@ -1,6 +1,5 @@
 use peregrine_toolkit::error::Error;
 use peregrine_toolkit_async::sync::blocker::{Blocker};
-use peregrine_toolkit::{log_extra, log};
 use crate::core::channel::wrappedchannelsender::WrappedChannelSender;
 use crate::core::version::VersionMetadata;
 use crate::{PacketPriority, BackendNamespace, MaxiResponse, MaxiRequest};

@@ -121,7 +121,6 @@ impl MiniResponseAttempt {
     }
 
     pub(crate) fn message_id(&self) -> u64 { self.msg_id }
-    pub(crate) fn as_variety(&self) -> &MiniResponse { &self.variety }
     pub(crate) fn into_variety(self) -> MiniResponse { self.variety }
 
     #[allow(unused)] // used in debug_big_requests

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use peregrine_data::{Colour, DirectColour, DrawnType, Patina, SpaceBase, SpaceBaseArea, PartialSpaceBase, reactive::{Reactive, Observable}, ProgramShapesBuilder, LeafRequest};
 use peregrine_toolkit::eachorevery::EachOrEvery;
-use crate::{Message, run::{PgConfigKey, PgPeregrineConfig}, shape::util::iterators::eoe_throw};
+use crate::{Message, run::{PgConfigKey, PgPeregrineConfig}, shape::util::eoethrow::eoe_throw};
 use peregrine_data::reactive;
 use super::spectremanager::SpectreConfigKey;
 

@@ -1,8 +1,8 @@
 use std::sync::{Arc, Mutex};
-use peregrine_toolkit::{log, lock};
+use peregrine_toolkit::{lock};
 use peregrine_toolkit_async::sync::needed::Needed;
-use wasm_bindgen::{prelude::Closure, JsCast, JsValue};
-use web_sys::{HtmlElement, Event};
+use wasm_bindgen::{JsValue};
+use web_sys::{HtmlElement};
 
 use crate::{input::low::event::EventSystem, Message, stage::stage::Stage};
 
@@ -14,7 +14,7 @@ use crate::{input::low::event::EventSystem, Message, stage::stage::Stage};
 #[derive(Clone)]
 pub(crate) struct YPosDetector {
     old_top: Arc<Mutex<Option<i32>>>,
-    events: Arc<EventSystem<Needed>>,
+    //events: Arc<EventSystem<Needed>>,
     el: HtmlElement
 }
 
@@ -26,7 +26,7 @@ impl YPosDetector {
         })?;
         Ok(YPosDetector {
             old_top: Arc::new(Mutex::new(None)),
-            events: Arc::new(events),
+            //events: Arc::new(events),
             el: el.clone()
         })
     }

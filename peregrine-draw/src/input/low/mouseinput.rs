@@ -77,7 +77,7 @@ pub(super) struct MouseEventHandler {
 impl MouseEventHandler {
     fn new(config: Arc<PointerConfig>, lowlevel: &LowLevelState, gl: &Arc<Mutex<WebGlGlobal>>, shutdown: &OneShot) -> MouseEventHandler {
         MouseEventHandler {
-            pointer: Pointer::new(lowlevel,&config,gl,shutdown),
+            pointer: Pointer::new(lowlevel,&config,shutdown),
             lowlevel: lowlevel.clone(),
             primary: Finger::new(),
             secondary: Finger::new(),

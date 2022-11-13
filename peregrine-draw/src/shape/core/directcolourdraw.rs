@@ -1,4 +1,4 @@
-use crate::{shape::{layers::patina::{PatinaProcess, PatinaProcessName, PatinaAdder, PatinaYielder}, util::iterators::eoe_throw}, webgl::{ AttribHandle, ProcessStanzaAddable, ProgramBuilder }};
+use crate::{shape::{layers::patina::{PatinaProcess, PatinaProcessName, PatinaAdder, PatinaYielder}, util::eoethrow::eoe_throw}, webgl::{ AttribHandle, ProcessStanzaAddable, ProgramBuilder }};
 use peregrine_data::{DirectColour};
 use peregrine_toolkit::eachorevery::EachOrEvery;
 use super::super::util::arrayutil::scale_colour;

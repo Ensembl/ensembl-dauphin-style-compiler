@@ -1,5 +1,4 @@
 use peregrine_data::{StickId, Viewport, PlayingField};
-use peregrine_toolkit::log;
 use peregrine_toolkit_async::sync::needed::Needed;
 
 use crate::{ webgl::{ SourceInstrs, UniformProto, GLArity, UniformHandle, ProgramBuilder, Process }};

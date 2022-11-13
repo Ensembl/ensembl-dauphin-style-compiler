@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 use super::drawingtools::DrawingToolsBuilder;
 use super::layer::Layer;
 use commander::cdr_tick;
-use peregrine_data::{Assets, Scale, DrawingShape, Shape };
+use peregrine_data::{Assets, Scale, DrawingShape };
 use peregrine_toolkit::lock;
 use peregrine_toolkit_async::sync::needed::Needed;
 use peregrine_toolkit_async::sync::retainer::RetainTest;
