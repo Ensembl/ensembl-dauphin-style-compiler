@@ -3,15 +3,13 @@ use peregrine_toolkit::{lock};
 use peregrine_toolkit::skyline::Skyline;
 use crate::allotment::{util::rangeused::RangeUsed, core::allotmentname::AllotmentName};
 use super::bumppart::Part;
-
-use lazy_static::lazy_static;
-use identitynumber::{identitynumber, hashable, orderable};
+use peregrine_toolkit::{identitynumber, hashable, orderable};
 
 /* Too avoid too much rearranging when we tidy up unused BumpRequestSets, we always
  * add their contents in the same order and the caller also add the BumpRequestSets
  * themselves in the same order. To allow this, an ordering is provided on BumpRequestSets.
  * 
- * This should mean that items tend to "staywhere they are" except when it is
+ * This should mean that items tend to "stay where they are" except when it is
  * advanatgeous to move them (down) due to now dead big teeting off-screen stacks.
  */
 

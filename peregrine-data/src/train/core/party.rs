@@ -10,7 +10,7 @@
 
 use std::{hash::Hash, collections::{HashMap, HashSet}, mem, iter::FromIterator};
 use lazy_static::lazy_static;
-use identitynumber::identitynumber;
+use peregrine_toolkit::identitynumber;
 
 pub trait PartyActions<X,P,T> {
     /* start creating an object */

@@ -57,10 +57,6 @@ fn main() {
 ```
 */
 
-pub extern crate lazy_static;
-#[doc(hidden)]
-pub use lazy_static::*;
-
 use std::sync::{ Arc, Mutex };
 
 /// A generator of identity numbers.
@@ -88,7 +84,7 @@ macro_rules! identitynumber {
         pub use lazy_static::*;
 
         lazy_static! {
-            static ref $ident : $crate::IdentityNumber = $crate::IdentityNumber::new();
+            static ref $ident : $crate::identitynumber::IdentityNumber = $crate::identitynumber::IdentityNumber::new();
         }    
     };
 }

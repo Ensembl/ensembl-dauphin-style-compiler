@@ -75,7 +75,6 @@ dependencies = [
  "binary-heap-plus",
  "futures",
  "hashbrown",
- "identitynumber",
  "lazy_static",
  "ordered-float",
  "owning_ref",
@@ -221,13 +220,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "identitynumber"
-version = "0.0.0"
-dependencies = [
- "lazy_static",
-]
-
-[[package]]
 name = "itertools"
 version = "0.10.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -330,9 +322,6 @@ dependencies = [
 [[package]]
 name = "peregrine_config"
 version = "0.0.0"
-dependencies = [
- "lazy_static",
-]
 
 [[package]]
 name = "peregrine_data"
@@ -345,7 +334,6 @@ dependencies = [
  "dauphin_interp",
  "futures",
  "hashbrown",
- "identitynumber",
  "itertools",
  "keyed",
  "lazy_static",
@@ -384,7 +372,6 @@ version = "0.0.0"
 dependencies = [
  "anyhow",
  "hashbrown",
- "identitynumber",
  "js-sys",
  "lazy_static",
  "ordered-float",

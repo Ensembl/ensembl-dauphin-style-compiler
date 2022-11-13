@@ -1,5 +1,4 @@
-use identitynumber::{ identitynumber, hashable, orderable };
-use lazy_static::lazy_static;
+use peregrine_toolkit::{ identitynumber, hashable, orderable };
 use peregrine_toolkit::error::Error;
 use peregrine_toolkit::log;
 use crate::core::program::programspec::ProgramModel;

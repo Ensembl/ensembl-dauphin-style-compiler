@@ -1,7 +1,6 @@
 use crate::{eachorevery::{EachOrEvery, EachOrEveryGroupCompatible}, approxnumber::ApproxNumber};
 use hashbrown::HashMap;
-use identitynumber::{ identitynumber };
-use lazy_static::lazy_static;
+use crate::{ identitynumber };
 use ordered_float::OrderedFloat;
 use serde::Serialize;
 use std::{hash::{Hash}, cmp::Ordering};

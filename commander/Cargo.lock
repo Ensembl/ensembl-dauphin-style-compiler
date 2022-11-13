@@ -57,7 +57,6 @@ dependencies = [
  "binary-heap-plus",
  "futures",
  "hashbrown",
- "identitynumber",
  "lazy_static",
  "ordered-float",
  "owning_ref",
@@ -209,13 +208,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "identitynumber"
-version = "0.0.0"
-dependencies = [
- "lazy_static",
-]
-
-[[package]]
 name = "itoa"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -290,7 +282,6 @@ version = "0.0.0"
 dependencies = [
  "anyhow",
  "hashbrown",
- "identitynumber",
  "js-sys",
  "lazy_static",
  "ordered-float",

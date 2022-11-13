@@ -1,8 +1,6 @@
 use std::{collections::BTreeSet, sync::{Arc, Mutex, Weak}};
 use crate::lock;
-
-use lazy_static::lazy_static;
-use identitynumber::identitynumber;
+use crate::identitynumber;
 
 identitynumber!(ANSWER_IDS);
 

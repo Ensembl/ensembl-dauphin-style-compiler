@@ -2,8 +2,7 @@ use std::{sync::Arc, pin::Pin, fmt, any::Any, collections::HashMap};
 use futures::Future;
 use peregrine_toolkit::error::Error;
 use crate::{MaxiRequest, PacketPriority, MaxiResponse, ChannelSender, DataAlgorithm};
-use lazy_static::lazy_static;
-use identitynumber::{identitynumber, hashable };
+use peregrine_toolkit::{identitynumber, hashable };
 
 use super::channelintegration::{ChannelMessageDecoder};
 

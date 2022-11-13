@@ -215,9 +215,6 @@ good spec.
 
 */
 
-#[macro_use]
-extern crate identitynumber;
-
 mod executor {
   pub(crate) mod action;
   pub(crate) mod executor;

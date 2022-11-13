@@ -5,8 +5,7 @@ use crate::train::drawing::drawingcarriage::DrawingCarriage;
 use crate::DataMessage;
 use crate::core::Viewport;
 use crate::core::Assets;
-use lazy_static::lazy_static;
-use identitynumber::identitynumber;
+use peregrine_toolkit::identitynumber;
 
 #[derive(Debug,Clone,PartialEq,Eq,Hash)]
 pub enum CarriageSpeed {

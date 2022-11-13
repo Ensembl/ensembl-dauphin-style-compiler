@@ -1,14 +1,12 @@
 use std::hash::{Hash, Hasher};
 use std::sync::{ Arc, Mutex };
 use peregrine_toolkit::lock;
-use peregrine_toolkit_async::sync::needed::Needed;
 use peregrine_toolkit_async::sync::retainer::{RetainTest, Retainer, retainer};
 use crate::allotment::core::abstractcarriage::AbstractCarriage;
 use crate::allotment::core::trainstate::{TrainState3};
 use crate::shape::shape::DrawingShape;
 use crate::{ DataMessage, TrainIdentity };
-use lazy_static::lazy_static;
-use identitynumber::identitynumber;
+use peregrine_toolkit::identitynumber;
 
 use super::super::model::carriageextent::CarriageExtent;
 

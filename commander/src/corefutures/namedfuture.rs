@@ -2,6 +2,8 @@ use std::future::Future;
 use std::pin::Pin;
 use std::task::{ Context, Poll };
 use crate::agent::agent::Agent;
+use peregrine_toolkit::{ identitynumber, hashable };
+
 
 /* NamedFuture implements named futures. NamedFutures wrap inner futures. While these have
  * been called at least once but are unfinished, a string is pushed into the state of the

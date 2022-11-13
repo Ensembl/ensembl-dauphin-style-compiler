@@ -17,11 +17,6 @@ lazy_static="*"
 hashbrown="*"
 ordered-float="*"
 
-[dependencies.identitynumber]
-version="*"
-path="../identitynumber"
-
-
 [dependencies.web-sys]
 version="*"
 features=[

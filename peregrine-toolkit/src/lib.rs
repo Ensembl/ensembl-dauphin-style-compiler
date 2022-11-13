@@ -87,6 +87,8 @@ pub mod serdetools;
 pub mod console;
 pub mod error;
 #[macro_use]
+pub mod identitynumber;
+#[macro_use]
 pub mod itertools;
 #[macro_use]
 pub mod lang;
