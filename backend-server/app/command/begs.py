@@ -16,18 +16,13 @@ class UnknownVersionException(Exception):
 
 class BegsFilesMonitor(object):
     def __init__(self):
-        self._paths = {}
         self._mtimes = {}
         pass
 
     def add(self, name: str, path: str):
-        self._paths[name] = path
         self.check(name)
 
-    def check(self, name: str) -> bool:
-        path = self._paths[name]
-        if path == None:
-            return False
+    def check(self, path: str) -> bool:
         old_mtime = self._mtimes.get(path,0)
         new_mtime = os.stat(path).st_mtime
         if old_mtime != new_mtime:
@@ -56,13 +51,11 @@ class OldVersionedBegsFiles(object):
         self._bundles = {}
         self.name_to_bundle_name = {}
         self.name_to_bundle = {}
-        self._monitor = BegsFilesMonitor()
         for (name_of_bundle,mapping) in toml_file["begs"].items():
             program_path = os.path.join(
                 BEGS_FILES,
                 "{}.begs".format(name_of_bundle)
             )
-            self._monitor.add(name_of_bundle,program_path)
             self.name_to_bundle_name[name_of_bundle] = {}
             for (name_in_bundle,name_in_channel) in mapping.items():
                 self.name_to_bundle[name_in_channel] = name_of_bundle
@@ -85,50 +78,6 @@ class OldVersionedBegsFiles(object):
     def add_bundle(self, bundle: Bundle) -> Any:
         bundle.monitor(self._monitor)
         return bundle.serialize(self.name_to_bundle_name[bundle.name])
-
-# class VersionedBegsFiles(object):
-#     def __init__(self, path: str, egs_version: int):
-#         with open(path) as f:
-#             toml_file = toml.loads(f.read())
-#         self._specs_path = toml_file["specs"].get("path")
-#         self._bundles = {}
-#         self.boot_program = None # to go when v14 retired
-#         self.name_to_bundle_name = {}
-#         self.name_to_bundle = {}
-#         self._monitor = BegsFilesMonitor()
-#         for (name_of_bundle,mapping) in toml_file["begs"].items():
-#             program_path = os.path.join(
-#                 BEGS_FILES,
-#                 "{}.begs".format(name_of_bundle)
-#             )
-#             self._bundles[name_of_bundle] = Bundle(name_of_bundle,program_path,egs_version)
-#             self._monitor.add(name_of_bundle,program_path)
-#             self.name_to_bundle_name[name_of_bundle] = {}
-#             for (name_in_bundle,name_in_channel) in mapping.items():
-#                 spec_file = os.path.join(
-#                     BEGS_FILES, self._specs_path,
-#                     "{}.toml".format(name_in_bundle)
-#                 )
-#                 self._bundles[name_of_bundle].add_program(name_in_bundle,spec_file)
-#                 self.name_to_bundle[name_in_channel] = name_of_bundle
-#                 self.name_to_bundle_name[name_of_bundle][name_in_channel] = name_in_bundle
-
-#     def find_bundle(self, name: str) -> Optional[Bundle]:
-#         name = self.name_to_bundle.get(name,None)
-#         if name is None:
-#             return None
-#         return self._bundles.get(name,None)
-
-#     def boot_bundles(self) -> Any:
-#         return self._bundles.values()
-
-#     def load_program(self, program_path: str, egs_version: int) -> Any:
-#         with open(program_path,'rb') as f:
-#             return f.read()
-
-#     def add_bundle(self, bundle: Bundle) -> Any:
-#         bundle.monitor(self._monitor)
-#         return bundle.serialize()
 
 class OneBegsFile:
     def __init__(self, name, toml_data, file_path):
@@ -205,6 +154,7 @@ class ProgramInventory:
         self._map_to_bundle = {}
         self._bundle_programs = {}
         self._boot_bundles = {}
+        self._monitor = BegsFilesMonitor()
         with open(BEGS_CONFIG) as f:
             toml_data = toml.loads(f.read())
             for (name,data) in toml_data.get("file",{}).items():
@@ -228,13 +178,22 @@ class ProgramInventory:
                     self._boot_bundles[version].append(name)
 
     def boot_bundles(self, egs_version):
-        return [ self._bundle[name] for name in self._boot_bundles.get(egs_version,[]) ]
+        out = []
+        for name in self._boot_bundles.get(egs_version,[]):
+            b = self._bundle[name]
+            if self._monitor.check(b.path):
+                b.reload()
+            out.append(b)
+        return out
 
     def find_bundle(self, program_set: str, program_name: str, program_version: int):
         (bundle_name,_) = self._map_to_bundle.get((program_set,program_name,program_version),(None,None))
         if bundle_name is None:
             return None
-        return self._bundle[bundle_name]
+        b = self._bundle[bundle_name]
+        if self._monitor.check(b.path):
+            b.reload()
+        return b
 
 class BegsFiles(object):
     def __init__(self):

@@ -8,6 +8,7 @@ class Bundle:
     def __init__(self, name: str, program_path: str, egs_version: int, name_map = None):
         self.name = name
         self._specs = AllProgramSpecs()
+        self.path = program_path
         self._program = self.load_program(program_path,egs_version)
         self._egs_version = egs_version
         self._name_map = name_map
@@ -27,10 +28,9 @@ class Bundle:
             self._specs.add(out)
             return out
 
-    def monitor(self, monitor):
-        if self._monitor.check(self.name):
-            logging.warn("Bundle '{0}' changed. Reloading".format(self.name))
-            self._program = self.load_program(monitor.path(self.name),self._egs_version)
+    def reload(self):
+        logging.warn("Bundle '{0}' changed. Reloading".format(self.name))
+        self._program = self.load_program(self.path,self._egs_version)
 
     def serialize(self) -> Any:
         logging.warn(str(self._specs.serialize()))
