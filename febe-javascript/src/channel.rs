@@ -1,8 +1,17 @@
 use std::{ pin::Pin, future::Future };
-use peregrine_data::{ ChannelSender, BackendNamespace, PacketPriority, MaxiRequest, ChannelMessageDecoder, MaxiResponse, MiniRequest, MiniResponse};
-use peregrine_toolkit::{error::Error, log };
+use peregrine_data::{ ChannelSender, BackendNamespace, PacketPriority, MaxiRequest, ChannelMessageDecoder, MaxiResponse, MiniRequest, MiniResponse, FailureRes};
+use peregrine_toolkit::{error::Error };
 use wasm_bindgen::JsValue;
-use crate::{payloadextract::PayloadExtractor, backend::Backend, sidecars::JsSidecar};
+use crate::{payloadextract::PayloadExtractor, backend::{Backend, CallbackError}, sidecars::JsSidecar};
+
+fn map_error<F,X>(input: Result<(X,JsSidecar),CallbackError>, cb: F) -> Result<(MiniResponse,JsSidecar),Error>
+        where F: FnOnce(X) -> MiniResponse {
+    match input {
+        Err(CallbackError::External(value)) => Ok((MiniResponse::FailureRes(FailureRes::new(&value)),JsSidecar::new_empty())),
+        Err(CallbackError::Internal(e)) => Err(e),
+        Ok((v,sidecar)) => Ok((cb(v),sidecar))
+    }
+}
 
 #[derive(Clone)]
 pub struct JavascriptChannel {
@@ -27,42 +36,31 @@ impl JavascriptChannel {
         let mut out = MaxiResponse::empty(&self.backend_namespace);
         let mut sidecars = JsSidecar::new_empty();
         for attempt in maxi.requests() {
-            match attempt.request() {
+            let (res,sidecar) = match attempt.request() {
                 MiniRequest::Jump(req) => { 
-                    let (res,sidecar) = self.backend.jump(req).await?;
-                    out.add_response(attempt.make_response_attempt(MiniResponse::Jump(res)));
-                    sidecars.merge(sidecar);
+                    map_error(self.backend.jump(req).await, |r| MiniResponse::Jump(r))?
                 },
                 MiniRequest::BootChannel(req) => {
-                    let (res,sidecar) = self.backend.boot(req).await?;
-                    out.add_response(attempt.make_response_attempt(MiniResponse::BootChannel(res)));
-                    sidecars.merge(sidecar);
+                    map_error(self.backend.boot(req).await, |r| MiniResponse::BootChannel(r))?
                 },
                 MiniRequest::Stick(req) => {
-                    let (res,sidecar) = self.backend.stickinfo(req).await?;
-                    out.add_response(attempt.make_response_attempt(MiniResponse::Stick(res)));
-                    sidecars.merge(sidecar);
+                    map_error(self.backend.stickinfo(req).await,|r| MiniResponse::Stick(r))?
                 },
                 MiniRequest::Expand(req) => {
-                    let (res,sidecar) = self.backend.expansion(req).await?;
-                    out.add_response(attempt.make_response_attempt(MiniResponse::Expand(res)));
-                    sidecars.merge(sidecar);
+                    map_error(self.backend.expansion(req).await,|r| MiniResponse::Expand(r))?
                 },
                 MiniRequest::Program(req) => {
-                    let (res,sidecar) = self.backend.program(req).await?;
-                    out.add_response(attempt.make_response_attempt(MiniResponse::Program(res)));
-                    sidecars.merge(sidecar);
+                    map_error(self.backend.program(req).await,|r| MiniResponse::Program(r))?
                 },
                 MiniRequest::Data(req) => {
-                    let (res,sidecar) = self.backend.data(req).await?;
-                    out.add_response(attempt.make_response_attempt(MiniResponse::Data(res)));
-                    sidecars.merge(sidecar);
+                    map_error(self.backend.data(req).await,|r| MiniResponse::Data(r))?
                 },
                 _ => { 
-                    log!("unimplemented");
-                    out.add_response(attempt.fail("unimplemented"));
+                    (MiniResponse::FailureRes(FailureRes::new("unimplemented")),JsSidecar::new_empty())
                 }
-            }
+            };
+            out.add_response(attempt.make_response_attempt(res));
+            sidecars.merge(sidecar);
         }
         sidecars.add_to_response(&mut out);
         Ok(out)

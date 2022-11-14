@@ -20,18 +20,18 @@ pub struct Process {
 }
 
 impl Process {
-    fn new(dauphin: &Dauphin, binary_name: &str, name: &str, instance: HashMap<String,Box<dyn Any>>) -> anyhow::Result<Process> {
+    fn new(dauphin: &Dauphin, name: &str, instance: HashMap<String,Box<dyn Any>>) -> anyhow::Result<Process> {
         let instance = InstancePayload::new(instance);
         let mut more_payloads = HashMap::new();
         more_payloads.insert(("peregrine".to_string(),"instance".to_string()),Box::new(instance) as Box<dyn PayloadFactory>);
         Ok(Process {
-            instance: Box::new(dauphin.run_stepwise(binary_name,name,&more_payloads)?)
+            instance: Box::new(dauphin.run_stepwise(name,&more_payloads)?)
         })
     }
 
-    pub async fn run(mut self) -> anyhow::Result<()> {
+    pub async fn run(mut self) -> Result<(),Error> {
         loop {
-            let out = self.instance.more().await?;
+            let out = self.instance.more().await.map_err(|e| Error::operr(&format!("XXXTMp wrap {:?}",e)))?;
             if !out { break; }
             cdr_tick(0).await;
         }
@@ -47,12 +47,12 @@ fn command_suite() -> anyhow::Result<CommandInterpretSuite> {
     Ok(cis)
 }
 
-fn load(dauphin: &mut Dauphin, spec: PgDauphinLoadTaskSpec, stream: CommanderStream<anyhow::Result<()>>) {
-    stream.add(dauphin.add_binary(&spec.bundle_name,&spec.data));
+fn load(dauphin: &mut Dauphin, spec: PgDauphinLoadTaskSpec, stream: CommanderStream<Result<(),Error>>) {
+    stream.add(dauphin.add_binary(&spec.data));
 }
 
-fn run(dauphin: &mut Dauphin, commander: &PgCommander, spec: PgDauphinRunTaskSpec, stream: CommanderStream<anyhow::Result<()>>) {
-    match Process::new(dauphin,&spec.bundle_name,&spec.in_bundle_name,spec.payloads) {
+fn run(dauphin: &mut Dauphin, commander: &PgCommander, spec: PgDauphinRunTaskSpec, stream: CommanderStream<Result<(),Error>>) {
+    match Process::new(dauphin,&spec.in_bundle_name,spec.payloads) {
         Ok(process) => {
             let stream = stream.clone();
             let task = PgCommanderTaskSpec {
@@ -69,7 +69,7 @@ fn run(dauphin: &mut Dauphin, commander: &PgCommander, spec: PgDauphinRunTaskSpe
             add_task(&commander,task);
         },
         Err(e) => {
-            stream.add(Err(e));
+            stream.add(Err(Error::operr(&format!("XXXTmp wrap {:?}",e))));
         }
     }
 }

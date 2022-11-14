@@ -51,6 +51,13 @@ impl Error {
             _ => { error!("{}",self.message); },
         }
     }
+
+    pub fn context(&self, context: &str) -> Error {
+        Error {
+            error_type: self.error_type.clone(),
+            message: format!("{} ({})",self.message,context)
+        }
+    }
 }
 
 pub fn err_web_drop(value: Result<(),Error>) {

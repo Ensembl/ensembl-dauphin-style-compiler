@@ -8,16 +8,22 @@ use wasm_bindgen::{ JsValue, JsCast };
 use js_sys::Object as JsObject;
 use js_sys::Array as JsArray;
 
-pub(crate) fn to_array(value: &JsValue) -> Result<JsArray,Error> {
-    value.clone().dyn_into().map_err(|e| Error::operr(&format!("expected array: {:?}",e)))
+use crate::backend::CallbackError;
+
+pub(crate) fn emap<T>(data: Result<T,Error>) -> Result<T,CallbackError> {
+    data.map_err(|e| CallbackError::Internal(e))
 }
 
-pub(crate) fn from_map<F,V,X>(value: &mut dyn Iterator<Item=(&String,&V)>, cb: F) -> Result<JsObject,Error>
+pub(crate) fn to_array(value: &JsValue) -> Result<JsArray,CallbackError> {
+    emap(value.clone().dyn_into().map_err(|e| Error::operr(&format!("expected array: {:?}",e))))
+}
+
+pub(crate) fn from_map<F,V,X>(value: &mut dyn Iterator<Item=(&String,&V)>, cb: F) -> Result<JsObject,CallbackError>
         where X: JsCast, F: Fn(&V) -> X {
     let out = JsObject::new();
     for (k,v) in value {
-        Reflect::set(&out, &k.into(), &cb(v).into())
-            .map_err(|e| Error::operr(&format!("cannot set value: {:?}",e)))?;
+        emap(Reflect::set(&out, &k.into(), &cb(v).into())
+            .map_err(|e| Error::operr(&format!("cannot set value: {:?}",e))))?;
     }
     Ok(out)
 }
@@ -31,17 +37,17 @@ pub(crate) fn from_list<F,V,X>(value: &mut dyn Iterator<Item=&V>, cb: F) -> JsAr
     out
 }
 
-pub(crate) fn to_object(value: JsValue) -> Result<JsObject,Error> {
-    value.dyn_into().map_err(|e| Error::operr(&format!("expected map: {:?}",e)))
+pub(crate) fn to_object(value: JsValue) -> Result<JsObject,CallbackError> {
+    emap(value.dyn_into().map_err(|e| Error::operr(&format!("expected map: {:?}",e))))
 }
 
-pub(crate) fn to_string(value: &JsValue) -> Result<String,Error> {
-    let s : JsString = value.clone().dyn_into().map_err(|e| Error::operr(&format!("expected string: {:?}",e)))?;
+pub(crate) fn to_string(value: &JsValue) -> Result<String,CallbackError> {
+    let s : JsString = emap(value.clone().dyn_into().map_err(|e| Error::operr(&format!("expected string: {:?}",e))))?;
     Ok(s.into())
 }
 
-pub(crate) fn to_int(value: &JsValue) -> Result<i64,Error> {
-    let s : Number = value.clone().dyn_into().map_err(|e| Error::operr(&format!("expected float: {:?}",e)))?;
+pub(crate) fn to_int(value: &JsValue) -> Result<i64,CallbackError> {
+    let s : Number = emap(value.clone().dyn_into().map_err(|e| Error::operr(&format!("expected float: {:?}",e))))?;
     Ok(s.value_of().round() as i64)
 }
 
@@ -49,7 +55,7 @@ pub(crate) fn to_function(value: JsValue) -> Result<Function,Error> {
     value.dyn_into().map_err(|e| Error::operr(&format!("expected array: {:?}",e)))
 }
 
-pub(crate) fn to_hashmap(value: JsValue) -> Result<HashMap<String,JsValue>,Error> {
+pub(crate) fn to_hashmap(value: JsValue) -> Result<HashMap<String,JsValue>,CallbackError> {
     let mut out = HashMap::new();
     let iterator = JsObject::entries(&to_object(value)?);
     for entry in iterator.iter() {

@@ -293,12 +293,17 @@
             },
             data: function(source,stick,scale,index,scope) {
               console.log("data "+source+" "+stick+" "+scale+" "+index+" "+scope);
+              /*
               return {
                 "data": {
                   "start": [86200000,86400000],
                   "end": [86300000,86500000]
                 }
               };
+              */
+             return {
+               "error": "klingons"
+             }
             },
             stickinfo: function(stick) {
               return delay(100).then(() => {

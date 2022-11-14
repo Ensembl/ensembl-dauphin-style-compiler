@@ -1,4 +1,5 @@
 use anyhow::{ self, Context };
+use peregrine_toolkit::error::Error;
 use std::collections::HashMap;
 use std::rc::Rc;
 use crate::command::{ CommandInterpretSuite, InterpreterLink };
@@ -44,9 +45,9 @@ impl Dauphin {
         self.payloads.insert((module.to_string(),name.to_string()),pf);
     }
 
-    pub fn add_binary(&mut self, binary_name: &str, cbor: &[u8]) -> anyhow::Result<()> {
-        let binary = serde_cbor::from_slice(cbor)?;
-        let (instance,programs) = DauphinInstance::new(&self.suite,&binary)?;
+    pub fn add_binary(&mut self, cbor: &[u8]) -> Result<(),Error> {
+        let binary = serde_cbor::from_slice(cbor).map_err(|_| Error::operr("cannot parse program"))?;
+        let (instance,programs) = DauphinInstance::new(&self.suite,&binary).map_err(|_| Error::operr("cannot parse program"))?;
         let instance = Rc::new(instance);
         for program in &programs {
             self.mapping.insert(program.to_string(),instance.clone());
@@ -58,7 +59,7 @@ impl Dauphin {
         self.mapping.keys().cloned().collect()
     }
 
-    pub fn run_stepwise(&self, binary_name: &str, name: &str, more_payloads: &HashMap<(String,String),Box<dyn PayloadFactory>>) -> anyhow::Result<impl InterpretInstance> {
+    pub fn run_stepwise(&self, name: &str, more_payloads: &HashMap<(String,String),Box<dyn PayloadFactory>>) -> anyhow::Result<impl InterpretInstance> {
         let instance = self.mapping.get(name).ok_or(DauphinError::runtime(&format!("No such program: {}",name)))?;
         instance.run_stepwise(name,&self.payloads,more_payloads)
     }

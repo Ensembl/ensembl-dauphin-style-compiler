@@ -79,7 +79,7 @@ impl PgDauphin {
         lock!(self.0).all_backends = Some(all_backends.clone());
     }
 
-    async fn add_binary_direct(&self, binary_name: &str, data: &[u8]) -> anyhow::Result<()> {
+    async fn add_binary_direct(&self, binary_name: &str, data: &[u8]) -> Result<(),Error> {
         let obj = lock!(self.0);
         let pdq = obj.pdq.clone();
         drop(obj);
@@ -94,7 +94,7 @@ impl PgDauphin {
         format!("{}-{}-{}",channel_name.len(),channel_name,name_of_bundle)
     }
 
-    async fn add_binary(&self, channel: &BackendNamespace, name_of_bundle: &str, cbor: &[u8]) -> anyhow::Result<()> {
+    async fn add_binary(&self, channel: &BackendNamespace, name_of_bundle: &str, cbor: &[u8]) -> Result<(),Error> {
         self.add_binary_direct(&self.binary_name(channel,name_of_bundle),cbor).await
     }
 
@@ -145,7 +145,7 @@ impl PgDauphin {
             bundle_name: program.bundle_name.to_string(), 
             in_bundle_name: program.in_bundle_name.to_string(),
             payloads
-        }).await.map_err(|e| Error::operr(&format!("Cannot run {:?}: {}",program.program.name().indicative_name(),e)))
+        }).await
     }
 }
 
@@ -158,7 +158,7 @@ async fn add_bundle(pgd: &PgDauphin, channel: &BackendNamespace, bundle: &Suppli
             }
         },
         Err(e) => {
-            messages.send(Error::operr(&format!("{:#}",e)));
+            messages.send(e);
             for spec in specs {
                 pgd.mark_missing(spec.name());
             }

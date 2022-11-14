@@ -240,7 +240,11 @@ impl GenomeBrowser {
                             }
                             if !skip {
                                 let kind = JsValue::from("error");
-                                let msg = JsValue::from(message.to_string().as_str());
+                                let msg = match message {
+                                    Message::DataError(DataMessage::XXXTransitional(x)) => x.message.clone(),
+                                    x => x.to_string()
+                                };
+                                let msg = JsValue::from(msg);
                                 let _ = closure.call2(&this,&kind,&msg);
                             }
                             if out_of_date {

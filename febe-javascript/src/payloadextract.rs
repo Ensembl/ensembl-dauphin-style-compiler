@@ -32,14 +32,14 @@ pub(crate) struct PayloadExtractor {
 
 impl PayloadExtractor {
     pub(crate) fn new(payload: JsValue, backend_namespace: &BackendNamespace) -> Result<PayloadExtractor,Error> {
-        let mut top_level = to_hashmap(payload)?;
+        let mut top_level = to_hashmap(payload).map_err(|e| e.to_error())?;
         let this = JsBackendThis {
             payload: top_level.remove("payload").unwrap_or(JsValue::NULL),
             backend_namespace: backend_namespace.clone()
         };
         let mut callbacks = Callbacks::new(this.to_jsvalue()?,backend_namespace);
         if let Some(callbacks_js) = top_level.remove("callbacks") {
-            for (name,value) in to_hashmap(callbacks_js)? {
+            for (name,value) in to_hashmap(callbacks_js).map_err(|e| e.to_error())? {
                 callbacks.add(&name,value)?;
             }
         }

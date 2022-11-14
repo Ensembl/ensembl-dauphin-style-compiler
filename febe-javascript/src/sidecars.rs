@@ -1,10 +1,12 @@
 use std::{collections::HashMap, mem};
-use js_sys::Array;
+use js_sys::{Array};
 use peregrine_data::{TrackModel, ExpansionModel, MaxiResponse, SuppliedBundle, UnpackedSuppliedBundle, TrackModelDeserialize, BackendNamespace};
 use peregrine_toolkit::{error::Error };
 use serde_wasm_bindgen::Deserializer;
 use wasm_bindgen::JsValue;
 use serde::{Deserialize, de::DeserializeSeed};
+
+use crate::{backend::CallbackError, jsutil::emap};
 
 fn js_array_extract<T>(value: &JsValue) -> Result<Vec<T>,Error> where for<'de> T: Deserialize<'de> {
     if !Array::is_array(value) { return Err(Error::operr("expected array")) }
@@ -22,7 +24,7 @@ fn js_array_extract_track(value: &JsValue, track_namespace: &BackendNamespace) -
     if !Array::is_array(value) { return Err(Error::operr("expected array")) }
     let value = Array::from(value);
     value.iter().map(|x| {
-        let mut deserializer = Deserializer::from(x);
+        let deserializer = Deserializer::from(x);
         let deserialize = TrackModelDeserialize(track_namespace.clone());
         Error::oper_r(deserialize.deserialize(deserializer),"packet error")
     }).collect::<Result<Vec<_>,_>>()
@@ -39,7 +41,15 @@ impl JsSidecar {
         JsSidecar { tracks: vec![], expansions: vec![], programs: vec![] }
     }
 
-    pub(crate) fn new_js(data: &HashMap<String,JsValue>, track_base: &BackendNamespace) -> Result<JsSidecar,Error> {
+    pub(crate) fn new_js(data: &HashMap<String,JsValue>, track_base: &BackendNamespace) -> Result<JsSidecar,CallbackError> {
+        if let Some(value) = data.get("error") {
+            Err(CallbackError::External(value.as_string().unwrap_or("*anon error*".to_string())))
+        } else {
+            emap(Self::do_new_js(data,track_base))
+        }
+    }
+
+    pub(crate) fn do_new_js(data: &HashMap<String,JsValue>, track_base: &BackendNamespace) -> Result<JsSidecar,Error> {
         let expansions = data.get("expansions").map(|x| {
             js_array_extract(x)
         }).transpose()?.unwrap_or(vec![]);
