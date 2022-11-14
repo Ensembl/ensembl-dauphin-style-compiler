@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 use crate::core::pixelsize::PixelSize;
 use crate::core::{ StickId, Viewport };
-use crate::request::core::request::MiniRequest;
+use crate::request::core::minirequest::MiniRequest;
 use crate::request::minirequests::metricreq::MetricReport;
 use crate::run::{add_task};
 use crate::shapeload::carriagebuilder::CarriageBuilder;

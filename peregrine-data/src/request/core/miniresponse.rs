@@ -1,7 +1,7 @@
 use std::{fmt, sync::Arc, any::Any};
-use peregrine_toolkit::{serdetools::st_field};
+use peregrine_toolkit::{serdetools::st_field, error::Error, log};
 use serde::{Deserializer, de::{Visitor, DeserializeSeed}};
-use crate::{request::minirequests::{bootchannelres::BootChannelRes, datares::{DataRes, DataResDeserialize}, failureres::FailureRes, jumpres::JumpRes, programres::ProgramRes, stickres::StickRes, expandres::ExpandRes }, core::channel::wrappedchannelsender::WrappedChannelSender};
+use crate::{request::minirequests::{bootchannelres::BootChannelRes, datares::{DataRes, DataResDeserialize}, failureres::{FailureRes, UnavailableRes, UnavailableReason}, jumpres::JumpRes, programres::ProgramRes, stickres::StickRes, expandres::ExpandRes }, core::channel::wrappedchannelsender::WrappedChannelSender};
 
 pub(crate) trait MiniResponseVariety {
     fn description(&self) -> &str;
@@ -16,12 +16,13 @@ pub enum MiniResponse {
     Stick(StickRes),
     Data(DataRes),
     Jump(JumpRes),
-    Expand(ExpandRes)
+    Expand(ExpandRes),
+    Unavailable(UnavailableRes),
 }
 
 macro_rules! accessor {
     ($self:ident,$name:tt,$branch:tt,$result:ty) => {
-        pub(crate) fn $name($self) -> Result<$result,String> {
+        pub(crate) fn $name($self) -> Result<$result,Error> {
             match $self {
                 MiniResponse::$branch(j) => Ok(j),
                 _ => Err($self.bad_response())
@@ -31,13 +32,6 @@ macro_rules! accessor {
 }
 
 impl MiniResponse {
-    pub fn callback_before_sidecars(&self) -> bool {
-        match self {
-            MiniResponse::BootChannel(_) => true,
-            _ => false
-        }
-    }
-
     fn as_mini(&self) -> &dyn MiniResponseVariety {
         match self {
             MiniResponse::BootChannel(x) => x,
@@ -47,13 +41,20 @@ impl MiniResponse {
             MiniResponse::Data(x) => x,
             MiniResponse::Jump(x) => x,
             MiniResponse::Expand(x) => x,
+            MiniResponse::Unavailable(x) => x,
         }
     }
 
-    fn bad_response(&self) -> String {
+    fn bad_response(&self) -> Error {
         match self {
-            MiniResponse::FailureRes(g) => { g.message().to_string() },
-            x => { format!("unexpected response: {}",x.as_mini().description()) }
+            MiniResponse::FailureRes(g) => { Error::operr(g.message()) },
+            MiniResponse::Unavailable(v) => { 
+                log!("GENERATE");
+                match &v.reason() {
+                    UnavailableReason::BadVersion => Error::bad_version("out-of-date frontend") 
+                }
+            },
+            x => { Error::operr(&format!("unexpected response: {}",x.as_mini().description())) }
         }
     }
 
@@ -94,6 +95,7 @@ impl<'de> Visitor<'de> for MiniResponseVisitor {
             5 => MiniResponse::Data(st_field("opdata",seq.next_element_seed(DataResDeserialize(self.0.clone(),self.1.clone()))?)?),
             6 => MiniResponse::Jump(st_field("opdata",seq.next_element()?)?),
             7 => MiniResponse::Expand(st_field("opdata",seq.next_element()?)?),
+            8 => MiniResponse::Unavailable(st_field("opdata",seq.next_element()?)?),
             v => { return Err(serde::de::Error::custom(format!("unknown opcode {}",v))); }
         })
     }

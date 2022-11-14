@@ -1,7 +1,7 @@
 use std::fmt;
 use serde::{de::Visitor, Deserialize, Deserializer};
 
-use crate::request::core::response::MiniResponseVariety;
+use crate::request::core::miniresponse::MiniResponseVariety;
 
 pub struct ExpandRes;
 

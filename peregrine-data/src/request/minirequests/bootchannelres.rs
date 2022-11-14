@@ -1,7 +1,7 @@
 use std::fmt;
 use peregrine_toolkit::{serdetools::st_field};
 use serde::{Deserialize, Deserializer, de::{Visitor, MapAccess, IgnoredAny}};
-use crate::{Assets, BackendNamespace, request::core::response::MiniResponseVariety};
+use crate::{Assets, BackendNamespace, request::core::miniresponse::MiniResponseVariety};
 
 pub struct BootChannelRes {
     namespace: BackendNamespace,

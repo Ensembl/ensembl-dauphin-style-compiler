@@ -9,7 +9,7 @@ use std::{collections::HashMap};
 use crate::core::dataalgorithm::DataAlgorithm;
 use crate::{ChannelSender};
 use crate::core::channel::wrappedchannelsender::WrappedChannelSender;
-use crate::request::core::response::MiniResponseVariety;
+use crate::request::core::miniresponse::MiniResponseVariety;
 use crate::{metric::datastreammetric::PacketDatastreamMetricBuilder};
 use crate::core::data::ReceivedData;
 

@@ -14,6 +14,7 @@ owning_ref="*"
 serde={ version="*", features=["rc"] }
 serde_derive="*"
 serde_json="*"
+serde_repr="*"
 futures="*"
 lazy_static="*"
 lru="*"

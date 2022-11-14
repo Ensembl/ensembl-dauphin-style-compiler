@@ -1,6 +1,6 @@
 use serde::Serialize;
 
-use crate::{request::core::request::{MiniRequest, MiniRequestVariety}};
+use crate::{request::core::minirequest::{MiniRequest, MiniRequestVariety}};
 
 pub struct BootChannelReq;
 

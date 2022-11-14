@@ -1,9 +1,15 @@
 use crate::{error, log};
 
 #[derive(Clone,Debug)]
+pub enum CallToAction {
+    BadVersion
+}
+
+#[derive(Clone,Debug)]
 pub enum ErrorType {
     FatalError,      // Browser should be considered crashed
     OperationError,  // Operation did not complete but other operations may succeed
+    Unavailable(CallToAction),     // Browser out-of-date etc; enum-based call to action supplied
     NoSuch,          // A parameter passed contained reference to missing data
     Temporary,       // FYI, will retry
 }
@@ -15,10 +21,10 @@ pub struct Error {
 }
 
 macro_rules! error_ctor {
-    ($name:ident,$rname:ident,$type:tt) => {
+    ($name:ident,$rname:ident,$type:expr) => {
         pub fn $name(text: &str) -> Error {
             crate::error::Error {
-                error_type: ErrorType::$type,
+                error_type: $type,
                 message: text.to_string()
             }
         }
@@ -32,10 +38,11 @@ macro_rules! error_ctor {
 }
 
 impl Error {
-    error_ctor!(fatal,fatal_r,FatalError);
-    error_ctor!(operr,oper_r,OperationError);
-    error_ctor!(nosuch,nosuch_r,NoSuch);
-    error_ctor!(tmp,tmp_r,Temporary);
+    error_ctor!(fatal,fatal_r,ErrorType::FatalError);
+    error_ctor!(operr,oper_r,ErrorType::OperationError);
+    error_ctor!(nosuch,nosuch_r,ErrorType::NoSuch);
+    error_ctor!(tmp,tmp_r,ErrorType::Temporary);
+    error_ctor!(bad_version,bad_version_r,ErrorType::Unavailable(CallToAction::BadVersion));
 
     pub fn web_deadend(&self) {
         match self.error_type {

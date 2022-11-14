@@ -1,5 +1,5 @@
 use commander::CommanderStream;
-use super::{request::MiniRequestAttempt, packet::RequestPacketBuilder};
+use super::{minirequest::MiniRequestAttempt, packet::RequestPacketBuilder};
 
 #[derive(Clone)]
 pub(crate) struct PendingAttemptQueue {

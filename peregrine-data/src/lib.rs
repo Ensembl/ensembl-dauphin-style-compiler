@@ -156,8 +156,8 @@ mod request {
         pub(crate) mod maxiresponse;
         pub(crate) mod packet;
         pub(crate) mod queue;
-        pub(crate) mod request;
-        pub(crate) mod response;
+        pub(crate) mod minirequest;
+        pub(crate) mod miniresponse;
         mod pendingattemptqueue;
         mod attemptmatch;
         pub(crate) mod sidecars;
@@ -305,8 +305,8 @@ pub use self::shapeload::{ Region, ShapeStore, DataStore, ShapeRequest, ShapeReq
 pub use self::run::{ PgCommander, PgCommanderTaskSpec, PgDauphin, Commander, InstancePayload, add_task, complete_task, async_complete_task };
 pub use self::request::core::maxirequest::{ MaxiRequest };
 pub use self::request::core::maxiresponse::{ MaxiResponse, MaxiResponseDeserialize };
-pub use self::request::core::request::{ MiniRequest, MiniRequestAttempt };
-pub use self::request::core::response::MiniResponse;
+pub use self::request::core::minirequest::{ MiniRequest, MiniRequestAttempt };
+pub use self::request::core::miniresponse::MiniResponse;
 pub use self::request::core::packetpriority::PacketPriority;
 pub use self::request::core::backend::{ AllBackends, Backend };
 pub use self::shape::shape::DrawingShape;

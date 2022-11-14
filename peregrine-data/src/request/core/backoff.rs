@@ -1,7 +1,7 @@
 use std::rc::Rc;
 use commander::cdr_timer;
 use peregrine_toolkit::error::Error;
-use super::{manager::{LowLevelRequestManager}, request::MiniRequest, queue::QueueKey, response::MiniResponseAttempt};
+use super::{manager::{LowLevelRequestManager}, minirequest::MiniRequest, queue::QueueKey, miniresponse::MiniResponseAttempt};
 
 pub struct Backoff { 
     manager: LowLevelRequestManager,
@@ -25,7 +25,7 @@ impl Backoff {
     }
 
     pub(crate) async fn backoff<F,T>(&mut self, req: &Rc<MiniRequest>, cb: F) -> Result<T,Error>
-                                                    where F: Fn(MiniResponseAttempt) -> Result<T,String> {
+            where F: Fn(MiniResponseAttempt) -> Result<T,Error> {
         let mut last_error = None;
         for _ in 0..self.repeats {
             let resp = self.manager.execute(&self.key,self.pace,req)?.get().await;
@@ -37,13 +37,6 @@ impl Backoff {
             cdr_timer(500.).await; // XXX configurable
         }
         self.manager.message(Error::operr(&format!("permanent backend failure: {}",self.errname())));
-        Err(match last_error {
-            Some(e) => {
-                let e = Error::operr(&format!("backend {} refused: {}",self.errname(),e));
-                self.manager.message(e.clone());
-                e
-            },
-            None => Error::fatal("unexpected downcast error in backoff")
-        })
+        Err(last_error.unwrap_or_else(|| Error::fatal("unexpected downcast error in backoff")))
     }
 }

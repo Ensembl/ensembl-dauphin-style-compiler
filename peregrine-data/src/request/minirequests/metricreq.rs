@@ -1,6 +1,6 @@
 use peregrine_message::PeregrineMessage;
 use serde_derive::Serialize;
-use crate::{PeregrineCoreBase, metric::{errormetric::ErrorMetricReport, metricreporter::ClientMetricReport}, request::core::request::MiniRequestVariety};
+use crate::{PeregrineCoreBase, metric::{errormetric::ErrorMetricReport, metricreporter::ClientMetricReport}, request::core::minirequest::MiniRequestVariety};
 
 #[derive(Clone,Serialize)]
 #[serde(tag = "type")]

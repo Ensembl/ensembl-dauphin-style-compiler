@@ -98,9 +98,12 @@ def process_packet(packet_cbor: Any, high_priority: bool) -> Any:
     # local stuff
     bundles = BundleSet()
     for (msgid,typ,payload) in local_requests:
-        r = process_local_request(data_accessor,channel,typ,payload,metrics,version)
-        response.append([msgid,r.payload])
-        bundles.merge(r.bundles)
-        tracks.merge(r.tracks)
+        if version.get_egs() in data_accessor.supported_versions:
+            r = process_local_request(data_accessor,channel,typ,payload,metrics,version)
+            response.append([msgid,r.payload])
+            bundles.merge(r.bundles)
+            tracks.merge(r.tracks)
+        else:
+            response.append([msgid,Response(8,[0]).payload])
     metrics.send()
     return (response,bundles.bundle_data(),channel,tracks.dump_for_wire())

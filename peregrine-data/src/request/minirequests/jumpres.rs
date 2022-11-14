@@ -1,8 +1,7 @@
 use std::fmt;
 use peregrine_toolkit::serdetools::st_field;
 use serde::{Deserializer, Deserialize, de::{Visitor, MapAccess, IgnoredAny}};
-
-use crate::request::core::response::MiniResponseVariety;
+use crate::request::core::miniresponse::MiniResponseVariety;
 
 pub struct JumpLocation {
     pub stick: String,

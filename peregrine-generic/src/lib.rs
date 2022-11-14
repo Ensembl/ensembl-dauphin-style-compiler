@@ -7,7 +7,7 @@ use wasm_bindgen::{prelude::*, JsCast};
 use peregrine_draw::{Endstop, Message, PeregrineAPI, PeregrineConfig, PgCommanderWeb};
 use peregrine_data::{StickId, zmenu_to_json, DataMessage };
 use peregrine_message::{MessageKind, PeregrineMessage};
-use peregrine_toolkit::{ warn, log, eachorevery::eoestruct::{StructValue}, js::jstojsonvalue::js_to_json, error::ErrorType};
+use peregrine_toolkit::{ warn, log, error, eachorevery::eoestruct::{StructValue}, js::jstojsonvalue::js_to_json, error::{ErrorType,CallToAction }};
 use web_sys::{ Element };
 use serde::{Serialize, Deserialize};
 use serde_json::{ Map as JsonMap, Value as JsonValue };
@@ -230,15 +230,21 @@ impl GenomeBrowser {
                     match message.kind() {
                         MessageKind::Error => {
                             let mut skip = false;
+                            let mut out_of_date = false;
                             if let Message::DataError(DataMessage::XXXTransitional(x)) = message {
                                 if let ErrorType::Temporary = x.error_type {
                                     skip = true;
+                                } else if let ErrorType::Unavailable(CallToAction::BadVersion) = x.error_type {
+                                    out_of_date = true;
                                 }
                             }
                             if !skip {
                                 let kind = JsValue::from("error");
                                 let msg = JsValue::from(message.to_string().as_str());
                                 let _ = closure.call2(&this,&kind,&msg);
+                            }
+                            if out_of_date {
+                                error!("FE OUT OF DATE");
                             }
                         },
                         MessageKind::Interface => {

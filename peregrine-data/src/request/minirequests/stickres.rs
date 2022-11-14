@@ -1,7 +1,7 @@
 use std::fmt;
 use peregrine_toolkit::{serdetools::st_field};
 use serde::{Deserialize, Deserializer, de::{MapAccess, Visitor}};
-use crate::{Stick, request::core::response::MiniResponseVariety};
+use crate::{Stick, request::core::miniresponse::MiniResponseVariety};
 
 #[derive(Clone)]
 pub enum StickRes {

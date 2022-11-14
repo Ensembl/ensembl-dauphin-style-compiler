@@ -1,5 +1,5 @@
 use serde::{Serialize, ser::SerializeSeq};
-use crate::{StickId, request::core::request::{MiniRequest, MiniRequestVariety}};
+use crate::{StickId, request::core::minirequest::{MiniRequest, MiniRequestVariety}};
 
 pub struct StickReq {
     stick_id: StickId

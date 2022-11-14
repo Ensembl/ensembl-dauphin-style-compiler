@@ -10,7 +10,7 @@ use crate::{DataMessage, ChannelSender, BackendNamespace};
 use crate::core::version::VersionMetadata;
 use super::maxiresponse::MaxiResponse;
 use super::packet::{RequestPacketFactory, RequestPacketBuilder};
-use super::request::MiniRequestAttempt;
+use super::minirequest::MiniRequestAttempt;
 
 #[derive(Clone)]
 pub struct MaxiRequest {

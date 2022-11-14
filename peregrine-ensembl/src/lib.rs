@@ -4,9 +4,9 @@ use js_sys::{ Reflect, Array, JSON };
 use serde_wasm_bindgen::from_value;
 use wasm_bindgen::{prelude::*, JsCast};
 use peregrine_draw::{Endstop, Message, PeregrineAPI, PeregrineConfig, PgCommanderWeb};
-use peregrine_data::{ StickId, zmenu_to_json };
+use peregrine_data::{ StickId, zmenu_to_json, DataMessage };
 use peregrine_message::{MessageKind, PeregrineMessage};
-use peregrine_toolkit::{ log, warn, error_important, eachorevery::eoestruct::{StructValue}, js::jstojsonvalue::js_to_json};
+use peregrine_toolkit::{ log, warn, error_important, eachorevery::eoestruct::{StructValue}, js::jstojsonvalue::js_to_json, error::{CallToAction, Error, ErrorType}};
 use web_sys::{ Element };
 use serde::{Serialize, Deserialize};
 use serde_json::{ Map as JsonMap, Value as JsonValue };
@@ -245,10 +245,19 @@ impl GenomeBrowser {
                     let this = JsValue::null(); 
                     match message.kind() {
                         MessageKind::Error => {
+                            let mut kind = "error";
+                            match message {
+                                Message::DataError(DataMessage::XXXTransitional(e)) => {
+                                    if let ErrorType::Unavailable(CallToAction::BadVersion) = e.error_type {
+                                        kind = "out-of-date";
+                                    }
+                                },
+                                _ => {}
+                            }
                             /* func("error",error_as_string) */
-                            let kind = JsValue::from("error");
+                            let kind = JsValue::from(kind);
                             let msg = JsValue::from(message.to_string().as_str());
-                            let _ = closure.call2(&this,&kind,&msg);            
+                            let _ = closure.call2(&this,&kind,&msg);
                         },
                         MessageKind::Interface => {
                             match message {

@@ -8,7 +8,7 @@ use std::sync::Arc;
 use crate::{core::{channel::wrappedchannelsender::WrappedChannelSender, program::programbundle::PackedSuppliedBundle }, request::tracks::{trackres::TrackResult}, TrackModel, ExpansionModel};
 use crate::{BackendNamespace};
 use crate::core::program::programbundle::SuppliedBundle;
-use super::response::{MiniResponseAttempt, MiniResponseAttemptVecDeserialize};
+use super::miniresponse::{MiniResponseAttempt, MiniResponseAttemptVecDeserialize};
 
 #[allow(unused)] // used in debug_big_requests
 use peregrine_toolkit::warn;

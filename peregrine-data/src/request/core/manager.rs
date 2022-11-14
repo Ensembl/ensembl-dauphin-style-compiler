@@ -9,8 +9,8 @@ use std::sync::{ Arc, Mutex };
 use super::attemptmatch::{AttemptMatch};
 use super::backoff::Backoff;
 use super::queue::{RequestQueue, QueueKey};
-use super::request::MiniRequest;
-use super::response::MiniResponseAttempt;
+use super::minirequest::MiniRequest;
+use super::miniresponse::MiniResponseAttempt;
 use super::sidecars::RequestSidecars;
 use crate::core::channel::channelregistry::{ChannelRegistry};
 use crate::core::channel::wrappedchannelsender::WrappedChannelSender;
@@ -80,7 +80,7 @@ impl LowLevelRequestManager {
 
     pub(crate) async fn submit_direct<F,T>(&self, sender: &WrappedChannelSender, priority: &PacketPriority, name: &Option<BackendNamespace>, request: &Rc<MiniRequest>, cb: F) 
                                                                     -> Result<T,Error>
-                                                                    where F: Fn(MiniResponseAttempt) -> Result<T,String> {
+            where F: Fn(MiniResponseAttempt) -> Result<T,Error> {
         let key = self.make_anon_key(sender,priority,name)?;
         let mut backoff = Backoff::new(self,&key,sender.backoff());
         backoff.backoff(request,cb).await
@@ -108,7 +108,7 @@ impl RequestManager {
 
     pub(crate) async fn submit<F,T>(&self, name: &BackendNamespace, priority: &PacketPriority, request: &Rc<MiniRequest>, cb: F) 
                                                                     -> Result<T,Error>
-                                                                    where F: Fn(MiniResponseAttempt) -> Result<T,String> {
+            where F: Fn(MiniResponseAttempt) -> Result<T,Error> {
         let (key,enable_backoff) = self.make_key(name,priority)?;
         let mut backoff = Backoff::new(&self.low,&key,enable_backoff);
         backoff.backoff(request,cb).await
@@ -116,7 +116,7 @@ impl RequestManager {
 
     pub(crate) async fn submit_direct<F,T>(&self, sender: &WrappedChannelSender, priority: &PacketPriority, name: &Option<BackendNamespace>, request: MiniRequest, cb: F) 
                                                                     -> Result<T,Error>
-                                                                    where F: Fn(MiniResponseAttempt) -> Result<T,String> {
+            where F: Fn(MiniResponseAttempt) -> Result<T,Error> {
         self.low.submit_direct(sender,priority,name,&Rc::new(request),cb).await
     }
 

@@ -1,4 +1,4 @@
-use crate::{request::core::request::{MiniRequest, MiniRequestVariety}, shapeload::programname::ProgramName};
+use crate::{request::core::minirequest::{MiniRequest, MiniRequestVariety}, shapeload::programname::ProgramName};
 use peregrine_toolkit::log;
 use serde::Serialize;
 

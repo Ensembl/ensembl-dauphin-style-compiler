@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use crate::{Region, BackendNamespace, request::core::request::MiniRequestVariety};
+use crate::{Region, BackendNamespace, request::core::minirequest::MiniRequestVariety};
 use serde::{Serialize, ser::SerializeSeq};
 
 #[cfg_attr(debug_assertions,derive(Debug))]

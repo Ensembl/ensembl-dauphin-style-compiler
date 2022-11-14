@@ -1,4 +1,4 @@
-use crate::request::core::request::{MiniRequest, MiniRequestVariety};
+use crate::request::core::minirequest::{MiniRequest, MiniRequestVariety};
 use serde::{Serialize, ser::SerializeSeq};
 
 pub struct JumpReq {

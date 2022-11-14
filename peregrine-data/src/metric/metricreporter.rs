@@ -6,7 +6,7 @@ use crate::metric::datastreammetric::DatastreamMetricKey;
 use crate::metric::datastreammetric::DatastreamMetricBuilder;
 use crate::metric::datastreammetric::DatastreamMetricData;
 use crate::request::core::manager::RequestManager;
-use crate::request::core::request::MiniRequest;
+use crate::request::core::minirequest::MiniRequest;
 use crate::request::minirequests::metricreq::MetricReport;
 use commander::cdr_timer;
 use peregrine_toolkit::lock;

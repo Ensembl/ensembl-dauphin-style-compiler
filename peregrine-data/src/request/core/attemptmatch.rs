@@ -1,7 +1,7 @@
 use std::{sync::{Mutex, Arc}, collections::HashMap, rc::Rc};
 use commander::CommanderStream;
 use peregrine_toolkit::lock;
-use super::{response::{MiniResponseAttempt}, request::{MiniRequest, MiniRequestAttempt}};
+use super::{miniresponse::{MiniResponseAttempt}, minirequest::{MiniRequest, MiniRequestAttempt}};
 
 #[derive(Clone)]
 pub(crate) struct AttemptMatch {

@@ -1,6 +1,6 @@
 use crate::{PacketPriority, BackendNamespace};
 use crate::core::version::VersionMetadata;
-use super::request::MiniRequestAttempt;
+use super::minirequest::MiniRequestAttempt;
 
 #[cfg(debug_big_requests)]
 use peregrine_toolkit::{warn};
