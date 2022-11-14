@@ -107,7 +107,7 @@ async fn image_command(context: &mut InterpContext, cmd: ImageInterpCommand) -> 
     let allotment_id = vec_to_eoe(registers.get_indexes(&cmd.2)?.to_vec());
     drop(registers);
     let channel_resolver = get_instance::<AccessorResolver>(context,"channel-resolver")?;
-    let self_channel = channel_resolver.resolve("self://").await.map_err(|e| DataMessage::XXXTransitional(e))?;
+    let self_channel = channel_resolver.resolve("source://").await.map_err(|e| DataMessage::XXXTransitional(e))?;
     let geometry = get_instance::<ObjectBuilder>(context,"builder")?;
     let spacebase = geometry.spacebase(spacebase_id[0] as u32)?.as_ref().clone();
     if spacebase.len() > 0 {

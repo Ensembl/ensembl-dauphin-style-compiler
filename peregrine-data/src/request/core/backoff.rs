@@ -6,17 +6,15 @@ use super::{manager::{LowLevelRequestManager}, minirequest::MiniRequest, queue::
 pub struct Backoff { 
     manager: LowLevelRequestManager,
     key: QueueKey,
-    repeats: usize,
-    pace: bool
+    repeats: usize
 }
 
 impl Backoff {
-    pub(crate) fn new(manager: &LowLevelRequestManager, key: &QueueKey, enable: bool) -> Backoff {
+    pub(crate) fn new(manager: &LowLevelRequestManager, key: &QueueKey, repeats: usize) -> Backoff {
         Backoff {
             manager: manager.clone(),
             key: key.clone(),
-            repeats: if enable { 5 } else { 1 },  // XXX configurable
-            pace: enable
+            repeats
         }
     }
 
@@ -28,13 +26,13 @@ impl Backoff {
             where F: Fn(MiniResponseAttempt) -> Result<T,Error> {
         let mut last_error = None;
         for _ in 0..self.repeats {
-            let resp = self.manager.execute(&self.key,self.pace,req)?.get().await;
+            let resp = self.manager.execute(&self.key,req)?.get().await;
             match cb(resp) {
                 Ok(r) => { return Ok(r); },
                 Err(e) => { last_error = Some(e); }
             }
             self.manager.message(Error::tmp(&format!("temporary backend failure: {}",self.errname())));
-            cdr_timer(500.).await; // XXX configurable
+            cdr_timer(500.).await;
         }
         self.manager.message(Error::operr(&format!("permanent backend failure: {}",self.errname())));
         Err(last_error.unwrap_or_else(|| Error::fatal("unexpected downcast error in backoff")))

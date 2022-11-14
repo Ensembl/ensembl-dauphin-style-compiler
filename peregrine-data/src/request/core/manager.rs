@@ -49,7 +49,7 @@ impl LowLevelRequestManager {
         self.messages.send(message);
     }
 
-    fn create_queue(&self, key: &QueueKey, do_pace: bool) -> Result<RequestQueue,Error> {
+    fn create_queue(&self, key: &QueueKey) -> Result<RequestQueue,Error> {
         let queue = RequestQueue::new(key,&self.commander,&self.real_time_lock,&self.matcher,&self.sidecars,&self.version,&self.messages)?;
         let queue2 = queue.clone();
         self.shutdown.add(move || {
@@ -58,19 +58,19 @@ impl LowLevelRequestManager {
         Ok(queue)
     }
 
-    fn get_queue(&mut self, key: &QueueKey, do_pace: bool) -> Result<RequestQueue,Error> {
+    fn get_queue(&mut self, key: &QueueKey) -> Result<RequestQueue,Error> {
         let mut queues = lock!(self.queues);
         let missing = queues.get(&key).is_none();
         if missing {
-            let queue = self.create_queue(&key,do_pace)?;
+            let queue = self.create_queue(&key)?;
             queues.insert(key.clone(),queue);
         }
         Ok(queues.get_mut(&key).unwrap().clone()) // safe because of above insert
     }
 
-    pub(crate) fn execute(&mut self, key: &QueueKey, do_pace: bool, request: &Rc<MiniRequest>) -> Result<CommanderStream<MiniResponseAttempt>,Error> {
+    pub(crate) fn execute(&mut self, key: &QueueKey, request: &Rc<MiniRequest>) -> Result<CommanderStream<MiniResponseAttempt>,Error> {
         let (request,stream) = self.matcher.make_attempt(request);
-        self.get_queue(key,do_pace)?.input_queue().add(request);
+        self.get_queue(key)?.input_queue().add(request);
         Ok(stream.clone())
     }
 
@@ -82,7 +82,8 @@ impl LowLevelRequestManager {
                                                                     -> Result<T,Error>
             where F: Fn(MiniResponseAttempt) -> Result<T,Error> {
         let key = self.make_anon_key(sender,priority,name)?;
-        let mut backoff = Backoff::new(self,&key,sender.backoff());
+        let repeats = if sender.backoff() { priority.repeats() } else { 1 };
+        let mut backoff = Backoff::new(self,&key,repeats);
         backoff.backoff(request,cb).await
     }
 }
@@ -110,7 +111,8 @@ impl RequestManager {
                                                                     -> Result<T,Error>
             where F: Fn(MiniResponseAttempt) -> Result<T,Error> {
         let (key,enable_backoff) = self.make_key(name,priority)?;
-        let mut backoff = Backoff::new(&self.low,&key,enable_backoff);
+        let repeats = if enable_backoff { priority.repeats() } else { 1 };
+        let mut backoff = Backoff::new(&self.low,&key,repeats);
         backoff.backoff(request,cb).await
     }
 
@@ -130,7 +132,7 @@ impl RequestManager {
                 timeout: None,
                 slot: None,
                 task: Box::pin(async move { 
-                    manager.low.execute(&key,true,&Rc::new(request)).ok().unwrap().get().await;
+                    manager.low.execute(&key,&Rc::new(request)).ok().unwrap().get().await;
                     Ok(())
                 }),
                 stats: false

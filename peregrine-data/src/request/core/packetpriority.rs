@@ -23,6 +23,8 @@ impl PacketPriority {
         }
     }
 
+    pub(crate) fn repeats(&self) -> usize { 5 }
+
     pub(crate) fn get_pace(&self) -> &[f64] {
         match self {
             PacketPriority::Batch => &[0.,5000.,10000.,20000.,20000.,20000.],
