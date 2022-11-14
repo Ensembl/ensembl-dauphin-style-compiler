@@ -94,7 +94,7 @@ def process_packet(packet_cbor: Any, high_priority: bool) -> Any:
     for (request,messages) in remote_requests.items():
         r = do_request_remote(request,messages,high_priority,version)
         response += [[x[0],cbor2.dumps(x[1])] for x in r["responses"]]
-        program_data |= set(r["programs"])
+        program_data += set(r["programs"])
         if "tracks" in r and len(r["tracks"])>0:
             tracks.add_cookeds(r["tracks"])
             raise Exception("UNIMPLEMENTED: adding to track payloads")
