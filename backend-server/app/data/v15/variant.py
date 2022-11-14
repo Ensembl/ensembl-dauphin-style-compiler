@@ -3,7 +3,7 @@ from command.response import Response
 from command.exceptionres import DataException
 from model.bigbed import get_bigwig_stats, get_bigwig
 from model.chromosome import Chromosome
-from .numbers import delta, zigzag, lesqlite2, compress
+from data.v14.dataalgorithm import data_algorithm
 
 SCALE = 4000
 
@@ -18,12 +18,10 @@ def get_variant_stats(data_accessor: DataAccessor, chrom: Chromosome, panel: Pan
     if step == 0:
         step = SCALE
     data = bytearray([round(x) for x in data])
-    out = {
-        "values": lesqlite2(zigzag(delta(data))),
-        "range": lesqlite2([start, end, step])
+    return {
+        "values": data_algorithm("NDZRL",data),
+        "range": data_algorithm("NRL",[start,end,step])
     }
-    return out
-
 
 def get_variant_exact(data_accessor: DataAccessor, chrom: Chromosome, panel: Panel) -> Response:
     item = chrom.item_path("variant-summary")
@@ -36,11 +34,10 @@ def get_variant_exact(data_accessor: DataAccessor, chrom: Chromosome, panel: Pan
     if step == 0:
         step = SCALE
     data = bytearray([round(x) for x in data])
-    out = {
-        "values": lesqlite2(zigzag(delta(data))),
-        "range": lesqlite2([start, end, step])
+    return {
+        "values": data_algorithm("NDZRL",data),
+        "range": data_algorithm("NRL",[start,end,step])
     }
-    return out
 
 
 def get_variant(data_accessor: DataAccessor, chrom: Chromosome, panel: Panel) -> Response:
@@ -50,7 +47,7 @@ def get_variant(data_accessor: DataAccessor, chrom: Chromosome, panel: Panel) ->
         return get_variant_exact(data_accessor, chrom, panel)
 
 
-class VariantDataHandler2(DataHandler):
+class VariantDataHandler15(DataHandler):
     def process_data(self, data_accessor: DataAccessor, panel: Panel, scope, accept) -> Response:
         chrom = data_accessor.data_model.stick(data_accessor,panel.stick)
         if chrom == None:

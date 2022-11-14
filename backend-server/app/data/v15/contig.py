@@ -1,12 +1,12 @@
 import random
 from typing import List, Tuple
+
+from data.v14.dataalgorithm import data_algorithm
 from command.coremodel import DataHandler, Panel, DataAccessor
 from command.response import Response
 from model.bigbed import get_bigbed
 from model.chromosome import Chromosome
 from command.exceptionres import DataException
-from .numbers import lesqlite2, compress
-from .util import starts_and_ends
 
 DOMINO_COUNT = 200
 """
@@ -95,14 +95,13 @@ def get_contig(data_accessor: DataAccessor, chrom: Chromosome, panel: Panel, do_
         senses.append(sense == '+')
     if do_shimmer:
         (positions, senses) = shimmer(positions, senses, panel.start, panel.end)
-    out = {
-        "sense": lesqlite2(senses)
+    return {
+        "sense": data_algorithm("NRL",senses),
+        'contig_starts': data_algorithm("NDZRL",[x[0] for x in positions]),
+        'contig_lengths': data_algorithm("NDZRL",[x[1] - x[0] for x in positions]),
     }
-    starts_and_ends(out, positions, "contig")
-    return out
 
-
-class ContigDataHandler2(DataHandler):
+class ContigDataHandler15(DataHandler):
     def process_data(self, data_accessor: DataAccessor, panel: Panel, scope, accept) -> Response:
         """
 
@@ -119,7 +118,7 @@ class ContigDataHandler2(DataHandler):
             raise DataException("Unknown chromosome {0}".format(panel.stick))
         return get_contig(data_accessor,chrom,panel,False)
 
-class ShimmerContigDataHandler2(DataHandler):
+class ShimmerContigDataHandler15(DataHandler):
     def process_data(self, data_accessor: DataAccessor, panel: Panel, scope, accept) -> Response:
         """
 

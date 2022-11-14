@@ -12,6 +12,7 @@ from .transcriptorder import sort_data_by_transcript_priority
 from .transcriptfilter import filter_lines_by_criteria
 from tangle.tangle import TangleFactory
 from model.datalocator import AccessItem
+from data.v14.dataalgorithm import data_algorithm
 from ncd import NCDRead
 
 # We might be asked for very zoomed-in views even when zoomed out for example if we are zoomed
@@ -68,10 +69,9 @@ def update_panel_from_id(data_accessor: DataAccessor, panel: Panel, for_id: Tupl
         panel.start = start
         panel.end = end
 
-# For non-focus genes we need to make
-# sure we include all the transcripts even ones which start&end completely off-panel.
-
-def extract_data_for_lines(out, data, for_id: Optional[Tuple[str,str]], include_exons: bool, accept: str) -> Response:
+# For non-focus genes we need to make sure we include all the transcripts even ones which
+# start&end completely off-panel.
+def extract_data_for_lines(data, for_id: Optional[Tuple[str,str]]) -> Response:
     lines = [ TranscriptFileLine(row) for row in data ]
 
     # sort the data
@@ -80,13 +80,9 @@ def extract_data_for_lines(out, data, for_id: Optional[Tuple[str,str]], include_
 
     # filter the data
     lines = filter_lines_by_criteria(lines,for_id,max_tr)
-
-    # serialize the data
-    tangle = TANGLE_EXON if include_exons else TANGLE_NO_EXON
-    tangle.run(out,{ "tr_bigbed": lines },**accept_to_tangling_config(accept))
+    return lines
 
 def extract_gene_data(data_accessor: DataAccessor, panel: Panel, include_exons: bool, for_id: Optional[Tuple[str,str]], accept: str) -> Response:
-    out = {}
     # fix location
     if for_id is not None:
         update_panel_from_id(data_accessor,panel,for_id)
@@ -95,9 +91,13 @@ def extract_gene_data(data_accessor: DataAccessor, panel: Panel, include_exons: 
         raise DataException("Unknown chromosome {0}".format(panel.stick))
     # get the data
     item = chrom.item_path("transcripts")
+    # serialize the data
+    tangle = TANGLE_EXON if include_exons else TANGLE_NO_EXON
     data = get_bigbed(data_accessor,item,panel.start,panel.end)
-    extract_data_for_lines(out,data,for_id,include_exons,accept)
+    lines = extract_data_for_lines(data,for_id)
+    out = tangle.run2({},{ "tr_bigbed": lines },**accept_to_tangling_config(accept))
     # flag as invariant if by id
+    out = { k: data_algorithm(v[0],v[1]) for (k,v) in out.items() }
     if for_id is not None:
         out['__invariant'] = True
     return out
@@ -105,10 +105,10 @@ def extract_gene_data(data_accessor: DataAccessor, panel: Panel, include_exons: 
 def extract_gene_overview_data(data_accessor: DataAccessor, chrom: Chromosome, start: int, end: int, with_ids: bool, accept: str) -> Response:
     item = chrom.item_path("transcripts")
     data = get_bigbed(data_accessor,item,start,end)
-    lines = [ TranscriptFileLine(x) for x in data ]
-    out = {}
     tangle = TANGLE_OVERVIEW_WITH_IDS if with_ids else TANGLE_OVERVIEW
-    tangle.run(out,{ "tr_bigbed": lines },**accept_to_tangling_config(accept))
+    lines = [ TranscriptFileLine(x) for x in data ]
+    out = tangle.run2({},{ "tr_bigbed": lines },**accept_to_tangling_config(accept))
+    out = { k: data_algorithm(v[0],v[1]) for (k,v) in out.items() }
     return out
 
 def for_id(scope):
@@ -123,18 +123,17 @@ def for_id(scope):
     else:
         return None
 
-class TranscriptDataHandler(DataHandler):
+class TranscriptDataHandler15(DataHandler):
     def process_data(self, data_accessor: DataAccessor, panel: Panel, scope, accept) -> Response:
         return extract_gene_data(data_accessor,panel,True,for_id(scope),accept)
 
-class GeneDataHandler(DataHandler):
+class GeneDataHandler15(DataHandler):
     def process_data(self, data_accessor: DataAccessor, panel: Panel, scope, accept) -> Response:
         return extract_gene_data(data_accessor,panel,False,for_id(scope),accept)
 
-class GeneOverviewDataHandler(DataHandler):
+class GeneOverviewDataHandler15(DataHandler):
     def process_data(self, data_accessor: DataAccessor, panel: Panel,scope, accept) -> Response:
         chrom = data_accessor.data_model.stick(data_accessor,panel.stick)
         if chrom == None:
             return Response(1,"Unknown chromosome {0}".format(panel.stick))
-        out = extract_gene_overview_data(data_accessor,chrom,panel.start,panel.end,False,accept)
-        return out
+        return extract_gene_overview_data(data_accessor,chrom,panel.start,panel.end,False,accept)
