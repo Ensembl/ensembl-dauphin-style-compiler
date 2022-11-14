@@ -92,7 +92,6 @@ impl SizeManagerState {
     fn test_update_canvas_size(&mut self, active: bool) -> Option<(u32,u32)> {
         let (canvas_x,canvas_y) = self.canvas_size();
         if !self.booted {
-            log!("test_update_canvas_size/A({},{})",canvas_x,canvas_y);
             return Some((canvas_x,canvas_y));
         }
         if let Some((container_x,container_y)) = self.container_size {

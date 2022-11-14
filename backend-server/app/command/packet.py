@@ -74,12 +74,13 @@ def process_packet(packet_cbor: Any, high_priority: bool) -> Any:
     channel = replace_empty_channel(packet_cbor["channel"])
     response = []
     program_data = []
-    local_tracks = Tracks()
     local_requests = []
     remote_requests = collections.defaultdict(list)
     version = Version(packet_cbor.get("version",None))
     data_accessor = data_accessor_collection.get(version.get_egs())
-    # anything that should be remote
+    bundles = BundleSet()
+    tracks = Tracks()
+    # separate into local and remote
     metrics.count_packets += len(packet_cbor["requests"])
     for p in packet_cbor["requests"]:
         (msgid,typ,payload) = p
@@ -88,26 +89,25 @@ def process_packet(packet_cbor: Any, high_priority: bool) -> Any:
             remote_requests[override].append(p)
         else:
             local_requests.append((msgid,typ,payload))
+    # remote stuff
+    remote_tracks = []
     for (request,messages) in remote_requests.items():
         r = do_request_remote(request,messages,high_priority,version)
         response += [[x[0],cbor2.dumps(x[1])] for x in r["responses"]]
         program_data |= set(r["programs"])
         if "tracks" in r and len(r["tracks"])>0:
+            tracks.add_cookeds(r["tracks"])
             raise Exception("UNIMPLEMENTED: adding to track payloads")
             #local_tracks.merge(Tracks(expanded_toml=r["tracks"]))
     # local stuff
-    bundles = BundleSet()
     for (msgid,typ,payload) in local_requests:
         if version.get_egs() in data_accessor.supported_versions:
             r = process_local_request(data_accessor,channel,typ,payload,metrics,version)
             response.append([msgid,r.payload])
             bundles.merge(r.bundles)
-            local_tracks.merge(r.tracks)
+            tracks.merge(r.tracks)
         else:
             response.append([msgid,Response(8,[0]).payload])
     metrics.send()
-    all_tracks = []
-    local_tracks = local_tracks.dump_for_wire()
-    if local_tracks is not None:
-        all_tracks.append(local_tracks)
-    return (response,bundles.bundle_data(),channel,all_tracks)
+    tracks = tracks.dump_for_wire()
+    return (response,bundles.bundle_data(),channel,tracks)

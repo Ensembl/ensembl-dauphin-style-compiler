@@ -130,6 +130,7 @@ class Tracks:
         self._expansions = {}
         self._path = path
         self._includes = {}
+        self._cooked = []
         if path is not None:
             self.ingest_toml({
                 'include_files': [path]
@@ -137,6 +138,9 @@ class Tracks:
 
     def add_track(self,name,track):
         self._tracks[name] = track
+
+    def add_cookeds(self, cooked):
+        self._cooked += cooked
 
     def ingest_toml(self, data, seen = set()):
         if "include_files" in data and self._path is not None:
@@ -185,7 +189,7 @@ class Tracks:
         return (switches,programs,tags,channels,values,keys)
 
     def dump_for_wire(self):
-        return TracksDump(self).data
+        return [ x for x in [TracksDump(self).data] + self._cooked if x is not None ]
 
     def get_expansion(self, name) -> Optional[Expansion]:
         return self._expansions.get(name)
