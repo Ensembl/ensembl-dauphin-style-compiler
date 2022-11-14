@@ -1,5 +1,6 @@
 import logging
 from model.tracks import Tracks
+from typing import List
 import toml
 import os.path
 from core.config import ASSETS_TOML, BOOT_TRACKS_TOML, METRIC_FILE, ASSETS_DIR
@@ -62,6 +63,9 @@ class BootstrapHandler(Handler):
         r.add_tracks(data_accessor.boot_tracks)
         return r
 
+    def remote_prefix(self, payload: Any) -> Optional[List[str]]:
+        return ["boot"]
+
 class ProgramHandler(Handler):
     def process(self, data_accessor: DataAccessor, channel: Any, payload: Any, metrics: ResponseMetrics, version: Version) -> Response:
         logging.warn("ProgramHandler {}".format(payload))
@@ -77,7 +81,10 @@ class ProgramHandler(Handler):
         if bundle != None:
             r.add_bundle(bundle)
         return r
-        
+
+    def remote_prefix(self, payload: Any) -> Optional[List[str]]:
+        return ["program"]
+
 class StickHandler(Handler):
     def process(self, data_accessor: DataAccessor, channel: Any, payload: Any, metrics: ResponseMetrics, version: Version) -> Response:
         (stick_name,) = payload

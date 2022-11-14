@@ -39,10 +39,10 @@ def type_to_handler(typ: int) -> Handler:
         return ErrorHandler("unsupported command type ({0})".format(typ))
     return handler
 
-def do_request_remote(url,messages, high_priority: bool, version: Version):
+def do_request_remote(url,channel,messages, high_priority: bool, version: Version):
     suffix = "hi" if high_priority else "lo"
     request = cbor2.dumps({
-        "channel": [0,url],
+        "channel": channel,
         "requests": messages,
         "version": version.encode()
     })
@@ -92,13 +92,11 @@ def process_packet(packet_cbor: Any, high_priority: bool) -> Any:
     # remote stuff
     remote_tracks = []
     for (request,messages) in remote_requests.items():
-        r = do_request_remote(request,messages,high_priority,version)
+        r = do_request_remote(request,channel,messages,high_priority,version)
         response += [[x[0],cbor2.dumps(x[1])] for x in r["responses"]]
-        program_data += set(r["programs"])
-        if "tracks" in r and len(r["tracks"])>0:
-            tracks.add_cookeds(r["tracks"])
-            raise Exception("UNIMPLEMENTED: adding to track payloads")
-            #local_tracks.merge(Tracks(expanded_toml=r["tracks"]))
+        program_data += r["programs"]
+        if "tracks-packed" in r and len(r["tracks-packed"])>0:
+            tracks.add_cookeds(r["tracks-packed"])
     # local stuff
     for (msgid,typ,payload) in local_requests:
         if version.get_egs() in data_accessor.supported_versions:
