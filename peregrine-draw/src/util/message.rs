@@ -6,7 +6,7 @@ use std::sync::{ Arc, Mutex };
 use commander::cdr_identity;
 use lazy_static::lazy_static;
 use peregrine_data::{DataMessage, ZMenuFixed, zmenu_fixed_vec_to_json, GlobalAllotmentMetadata };
-use peregrine_message::{MessageAction, MessageKind, MessageLikelihood, PeregrineMessage};
+use peregrine_message::{MessageKind, PeregrineMessage};
 
 fn calculate_hash<T: Hash>(t: &T) -> u64 {
     let mut s = DefaultHasher::new();
@@ -66,17 +66,6 @@ impl PeregrineMessage for Message {
         }
     }
 
-    fn action(&self) -> MessageAction {
-        match self {
-            Message::DataError(x) => x.action(),
-            Message::ConfusedWebBrowser(_) => MessageAction::YourMistake,
-            Message::WebGLFailure(_) => MessageAction::YourMistake,
-            Message::Canvas2DFailure(_) => MessageAction::YourMistake,
-            Message::BadBackendConnection(_) => MessageAction::RetrySoon,        
-            _ => MessageAction::OurMistake
-        }
-    }
-
     fn code(&self) -> (u64,u64) {
         // allowed 500-999; next is 512
         match self {
@@ -121,18 +110,6 @@ impl PeregrineMessage for Message {
             Message::AllotmentMetadataReport(metadata) => format!("allotment metadata: {:?}",metadata.summarize_json()),
             Message::ZMenuEvent(x,y,zmenu) => format!("zmenu event: {} at ({},{})",zmenu_fixed_vec_to_json(zmenu),x,y),
             Message::HitEndstop(x) => format!("hit endstop: {:?}",x.iter().map(|y| format!("{:?}",y)).collect::<Vec<_>>().join(", ")),
-        }
-    }
-
-    fn likelihood(&self) -> MessageLikelihood {
-        match self {
-            Message::DataError(x) => x.likelihood(),
-            Message::ConfusedWebBrowser(_) => MessageLikelihood::Inevitable,
-            Message::WebGLFailure(_) => MessageLikelihood::Inevitable,
-            Message::Canvas2DFailure(_) => MessageLikelihood::Inevitable,
-            Message::CannotPackRectangles(_) => MessageLikelihood::Unlikely,
-            Message::BadBackendConnection(_) => MessageLikelihood::Inevitable,
-            _ => MessageLikelihood::Quality
         }
     }
 }

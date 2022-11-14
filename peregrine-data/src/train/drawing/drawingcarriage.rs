@@ -1,11 +1,12 @@
 use std::hash::{Hash, Hasher};
 use std::sync::{ Arc, Mutex };
+use peregrine_toolkit::error::Error;
 use peregrine_toolkit::lock;
 use peregrine_toolkit_async::sync::retainer::{RetainTest, Retainer, retainer};
 use crate::allotment::core::abstractcarriage::AbstractCarriage;
 use crate::allotment::core::trainstate::{TrainState3};
 use crate::shape::shape::DrawingShape;
-use crate::{ DataMessage, TrainIdentity };
+use crate::{ TrainIdentity };
 use peregrine_toolkit::identitynumber;
 
 use super::super::model::carriageextent::CarriageExtent;
@@ -38,7 +39,7 @@ pub struct DrawingCarriage {
 }
 
 impl DrawingCarriage {
-    pub(crate) fn new(train_identity: &TrainIdentity, abstract_carriage: &AbstractCarriage, train_state: &TrainState3) -> Result<DrawingCarriage,DataMessage> {
+    pub(crate) fn new(train_identity: &TrainIdentity, abstract_carriage: &AbstractCarriage, train_state: &TrainState3) -> Result<DrawingCarriage,Error> {
         let extent = abstract_carriage.extent().unwrap();
         let carriage_spec = abstract_carriage.spec().ok().unwrap();
         train_state.add(extent.index(),&carriage_spec);

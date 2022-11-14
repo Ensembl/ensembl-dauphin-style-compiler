@@ -53,10 +53,10 @@ impl PeregrineIntegration for PgIntegration {
         self.report.set_allotter_metadata(metadata);
     }
 
-    fn start_transition(&mut self, extent: &TrainIdentity, max: u64, speed: CarriageSpeed) ->Result<(),DataMessage> {
+    fn start_transition(&mut self, extent: &TrainIdentity, max: u64, speed: CarriageSpeed) -> Result<(),DataMessage> {
         self.input.set_limit(max as f64);
         self.trainset.start_fade(extent,max,speed)
-            .map_err(|e| DataMessage::TunnelError(Arc::new(Mutex::new(e))))?;
+            .map_err(|e| DataMessage::XXXTransitional(e))?;
         Ok(())
     }
 

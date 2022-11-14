@@ -87,7 +87,7 @@ impl PeregrineCore {
             channel_registry.add(itn);
         }
         let channel_registry = channel_registry.build();
-        let dauphin = PgDauphin::new(&dauphin_queue,&channel_registry,&booted).map_err(|e| DataMessage::DauphinIntegrationError(format!("could not create: {}",e)))?;
+        let dauphin = PgDauphin::new(&dauphin_queue,&channel_registry,&booted).map_err(|e| DataMessage::XXXTransitional(Error::fatal(&format!("could not create: {}",e))))?;
         let mut switches = Switches::new(&dauphin);
         let version = VersionMetadata::new();
         let sidecars = RequestSidecars::new(&dauphin,&switches,&queue);
