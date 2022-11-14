@@ -74,7 +74,7 @@ def process_packet(packet_cbor: Any, high_priority: bool) -> Any:
     channel = replace_empty_channel(packet_cbor["channel"])
     response = []
     program_data = []
-    tracks = Tracks()
+    local_tracks = Tracks()
     local_requests = []
     remote_requests = collections.defaultdict(list)
     version = Version(packet_cbor.get("version",None))
@@ -94,7 +94,7 @@ def process_packet(packet_cbor: Any, high_priority: bool) -> Any:
         program_data |= set(r["programs"])
         if "tracks" in r and len(r["tracks"])>0:
             raise Exception("UNIMPLEMENTED: adding to track payloads")
-            #tracks.merge(Tracks(expanded_toml=r["tracks"]))
+            #local_tracks.merge(Tracks(expanded_toml=r["tracks"]))
     # local stuff
     bundles = BundleSet()
     for (msgid,typ,payload) in local_requests:
@@ -102,8 +102,12 @@ def process_packet(packet_cbor: Any, high_priority: bool) -> Any:
             r = process_local_request(data_accessor,channel,typ,payload,metrics,version)
             response.append([msgid,r.payload])
             bundles.merge(r.bundles)
-            tracks.merge(r.tracks)
+            local_tracks.merge(r.tracks)
         else:
             response.append([msgid,Response(8,[0]).payload])
     metrics.send()
-    return (response,bundles.bundle_data(),channel,tracks.dump_for_wire())
+    all_tracks = []
+    local_tracks = local_tracks.dump_for_wire()
+    if local_tracks is not None:
+        all_tracks.append(local_tracks)
+    return (response,bundles.bundle_data(),channel,all_tracks)

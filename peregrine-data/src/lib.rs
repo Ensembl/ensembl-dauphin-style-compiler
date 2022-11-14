@@ -185,7 +185,7 @@ mod request {
     pub(crate) mod tracks {
         pub(crate) mod expansionmodel;
         mod switchtree;
-        mod packedtrackres;
+        pub(crate) mod packedtrackres;
         pub(crate) mod trackdata;
         pub(crate) mod trackmodel;
         pub(crate) mod trackres;

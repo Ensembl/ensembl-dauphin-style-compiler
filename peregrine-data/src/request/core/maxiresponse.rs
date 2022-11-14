@@ -1,11 +1,11 @@
-use peregrine_toolkit::{ serdetools::{st_field }};
+use peregrine_toolkit::{ serdetools::{st_field }, log};
 use serde::de::{Visitor, MapAccess, DeserializeSeed, IgnoredAny};
 use serde::{Deserializer};
 use std::any::Any;
 use std::fmt;
 use std::mem::replace;
 use std::sync::Arc;
-use crate::{core::{channel::wrappedchannelsender::WrappedChannelSender, program::programbundle::PackedSuppliedBundle }, request::tracks::{trackres::TrackResult}, TrackModel, ExpansionModel};
+use crate::{core::{channel::wrappedchannelsender::WrappedChannelSender, program::programbundle::PackedSuppliedBundle }, request::tracks::{trackres::TrackResult, packedtrackres::PackedTrackRes}, TrackModel, ExpansionModel};
 use crate::{BackendNamespace};
 use crate::core::program::programbundle::SuppliedBundle;
 use super::miniresponse::{MiniResponseAttempt, MiniResponseAttemptVecDeserialize};
@@ -20,7 +20,7 @@ pub struct MaxiResponse {
     channel: BackendNamespace,
     responses: Vec<MiniResponseAttempt>,
     programs: Vec<SuppliedBundle>,
-    tracks: TrackResult
+    tracks: Vec<TrackResult>
 }
 
 impl MaxiResponse {
@@ -29,7 +29,7 @@ impl MaxiResponse {
             channel: channel.clone(),
             responses: vec![],
             programs: vec![],
-            tracks: TrackResult::None
+            tracks: vec![TrackResult::None]
         }
     }
 
@@ -37,8 +37,8 @@ impl MaxiResponse {
         self.responses.push(response);
     }
 
-    pub fn set_track_payload(&mut self, tracks: Vec<TrackModel>, expansions: Vec<ExpansionModel>) {
-        self.tracks = TrackResult::Unpacked(tracks,expansions);
+    pub fn add_track_payload(&mut self, tracks: Vec<TrackModel>, expansions: Vec<ExpansionModel>) {
+        self.tracks.push(TrackResult::Unpacked(tracks,expansions));
     }
 
     pub fn set_bundle_payload(&mut self, bundles: Vec<SuppliedBundle>) {
@@ -68,7 +68,7 @@ impl MaxiResponse {
 
     pub(crate) fn channel(&self) -> &BackendNamespace { &self.channel }
     pub(crate) fn programs(&self) -> &[SuppliedBundle] { &self.programs }
-    pub(crate) fn tracks(&self) -> &TrackResult { &self.tracks }
+    pub(crate) fn tracks(&self) -> &[TrackResult] { &self.tracks }
     pub(crate) fn take_responses(&mut self) -> Vec<MiniResponseAttempt> {
         self.check_big_requests();
         replace(&mut self.responses,vec![])
@@ -89,7 +89,7 @@ impl<'de> Visitor<'de> for MaxiResponseVisitor {
         let mut responses : Option<Vec<MiniResponseAttempt>> = None;
         let mut programs = None;
         let mut channel = None;
-        let mut tracks = TrackResult::None;
+        let mut tracks = vec![TrackResult::None];
         while let Some(key) = access.next_key()? {
             match key {
                 "responses" => { 
@@ -97,7 +97,10 @@ impl<'de> Visitor<'de> for MaxiResponseVisitor {
                 },
                 "programs" => { programs = access.next_value::<Option<Vec<PackedSuppliedBundle>>>()? },
                 "channel" => { channel = access.next_value()? },
-                "tracks-packed" => { tracks = TrackResult::Packed(access.next_value()?); },
+                "tracks-packed" => { 
+                    tracks = access.next_value::<Vec<PackedTrackRes>>()?.drain(..)
+                        .map(|x| TrackResult::Packed(x)).collect();
+                },
                 _ => { let _ : IgnoredAny = access.next_value()?; }
             }
         }

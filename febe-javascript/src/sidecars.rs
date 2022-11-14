@@ -69,7 +69,7 @@ impl JsSidecar {
     }
 
     pub(crate) fn add_to_response(&mut self, res: &mut MaxiResponse) {
-        res.set_track_payload(
+        res.add_track_payload(
             mem::replace(&mut self.tracks,vec![]),
             mem::replace(&mut self.expansions,vec![]));
         res.set_bundle_payload(mem::replace(&mut self.programs,vec![]));
