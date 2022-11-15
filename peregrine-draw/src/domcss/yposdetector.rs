@@ -14,8 +14,9 @@ use crate::{input::low::event::EventSystem, Message, stage::stage::Stage};
 #[derive(Clone)]
 pub(crate) struct YPosDetector {
     old_top: Arc<Mutex<Option<i32>>>,
-    //events: Arc<EventSystem<Needed>>,
-    el: HtmlElement
+    el: HtmlElement,
+    #[allow(unused)] // keeps event alive
+    events: Arc<EventSystem<Needed>>,
 }
 
 impl YPosDetector {
@@ -26,7 +27,7 @@ impl YPosDetector {
         })?;
         Ok(YPosDetector {
             old_top: Arc::new(Mutex::new(None)),
-            //events: Arc::new(events),
+            events: Arc::new(events),
             el: el.clone()
         })
     }
