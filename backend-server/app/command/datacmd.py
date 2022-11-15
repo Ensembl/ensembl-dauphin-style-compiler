@@ -113,8 +113,6 @@ class DataHandler(Handler):
         try:
             if version.get_egs() < 14:
                 out = handler.process_data(data_accessor,panel,scope)
-            elif version.get_egs() < 15:
-                raise Exception("EEP!")
             else:
                 data = handler.process_data(data_accessor,panel,scope,accept)
                 invariant = data.pop('__invariant',False)
