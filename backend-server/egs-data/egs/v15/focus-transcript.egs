@@ -220,7 +220,7 @@ al_blanking_by_ex := use_allotment(al_blanking_by_ex);
 al_farover_by_thex := use_allotment(al_farover_by_thex);
 al_button := use_allotment(al_button);
 
-expanded_genes := setting_seqstr("expanded");
+expanded_genes := setting_string("expanded",[][]);
 
 /* 
  * focus object

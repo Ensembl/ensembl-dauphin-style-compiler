@@ -201,7 +201,7 @@ which_tr_by_thex := which_tr_by_ex#[thick_exons];
 
 get_focus_gene(focus_genome_id,focus_gene_id);
 
-expanded_genes := setting_seqstr("expanded");
+expanded_genes := setting_string("expanded",[][]);
 
 tk_by_gn := len([id_gn_vr]) (*) 0;
 tk_by_gn#[strand > 0] (+=) 2;

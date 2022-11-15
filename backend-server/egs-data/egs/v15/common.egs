@@ -4,7 +4,6 @@ use "peregrine";
 module "common";
 
 expr setting_yn(path) ((push([setting_boolean(path,[][])],false))[@==0]);
-expr setting_seqstr(path) (setting_string(path,["*"][]));
 expr setting_isnull(path) (setting_null(path,[][]));
 
 stmt get_focus_gene(focus_genome_id,focus_gene_id) {
@@ -181,7 +180,7 @@ stmt calc_focus_transcripts_shown(s_bool_show_tr,s_id_gn,s_id_tr,s_which_gn_by_t
     sv_bool_show_tr#[s_idx_tr_in_gn<limit_gn_by_tr] := true;
 
     /* Enabled based on enabled setting */
-    enabled_transcripts := setting_seqstr("enabled-transcripts");
+    enabled_transcripts := setting_string("enabled-transcripts",[][]);
     et_bool_show_tr := in(s_id_tr,[enabled_transcripts]);
 
     /* Choose */
@@ -231,7 +230,7 @@ stmt draw_lozenges(starts,y_offsets,ids,expanded_ids,allt) {
     textpen_lozenge := pen("'IBM Plex Mono', sans-serif",12,white_text_colour,blue_text_bgd);
     text2(blue_top_left,textpen_lozenge,button_text,allt);
 
-    expanded_ids := setting_seqstr("expanded");
+    expanded_ids := setting_string("expanded",[][]);
 
     sense := len([ids]) (*) true;
     sense#[in(ids,[expanded_ids])] := false;

@@ -192,7 +192,7 @@ potential_tracks_base := [
 potential_background_tracks := [append_group(potential_tracks_base[],["background"][])];
 use_allotment_names(background_allotment_names,enabled_tracks,potential_background_tracks);
 
-expanded_genes := setting_seqstr("expanded");
+expanded_genes := setting_string("expanded",[][]);
 
 /*
  * Which allotment and track does data go into?
