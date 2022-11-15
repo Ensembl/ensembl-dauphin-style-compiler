@@ -62,7 +62,6 @@ impl PeregrineMessage for DataMessage {
             DataMessage::XXXTransitional(e) => format!("{:?}",e),
             DataMessage::CodeInvariantFailed(f) => format!("Code invariant failed: {}",f),
             DataMessage::LengthMismatch(e) => format!("length mismatch: {}",e),
-            DataMessage::TunnelError(e) => e.lock().unwrap().to_message_string(),
             DataMessage::ConfigError(e) => match e {
                 ConfigError::UnknownConfigKey(k) => format!("unknown config key '{}",k),
                 ConfigError::BadConfigValue(k,r) => format!("bad config value for key '{}': {}",k,r),
