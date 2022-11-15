@@ -1,17 +1,15 @@
-use std::sync::{Arc, Mutex};
-
-use crate::lock;
+use std::{rc::Rc, cell::RefCell};
 
 use super::value::Value;
 
 #[derive(Clone)]
-pub struct DelayedSetter<'f, 'a:'f, T:'a>(Arc<Mutex<Option<Arc<Value<'f,'a,T>>>>>);
+pub struct DelayedSetter<'f, 'a:'f, T:'a>(Rc<RefCell<Option<Rc<Value<'f,'a,T>>>>>);
 
 pub fn delayed<'f:'a, 'a:'f, T:'a>() -> (DelayedSetter<'f,'a,T>,Value<'f,'a,Option<T>>) {
-    let value = Arc::new(Mutex::new(None));
+    let value = Rc::new(RefCell::new(None));
     let value2 = value.clone();
     (DelayedSetter(value),Value::new(move |answer_index| {
-        if let Some(inner) = &*lock!(value2) {
+        if let Some(inner) = &*value2.borrow() {
             /* value has been set, return it */
             if answer_index.is_some() {
                 Some(inner.inner(answer_index))
@@ -37,16 +35,14 @@ pub fn promise_delayed<'f:'a,'a,T>() -> (DelayedSetter<'f,'a,T>,Value<'f,'a,T>) 
 
 impl<'f,'a,T> DelayedSetter<'f,'a,T> {
     pub fn set(&self, solver: Value<'f,'a,T>) {
-        *lock!(self.0) = Some(Arc::new(solver))
+        *self.0.borrow_mut() = Some(Rc::new(solver))
     }
 }
 
 #[cfg(test)]
 mod test {
-    use std::sync::Arc;
-
+    use std::{rc::Rc};
     use crate::puzzle::{derived, constant, AnswerAllocator, promise_delayed, short_unknown};
-
     use super::delayed;
 
 
@@ -68,12 +64,12 @@ mod test {
         let (ds,d) = delayed();
         assert_eq!(None,d.constant());
         assert_eq!(None,d.call(&mut a.get()));
-        let (mut us,u) = short_unknown();
+        let (us,u) = short_unknown();
         ds.set(u);
         assert_eq!(None,d.constant());
         assert_eq!(Some(None),d.call(&mut a1));
         us.set(&mut a1,16);
         assert_eq!(None,d.constant());
-        assert_eq!(Some(Some(Arc::new(16))),d.call(&mut a1));
+        assert_eq!(Some(Some(Rc::new(16))),d.call(&mut a1));
     }
 }

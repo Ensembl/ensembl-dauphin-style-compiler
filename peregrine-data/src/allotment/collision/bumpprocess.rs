@@ -1,5 +1,4 @@
-use std::{sync::{Arc}, collections::HashSet, mem};
-use peregrine_toolkit::log;
+use std::{collections::HashSet, mem, rc::Rc};
 
 use super::{collisionalgorithm::{BumpRequestSet, BumpResponses, AlgorithmBuilder, Algorithm}};
 
@@ -18,7 +17,7 @@ impl BumpPersistent {
         }
     }
 
-    fn try_only_new(&mut self, new: &[Arc<BumpRequestSet>]) -> bool {
+    fn try_only_new(&mut self, new: &[Rc<BumpRequestSet>]) -> bool {
         let algorithm = self.algorithm.as_mut().unwrap();
         for new in new {
             if !algorithm.add(new) { return false; }
@@ -26,7 +25,7 @@ impl BumpPersistent {
         true
     }
 
-    pub(crate) fn make(&mut self, input: &[Arc<BumpRequestSet>]) -> (BumpResponses,u64) {
+    pub(crate) fn make(&mut self, input: &[Rc<BumpRequestSet>]) -> (BumpResponses,u64) {
         let new_all_wanted = input.iter().map(|x| x.index()).collect::<HashSet<_>>();
         /* Perfect match? */
         if let Some(bumper) = &self.algorithm {

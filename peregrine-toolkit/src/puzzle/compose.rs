@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::rc::Rc;
 
 use super::{value::Value};
 /* Used by Value's callback:
@@ -45,7 +45,7 @@ pub fn derived_debug<'a:'b, 'b, 'f:'a, 'g:'a, 'h:'f, T:'a, U:'b, F: 'f>(a: Value
  *   Input1 type must last longer than callback (used): a > f
  *   Input2 type must last longer than callback (used): b > f
  *   Output type must last longer than callback (created): c > f
- * Data can be treansferred from input to output:
+ * Data can be transferred from input to output:
  *   Uses input1 to generate output: c > a
  *   Uses input2 to generate output: c > b
  * Derivation callback:
@@ -70,9 +70,9 @@ pub fn compose<'a:'c, 'b:'c, 'c,
     })
 }
 
-/* lifetime agrument same as derived */
+/* lifetime comment same as for derived */
 pub fn compose_slice<'a:'b, 'b, 'f:'a, 'g:'f, 'h:'f, T, U, F:'f>(inputs: &[Value<'g,'a,T>], f: F) -> Value<'h,'b,U> where F: Fn(&[T]) -> U {
-    let inputs = Arc::new(inputs.iter().cloned().collect::<Vec<_>>());
+    let inputs = Rc::new(inputs.iter().cloned().collect::<Vec<_>>());
     Value::new(move |answer_index| {
         let mut values = vec![];
         for input in &*inputs {
@@ -86,9 +86,9 @@ pub fn compose_slice<'a:'b, 'b, 'f:'a, 'g:'f, 'h:'f, T, U, F:'f>(inputs: &[Value
     })
 }
 
-/* lifetime agrument same as derived */
+/* lifetime comment same as for derived */
 pub fn compose_slice_vec<'a:'b, 'b, 'f:'a, 'g:'f, 'h:'f, T>(inputs: &[Value<'g,'a,T>]) -> Value<'h,'b,Vec<T>> {
-    let inputs = Arc::new(inputs.iter().cloned().collect::<Vec<_>>());
+    let inputs = Rc::new(inputs.iter().cloned().collect::<Vec<_>>());
     Value::new(move |answer_index| {
         let mut values = vec![];
         for input in &*inputs {
@@ -115,7 +115,7 @@ mod test {
         let mut a = AnswerAllocator::new();
         let mut a1 = a.get();
         let mut a2 = a.get();
-        let (mut us,u) = short_unknown_promise_clonable();
+        let (us,u) = short_unknown_promise_clonable();
         let d = derived(u,|v| v*v);
         us.set(&mut a1,6);
         us.set(&mut a2,7);
@@ -128,8 +128,8 @@ mod test {
         let mut a = AnswerAllocator::new();
         let mut a1 = a.get();
         let mut a2 = a.get();
-        let (mut us,u) = short_unknown_promise_clonable();
-        let (mut vs,v) = short_unknown_promise_clonable();
+        let (us,u) = short_unknown_promise_clonable();
+        let (vs,v) = short_unknown_promise_clonable();
         let d = compose(u,v,|u,v| u*v);
         us.set(&mut a1,7);
         us.set(&mut a2,8);
@@ -144,8 +144,8 @@ mod test {
         let mut a = AnswerAllocator::new();
         let mut a1 = a.get();
         let mut a2 = a.get();
-        let (mut us,u) = short_unknown_promise_clonable();
-        let (mut vs,v) = short_unknown_promise_clonable();
+        let (us,u) = short_unknown_promise_clonable();
+        let (vs,v) = short_unknown_promise_clonable();
         let d = compose_slice(&[u,v],|x| x[0]*x[1]);
         us.set(&mut a1,7);
         us.set(&mut a2,8);

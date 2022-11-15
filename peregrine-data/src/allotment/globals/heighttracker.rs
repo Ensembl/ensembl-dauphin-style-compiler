@@ -26,7 +26,7 @@ pub struct LocalHeightTracker(LocalValueSpec<AllotmentName,f64,f64>);
 impl LocalHeightTracker {
     pub(crate) fn new(builder: &LocalHeightTrackerBuilder) -> LocalHeightTracker {
         LocalHeightTracker(LocalValueSpec::new(&builder.0,|x| {
-            commute(x,0.,|x,y| x.max(*y)).dearc()
+            commute(x,0.,|x,y| x.max(*y)).derc()
         }))
     }
 

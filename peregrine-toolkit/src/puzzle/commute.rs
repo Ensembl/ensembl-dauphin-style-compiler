@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::rc::Rc;
 
 use super::{answer::Answer, value::Value, DelayedSetter, derived, promise_delayed };
 
@@ -60,43 +60,43 @@ impl<'f:'a,'a,T: Clone> ClonableCommuter<'f,'a,T> {
     }
 }
 
-struct Commuter<'f,'a,T>(ClonableCommuter<'f,'a,Arc<T>>);
+struct Commuter<'f,'a,T>(ClonableCommuter<'f,'a,Rc<T>>);
 
 impl<'f:'a,'a,T> Commuter<'f,'a,T> {
     fn new<F>(initial: T, compose: F) -> Commuter<'f,'a,T> where F: Fn(&T,&T) -> T + 'f {
-        Commuter(ClonableCommuter::new(Arc::new(initial),move |a,b|{
-            Arc::new(compose(&*a,&*b))
+        Commuter(ClonableCommuter::new(Rc::new(initial),move |a,b|{
+            Rc::new(compose(&*a,&*b))
         }))
     }
 
     fn add<'g,'b>(&mut self, solver: Value<'f,'a,T>) where 'g:'b, 'f:'a {
-        self.0.add(derived(solver,|x| Arc::new(x)))
+        self.0.add(derived(solver,|x| Rc::new(x)))
     }
 
-    fn inner(&self, answer_index: &Option<&Answer<'a>>) -> Option<Arc<T>> {
+    fn inner(&self, answer_index: &Option<&Answer<'a>>) -> Option<Rc<T>> {
         self.0.inner(answer_index)
     }
 }
 
-struct ArcCommuter<'f,'a,T>(ClonableCommuter<'f,'a,Arc<T>>);
+struct RcCommuter<'f,'a,T>(ClonableCommuter<'f,'a,Rc<T>>);
 
-impl<'f: 'a,'a,T> ArcCommuter<'f,'a,T> {
-    fn new(initial: Arc<T>, compose: Arc<dyn Fn(&T,&T) -> T + 'f>) -> ArcCommuter<'f,'a,T> {
-        ArcCommuter(ClonableCommuter::new(initial,move |a,b| {
-            Arc::new(compose(&*a,&*b))
+impl<'f: 'a,'a,T> RcCommuter<'f,'a,T> {
+    fn new(initial: Rc<T>, compose: Rc<dyn Fn(&T,&T) -> T + 'f>) -> RcCommuter<'f,'a,T> {
+        RcCommuter(ClonableCommuter::new(initial,move |a,b| {
+            Rc::new(compose(&*a,&*b))
         }))
     }
 
-    fn add(&mut self, solver: Value<'f,'a,Arc<T>>) {
+    fn add(&mut self, solver: Value<'f,'a,Rc<T>>) {
         self.0.add(solver);
     }
 
-    fn inner(&self, answer_index: &Option<&Answer<'a>>) -> Option<Arc<T>> {
+    fn inner(&self, answer_index: &Option<&Answer<'a>>) -> Option<Rc<T>> {
         self.0.inner(answer_index)
     }
 }
 
-pub fn commute<'f: 'a,'a,T: 'a,F: 'f>(inputs: &[Value<'f,'a,T>], initial: T, compose: F) -> Value<'f,'a,Arc<T>> where F: Fn(&T,&T) -> T + 'f {
+pub fn commute<'f: 'a,'a,T: 'a,F: 'f>(inputs: &[Value<'f,'a,T>], initial: T, compose: F) -> Value<'f,'a,Rc<T>> where F: Fn(&T,&T) -> T + 'f {
     let mut commuter = Commuter::new(initial,compose);
     for input in inputs {
         commuter.add(input.clone());
@@ -127,8 +127,8 @@ pub fn commute_clonable<'f: 'a,'a,T: 'a+Clone,F: 'f>(inputs: &[Value<'f,'a,T>], 
     })
 }
 
-pub fn commute_arc<'f: 'a,'a,T: 'a>(inputs: &[Value<'f,'a,Arc<T>>], initial: Arc<T>, compose: Arc<dyn Fn(&T,&T) -> T + 'f>) -> Value<'f,'a,Arc<T>> {
-    let mut commuter = ArcCommuter::new(initial,compose);
+pub fn commute_rc<'f: 'a,'a,T: 'a>(inputs: &[Value<'f,'a,Rc<T>>], initial: Rc<T>, compose: Rc<dyn Fn(&T,&T) -> T + 'f>) -> Value<'f,'a,Rc<T>> {
+    let mut commuter = RcCommuter::new(initial,compose);
     for input in inputs {
         commuter.add(input.clone());
     }
@@ -138,42 +138,39 @@ pub fn commute_arc<'f: 'a,'a,T: 'a>(inputs: &[Value<'f,'a,Arc<T>>], initial: Arc
 }
 
 pub struct DelayedCommuteBuilder<'a,T: 'a> {
-    f: Arc<dyn Fn(&T,&T) -> T + 'a>,
-    solver: Value<'a,'a,Arc<T>>,
-    setter: DelayedSetter<'a,'a,Arc<T>>,
-    values: Vec<Value<'a,'a,Arc<T>>>
+    f: Rc<dyn Fn(&T,&T) -> T + 'a>,
+    solver: Value<'a,'a,Rc<T>>,
+    setter: DelayedSetter<'a,'a,Rc<T>>,
+    values: Vec<Value<'a,'a,Rc<T>>>
 }
 
 impl<'a,T: 'a> DelayedCommuteBuilder<'a,T> {
     pub fn new<F>(f: F) -> DelayedCommuteBuilder<'a,T> where F: Fn(&T,&T) -> T + 'a {
         let (setter,solver) = promise_delayed();
-        DelayedCommuteBuilder { setter, solver, f: Arc::new(f), values: vec![] }
+        DelayedCommuteBuilder { setter, solver, f: Rc::new(f), values: vec![] }
     }
 
-    pub fn solver(&self) -> &Value<'a,'a,Arc<T>> { &self.solver }
+    pub fn solver(&self) -> &Value<'a,'a,Rc<T>> { &self.solver }
 
     pub fn add(&mut self, value: &Value<'a,'a,T>) { 
-        let value = derived(value.clone(),|x| Arc::new(x));
+        let value = derived(value.clone(),|x| Rc::new(x));
         self.values.push(value);
     }
 
     pub fn build(&mut self, initial: T) {
-        let value = commute_arc(&self.values,Arc::new(initial),self.f.clone());
+        let value = commute_rc(&self.values,Rc::new(initial),self.f.clone());
         self.setter.set(value);
     }
 }
 
 #[cfg(test)]
 mod test {
-    use std::sync::{Arc, Mutex};
-
+    use std::{rc::Rc, cell::RefCell};
     use unknown::{short_unknown_promise_clonable, UnknownSetter};
-
-    use crate::{lock, puzzle::{constant::constant, unknown::{short_unknown, self}, compose::derived, answer::AnswerAllocator, Value, StaticValue, build_commute, derived_debug}};
-
+    use crate::{puzzle::{constant::constant, unknown::{short_unknown, self}, compose::derived, answer::AnswerAllocator, Value, StaticValue, build_commute}};
     use super::{commute, DelayedCommuteBuilder};
 
-    fn commute_smoke_setup(count: &Arc<Mutex<usize>>) -> (Vec<StaticValue<usize>>,Vec<UnknownSetter<'static,usize>>) {
+    fn commute_smoke_setup(count: &Rc<RefCell<usize>>) -> (Vec<StaticValue<usize>>,Vec<UnknownSetter<'static,usize>>) {
         let count2 = count.clone();
         /* evens are const, odds are variable */
         let mut inputs = vec![];
@@ -184,13 +181,13 @@ mod test {
                 /* derive so that we can capture counts */
                 let count2 = count2.clone();
                 let value = derived(constant,move |v| {
-                    *lock!(count2) += 1;
+                    *count2.borrow_mut() += 1;
                     v*v
                 });
                 inputs.push(value);
             } else {
                 let (setter,solver) = short_unknown();
-                let value = derived(solver,|v: Option<Arc<usize>>| {
+                let value = derived(solver,|v: Option<Rc<usize>>| {
                     v.map(|x| (*x).clone()).unwrap().clone()
                 });
                 inputs.push(value);
@@ -216,48 +213,48 @@ mod test {
 
     #[test]
     fn commute_smoke() {
-        let count = Arc::new(Mutex::new(0));
+        let count = Rc::new(RefCell::new(0));
         let (inputs,mut sets) = commute_smoke_setup(&count);
         /* Put into a commute: should pick up the constants */
         let total = commute(&inputs,0,|a,b| {
            *a+*b
-        }).dearc();
+        }).derc();
         commute_smoke_check(total,&mut sets);
-        assert_eq!(5,*lock!(count));
+        assert_eq!(5,*count.borrow());
     }
 
     #[test]
     fn build_commute_smoke() {
-        let count = Arc::new(Mutex::new(0));
+        let count = Rc::new(RefCell::new(0));
         let (inputs,mut sets) = commute_smoke_setup(&count);
         /* Put into a commute: should pick up the constants */
         let total = build_commute(&inputs,0,|a,b| {
            *a += *b
         },|x| *x);
         commute_smoke_check(total,&mut sets);
-        assert_eq!(5,*lock!(count));
+        assert_eq!(5,*count.borrow());
     }
 
     #[test]
     fn builder_smoke() {
         let mut a = AnswerAllocator::new();
         let mut b1 = DelayedCommuteBuilder::new(|a,b| *a+*b);
-        let s1 = b1.solver().clone().dearc();
+        let s1 = b1.solver().clone().derc();
         b1.build(42);
         let a1 = a.get();
         assert_eq!(42,s1.call(&a1));
         /**/
         let mut b2 = DelayedCommuteBuilder::new(|a,b| *a+*b);
-        let s2 = b2.solver().clone().dearc();
+        let s2 = b2.solver().clone().derc();
         b2.add(&constant(41));
         b2.build(42);
         let a2 = a.get();
         assert_eq!(83,s2.call(&a2));
         /**/
         let mut b3 = DelayedCommuteBuilder::new(|a,b| *a+*b);
-        let s3 = b3.solver().clone().dearc();
+        let s3 = b3.solver().clone().derc();
         b3.add(&constant(41));
-        let (mut u1s,u1) = short_unknown_promise_clonable();
+        let (u1s,u1) = short_unknown_promise_clonable();
         b3.add(&u1);
         b3.build(42);
         let mut a3a = a.get();

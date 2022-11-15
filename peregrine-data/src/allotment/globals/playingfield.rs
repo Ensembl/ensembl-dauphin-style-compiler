@@ -44,7 +44,7 @@ pub struct LocalPlayingField(LocalValueSpec<PlayingFieldEdge,f64,f64>);
 impl LocalPlayingField {
     pub(crate) fn new(builder: &LocalPlayingFieldBuilder) -> LocalPlayingField {
         let out = LocalPlayingField(LocalValueSpec::new(&builder.0,|x| {
-            commute(x,0.,|x,y| x.max(*y)).dearc()
+            commute(x,0.,|x,y| x.max(*y)).derc()
         }));
         out
     }

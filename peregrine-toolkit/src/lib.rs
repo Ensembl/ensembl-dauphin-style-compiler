@@ -63,11 +63,11 @@ pub mod puzzle {
     mod variable;
 
     pub use answer::{ Answer, StaticAnswer, AnswerAllocator };
-    pub use commute::{ commute, commute_arc, commute_clonable, DelayedCommuteBuilder, build_commute };
+    pub use commute::{ commute, commute_rc, commute_clonable, DelayedCommuteBuilder, build_commute };
     pub use compose::{ derived, compose, compose_slice, compose_slice_vec };
-    pub use constant::{ constant, cache_constant, cache_constant_arc, cache_constant_clonable };
+    pub use constant::{ constant, cache_constant, cache_constant_rc, cache_constant_clonable };
     pub use delayed::{ DelayedSetter, delayed, promise_delayed };
-    pub use memoized::{ short_memoized, short_memoized_arc, short_memoized_clonable };
+    pub use memoized::{ short_memoized, short_memoized_rc, short_memoized_clonable };
     pub use value::{ Value, StaticValue };
     pub use unknown::{ 
         UnknownSetter, StaticUnknownSetter, unknown, short_unknown, short_unknown_promise_clonable, 

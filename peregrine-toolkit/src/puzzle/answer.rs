@@ -1,18 +1,17 @@
-use std::{collections::BTreeSet, sync::{Arc, Mutex, Weak}};
-use crate::lock;
+use std::{collections::BTreeSet, rc::{Rc, Weak}, cell::RefCell};
 use crate::identitynumber;
 
 identitynumber!(ANSWER_IDS);
 
-struct OpaqueArcHolder<T>(Arc<T>);
-trait OpaqueArcTrait {}
-impl<T> OpaqueArcTrait for OpaqueArcHolder<T> {}
+struct OpaqueRcHolder<T>(Rc<T>);
+trait OpaqueRcTrait {}
+impl<T> OpaqueRcTrait for OpaqueRcHolder<T> {}
 
-struct OpaqueArc<'a>(Box<dyn OpaqueArcTrait + 'a>);
+struct OpaqueRc<'a>(Box<dyn OpaqueRcTrait + 'a>);
 
-impl<'a> OpaqueArc<'a> {
-    fn new<T: 'a>(arc: Arc<T>) -> OpaqueArc<'a> {
-        OpaqueArc(Box::new(OpaqueArcHolder(arc)))
+impl<'a> OpaqueRc<'a> {
+    fn new<T: 'a>(rc: Rc<T>) -> OpaqueRc<'a> {
+        OpaqueRc(Box::new(OpaqueRcHolder(rc)))
     }
 }
 
@@ -20,7 +19,7 @@ pub struct Answer<'a> {
     serial: u64,
     index: usize,
     allocator: AnswerAllocator,
-    retained: Arc<Mutex<Vec<OpaqueArc<'a>>>>
+    retained: Rc<RefCell<Vec<OpaqueRc<'a>>>>
 }
 
 pub type StaticAnswer = Answer<'static>;
@@ -29,16 +28,16 @@ impl<'a> Answer<'a> {
     pub fn index(&self) -> usize { self.index }
     pub fn serial(&self) -> u64 { self.serial }
 
-    pub fn retain<T: 'a>(&self, input: &Arc<T>) -> Weak<T> {
-        lock!(self.retained).push(OpaqueArc::new(input.clone()));
-        let output = Arc::downgrade(input);
+    pub fn retain<T: 'a>(&self, input: &Rc<T>) -> Weak<T> {
+        self.retained.borrow_mut().push(OpaqueRc::new(input.clone()));
+        let output = Rc::downgrade(input);
         output
     }
 }
 
 impl<'a> Drop for Answer<'a> {
     fn drop(&mut self) {
-       lock!(self.allocator.0).put_answer_index(self.index);
+       self.allocator.0.borrow_mut().put_answer_index(self.index);
     }
 }
 
@@ -71,19 +70,19 @@ impl AnswerAllocatorData {
 }
 
 #[derive(Clone)]
-pub struct AnswerAllocator(Arc<Mutex<AnswerAllocatorData>>);
+pub struct AnswerAllocator(Rc<RefCell<AnswerAllocatorData>>);
 
 impl AnswerAllocator {
     pub fn new() -> AnswerAllocator {
-        AnswerAllocator(Arc::new(Mutex::new(AnswerAllocatorData::new())))
+        AnswerAllocator(Rc::new(RefCell::new(AnswerAllocatorData::new())))
     }
 
     pub fn get<'a>(&mut self) -> Answer<'a> {
         Answer {
             serial: ANSWER_IDS.next(),
-            index: lock!(self.0).get(),
+            index: self.0.borrow_mut().get(),
             allocator: self.clone(),
-            retained: Arc::new(Mutex::new(vec![]))
+            retained: Rc::new(RefCell::new(vec![]))
         }
     }
 }
