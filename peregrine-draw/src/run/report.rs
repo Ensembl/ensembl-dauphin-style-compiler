@@ -1,7 +1,7 @@
 use std::{sync::{Arc, Mutex}};
 use commander::{CommanderStream, cdr_tick, cdr_timer };
 use peregrine_data::{ZMenuFixed, GlobalAllotmentMetadata};
-use peregrine_toolkit::{plumbing::oneshot::OneShot, log};
+use peregrine_toolkit::{plumbing::oneshot::OneShot};
 use peregrine_toolkit_async::sync::{needed::{Needed, NeededLock}, changed::Changed};
 use crate::{Message, PgCommanderWeb, util::message::Endstop};
 use super::{PgConfigKey, PgPeregrineConfig};
