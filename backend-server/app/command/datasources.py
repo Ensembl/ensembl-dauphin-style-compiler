@@ -12,7 +12,8 @@ class DataAccessor:
     def reload(self, version: int):
         self.resolver : DataSourceResolver = DataSourceResolver(version)
         self.begs_files = BegsFiles()
-        self.program_inventory = ProgramInventory(version)
+        if version > 14:
+            self.program_inventory = ProgramInventory(version)
         self.data_model = DataModel()
         self.cache = Memcached(MEMCACHED_PREFIX,MEMCACHED_BUMP_ON_RESTART)
         self.boot_tracks = Tracks(BOOT_TRACKS_TOML)
