@@ -15,7 +15,8 @@ In future, other useful things related to equivalence control via identity numbe
 they might be.
 
 ```rust
-use identitynumber::IdentityNumber;
+use peregrine_toolkit::identitynumber::IdentityNumber;
+
 let gen = IdentityNumber::new();
 let a = gen.next();
 let b = gen.next();
@@ -23,9 +24,7 @@ assert_ne!(a,b);
 ```
 
 ```rust
-
-#[macro_use]
-extern crate identitynumber;
+use peregrine_toolkit::identitynumber;
 
 identitynumber!(ids);
 fn main() {
@@ -36,8 +35,7 @@ fn main() {
 ```
 
 ```rust
-#[macro_use]
-extern crate identitynumber;
+use peregrine_toolkit::{identitynumber,hashable};
 
 identitynumber!(IDS);
 
