@@ -5,6 +5,14 @@ description = """
 
 Draws the ruler.
 
-Doesn't use a backend endpoint, doesn't take any settings.
+Doesn't use a backend endpoint.
+
+"""
+
+[setting.one_based]
+default = false
+description = """
+
+boolean: 1-based coordinate system
 
 """

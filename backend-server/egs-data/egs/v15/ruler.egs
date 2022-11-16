@@ -8,8 +8,13 @@ min_max := bp_range();
 min := [min_max][@==0];
 max := [min_max][@==1];
 
+one_based := setting_boolean("one_based",[][]);
+mark_delta := 0;
+mark_delta#[one_based] := 1;
+
 interval := ruler_interval(max - min,12);
 markings := ruler_markings(interval,min,max);
+strings := comma_format(markings + mark_delta);
 
 allotment_window_top := use_allotment("window-top/ruler/background/content");
 allotment_overlay_top := use_allotment("window-top/ruler/background/overlay");
@@ -44,8 +49,8 @@ rectangle(spacebase(0,16,0),spacebase(1,16,0),marker_patina,allotment_window_bot
 
 /* text */
 textpen := pen("'IBM Plex Mono', sans-serif",12,direct_colour(120,120,120,255),[][]);
-text2(spacebase(markings,2,4),textpen,comma_format(markings),allotment_top);
-text2(spacebase(markings,2,4),textpen,comma_format(markings),allotment_bottom);
+text2(spacebase(markings,2,4),textpen,strings,allotment_top);
+text2(spacebase(markings,2,4),textpen,strings,allotment_bottom);
 
 /* markers */
 rectangle(spacebase(markings,0,0),spacebase(markings,16,0),marker_patina,allotment_top);
