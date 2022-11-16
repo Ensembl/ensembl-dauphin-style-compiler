@@ -25,8 +25,8 @@ pub enum Endstop {
 #[derive(Clone)]
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub enum Message {
-    CurrentLocation(String,u64,u64),
-    TargetLocation(String,u64,u64),
+    CurrentLocation(String,f64,f64),
+    TargetLocation(String,f64,f64),
     AllotmentMetadataReport(GlobalAllotmentMetadata),
     ZMenuEvent(f64,f64,Vec<ZMenuFixed>),
     HitEndstop(Vec<Endstop>),
