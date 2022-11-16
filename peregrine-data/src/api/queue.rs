@@ -58,8 +58,7 @@ use super::pgcore::PeregrineCore;
     AddBackend(String),
     WaitForApplicationReady,
     TransitionComplete,
-    SetPosition(f64),
-    SetBpPerScreen(f64),
+    SetPosition(Option<f64>,Option<f64>),
     SetStick(StickId),
     SetMinPxPerCarriage(u32),
     Switch(Vec<String>,StructValue),
@@ -112,11 +111,13 @@ impl ApiQueueCampaign {
             ApiMessage::TransitionComplete => {
                 data.train_set.transition_complete();
             },
-            ApiMessage::SetPosition(pos) =>{
-                self.viewport = self.viewport.set_position(pos);
-            },
-            ApiMessage::SetBpPerScreen(scale) => {
-                self.viewport = self.viewport.set_bp_per_screen(scale);
+            ApiMessage::SetPosition(centre,size) =>{
+                if let Some(centre) = centre {
+                    self.viewport = self.viewport.set_position(centre);
+                }
+                if let Some(size) = size {
+                    self.viewport = self.viewport.set_bp_per_screen(size);
+                }
             },
             ApiMessage::SetMinPxPerCarriage(px) => {
                 self.viewport = self.viewport.set_pixel_size(&PixelSize::new(px))

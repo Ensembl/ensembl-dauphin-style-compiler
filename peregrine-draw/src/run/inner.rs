@@ -223,9 +223,9 @@ impl PeregrineInnerAPI {
         self.data_api.invalidate();
     }
 
-    pub(crate) fn set_x(&mut self, x: f64) {
-        self.data_api.set_position(x);
-        self.target_reporter.set_x(x);
+    pub(crate) fn set_position(&mut self, centre: Option<f64>, size: Option<f64>) {
+        self.data_api.set_position(centre,size);
+        self.target_reporter.set_position(centre,size);
     }
 
     pub(super) fn set_y(&mut self, y: f64) {
@@ -234,11 +234,6 @@ impl PeregrineInnerAPI {
 
     pub(super) fn jump(&mut self, location: &str) {
         self.input.jump(&self.data_api,&self.commander,location);
-    }
-
-    pub(crate) fn set_bp_per_screen(&mut self, z: f64) {
-        self.data_api.set_bp_per_screen(z);
-        self.target_reporter.set_bp(z);
     }
 
     pub(super) fn goto(&mut self, centre: f64, scale: f64) {

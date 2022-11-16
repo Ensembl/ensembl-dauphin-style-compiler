@@ -1,6 +1,7 @@
 use std::{sync::{ Arc, Mutex }};
 use commander::cdr_tick;
 use js_sys::Date;
+use peregrine_toolkit::lock;
 use peregrine_toolkit_async::sync::{blocker::{Blocker, Lockout}, needed::{Needed, NeededLock}};
 use crate::{ PeregrineInnerAPI, run::report::Report };
 use crate::run::{ PgPeregrineConfig };
@@ -108,8 +109,7 @@ impl InputTranslatorState {
     }
 
     fn just_goto(&mut self, inner: &mut PeregrineInnerAPI, centre: f64, bp_per_screen: f64) -> Result<(),Message> {
-        inner.set_x(centre);
-        inner.set_bp_per_screen(bp_per_screen);
+        inner.set_position(Some(centre),Some(bp_per_screen));
         self.target_reporter.force_report();
         Ok(())
     }
@@ -277,11 +277,11 @@ impl InputTranslator {
     }
 
     pub fn goto(&self, api: &mut PeregrineInnerAPI, centre: f64, scale: f64) -> Result<(),Message> {
-        self.state.lock().unwrap().goto(api,centre,scale)?;
+        lock!(self.state).goto(api,centre,scale)?;
         Ok(())
     }
 
     pub fn set_limit(&self, limit: f64) {
-        self.state.lock().unwrap().set_limit(limit);
+        lock!(self.state).set_limit(limit);
     }
 }

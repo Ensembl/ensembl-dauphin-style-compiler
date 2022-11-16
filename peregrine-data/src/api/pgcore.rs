@@ -165,12 +165,8 @@ impl PeregrineCore {
         self.base.queue.push(ApiMessage::Invalidate);
     }
 
-    pub fn set_position(&self, pos: f64) {
-        self.base.queue.push(ApiMessage::SetPosition(pos));
-    }
-
-    pub fn set_bp_per_screen(&self, scale: f64) {
-        self.base.queue.push(ApiMessage::SetBpPerScreen(scale));
+    pub fn set_position(&self, centre: Option<f64>, size: Option<f64>) {
+        self.base.queue.push(ApiMessage::SetPosition(centre,size));
     }
 
     pub fn set_min_px_per_carriage(&self, px: u32) {

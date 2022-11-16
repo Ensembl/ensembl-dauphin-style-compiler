@@ -151,8 +151,7 @@ impl Input {
             } else {
                 self.state(|state| {
                     state.inner_api.set_stick(&stick);
-                    state.inner_api.set_x(centre);
-                    state.inner_api.set_bp_per_screen(bp_per_screen);
+                    state.inner_api.set_position(Some(centre),Some(bp_per_screen));
                     state.target_reporter.force_report();
                 });
             }

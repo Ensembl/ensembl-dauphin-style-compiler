@@ -150,11 +150,8 @@ impl Regime {
         if update.force_fade {
             inner.invalidate();
         }
-        if let Some(new_x) = update.x {
-            inner.set_x(new_x);
-        }
-        if let Some(bp_per_screen) = update.bp {
-            inner.set_bp_per_screen(bp_per_screen);
+        if update.x.is_some() || update.bp.is_some() {
+            inner.set_position(update.x,update.bp);
         }
         Ok(finished)
     }
