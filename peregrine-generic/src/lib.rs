@@ -261,8 +261,8 @@ impl GenomeBrowser {
                                     /* "+1."" converts back to ensembl co-ordinates */
                                     args.set(1,JsValue::from(js_throw(JsValue::from_serde(&LocationData {
                                         stick: stick.to_string(),
-                                        start: *start+1. as f64,
-                                        end: *end as f64
+                                        start: (start+1.).round(),
+                                        end: end.round()
                                     }))));
 
                                     let _ = closure.apply(&this,&args);                    
@@ -274,8 +274,8 @@ impl GenomeBrowser {
                                     /* "+1."" converts back to ensembl co-ordinates */
                                     args.set(1,JsValue::from(js_throw(JsValue::from_serde(&LocationData {
                                         stick: stick.to_string(),
-                                        start: *start+1. as f64,
-                                        end: *end as f64
+                                        start: (start+1.).round(),
+                                        end: end.round()
                                     }))));
                                     
                                     let _ = closure.apply(&this,&args);                    
