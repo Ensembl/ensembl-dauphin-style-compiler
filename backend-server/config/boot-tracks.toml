@@ -120,10 +120,13 @@ scales = [1,100,1]
 # Ruler
 #
 
-[track.ruler]
+[track.ruler.general]
 include = ["general"]
 scales = [0,100,1]
 triggers = [["ruler"]]
+
+[track.ruler.settings]
+one_based = ["ruler","one_based"]
 
 #
 # %GC

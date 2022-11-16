@@ -161,6 +161,7 @@ impl GenomeBrowser {
         self.api.switch(&["focus"],tmpl_true.clone());
         self.api.switch(&["settings"],tmpl_true.clone());
         self.api.switch(&["ruler"],tmpl_true.clone());
+        self.api.switch(&["ruler","one_based"],tmpl_true.clone());
         self.api.radio_switch(&["focus"],true);
         self.api.radio_switch(&["focus","gene"],true);
 
@@ -196,7 +197,7 @@ impl GenomeBrowser {
     }
     
     pub fn goto(&self, left: f64, right: f64) {
-        self.api.goto(left,right);
+        self.api.goto(left-1.,right);
     }
 
     pub fn set_y(&self,y: f64) {
@@ -267,8 +268,8 @@ impl GenomeBrowser {
 
                                     args.set(1,JsValue::from(js_throw(JsValue::from_serde(&LocationData {
                                         stick: stick.to_string(),
-                                        start: *start as f64,
-                                        end: *end as f64
+                                        start: (start+1.).round(),
+                                        end: end.round()
                                     }))));
 
                                     let _ = closure.apply(&this,&args);                    
@@ -279,8 +280,8 @@ impl GenomeBrowser {
 
                                     args.set(1,JsValue::from(js_throw(JsValue::from_serde(&LocationData {
                                         stick: stick.to_string(),
-                                        start: *start as f64,
-                                        end: *end as f64
+                                        start: (start+1.).round(),
+                                        end: end.round()
                                     }))));
                                     
                                     let _ = closure.apply(&this,&args);                    
