@@ -15,7 +15,7 @@ use peregrine_febe_network::NetworkChannel;
 use peregrine_message::MessageKind;
 use peregrine_toolkit::eachorevery::eoestruct::{StructValue};
 use peregrine_toolkit::error::err_web_drop;
-use peregrine_toolkit::log;
+use peregrine_toolkit::{log, lock};
 use peregrine_toolkit::plumbing::distributor::Distributor;
 use peregrine_toolkit::plumbing::oneshot::OneShot;
 use peregrine_toolkit_async::sync::blocker::Blocker;
@@ -34,6 +34,17 @@ use peregrine_data::{ StickId };
 use crate::shape::core::spectremanager::SpectreManager;
 use peregrine_message::PeregrineMessage;
 use js_sys::Math::random;
+
+// XXX deduplicate
+fn to_left_right(position: f64, scale: f64) -> (f64,f64) {
+    ((position-scale/2.), (position+scale/2.))
+}
+
+fn position_changed(old_cs: (f64,f64), new_cs: (f64,f64)) -> bool {
+    let old_lr = to_left_right(old_cs.0,old_cs.1);
+    let new_lr = to_left_right(new_cs.0,new_cs.1);
+    old_lr.0.round() != new_lr.0.round() || old_lr.1.round() != new_lr.1.round()
+}
 
 #[derive(Clone)]
 pub struct PeregrineInnerAPI {
@@ -229,15 +240,27 @@ impl PeregrineInnerAPI {
     }
 
     pub(super) fn set_y(&mut self, y: f64) {
-        self.stage.lock().unwrap().y_mut().set_position(y);
+        lock!(self.stage).y_mut().set_position(y);
     }
 
     pub(super) fn jump(&mut self, location: &str) {
         self.input.jump(&self.data_api,&self.commander,location);
     }
 
-    pub(super) fn goto(&mut self, centre: f64, scale: f64) {
-        self.input.clone().goto(centre,scale);      
+    pub(super) fn goto(&mut self, centre: f64, scale: f64) -> Result<(),Message> {
+        let stage = lock!(self.stage).read_stage().clone();
+        let mut proceed = true;
+        if stage.ready() {
+            let old_centre = stage.x().position()?;
+            let old_scale = stage.x().bp_per_screen()?;
+            if !position_changed((old_centre,old_scale),(centre,scale)) {
+                proceed = false;
+            }
+        }
+        if proceed {
+            self.input.goto(centre,scale)?;
+        }
+        Ok(())
     }
 
     pub(crate) fn set_stick(&self, stick: &StickId) {
