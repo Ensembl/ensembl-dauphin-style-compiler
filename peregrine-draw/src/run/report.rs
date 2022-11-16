@@ -30,7 +30,7 @@ fn extract_coord(stick: &mut Changed<String>, x: &mut Changed<f64>, bp: &mut Cha
 }
 
 fn to_left_right(position: f64, scale: f64) -> (f64,f64) {
-    ((position-scale/2.), (position+scale/2.).ceil())
+    ((position-scale/2.), (position+scale/2.))
 }
 
 struct ReportData {
