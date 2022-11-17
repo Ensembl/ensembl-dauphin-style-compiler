@@ -2,7 +2,8 @@ use std::sync::{Arc, Mutex};
 use super::drawingtools::DrawingToolsBuilder;
 use super::layer::Layer;
 use commander::cdr_tick;
-use peregrine_data::{Assets, Scale, DrawingShape };
+use peregrine_data::{Assets, Scale, DrawingShape, DataMessage };
+use peregrine_toolkit::error::Error;
 use peregrine_toolkit::lock;
 use peregrine_toolkit_async::sync::needed::Needed;
 use peregrine_toolkit_async::sync::retainer::RetainTest;
@@ -47,7 +48,7 @@ impl DrawingBuilder {
         prepare_shape_in_layer(&mut self.tools,shape,gl)
     }
 
-    pub(crate) async fn prepare_tools(&mut self, gl: &Arc<Mutex<WebGlGlobal>>) -> Result<(),Message> {
+    pub(crate) async fn prepare_tools(&mut self, gl: &Arc<Mutex<WebGlGlobal>>) -> Result<(),Error> {
         let mut prep = self.tools.start_preparation(gl).await?;
         let mut drawable = DrawingAllFlatsBuilder::new();
         let mut lgl = lock!(gl);
@@ -103,7 +104,7 @@ impl Drawing {
         let mut prepared_shapes = shapes.iter().map(|s| drawing.prepare_shape(s,&mut lgl)).collect::<Result<Vec<_>,_>>()?;
         /* gather and allocate aux requirements (2d canvas space etc) */
         drop(lgl);
-        drawing.prepare_tools(gl).await?;
+        drawing.prepare_tools(gl).await.map_err(|e| Message::DataError(DataMessage::XXXTransitional(e)))?;
         if !retain_test.test() {
             #[cfg(debug_trains)]
             log_extra!("drop discared after prepare");
@@ -172,7 +173,7 @@ impl Drawing {
         Ok(())
     }
 
-    pub(crate) fn discard(&mut self, gl: &mut WebGlGlobal) -> Result<(),Message> {
+    pub(crate) fn discard(&mut self, gl: &mut WebGlGlobal) -> Result<(),Error> {
         let mut state = lock!(self.0);
         for process in &mut state.processes {
             process.discard(gl)?;

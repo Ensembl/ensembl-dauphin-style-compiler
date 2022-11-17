@@ -1,4 +1,6 @@
-use crate::{Message, webgl::{ global::WebGlGlobal}};
+use peregrine_toolkit::error::Error;
+
+use crate::{webgl::{ global::WebGlGlobal}};
 
 use super::packer::{allocate_areas, allocate_horizontal, allocate_vertical};
 
@@ -13,7 +15,7 @@ pub(crate) enum CanvasWeave {
 }
 
 impl CanvasWeave {
-    pub(crate) fn pack(&self, sizes: &[(u32,u32)], gl: &mut WebGlGlobal) -> Result<(Vec<(u32,u32)>,u32,u32),Message> {
+    pub(crate) fn pack(&self, sizes: &[(u32,u32)], gl: &mut WebGlGlobal) -> Result<(Vec<(u32,u32)>,u32,u32),Error> {
         let gl_refs = gl.refs();
         let gpu_spec = gl_refs.gpuspec;
         match self {

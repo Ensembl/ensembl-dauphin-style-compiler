@@ -1,6 +1,7 @@
 use peregrine_data::{ DirectColour, PenGeometry, Background, LeafStyle, TextShape, SpaceBase };
 use keyed::keyed_handle;
 use peregrine_toolkit::eachorevery::EachOrEvery;
+use peregrine_toolkit::error::Error;
 use peregrine_toolkit::lock;
 use crate::shape::layers::drawingtools::DrawingToolsBuilder;
 use crate::shape::layers::layer::Layer;
@@ -43,14 +44,14 @@ impl Text {
 }
 
 impl FlatDrawingItem for Text {
-    fn calc_size(&mut self, gl: &mut WebGlGlobal) -> Result<(u32,u32),Message> {
+    fn calc_size(&mut self, gl: &mut WebGlGlobal) -> Result<(u32,u32),Error> {
         let gl_ref = gl.refs();
         let document = gl_ref.document.clone();
         let canvas = gl_ref.flat_store.scratch(&document,&CanvasWeave::Crisp,(100,100))?;
         self.text.measure(canvas)
     }
 
-    fn padding(&mut self, _: &mut WebGlGlobal) -> Result<(u32,u32),Message> { Ok((PAD,PAD)) }
+    fn padding(&mut self, _: &mut WebGlGlobal) -> Result<(u32,u32),Error> { Ok((PAD,PAD)) }
 
     fn compute_hash(&self) -> Option<u64> {
         let mut hasher = DefaultHasher::new();
@@ -64,7 +65,7 @@ impl FlatDrawingItem for Text {
         Some(hasher.finish())
     }
 
-    fn build(&mut self, canvas: &mut Flat, text_origin: (u32,u32), size: (u32,u32)) -> Result<(),Message> {
+    fn build(&mut self, canvas: &mut Flat, text_origin: (u32,u32), size: (u32,u32)) -> Result<(),Error> {
         self.text.draw(canvas,text_origin,size)
     }
 }
@@ -80,7 +81,7 @@ impl DrawingText {
         self.0.add(Text::new(pen,text,colour,background))
     }
 
-    pub(crate) async fn calculate_requirements(&mut self, gl: &Arc<Mutex<WebGlGlobal>>, allocator: &mut FlatPositionManager) -> Result<(),Message> {
+    pub(crate) async fn calculate_requirements(&mut self, gl: &Arc<Mutex<WebGlGlobal>>, allocator: &mut FlatPositionManager) -> Result<(),Error> {
         for text in self.0.iter_mut() {
             text.prepare(&self.1,self.2).await;
         }

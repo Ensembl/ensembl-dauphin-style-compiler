@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use keyed::{KeyedData, KeyedHandle};
+use peregrine_toolkit::error::Error;
 use crate::webgl::canvas::flatplotallocator::FlatPositionManager;
 use crate::webgl::{ FlatId, FlatStore, Flat, FlatPositionCampaignHandle };
 use crate::webgl::global::WebGlGlobal;
@@ -10,9 +11,9 @@ use crate::util::message::Message;
 pub(crate) trait FlatDrawingItem {
     fn compute_hash(&self) -> Option<u64> { None }
     fn group_hash(&self) -> Option<u64> { None }
-    fn calc_size(&mut self, gl: &mut WebGlGlobal) -> Result<(u32,u32),Message>;
-    fn padding(&mut self, _gl: &mut WebGlGlobal) -> Result<(u32,u32),Message> { Ok((0,0)) }
-    fn build(&mut self, canvas: &mut Flat, text_origin: (u32,u32), size: (u32,u32)) -> Result<(),Message>;
+    fn calc_size(&mut self, gl: &mut WebGlGlobal) -> Result<(u32,u32),Error>;
+    fn padding(&mut self, _gl: &mut WebGlGlobal) -> Result<(u32,u32),Error> { Ok((0,0)) }
+    fn build(&mut self, canvas: &mut Flat, text_origin: (u32,u32), size: (u32,u32)) -> Result<(),Error>;
 }
 
 /* here, size and origins are inclusive of padding */
@@ -27,11 +28,11 @@ impl FlatBoundary {
         FlatBoundary { text_origin: None, size: None, padding: (0,0) }
     }
 
-    fn size_without_padding(&self) -> Result<(u32,u32),Message> {
-        self.size.ok_or_else(|| Message::CodeInvariantFailed("texture get size unset".to_string()))
+    fn size_without_padding(&self) -> Result<(u32,u32),Error> {
+        self.size.ok_or_else(|| Error::fatal("texture get size unset"))
     }
 
-    fn size_with_padding(&self) -> Result<(u32,u32),Message> {
+    fn size_with_padding(&self) -> Result<(u32,u32),Error> {
         let size = self.size_without_padding()?;
         Ok((size.0+self.padding.0,size.1+self.padding.1))
     }
@@ -100,7 +101,7 @@ impl<H: KeyedHandle+Clone,T: FlatDrawingItem> FlatDrawingManager<H,T> {
         handle
     }
 
-    fn calc_sizes(&mut self, gl: &mut WebGlGlobal) -> Result<(),Message> {
+    fn calc_sizes(&mut self, gl: &mut WebGlGlobal) -> Result<(),Error> {
         let mut handles = vec![];
         for group in self.groups.values() {
             handles.extend(group.iter().cloned());
@@ -114,7 +115,7 @@ impl<H: KeyedHandle+Clone,T: FlatDrawingItem> FlatDrawingManager<H,T> {
         Ok(())
     }
 
-    pub(crate) fn calculate_requirements(&mut self, gl: &mut WebGlGlobal, allocator: &mut FlatPositionManager) -> Result<(),Message> {
+    pub(crate) fn calculate_requirements(&mut self, gl: &mut WebGlGlobal, allocator: &mut FlatPositionManager) -> Result<(),Error> {
         self.calc_sizes(gl)?;
         let mut sizes = vec![];
         for (_,boundary) in self.texts.values_mut() {
@@ -124,7 +125,7 @@ impl<H: KeyedHandle+Clone,T: FlatDrawingItem> FlatDrawingManager<H,T> {
         Ok(())
     }
 
-    pub(crate) fn draw_at_locations(&mut self, store: &mut FlatStore, allocator: &mut FlatPositionManager) -> Result<(),Message> {
+    pub(crate) fn draw_at_locations(&mut self, store: &mut FlatStore, allocator: &mut FlatPositionManager) -> Result<(),Error> {
         self.canvas_id = allocator.canvas()?.cloned();
         let mut origins = allocator.origins(self.request.as_ref().unwrap());
         let mut sizes = allocator.sizes(self.request.as_ref().unwrap());

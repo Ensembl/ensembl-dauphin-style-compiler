@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use crate::webgl::{CanvasWeave, TextureBindery};
 use keyed::KeyedData;
+use peregrine_toolkit::error::Error;
 use crate::webgl::ProcessBuilder;
 use super::flatstore::{ FlatId, FlatStore };
 use super::flatplotallocator::FlatPositionCampaignHandle;
@@ -19,7 +20,7 @@ impl DrawingAllFlats {
         }
     }
 
-    fn allocate(&mut self, gl: &mut WebGlGlobal, weave: &CanvasWeave, size: (u32,u32), uniform_name: &str) -> Result<FlatId,Message> {
+    fn allocate(&mut self, gl: &mut WebGlGlobal, weave: &CanvasWeave, size: (u32,u32), uniform_name: &str) -> Result<FlatId,Error> {
         let gl_ref = gl.refs();
         let document = gl_ref.document.clone();
         let id = gl_ref.flat_store.allocate(&document,weave,size)?;
@@ -34,7 +35,7 @@ impl DrawingAllFlats {
         Ok(())
     }
 
-    pub(crate) fn discard(&mut self, store: &mut FlatStore, bindery: &mut TextureBindery) -> Result<(),Message> {
+    pub(crate) fn discard(&mut self, store: &mut FlatStore, bindery: &mut TextureBindery) -> Result<(),Error> {
         for (id,_) in self.main_canvases.drain() {
             bindery.free(&id,store)?;
             store.discard(&id)?;
@@ -61,7 +62,7 @@ impl DrawingAllFlatsBuilder {
         self.responses.insert(&id,canvas.clone());
     }
 
-    pub(super) fn make_canvas(&mut self, gl: &mut WebGlGlobal, weave: &CanvasWeave, size: (u32,u32), uniform_name: &str) -> Result<FlatId,Message> {
+    pub(super) fn make_canvas(&mut self, gl: &mut WebGlGlobal, weave: &CanvasWeave, size: (u32,u32), uniform_name: &str) -> Result<FlatId,Error> {
         self.drawing_flats.allocate(gl,weave,size,uniform_name)
     }
 

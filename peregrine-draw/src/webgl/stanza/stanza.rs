@@ -2,6 +2,7 @@ use std::sync::{Arc, Mutex, MutexGuard};
 use super::super::program::attribute::{ AttribHandle, AttributeValues };
 use commander::cdr_tick;
 use keyed::{ KeyedData };
+use peregrine_toolkit::error::Error;
 use peregrine_toolkit::lock;
 use web_sys::{ WebGlBuffer, WebGlRenderingContext };
 use crate::webgl::glbufferstore::{GLIndexBuffer};
@@ -138,7 +139,7 @@ impl ProcessStanza {
         Ok(())
     }
 
-    pub fn discard(&mut self, context: &WebGlRenderingContext) -> Result<(),Message> {
+    pub fn discard(&mut self, context: &WebGlRenderingContext) -> Result<(),Error> {
         Ok(())
     }
 }

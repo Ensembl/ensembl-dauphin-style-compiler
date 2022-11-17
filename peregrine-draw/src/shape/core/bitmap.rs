@@ -1,5 +1,6 @@
 use peregrine_data::{Asset, Assets, BackendNamespace };
 use keyed::keyed_handle;
+use peregrine_toolkit::error::Error;
 use peregrine_toolkit::lock;
 use crate::webgl::canvas::flatplotallocator::FlatPositionManager;
 use crate::webgl::{ Flat };
@@ -56,12 +57,12 @@ fn dpr_round(size: u32, dpr: f32, scale: u32) -> u32 {
 }
 
 impl FlatDrawingItem for Bitmap {
-    fn calc_size(&mut self, gl: &mut WebGlGlobal) -> Result<(u32,u32),Message> {
+    fn calc_size(&mut self, gl: &mut WebGlGlobal) -> Result<(u32,u32),Error> {
         let dpr = gl.device_pixel_ratio();
         Ok((dpr_round(self.width,dpr,self.scale),dpr_round(self.height,dpr,self.scale)))
     }
 
-    fn padding(&mut self, _: &mut WebGlGlobal) -> Result<(u32,u32),Message> { Ok((PAD,PAD)) }
+    fn padding(&mut self, _: &mut WebGlGlobal) -> Result<(u32,u32),Error> { Ok((PAD,PAD)) }
 
     fn compute_hash(&self) -> Option<u64> {
         let mut hasher = DefaultHasher::new();
@@ -69,7 +70,7 @@ impl FlatDrawingItem for Bitmap {
         Some(hasher.finish())
     }
 
-    fn build(&mut self, canvas: &mut Flat, text_origin: (u32,u32), size: (u32,u32)) -> Result<(),Message> {
+    fn build(&mut self, canvas: &mut Flat, text_origin: (u32,u32), size: (u32,u32)) -> Result<(),Error> {
         canvas.draw_png(Some(self.name.clone()),pad(text_origin),size,&self.bytes)?;
         Ok(())
     }
@@ -92,7 +93,7 @@ impl DrawingBitmap {
         Ok(self.manager.add(Bitmap::new(&self.assets,channel,asset)?))
     }
 
-    pub(crate) async fn calculate_requirements(&mut self, gl: &Arc<Mutex<WebGlGlobal>>, allocator: &mut FlatPositionManager) -> Result<(),Message> {
+    pub(crate) async fn calculate_requirements(&mut self, gl: &Arc<Mutex<WebGlGlobal>>, allocator: &mut FlatPositionManager) -> Result<(),Error> {
         self.manager.calculate_requirements(&mut *lock!(gl),allocator)
     }
 
