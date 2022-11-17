@@ -3,8 +3,7 @@ use crate::domcss::dom::PeregrineDom;
 use crate::input::InputEventKind;
 use crate::input::low::modifiers::KeyboardModifiers;
 use crate::input::translate::targetreporter::TargetReporter;
-use crate::shape::core::spectre::Spectre;
-use crate::shape::core::spectremanager::{SpectreHandle, SpectreManager};
+use crate::shape::spectres::spectremanager::{SpectreManager, SpectreHandle};
 use crate::stage::stage::ReadStage;
 use crate::webgl::global::WebGlGlobal;
 use crate::{PgCommanderWeb, run::PgPeregrineConfig};
@@ -102,11 +101,8 @@ impl LowLevelState {
         self.cursor.set(circ)
     }
 
-    pub(crate) fn add_spectre(&self, spectre: Spectre) -> SpectreHandle {
-        self.spectres.add(spectre)
-    }
-
     pub(crate) fn spectre_manager(&self) -> &SpectreManager { &self.spectres }
+    pub(crate) fn spectre_manager_mut(&mut self) -> &mut SpectreManager { &mut self.spectres }
 
     pub fn set_artificial(&self, name: &str, start: bool) {
         self.modifiers.lock().unwrap().set_artificial(name,start);
@@ -135,7 +131,6 @@ impl LowLevelInput {
     pub fn distributor_mut(&mut self) -> &mut Distributor<InputEvent> { &mut self.distributor }
 
     pub fn update_stage(&self, stage: &ReadStage) { self.state.update_stage(stage); }
-    pub(crate) fn get_spectres(&self) -> Vec<Spectre> { self.state.spectre_manager().get_spectres() }
 
     pub fn set_artificial(&self, name: &str, start: bool) { self.state.set_artificial(name,start); }
     pub fn pointer_last_seen(&self) -> Option<(f64,f64)> { self.state.pointer_last_seen() }

@@ -1,6 +1,5 @@
 use peregrine_data::{ Colour, DrawnType, Patina, RectangleShape, Shape, ShapeDemerge, CoordinateSystem, HollowEdge2, LeafStyle, DrawingShape };
 use peregrine_toolkit::eachorevery::EachOrEvery;
-use super::super::layers::layer::{ Layer };
 use super::text::{prepare_text};
 use crate::shape::core::drawshape::{SimpleShapePatina};
 use crate::shape::heraldry::heraldry::{Heraldry, HeraldryCanvasesUsed};

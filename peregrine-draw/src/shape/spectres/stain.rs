@@ -1,10 +1,10 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 use peregrine_data::{Colour, DirectColour, DrawnType, Patina, SpaceBase, SpaceBaseArea, PartialSpaceBase, reactive::{Observable}, ProgramShapesBuilder, LeafRequest};
 use peregrine_toolkit::eachorevery::EachOrEvery;
-use crate::{Message, run::{PgConfigKey, PgPeregrineConfig}, shape::{util::eoethrow::eoe_throw, core::spectremanager::SpectreConfigKey}};
+use crate::{Message, run::{PgConfigKey, PgPeregrineConfig}, shape::{util::eoethrow::eoe_throw}};
 use peregrine_data::reactive;
 
-use super::ants::AreaVariables2;
+use super::{spectre::{AreaVariables, Spectre}, spectremanager::{SpectreConfigKey, SpectreManager, SpectreHandle}};
 
 fn make_stain_param2(var: Option<&reactive::Variable<'static,f64>>, c: f64) -> Observable<'static,f64> {
     if let Some(var) = var { var.observable() } else { Observable::constant(c) }
@@ -37,21 +37,25 @@ fn make_stain_rect_wobble(n0: Option<&reactive::Variable<'static,f64>>, t0: Opti
 
 #[derive(Clone)]
 pub(crate) struct Stain {
-    area2: AreaVariables2<'static>,
+    area2: AreaVariables<'static>,
     invert: bool,
     colour: DirectColour
 }
 
 impl Stain {
-    pub(crate) fn new(config: &PgPeregrineConfig, area2: &AreaVariables2<'static>, invert: bool) -> Result<Stain,Message> {
-        Ok(Stain { 
+    pub(crate) fn new(config: &PgPeregrineConfig, area2: &AreaVariables<'static>, manager: &SpectreManager, invert: bool) -> Result<(Arc<Stain>,SpectreHandle),Message> {
+        let stain = Arc::new(Stain { 
             area2: area2.clone(),
             invert,
             colour: config.get_colour(&PgConfigKey::Spectre(SpectreConfigKey::StainColour))?
-        })
+        });
+        let handle = manager.add(&stain);
+        Ok((stain,handle))
     }
-    
-    pub(crate) fn draw(&self, shapes: &mut ProgramShapesBuilder) -> Result<(),Message> {
+}
+
+impl Spectre for Stain {    
+    fn draw(&self, shapes: &mut ProgramShapesBuilder) -> Result<(),Message> {
         let leaf = shapes.use_allotment("window/origin/stain").clone();
         let mut props = HashMap::new();
         props.insert("depth".to_string(),"101".to_string());

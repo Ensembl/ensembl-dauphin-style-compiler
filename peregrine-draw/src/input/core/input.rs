@@ -6,7 +6,6 @@ use crate::PeregrineInnerAPI;
 use crate::domcss::dom::PeregrineDom;
 use crate::input::translate::targetreporter::TargetReporter;
 use crate::input::translate::translatehotspots::{translate_hotspots};
-use crate::shape::core::spectre::Spectre;
 use crate::stage::stage::ReadStage;
 use crate::webgl::global::WebGlGlobal;
 use crate::{ run::PgPeregrineConfig, PgCommanderWeb };
@@ -128,7 +127,6 @@ impl Input {
         waiter.wait_until_needed().await;
     }
 
-    pub(crate) fn get_spectres(&self) -> Vec<Spectre> { self.state(|state| state.low_level.get_spectres()) }
     pub fn set_artificial(&self, name: &str, start: bool) { self.state(|state| state.low_level.set_artificial(name,start)); }
 
     pub(crate) fn goto(&self, centre: f64, scale: f64) -> Result<(),Message> {

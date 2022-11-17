@@ -1,25 +1,36 @@
-use peregrine_data::{ProgramShapesBuilder};
+use std::sync::Arc;
+
+use peregrine_data::{ProgramShapesBuilder, reactive::{self, Reactive}};
 use crate::{Message};
-use super::{ants::MarchingAnts, stain::Stain};
 
 #[derive(Clone)]
-pub(crate) enum Spectre {
-    MarchingAnts(MarchingAnts),
-    Stain(Stain),
-    Compound(Vec<Spectre>)
+pub(crate) struct AreaVariables<'a> {
+    tlbr: (reactive::Variable<'a,f64>,reactive::Variable<'a,f64>,reactive::Variable<'a,f64>,reactive::Variable<'a,f64>)
 }
 
-impl Spectre {
-    pub(crate) fn draw(&self, shapes: &mut ProgramShapesBuilder) -> Result<(),Message> {
-        match self {
-            Spectre::MarchingAnts(a) => a.draw(shapes)?,
-            Spectre::Stain(a) => a.draw(shapes)?,
-            Spectre::Compound(spectres) => {
-                for spectre in spectres {
-                    spectre.draw(shapes)?;
-                }
-            }
+impl<'a> AreaVariables<'a> {
+    pub(crate) fn new(reactive: &Reactive<'a>) -> AreaVariables<'a> {
+        AreaVariables {
+            tlbr: (reactive.variable(0.),reactive.variable(0.),reactive.variable(0.),reactive.variable(0.)),
         }
-        Ok(())
+    }
+
+    pub(crate) fn update(&mut self, tlbr: (f64,f64,f64,f64)) {
+        self.tlbr.0.set(tlbr.0);
+        self.tlbr.1.set(tlbr.1);
+        self.tlbr.2.set(tlbr.2);
+        self.tlbr.3.set(tlbr.3);
+    }
+
+    pub(crate) fn tlbr(&self) -> &(reactive::Variable<'a,f64>,reactive::Variable<'a,f64>,reactive::Variable<'a,f64>,reactive::Variable<'a,f64>) { &self.tlbr }
+}
+
+pub(crate) trait Spectre {
+    fn draw(&self, shapes: &mut ProgramShapesBuilder) -> Result<(),Message>;
+}
+
+impl Spectre for Arc<dyn Spectre> {
+    fn draw(&self, shapes: &mut ProgramShapesBuilder) -> Result<(),Message> {
+        self.as_ref().draw(shapes)
     }
 }

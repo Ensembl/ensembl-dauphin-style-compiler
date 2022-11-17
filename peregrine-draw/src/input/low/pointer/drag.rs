@@ -6,9 +6,8 @@ use crate::Message;
 use crate::input::low::lowlevel::LowLevelState;
 use crate::input::low::modifiers::Modifiers;
 use crate::input::translate::targetreporter::TargetReporter;
-use crate::shape::core::spectre::AreaVariables2;
-use crate::shape::core::spectre::Spectre;
-use crate::shape::core::spectremanager::SpectreHandle;
+use crate::shape::spectres::spectre::AreaVariables;
+use crate::shape::spectres::spectremanager::SpectreHandle;
 use crate::webgl::global::WebGlGlobal;
 use super::pinch::PinchManager;
 use super::pinch::PinchManagerFactory;
@@ -96,13 +95,13 @@ pub struct DragStateData {
     pinch: Option<PinchManager>,
     mode: DragMode,
     alive: bool,
-    hold_vars2: AreaVariables2<'static>,
+    hold_vars2: AreaVariables<'static>,
     min_hold_drag_size: f64,
     gl: Arc<Mutex<WebGlGlobal>>,
     #[allow(unused)] // keep as guard
     cursor: Option<CursorHandle>,
     #[allow(unused)] // keep as guard
-    spectre: Option<SpectreHandle>,
+    spectres: Vec<SpectreHandle>,
     #[allow(unused)]
     intention_lockout: Option<Lockout>,
     target_reporter: TargetReporter
@@ -118,10 +117,10 @@ impl DragStateData {
             pinch: None,
             mode: DragMode::Unknown,
             alive: true,
-            hold_vars2: AreaVariables2::new(lowlevel.spectre_manager().reactive()),
+            hold_vars2: AreaVariables::new(lowlevel.spectre_manager().reactive()),
             min_hold_drag_size: config.min_hold_drag_size,
             cursor: None,
-            spectre: None,
+            spectres: vec![],
             intention_lockout: Some(target_reporter.lock_updates()),
             target_reporter: target_reporter.clone(),
             gl: gl.clone()
@@ -131,7 +130,7 @@ impl DragStateData {
     }
 
     fn update_spectre(&mut self, gl: &WebGlGlobal) -> Result<(),Message> {
-        if self.spectre.is_some() {
+        if self.spectres.len() > 0 {
             self.hold_vars2.update(self.make_ants());
             self.lowlevel.spectre_manager().update(gl)?;
         }
@@ -192,13 +191,11 @@ impl DragStateData {
         if !self.alive { return Ok(()); }
         if self.mode == DragMode::Unknown {
             self.set_mode(DragMode::Hold);
-            let ants = self.make_ants();
-            let spectre = Spectre::Compound(vec![
-                self.lowlevel.spectre_manager().marching_ants(&self.hold_vars2)?,
-                self.lowlevel.spectre_manager().stain(&self.hold_vars2,true)?
-            ]);
-            self.spectre = Some(self.lowlevel.add_spectre(spectre));
-            self.hold_vars2.update(ants);
+            let ants_pos = self.make_ants();
+            let ants = self.lowlevel.spectre_manager_mut().marching_ants(&self.hold_vars2)?;
+            let stain = self.lowlevel.spectre_manager_mut().stain(&self.hold_vars2,true)?;
+            self.spectres = vec![ants,stain];
+            self.hold_vars2.update(ants_pos);
             self.lowlevel.spectre_manager().update(gl)?;
             self.update_spectre(gl)?;
             self.lowlevel.spectre_manager().update(gl)?;

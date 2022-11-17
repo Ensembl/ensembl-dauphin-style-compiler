@@ -1,6 +1,6 @@
 use std::num::{ParseFloatError, ParseIntError};
 use peregrine_data::{CarriageSpeed, DataMessage, DirectColour};
-use crate::{shape::core::spectremanager::SpectreConfigKey, util::message::Message};
+use crate::{util::message::Message, shape::spectres::spectremanager::SpectreConfigKey};
 use lazy_static::lazy_static;
 use peregrine_config::{ Config, ConfigKeyInfo, ConfigValue, ConfigError };
 use crate::input::InputEventKind;

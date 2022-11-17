@@ -3,8 +3,8 @@ use keyed::{KeyedOptionalValues, keyed_handle };
 use peregrine_data::{Assets, reactive::Reactive};
 use peregrine_toolkit_async::{sync::needed::{Needed, NeededLock}};
 use peregrine_toolkit::lock;
-use crate::{Message, run::PgPeregrineConfig, stage::stage::ReadStage, webgl::{DrawingSession, global::WebGlGlobal}, PgCommanderWeb, shape::spectres::{spectre::Spectre, ants::{AreaVariables2, MarchingAnts}, stain::Stain}};
-use super::{spectraldrawing::SpectralDrawing};
+use crate::{Message, run::PgPeregrineConfig, stage::stage::ReadStage, webgl::{DrawingSession, global::WebGlGlobal}, PgCommanderWeb, shape::spectres::{spectre::{AreaVariables}, ants::{MarchingAnts}, stain::Stain}};
+use super::{spectraldrawing::SpectralDrawing, spectre::{Spectre}};
 
 #[derive(Clone,PartialEq,Eq,Hash)]
 #[cfg_attr(debug_assertions,derive(Debug))]
@@ -16,24 +16,19 @@ pub enum SpectreConfigKey {
     StainColour,
 }
 
-pub struct SpectreHandle(Arc<Mutex<SpectreState>>,SpectreId);
-
-impl SpectreHandle {
-    pub(crate) fn update(&self, spectre: Spectre) {
-        self.0.lock().unwrap().update(&self.1,spectre);
-    }
-}
+// XXX to toolkit
+pub(crate) struct SpectreHandle(Arc<Mutex<SpectreState>>,SpectreId);
 
 impl Drop for SpectreHandle {
     fn drop(&mut self) {
-        self.0.lock().unwrap().free(&self.1);
+        lock!(self.0).free(&self.1);
     }
 }
 
 keyed_handle!(SpectreId);
 
 struct SpectreState {
-    spectres: KeyedOptionalValues<SpectreId,Spectre>,
+    spectres: KeyedOptionalValues<SpectreId,Arc<dyn Spectre>>,
     new_shapes: Needed,
     redraw_needed: Needed,
     redraw_lock: Option<NeededLock>
@@ -49,7 +44,7 @@ impl SpectreState {
         }
     }
 
-    pub(crate) fn add(&mut self, spectre: Spectre) -> SpectreId {
+    fn add(&mut self, spectre: Arc<dyn Spectre>) -> SpectreId {
         self.new_shapes.set();
         if self.redraw_lock.is_none() {
             self.redraw_lock = Some(self.redraw_needed.lock());
@@ -57,12 +52,7 @@ impl SpectreState {
         self.spectres.add(spectre)
     }
 
-    pub(crate) fn update(&mut self, handle: &SpectreId, spectre: Spectre) {
-        self.new_shapes.set();
-        self.spectres.replace(handle,spectre).ok();
-    }
-
-    pub(crate) fn get_spectres(&self) -> Vec<Spectre> {
+    fn get_spectres(&self) -> Vec<Arc<dyn Spectre>> {
         self.spectres.keys()
             .map(|id| self.spectres.get(&id).map(|x| x.clone()))
             .filter_map(|x| x.ok())
@@ -99,21 +89,27 @@ impl SpectreManager {
         }
     }
 
-    pub(crate) fn marching_ants(&self, area2: &AreaVariables2<'static>) -> Result<Spectre,Message> {
-        Ok(Spectre::MarchingAnts(MarchingAnts::new(&self.config,area2)?))
+    pub(crate) fn marching_ants(&mut self, area2: &AreaVariables<'static>) -> Result<SpectreHandle,Message> {
+        let (ants,handle) = MarchingAnts::new(&self.config,area2,&self)?;
+        Ok(handle)
     }
 
-    pub(crate) fn stain(&self, area2: &AreaVariables2<'static>, flip: bool) -> Result<Spectre,Message> {
-        Ok(Spectre::Stain(Stain::new(&self.config,area2,flip)?))
+    pub(crate) fn stain(&mut self, area2: &AreaVariables<'static>, flip: bool) -> Result<SpectreHandle,Message> {
+        let (stain,handle) = Stain::new(&self.config,area2,&self,flip)?;
+        Ok(handle)
     }
 
-    pub(crate) fn add(&self, spectre: Spectre) -> SpectreHandle {
-        let id = self.state.lock().unwrap().add(spectre);
+    pub(crate) fn add<X>(&self, spectre: &Arc<X>) -> SpectreHandle where X: Spectre + 'static {
+        let id = lock!(self.state).add(spectre.clone());
         SpectreHandle(self.state.clone(),id)
     }
 
-    pub(crate) fn get_spectres(&self) -> Vec<Spectre> {
-        self.state.lock().unwrap().get_spectres()        
+    pub(crate) fn active(&self) -> bool {
+        self.get_spectres().len() > 0
+    }
+
+    fn get_spectres(&self) -> Vec<Arc<dyn Spectre>> {
+        lock!(self.state).get_spectres()        
     }
 
     pub(crate) fn draw(&mut self, gl: &Arc<Mutex<WebGlGlobal>>, assets: &Assets, stage: &ReadStage, session: &mut DrawingSession) -> Result<(),Message> {

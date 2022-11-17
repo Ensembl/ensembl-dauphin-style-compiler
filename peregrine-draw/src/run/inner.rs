@@ -3,11 +3,11 @@ use crate::input::Input;
 use crate::integration::pgcommander::PgCommanderWeb;
 use crate::integration::pgdauphin::PgDauphinIntegrationWeb;
 use crate::integration::pgintegration::PgIntegration;
+use crate::shape::spectres::spectremanager::SpectreManager;
 use std::rc::Rc;
 use std::sync::{ Mutex, Arc };
 use crate::util::message::{ Message, message_register_callback, routed_message, message_register_default };
 use crate::input::translate::targetreporter::TargetReporter;
-use js_sys::Date;
 use peregrine_data::{Assets, Commander, PeregrineCore, PeregrineApiQueue, BackendNamespace, ChannelIntegration, DataMessage};
 use peregrine_dauphin::peregrine_dauphin;
 use peregrine_febe_javascript::JavascriptIntegration;
@@ -31,9 +31,7 @@ use crate::stage::stage::{ Stage };
 use crate::webgl::global::WebGlGlobal;
 use commander::{CommanderStream, Lock, LockGuard, cdr_lock};
 use peregrine_data::{ StickId };
-use crate::shape::core::spectremanager::SpectreManager;
 use peregrine_message::PeregrineMessage;
-use js_sys::Math::random;
 
 // XXX deduplicate
 fn to_left_right(position: f64, scale: f64) -> (f64,f64) {
@@ -221,7 +219,6 @@ impl PeregrineInnerAPI {
     pub(super) fn config(&self) -> &PgPeregrineConfig { &self.config }
 
     pub(super) fn bootstrap(&mut self, channel: BackendNamespace) {
-        let identity = (Date::now() + random()) as u64;
         self.messages.add(send_errors_to_backend(&channel,&self.data_api));
     }
 

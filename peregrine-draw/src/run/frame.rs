@@ -25,8 +25,7 @@ fn draw_objects_and_spectres(lweb: &mut LockedPeregrineInnerAPI, read_stage: &Re
 }
 
 fn tick_again_if_spectres(lweb: &mut LockedPeregrineInnerAPI, input: &Input) {
-    let spectres = input.get_spectres();
-    if spectres.len() > 0 {
+    if lweb.spectre_manager.active() {
         lock!(lweb.stage).redraw_needed().set();
     }
 }

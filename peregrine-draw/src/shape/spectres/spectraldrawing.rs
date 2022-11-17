@@ -1,10 +1,12 @@
 use std::sync::{Arc, Mutex};
 use peregrine_data::{Assets, reactive::Reactive, ProgramShapesBuilder };
-use peregrine_toolkit::{lock, puzzle::AnswerAllocator};
+use peregrine_toolkit::{lock, puzzle::AnswerAllocator, error::err_web_drop};
 use peregrine_toolkit_async::{sync::retainer::{RetainTest, Retainer, retainer}};
-use crate::{Message, shape::{layers::drawing::Drawing, spectres::spectre::Spectre}, stage::stage::ReadStage, webgl::{DrawingSession, global::WebGlGlobal}, PgCommanderWeb};
+use crate::{Message, shape::{layers::drawing::Drawing}, stage::stage::ReadStage, webgl::{DrawingSession, global::WebGlGlobal}, PgCommanderWeb};
 
-async fn draw_spectres(gl: &Arc<Mutex<WebGlGlobal>>, assets: &Assets, spectres: &[Spectre], retain_test: &RetainTest) -> Result<Drawing,Message> {
+use super::{spectre::{Spectre}};
+
+async fn draw_spectres<X>(gl: &Arc<Mutex<WebGlGlobal>>, assets: &Assets, spectres: &[X], retain_test: &RetainTest) -> Result<Drawing,Message> where X: Spectre {
     let mut shapes = ProgramShapesBuilder::new(&Assets::empty());
     for spectre in spectres {
         spectre.draw(&mut shapes)?;
@@ -17,7 +19,7 @@ async fn draw_spectres(gl: &Arc<Mutex<WebGlGlobal>>, assets: &Assets, spectres: 
     Drawing::new(None,Arc::new(shapes),gl,0.,assets,retain_test).await.transpose().unwrap()
 }
 
-async fn draw(gl: &Arc<Mutex<WebGlGlobal>>, assets: &Assets, spectres: &[Spectre]) -> Result<(Drawing,Retainer),Message> {
+async fn draw<X>(gl: &Arc<Mutex<WebGlGlobal>>, assets: &Assets, spectres: &[X]) -> Result<(Drawing,Retainer),Message> where X: Spectre {
     let (retainer,retain_test) = retainer();
     let mut drawing = draw_spectres(gl,assets,spectres,&retain_test).await?;
     drawing.recompute(&*lock!(gl))?;
@@ -42,7 +44,7 @@ impl SpectralDrawing {
         }
     }
 
-    pub(crate) fn set(&mut self, gl: &Arc<Mutex<WebGlGlobal>>, assets: &Assets, spectres: &[Spectre]) {
+    pub(crate) fn set<X>(&mut self, gl: &Arc<Mutex<WebGlGlobal>>, assets: &Assets, spectres: &[X]) where X: Spectre + Clone + 'static {
         let mut index = lock!(self.index);
         *index += 1;
         let our_index = *index;
@@ -57,7 +59,7 @@ impl SpectralDrawing {
                 if *index == our_index {
                     let mut drawing_holder = lock!(self2.drawing);
                     if let Some((mut drawing,_)) = drawing_holder.take() {
-                        drawing.discard(&mut *lock!(gl));
+                        err_web_drop(drawing.discard(&mut *lock!(gl)));
                     }
                     *drawing_holder = Some((drawing,retainer));
                 }
