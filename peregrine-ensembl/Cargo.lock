@@ -35,17 +35,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "98161a4e3e2184da77bb14f02184cdd111e83bbbcc9979dfee3c44b9a85f5602"
 
 [[package]]
-name = "async-recursion"
-version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2cda8f4bcc10624c4e85bc66b3f452cca98cfa5ca002dc83a16aad2367641bea"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
 name = "async-trait"
 version = "0.1.57"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -441,15 +430,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "lru"
-version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "936d98d2ddd79c18641c6709e7bb09981449694e402d1a0f0f657ea8d61f4a51"
-dependencies = [
- "hashbrown",
-]
-
-[[package]]
 name = "match_cfg"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -540,8 +520,6 @@ name = "peregrine_data"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "async-recursion",
- "async-trait",
  "commander",
  "dauphin_interp",
  "futures",
@@ -549,7 +527,6 @@ dependencies = [
  "itertools",
  "keyed",
  "lazy_static 1.4.0",
- "lru",
  "owning_ref",
  "peregrine_config",
  "peregrine_dauphin_queue",

@@ -39,4 +39,3 @@ esac
 
 echo RUSTFLAGS="$FLAGS" wasm-pack build --target web --$CFG_RUST_MODE
 RUSTFLAGS="$FLAGS" wasm-pack build --target web --$CFG_RUST_MODE
-

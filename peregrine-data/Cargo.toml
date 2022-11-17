@@ -8,8 +8,6 @@ edition = "2018"
 
 [dependencies]
 anyhow="*"
-async-recursion="*"
-async-trait="*"
 owning_ref="*"
 serde={ version="*", features=["rc"] }
 serde_derive="*"
@@ -17,7 +15,6 @@ serde_json="*"
 serde_repr="*"
 futures="*"
 lazy_static="*"
-lru="*"
 hashbrown="*"
 itertools="*"
 
