@@ -2,6 +2,7 @@ use std::future::Future;
 use std::pin::Pin;
 use std::sync::{ Arc, Mutex };
 use std::task::{ Context, Poll };
+use peregrine_toolkit::{ identitynumber, hashable };
 
 /* A Tidier is a future which wraps an inner future. It is guaranteed that the
  * inner future is driven to completion even if a task is killed. The inner

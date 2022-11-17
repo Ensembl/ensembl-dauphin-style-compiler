@@ -3,12 +3,13 @@ use peregrine_data::{PeregrineCore};
 use peregrine_toolkit_async::sync::blocker::{Blocker, Lockout};
 
 use crate::PeregrineInnerAPI;
+use crate::domcss::dom::PeregrineDom;
 use crate::input::translate::targetreporter::TargetReporter;
 use crate::input::translate::translatehotspots::{translate_hotspots};
 use crate::shape::core::spectre::Spectre;
 use crate::stage::stage::ReadStage;
 use crate::webgl::global::WebGlGlobal;
-use crate::{ PeregrineDom, run::PgPeregrineConfig, PgCommanderWeb };
+use crate::{ run::PgPeregrineConfig, PgCommanderWeb };
 use crate::util::Message;
 use crate::input::low::lowlevel::LowLevelInput;
 use crate::input::translate::InputTranslator;
@@ -81,7 +82,7 @@ impl Input {
 
     fn state<F,T>(&self, f: F) -> T where F: FnOnce(&mut InputState) -> T { f(self.state.lock().unwrap().as_mut().unwrap()) }
 
-    pub fn set_api(&mut self, dom: &PeregrineDom, config: &PgPeregrineConfig, inner_api: &PeregrineInnerAPI, commander: &PgCommanderWeb, target_reporter: &TargetReporter, gl: &Arc<Mutex<WebGlGlobal>>) -> Result<(),Message> {
+    pub(crate) fn set_api(&mut self, dom: &PeregrineDom, config: &PgPeregrineConfig, inner_api: &PeregrineInnerAPI, commander: &PgCommanderWeb, target_reporter: &TargetReporter, gl: &Arc<Mutex<WebGlGlobal>>) -> Result<(),Message> {
         let spectres = inner_api.spectres();
         let mut low_level = LowLevelInput::new(dom,commander,spectres,config,gl,&target_reporter)?;
         let translator = InputTranslator::new(config,&mut low_level,inner_api,commander,&self.queue_blocker,&target_reporter)?;
@@ -150,8 +151,7 @@ impl Input {
             } else {
                 self.state(|state| {
                     state.inner_api.set_stick(&stick);
-                    state.inner_api.set_x(centre);
-                    state.inner_api.set_bp_per_screen(bp_per_screen);
+                    state.inner_api.set_position(Some(centre),Some(bp_per_screen));
                     state.target_reporter.force_report();
                 });
             }

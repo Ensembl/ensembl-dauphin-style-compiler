@@ -1,3 +1,5 @@
+use peregrine_toolkit::{ identitynumber, hashable };
+
 /// A  unique value which can be created by an executor and associated with a task.
 /// 
 /// Should another task be added with the same RunSlot only one will run. If push is true for the RunSlot, the old task

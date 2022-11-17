@@ -1,5 +1,4 @@
 use hashbrown::HashMap;
-use crate::TaskHandle;
 use crate::agent::agent::Agent;
 use crate::task::slot::RunSlot;
 use crate::task::task::TaskSummary;
@@ -35,6 +34,7 @@ impl ExecutorTasks {
         }
     }
 
+    #[cfg(debug_unregister)]
     fn debug_register(&mut self, handle: &TaskContainerHandle, yn: bool) {
         #[cfg(debug_unregister)]
         {
@@ -43,6 +43,9 @@ impl ExecutorTasks {
             log!("registered ({}) {}",self.registered.len(),self.registered.iter().cloned().collect::<Vec<_>>().join(", "));
         }
     }
+
+    #[cfg(not(debug_unregister))]
+    fn debug_register(&mut self, _handle: &TaskContainerHandle, _yn: bool) {}
 
     pub(crate) fn check_slot(&mut self, agent: &Agent) -> bool {
         if let Some(slot) = agent.get_config().get_slot() {

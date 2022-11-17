@@ -1,0 +1,35 @@
+[package]
+name = "peregrine_febe_network"
+version = "0.0.0"
+authors = ["ensembl-webteam@ebi.ac.uk"]
+edition = "2018"
+
+[dependencies]
+serde="*"
+serde_cbor="*"
+serde_json="*"
+wasm-bindgen=">=0.2.77"
+serde-wasm-bindgen="*"
+js-sys="*"
+inflate="*"
+
+[dependencies.web-sys]
+version="*"
+features=[
+    "AbortController", "AbortSignal",
+    "Headers",
+    "Request", "RequestInit", "Response", "RequestMode"
+]
+
+[dependencies.peregrine_toolkit]
+version="*"
+path="../peregrine-toolkit"
+
+[dependencies.peregrine_toolkit_async]
+version="*"
+path="../peregrine-toolkit-async"
+
+
+[dependencies.peregrine_data]
+version="*"
+path="../peregrine-data"

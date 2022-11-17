@@ -14,7 +14,7 @@ async fn draw_spectres(gl: &Arc<Mutex<WebGlGlobal>>, assets: &Assets, spectres: 
     let list = raw.build_abstract_carriage(None,None);
     let mut aia = AnswerAllocator::new();
     let shapes = list.make_drawing_shapes(&mut aia.get());
-    let shapes = shapes.map_err(|e| Message::DataError(e))?;
+    let shapes = shapes.map_err(|e| Message::DataError(peregrine_data::DataMessage::XXXTransitional(e)))?;
     Drawing::new(None,Arc::new(shapes),gl,0.,assets,retain_test).await.transpose().unwrap()
 }
 

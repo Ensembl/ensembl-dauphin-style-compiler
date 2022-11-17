@@ -1,36 +1,50 @@
+use crate::domcss::dom::PeregrineDom;
 use crate::input::Input;
-use crate::{integration::pgchannel::PgChannel };
 use crate::integration::pgcommander::PgCommanderWeb;
 use crate::integration::pgdauphin::PgDauphinIntegrationWeb;
 use crate::integration::pgintegration::PgIntegration;
+use std::rc::Rc;
 use std::sync::{ Mutex, Arc };
 use crate::util::message::{ Message, message_register_callback, routed_message, message_register_default };
 use crate::input::translate::targetreporter::TargetReporter;
 use js_sys::Date;
-use peregrine_data::{Assets, Commander, PeregrineCore, PeregrineApiQueue};
+use peregrine_data::{Assets, Commander, PeregrineCore, PeregrineApiQueue, BackendNamespace, ChannelIntegration, DataMessage};
 use peregrine_dauphin::peregrine_dauphin;
+use peregrine_febe_javascript::JavascriptIntegration;
+use peregrine_febe_network::NetworkChannel;
 use peregrine_message::MessageKind;
-use peregrine_toolkit::eachorevery::eoestruct::StructBuilt;
-use peregrine_toolkit::log;
+use peregrine_toolkit::eachorevery::eoestruct::{StructValue};
+use peregrine_toolkit::error::err_web_drop;
+use peregrine_toolkit::{log, lock};
 use peregrine_toolkit::plumbing::distributor::Distributor;
 use peregrine_toolkit::plumbing::oneshot::OneShot;
 use peregrine_toolkit_async::sync::blocker::Blocker;
 use peregrine_toolkit_async::sync::needed::Needed;
+use wasm_bindgen::JsValue;
 use super::report::Report;
 use super::sound::Sound;
 use super::{PgPeregrineConfig, globalconfig::CreatedPeregrineConfigs};
 pub use url::Url;
 pub use web_sys::{ console, WebGlRenderingContext, Element };
 use crate::train::GlRailway;
-use super::dom::PeregrineDom;
 use crate::stage::stage::{ Stage };
 use crate::webgl::global::WebGlGlobal;
 use commander::{CommanderStream, Lock, LockGuard, cdr_lock};
-use peregrine_data::{ Channel, StickId };
+use peregrine_data::{ StickId };
 use crate::shape::core::spectremanager::SpectreManager;
 use peregrine_message::PeregrineMessage;
 use js_sys::Math::random;
 
+// XXX deduplicate
+fn to_left_right(position: f64, scale: f64) -> (f64,f64) {
+    ((position-scale/2.), (position+scale/2.))
+}
+
+fn position_changed(old_cs: (f64,f64), new_cs: (f64,f64)) -> bool {
+    let old_lr = to_left_right(old_cs.0,old_cs.1);
+    let new_lr = to_left_right(new_cs.0,new_cs.1);
+    old_lr.0.round() != new_lr.0.round() || old_lr.1.round() != new_lr.1.round()
+}
 
 #[derive(Clone)]
 pub struct PeregrineInnerAPI {
@@ -49,7 +63,8 @@ pub struct PeregrineInnerAPI {
     report: Report,
     sound: Sound,
     assets: Assets,
-    target_reporter: TargetReporter
+    target_reporter: TargetReporter,
+    jsapi: JavascriptIntegration
 }
 
 pub struct LockedPeregrineInnerAPI<'t> {
@@ -59,7 +74,7 @@ pub struct LockedPeregrineInnerAPI<'t> {
     pub webgl: &'t mut Arc<Mutex<WebGlGlobal>>,
     pub stage: &'t mut Arc<Mutex<Stage>>,
     pub message_sender: &'t mut CommanderStream<Option<Message>>,
-    pub dom: &'t mut PeregrineDom,
+    pub(crate) dom: &'t mut PeregrineDom,
     pub(crate) spectre_manager: &'t mut SpectreManager,
     pub report: &'t Report,
     pub input: &'t Input,
@@ -88,7 +103,7 @@ fn setup_message_sending_task(commander: &PgCommanderWeb, distributor: Distribut
     stream
 }
 
-fn send_errors_to_backend(channel: &Channel,data_api: &PeregrineCore) -> impl FnMut(&Message) + 'static {
+fn send_errors_to_backend(channel: &BackendNamespace, data_api: &PeregrineCore) -> impl FnMut(&Message) + 'static {
     let data_api = data_api.clone();
     let channel = channel.clone();
     move |message| {
@@ -125,7 +140,7 @@ impl PeregrineInnerAPI {
     
     pub fn commander(&self) -> PgCommanderWeb { self.commander.clone() } // XXX
 
-    pub(super) fn new(config: &CreatedPeregrineConfigs, dom: &PeregrineDom, commander: &PgCommanderWeb, queue_blocker: &Blocker) -> Result<PeregrineInnerAPI,Message> {
+    pub(super) fn new(config: &CreatedPeregrineConfigs, dom: &PeregrineDom, commander: &PgCommanderWeb, backend: &str, queue_blocker: &Blocker, redraw_needed: &Needed) -> Result<PeregrineInnerAPI,Message> {
         let commander = commander.clone();
         // XXX change commander init to allow message init to move to head
         let mut messages = Distributor::new();
@@ -137,22 +152,26 @@ impl PeregrineInnerAPI {
             message_sender2.add(Some(message));
         });
         let webgl = Arc::new(Mutex::new(WebGlGlobal::new(&commander,&dom,&config.draw)?));
-        let redraw_needed = Needed::new();
         let stage = Arc::new(Mutex::new(Stage::new(&redraw_needed)));
         let report = Report::new(&config.draw,&message_sender,&dom.shutdown())?;
         let target_reporter = TargetReporter::new(&commander,dom.shutdown(),&config.draw,&report)?;
         let mut input = Input::new(queue_blocker);
         let api_queue = PeregrineApiQueue::new(queue_blocker);
         let trainset = GlRailway::new(&api_queue,&commander,&config.draw,&stage.lock().unwrap())?;
-        let integration = Box::new(PgIntegration::new(PgChannel::new(),trainset.clone(),&input,webgl.clone(),&stage,&dom,&report));
+        let integration = Box::new(PgIntegration::new(trainset.clone(),&input,webgl.clone(),&stage,&dom,&report));
         let assets = integration.assets().clone();
         let sound = Sound::new(&config.draw,&commander,integration.assets(),&mut messages,dom.shutdown())?;
+        let jsapi = JavascriptIntegration::new();
+        let channel_integrations : Vec<Rc<dyn ChannelIntegration>> = vec![
+            Rc::new(jsapi.clone()),
+            Rc::new(NetworkChannel::new()),
+        ];
         let mut core = PeregrineCore::new(integration,commander.clone(),move |e| {
-            routed_message(Some(commander_id),Message::DataError(e))
-        },&api_queue,&redraw_needed).map_err(|e| Message::DataError(e))?;
+            routed_message(Some(commander_id),Message::DataError(DataMessage::XXXTransitional(e)))
+        },&api_queue,&redraw_needed,channel_integrations).map_err(|e| Message::DataError(e))?;
         peregrine_dauphin(Box::new(PgDauphinIntegrationWeb()),&core);
+        core.add_backend(backend);
         report.run(&commander,&dom.shutdown());
-        core.application_ready();
         message_sender.add(Some(Message::Ready));
         let out = PeregrineInnerAPI {
             config: config.draw.clone(),
@@ -168,9 +187,11 @@ impl PeregrineInnerAPI {
             sound: sound.clone(),
             report: report.clone(),
             assets,
-            target_reporter: target_reporter.clone()
+            target_reporter: target_reporter.clone(),
+            jsapi
         };
         input.set_api(dom,&config.draw,&out,&commander,&target_reporter,&out.webgl)?;
+        core.application_ready();
         message_sender.add(Some(Message::Ready));
         dom.shutdown().add(move || {
             api_queue.shutdown();
@@ -185,7 +206,7 @@ impl PeregrineInnerAPI {
         self.input.set_artificial(name,start);
     }
 
-    pub(crate) fn switch(&self, path: &[&str], value: StructBuilt) {
+    pub(crate) fn switch(&self, path: &[&str], value: StructValue) {
         self.data_api.switch(path,value);
     }
 
@@ -199,10 +220,9 @@ impl PeregrineInnerAPI {
 
     pub(super) fn config(&self) -> &PgPeregrineConfig { &self.config }
 
-    pub(super) fn bootstrap(&mut self, channel: Channel) {
+    pub(super) fn bootstrap(&mut self, channel: BackendNamespace) {
         let identity = (Date::now() + random()) as u64;
         self.messages.add(send_errors_to_backend(&channel,&self.data_api));
-        self.data_api.bootstrap(identity,channel);
     }
 
     pub(super) fn set_message_reporter(&mut self, callback: Box<dyn FnMut(&Message) + 'static>) {
@@ -214,32 +234,44 @@ impl PeregrineInnerAPI {
         self.data_api.invalidate();
     }
 
-    pub(crate) fn set_x(&mut self, x: f64) {
-        self.data_api.set_position(x);
-        self.target_reporter.set_x(x);
+    pub(crate) fn set_position(&mut self, centre: Option<f64>, size: Option<f64>) {
+        self.data_api.set_position(centre,size);
+        self.target_reporter.set_position(centre,size);
     }
 
     pub(super) fn set_y(&mut self, y: f64) {
-        self.stage.lock().unwrap().y_mut().set_position(y);
+        lock!(self.stage).y_mut().set_position(y);
     }
 
     pub(super) fn jump(&mut self, location: &str) {
         self.input.jump(&self.data_api,&self.commander,location);
     }
 
-    pub(crate) fn set_bp_per_screen(&mut self, z: f64) {
-        self.data_api.set_bp_per_screen(z);
-        self.target_reporter.set_bp(z);
-    }
-
-    pub(super) fn goto(&mut self, centre: f64, scale: f64) {
-        self.input.clone().goto(centre,scale);      
+    pub(super) fn goto(&mut self, centre: f64, scale: f64) -> Result<(),Message> {
+        let stage = lock!(self.stage).read_stage().clone();
+        let mut proceed = true;
+        if stage.ready() {
+            let old_centre = stage.x().position()?;
+            let old_scale = stage.x().bp_per_screen()?;
+            if !position_changed((old_centre,old_scale),(centre,scale)) {
+                proceed = false;
+            }
+        }
+        if proceed {
+            self.input.goto(centre,scale)?;
+        }
+        Ok(())
     }
 
     pub(crate) fn set_stick(&self, stick: &StickId) {
         self.stage.lock().unwrap().soon_stick(stick);
         self.data_api.set_stick(stick);
         self.target_reporter.set_stick(stick.get_id());
+    }
+
+    pub(crate) fn add_jsapi_channel(&mut self, name: &str, payload: JsValue) {
+        err_web_drop(self.jsapi.add_channel(name,payload));
+        self.data_api.add_backend(&format!("jsapi:{}",name));
     }
 
     pub(crate) fn debug_action(&mut self, index: u8) {
@@ -249,7 +281,7 @@ impl PeregrineInnerAPI {
             let stage = self.stage.lock().unwrap();
             log!("x {:?} bp_per_screen {:?}",stage.x().position(),stage.x().bp_per_screen());
         } else if index == 8 {
-            self.sound.play("bell");
+            self.sound.play(None,"bell");
         }
     }
 }

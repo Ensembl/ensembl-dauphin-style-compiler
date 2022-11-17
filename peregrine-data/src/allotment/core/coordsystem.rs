@@ -6,19 +6,33 @@ pub enum CoordinateSystemVariety {
      * moves as user scrolls, optimised for bulk data
      */
     Tracking,
-    /* base = bp, tangent = x-px, normal = y-px (-ve = bottom)
-     * moves as user scrolls,
+
+    /*base = bp, tangent = x-px, normal = y-px (-ve = error!)
+     * moves as user scrolls, scrolls vertically with content
      * identical intent to Tracking: less efficient but handles difficult cases (eg negative coordinates)
      */
+    TrackingSpecial,
+
+    /* base = bp, tangent = x-px, normal = y-px (-ve = bottom)
+     * moves as user scrolls, vertically attached to viewport
+     */
     TrackingWindow,
-    /* base = 0->left-of-winodw, 1->right-of-window, tangent = x-px,  normal = y-px (-ve = bottom)
-     * drawing relative to the window
+
+    /* base = 0->left-of-window, 1->right-of-window, tangent = x-px,  normal = y-px (-ve = bottom)
+     * drawing relative to the window, attached vertically to viewport
      */
     Window,
-    /* base = 0->top-of-winodw, 1->bottom-of-window, tangent = y-px,  normal = x-px (-ve = bottom)
+
+    /* base = 0->left-of-window, 1->right-of-window, tangent = x-px,  normal = y-px (-ve = bottom)
+     * drawing relative to the window, scrolls vertically with overflow
+     */
+    Content,
+
+    /* base = 0->top-of-window, 1->bottom-of-window, tangent = y-px,  normal = x-px (-ve = bottom)
      * drawing relative to the window on left and right
      */
     Sideways,
+
     /* Don't draw
      */
     Dustbin,
@@ -27,8 +41,10 @@ pub enum CoordinateSystemVariety {
 impl CoordinateSystemVariety {
     pub fn from_string(name: &str) -> CoordinateSystemVariety {
         match name {
-            "tracking-special" => CoordinateSystemVariety::TrackingWindow,
+            "tracking-special" => CoordinateSystemVariety::TrackingSpecial,
+            "tracking-window" => CoordinateSystemVariety::TrackingWindow,
             "window" => CoordinateSystemVariety::Window,
+            "content" => CoordinateSystemVariety::Content,
             "sideways" => CoordinateSystemVariety::Sideways,
             "dustbin" => CoordinateSystemVariety::Dustbin,
             _ => CoordinateSystemVariety::Tracking
@@ -62,7 +78,7 @@ impl CoordinateSystem {
 
     pub fn is_tracking(&self) -> bool {
         match self.0 {
-            CoordinateSystemVariety::Tracking | CoordinateSystemVariety::TrackingWindow => true,
+            CoordinateSystemVariety::Tracking | CoordinateSystemVariety::TrackingSpecial | CoordinateSystemVariety::TrackingWindow => true,
             _ => false
         }
     }

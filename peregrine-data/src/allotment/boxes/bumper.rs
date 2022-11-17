@@ -1,7 +1,5 @@
-use std::sync::{Arc};
-
-use peregrine_toolkit::{puzzle::{derived, DelayedSetter, compose, StaticValue, compose_slice, promise_delayed, cache_constant_arc, short_memoized_arc, compose_slice_vec }};
-
+use std::rc::Rc;
+use peregrine_toolkit::{puzzle::{derived, DelayedSetter, compose, StaticValue, promise_delayed, cache_constant_rc, short_memoized_rc, compose_slice_vec }};
 use crate::{allotment::{core::{allotmentname::{AllotmentNamePart, AllotmentName}, boxtraits::{Stackable, BuildSize, ContainerSpecifics, Coordinated}, boxpositioncontext::BoxPositionContext}, style::{style::{ContainerAllotmentStyle}}, collision::{collisionalgorithm::{BumpRequestSet, BumpRequest, BumpResponses}}}, CoordinateSystem};
 
 use super::{container::{Container}};
@@ -65,9 +63,9 @@ impl ContainerSpecifics for UnpaddedBumper {
             for (name,height,range) in &items {
                 builder.add(BumpRequest::new(name,range,*height));
             }
-            Arc::new(BumpRequestSet::new(builder))
+            Rc::new(BumpRequestSet::new(builder))
         });
-        let concrete_req = cache_constant_arc(short_memoized_arc(concrete_req));
+        let concrete_req = cache_constant_rc(short_memoized_rc(concrete_req));
         prep.state_request.bump_mut().set(&self.name,&concrete_req);
         self.results_setter.set(prep.state_request.bump_mut().global(&self.name).clone());
         derived(self.results.clone(),|c| c.height() as f64)

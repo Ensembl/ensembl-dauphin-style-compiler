@@ -1,19 +1,21 @@
 use crate::util::message::{ Message };
 use peregrine_toolkit::console::{set_printer, Severity};
-use peregrine_toolkit::eachorevery::eoestruct::{StructTemplate, StructBuilt, struct_to_json};
-use peregrine_toolkit::{log_extra, log_important, error};
+use peregrine_toolkit::eachorevery::eoestruct::{StructValue};
+use peregrine_toolkit::{log_extra, log_important};
 use peregrine_toolkit_async::sync::blocker::Blocker;
+use peregrine_toolkit_async::sync::needed::Needed;
 pub use url::Url;
+use wasm_bindgen::JsValue;
 pub use web_sys::{ console, WebGlRenderingContext, Element };
-use peregrine_data::{ Channel, StickId, Commander };
+use peregrine_data::{ StickId, Commander };
 use super::buildconfig::{ GIT_TAG, GIT_BUILD_DATE };
 use super::mousemove::run_mouse_move;
 use commander::CommanderStream;
 use super::inner::PeregrineInnerAPI;
-use super::dom::PeregrineDom;
 use crate::integration::pgcommander::PgCommanderWeb;
 use crate::run::globalconfig::PeregrineConfig;
 use super::frame::run_animations;
+use crate::domcss::dom::PeregrineDom;
 
 use std::sync::{ Arc, Mutex };
 
@@ -55,14 +57,14 @@ enum DrawMessage {
     Goto(f64,f64),
     SetY(f64),
     SetStick(StickId),
-    Switch(Vec<String>,StructBuilt),
+    Switch(Vec<String>,StructValue),
     RadioSwitch(Vec<String>,bool),
-    Bootstrap(Channel),
     SetMessageReporter(Box<dyn FnMut(&Message) + 'static + Send>),
     DebugAction(u8),
     SetArtificial(String,bool),
     Jump(String),
-    Sync()
+    Sync(),
+    AddJsapiChannel(String,JsValue)
 }
 
 impl std::fmt::Debug for DrawMessage {
@@ -71,14 +73,14 @@ impl std::fmt::Debug for DrawMessage {
             DrawMessage::Goto(centre,scale) => write!(f,"Goto({:?},{:?})",centre,scale),
             DrawMessage::SetY(y) => write!(f,"SetY({:?})",y),
             DrawMessage::SetStick(stick)  => write!(f,"SetStick({:?})",stick),
-            DrawMessage::Switch(path,value) => write!(f,"Switch({:?},{:?})",path,struct_to_json(value,None)),
+            DrawMessage::Switch(path,value) => write!(f,"Switch({:?},{:?})",path,value.to_json_value().to_string()),
             DrawMessage::RadioSwitch(path,yn)  => write!(f,"RadioSwitch({:?},{:?})",path,yn),
-            DrawMessage::Bootstrap(channel)  => write!(f,"Channel({:?})",channel),
             DrawMessage::SetMessageReporter(_) => write!(f,"SetMessageReporter(...)"),
             DrawMessage::DebugAction(index)  => write!(f,"DebugAction({:?})",index),
             DrawMessage::SetArtificial(name,start) => write!(f,"SetArtificial({:?},{:?})",name,start),
             DrawMessage::Jump(location) => write!(f,"Jump({})",location),
-            DrawMessage::Sync() => write!(f,"Sync")
+            DrawMessage::Sync() => write!(f,"Sync"),
+            DrawMessage::AddJsapiChannel(name,channel) => write!(f,"AddJsapiChannel({},...)",name)
         }
     }
 }
@@ -125,9 +127,6 @@ impl DrawMessage {
             DrawMessage::RadioSwitch(path,yn) => {
                 draw.radio_switch(&path.iter().map(|x| &x as &str).collect::<Vec<_>>(),yn);
             },
-            DrawMessage::Bootstrap(channel) => {
-                draw.bootstrap(channel.clone());
-            },
             DrawMessage::SetMessageReporter(cb) => {
                 draw.set_message_reporter(cb);
             },
@@ -137,6 +136,9 @@ impl DrawMessage {
             DrawMessage::Jump(location) => {
                 draw.jump(&location);
             },
+            DrawMessage::AddJsapiChannel(name,payload) => {
+                draw.add_jsapi_channel(&name,payload);
+            }
             DrawMessage::Sync() => {
                 blocker.set_freewheel(false);
             }
@@ -159,10 +161,6 @@ impl PeregrineAPI {
         }
     }
 
-    pub fn bootstrap(&self, channel: &Channel) {
-        self.queue.add(Some(DrawMessage::Bootstrap(channel.clone())));
-    }
-
     pub fn set_y(&self, y: f64) {
         self.queue.add(Some(DrawMessage::SetY(y)));
     }
@@ -180,7 +178,7 @@ impl PeregrineAPI {
         self.queue.add(Some(DrawMessage::Sync()));
     }
 
-    pub fn switch(&self, path: &[&str], value: StructBuilt) {
+    pub fn switch(&self, path: &[&str], value: StructValue) {
         self.queue.add(Some(DrawMessage::Switch(path.iter().map(|x| x.to_string()).collect(),value)));
     }
 
@@ -207,6 +205,10 @@ impl PeregrineAPI {
 
     pub fn stick(&self) -> Option<String> { self.stick.lock().unwrap().as_ref().cloned() }
 
+    pub fn add_jsapi_channel(&self, name: &str, payload: JsValue) {
+        self.queue.add(Some(DrawMessage::AddJsapiChannel(name.to_string(),payload)))
+    }
+
     pub fn set_artificial(&self, name: &str, start: bool) {
         self.queue.add(Some(DrawMessage::SetArtificial(name.to_string(),start)));
     }
@@ -222,10 +224,11 @@ impl PeregrineAPI {
         Ok(())
     }
 
-    pub fn run(&self, config: PeregrineConfig, dom: PeregrineDom) -> Result<PgCommanderWeb,Message> {
+    pub fn run(&self, config: PeregrineConfig, el: &Element, backend: &str) -> Result<PgCommanderWeb,Message> {
         let commander = PgCommanderWeb::new()?;
-        dom.run_shutdown_detector(&commander);
         commander.start();
+        let redraw_needed = Needed::new();
+        let dom = PeregrineDom::new(&commander,el,&redraw_needed)?;
         set_printer(|severity,message| {
             match severity {
                 Severity::Error => { console::error_1(&message.into()); },
@@ -234,7 +237,7 @@ impl PeregrineAPI {
             }
         });
         let configs = config.build();
-        let mut inner = PeregrineInnerAPI::new(&configs,&dom,&commander,self.queue.syncer())?;
+        let mut inner = PeregrineInnerAPI::new(&configs,&dom,&commander,backend,self.queue.syncer(),&redraw_needed)?;
         run_animations(&mut inner,&dom)?;
         run_mouse_move(&mut inner,&dom)?;
         let self2 = self.clone();

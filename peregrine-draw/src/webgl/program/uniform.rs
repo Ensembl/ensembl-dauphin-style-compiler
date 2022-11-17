@@ -3,6 +3,7 @@ use std::collections::HashSet;
 use super::source::{ Source };
 use super::program::{ ProgramBuilder };
 use super::super::{ GLArity, GPUSpec, Precision, Phase };
+use peregrine_toolkit::error::Error;
 use web_sys::{ WebGlUniformLocation, WebGlRenderingContext, WebGlProgram };
 use keyed::keyed_handle;
 use crate::webgl::util::handle_context_errors;
@@ -105,7 +106,7 @@ impl UniformValues {
         Ok(())
     }
 
-    pub fn discard(&mut self, _context: &WebGlRenderingContext) -> Result<(),Message> {
+    pub fn discard(&mut self, _context: &WebGlRenderingContext) -> Result<(),Error> {
         Ok(())
     }
 }

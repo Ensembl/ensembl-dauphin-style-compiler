@@ -42,7 +42,6 @@ impl FingerPairAxis {
         self.1.set(secondary);
     }
 
-    fn reset(&mut self) { self.0.reset(); self.1.reset(); }
     fn current_separation(&self) -> f64 { self.1.current() - self.0.current() }
     fn start_separation(&self) -> f64 { self.1.start() - self.0.start() }
     fn current_mean(&self) -> f64 { (self.1.current() + self.0.current())/2. }
@@ -169,7 +168,6 @@ impl PinchManager {
         }
     }
 
-    pub(crate) fn pinch(&self) -> &PixelPinchAction { &self.best_pinch }
     pub(crate) fn position(&self) -> ScreenPosition { ScreenPosition::transform(&self.initial_screen,&self.best_pinch) }
 }
 

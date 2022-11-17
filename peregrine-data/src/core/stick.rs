@@ -1,10 +1,14 @@
-use anyhow::bail;
-use peregrine_toolkit::cbor::{cbor_as_number, cbor_as_str, cbor_into_map, cbor_into_vec, cbor_map_key, cbor_map_optional_key};
-use std::collections::{BTreeMap, HashSet};
+use peregrine_toolkit::error::Error;
+use serde::Serialize;
+use serde_derive::Deserialize;
+use std::collections::HashSet;
 use std::fmt::{ self, Display, Formatter };
-use serde_cbor::Value as CborValue;
+use std::hash::Hash;
 
-#[derive(Clone,Debug,Hash,PartialEq,Eq)]
+use super::tagpred::TagPred;
+
+#[derive(Clone,Debug,Hash,PartialEq,Eq,Deserialize)]
+#[serde(transparent)]
 pub struct StickId(String);
 
 impl StickId {
@@ -13,9 +17,12 @@ impl StickId {
     }
 
     pub fn get_id(&self) -> &str { &self.0 }
+}
 
-    pub fn encode(&self) -> CborValue {
-        CborValue::Text(self.0.clone())
+impl Serialize for StickId {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+            where S: serde::Serializer {
+        serializer.serialize_str(&self.0)
     }
 }
 
@@ -25,19 +32,20 @@ impl Display for StickId {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone,Deserialize)]
 #[cfg_attr(debug_assertions,derive(Debug))]
+#[repr(u8)]
 pub enum StickTopology {
-    Linear,
-    Circular
+    Linear = 0,
+    Circular = 1
 }
 
 impl StickTopology {
-    pub fn from_number(n: u8) -> anyhow::Result<StickTopology> {
+    pub fn from_number(n: u8) -> Result<StickTopology,Error> {
         Ok(match n {
             0 => StickTopology::Linear,
             1 => StickTopology::Circular,
-            _ => bail!("bad topology number")
+            _ => { return Err(Error::operr("unknown topology")); }
         })
     }
 
@@ -50,37 +58,7 @@ impl StickTopology {
 }
 
 #[derive(Clone)]
-pub enum StickResponse {
-    Stick(Stick),
-    Unknown(String)
-}
-
-impl StickResponse {
-    pub fn decode(value: CborValue) -> Result<StickResponse,String> {
-        let mut map = cbor_into_map(value)?;
-        Ok(if let Some(error) = cbor_map_optional_key(&mut map,"error") {
-            StickResponse::Unknown(cbor_as_str(&error)?.to_string())
-        } else {
-            StickResponse::Stick(StickResponse::decode_stick(map)?)
-        })
-    }
-
-    fn decode_stick(mut map: BTreeMap<CborValue,CborValue>) -> Result<Stick,String> {
-        let mut tags = cbor_into_vec(cbor_map_key(&mut map,"tags")?)?;
-        let tags = tags.drain(..).map(|x| cbor_as_str(&x).map(|x| x.to_string())).collect::<Result<HashSet<_>,_>>()?;
-        let id = cbor_as_str(&cbor_map_key(&mut map,"id")?)?.to_string();
-        let size = cbor_as_number(&cbor_map_key(&mut map,"size")?)?;
-        let topology = cbor_as_number(&cbor_map_key(&mut map,"topology")?)?;
-        let topology = match topology {
-            0 => StickTopology::Linear,
-            1 => StickTopology::Circular,
-            x => { return Err(format!("unknown topology: {}",x)); }
-        };
-        Ok(Stick { id: StickId::new(&id), size, topology, tags })        
-    }
-}
-
-#[derive(Clone)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub struct Stick {
     id: StickId,
     size: u64,
@@ -88,8 +66,20 @@ pub struct Stick {
     tags: HashSet<String>
 }
 
+impl PartialEq for Stick {
+    fn eq(&self, other: &Self) -> bool { self.id == other.id }
+}
+
+impl Eq for Stick {}
+
+impl Hash for Stick {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.id.hash(state);
+    }
+}
+
 impl Stick {
-    pub fn new(id: &StickId, size: u64, topology: StickTopology, tags: &[String],) -> Stick {
+    pub fn new(id: &StickId, size: u64, topology: StickTopology, tags: &[String]) -> Stick {
         Stick {
             id: id.clone(),
             size, topology,
@@ -101,4 +91,8 @@ impl Stick {
     pub fn size(&self) -> u64 { self.size }
     pub fn tags(&self) -> &HashSet<String> { &self.tags }
     pub fn topology(&self) -> &StickTopology { &self.topology }
+
+    pub(crate) fn check_tags(&self, pred: &TagPred) -> bool {
+        pred.evaluate(&self.tags,&self.id.get_id())
+    }
 }

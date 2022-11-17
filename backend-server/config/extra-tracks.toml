@@ -1,0 +1,8 @@
+include_files = [
+    "tracks-include.toml"
+]
+
+[track.ruler]
+include = ["general"]
+scales = [0,100,1]
+triggers = [["ruler"]]

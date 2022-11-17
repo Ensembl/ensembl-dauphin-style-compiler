@@ -75,7 +75,7 @@ pub(crate) fn get_peregrine(context: &mut InterpContext) -> anyhow::Result<&mut 
     context.payload("peregrine","core")?.as_any_mut().downcast_mut::<PeregrinePayload>().ok_or_else(|| err!("missing peregrine data"))
 }
 
-pub(crate) fn vec_to_eoe<X: Clone>(mut input: Vec<X>) -> EachOrEvery<X> {
+pub(crate) fn vec_to_eoe<X: Clone>(input: Vec<X>) -> EachOrEvery<X> {
     if input.len() == 1 { EachOrEvery::every(input.get(0).unwrap().clone()) }
     else { EachOrEvery::each(input) } 
 }

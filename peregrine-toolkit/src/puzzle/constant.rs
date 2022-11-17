@@ -1,6 +1,4 @@
-use std::{sync::{Arc, Mutex}};
-
-use crate::lock;
+use std::{rc::Rc, cell::RefCell};
 
 use super::value::{Value};
 
@@ -11,13 +9,13 @@ pub fn constant<'f:'a,'a,T: Clone + 'a>(value: T) -> Value<'f,'a,T> {
 enum ConstantResult<T> {
     NotTried,
     NotAvailable,
-    Available(Arc<T>)
+    Available(Rc<T>)
 }
 
 impl<T> ConstantResult<T> {
-    fn try_constant<'f:'a,'a,F,U>(&mut self, input: &Value<'f,'a,U>, arcify: F) -> Option<Arc<T>>  where F: Fn(U) -> Arc<T> {
+    fn try_constant<'f:'a,'a,F,U>(&mut self, input: &Value<'f,'a,U>, rcify: F) -> Option<Rc<T>>  where F: Fn(U) -> Rc<T> {
         if let Some(value) = input.constant() {
-            let value = arcify(value);
+            let value = rcify(value);
             *self = ConstantResult::Available(value.clone());
             Some(value)
         } else {
@@ -28,18 +26,18 @@ impl<T> ConstantResult<T> {
     }
 }
 
-fn do_cache_constant<'a,'f:'a, T: 'a,U: 'a, F: 'f>(input: Value<'f,'a,U>, arcify: F) -> Value<'f,'a,Arc<T>>
-        where F: Fn(U) -> Arc<T> {
-    let constant = Arc::new(Mutex::new(ConstantResult::NotTried));
-    let arcify = Arc::new(arcify);
+fn do_cache_constant<'a,'f:'a, T: 'a,U: 'a, F: 'f>(input: Value<'f,'a,U>, rcify: F) -> Value<'f,'a,Rc<T>>
+        where F: Fn(U) -> Rc<T> {
+    let constant = Rc::new(RefCell::new(ConstantResult::NotTried));
+    let rcify = Rc::new(rcify);
     Value::new(move |answer_index| {
-        let mut cache = lock!(constant);
+        let mut cache = constant.borrow_mut();
         if let ConstantResult::NotTried = &*cache {
-            cache.try_constant(&input,&*arcify);
+            cache.try_constant(&input,&*rcify);
         }
         match &*cache {
             ConstantResult::NotAvailable => {
-                input.inner(answer_index).map(|x| arcify(x))
+                input.inner(answer_index).map(|x| rcify(x))
             },
             ConstantResult::Available(v) => Some(v.clone()),
             ConstantResult::NotTried => { panic!("Not tried after trying"); }
@@ -47,24 +45,22 @@ fn do_cache_constant<'a,'f:'a, T: 'a,U: 'a, F: 'f>(input: Value<'f,'a,U>, arcify
     })
 }
 
-pub fn cache_constant<'f:'a,'a,T: 'a>(input: Value<'f,'a,T>) -> Value<'f,'a,Arc<T>> {
-    do_cache_constant(input,|x| Arc::new(x))
+pub fn cache_constant<'f:'a,'a,T: 'a>(input: Value<'f,'a,T>) -> Value<'f,'a,Rc<T>> {
+    do_cache_constant(input,|x| Rc::new(x))
 }
 
 pub fn cache_constant_clonable<'f:'a,'a,T: 'a+Clone>(input: Value<'f,'a,T>) -> Value<'f,'a,T> {
-    do_cache_constant(input,|x| Arc::new(x)).dearc()
+    do_cache_constant(input,|x| Rc::new(x)).derc()
 }
 
-pub fn cache_constant_arc<'f:'a,'a,T: 'a>(input: Value<'f,'a,Arc<T>>) -> Value<'f,'a,Arc<T>> {
+pub fn cache_constant_rc<'f:'a,'a,T: 'a>(input: Value<'f,'a,Rc<T>>) -> Value<'f,'a,Rc<T>> {
     do_cache_constant(input,|x| x)
 }
 
 #[cfg(test)]
 mod test {
-    use std::sync::{Arc, Mutex};
-
-    use crate::{puzzle::{AnswerAllocator, derived, short_unknown_promise_clonable, Value}, lock};
-
+    use std::{rc::Rc, cell::RefCell};
+    use crate::{puzzle::{AnswerAllocator, derived, short_unknown_promise_clonable, Value}};
     use super::{constant, cache_constant_clonable};
 
     #[test]
@@ -78,18 +74,18 @@ mod test {
     #[test]
     fn cache_constant_smoke() {
         let mut a = AnswerAllocator::new();
-        let count = Arc::new(Mutex::new(0));
+        let count = Rc::new(RefCell::new(0));
         let count2 = count.clone();
         let c = constant(12);
-        let d = derived(c,|x| { *lock!(count2) += 1; x*x});
+        let d = derived(c,|x| { *count2.borrow_mut() += 1; x*x});
         let uc = cache_constant_clonable(d.clone());
         assert_eq!(144,uc.call(&mut a.get()));
         assert_eq!(Some(144),uc.constant());
         uc.call(&mut a.get());
         uc.call(&mut a.get());
-        assert_eq!(1,*lock!(count));
+        assert_eq!(1,*count.borrow());
         d.call(&mut a.get());
-        assert_eq!(2,*lock!(count));
+        assert_eq!(2,*count.borrow());
         /**/
         let(_,u) : (_,Value<i32>) = short_unknown_promise_clonable();
         let d = derived(u,|x| x*x);

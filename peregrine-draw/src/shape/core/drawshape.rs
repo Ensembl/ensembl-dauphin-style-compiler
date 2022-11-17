@@ -17,7 +17,7 @@ use crate::shape::layers::geometry::{GeometryYielder, GeometryProcessName };
 use crate::shape::layers::patina::PatinaYielder;
 use crate::shape::triangles::rectangles::{Rectangles, RectanglesData, GLAttachmentPoint };
 use crate::shape::triangles::drawgroup::DrawGroup;
-use crate::shape::util::iterators::eoe_throw;
+use crate::shape::util::eoethrow::eoe_throw;
 use crate::webgl::{ ProcessStanzaAddable };
 use crate::webgl::global::WebGlGlobal;
 use crate::util::message::Message;

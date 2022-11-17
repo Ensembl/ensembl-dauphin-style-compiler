@@ -15,6 +15,11 @@
         "options": ["no","yes"]
     },
     {
+        "key": "CFG_EC",
+        "question": "ensembl-client code",
+        "options": ["github","local"]
+    },
+    {
         "key": "CFG_EC_BRANCH",
         "question": "ensembl-client branch to use",
         "default": "main",
@@ -26,9 +31,10 @@
         "options": ["github","local"]
     },
     {
-        "key": "CFG_EC",
-        "question": "ensembl-client code",
-        "options": ["github","local"]
+        "key": "CFG_EGB_BRANCH",
+        "question": "ensembl-genome-browser branch to use",
+        "default": "main",
+        "conditions": { "eq": ["CFG_EGB","github"] }
     },
     {
         "key": "CFG_EC_DAILY",

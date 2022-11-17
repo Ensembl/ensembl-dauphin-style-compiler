@@ -311,11 +311,11 @@ impl DragState {
         let drag_cursor_delay = config.drag_cursor_delay;
         let gl2 = gl.clone();
         lowlevel.timer(hold_time, move || {
-            inner2.lock().unwrap().hold_timer_expired(&*lock!(gl2));
+            lock!(inner2).hold_timer_expired(&*lock!(gl2));
         });
         let inner2 = inner.clone();
         lowlevel.timer(drag_cursor_delay, move || {
-            inner2.lock().unwrap().click_timer_expired();
+            lock!(inner2).click_timer_expired();
         });
         Ok(DragState(inner))
     }

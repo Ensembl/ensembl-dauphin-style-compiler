@@ -3,7 +3,8 @@ use crate::core::pixelsize::PixelSize;
 use crate::core::{ Scale, StickId };
 use crate::switch::trackconfig::TrackConfig;
 use crate::switch::track::Track;
-use serde_cbor::Value as CborValue;
+use serde::Serialize;
+use serde::ser::SerializeSeq;
 
 #[cfg_attr(debug_assertions,derive(Debug))]
 #[derive(Clone,PartialEq,Eq,Hash)]
@@ -16,14 +17,6 @@ pub struct Region {
 impl Region {
     pub fn new(stick: &StickId, index: u64, scale: &Scale) -> Region {
         Region { stick: stick.clone(), scale: scale.clone(), index }
-    }
-
-    pub fn encode(&self) -> CborValue {
-        CborValue::Array(vec![
-            self.stick.encode(),
-            self.scale.encode(),
-            CborValue::Integer(self.index as i128)
-        ])
     }
 
     pub fn to_invariant(&self) -> Region {
@@ -50,6 +43,17 @@ impl Region {
         } else {
             self.clone()
         }
+    }
+}
+
+impl Serialize for Region {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+            where S: serde::Serializer {
+        let mut seq = serializer.serialize_seq(Some(3))?;
+        seq.serialize_element(&self.stick)?;
+        seq.serialize_element(&self.scale)?;
+        seq.serialize_element(&self.index)?;
+        seq.end()
     }
 }
 

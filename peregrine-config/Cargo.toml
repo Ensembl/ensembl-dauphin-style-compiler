@@ -2,6 +2,3 @@
 name = "peregrine_config"
 version = "0.0.0"
 authors = ["Dan Sheppard <dan@ebi.ac.uk>"]
-
-[dependencies]
-lazy_static = "*"

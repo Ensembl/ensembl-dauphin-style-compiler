@@ -1,6 +1,6 @@
 use std::{collections::HashMap, rc::Rc, sync::{Arc, Mutex}};
-use peregrine_data::{ Scale, ZMenu, ZMenuGenerator, ZMenuProxy, SpaceBaseArea, SpaceBasePointRef, LeafStyle, Hotspot };
-use peregrine_toolkit::{lock, log, eachorevery::EachOrEvery};
+use peregrine_data::{ Scale, ZMenuGenerator, ZMenuProxy, SpaceBaseArea, SpaceBasePointRef, LeafStyle, Hotspot, SettingMode };
+use peregrine_toolkit::{lock, eachorevery::EachOrEvery};
 use crate::stage::{stage::{ ReadStage }, axis::UnitConverter};
 use crate::util::message::Message;
 
@@ -24,30 +24,30 @@ const VERT_ZONE_HEIGHT : u64 = 200;
  * max bp and use bp_in_carriage to convert to maximum proportion of carriage.
  */
 
-pub struct SwitchProxy(Rc<EachOrEvery<(Vec<String>,bool)>>,usize);
+pub struct SettingProxy(Rc<EachOrEvery<(Vec<String>,SettingMode)>>,usize);
 
-impl SwitchProxy {
-    pub fn value(&self) -> (Vec<String>,bool) {
+impl SettingProxy {
+    pub fn value(&self) -> (Vec<String>,SettingMode) {
         self.0.get(self.1).unwrap().clone()
     }
 }
 
 #[derive(Clone)]
-struct SwitchGenerator(Rc<EachOrEvery<(Vec<String>,bool)>>);
+struct SettingGenerator(Rc<EachOrEvery<(Vec<String>,SettingMode)>>);
 
-impl SwitchGenerator {
-    fn new(values: &EachOrEvery<(Vec<String>,bool)>) -> SwitchGenerator {
-        SwitchGenerator(Rc::new(values.clone()))
+impl SettingGenerator {
+    fn new(values: &EachOrEvery<(Vec<String>,SettingMode)>) -> SettingGenerator {
+        SettingGenerator(Rc::new(values.clone()))
     }
 
-    fn make_proxy(&self, index: usize) -> SwitchProxy {
-        SwitchProxy(self.0.clone(),index)
+    fn make_proxy(&self, index: usize) -> SettingProxy {
+        SettingProxy(self.0.clone(),index)
     }
 }
 
 enum HotspotUnscaledEntryDetails {
     ZMenu(ZMenuGenerator),
-    Switch(SwitchGenerator)
+    Setting(SettingGenerator)
 }
 
 struct HotspotUnscaledEntry {
@@ -69,10 +69,10 @@ impl HotspotUnscaledEntry {
                     area
                 }      
             },
-            Hotspot::Switch(values) => {
-                let details = SwitchGenerator::new(values);
+            Hotspot::Setting(values) => {
+                let details = SettingGenerator::new(values);
                 HotspotUnscaledEntry {
-                    details: HotspotUnscaledEntryDetails::Switch(details),
+                    details: HotspotUnscaledEntryDetails::Setting(details),
                     area
                 }
             }
@@ -111,7 +111,7 @@ impl DrawingHotspotsBuilder {
 #[derive(Clone)]
 pub(crate) enum HotspotEntryDetails {
     ZMenu(Rc<ZMenuProxy>),
-    Switch(Rc<SwitchProxy>)
+    Setting(Rc<SettingProxy>)
 }
 
 impl HotspotEntryDetails {
@@ -120,8 +120,8 @@ impl HotspotEntryDetails {
             HotspotUnscaledEntryDetails::ZMenu(generator) => {
                 HotspotEntryDetails::ZMenu(Rc::new(generator.make_proxy(index)))
             },
-            HotspotUnscaledEntryDetails::Switch(generator) => {
-                HotspotEntryDetails::Switch(Rc::new(generator.make_proxy(index)))
+            HotspotUnscaledEntryDetails::Setting(generator) => {
+                HotspotEntryDetails::Setting(Rc::new(generator.make_proxy(index)))
             }
         }
     }

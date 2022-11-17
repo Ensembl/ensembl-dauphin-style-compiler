@@ -4,7 +4,7 @@ import logging
 from typing import Dict, List, Optional, Tuple
 from command.coremodel import DataHandler, Panel, DataAccessor
 from command.response import Response
-from command.datacmd import DataException
+from command.exceptionres import DataException
 from model.bigbed import get_bigbed
 from model.chromosome import Chromosome
 from model.transcriptfile import TranscriptFileLine

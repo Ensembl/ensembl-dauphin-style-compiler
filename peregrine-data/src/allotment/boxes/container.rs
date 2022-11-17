@@ -1,12 +1,12 @@
-use std::{collections::HashMap, sync::{Arc, Mutex}};
-use peregrine_toolkit::{lock, puzzle::{DelayedSetter, derived, cache_constant, commute_arc, constant, StaticValue, promise_delayed, short_memoized_clonable, cache_constant_clonable }, eachorevery::eoestruct::StructTemplate};
+use std::{sync::{Arc, Mutex}, rc::Rc};
+use peregrine_toolkit::{lock, puzzle::{DelayedSetter, derived, cache_constant, commute_rc, constant, StaticValue, promise_delayed, short_memoized_clonable, cache_constant_clonable }, eachorevery::eoestruct::StructTemplate};
 use crate::{allotment::{core::{allotmentname::{AllotmentName, AllotmentNamePart}, boxtraits::{ContainerSpecifics, Coordinated, BuildSize, Stackable}, boxpositioncontext::BoxPositionContext}, style::{style::{ContainerAllotmentStyle}}, util::rangeused::RangeUsed, globals::allotmentmetadata::LocalAllotmentMetadataBuilder}, CoordinateSystem, shape::metadata::MetadataStyle};
 
 fn internal_height(child_height: &StaticValue<f64>, min_height: f64, padding_top: f64, padding_bottom: f64) -> StaticValue<f64> {
     cache_constant(derived(child_height.clone(),move |child_height| {
         let internal_height = child_height.max(min_height);
         padding_top + internal_height + padding_bottom
-    })).dearc()
+    })).derc()
 }
 
 pub struct Container {
@@ -76,7 +76,7 @@ impl Stackable for Container {
         let mut children = lock!(self.children);
         let mut kids = children.iter_mut().collect::<Vec<_>>();
         let padding_top = self.style.padding.padding_top;
-        let draw_top = cache_constant(derived(value.clone(),move |top| top+padding_top)).dearc();
+        let draw_top = cache_constant(derived(value.clone(),move |top| top+padding_top)).derc();
         self.top_setter.set(value.clone());
         if let Some(datum) = &self.style.set_align {
             prep.state_request.aligner_mut().set(datum,value);
@@ -92,7 +92,7 @@ impl Stackable for Container {
         let mut input = vec![];
         for child in &mut *children {
             let size = child.build(prep);
-            let range = derived(size.range.clone(),|x| Arc::new(x));
+            let range = derived(size.range.clone(),|x| Rc::new(x));
             ranges.push(range);
             input.push((&*child,size));
         }
@@ -109,7 +109,7 @@ impl Stackable for Container {
             let arc_height = derived(height.clone(),|x| Arc::new(x));
             add_report(prep.state_request.metadata_mut(),&self.name,report,&self.top,&arc_height);
         }
-        let range = commute_arc(&ranges,Arc::new(RangeUsed::None), Arc::new(|x,y| (*x).merge(&*y))).dearc();
+        let range = commute_rc(&ranges,Rc::new(RangeUsed::None), Rc::new(|x,y| (*x).merge(&*y))).derc();
         BuildSize {
             name: self.name.clone(),
             height,

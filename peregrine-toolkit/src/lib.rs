@@ -1,22 +1,31 @@
 pub mod eachorevery {
     pub mod eoestruct {
         mod eoestructdata;
+
+        #[cfg(test)]
+        mod test {
+            mod eoestructtest;
+        }
+        
         mod structbuilt;
         mod build;
         mod eoetruthy;
         mod eoestruct;
         mod expand;
         mod eoejson;
+        mod replace;
         mod structtemplate; 
+        mod structvalue;
 
         #[cfg(debug_assertions)]
         mod eoedebug;
-
+        
         pub use expand::{ struct_select };
         pub use eoestruct::{ StructVarGroup, StructConst, StructError, struct_error_to_string };
-        pub use eoejson::{ struct_to_json, struct_from_json };
+        pub use eoejson::{ struct_to_json, struct_from_json, select_to_json };
         pub use structbuilt::{ StructBuilt };
         pub use structtemplate::{ StructTemplate, StructVar, StructPair };
+        pub use structvalue::{ StructValue };
     }
 
     mod eoefilter;
@@ -29,6 +38,9 @@ pub mod eachorevery {
 pub mod js {
     pub mod exception;
     pub mod jstojsonvalue;
+    pub mod dommanip;
+    pub mod timer;
+    pub mod raf;
 }
 
 pub mod plumbing {
@@ -51,11 +63,11 @@ pub mod puzzle {
     mod variable;
 
     pub use answer::{ Answer, StaticAnswer, AnswerAllocator };
-    pub use commute::{ commute, commute_arc, commute_clonable, DelayedCommuteBuilder, build_commute };
+    pub use commute::{ commute, commute_rc, commute_clonable, DelayedCommuteBuilder, build_commute };
     pub use compose::{ derived, compose, compose_slice, compose_slice_vec };
-    pub use constant::{ constant, cache_constant, cache_constant_arc, cache_constant_clonable };
+    pub use constant::{ constant, cache_constant, cache_constant_rc, cache_constant_clonable };
     pub use delayed::{ DelayedSetter, delayed, promise_delayed };
-    pub use memoized::{ short_memoized, short_memoized_arc, short_memoized_clonable };
+    pub use memoized::{ short_memoized, short_memoized_rc, short_memoized_clonable };
     pub use value::{ Value, StaticValue };
     pub use unknown::{ 
         UnknownSetter, StaticUnknownSetter, unknown, short_unknown, short_unknown_promise_clonable, 
@@ -69,8 +81,17 @@ pub mod puzzle {
 
 pub mod approxnumber;
 pub mod boom;
-pub mod cbor;
+pub mod diffset;
+pub mod serdetools;
 pub mod console;
+pub mod error;
+#[macro_use]
+pub mod identitynumber;
+#[macro_use]
+pub mod itertools;
+#[macro_use]
+pub mod lang;
+pub mod lesqlite2;
 pub mod refs;
 pub mod sample;
 pub mod time;

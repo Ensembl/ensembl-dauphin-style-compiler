@@ -1,4 +1,5 @@
 use crate::util::error::{ confused_browser, confused_browser_option };
+use peregrine_toolkit::lock;
 use web_sys::{ HtmlElement, window, Window };
 use wasm_bindgen::JsCast;
 use wasm_bindgen::prelude::*;
@@ -63,52 +64,65 @@ impl CallbackStore {
     }
 }
 
-pub struct EventSystem<H> where H: 'static {
+pub struct EventSystemImpl<H> where H: 'static {
     handler: Arc<Mutex<H>>,
-    js_handlers: Arc<Mutex<Vec<CallbackStore>>>
+    js_handlers: Vec<CallbackStore>
 }
 
-impl<H> Clone for EventSystem<H> {
-    fn clone(&self) -> Self {
-        EventSystem {
-            handler: self.handler.clone(),
-            js_handlers: self.js_handlers.clone()
-        }
-    }
-}
-
-impl<H> EventSystem<H> {
-    pub fn new(handler: H) -> EventSystem<H> {
-        EventSystem {
+impl<H> EventSystemImpl<H> {
+    fn new(handler: H) -> EventSystemImpl<H> {
+        EventSystemImpl {
             handler: Arc::new(Mutex::new(handler)),
-            js_handlers: Arc::new(Mutex::new(vec![])),
+            js_handlers: vec![],
         }
     }
 
-    pub fn handler(&self) -> &Arc<Mutex<H>> { &self.handler }
-
-    pub fn add<F,T>(&mut self, element: &HtmlElement, name: &str, cb: F) -> Result<(),Message>
+    fn add<F,T>(&mut self, element: &HtmlElement, name: &str, cb: F) -> Result<(),Message>
                 where F: Fn(&mut H,&T) + 'static, T: TryFrom<JsValue> + 'static {
-        self.js_handlers.lock().unwrap().push( CallbackStore::new(&self.handler,element,name,cb)?);
+        self.js_handlers.push( CallbackStore::new(&self.handler,element,name,cb)?);
         Ok(())
     }
 
-    pub fn add_window<F,T>(&mut self, name: &str, cb: F) -> Result<(),Message>
+    fn add_window<F,T>(&mut self, name: &str, cb: F) -> Result<(),Message>
                 where F: Fn(&mut H,&T) + 'static, T: TryFrom<JsValue> + 'static {
-        self.js_handlers.lock().unwrap().push(CallbackStore::new_window(&self.handler,name,cb)?);
+        self.js_handlers.push(CallbackStore::new_window(&self.handler,name,cb)?);
         Ok(())
     }
 
-    pub fn finish(&mut self) -> Result<(),Message> {
-        for mut callback in self.js_handlers.lock().unwrap().drain(..) {
+    fn finish(&mut self) -> Result<(),Message> {
+        for mut callback in self.js_handlers.drain(..) {
             callback.finish()?;
         }
         Ok(())
     }
 }
 
-impl<H> Drop for EventSystem<H> {
+impl<H> Drop for EventSystemImpl<H> {
     fn drop(&mut self) {
         self.finish().ok();
+    }
+}
+
+pub struct EventSystem<H: 'static>(Arc<Mutex<EventSystemImpl<H>>>);
+
+impl<H> Clone for EventSystem<H> {
+    fn clone(&self) -> Self {
+        Self(self.0.clone())
+    }
+}
+
+impl<H: 'static> EventSystem<H> {
+    pub fn new(handler: H) -> EventSystem<H> {
+        EventSystem(Arc::new(Mutex::new(EventSystemImpl::new(handler))))
+    }
+
+    pub fn add<F,T>(&mut self, element: &HtmlElement, name: &str, cb: F) -> Result<(),Message>
+                where F: Fn(&mut H,&T) + 'static, T: TryFrom<JsValue> + 'static {
+        lock!(self.0).add(element,name,cb)
+    }
+
+    pub fn add_window<F,T>(&mut self, name: &str, cb: F) -> Result<(),Message>
+                where F: Fn(&mut H,&T) + 'static, T: TryFrom<JsValue> + 'static {
+        lock!(self.0).add_window(name,cb)
     }
 }

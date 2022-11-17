@@ -1,10 +1,9 @@
-use crate::{run::{ PgPeregrineConfig, PgConfigKey }, shape::layers::programstore::ProgramStore, util::fonts::Fonts, PgCommanderWeb};
+use crate::{run::{ PgPeregrineConfig, PgConfigKey }, shape::layers::programstore::ProgramStore, util::fonts::Fonts, PgCommanderWeb, domcss::dom::PeregrineDom};
 use crate::webgl::{ FlatStore, TextureBindery };
 use js_sys::Float32Array;
 use web_sys::Document;
 pub use url::Url;
 pub use web_sys::{ console, WebGlRenderingContext };
-use crate::PeregrineDom;
 use crate::util::message::Message;
 use wasm_bindgen::JsCast;
 use super::{GPUSpec, glbufferstore::GLBufferStore};

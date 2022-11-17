@@ -3,6 +3,7 @@ use std::future::Future;
 use std::pin::Pin;
 use std::sync::{ Arc, Mutex };
 use commander::{ Agent, Executor, RunSlot, Lock, RunConfig, TaskHandle, cdr_in_agent, cdr_add, cdr_new_agent, TaskResult, KillReason };
+use peregrine_toolkit::error::Error;
 use crate::api::MessageSender;
 use crate::util::message::DataMessage;
 
@@ -15,7 +16,7 @@ async fn then_print_stats<T>(agent: Agent, f: Pin<Box<dyn Future<Output=T>>>) ->
     out
 }
 
-pub fn add_task<R>(commander: &PgCommander, t: PgCommanderTaskSpec<R>) -> TaskHandle<Result<R,DataMessage>> {
+pub fn add_task<R>(commander: &PgCommander, t: PgCommanderTaskSpec<R>) -> TaskHandle<Result<R,Error>> {
     let rc = RunConfig::new(t.slot,t.prio,t.timeout);
     let mut task = t.task;
     if cdr_in_agent() {
@@ -31,31 +32,31 @@ pub fn add_task<R>(commander: &PgCommander, t: PgCommanderTaskSpec<R>) -> TaskHa
     }
 }
 
-pub async fn complete_task<R>(handle: TaskHandle<Result<R,DataMessage>>) -> Result<R,DataMessage> {
+pub async fn complete_task<R>(handle: TaskHandle<Result<R,Error>>) -> Result<R,Error> {
     handle.finish_future().await;
     match handle.task_state() {
         TaskResult::Killed(reason) => {
             match reason {
-                KillReason::Timeout => { Err(DataMessage::TaskTimedOut(handle.get_name())) },
-                KillReason::Cancelled => { Err(DataMessage::TaskUnexpectedlyCancelled(handle.get_name())) },
-                KillReason::NotNeeded => { Err(DataMessage::TaskUnexpectedlySuperfluous(handle.get_name())) },
+                KillReason::Timeout => { Err(Error::fatal(&format!("task {} timed out",handle.get_name()))) },
+                KillReason::Cancelled => { Err(Error::fatal(&format!("task {} unexpectedly cancelled",handle.get_name()))) },
+                KillReason::NotNeeded => { Err(Error::fatal(&format!("task {} unexpectedly superfluous",handle.get_name()))) },
             }
         },
         TaskResult::Done => {
             if let Some(result) = handle.take_result() {
                 result
             } else {
-                Err(DataMessage::TaskResultMissing(handle.get_name()))
+                Err(Error::fatal(&format!("task {} unexpectedly missing",handle.get_name())))
             }
         },
         TaskResult::Ongoing => {
-            Err(DataMessage::TaskUnexpectedlyOngoing(handle.get_name()))
+            Err(Error::fatal(&format!("task {} unexpectedly ongoing",handle.get_name())))
         },
     }
 }
 
-pub fn async_complete_task<F>(commander: &PgCommander, messages: &MessageSender, handle: TaskHandle<Result<(),DataMessage>>, error: F) 
-                                        where F: FnOnce(DataMessage) -> (DataMessage,bool) + 'static {
+pub fn async_complete_task<F>(commander: &PgCommander, messages: &MessageSender, handle: TaskHandle<Result<(),Error>>, error: F) 
+                                        where F: FnOnce(Error) -> (Error,bool) + 'static {
     let messages = messages.clone();
     add_task(commander,PgCommanderTaskSpec {
         name: format!("catcher"),
@@ -90,7 +91,7 @@ pub struct PgCommanderTaskSpec<T> {
     pub prio: u8, 
     pub slot: Option<RunSlot>, 
     pub timeout: Option<f64>,
-    pub task: Pin<Box<dyn Future<Output=Result<T,DataMessage>>>>,
+    pub task: Pin<Box<dyn Future<Output=Result<T,Error>>>>,
     pub stats: bool
 }
 

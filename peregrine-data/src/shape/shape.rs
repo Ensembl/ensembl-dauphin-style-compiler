@@ -177,7 +177,7 @@ impl Shape<LeafRequest> {
                 for (position,asset_name) in shape.position().iter().zip(shape.iter_names()) {
                     position.allotment.update_drawing_info(|allotment| {
                         allotment.merge_base_range(&RangeUsed::Part(*position.base,*position.base+1.));
-                        if let Some(asset) = assets.get(asset_name) {
+                        if let Some(asset) = assets.get(Some(&shape.channel()),asset_name) {
                             if let Some(height) = asset.metadata_u32("height") {
                                 allotment.merge_max_y((position.normal + (height as f64)).ceil());
                             }

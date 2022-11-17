@@ -1,8 +1,9 @@
 use std::sync::{Arc, Mutex};
 
 use peregrine_data::{Assets, Scale};
+use peregrine_toolkit::error::Error;
 
-use crate::{shape::{core::{text::DrawingText, bitmap::DrawingBitmap}, heraldry::heraldry::DrawingHeraldry}, webgl::{global::WebGlGlobal, canvas::flatplotallocator::FlatPositionManager, CanvasWeave, DrawingAllFlatsBuilder, FlatStore}, Message, util::fonts::Fonts};
+use crate::{shape::{core::{text::DrawingText, bitmap::DrawingBitmap}, heraldry::heraldry::DrawingHeraldry}, webgl::{global::WebGlGlobal, canvas::flatplotallocator::FlatPositionManager, CanvasWeave, DrawingAllFlatsBuilder, FlatStore}, util::fonts::Fonts};
 
 use super::drawingzmenus::{DrawingHotspotsBuilder, DrawingHotspots};
 
@@ -25,7 +26,7 @@ impl ToolPreparations {
     pub(crate) fn heraldry_h_manager(&mut self) -> &mut FlatPositionManager { &mut self.heraldry_h }
     pub(crate) fn heraldry_v_manager(&mut self) -> &mut FlatPositionManager { &mut self.heraldry_v }
 
-    pub(super) fn allocate(&mut self, gl: &mut WebGlGlobal, drawable: &mut DrawingAllFlatsBuilder) -> Result<(),Message> {
+    pub(super) fn allocate(&mut self, gl: &mut WebGlGlobal, drawable: &mut DrawingAllFlatsBuilder) -> Result<(),Error> {
         self.crisp.make(gl,drawable)?;
         self.heraldry_h.make(gl,drawable)?;
         self.heraldry_v.make(gl,drawable)?;
@@ -65,7 +66,7 @@ impl DrawingToolsBuilder {
         }
     }
 
-    pub(crate) async fn start_preparation(&mut self, gl: &Arc<Mutex<WebGlGlobal>>) -> Result<ToolPreparations,Message> {
+    pub(crate) async fn start_preparation(&mut self, gl: &Arc<Mutex<WebGlGlobal>>) -> Result<ToolPreparations,Error> {
         let mut preparations = ToolPreparations::new();
         self.text.calculate_requirements(gl,&mut preparations.crisp).await?;
         self.bitmap.calculate_requirements(gl, &mut preparations.crisp).await?;
@@ -73,7 +74,7 @@ impl DrawingToolsBuilder {
         Ok(preparations)
     }
 
-    pub(crate) fn finish_preparation(&mut self, canvas_store: &mut FlatStore, mut preparations: ToolPreparations) -> Result<(),Message> {
+    pub(crate) fn finish_preparation(&mut self, canvas_store: &mut FlatStore, mut preparations: ToolPreparations) -> Result<(),Error> {
         self.text.manager().draw_at_locations(canvas_store,&mut preparations.crisp)?;
         self.bitmap.manager().draw_at_locations(canvas_store,&mut preparations.crisp)?;
         self.heraldry.draw_at_locations(canvas_store,&mut preparations)?;

@@ -1,5 +1,4 @@
-use crate::core::channel::Channel;
-use crate::core::channel::PacketPriority;
+use crate::BackendNamespace;
 use crate::metric::programrunmetric::ProgramRunMetricBuilder;
 use crate::metric::programrunmetric::ProgramRunMetricData;
 use crate::metric::datastreammetric::DatastreamMetricValue;
@@ -7,12 +6,10 @@ use crate::metric::datastreammetric::DatastreamMetricKey;
 use crate::metric::datastreammetric::DatastreamMetricBuilder;
 use crate::metric::datastreammetric::DatastreamMetricData;
 use crate::request::core::manager::RequestManager;
-use crate::request::core::request::RequestVariant;
-use crate::request::core::request::BackendRequest;
-use crate::request::messages::metricreq::MetricReport;
+use crate::request::core::minirequest::MiniRequest;
+use crate::request::minirequests::metricreq::MetricReport;
 use commander::cdr_timer;
 use peregrine_toolkit::lock;
-use peregrine_toolkit::log;
 use peregrine_toolkit::log_extra;
 use peregrine_toolkit::plumbing::oneshot::OneShot;
 use std::sync::Mutex;
@@ -49,7 +46,7 @@ struct MetricCollectorData {
     datastream: DatastreamMetricBuilder,
     program_run: ProgramRunMetricBuilder,
     general: GeneralMetricBuilder,
-    manager_and_channel: Option<(RequestManager,Channel)>,
+    manager_and_channel: Option<(RequestManager,BackendNamespace)>,
     identity: u64
 }
 
@@ -64,21 +61,21 @@ impl MetricCollectorData {
         }
     }
 
-    pub fn bootstrap(&mut self, channel: &Channel, identity: u64, manager: &RequestManager) {
+    pub fn bootstrap(&mut self, channel: &BackendNamespace, identity: u64, manager: &RequestManager) {
         self.identity = identity;
         self.manager_and_channel = Some((manager.clone(),channel.clone()));
     }
 
-    fn send(&mut self) -> Vec<BackendRequest> {
+    fn send(&mut self) -> Vec<MiniRequest> {
         let mut out = vec![];
         let report = ClientMetricReport::new(self.identity,&mut self.datastream,&mut self.program_run, &mut self.general);
         if !report.empty() {
-            out.push(BackendRequest::new(RequestVariant::Metric(MetricReport::Client(report))));
+            out.push(MiniRequest::Metric(MetricReport::Client(report)));
         }
         out
     }
 
-    fn manager_and_channel(&self) -> Option<(RequestManager,Channel)> { self.manager_and_channel.clone() }
+    fn manager_and_channel(&self) -> Option<(RequestManager,BackendNamespace)> { self.manager_and_channel.clone() }
 }
 
 #[derive(Clone)]
@@ -89,11 +86,11 @@ pub struct MetricCollector {
 impl MetricCollector {
     async fn run(&mut self, shutdown: &OneShot) {
         loop {
-            let mut manager_and_channel = self.data.lock().unwrap().manager_and_channel();
+            let mut manager_and_channel = lock!(self.data).manager_and_channel();
             if let Some((manager,channel)) = &mut manager_and_channel {
                 let mut messages = self.data.lock().unwrap().send();
                 for message in messages.drain(..) {
-                    manager.execute(channel.clone(),PacketPriority::Batch,message).await.ok(); 
+                    manager.execute_and_forget(&channel,message);
                 }
             }
             for _ in 0..60 {
@@ -125,7 +122,7 @@ impl MetricCollector {
         out
     }
 
-    pub fn bootstrap(&mut self, channel: &Channel, identity: u64, manager: &RequestManager) {
+    pub fn bootstrap(&mut self, channel: &BackendNamespace, identity: u64, manager: &RequestManager) {
        lock!(self.data).bootstrap(channel,identity,manager);
     }
 

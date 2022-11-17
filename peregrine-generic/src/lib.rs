@@ -1,14 +1,13 @@
 use std::{collections::HashMap, sync::{ Arc, Mutex }};
 use std::fmt::Debug;
-mod standalonedom;
 use js_sys::Reflect;
 use js_sys::{ Array, JSON };
-use standalonedom::make_dom_from_element;
+use serde_wasm_bindgen::from_value;
 use wasm_bindgen::{prelude::*, JsCast};
 use peregrine_draw::{Endstop, Message, PeregrineAPI, PeregrineConfig, PgCommanderWeb};
-use peregrine_data::{Channel, ChannelLocation, StickId, zmenu_to_json };
+use peregrine_data::{StickId, zmenu_to_json, DataMessage };
 use peregrine_message::{MessageKind, PeregrineMessage};
-use peregrine_toolkit::{url::Url, error_important, warn, log, eachorevery::eoestruct::{StructTemplate, struct_from_json}, js::jstojsonvalue::js_to_json};
+use peregrine_toolkit::{ warn, log, error, eachorevery::eoestruct::{StructValue}, js::jstojsonvalue::js_to_json, error::{ErrorType,CallToAction }};
 use web_sys::{ Element };
 use serde::{Serialize, Deserialize};
 use serde_json::{ Map as JsonMap, Value as JsonValue };
@@ -25,8 +24,7 @@ pub fn js_throw<T,E: Debug>(e: Result<T,E>) -> T {
     match e {
         Ok(e) => e,
         Err(e) => {
-            error_important!("{:?}",e);
-            panic!("deliberate panic from js_throw following error. Ignore this trace, see error above.");
+            panic!("{:?}",e);
         }
     }
 }
@@ -143,20 +141,15 @@ impl GenomeBrowser {
          * use. See that file for details.
          */
         let target_element = get_or_error(&config_in,&["target_element","target_element_id"])?;
-        let dom = make_dom_from_element(&target_element.to_element()?)?;
         /*
          * Create a genome browser object.
          */
-        self.commander = Some(self.api.run(config,dom)?);
-        /*
-         * Ok, we're ready to go. Bootstrapping causes the genome browser to go to the backend and configure itself.
-         */
         let url = config_in.get("backend_url").unwrap().to_string()?;
-        self.api.bootstrap(&Channel::new(&ChannelLocation::HttpChannel(js_throw(Url::parse(&url)))));
+        self.commander = Some(self.api.run(config,&target_element.to_element()?,&url)?);
         /*
          * You have to turn on tracks _per se_, but we always want tracks.
          */
-        let tmpl_true = StructTemplate::new_boolean(true).build().ok().unwrap();
+        let tmpl_true = StructValue::new_boolean(true);
         self.api.switch(&["track"],tmpl_true.clone());
         self.api.switch(&["focus"],tmpl_true.clone());
         self.api.switch(&["settings"],tmpl_true.clone());
@@ -167,9 +160,6 @@ impl GenomeBrowser {
         self.api.switch(&["buttons","gene"],tmpl_true.clone());
         self.api.switch(&["buttons","gene","expand"],tmpl_true.clone());
         self.api.switch(&["buttons","gene","contract"],tmpl_true.clone());
-
-
-
         Ok(())
     }
 
@@ -202,26 +192,28 @@ impl GenomeBrowser {
     }
     
     pub fn goto(&self, left: f64, right: f64) {
-        self.api.goto(left,right);
+        /* convert ensembl co-ordinates to regular ones */
+        self.api.goto(left-1.,right);
     }
 
     pub fn set_y(&self,y: f64) {
         self.api.set_y(y);
     }
     
+    pub fn add_jsapi_channel(&self, name: &str, payload: JsValue) {
+        self.api.add_jsapi_channel(name,payload);
+    }
+
     pub fn switch(&self, path: &JsValue, value: &JsValue) {
-        let path : Vec<String> = path.into_serde().unwrap();
+        let path : Vec<String> = from_value(path.clone()).unwrap();
         if let Ok(json) = js_to_json(value) {
-            if let Ok((template,_)) = struct_from_json(vec![],vec![],&json) {
-                if let Ok(build) = template.build() {
-                    self.api.switch(&path.iter().map(|x| x.as_str()).collect::<Vec<_>>(),build);
-                }
-            }
+            let value = StructValue::new_json_value(&json);
+            self.api.switch(&path.iter().map(|x| x.as_str()).collect::<Vec<_>>(),value);
         }
     }
 
     pub fn radio_switch(&self, path: &JsValue, yn: bool) {
-        let path : Vec<String> = path.into_serde().unwrap();
+        let path : Vec<String> = from_value(path.clone()).unwrap();
         self.api.radio_switch(&path.iter().map(|x| x.as_str()).collect::<Vec<_>>(),yn);
     }
 
@@ -238,10 +230,27 @@ impl GenomeBrowser {
                     let this = JsValue::null(); 
                     match message.kind() {
                         MessageKind::Error => {
-                            /* func("error",error_as_string) */
-                            let kind = JsValue::from("error");
-                            let msg = JsValue::from(message.to_string().as_str());
-                            let _ = closure.call2(&this,&kind,&msg);            
+                            let mut skip = false;
+                            let mut out_of_date = false;
+                            if let Message::DataError(DataMessage::XXXTransitional(x)) = message {
+                                if let ErrorType::Temporary = x.error_type {
+                                    skip = true;
+                                } else if let ErrorType::Unavailable(CallToAction::BadVersion) = x.error_type {
+                                    out_of_date = true;
+                                }
+                            }
+                            if !skip {
+                                let kind = JsValue::from("error");
+                                let msg = match message {
+                                    Message::DataError(DataMessage::XXXTransitional(x)) => x.message.clone(),
+                                    x => x.to_string()
+                                };
+                                let msg = JsValue::from(msg);
+                                let _ = closure.call2(&this,&kind,&msg);
+                            }
+                            if out_of_date {
+                                error!("FE OUT OF DATE");
+                            }
                         },
                         MessageKind::Interface => {
                             match message {
@@ -249,10 +258,11 @@ impl GenomeBrowser {
                                     let args = Array::new();
                                     args.set(0,JsValue::from("current_position"));
 
+                                    /* "+1."" converts back to ensembl co-ordinates */
                                     args.set(1,JsValue::from(js_throw(JsValue::from_serde(&LocationData {
                                         stick: stick.to_string(),
-                                        start: *start as f64,
-                                        end: *end as f64
+                                        start: (start+1.).round(),
+                                        end: end.round()
                                     }))));
 
                                     let _ = closure.apply(&this,&args);                    
@@ -261,10 +271,11 @@ impl GenomeBrowser {
                                     let args = Array::new();
                                     args.set(0,JsValue::from("target_position"));
 
+                                    /* "+1."" converts back to ensembl co-ordinates */
                                     args.set(1,JsValue::from(js_throw(JsValue::from_serde(&LocationData {
                                         stick: stick.to_string(),
-                                        start: *start as f64,
-                                        end: *end as f64
+                                        start: (start+1.).round(),
+                                        end: end.round()
                                     }))));
                                     
                                     let _ = closure.apply(&this,&args);                    

@@ -1,21 +1,24 @@
-use crate::core::channel::Channel;
+use crate::core::channel::channelregistry::{ChannelRegistryBuilder, ChannelRegistry};
 use crate::core::version::VersionMetadata;
 use crate::metric::metricreporter::MetricCollector;
 use crate::core::{ Viewport };
-use crate::request::core::manager::RequestManager;
-use crate::request::messages::metricreq::MetricReport;
+use crate::request::core::manager::{RequestManager, LowLevelRequestManager};
+use crate::request::core::sidecars::RequestSidecars;
+use crate::request::minirequests::metricreq::MetricReport;
 use crate::api::PeregrineIntegration;
 use crate::train::main::railway::Railway;
 use commander::PromiseFuture;
 use peregrine_dauphin_queue::{ PgDauphinQueue };
 use peregrine_message::PeregrineMessage;
-use peregrine_toolkit::eachorevery::eoestruct::StructBuilt;
+use peregrine_toolkit::eachorevery::eoestruct::{StructValue};
+use peregrine_toolkit::error::Error;
+use peregrine_toolkit::lock;
 use peregrine_toolkit::plumbing::oneshot::OneShot;
-use peregrine_toolkit::{lock};
 use peregrine_toolkit::puzzle::AnswerAllocator;
 use peregrine_toolkit_async::sync::needed::Needed;
+use std::rc::Rc;
 use std::sync::{ Arc, Mutex };
-use crate::{AllBackends, Assets, Commander, CountingPromise, PgCommander, PgDauphin};
+use crate::{AllBackends, Assets, Commander, CountingPromise, PgCommander, PgDauphin, BackendNamespace, ChannelIntegration, SettingMode };
 use crate::api::PeregrineApiQueue;
 use crate::api::queue::ApiMessage;
 use crate::api::AgentStore;
@@ -25,15 +28,15 @@ use crate::util::message::DataMessage;
 use crate::switch::switches::Switches;
 
 #[derive(Clone)]
-pub struct MessageSender(Arc<Mutex<Box<dyn FnMut(DataMessage) + 'static + Send>>>);
+pub struct MessageSender(Arc<Mutex<Box<dyn FnMut(Error) + 'static + Send>>>);
 
 impl MessageSender {
-    pub(crate) fn new<F>(cb :F) -> MessageSender where F: FnMut(DataMessage) + 'static + Send {
+    pub(crate) fn new<F>(cb :F) -> MessageSender where F: FnMut(Error) + 'static + Send {
         MessageSender(Arc::new(Mutex::new(Box::new(cb))))
     }
 
-    pub(crate) fn send(&self,message: DataMessage) {
-        (self.0.lock().unwrap())(message);
+    pub(crate) fn send(&self,message: Error) {
+        lock!(self.0)(message);
     }
 }
 
@@ -42,6 +45,7 @@ pub struct PeregrineCoreBase {
     pub answer_allocator: Arc<Mutex<AnswerAllocator>>,
     pub messages: MessageSender,
     pub metrics: MetricCollector,
+    pub channel_registry: ChannelRegistry,
     pub dauphin_queue: PgDauphinQueue,
     pub dauphin: PgDauphin,
     pub commander: PgCommander,
@@ -68,8 +72,8 @@ pub struct PeregrineCore {
 }
 
 impl PeregrineCore {
-    pub fn new<M,F>(integration: Box<dyn PeregrineIntegration>, commander: M, messages: F, queue: &PeregrineApiQueue, redraw_needed: &Needed) -> Result<PeregrineCore,DataMessage> 
-                where M: Commander + 'static, F: FnMut(DataMessage) + 'static + Send {
+    pub fn new<M,F>(integration: Box<dyn PeregrineIntegration>, commander: M, messages: F, queue: &PeregrineApiQueue, redraw_needed: &Needed, mut channel_integrations: Vec<Rc<dyn ChannelIntegration>>) -> Result<PeregrineCore,DataMessage> 
+                where M: Commander + 'static, F: FnMut(Error) + 'static + Send {
         let shutdown = OneShot::new();
         let integration = Arc::new(Mutex::new(integration));
         let graphics = Graphics::new(&integration);
@@ -77,13 +81,24 @@ impl PeregrineCore {
         let metrics = MetricCollector::new(&commander,&shutdown);
         let messages = MessageSender::new(messages);
         let dauphin_queue = PgDauphinQueue::new(&shutdown);
-        let dauphin = PgDauphin::new(&dauphin_queue).map_err(|e| DataMessage::DauphinIntegrationError(format!("could not create: {}",e)))?;
-        let version = VersionMetadata::new();
-        let manager = RequestManager::new(lock!(integration).channel(),&commander,&shutdown,&messages,&version);
-        let all_backends = AllBackends::new(&manager,&metrics,&messages);
         let booted = CountingPromise::new();
+        let mut channel_registry = ChannelRegistryBuilder::new(&booted);
+        for itn in channel_integrations.drain(..) {
+            channel_registry.add(itn);
+        }
+        let channel_registry = channel_registry.build();
+        let dauphin = PgDauphin::new(&dauphin_queue,&channel_registry,&booted).map_err(|e| DataMessage::XXXTransitional(Error::fatal(&format!("could not create: {}",e))))?;
+        let mut switches = Switches::new(&dauphin);
+        let version = VersionMetadata::new();
+        let sidecars = RequestSidecars::new(&dauphin,&switches,&queue);
+        let low_manager = LowLevelRequestManager::new(&sidecars,&commander,&shutdown,&messages,&version);
+        let manager = RequestManager::new(&low_manager,&channel_registry);
+        let all_backends = AllBackends::new(&manager,&metrics);
+        switches.set_all_backends(&all_backends);
+        dauphin.set_all_backends(&all_backends);
         let base = PeregrineCoreBase {
             answer_allocator: Arc::new(Mutex::new(AnswerAllocator::new())),
+            channel_registry,
             metrics,
             booted,
             commander,
@@ -102,30 +117,26 @@ impl PeregrineCore {
             shutdown
         };
         let agent_store = AgentStore::new(&base);
+        base.channel_registry.run_boot_loop(&base);
+        
         let train_set = Railway::new(&base,&agent_store.lane_store,queue.visual_blocker());
         Ok(PeregrineCore {
             base,
             agent_store,
             train_set,
             viewport: Viewport::empty(),
-            switches: Switches::new()
+            switches: switches.clone()
         })
     }
 
     pub(crate) fn shutdown(&mut self) -> &OneShot { &self.base.shutdown }
 
-    pub fn dauphin_ready(&mut self) {
-        self.base.manager.add_receiver(Box::new(self.base.dauphin.clone()));
+    pub fn add_backend(&mut self, backend: &str) {
+        self.base.queue.push(ApiMessage::AddBackend(backend.to_string()));
     }
 
     pub fn application_ready(&mut self) {
         self.base.queue.clone().run(self);
-        self.base.queue.push(ApiMessage::Ready);
-    }
-
-    pub fn bootstrap(&mut self, identity: u64, channel: Channel) {
-        self.base.metrics.bootstrap(&channel,identity,&self.base.manager);
-        self.base.queue.push(ApiMessage::Bootstrap(identity,channel));
     }
 
     pub fn transition_complete(&self) {
@@ -138,8 +149,12 @@ impl PeregrineCore {
         p.await
     }
 
-    pub fn switch(&self, path: &[&str], value: StructBuilt) {
+    pub fn switch(&self, path: &[&str], value: StructValue) {
         self.base.queue.push(ApiMessage::Switch(path.iter().map(|x| x.to_string()).collect(),value));
+    }
+
+    pub fn update_switch(&self, path: &[&str], value: SettingMode) {
+        self.base.queue.push(ApiMessage::UpdateSwitch(path.iter().map(|x| x.to_string()).collect(),value));
     }
 
     pub fn radio_switch(&self, path: &[&str], yn: bool) {
@@ -150,12 +165,8 @@ impl PeregrineCore {
         self.base.queue.push(ApiMessage::Invalidate);
     }
 
-    pub fn set_position(&self, pos: f64) {
-        self.base.queue.push(ApiMessage::SetPosition(pos));
-    }
-
-    pub fn set_bp_per_screen(&self, scale: f64) {
-        self.base.queue.push(ApiMessage::SetBpPerScreen(scale));
+    pub fn set_position(&self, centre: Option<f64>, size: Option<f64>) {
+        self.base.queue.push(ApiMessage::SetPosition(centre,size));
     }
 
     pub fn set_min_px_per_carriage(&self, px: u32) {
@@ -170,7 +181,7 @@ impl PeregrineCore {
         self.base.queue.push(ApiMessage::PingTrains);
     }
 
-    pub fn report_message(&self, channel: &Channel, message: &(dyn PeregrineMessage + 'static)) {
+    pub fn report_message(&self, channel: &BackendNamespace, message: &(dyn PeregrineMessage + 'static)) {
         self.base.queue.push(ApiMessage::ReportMetric(channel.clone(),MetricReport::new_from_error_message(&self.base,message)));
     }
 

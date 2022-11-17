@@ -16,6 +16,15 @@ class NumberTangling(AtomicTangling):
             state = zigzag(state)
         self._emit_number(out,run_config,'name',state)
 
+    def finish2(self, out, state, run_config):
+        spec = "N"
+        if self._delta:
+            spec += "D"
+        if not self._positive:
+            spec += "Z"
+        self._emit_number2(spec,out,run_config,'name',state)
+
+
 class NumberTangler(Tangler):
     def __init__(self):
         super().__init__([TanglerConfigBuilder([

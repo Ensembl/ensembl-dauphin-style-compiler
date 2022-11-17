@@ -26,17 +26,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "afddf7f520a80dbf76e6f50a35bca42a2331ef227a28b3b6dc5c2e2338d114b1"
 
 [[package]]
-name = "async-trait"
-version = "0.1.48"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "36ea56748e10732c49404c153638a15ec3d6211ec5ff35d9bb20e13b93576adf"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
 name = "autocfg"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -95,7 +84,6 @@ dependencies = [
  "binary-heap-plus",
  "futures",
  "hashbrown",
- "identitynumber",
  "lazy_static 1.4.0",
  "ordered-float",
  "owning_ref",
@@ -145,6 +133,7 @@ dependencies = [
  "anyhow",
  "dauphin_interp",
  "inflate",
+ "itertools",
  "owning_ref",
  "peregrine_data",
  "peregrine_toolkit",
@@ -165,6 +154,12 @@ dependencies = [
  "serde_cbor",
  "web-sys",
 ]
+
+[[package]]
+name = "either"
+version = "1.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "90e5c1c8368803113bf0c9584fc495a58b86dc8a29edbf8fe877d21d9507e797"
 
 [[package]]
 name = "enum-iterator"
@@ -326,13 +321,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "identitynumber"
-version = "0.0.0"
-dependencies = [
- "lazy_static 1.4.0",
-]
-
-[[package]]
 name = "idna"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -350,6 +338,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1cdb29978cc5797bd8dcc8e5bf7de604891df2a8dc576973d71a281e916db2ff"
 dependencies = [
  "adler32",
+]
+
+[[package]]
+name = "itertools"
+version = "0.10.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b0fd2260e829bddf4cb6ea802289de2f86d6a7a690192fbe91b3f46e0f2c8473"
+dependencies = [
+ "either",
 ]
 
 [[package]]
@@ -399,15 +396,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "51b9bbe6c47d51fc3e1a9b945965946b4c44142ab8792c50835a980d362c2710"
 dependencies = [
  "cfg-if 1.0.0",
-]
-
-[[package]]
-name = "lru"
-version = "0.7.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fcb87f3080f6d1d69e8c564c0fcfde1d7aa8cc451ce40cae89479111f03bc0eb"
-dependencies = [
- "hashbrown",
 ]
 
 [[package]]
@@ -480,26 +468,19 @@ checksum = "d4fd5641d01c8f18a23da7b6fe29298ff4b55afcccdf78973b24cf3175fee32e"
 [[package]]
 name = "peregrine_config"
 version = "0.0.0"
-dependencies = [
- "lazy_static 1.4.0",
-]
 
 [[package]]
 name = "peregrine_data"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "async-trait",
  "commander",
  "dauphin_interp",
  "futures",
  "hashbrown",
- "identitynumber",
- "inflate",
- "js-sys",
+ "itertools",
  "keyed",
  "lazy_static 1.4.0",
- "lru",
  "owning_ref",
  "peregrine_config",
  "peregrine_dauphin_queue",
@@ -507,10 +488,9 @@ dependencies = [
  "peregrine_toolkit",
  "peregrine_toolkit_async",
  "serde",
- "serde_cbor",
  "serde_derive",
  "serde_json",
- "web-sys",
+ "serde_repr",
 ]
 
 [[package]]
@@ -543,7 +523,6 @@ name = "peregrine_draw"
 version = "0.0.0"
 dependencies = [
  "anyhow",
- "async-trait",
  "base64",
  "chrono",
  "commander",
@@ -559,6 +538,8 @@ dependencies = [
  "peregrine_data",
  "peregrine_dauphin",
  "peregrine_dauphin_queue",
+ "peregrine_febe_javascript",
+ "peregrine_febe_network",
  "peregrine_message",
  "peregrine_toolkit",
  "peregrine_toolkit_async",
@@ -567,6 +548,39 @@ dependencies = [
  "url",
  "wasm-bindgen",
  "wasm-bindgen-futures",
+ "web-sys",
+]
+
+[[package]]
+name = "peregrine_febe_javascript"
+version = "0.0.0"
+dependencies = [
+ "js-sys",
+ "peregrine_data",
+ "peregrine_toolkit",
+ "peregrine_toolkit_async",
+ "serde",
+ "serde-wasm-bindgen",
+ "serde_derive",
+ "serde_json",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
+name = "peregrine_febe_network"
+version = "0.0.0"
+dependencies = [
+ "inflate",
+ "js-sys",
+ "peregrine_data",
+ "peregrine_toolkit",
+ "peregrine_toolkit_async",
+ "serde",
+ "serde-wasm-bindgen",
+ "serde_cbor",
+ "serde_json",
+ "wasm-bindgen",
  "web-sys",
 ]
 
@@ -583,10 +597,11 @@ version = "0.0.0"
 dependencies = [
  "anyhow",
  "hashbrown",
- "identitynumber",
  "js-sys",
  "lazy_static 1.4.0",
+ "ordered-float",
  "serde",
+ "serde_bytes",
  "serde_cbor",
  "serde_derive",
  "serde_json",
@@ -599,7 +614,9 @@ name = "peregrine_toolkit_async"
 version = "0.0.0"
 dependencies = [
  "commander",
+ "js-sys",
  "peregrine_toolkit",
+ "wasm-bindgen",
 ]
 
 [[package]]
@@ -628,11 +645,11 @@ checksum = "bc881b2c22681370c6a780e47af9840ef841837bc98118431d4e1868bd0c1086"
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.27"
+version = "1.0.46"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f0d8caf72986c1a598726adc988bb5984792ef84f5ee5aa50209145ee8077038"
+checksum = "94e2ef8dbfc347b10c094890f778ee2e36ca9bb4262e86dc99cd217e35f3470b"
 dependencies = [
- "unicode-xid",
+ "unicode-ident",
 ]
 
 [[package]]
@@ -652,9 +669,29 @@ checksum = "71d301d4193d031abdd79ff7e3dd721168a9572ef3fe51a1517aba235bd8f86e"
 
 [[package]]
 name = "serde"
-version = "1.0.124"
+version = "1.0.145"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bd761ff957cb2a45fbb9ab3da6512de9de55872866160b23c25f1a841e99d29f"
+checksum = "728eb6351430bccb993660dfffc5a72f91ccc1295abaa8ce19b27ebe4f75568b"
+
+[[package]]
+name = "serde-wasm-bindgen"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1cfc62771e7b829b517cb213419236475f434fb480eddd76112ae182d274434a"
+dependencies = [
+ "js-sys",
+ "serde",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "serde_bytes"
+version = "0.11.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cfc50e8183eeeb6178dcb167ae34a8051d63535023ae38b5d8d12beae193d37b"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "serde_cbor"
@@ -668,9 +705,9 @@ dependencies = [
 
 [[package]]
 name = "serde_derive"
-version = "1.0.124"
+version = "1.0.145"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1800f7693e94e186f5e25a28291ae1570da908aff7d97a095dec1e56ff99069b"
+checksum = "81fa1584d3d1bcacd84c277a0dfe21f5b0f6accf4a23d04d4c6d61f1af522b4c"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -689,6 +726,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde_repr"
+version = "0.1.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1fe39d9fbb0ebf5eb2c7cb7e2a47e4f462fad1379f1166b8ae49ad9eae89a7ca"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "slab"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -702,13 +750,13 @@ checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
 
 [[package]]
 name = "syn"
-version = "1.0.72"
+version = "1.0.101"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a1e8cdbefb79a9a5a65e0db8b47b723ee907b7c7f8496c76a1770b5c310bab82"
+checksum = "e90cde112c4b9690b8cbe810cba9ddd8bc1d7472e2cae317b69e9438c1cba7d2"
 dependencies = [
  "proc-macro2",
  "quote",
- "unicode-xid",
+ "unicode-ident",
 ]
 
 [[package]]
@@ -767,6 +815,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "unicode-ident"
+version = "1.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dcc811dc4066ac62f84f11307873c4850cb653bfa9b1719cee2bd2204a4bc5dd"
+
+[[package]]
 name = "unicode-normalization"
 version = "0.1.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -774,12 +828,6 @@ checksum = "07fbfce1c8a97d547e8b5334978438d9d6ec8c20e38f56d4a4374d181493eaef"
 dependencies = [
  "tinyvec",
 ]
-
-[[package]]
-name = "unicode-xid"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f7fe0bb3479651439c9112f72b6c505038574c9fbb575ed1bf3b797fa39dd564"
 
 [[package]]
 name = "url"

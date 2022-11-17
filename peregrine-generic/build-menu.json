@@ -26,6 +26,11 @@
         "options": ["no","yes"]
     },
     {
+        "key": "CFG_DEBUG_DATA_REQUESTS",
+        "question": "Debug data requests",
+        "options": ["no","yes"]
+    },
+    {
         "key": "CFG_DEBUG_CLEANUP",
         "question": "Debug cleanup",
         "options": ["no","yes"]

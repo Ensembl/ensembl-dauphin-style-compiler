@@ -1,0 +1,17 @@
+set = "ensembl-webteam/core"
+name = "test"
+version = 2
+description = """
+
+Test case for dynamic tracks do not use.
+
+"""
+
+[setting.red]
+description = "proportion red / 255"
+
+[setting.green]
+description = "proportion green / 255"
+
+[setting.blue]
+description = "proportion blue / 255"

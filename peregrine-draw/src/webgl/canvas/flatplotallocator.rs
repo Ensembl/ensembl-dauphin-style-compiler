@@ -1,10 +1,10 @@
 use keyed::KeyedData;
+use peregrine_toolkit::error::Error;
 use crate::webgl::{FlatId };
 use super::weave::{ CanvasWeave };
 use super::drawingflats::{ DrawingAllFlatsBuilder };
 use crate::webgl::global::WebGlGlobal;
 use keyed::keyed_handle;
-use crate::util::message::Message;
 
 keyed_handle!(FlatPositionCampaignHandle);
 
@@ -36,7 +36,7 @@ impl FlatPositionManager {
         }))
     }
 
-    fn allocate(&mut self, gl: &mut WebGlGlobal, builder: &mut DrawingAllFlatsBuilder) -> Result<(),Message> {
+    fn allocate(&mut self, gl: &mut WebGlGlobal, builder: &mut DrawingAllFlatsBuilder) -> Result<(),Error> {
         let mut sizes = vec![];
         let ids : Vec<_> = self.requests.keys().collect();
         for req_id in &ids {
@@ -65,9 +65,9 @@ impl FlatPositionManager {
         self.requests.get(id).as_ref().unwrap().sizes.clone()
     }
 
-    pub(crate) fn canvas(&self) -> Result<Option<&FlatId>,Message> { Ok(self.canvas.as_ref()) }
+    pub(crate) fn canvas(&self) -> Result<Option<&FlatId>,Error> { Ok(self.canvas.as_ref()) }
 
-    pub(crate) fn make(&mut self, gl: &mut WebGlGlobal, drawable: &mut DrawingAllFlatsBuilder) -> Result<(),Message> {
+    pub(crate) fn make(&mut self, gl: &mut WebGlGlobal, drawable: &mut DrawingAllFlatsBuilder) -> Result<(),Error> {
         self.allocate(gl,drawable)?;
         for (id,_) in self.requests.items() {
             if let Some(canvas) = &self.canvas {

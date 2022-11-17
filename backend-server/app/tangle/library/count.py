@@ -18,6 +18,9 @@ class CountTangling(Tangling):
         state = zigzag(delta(state))
         self._emit_number(out,run_config,'name',state)
 
+    def finish2(self, out, state, run_config):
+        self._emit2(["NDZRL","NDZRA"],out,run_config,'name',[state])
+
 class CountTangler(Tangler):
     def __init__(self):
         super().__init__([TanglerConfigBuilder([
@@ -44,6 +47,10 @@ class GroupCountTangling(Tangling):
         values = [ state[0][x] for x in state[1] ]
         state = zigzag(delta(values))
         self._emit_number(out,run_config,'name',state)
+
+    def finish2(self, out, state, run_config):
+        values = [ state[0][x] for x in state[1] ]
+        self._emit2(["NDZRL","NDZRA"],out,run_config,'name',[values])
 
 class GroupCountTangler(Tangler):
     def __init__(self):

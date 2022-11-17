@@ -1,0 +1,30 @@
+set = "ensembl-webteam/core"
+name = "contig"
+version = 1
+description = """
+
+Show contigs as alternating blocks. Data endpoint depends on the scale/shimmer setting:
+if true, the "shimmer-contig" endpoint is used; if false, the "contig" endpoint is used.
+
+Uses data sequences:
+- contig_starts
+- contig_lengths
+- sense
+
+"""
+
+[setting.shimmer]
+default = false
+description = """
+
+If true, the "shimmer-contig" endpoint is used; if false, the "contig" endpoint is used.
+
+"""
+
+[setting.name]
+default = false
+description = """
+
+boolean: if true show track label.
+
+"""

@@ -19,12 +19,12 @@
  * for usage examples.
  */
 
-use std::sync::Arc;
+use std::rc::Rc;
 
 use super::{answer::Answer, derived };
 
 pub struct Value<'f,'a: 'f,T: 'a> {
-    f: Arc<dyn (Fn(&Option<&Answer<'a>>) -> Option<T>) + 'f>
+    f: Rc<dyn (Fn(&Option<&Answer<'a>>) -> Option<T>) + 'f>
 }
 
 impl<'f,'a,T> Clone for Value<'f,'a,T> {
@@ -36,7 +36,7 @@ impl<'f,'a,T> Clone for Value<'f,'a,T> {
 impl<'f:'a, 'a,T: 'a> Value<'f,'a,T> {
     pub fn new<F>(f: F) -> Value<'f,'a,T> 
             where F:  (Fn(&Option<&Answer<'a>>) -> Option<T>) + 'f {
-        Value { f: Arc::new(f) } 
+        Value { f: Rc::new(f) } 
     }
 
     pub fn inner(&self, index: &Option<&Answer<'a>>) -> Option<T> { (self.f)(index) }
@@ -44,8 +44,8 @@ impl<'f:'a, 'a,T: 'a> Value<'f,'a,T> {
     pub fn constant(&self) -> Option<T> { (self.f)(&mut None) }
 }
 
-impl<'f:'a,'a,T:'a+Clone> Value<'f,'a,Arc<T>> {
-    pub fn dearc(self) -> Value<'f,'a,T> {
+impl<'f:'a,'a,T:'a+Clone> Value<'f,'a,Rc<T>> {
+    pub fn derc(self) -> Value<'f,'a,T> {
         derived(self,|x| x.as_ref().clone())
     }
 }

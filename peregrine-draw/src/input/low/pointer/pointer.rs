@@ -105,12 +105,11 @@ pub struct Pointer {
     modifiers: Modifiers,
     drag: Option<DragState>,
     wheel_monostable: Monostable,
-    wheel_cursor: Arc<Mutex<Option<(CursorHandle,CursorCircumstance)>>>,
-    gl: Arc<Mutex<WebGlGlobal>>
+    wheel_cursor: Arc<Mutex<Option<(CursorHandle,CursorCircumstance)>>>
 }
 
 impl Pointer {
-    pub(crate) fn new(lowlevel: &LowLevelState, config: &PointerConfig, gl: &Arc<Mutex<WebGlGlobal>>, shutdown: &OneShot) -> Pointer {
+    pub(crate) fn new(lowlevel: &LowLevelState, config: &PointerConfig, shutdown: &OneShot) -> Pointer {
         let wheel_cursor = Arc::new(Mutex::new(None));
         let wheel_cursor2 = wheel_cursor.clone();
         Pointer {
@@ -121,8 +120,7 @@ impl Pointer {
             wheel_cursor,
             wheel_monostable: Monostable::new(lowlevel.commander(), config.wheel_timeout,shutdown, move || {
                 wheel_cursor2.lock().unwrap().take();
-            }),
-            gl: gl.clone()
+            })
         }
     }
 

@@ -20,8 +20,10 @@ pub struct DrawGroup {
 fn geometry(coord_system: &CoordinateSystem) -> TrianglesGeometry {
     match coord_system.0 {
         CoordinateSystemVariety::Tracking => TrianglesGeometry::Tracking,
-        CoordinateSystemVariety::TrackingWindow => TrianglesGeometry::TrackingWindow,
-        _ => TrianglesGeometry::Window
+        CoordinateSystemVariety::TrackingSpecial => TrianglesGeometry::TrackingSpecial(true),
+        CoordinateSystemVariety::TrackingWindow => TrianglesGeometry::TrackingSpecial(false),
+        CoordinateSystemVariety::Content => TrianglesGeometry::Window(true),
+        _ => TrianglesGeometry::Window(false)
     }
 }
 

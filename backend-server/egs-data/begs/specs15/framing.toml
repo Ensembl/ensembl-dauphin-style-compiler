@@ -1,0 +1,11 @@
+set = "ensembl-webteam/core"
+name = "framing"
+version = 1
+description = """
+
+Put verious blank rectangles on the screen on the left, right, etc, as a background for other
+things in other programs.
+
+Doesn't use a backend endpoint, doesn't take any settings.
+
+"""

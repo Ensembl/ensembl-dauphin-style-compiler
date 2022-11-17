@@ -1,0 +1,98 @@
+set = "ensembl-webteam/core"
+name = "focus-transcript"
+version = 1
+description = """
+
+Show the focus gene as a set of transcripts. Uses many settings to do so (see below).
+
+Uses data sequences from transcript endpoint:
+- gene_id
+- gene_id_version
+- gene_names
+- gene_descs
+- starts
+- lengths
+- transcripts_starts
+- transcripts_lengths
+- gene_designation_keys
+- gene_designation_values
+- transcript_designation_keys
+- transcript_designation_values
+- gene_biotypes_keys
+- gene_biotypes_calues
+- strands
+- transcript_id
+- transcript_id_version
+- transcript_biotypes_keys
+- transcript_biotypes_values
+- transcript_counts
+- thicks_starts
+- thicks_lengths
+- transcript_exon_counts
+- transcript_counts
+- transcript_exon_starts
+- transcript_exon_lengths
+
+"""
+
+[setting.focus-gene]
+description = """
+
+Which gene is currently the focus gene (if any)? Object with keys "genome_id" and "item_id"
+identifying current focus gene, if any.
+
+"""
+
+[setting.focus]
+description = """
+
+boolean which when true means the focus track is on.
+
+"""
+
+[setting.focus-gene-label]
+default = false
+description = """
+
+boolean which when true means the focus track gene labels should be shown.
+
+"""
+
+[setting.focus-transcript-label]
+default = false
+description = """
+
+boolean which when true means the focus track transcript labels should be shown.
+
+"""
+
+[setting.several]
+default = false
+description = """
+
+boolean: if true show 5 per the mini-toggle setting.
+
+"""
+
+[setting.enabled-transcripts]
+description = """
+
+list of transcript ids to show in focus track.
+
+"""
+
+[setting.name]
+default = false
+description = """
+
+boolean: if true show track label on the focus track.
+
+"""
+
+[setting.expanded]
+default = []
+description = """
+
+list of strings. Gene IDs for expanded genes.
+
+"""

@@ -149,7 +149,7 @@ impl EoeFromJson {
             },
             JsonValue::Array(x) => {
                 let values = x.iter().map(|x| self.build(x)).collect::<Result<_,_>>()?;
-                StructTemplate::new_array(EachOrEvery::each(values))
+                StructTemplate::new_array(values)
             },
             JsonValue::Object(x) => {
                 if let Some(all) = self.to_all(&x)? {
@@ -157,9 +157,9 @@ impl EoeFromJson {
                 } else if let Some(cond) = self.to_condition(&x)? {
                     cond
                 } else {
-                    StructTemplate::new_object(EachOrEvery::each(x.iter().map(|(k,v)|{
+                    StructTemplate::new_object(x.iter().map(|(k,v)|{
                         Ok::<StructPair,StructError>(StructPair(k.to_string(),self.build(v)?))
-                    }).collect::<Result<_,_>>()?))
+                    }).collect::<Result<_,_>>()?)
                 }
             }
         })
@@ -192,8 +192,8 @@ impl StructSelectorVisitor for SelectJsonArray {
     }
 }
 
-pub fn select_to_json(data: &StructBuilt, path: &[String], lates: Option<&LateValues>) -> JsonValue {
+pub fn select_to_json(data: &StructBuilt, path: &[String], lates: Option<&LateValues>) -> Result<JsonValue,StructError> {
     let mut out = SelectJsonArray { output: vec![] };
-    data.select(lates,path,&mut out);
-    JsonValue::Array(out.output)
+    data.select(lates,path,&mut out)?;
+    Ok(JsonValue::Array(out.output))
 }

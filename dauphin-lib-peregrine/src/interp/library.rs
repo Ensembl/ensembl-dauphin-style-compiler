@@ -1,56 +1,45 @@
 use dauphin_interp::command::{ CommandSetId, InterpLibRegister };
-use super::boot::{ 
-    AddAuthorityDeserializer, GetStickIdDeserializer, GetStickDataDeserializer, AddStickDeserializer,
-    AddJumpDeserializer, GetJumpDataDeserializer, GetJumpLocationDeserializer
-};
-use super::data::{ GetLaneDeserializer, GetDataDeserializer, DataStreamDeserializer, OnlyWarmDeserializer, RequestScopeDeserializer, RequestDeserializer, MakeRegionDeserializer };
+use super::data::{ GetLaneDeserializer, GetDataDeserializer, OnlyWarmDeserializer, RequestScopeDeserializer, RequestDeserializer, MakeRegionDeserializer, DataNumberDeserializer, DataStringDeserializer, DataBooleanDeserializer };
 use super::decompress::{ 
-    Lesqlite2Deserializer, ZigzagDeserializer, DeltaDeserializer,
-    ClassifyDeserializer, SplitStringDeserializer, BaseFlipDeserializer
+    SplitStringDeserializer, BaseFlipDeserializer
 };
 
 use super::eoes::{EoesVarNumberDeserializer, EoesVarStringDeserializer, EoesVarBooleanDeserializer, EoesNullDeserializer, EoesArrayDeserializer, EoesPairDeserializer, EoesObjectDeserializer, EoesConditionDeserializer, EoesGroupDeserializer, EoesAllDeserializer, EoesVarDeserializer, EoesNumberDeserializer, EoesStringDeserializer, EoesBooleanDeserializer, EoesLateDeserializer};
 use super::track::{ 
-    NewLaneDeserializer, AddTagDeserializer, AddTriggerDeserializer, DataSourceDeserializer, AddSwitchDeserializer,
-    SetSwitchDeserializer, ClearSwitchDeserializer, AppendGroupDeserializer, AppendDepthDeserializer
+    AppendGroupDeserializer, AppendDepthDeserializer
 };
 use super::geometry::{
     PatinaFilledDeserializer, PatinaHollowDeserializer, DirectColourDeserializer, ZMenuDeserializer, PatinaZMenuDeserializer,
     PenDeserializer, PlotterDeserializer, UseAllotmentDeserializer, SpaceBaseDeserializer, SimpleColourDeserializer,
-    StripedDeserializer, BarredDeserializer, BpRangeDeserializer, SpotColourDeserializer, PpcDeserializer, StyleDeserializer, PatinaSwitchDeserializer, PatinaMetadataDeserializer, BackgroundDeserializer
+    StripedDeserializer, BarredDeserializer, BpRangeDeserializer, SpotColourDeserializer, PpcDeserializer, StyleDeserializer,
+    PatinaMetadataDeserializer, BackgroundDeserializer, PatinaSettingSetDeserializer, PatinaSettingMemberDeserializer
 };
 use super::shape::{
     WiggleDeserializer, RectangleDeserializer, Text2Deserializer, ImageDeserializer, EmptyDeserializer, RunningTextDeserializer,
 };
 
 use super::switch::{
-    ListSwitchDeserializer, SwitchStringDeserializer, SwitchNumberDeserializer, SwitchBooleanDeserializer, SwitchNullDeserializer
+    SettingStringDeserializer, SettingNumberDeserializer, SettingBooleanDeserializer, SettingNullDeserializer
 };
 
 pub fn std_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(54,0),0x430E516157E506BC)
+    CommandSetId::new("peregrine",(63,0),0x37CB1D4CD6C637F6)
 }
 
 pub fn make_peregrine_interp() -> InterpLibRegister {
     let mut set = InterpLibRegister::new(&std_id());
-    set.push(AddAuthorityDeserializer());
-    set.push(GetStickIdDeserializer());
-    set.push(GetJumpLocationDeserializer());
-    set.push(GetStickDataDeserializer());
-    set.push(GetJumpDataDeserializer());
-    set.push(AddStickDeserializer());
-    set.push(NewLaneDeserializer());
-    set.push(AddTagDeserializer());
-    set.push(AddTriggerDeserializer());
-    set.push(DataSourceDeserializer());
+    set.push(SettingStringDeserializer());
+    set.push(SettingNumberDeserializer());
+    set.push(SettingBooleanDeserializer());
+    set.push(DataNumberDeserializer());
+    set.push(DataStringDeserializer());
+    set.push(DataBooleanDeserializer());
+    set.push(PatinaSettingSetDeserializer());
+    set.push(PatinaSettingMemberDeserializer());
+    set.push(SettingNullDeserializer());
     set.push(GetLaneDeserializer());
     set.push(GetDataDeserializer());
-    set.push(DataStreamDeserializer());
-    set.push(Lesqlite2Deserializer());
-    set.push(ZigzagDeserializer());
-    set.push(DeltaDeserializer());
     set.push(PatinaFilledDeserializer());
-    set.push(ClassifyDeserializer());
     set.push(SplitStringDeserializer());
     set.push(PatinaHollowDeserializer());
     set.push(DirectColourDeserializer());
@@ -59,19 +48,14 @@ pub fn make_peregrine_interp() -> InterpLibRegister {
     set.push(PenDeserializer());
     set.push(PlotterDeserializer());
     set.push(WiggleDeserializer());
-    set.push(AddSwitchDeserializer());
     set.push(UseAllotmentDeserializer());
     set.push(SpaceBaseDeserializer());
     set.push(RectangleDeserializer());
     set.push(Text2Deserializer());
-    set.push(SetSwitchDeserializer());
-    set.push(ClearSwitchDeserializer());
     set.push(SimpleColourDeserializer());
     set.push(StripedDeserializer());
     set.push(BarredDeserializer());
     set.push(BaseFlipDeserializer());
-    set.push(AddJumpDeserializer());
-    set.push(ListSwitchDeserializer());
     set.push(OnlyWarmDeserializer());
     set.push(ImageDeserializer());
     set.push(BpRangeDeserializer());
@@ -80,7 +64,6 @@ pub fn make_peregrine_interp() -> InterpLibRegister {
     set.push(AppendDepthDeserializer());
     set.push(PpcDeserializer());
     set.push(StyleDeserializer());
-    set.push(PatinaSwitchDeserializer());
     set.push(RequestDeserializer());
     set.push(RequestScopeDeserializer());
     set.push(EmptyDeserializer());
@@ -101,10 +84,6 @@ pub fn make_peregrine_interp() -> InterpLibRegister {
     set.push(EoesBooleanDeserializer());
     set.push(EoesLateDeserializer());
     set.push(BackgroundDeserializer());
-    set.push(SwitchStringDeserializer());
-    set.push(SwitchNumberDeserializer());
-    set.push(SwitchBooleanDeserializer());
-    set.push(SwitchNullDeserializer());
     set.push(RunningTextDeserializer());
     set.push(MakeRegionDeserializer());
     set

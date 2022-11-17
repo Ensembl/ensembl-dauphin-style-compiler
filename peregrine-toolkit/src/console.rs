@@ -70,6 +70,7 @@ pub fn print(verbosity: &Verbosity, severity: &Severity, message: &str) {
 #[macro_export]
 macro_rules! do_log {
     ($verb:tt,$sev:tt,$($arg:tt)*) => {
+        #[allow(unused)]
         use $crate::console::*;
         (print(&Verbosity::$verb,&Severity::$sev,&std::format!($($arg)*)))
     }
@@ -78,6 +79,7 @@ macro_rules! do_log {
 #[macro_export]
 macro_rules! debug_do_log {
     ($verb:tt,$sev:tt,$($arg:tt)*) => {
+        #[allow(unused)]
         use $crate::console::*;
         #[cfg(debug_assertions)]
         (print(&Verbosity::$verb,&Severity::$sev,&std::format!($($arg)*)))

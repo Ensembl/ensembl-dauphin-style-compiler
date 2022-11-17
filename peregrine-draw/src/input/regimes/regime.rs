@@ -117,8 +117,6 @@ impl Regime {
     pub(crate) fn new(config: &PgPeregrineConfig) -> Result<Regime,Message> {
         let user_drag_config = make_drag_axis_config(config,&PgConfigKey::UserDragLethargy)?;
         let mut instructed_drag_config = make_drag_axis_config(config,&PgConfigKey::InstructedDragLethargy)?;
-        let self_drag_config = make_drag_axis_config(config,&PgConfigKey::SelfDragLethargy)?;
-        let w_config = make_axis_config(config,&PgConfigKey::WindowLethargy)?;
         let goto_rho_config = config.get_f64(&PgConfigKey::GotoRho)?;
         let goto_v_config = config.get_f64(&PgConfigKey::GotoV)?;
         let goto_max_s_config = config.get_f64(&PgConfigKey::GotoMaxS)?;
@@ -152,11 +150,8 @@ impl Regime {
         if update.force_fade {
             inner.invalidate();
         }
-        if let Some(new_x) = update.x {
-            inner.set_x(new_x);
-        }
-        if let Some(bp_per_screen) = update.bp {
-            inner.set_bp_per_screen(bp_per_screen);
+        if update.x.is_some() || update.bp.is_some() {
+            inner.set_position(update.x,update.bp);
         }
         Ok(finished)
     }

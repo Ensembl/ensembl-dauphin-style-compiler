@@ -32,6 +32,8 @@
         <button id="unload">unload</button>
         <button id="tr-all-off">all tr off</button>
         <button id="tr-all-on">all tr on</button>
+        <button id="expand1">expand1</button>
+        <button id="expand2">expand2</button>
         <br/>
         <div style="width: 200px; word-break: break-all;">current: <span id="current"></span></div>
         <div style="width: 200px; word-break: break-all;">target: <span id="target"></span></div>
@@ -67,7 +69,7 @@
         let genome_browser = new GenomeBrowser();
         genome_browser.go({
           //backend_url: "http://52.56.215.72:3333/api/data"
-          backend_url: "http://127.0.0.1:3333/api/data",
+          backend_url: "http://127.0.0.1:3333/api/data http://127.0.0.1:3334/api/data",
           target_element_id: 'browser',
           'keys.debug-action': "Require(drag)-Click[2] Hold[3] HoldDrag[4] DoubleClick[7] 1[1] 2[2] 3[3] 4[4] 5[5] 6[6] 7[7] 8[8] 9[9] 0[0]",
           'keys.pixels-left': 'Shift-A[100] Alt-a[1000]',
@@ -270,6 +272,110 @@
             zmenu_data_el.innerText = JSON.stringify(zmenu_data);
           }
         });
+        function delay(t, v) {
+          return new Promise(resolve => setTimeout(resolve, t, v));
+        }
+        genome_browser.add_jsapi_channel("test",{
+          callbacks: {
+            jump: function(location) {
+              return delay(100).then(() => {
+                let parts = location.split(":");
+                let stick = parts.slice(1,parts.length-1).join(":");
+                if(parts.length < 3 || parts[0] != "region") { return null; }
+                let start_end = parts[parts.length-1].split("-");
+                if(start_end.length < 2) { return null; }
+                return {
+                  "stick": stick,
+                  "left": parseInt(start_end[0]),
+                  "right": parseInt(start_end[1])
+                };
+              })
+            },
+            data: function(source,stick,scale,index,scope) {
+              console.log("data "+source+" "+stick+" "+scale+" "+index+" "+scope);
+              return {
+                "data": {
+                  "start": [86200000,86400000],
+                  "end": [86300000,86500000]
+                }
+              };
+            },
+            stickinfo: function(stick) {
+              return delay(100).then(() => {
+                console.log("stick "+stick);
+                return {};
+              })
+            },
+            boot: function() {
+              return delay(100).then(() => {
+                console.log("booting inside",this);
+                let expansions = [
+                   {
+                     "name": "js-expansion",
+                     "backend_namespace": this.backend_namespace,
+                     "triggers": [
+                       ["track","user"]
+                     ]
+                   }
+                ];
+                let tracks = [
+                   {
+                    "program": ["special","test",1],
+                    "tags": "",
+                    "triggers": [
+                      ["track","user2"]
+                    ],
+                    "settings": {
+                      "green": ["setting","green"]
+                    },
+                    "values": {
+                      "red": 100.0,
+                      "blue": 0.0
+                    },
+                    "scale_start": 0,
+                    "scale_end": 60,
+                    "scale_step": 1
+                   }
+                  ];
+                return { expansions, tracks };
+              });
+            },
+            expand: function(name,step) {
+              return delay(100).then(() => {
+                if(name == "js-expansion") {
+                  let tracks = [
+                   {
+                    "program": ["ensembl-webteam/core","test-with-data",1],
+                    "tags": "",
+                    "triggers": [
+                      ["track","user",step]
+                    ],
+                    "settings": {
+                      "green": ["settings","green"]
+                    },
+                    "values": {
+                      "red": parseInt(step),
+                      "blue": 100.0
+                    },
+                    "scale_start": 0,
+                    "scale_end": 60,
+                    "scale_step": 1
+                    }
+                  ];
+                  console.log("expand",name,step);
+                  return { tracks };
+                } else {
+                  return {};
+                }
+              });
+            },
+            program: function(group,name,version) {
+              console.log("program",group,name,version);
+              return {};
+            }
+          }
+        });
+
         //genome_browser.set_stick("triticum_aestivum_GCA_900519105_1:1D");
         genome_browser.set_stick("a7335667-93e7-11ec-a39d-005056b38ce3:4");
         //genome_browser.set_stick("homo_sapiens_GCA_000001405_28:13");
@@ -295,7 +401,9 @@
         genome_browser.switch(["track","contig","name"],true);
         genome_browser.switch(["track","variant"],true);
         genome_browser.switch(["track","variant","name"],true);
+        genome_browser.switch(["track","expand"],true);
         genome_browser.switch(["ruler"],true);
+        genome_browser.switch(["ruler","one_based"],true);
         //genome_browser.goto(2000000,3000000);
         //genome_browser.goto(6140000,6240000);
         //4:85,990,007-86,594,625
@@ -358,8 +466,8 @@
           backend_url: "http://127.0.0.1:3333/api/data",
           target_element_id: document.getElementById('browser'),
           'keys.debug-action': "Require(drag)-Click[2] Hold[3] HoldDrag[4] DoubleClick[7] 1[1] 2[2] 3[3] 4[4] 5[5] 6[6] 7[7] 8[8] 9[9] 0[0]",
-          'keys.pixels-left': 'Shift-A[100] Alt-a[1000]',
-          'keys.pixels-right': "MirrorRunningDrag Shift-D[100] Alt-d[1000]",
+          'keys.pixels-left': 'Shift-A[0.02] Alt-a[1000]',
+          'keys.pixels-right': "MirrorRunningDrag Shift-D[0.02] Alt-d[1000]",
           'keys.pixels-in': "Shift-W[100]",
           'keys.pixels-out': "Shift-S[100] Wheel",
           "keys.pull-left": "a ArrowLeft",
@@ -375,8 +483,9 @@
           document.getElementById('browser').remove();
         };
         document.getElementById("jump-bug").onclick = function() {
-          genome_browser.set_stick("homo_sapiens_GCA_000001405_28:13");
-          genome_browser.goto(32339600,32339650);
+          //genome_browser.jump("region:homo_sapiens_GCA_000001405_28:1:1000000-2000000");
+          //genome_browser.set_stick("homo_sapiens_GCA_000001405_28:13");
+          genome_browser.goto(85980007.1,86604624.9);
         };
         document.getElementById("create-error").onclick = function() {
           //genome_browser.jump("focus:none");
@@ -388,6 +497,15 @@
         };
         document.getElementById("tr-all-on").onclick = function() {
           tr_all(true);
+        };
+        document.getElementById("expand1").onclick = function() {
+          genome_browser.switch(["track","expand","ff0099"],true);
+        };
+        document.getElementById("expand2").onclick = function() {
+          genome_browser.switch(["settings"],true);
+          genome_browser.switch(["settings","green"],50);
+          genome_browser.switch(["track","user"],true);
+          genome_browser.switch(["track","user","78"],true);
         };
         document.getElementById("unload").onclick = function() {
           document.getElementById("browser").remove();

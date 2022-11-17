@@ -9,7 +9,7 @@ edition = "2018"
 [dependencies]
 serde_cbor="*"
 lazy_static="*"
-thiserror="1.0"
+thiserror=">=1.0"
 anyhow="*"
 peregrine_toolkit={ version="*", path="../peregrine-toolkit" }
 

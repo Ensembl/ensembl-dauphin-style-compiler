@@ -1,4 +1,4 @@
-use peregrine_data::{Assets, DrawingCarriage, CarriageExtent, PeregrineCore, PeregrineApiQueue};
+use peregrine_data::{Assets, DrawingCarriage, CarriageExtent, PeregrineApiQueue, DataMessage};
 use peregrine_toolkit::{lock, warn, error };
 use peregrine_toolkit_async::sync::asynconce::AsyncOnce;
 use peregrine_toolkit_async::sync::needed::Needed;
@@ -130,7 +130,7 @@ impl GLCarriage {
         let mut state = lock!(self.0);
         state.discarded = true;
         if let Some(mut drawing) = get_drawing(&state)? {
-            drawing.discard(gl)?;
+            drawing.discard(gl).map_err(|e| Message::DataError(DataMessage::XXXTransitional(e)))?;
         }
         Ok(())
     }

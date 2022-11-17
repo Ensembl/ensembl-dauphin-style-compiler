@@ -1,37 +1,48 @@
 import collections
+import imp
 import logging
+
+from command.bundle import BundleSet
+from model.expansions import Expansions
+from command.response import Response
+from command.coremodel import Handler
+from model.tracks import Tracks
 import cbor2
 import urllib
 from typing import Any, List, Tuple
 from .datasources import DataAccessor, DataAccessorCollection
-from .controlcmds import BootstrapHandler, ProgramHandler, ErrorHandler, StickHandler, StickAuthorityHandler
+from .controlcmds import BootstrapHandler, ProgramHandler, ErrorHandler, StickHandler, StickAuthorityHandler, ExpansionHandler
 from .metriccmd import MetricHandler
 from .datacmd import DataHandler, JumpHandler
 from util.influx import ResponseMetrics
 from model.version import Version
+from core.config import DEFAULT_CHANNEL
 
 data_accessor_collection = DataAccessorCollection()        
+
+expansions = Expansions()
 
 handlers = {
     0: BootstrapHandler(),
     1: ProgramHandler(),
     2: StickHandler(),
-    3: StickAuthorityHandler(),
+    3: StickAuthorityHandler(), # doesn't exist v15 onwards
     4: DataHandler(),
     5: JumpHandler(),
-    6: MetricHandler()
+    6: MetricHandler(),
+    7: ExpansionHandler(expansions)
 }
 
-def type_to_handler(typ: int) -> Any:
+def type_to_handler(typ: int) -> Handler:
     handler = handlers.get(typ)
     if handler == None:
         return ErrorHandler("unsupported command type ({0})".format(typ))
     return handler
 
-def do_request_remote(url,messages, high_priority: bool, version: Version):
+def do_request_remote(url,channel,messages, high_priority: bool, version: Version):
     suffix = "hi" if high_priority else "lo"
     request = cbor2.dumps({
-        "channel": [0,url],
+        "channel": channel,
         "requests": messages,
         "version": version.encode()
     })
@@ -49,20 +60,27 @@ def extract_remote_request(data_accessor: DataAccessor, typ: int, payload: Any):
             return override
     return None
 
-def process_local_request(data_accessor: DataAccessor,channel: Tuple[int,str], typ: int, payload: Any, metrics: ResponseMetrics, version: Version):
+def process_local_request(data_accessor: DataAccessor,channel: Tuple[int,str], typ: int, payload: Any, metrics: ResponseMetrics, version: Version) -> Response:
     handler = type_to_handler(typ)
     return handler.process(data_accessor,channel,payload,metrics,version)
 
+def replace_empty_channel(channel: Tuple[str,str]) -> Tuple[str,str]:
+    if channel[0] == "" and channel[1] == "":
+        channel = DEFAULT_CHANNEL
+    return channel
+
 def process_packet(packet_cbor: Any, high_priority: bool) -> Any:
     metrics = ResponseMetrics("realtime" if high_priority else "batch")
-    channel = packet_cbor["channel"]
+    channel = replace_empty_channel(packet_cbor["channel"])
     response = []
-    bundles = set()
+    program_data = []
     local_requests = []
     remote_requests = collections.defaultdict(list)
     version = Version(packet_cbor.get("version",None))
     data_accessor = data_accessor_collection.get(version.get_egs())
-    # anything that should be remote
+    bundles = BundleSet()
+    tracks = Tracks()
+    # separate into local and remote
     metrics.count_packets += len(packet_cbor["requests"])
     for p in packet_cbor["requests"]:
         (msgid,typ,payload) = p
@@ -71,15 +89,23 @@ def process_packet(packet_cbor: Any, high_priority: bool) -> Any:
             remote_requests[override].append(p)
         else:
             local_requests.append((msgid,typ,payload))
+    # remote stuff
+    remote_tracks = []
     for (request,messages) in remote_requests.items():
-        r = do_request_remote(request,messages,high_priority,version)
+        r = do_request_remote(request,channel,messages,high_priority,version)
         response += [[x[0],cbor2.dumps(x[1])] for x in r["responses"]]
-        bundles |= set(r["programs"])
+        program_data += r["programs"]
+        if "tracks-packed" in r and len(r["tracks-packed"])>0:
+            tracks.add_cookeds(r["tracks-packed"])
     # local stuff
     for (msgid,typ,payload) in local_requests:
-        r = process_local_request(data_accessor,channel,typ,payload,metrics,version)
-        response.append([msgid,r.payload])
-        bundles |= r.bundles
-    begs_files = data_accessor.begs_files
+        if version.get_egs() in data_accessor.supported_versions:
+            r = process_local_request(data_accessor,channel,typ,payload,metrics,version)
+            response.append([msgid,r.payload])
+            bundles.merge(r.bundles)
+            tracks.merge(r.tracks)
+        else:
+            response.append([msgid,Response(8,[0]).payload])
     metrics.send()
-    return (response,[ begs_files.add_bundle(x,version) for x in bundles ])
+    tracks = tracks.dump_for_wire()
+    return (response,bundles.bundle_data(),channel,tracks)

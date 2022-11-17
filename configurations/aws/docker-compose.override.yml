@@ -9,7 +9,6 @@ services:
     backend-hi:
         environment:
             - THREADS=16
-            - LO_PORT=1
             - DEBUG=1
             - LOG_HOST=syslog
             - LOG_PORT=11601

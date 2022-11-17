@@ -18,7 +18,6 @@ mod util;
 
 /* interp */
 mod interp {
-    mod boot;
     mod data;
     mod decompress;
     mod eoes;
@@ -31,8 +30,6 @@ mod interp {
 pub use interp::library::make_peregrine_interp;
 
 mod payloads {
-    mod geometrybuilder;
-    mod trackbuilder;
     mod payload;
     pub use payload::{ PeregrinePayloadFactory, PeregrinePayload, add_peregrine_payloads };
 }
@@ -42,7 +39,6 @@ pub use payloads::add_peregrine_payloads;
 /* compile */
 #[cfg(any(feature = "compile",test))]
 mod compile {
-    mod boot;
     mod data;
     mod decompress;
     mod eoes;

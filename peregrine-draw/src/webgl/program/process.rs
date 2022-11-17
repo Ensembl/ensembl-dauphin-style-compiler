@@ -8,6 +8,8 @@ use super::uniform::{ UniformHandle, UniformValues };
 use super::texture::{ TextureValues, TextureHandle };
 use commander::cdr_tick;
 use keyed::KeyedData;
+use peregrine_data::DataMessage;
+use peregrine_toolkit::error::Error;
 use peregrine_toolkit::lock;
 use crate::webgl::util::handle_context_errors;
 use crate::stage::stage::{ ReadStage, ProgramStage };
@@ -63,7 +65,7 @@ impl ProcessBuilder {
             let handle = self.builder.get_texture_handle(&name)?;
             let mut lgl = lock!(gl);
             let gl_ref = lgl.refs();
-            textures.get_mut(&handle).set_value(gl_ref.flat_store,&value)?;
+            textures.get_mut(&handle).set_value(gl_ref.flat_store,&value).map_err(|e| Message::DataError(DataMessage::XXXTransitional(e)))?;
             drop(lgl);
             cdr_tick(0).await;
         }
@@ -113,14 +115,14 @@ impl Process {
 
     pub(super) fn draw(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage, opacity: f64, dpr: f64, stats: &mut SessionMetric) -> Result<(),Message> {
         let mut gl = gl.refs();
-        gl.bindery.clear(gl.flat_store)?;
+        gl.bindery.clear(gl.flat_store).map_err(|e| Message::DataError(DataMessage::XXXTransitional(e)))?;
         let program_stage = self.program_stage.clone();
         program_stage.apply(stage,self.left,opacity,dpr,self)?;
         self.program.select_program(gl.context)?;
         for stanza in self.stanzas.iter() {
             stanza.activate()?;
             for entry in self.textures.values_mut() {
-                entry.apply(&mut gl)?;
+                entry.apply(&mut gl).map_err(|e| Message::DataError(DataMessage::XXXTransitional(e)))?;
             }
             for entry in self.uniforms.values() {
                 entry.activate(gl.context)?;
@@ -133,7 +135,7 @@ impl Process {
         Ok(())
     }
 
-    pub(crate) fn discard(&mut self,  gl: &mut WebGlGlobal) -> Result<(),Message> {
+    pub(crate) fn discard(&mut self,  gl: &mut WebGlGlobal) -> Result<(),Error> {
         let mut gl = gl.refs();
         for entry in self.uniforms.values_mut() {
             entry.discard(gl.context)?;

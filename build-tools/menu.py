@@ -176,7 +176,7 @@ def ask_all(questions):
         print("\n")
 
         # Confirm
-        confirm = ChooseOne("Are these ok?",["yes","reask","quit"]).ask(None,False)
+        confirm = ChooseOne("Are these ok?",["yes","no","quit"]).ask(None,False)
         if confirm == "quit":
             sys.exit(1)
         elif confirm == "yes":

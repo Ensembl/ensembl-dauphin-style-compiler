@@ -1,6 +1,5 @@
-use anyhow;
 use commander::{ RunSlot, CommanderStream };
-use serde_cbor::Value as CborValue;
+use peregrine_toolkit::error::Error;
 use std::any::Any;
 use std::collections::HashMap;
 use peregrine_toolkit::plumbing::oneshot::OneShot;
@@ -17,7 +16,7 @@ pub struct PgDauphinRunTaskSpec {
 
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub struct PgDauphinLoadTaskSpec {
-    pub data: CborValue,
+    pub data: Vec<u8>,
     pub bundle_name: String
 }
 
@@ -29,7 +28,7 @@ pub enum PgDauphinTaskSpec {
 
 pub struct PgDauphinQueueEntry {
     pub task: PgDauphinTaskSpec,
-    pub channel: CommanderStream<anyhow::Result<()>>
+    pub channel: CommanderStream<Result<(),Error>>
 }
 
 #[derive(Clone)]
@@ -52,7 +51,7 @@ impl PgDauphinQueue {
         }
     }
 
-    pub async fn load(&self, task: PgDauphinLoadTaskSpec) -> anyhow::Result<()> {
+    pub async fn load(&self, task: PgDauphinLoadTaskSpec) -> Result<(),Error> {
         let waiter = CommanderStream::new();
         self.queue.add(PgDauphinQueueEntry {
             task: PgDauphinTaskSpec::Load(task),
@@ -61,7 +60,7 @@ impl PgDauphinQueue {
         waiter.get().await
     }
 
-    pub async fn run(&self, task: PgDauphinRunTaskSpec) -> anyhow::Result<()> {
+    pub async fn run(&self, task: PgDauphinRunTaskSpec) -> Result<(),Error> {
         let waiter = CommanderStream::new();
         self.queue.add(PgDauphinQueueEntry {
             task: PgDauphinTaskSpec::Run(task),

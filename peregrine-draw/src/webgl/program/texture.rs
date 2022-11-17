@@ -5,11 +5,12 @@ use crate::webgl::{FlatId, FlatStore, GLArity};
 use crate::webgl::global::{WebGlGlobalRefs};
 use crate::util::message::Message;
 use keyed::keyed_handle;
+use peregrine_toolkit::error::Error;
 use web_sys::{ WebGlUniformLocation, WebGlRenderingContext, WebGlProgram };
 use super::source::{ Source };
 use super::super::{ GPUSpec, Phase };
 use super::program::{ ProgramBuilder };
-use crate::webgl::util::handle_context_errors;
+use crate::webgl::util::{handle_context_errors, handle_context_errors2};
 
 // XXX some merging into uniform?
 
@@ -79,23 +80,23 @@ impl TextureValues {
         TextureValues { texture: texture, flat_id: None, flat_size: None, bound: false }
     }
 
-    pub fn set_value(&mut self, flat_store: &FlatStore, flat_id: &FlatId) -> Result<(),Message> {
+    pub fn set_value(&mut self, flat_store: &FlatStore, flat_id: &FlatId) -> Result<(),Error> {
         self.flat_id = Some(flat_id.clone());
         let flat = flat_store.get(flat_id)?;
         self.flat_size = Some(flat.size().clone());
         Ok(())
     }
 
-    pub(super) fn apply(&mut self, gl: &mut WebGlGlobalRefs) -> Result<(),Message> {
+    pub(super) fn apply(&mut self, gl: &mut WebGlGlobalRefs) -> Result<(),Error> {
         if let (Some(flat_id),Some(location)) = (&self.flat_id,&self.texture.location) {
             let index = gl.bindery.allocate(flat_id,gl.flat_store,gl.context)?;
             self.bound = true;
             gl.context.uniform1i(Some(location),index as i32);
-            handle_context_errors(gl.context)?;
+            handle_context_errors2(gl.context)?;
         }
         if let (Some(flat_size),Some(location_size)) = (&self.flat_size,&self.texture.location_size) {
             gl.context.uniform2f(Some(location_size),flat_size.0 as f32, flat_size.1 as f32);
-            handle_context_errors(gl.context)?;
+            handle_context_errors2(gl.context)?;
         }
         if let Some(flat_scale) = &self.texture.location_scale {
             let bitmap_multiplier = gl.flat_store.bitmap_multiplier();
@@ -104,7 +105,7 @@ impl TextureValues {
         Ok(())
     }
 
-    pub fn discard(&mut self, gl: &mut WebGlGlobalRefs) -> Result<(),Message> {
+    pub fn discard(&mut self, gl: &mut WebGlGlobalRefs) -> Result<(),Error> {
         if self.bound {
             if let Some(flat) = &self.flat_id {
                 gl.bindery.free(flat,gl.flat_store)?;
