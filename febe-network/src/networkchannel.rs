@@ -76,7 +76,7 @@ fn split_fragment(url: &str) -> (&str,Option<&str>) {
 
 impl ChannelIntegration for NetworkChannel {
     fn make_channel(&self, name: &str) -> Option<(Arc<dyn ChannelSender>,Option<BackendNamespace>)> {
-        if !name.starts_with("http:") && !name.starts_with("https:") {
+        if !name.starts_with("http:") && !name.starts_with("https:") && !name.starts_with("/") {
             return None;
         }
         /* separate into hi/lo if present. */
