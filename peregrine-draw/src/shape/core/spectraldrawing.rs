@@ -2,8 +2,7 @@ use std::sync::{Arc, Mutex};
 use peregrine_data::{Assets, reactive::Reactive, ProgramShapesBuilder };
 use peregrine_toolkit::{lock, puzzle::AnswerAllocator};
 use peregrine_toolkit_async::{sync::retainer::{RetainTest, Retainer, retainer}};
-use crate::{Message, shape::layers::drawing::Drawing, stage::stage::ReadStage, webgl::{DrawingSession, global::WebGlGlobal}, PgCommanderWeb};
-use super::spectre::Spectre;
+use crate::{Message, shape::{layers::drawing::Drawing, spectres::spectre::Spectre}, stage::stage::ReadStage, webgl::{DrawingSession, global::WebGlGlobal}, PgCommanderWeb};
 
 async fn draw_spectres(gl: &Arc<Mutex<WebGlGlobal>>, assets: &Assets, spectres: &[Spectre], retain_test: &RetainTest) -> Result<Drawing,Message> {
     let mut shapes = ProgramShapesBuilder::new(&Assets::empty());

@@ -3,8 +3,8 @@ use keyed::{KeyedOptionalValues, keyed_handle };
 use peregrine_data::{Assets, reactive::Reactive};
 use peregrine_toolkit_async::{sync::needed::{Needed, NeededLock}};
 use peregrine_toolkit::lock;
-use crate::{Message, run::PgPeregrineConfig, stage::stage::ReadStage, webgl::{DrawingSession, global::WebGlGlobal}, PgCommanderWeb};
-use super::{spectraldrawing::SpectralDrawing, spectre::{MarchingAnts, Spectre, Stain, AreaVariables2}};
+use crate::{Message, run::PgPeregrineConfig, stage::stage::ReadStage, webgl::{DrawingSession, global::WebGlGlobal}, PgCommanderWeb, shape::spectres::{spectre::Spectre, ants::{AreaVariables2, MarchingAnts}, stain::Stain}};
+use super::{spectraldrawing::SpectralDrawing};
 
 #[derive(Clone,PartialEq,Eq,Hash)]
 #[cfg_attr(debug_assertions,derive(Debug))]

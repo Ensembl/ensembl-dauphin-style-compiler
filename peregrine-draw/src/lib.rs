@@ -85,12 +85,17 @@ mod shape {
         pub(super) mod directcolourdraw;
         pub(super) mod spotcolourdraw;
         pub(crate) mod flatdrawing;
-        pub(crate) mod spectre;
         pub(crate) mod spectraldrawing;
         pub(crate) mod spectremanager;
         pub(crate) mod text;
         pub(crate) mod texture;
         pub(crate) mod wigglegeometry;
+    }
+
+    pub(crate) mod spectres {
+        pub(crate) mod ants;
+        pub(crate) mod stain;
+        pub(crate) mod spectre;
     }
 
     pub(crate) mod triangles {
