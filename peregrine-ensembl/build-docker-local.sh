@@ -94,9 +94,10 @@ fi
 
 # build
 DOCKER_BUILDKIT=1 docker build \
-    --build-arg CFG_RUST_MODE=--$CFG_RUST_MODE --build-arg CFG_EGB=$CFG_EGB \
+    --build-arg CFG_RUST_MODE=--$CFG_RUST_MODE \
+    --build-arg CFG_EGB=$CFG_EGB  --build-arg CFG_EC=$CFG_EC \
     --build-arg CACHE_DATE=$CACHE_BUST --build-arg FLAGS="$CFG_RUSTFLAGS" \
-    --build-arg CFG_EC_BRANCH=$CFG_EC_BRANCH \
+    --build-arg CFG_EC_BRANCH=$CFG_EC_BRANCH --build-arg CFG_EGB_BRANCH=$CFG_EGB_BRANCH \
     -f peregrine-ensembl/Dockerfile-buildkit --iidfile /tmp/build.id $CFG_FLAGS .
 
 # tidy
@@ -111,4 +112,3 @@ if [ ! -z "$ID" ]; then docker kill $ID ; fi
 if [ ! -e /tmp/build.id ] ; then echo "build failed" ; exit 1 ; fi
 docker run -p $CFG_PORT:8080 -e GENOME_BROWSER_BACKEND_BASE_URL=$CFG_BE_URL $(cat /tmp/build.id) &
 wait
-
