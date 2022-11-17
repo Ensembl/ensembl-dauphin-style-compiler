@@ -15,7 +15,7 @@ class DataAccessor:
         if version > 14:
             self.program_inventory = ProgramInventory(version)
         self.data_model = DataModel()
-        self.cache = Memcached(MEMCACHED_PREFIX,MEMCACHED_BUMP_ON_RESTART)
+        self.cache = Memcached("{}:{}".format(MEMCACHED_PREFIX,version),MEMCACHED_BUMP_ON_RESTART)
         self.boot_tracks = Tracks(BOOT_TRACKS_TOML)
         self.supported_versions = [9,10,11,12,13,14,15]
 
