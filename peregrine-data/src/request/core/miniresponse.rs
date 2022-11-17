@@ -1,5 +1,5 @@
 use std::{fmt, sync::Arc, any::Any};
-use peregrine_toolkit::{serdetools::st_field, error::Error, log};
+use peregrine_toolkit::{serdetools::st_field, error::Error};
 use serde::{Deserializer, de::{Visitor, DeserializeSeed}};
 use crate::{request::minirequests::{bootchannelres::BootChannelRes, datares::{DataRes, DataResDeserialize}, failureres::{FailureRes, UnavailableRes, UnavailableReason}, jumpres::JumpRes, programres::ProgramRes, stickres::StickRes, expandres::ExpandRes }, core::channel::wrappedchannelsender::WrappedChannelSender};
 
@@ -7,6 +7,11 @@ pub(crate) trait MiniResponseVariety {
     fn description(&self) -> &str;
     fn total_size(&self) -> usize { 0 }
     fn component_size(&self) -> Vec<(String,usize)> { vec![] }
+}
+
+pub(crate) enum MiniResponseError {
+    Retry(Error),
+    NoRetry(Error)
 }
 
 pub enum MiniResponse {
@@ -22,7 +27,7 @@ pub enum MiniResponse {
 
 macro_rules! accessor {
     ($self:ident,$name:tt,$branch:tt,$result:ty) => {
-        pub(crate) fn $name($self) -> Result<$result,Error> {
+        pub(crate) fn $name($self) -> Result<$result,MiniResponseError> {
             match $self {
                 MiniResponse::$branch(j) => Ok(j),
                 _ => Err($self.bad_response())
@@ -45,16 +50,20 @@ impl MiniResponse {
         }
     }
 
-    fn bad_response(&self) -> Error {
+    fn bad_response(&self) -> MiniResponseError {
         match self {
-            MiniResponse::FailureRes(g) => { Error::operr(g.message()) },
-            MiniResponse::Unavailable(v) => { 
-                log!("GENERATE");
+            MiniResponse::FailureRes(g) => {
+                MiniResponseError::Retry(Error::operr(g.message()))
+            },
+            MiniResponse::Unavailable(v) => {
                 match &v.reason() {
-                    UnavailableReason::BadVersion => Error::bad_version("out-of-date frontend") 
+                    UnavailableReason::BadVersion => 
+                        MiniResponseError::NoRetry(Error::bad_version("out-of-date frontend"))
                 }
             },
-            x => { Error::operr(&format!("unexpected response: {}",x.as_mini().description())) }
+            x => { 
+                MiniResponseError::Retry(Error::operr(&format!("unexpected response: {}",x.as_mini().description())))
+            }
         }
     }
 
