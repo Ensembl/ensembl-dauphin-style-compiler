@@ -62,6 +62,7 @@ mod allotment {
         pub(crate) mod bppxconverter;
         pub(crate) mod rangeused;
     }
+
 }
 
 mod api {
@@ -213,20 +214,16 @@ mod shape {
     pub(crate) mod shape;
     mod programshapes;
     mod settingmode;
-    mod zmenu;
-    mod zmenufixed;
     mod wiggleshape;
 
     pub use self::core::{ 
-        Patina, Pen, Colour, DirectColour, Plotter, DrawnType, Hotspot, PenGeometry,
-        Background, AttachmentPoint
+        Patina, Pen, Colour, DirectColour, Plotter, DrawnType, HotspotPatina, PenGeometry,
+        Background, AttachmentPoint,
     };
     pub use self::settingmode::SettingMode;
     pub use self::shape::{ ShapeDemerge, Shape };
-    pub use self::zmenu::ZMenu;
     pub use self::abstractshapescontainer::AbstractShapesContainer;
     pub use self::programshapes::ProgramShapesBuilder;
-    pub use self::zmenufixed::{ ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator, ZMenuProxy, zmenu_fixed_vec_to_json, zmenu_to_json };
 }
 
 pub(crate) mod spacebase {
@@ -290,6 +287,12 @@ mod util {
     pub use self::message::DataMessage;
 }
 
+pub(crate) mod hotspots {
+    pub(crate) mod hotspots;
+    pub(crate) mod zmenupatina;
+    pub(crate) mod zmenuitem;
+}
+
 pub use self::allotment::core::leafrequest::LeafRequest;
 pub use self::allotment::style::style::LeafStyle;
 pub use self::allotment::globals::{ allotmentmetadata::GlobalAllotmentMetadata, playingfield::PlayingField };
@@ -311,9 +314,8 @@ pub use self::request::core::packetpriority::PacketPriority;
 pub use self::request::core::backend::{ AllBackends, Backend };
 pub use self::shape::shape::DrawingShape;
 pub use self::shape::{ 
-    Patina, Colour, DirectColour, DrawnType, Shape, Hotspot, PenGeometry, Background,
-    ZMenu, Pen, Plotter, ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator,
-    ZMenuProxy, zmenu_fixed_vec_to_json, ShapeDemerge, zmenu_to_json, SettingMode,
+    Patina, Colour, DirectColour, DrawnType, Shape, HotspotPatina, PenGeometry, Background,
+    Pen, Plotter, ShapeDemerge, SettingMode,
     ProgramShapesBuilder, AbstractShapesContainer, AttachmentPoint
 };
 pub use self::allotment::core::coordsystem::{ CoordinateSystem, CoordinateSystemVariety };
@@ -345,3 +347,8 @@ pub use self::request::minirequests::expandreq::{ ExpandReq };
 pub use self::request::minirequests::expandres::{ ExpandRes };
 pub use self::request::minirequests::programreq::{ ProgramReq };
 pub use self::request::minirequests::programres::{ ProgramRes };
+pub use self::hotspots::zmenupatina::{ ZMenu, zmenu_generator };
+pub use self::hotspots::zmenuitem::{ ZMenuFixed, zmenu_item_list_to_json, zmenu_to_json };
+pub use self::hotspots::hotspots::{ 
+    HotspotResult, HotspotGroupEntry, SingleHotspotEntry
+};

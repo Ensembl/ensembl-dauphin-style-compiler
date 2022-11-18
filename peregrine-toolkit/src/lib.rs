@@ -35,6 +35,10 @@ pub mod eachorevery {
     pub use eoefilter::{ EachOrEveryFilter, EachOrEveryFilterBuilder };
 }
 
+pub mod hotspots {
+    pub mod hotspotstore;
+}
+
 pub mod js {
     pub mod exception;
     pub mod jstojsonvalue;

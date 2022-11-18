@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use peregrine_data::reactive::Observable;
-use peregrine_data::{ Colour, DirectColour, DrawnType, Patina, Plotter, SpaceBaseArea, HollowEdge2, SpaceBase, LeafStyle, Hotspot };
+use peregrine_data::{ Colour, DirectColour, DrawnType, Patina, Plotter, SpaceBaseArea, HollowEdge2, SpaceBase, LeafStyle, HotspotPatina };
 use peregrine_toolkit::eachorevery::{EachOrEvery, EachOrEveryFilterBuilder};
 use super::directcolourdraw::DirectYielder;
 use super::spotcolourdraw::SpotColourYielder;
@@ -29,7 +29,7 @@ pub(crate) enum SimpleShapePatina {
     Hollow(EachOrEvery<DirectColour>),
     SolidSpot(DirectColour),
     HollowSpot(DirectColour),
-    Hotspot(Hotspot),
+    Hotspot(HotspotPatina),
     None
 }
 
@@ -87,13 +87,13 @@ enum DrawingShapePatina {
     Hollow(DirectYielder,EachOrEvery<DirectColour>),
     SolidSpot(SpotColourYielder),
     HollowSpot(SpotColourYielder),
-    Hotspot(Hotspot),
+    Hotspot(HotspotPatina),
     None
 }
 
 enum PatinaTarget<'a> {
     Visual(&'a mut dyn PatinaYielder),
-    HotSpot(Hotspot),
+    HotSpot(HotspotPatina),
     None
 }
 
@@ -188,7 +188,7 @@ fn draw_heraldry_canvas(layer: &mut Layer, gl: &mut WebGlGlobal, tools: &mut Dra
 
 pub(crate) enum ShapeToAdd {
     Dynamic(Box<dyn DynamicShape>),
-    Hotspot(SpaceBaseArea<f64,LeafStyle>,Hotspot),
+    Hotspot(SpaceBaseArea<f64,LeafStyle>,HotspotPatina),
     None
 }
 

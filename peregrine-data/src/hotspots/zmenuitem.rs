@@ -1,19 +1,21 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
-use std::rc::Rc;
-
-use super::zmenu::{ ZMenu, ZMenuBlock, ZMenuSequence, ZMenuText, ZMenuItem };
 use keyed::{ keyed_handle, KeyedValues };
 use peregrine_toolkit::eachorevery::EachOrEvery;
 use serde_json::Number;
 use serde_json::Value as JSONValue;
 use serde_json::Map as JSONMap;
 use serde_json::json;
+use crate::ZMenu;
+use super::zmenupatina::ZMenuBlock;
+use super::zmenupatina::ZMenuItem;
+use super::zmenupatina::ZMenuSequence;
+use super::zmenupatina::ZMenuText;
 
 keyed_handle!(ZMenuKey);
 
 #[cfg_attr(debug_assertions,derive(Debug))]
-struct ValueSource {
+pub(super) struct ValueSource {
     values: EachOrEvery<String>
 }
 
@@ -181,7 +183,7 @@ fn zmenu_fixed_to_json(zmenu: &ZMenuFixed) -> JSONValue {
     })
 }
 
-pub fn zmenu_fixed_vec_to_json(zmenus: &[ZMenuFixed]) -> JSONValue {
+pub fn zmenu_item_list_to_json(zmenus: &[ZMenuFixed]) -> JSONValue {
     JSONValue::Array(zmenus.iter().map(|z| zmenu_fixed_to_json(z)).collect())
 }
 
@@ -207,7 +209,7 @@ fn deduplicate_variety(zmenus: &mut Vec<&ZMenuFixed>) {
     *zmenus = out;
 }
 
-pub fn zmenu_fixed_vec_to_json_split(zmenus: &[ZMenuFixed]) -> (JSONValue,JSONValue) {
+fn zmenu_item_list_to_json_split(zmenus: &[ZMenuFixed]) -> (JSONValue,JSONValue) {
     let mut contents = vec![];
     let mut varieties = vec![];
     for zmenu in zmenus {
@@ -221,7 +223,7 @@ pub fn zmenu_fixed_vec_to_json_split(zmenus: &[ZMenuFixed]) -> (JSONValue,JSONVa
 
 pub fn zmenu_to_json(x: f64, y: f64, zmenus: &[ZMenuFixed]) -> JSONValue {
     let mut root = JSONMap::new();
-    let (variety,content) = zmenu_fixed_vec_to_json_split(zmenus);
+    let (variety,content) = zmenu_item_list_to_json_split(zmenus);
     root.insert("x".to_string(),JSONValue::Number(Number::from_f64(x).unwrap()));
     root.insert("y".to_string(),JSONValue::Number(Number::from_f64(y).unwrap()));
     root.insert("content".to_string(),content);
@@ -231,13 +233,13 @@ pub fn zmenu_to_json(x: f64, y: f64, zmenus: &[ZMenuFixed]) -> JSONValue {
 }
 
 #[cfg_attr(debug_assertions,derive(Debug))]
-struct ZMenuBuild{
+pub(super) struct ZMenuBuild {
     data: Vec<ZMenuBuildSequence>,
     metadata: HashMap<String,ValueSource>
 }
 
 impl ZMenuBuild {
-    fn build(zmenu: &ZMenu, data: &HashMap<String,EachOrEvery<String>>) -> (ZMenuBuild,KeyedValues<ZMenuKey,ValueSource>) {
+    pub(super) fn build(zmenu: &ZMenu, data: &HashMap<String,EachOrEvery<String>>) -> (ZMenuBuild,KeyedValues<ZMenuKey,ValueSource>) {
         let metadata = data.keys().map(|k| (k.to_string(),ValueSource::new(k,data))).collect::<HashMap<_,_>>();
         let mut values : KeyedValues<ZMenuKey,ValueSource> = KeyedValues::new();
         let build = ZMenuBuild {
@@ -255,48 +257,10 @@ impl ZMenuBuild {
         out
     }
 
-    fn value(&self, values: &KeyedValues<ZMenuKey,ValueSource>, index: usize) -> ZMenuFixed {
+    pub(super) fn value(&self, values: &KeyedValues<ZMenuKey,ValueSource>, index: usize) -> ZMenuFixed {
         ZMenuFixed {
             sequence: self.data.iter().map(|x| x.value(values,index)).collect(),
             metadata: self.metadata(index)
         }
     }
-}
-
-#[derive(Clone)]
-pub struct ZMenuGenerator {
-    build: Rc<ZMenuBuild>,
-    values: Rc<KeyedValues<ZMenuKey,ValueSource>>
-}
-
-pub struct ZMenuProxy(ZMenuGenerator,usize);
-
-impl ZMenuProxy {
-    pub fn value(&self) -> ZMenuFixed {
-        self.0.build.value(&self.0.values,self.1)
-    }
-}
-
-pub struct ZMenuProxyIter(ZMenuGenerator,usize);
-
-impl Iterator for ZMenuProxyIter {
-    type Item = ZMenuProxy;
-
-    fn next(&mut self) -> Option<ZMenuProxy> {
-        let out = self.0.make_proxy(self.1);
-        self.1 += 1;
-        Some(out)
-    }
-}
-
-impl ZMenuGenerator {
-    pub fn new(zmenu: &ZMenu, data: &HashMap<String,EachOrEvery<String>>) -> ZMenuGenerator {
-        let (build,values) = ZMenuBuild::build(zmenu,data);
-        ZMenuGenerator {
-            build: Rc::new(build), values: Rc::new(values)
-        }
-    }
-
-    pub fn make_proxy(&self, index: usize) -> ZMenuProxy { ZMenuProxy(self.clone(),index) }
-    pub fn iter(&self) -> ZMenuProxyIter { ZMenuProxyIter(self.clone(),0) }
 }

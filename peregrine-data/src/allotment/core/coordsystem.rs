@@ -7,9 +7,9 @@ pub enum CoordinateSystemVariety {
      */
     Tracking,
 
-    /*base = bp, tangent = x-px, normal = y-px (-ve = error!)
+    /* base = bp, tangent = x-px, normal = y-px (-ve = error!)
      * moves as user scrolls, scrolls vertically with content
-     * identical intent to Tracking: less efficient but handles difficult cases (eg negative coordinates)
+     * identical intent to Tracking: less efficient but handles difficult cases (eg running text)
      */
     TrackingSpecial,
 

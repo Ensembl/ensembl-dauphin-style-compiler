@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 use super::drawingtools::DrawingToolsBuilder;
 use super::layer::Layer;
 use commander::cdr_tick;
-use peregrine_data::{Assets, Scale, DrawingShape, DataMessage };
+use peregrine_data::{Assets, Scale, DrawingShape, DataMessage, HotspotGroupEntry, SingleHotspotEntry };
 use peregrine_toolkit::error::Error;
 use peregrine_toolkit::lock;
 use peregrine_toolkit_async::sync::needed::Needed;
@@ -12,9 +12,9 @@ use super::super::core::drawshape::{ add_shape_to_layer, GLShape };
 use crate::shape::core::drawshape::ShapeToAdd;
 use crate::webgl::{ DrawingAllFlats, DrawingAllFlatsBuilder, DrawingSession, Process};
 use crate::webgl::global::WebGlGlobal;
-use super::drawingzmenus::{ DrawingHotspots, HotspotEntryDetails };
 use crate::stage::stage::ReadStage;
 use crate::util::message::Message;
+use crate::hotspots::drawinghotspots::DrawingHotspots;
 
 #[cfg(debug_trains)]
 use peregrine_toolkit::log_extra;
@@ -66,7 +66,7 @@ impl DrawingBuilder {
                 self.dynamic_shapes.push(dynamic);
             },
             ShapeToAdd::Hotspot(area,hotspot) => {
-                self.tools.zmenus().add_rectangle(area,&hotspot);
+                self.tools.hotspots().add_rectangle(HotspotGroupEntry::new(area,&hotspot));
             },
             ShapeToAdd::None => {}
         }
@@ -144,7 +144,7 @@ impl Drawing {
         lock!(self.0).zmenus.set_px_per_screen(px_per_screen);
     }
 
-    pub(crate) fn get_hotspot(&self, stage: &ReadStage, position: (f64,f64)) -> Result<Vec<HotspotEntryDetails>,Message> {
+    pub(crate) fn get_hotspot(&self, stage: &ReadStage, position: (f64,f64)) -> Result<Vec<SingleHotspotEntry>,Message> {
         lock!(self.0).zmenus.get_hotspot(stage,position)
     }
 

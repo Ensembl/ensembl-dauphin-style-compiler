@@ -1,7 +1,7 @@
-use std::{collections::{hash_map::DefaultHasher}, hash::{Hash, Hasher}, sync::Arc};
+use std::{collections::{hash_map::DefaultHasher}, hash::{Hash, Hasher}, sync::Arc, rc::Rc};
 use peregrine_toolkit::eachorevery::{EachOrEveryFilter, EachOrEvery, eoestruct::{StructTemplate}};
-
-use super::{zmenu::ZMenu, settingmode::SettingMode};
+use crate::{hotspots::zmenupatina::ZMenu, HotspotResult, zmenu_generator};
+use super::{settingmode::SettingMode};
 
 #[derive(Clone,Debug,PartialEq,Eq,Hash)]
 pub struct DirectColour(pub u8,pub u8,pub u8,pub u8);
@@ -114,41 +114,70 @@ pub enum DrawnType {
 
 #[derive(Clone)]
 #[cfg_attr(debug_assertions,derive(Debug))]
-pub enum Hotspot {
+pub enum HotspotPatina {
     ZMenu(ZMenu,Vec<(String,EachOrEvery<String>)>),
     Setting(EachOrEvery<(Vec<String>,SettingMode)>),
     Special(EachOrEvery<String>)
 }
 
-impl Hotspot {
-    fn filter(&self, filter: &EachOrEveryFilter) -> Hotspot {
+fn setting_generator(values: &EachOrEvery<(Vec<String>,SettingMode)>) -> Arc<dyn Fn(usize) -> HotspotResult> {
+    let values = Rc::new(values.clone());
+    Arc::new(move |index| {
+        let (path,mode) = values.get(index).unwrap().clone();
+        HotspotResult::Setting(path,mode)
+    })
+}
+
+fn special_generator(values: &EachOrEvery<String>) -> Arc<dyn Fn(usize) -> HotspotResult> {
+    let values = Rc::new(values.clone());
+    Arc::new(move |index| {
+        HotspotResult::Special(values.get(index).unwrap().to_string())
+    })
+}
+
+impl HotspotPatina {
+    fn filter(&self, filter: &EachOrEveryFilter) -> HotspotPatina {
         match self {
-            Hotspot::ZMenu(zmenu,values) => {
+            HotspotPatina::ZMenu(zmenu,values) => {
                 let mut out = Vec::with_capacity(values.len());
                 for (k,v) in values {
                     out.push((k.to_string(),v.filter(filter)));
                 }
-                Hotspot::ZMenu(zmenu.clone(),out)          
+                HotspotPatina::ZMenu(zmenu.clone(),out)          
             },
-            Hotspot::Setting(values) => {
-                Hotspot::Setting(values.filter(filter))
+            HotspotPatina::Setting(values) => {
+                HotspotPatina::Setting(values.filter(filter))
             },
-            Hotspot::Special(value) => {
-                Hotspot::Special(value.filter(filter))
+            HotspotPatina::Special(value) => {
+                HotspotPatina::Special(value.filter(filter))
             }
         }
     }
 
     fn compatible(&self, len: usize) -> bool {
         match self {
-            Hotspot::ZMenu(_,values) => {
+            HotspotPatina::ZMenu(_,values) => {
                 for (_,value) in values.iter() {
                     if !value.compatible(len) { return false; }
                 }
                 true
             },
-            Hotspot::Setting(value) => { value.compatible(len) },
-            Hotspot::Special(value) => { value.compatible(len) },
+            HotspotPatina::Setting(value) => { value.compatible(len) },
+            HotspotPatina::Special(value) => { value.compatible(len) },
+        }
+    }
+
+    pub fn generator(&self) -> Arc<dyn Fn(usize) -> HotspotResult> {
+        match self {
+            HotspotPatina::ZMenu(zmenu,values) => {
+                zmenu_generator(&zmenu,values)
+            },
+            HotspotPatina::Setting(values) => {
+                setting_generator(&values)
+            },
+            HotspotPatina::Special(values) => {
+                special_generator(&values)
+            }
         }
     }
 }
@@ -157,7 +186,7 @@ impl Hotspot {
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub enum Patina {
     Drawn(DrawnType,EachOrEvery<Colour>),
-    Hotspot(Hotspot),
+    Hotspot(HotspotPatina),
     Metadata(String,EachOrEvery<(String,StructTemplate)>)
 }
 

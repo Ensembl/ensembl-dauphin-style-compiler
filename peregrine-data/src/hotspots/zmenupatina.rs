@@ -42,9 +42,13 @@
 // TODO hashmap to docs
 
 use anyhow::{ bail };
-use std::collections::{ HashSet };
+use peregrine_toolkit::eachorevery::EachOrEvery;
+use std::collections::{ HashSet, HashMap };
 use std::iter::Peekable;
 use std::str::Chars;
+use std::sync::Arc;
+use crate::{HotspotResult};
+use super::zmenuitem::ZMenuBuild;
 
 #[derive(Clone)]
 #[cfg_attr(debug_assertions,derive(Debug))]
@@ -68,7 +72,7 @@ impl ZMenuItem {
 
 #[derive(Clone)]
 #[cfg_attr(debug_assertions,derive(Debug))]
-pub struct ZMenuBlock(pub Vec<ZMenuItem>);
+pub(super) struct ZMenuBlock(pub Vec<ZMenuItem>);
 
 #[derive(Clone)]
 enum ZMenuToken {
@@ -174,7 +178,7 @@ impl ZMenuBlock {
 
 #[derive(Clone)]
 #[cfg_attr(debug_assertions,derive(Debug))]
-pub enum ZMenuSequence {
+pub(super) enum ZMenuSequence {
     Item(ZMenuBlock),
     LineBreak
 }
@@ -203,10 +207,21 @@ fn fmt_zmenu_sequences(spec: &str) -> anyhow::Result<Vec<ZMenuSequence>> {
 
 #[derive(Clone)]
 #[cfg_attr(debug_assertions,derive(Debug))]
-pub struct ZMenu(pub Vec<ZMenuSequence>);
+pub struct ZMenu(pub(super) Vec<ZMenuSequence>);
 
 impl ZMenu {
     pub fn new(spec: &str) -> anyhow::Result<ZMenu> {
         Ok(ZMenu(fmt_zmenu_sequences(spec)?))
     }
+}
+
+pub fn zmenu_generator(zmenu: &ZMenu, values: &Vec<(String,EachOrEvery<String>)>) -> Arc<dyn Fn(usize) -> HotspotResult> {
+    let mut map_values = HashMap::new();
+    for (k,v) in values.iter() {
+        map_values.insert(k.to_string(),v.clone());
+    }
+    let (build,values) = ZMenuBuild::build(zmenu,&map_values);
+    Arc::new(move |index| {
+        HotspotResult::ZMenu(build.value(&values,index))
+    })    
 }

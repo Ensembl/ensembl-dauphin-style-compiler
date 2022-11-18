@@ -13,4 +13,9 @@ macro_rules! map {
     }
 }
 
-pub use map;
+#[macro_export]
+macro_rules! ubail {
+    ($value:expr,$bailer:expr) => {
+        if let Some(x) = $value { x } else { return $bailer }
+    }
+}

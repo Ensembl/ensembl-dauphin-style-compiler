@@ -112,7 +112,6 @@ mod shape {
     pub(crate) mod layers {
         pub(crate) mod drawing;
         pub(crate) mod drawingtools;
-        pub(crate) mod drawingzmenus;
         pub(crate) mod consts;
         pub(crate) mod geometry;
         pub(crate) mod programstore;
@@ -227,6 +226,12 @@ mod webgl {
     pub(crate) mod global;
     pub(crate) mod glbufferstore;
     mod util;
+}
+
+mod hotspots {
+    mod drawscreenhotspots;
+    mod drawhotspotstore;
+    pub(crate) mod drawinghotspots;
 }
 
 pub use crate::run::{ PeregrineInnerAPI, PeregrineAPI, PeregrineConfig };

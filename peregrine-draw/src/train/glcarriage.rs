@@ -1,8 +1,7 @@
-use peregrine_data::{Assets, DrawingCarriage, CarriageExtent, PeregrineApiQueue, DataMessage};
+use peregrine_data::{Assets, DrawingCarriage, CarriageExtent, PeregrineApiQueue, DataMessage, SingleHotspotEntry};
 use peregrine_toolkit::{lock, warn, error };
 use peregrine_toolkit_async::sync::asynconce::AsyncOnce;
 use peregrine_toolkit_async::sync::needed::Needed;
-use crate::shape::layers::drawingzmenus::HotspotEntryDetails;
 use crate::{PgCommanderWeb};
 use crate::shape::layers::drawing::{ Drawing };
 use crate::webgl::DrawingSession;
@@ -117,7 +116,7 @@ impl GLCarriage {
         Ok(())
     }
 
-    pub(crate) fn get_hotspot(&self, stage: &ReadStage, position: (f64,f64)) -> Result<Vec<HotspotEntryDetails>,Message> {
+    pub(crate) fn get_hotspot(&self, stage: &ReadStage, position: (f64,f64)) -> Result<Vec<SingleHotspotEntry>,Message> {
         let state = lock!(self.0);
         if let Some(drawing) = get_drawing(&state)? {
             drawing.get_hotspot(stage,position)

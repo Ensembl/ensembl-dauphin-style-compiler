@@ -2,14 +2,13 @@ use std::collections::HashMap;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash};
 use std::sync::{ Arc, Mutex };
-use peregrine_data::{Assets, CarriageSpeed, PeregrineCore, Scale, DrawingCarriage, TrainIdentity, PeregrineApiQueue};
+use peregrine_data::{Assets, CarriageSpeed, PeregrineCore, Scale, DrawingCarriage, TrainIdentity, PeregrineApiQueue, SingleHotspotEntry};
 use peregrine_toolkit::error::Error;
 use peregrine_toolkit::{lock, log};
 use peregrine_toolkit_async::sync::needed::{Needed, NeededLock};
 use super::glcarriage::GLCarriage;
 use super::gltrain::GLTrain;
 use crate::{PgCommanderWeb};
-use crate::shape::layers::drawingzmenus::HotspotEntryDetails;
 use crate::{run::{ PgPeregrineConfig, PgConfigKey }, stage::stage::{ Stage, ReadStage } };
 use crate::webgl::DrawingSession;
 use crate::webgl::global::WebGlGlobal;
@@ -241,7 +240,7 @@ impl GlRailwayData {
         }
     }
 
-    fn get_hotspot(&mut self, stage: &ReadStage, position: (f64,f64)) -> Result<Vec<HotspotEntryDetails>,Message> {
+    fn get_hotspot(&mut self, stage: &ReadStage, position: (f64,f64)) -> Result<Vec<SingleHotspotEntry>,Message> {
         match &self.fade_state {
             FadeState::Constant(x) => x.as_ref(),
             FadeState::Fading(_,x,_,_,_) => Some(x)
@@ -300,7 +299,7 @@ impl GlRailway {
         Ok(())
     }
 
-    pub(crate) fn get_hotspot(&self,stage: &ReadStage, position: (f64,f64)) -> Result<Vec<HotspotEntryDetails>,Message> {
+    pub(crate) fn get_hotspot(&self,stage: &ReadStage, position: (f64,f64)) -> Result<Vec<SingleHotspotEntry>,Message> {
         lock!(self.data).get_hotspot(stage,position)
     }
 

@@ -2,7 +2,7 @@ use anyhow::{anyhow as err, bail};
 use peregrine_toolkit::eachorevery::{EachOrEvery, EachOrEveryGroupCompatible};
 use peregrine_toolkit::{lock};
 use crate::simple_interp_command;
-use peregrine_data::{Colour, DirectColour, DrawnType, Patina, Pen, Plotter, ShapeRequest, ZMenu, SpaceBase, ProgramShapesBuilder, Hotspot, Background, AttachmentPoint, ObjectBuilder, SettingMode, TrackMapping};
+use peregrine_data::{Colour, DirectColour, DrawnType, Patina, Pen, Plotter, ShapeRequest, SpaceBase, ProgramShapesBuilder, Background, AttachmentPoint, ObjectBuilder, SettingMode, TrackMapping, ZMenu, HotspotPatina};
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
 use serde_cbor::Value as CborValue;
@@ -303,7 +303,7 @@ impl InterpCommand for PatinaZMenuInterpCommand {
         for (zmenu,(key_start,key_length)) in each {
             let keys = &key_d[*key_start..(*key_start+*key_length)];
             let values = make_values(keys,&value_d,&value_a,&value_b)?;
-            let patina = Patina::Hotspot(Hotspot::ZMenu(zmenu.as_ref().clone(),values));
+            let patina = Patina::Hotspot(HotspotPatina::ZMenu(zmenu.as_ref().clone(),values));
             payload.push(geometry_builder.add_patina(patina) as usize);
         }
         let registers = context.registers_mut();
@@ -347,7 +347,7 @@ impl InterpCommand for PatinaSettingSetInterpCommand {
             });
         }
         let geometry_builder = get_instance::<ObjectBuilder>(context,"builder")?;
-        let patina = Patina::Hotspot(Hotspot::Setting(EachOrEvery::each(settings)));
+        let patina = Patina::Hotspot(HotspotPatina::Setting(EachOrEvery::each(settings)));
         let patina_id = geometry_builder.add_patina(patina) as usize;
         let registers = context.registers_mut();
         registers.write(&self.0,InterpValue::Indexes(vec![
@@ -363,7 +363,7 @@ impl InterpCommand for PatinaSpecialZoneInterpCommand {
         let special = vec_to_eoe(registers.get_strings(&self.1)?.to_vec());
         drop(registers);
         let geometry_builder = get_instance::<ObjectBuilder>(context,"builder")?;
-        let patina = Patina::Hotspot(Hotspot::Special(special));
+        let patina = Patina::Hotspot(HotspotPatina::Special(special));
         let patina_id = geometry_builder.add_patina(patina) as usize;
         let registers = context.registers_mut();
         registers.write(&self.0,InterpValue::Indexes(vec![
@@ -411,7 +411,7 @@ impl InterpCommand for PatinaSettingMemberInterpCommand {
                 (vec![],SettingMode::None)
             });
         }
-        let patina = Patina::Hotspot(Hotspot::Setting(EachOrEvery::each(settings)));
+        let patina = Patina::Hotspot(HotspotPatina::Setting(EachOrEvery::each(settings)));
         let patina_id = geometry_builder.add_patina(patina) as usize;
         let registers = context.registers_mut();
         registers.write(&self.0,InterpValue::Indexes(vec![
