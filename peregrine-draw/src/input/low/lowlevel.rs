@@ -3,7 +3,7 @@ use crate::domcss::dom::PeregrineDom;
 use crate::input::InputEventKind;
 use crate::input::low::modifiers::KeyboardModifiers;
 use crate::input::translate::targetreporter::TargetReporter;
-use crate::shape::spectres::spectremanager::{SpectreManager, SpectreHandle};
+use crate::shape::spectres::spectremanager::{SpectreManager};
 use crate::stage::stage::ReadStage;
 use crate::webgl::global::WebGlGlobal;
 use crate::{PgCommanderWeb, run::PgPeregrineConfig};
@@ -111,7 +111,9 @@ impl LowLevelState {
 
 #[derive(Clone)]
 pub struct LowLevelInput {
+    #[allow(unused)]
     keyboard: EventSystem<KeyboardEventHandler>,
+    #[allow(unused)]
     mouse: EventSystem<MouseEventHandler>,
     distributor: Distributor<InputEvent>,
     state: LowLevelState,

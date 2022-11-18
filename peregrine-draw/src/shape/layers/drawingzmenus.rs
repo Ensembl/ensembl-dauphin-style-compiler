@@ -45,9 +45,32 @@ impl SettingGenerator {
     }
 }
 
+pub struct SpecialProxy(Rc<EachOrEvery<String>>,usize);
+
+impl SpecialProxy {
+    pub fn value(&self) -> String {
+        self.0.get(self.1).unwrap().clone()
+    }
+}
+
+#[derive(Clone)]
+struct SpecialGenerator(Rc<EachOrEvery<String>>);
+
+impl SpecialGenerator {
+    fn new(values: &EachOrEvery<String>) -> SpecialGenerator {
+        SpecialGenerator(Rc::new(values.clone()))
+    }
+
+    fn make_proxy(&self, index: usize) -> SpecialProxy {
+        SpecialProxy(self.0.clone(),index)
+    }
+}
+
+
 enum HotspotUnscaledEntryDetails {
     ZMenu(ZMenuGenerator),
-    Setting(SettingGenerator)
+    Setting(SettingGenerator),
+    Special(SpecialGenerator)
 }
 
 struct HotspotUnscaledEntry {
@@ -73,6 +96,13 @@ impl HotspotUnscaledEntry {
                 let details = SettingGenerator::new(values);
                 HotspotUnscaledEntry {
                     details: HotspotUnscaledEntryDetails::Setting(details),
+                    area
+                }
+            },
+            Hotspot::Special(values) => {
+                let details = SpecialGenerator::new(values);
+                HotspotUnscaledEntry {
+                    details: HotspotUnscaledEntryDetails::Special(details),
                     area
                 }
             }
@@ -111,7 +141,8 @@ impl DrawingHotspotsBuilder {
 #[derive(Clone)]
 pub(crate) enum HotspotEntryDetails {
     ZMenu(Rc<ZMenuProxy>),
-    Setting(Rc<SettingProxy>)
+    Setting(Rc<SettingProxy>),
+    Special(Rc<SpecialProxy>)
 }
 
 impl HotspotEntryDetails {
@@ -122,6 +153,9 @@ impl HotspotEntryDetails {
             },
             HotspotUnscaledEntryDetails::Setting(generator) => {
                 HotspotEntryDetails::Setting(Rc::new(generator.make_proxy(index)))
+            },
+            HotspotUnscaledEntryDetails::Special(generator) => {
+                HotspotEntryDetails::Special(Rc::new(generator.make_proxy(index)))
             }
         }
     }

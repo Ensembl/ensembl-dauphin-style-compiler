@@ -32,6 +32,7 @@ simple_interp_command!(PatinaMetadataInterpCommand,PatinaMetadataDeserializer,54
 simple_interp_command!(BackgroundInterpCommand,BackgroundDeserializer,70,3,(0,1,2));
 simple_interp_command!(PatinaSettingSetInterpCommand,PatinaSettingSetDeserializer,4,3,(0,1,2));
 simple_interp_command!(PatinaSettingMemberInterpCommand,PatinaSettingMemberDeserializer,5,4,(0,1,2,3));
+simple_interp_command!(PatinaSpecialZoneInterpCommand,PatinaSpecialZoneDeserializer,23,2,(0,1));
 
 impl InterpCommand for BpRangeInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
@@ -347,6 +348,22 @@ impl InterpCommand for PatinaSettingSetInterpCommand {
         }
         let geometry_builder = get_instance::<ObjectBuilder>(context,"builder")?;
         let patina = Patina::Hotspot(Hotspot::Setting(EachOrEvery::each(settings)));
+        let patina_id = geometry_builder.add_patina(patina) as usize;
+        let registers = context.registers_mut();
+        registers.write(&self.0,InterpValue::Indexes(vec![
+            patina_id
+        ]));
+        Ok(CommandResult::SyncResult())
+    }
+}
+
+impl InterpCommand for PatinaSpecialZoneInterpCommand {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+        let registers = context.registers_mut();
+        let special = vec_to_eoe(registers.get_strings(&self.1)?.to_vec());
+        drop(registers);
+        let geometry_builder = get_instance::<ObjectBuilder>(context,"builder")?;
+        let patina = Patina::Hotspot(Hotspot::Special(special));
         let patina_id = geometry_builder.add_patina(patina) as usize;
         let registers = context.registers_mut();
         registers.write(&self.0,InterpValue::Indexes(vec![

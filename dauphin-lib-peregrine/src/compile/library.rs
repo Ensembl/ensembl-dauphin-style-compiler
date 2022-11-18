@@ -17,17 +17,17 @@ use super::track::{
 use super::geometry:: {
     PatinaFilledCommandType, PatinaHollowCommandType, DirectColourCommandType, ZMenuCommandType, PatinaZMenuCommandType, PenCommandType,
     PlotterCommandType, UseAllotmentCommandType, SpaceBaseCommandType, SimpleColourCommandType, StripedCommandType,
-    BarCommandType, BpRangeCommandType, SpotColourCommandType, PpcCommandType, StyleCommandType, PatinaMetadataCommandType, BackgroundCommandType, PatinaSettingSetCommandType, PatinaSettingMemberCommandType
+    BarCommandType, BpRangeCommandType, SpotColourCommandType, PpcCommandType, StyleCommandType, PatinaMetadataCommandType, BackgroundCommandType, PatinaSettingSetCommandType, PatinaSettingMemberCommandType, PatinaSpecialZoneCommandType
 };
 use super::shape::{ WiggleCommandType, RectangleCommandType, Text2CommandType, ImageCommandType, EmptyCommandType, RunningTextCommandType };
 use super::switch::{ SettingBooleanCommandType, SettingNullCommandType, SettingNumberCommandType, SettingStringCommandType };
 
 pub fn peregrine_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(63,0),0x37CB1D4CD6C637F6)
+    CommandSetId::new("peregrine",(64,0),0xA28D7DA9B2C26AB1)
 }
 
 pub fn make_peregrine() -> CompLibRegister {
-    // next is 76; 23-28, 30, 32-34, 39-42, 51, 71-73 are unused
+    // next is 76; 24-28, 30, 32-34, 39-42, 51, 71-73 are unused
     let mut set = CompLibRegister::new(&peregrine_id(),Some(make_peregrine_interp()));
     set.push("setting_string",Some(0),SettingStringCommandType());
     set.push("setting_number",Some(1),SettingNumberCommandType());
@@ -52,6 +52,7 @@ pub fn make_peregrine() -> CompLibRegister {
     set.push("rectangle",Some(20),RectangleCommandType());
     set.push("get_region",Some(21),GetLaneCommandType());
     set.push("get_data",Some(22),GetDataCommandType());
+    set.push("patina_special_zone",Some(23),PatinaSpecialZoneCommandType());
     set.push("patina_filled",Some(29),PatinaFilledCommandType());
     set.push("split_string",Some(31),SplitStringCommandType());
     set.push("simple_colour",Some(35),SimpleColourCommandType());

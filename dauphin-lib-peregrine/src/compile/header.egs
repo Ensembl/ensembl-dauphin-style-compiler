@@ -62,6 +62,7 @@ func patina_zmenu(zmenutmpl, vec(string), vec(string)) becomes patina;
 func patina_switch(string,boolean) becomes patina;
 func patina_setting_set(string,boolean) becomes patina;
 func patina_setting_member(string,string,boolean) becomes patina;
+func patina_special_zone(string) becomes patina;
 func pen(string,number,directcolour,backgroundid) becomes penspec;
 func plotter(number,directcolour) becomes plotterspec;
 func make_request(string,string,region) becomes request;

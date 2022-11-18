@@ -116,7 +116,8 @@ pub enum DrawnType {
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub enum Hotspot {
     ZMenu(ZMenu,Vec<(String,EachOrEvery<String>)>),
-    Setting(EachOrEvery<(Vec<String>,SettingMode)>)
+    Setting(EachOrEvery<(Vec<String>,SettingMode)>),
+    Special(EachOrEvery<String>)
 }
 
 impl Hotspot {
@@ -131,6 +132,9 @@ impl Hotspot {
             },
             Hotspot::Setting(values) => {
                 Hotspot::Setting(values.filter(filter))
+            },
+            Hotspot::Special(value) => {
+                Hotspot::Special(value.filter(filter))
             }
         }
     }
@@ -143,7 +147,8 @@ impl Hotspot {
                 }
                 true
             },
-            Hotspot::Setting(value) => { value.compatible(len) }
+            Hotspot::Setting(value) => { value.compatible(len) },
+            Hotspot::Special(value) => { value.compatible(len) },
         }
     }
 }

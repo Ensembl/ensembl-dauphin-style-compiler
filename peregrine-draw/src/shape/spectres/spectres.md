@@ -15,8 +15,19 @@ Although not part of the genome browser data, it's useful for them to use the fa
 
 ## GLobal classes
 
-The `SpectreManager` maintains a list of spectres currently on the screen. It has means of creating all these spectre types, and when you want to use one you can add it into the manager. (The reason it's a two stage process is that you might want to compound them into a single spectre). After you have added a Spectre to the SPectreManager you get a `SpectreHandle`. Take good care of you SpectreHandle: as soon as you drop it, your spectre will disappear. The idea is that the spectre will form part of some larger process of the interaction and so can simply be stored in the state for that interaction.
+You get your spectres in Arcs. The `SpectreManager` maintains a weak reference to created spectres. If you drop the reference returned, the Arc will be removed from the screen. The spectre-manager contains the root `Reactive` object of the reactive system used for argument passing (see below).
+
+The `SpectralDrawing` wraps a real `Drawing`, as used in the main code.  It is stored in the `SpectreManager`.  THe SpectralDrawing isresponsible for disposing of and recreating its contained
+Drawing after spectres have changed.
 
 ## Reactive system
 
-One distinctive thing about spectres is that they frequently move around. Creating and destroying a spectre for each position would be troublesome. To this end, the Reactive system is used. The Reactive system is one way of separating the setters of some value from its effects. In this case, the effects are within the spectre itself. The setters are pieces of code which 
+One distinctive thing about spectres is that they frequently move around. Creating and destroying a spectre for each position would be troublesome, not least in that it would be very taxing to the WebGL to create new objects each time. To this end, the Reactive system is used.
+
+The Reactive system is a way of separating setters from their effects. You canthink of them asa PubSub system. In this case, the setters are within the spectre itself, and the observers are deep within the WebGL code. Within the WebGL this is called "wobble" because these values add the variable value given to the original coordinated.
+
+The reactive system uses a number of types. You need to care about only two for spectres.
+
+`Variable` -- these actually hold the values to be observed. Spectres keep hold of variables and, by calling setters on them, allow the wobble "action at a distance".
+
+`Observable` -- any variable can create any number of observables. These are the handles for variables which are passed into the code which will be doing the listening, in our case the shape creation code.

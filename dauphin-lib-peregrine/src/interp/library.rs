@@ -12,7 +12,7 @@ use super::geometry::{
     PatinaFilledDeserializer, PatinaHollowDeserializer, DirectColourDeserializer, ZMenuDeserializer, PatinaZMenuDeserializer,
     PenDeserializer, PlotterDeserializer, UseAllotmentDeserializer, SpaceBaseDeserializer, SimpleColourDeserializer,
     StripedDeserializer, BarredDeserializer, BpRangeDeserializer, SpotColourDeserializer, PpcDeserializer, StyleDeserializer,
-    PatinaMetadataDeserializer, BackgroundDeserializer, PatinaSettingSetDeserializer, PatinaSettingMemberDeserializer
+    PatinaMetadataDeserializer, BackgroundDeserializer, PatinaSettingSetDeserializer, PatinaSettingMemberDeserializer, PatinaSpecialZoneDeserializer
 };
 use super::shape::{
     WiggleDeserializer, RectangleDeserializer, Text2Deserializer, ImageDeserializer, EmptyDeserializer, RunningTextDeserializer,
@@ -23,7 +23,7 @@ use super::switch::{
 };
 
 pub fn std_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(63,0),0x37CB1D4CD6C637F6)
+    CommandSetId::new("peregrine",(64,0),0xA28D7DA9B2C26AB1)
 }
 
 pub fn make_peregrine_interp() -> InterpLibRegister {
@@ -36,6 +36,7 @@ pub fn make_peregrine_interp() -> InterpLibRegister {
     set.push(DataBooleanDeserializer());
     set.push(PatinaSettingSetDeserializer());
     set.push(PatinaSettingMemberDeserializer());
+    set.push(PatinaSpecialZoneDeserializer());
     set.push(SettingNullDeserializer());
     set.push(GetLaneDeserializer());
     set.push(GetDataDeserializer());

@@ -1,10 +1,10 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, sync::{Arc, Mutex}};
 use peregrine_data::{Colour, DirectColour, DrawnType, Patina, SpaceBase, SpaceBaseArea, PartialSpaceBase, reactive::{Observable}, ProgramShapesBuilder, LeafRequest};
-use peregrine_toolkit::eachorevery::EachOrEvery;
+use peregrine_toolkit::{eachorevery::EachOrEvery, lock};
 use crate::{Message, run::{PgConfigKey, PgPeregrineConfig}, shape::{util::eoethrow::eoe_throw}};
 use peregrine_data::reactive;
 
-use super::{spectre::{AreaVariables, Spectre}, spectremanager::{SpectreConfigKey, SpectreManager, SpectreHandle}};
+use super::{spectre::{AreaVariables, Spectre}, spectremanager::{SpectreConfigKey, SpectreManager}};
 
 fn make_stain_param2(var: Option<&reactive::Variable<'static,f64>>, c: f64) -> Observable<'static,f64> {
     if let Some(var) = var { var.observable() } else { Observable::constant(c) }
@@ -35,22 +35,25 @@ fn make_stain_rect_wobble(n0: Option<&reactive::Variable<'static,f64>>, t0: Opti
     Ok(SpaceBaseArea::new(top_left,bottom_right).unwrap())
 }
 
-#[derive(Clone)]
 pub(crate) struct Stain {
-    area2: AreaVariables<'static>,
+    area: Mutex<AreaVariables<'static>>,
     invert: bool,
     colour: DirectColour
 }
 
 impl Stain {
-    pub(crate) fn new(config: &PgPeregrineConfig, area2: &AreaVariables<'static>, manager: &SpectreManager, invert: bool) -> Result<(Arc<Stain>,SpectreHandle),Message> {
+    pub(crate) fn new(config: &PgPeregrineConfig, manager: &SpectreManager, invert: bool) -> Result<Arc<Stain>,Message> {
         let stain = Arc::new(Stain { 
-            area2: area2.clone(),
+            area: Mutex::new(AreaVariables::new(manager.reactive())),
             invert,
             colour: config.get_colour(&PgConfigKey::Spectre(SpectreConfigKey::StainColour))?
         });
-        let handle = manager.add(&stain);
-        Ok((stain,handle))
+        manager.add(&stain);
+        Ok(stain)
+    }
+
+    pub(crate) fn set_position(&self, tlbr: (f64,f64,f64,f64)) {
+        lock!(self.area).update(tlbr);
     }
 }
 
@@ -62,7 +65,7 @@ impl Spectre for Stain {
         props.insert("system".to_string(), "window".to_string());
         shapes.add_style("window/origin/stain",props);
         let mut rectangles = vec![];
-        let pos2 = self.area2.tlbr().clone();
+        let pos2 = lock!(self.area).tlbr().clone();
         if self.invert {
             /* top left of screen to bottom of screen, along lefthand edge of selection */
             rectangles.push(

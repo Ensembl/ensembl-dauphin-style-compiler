@@ -1,12 +1,11 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, sync::{Arc, Mutex}};
 use peregrine_data::{Colour, DirectColour, DrawnType, Patina, SpaceBase, SpaceBaseArea, PartialSpaceBase, reactive::{Observable}, ProgramShapesBuilder};
-use peregrine_toolkit::eachorevery::EachOrEvery;
+use peregrine_toolkit::{eachorevery::EachOrEvery, lock};
 use crate::{Message, run::{PgConfigKey, PgPeregrineConfig}, shape::{util::eoethrow::eoe_throw}};
-use super::{spectre::{AreaVariables, Spectre}, spectremanager::{SpectreConfigKey, SpectreManager, SpectreHandle}};
+use super::{spectre::{AreaVariables, Spectre}, spectremanager::{SpectreConfigKey, SpectreManager}};
 
-// Must NOT be made clone, due to RAII dropping
 pub(crate) struct MarchingAnts {
-    area2: AreaVariables<'static>,
+    area: Mutex<AreaVariables<'static>>,
     width: f64,
     colour: DirectColour,
     length: u32,
@@ -14,16 +13,20 @@ pub(crate) struct MarchingAnts {
 }
 
 impl MarchingAnts {
-    pub(crate) fn new(config: &PgPeregrineConfig, area2: &AreaVariables<'static>, manager: &SpectreManager) -> Result<(Arc<MarchingAnts>,SpectreHandle),Message> {
+    pub(crate) fn new(config: &PgPeregrineConfig, manager: &SpectreManager) -> Result<Arc<MarchingAnts>,Message> {
         let ants = Arc::new(MarchingAnts {
-            area2: area2.clone(),
+            area: Mutex::new(AreaVariables::new(manager.reactive())),
             width: config.get_f64(&PgConfigKey::Spectre(SpectreConfigKey::MarchingAntsWidth))?,
             colour: config.get_colour(&PgConfigKey::Spectre(SpectreConfigKey::MarchingAntsColour))?,
             length: config.get_f64(&PgConfigKey::Spectre(SpectreConfigKey::MarchingAntsLength))? as u32,
             prop: config.get_f64(&PgConfigKey::Spectre(SpectreConfigKey::MarchingAntsProp))?
         });
-        let handle = manager.add(&ants);
-        Ok((ants,handle))
+        manager.add(&ants);
+        Ok(ants)
+    }
+
+    pub(crate) fn set_position(&self, tlbr: (f64,f64,f64,f64)) {
+        lock!(self.area).update(tlbr);
     }
 }
 
@@ -34,7 +37,7 @@ impl Spectre for MarchingAnts {
         props.insert("depth".to_string(),"101".to_string());
         props.insert("system".to_string(), "window".to_string());
         shapes.add_style("window/origin/ants",props);
-        let pos2 = self.area2.tlbr().clone();
+        let pos2 = lock!(self.area).tlbr().clone();
         let top_left = PartialSpaceBase::from_spacebase(SpaceBase::new(
             &EachOrEvery::each(vec![0.]),
             &EachOrEvery::each(vec![0.]),

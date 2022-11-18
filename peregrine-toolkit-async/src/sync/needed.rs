@@ -1,6 +1,7 @@
 use std::rc::Rc;
-use std::sync::Mutex;
+use std::sync::{Mutex, Arc};
 use commander::PromiseFuture;
+use peregrine_toolkit::{lock, log};
 
 struct NeededData {
     edge: bool,
@@ -70,7 +71,7 @@ impl Needed {
     }
 
     fn delta(&self, d: i32) {
-        self.0.lock().unwrap().delta(d);
+        lock!(self.0).delta(d);
     }
     
     pub fn lock(&self) -> NeededLock {
@@ -78,12 +79,16 @@ impl Needed {
         NeededLock(self.clone())
     }
 
+    pub fn needed_on_drop(&self) -> NeededOnDrop {
+        NeededOnDrop(Arc::new(NeededOnDropInternal(self.clone())))
+    }
+
     pub fn set(&self) {
-        self.0.lock().unwrap().set();
+        lock!(self.0).set();
     }
 
     pub fn is_needed(&self) -> bool {
-        self.0.lock().unwrap().is_needed()
+        lock!(self.0).is_needed()
     }
 
     pub async fn wait_until_needed(&self) {
@@ -99,3 +104,12 @@ impl Needed {
         }
     }
 }
+
+struct NeededOnDropInternal(Needed);
+
+impl Drop for NeededOnDropInternal {
+    fn drop(&mut self) { log!("needed drop"); self.0.set(); }
+}
+
+#[derive(Clone)]
+pub struct NeededOnDrop(Arc<NeededOnDropInternal>);

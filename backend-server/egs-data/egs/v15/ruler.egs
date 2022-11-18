@@ -43,6 +43,12 @@ marker_patina := patina_hollow(simple_colour(direct_colour(120,120,120,255)),1);
 rectangle(spacebase(0,0,0),spacebase(1,16,0),background_patina,allotment_underlay_top);
 rectangle(spacebase(0,0,0),spacebase(1,16,0),background_patina,allotment_underlay_bottom);
 
+/* maypole zone */
+notice(format(["maypole"]));
+maypole_patina := patina_special_zone("maypole");
+rectangle(spacebase(0,0,0),spacebase(1,16,0),maypole_patina,allotment_underlay_top);
+rectangle(spacebase(0,0,0),spacebase(1,16,0),maypole_patina,allotment_underlay_bottom);
+
 /* top and bottom separators */
 rectangle(spacebase(0,16,0),spacebase(1,16,0),marker_patina,allotment_window_top);
 rectangle(spacebase(0,16,0),spacebase(1,16,0),marker_patina,allotment_window_bottom);
