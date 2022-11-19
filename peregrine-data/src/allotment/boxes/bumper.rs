@@ -1,7 +1,6 @@
 use std::rc::Rc;
 use peregrine_toolkit::{puzzle::{derived, DelayedSetter, compose, StaticValue, promise_delayed, cache_constant_rc, short_memoized_rc, compose_slice_vec }};
 use crate::{allotment::{core::{allotmentname::{AllotmentNamePart, AllotmentName}, boxtraits::{Stackable, BuildSize, ContainerSpecifics, Coordinated}, boxpositioncontext::BoxPositionContext}, style::{style::{ContainerAllotmentStyle}}, collision::{collisionalgorithm::{BumpRequestSet, BumpRequest, BumpResponses}}}, CoordinateSystem};
-
 use super::{container::{Container}};
 
 #[derive(Clone)]

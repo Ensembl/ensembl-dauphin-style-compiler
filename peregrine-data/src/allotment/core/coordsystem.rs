@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 #[derive(Clone,Hash,PartialEq,Eq,Debug)]
-pub enum CoordinateSystemVariety {
+pub enum CoordinateSystem {
     /* base = bp, tangent = x-px, normal = y-px (-ve = error!)
      * moves as user scrolls, optimised for bulk data
      */
@@ -29,74 +29,67 @@ pub enum CoordinateSystemVariety {
     Content,
 
     /* base = 0->top-of-window, 1->bottom-of-window, tangent = y-px,  normal = x-px (-ve = bottom)
-     * drawing relative to the window on left and right
+     * drawing relative to the window on left and right.
+     * 
+     * THough both can access left and right via negative coordinates, playingfield squeeze means
+     * we need to keep track of where we are just for sideways types.
      */
-    Sideways,
+    SidewaysLeft,
+    SidewaysRight,
 
     /* Don't draw
      */
     Dustbin,
 }
 
-impl CoordinateSystemVariety {
-    pub fn from_string(name: &str) -> CoordinateSystemVariety {
+impl CoordinateSystem {
+    pub fn from_string(name: &str) -> CoordinateSystem {
         match name {
-            "tracking-special" => CoordinateSystemVariety::TrackingSpecial,
-            "tracking-window" => CoordinateSystemVariety::TrackingWindow,
-            "window" => CoordinateSystemVariety::Window,
-            "content" => CoordinateSystemVariety::Content,
-            "sideways" => CoordinateSystemVariety::Sideways,
-            "dustbin" => CoordinateSystemVariety::Dustbin,
-            _ => CoordinateSystemVariety::Tracking
+            "tracking-special" => CoordinateSystem::TrackingSpecial,
+            "tracking-window" => CoordinateSystem::TrackingWindow,
+            "window" => CoordinateSystem::Window,
+            "content" => CoordinateSystem::Content,
+            "left" => CoordinateSystem::SidewaysLeft,
+            "right" => CoordinateSystem::SidewaysRight,
+            "dustbin" => CoordinateSystem::Dustbin,
+            _ => CoordinateSystem::Tracking
         }
     }
 }
 
-#[derive(Clone,Hash,PartialEq,Eq,Debug)]
-pub struct CoordinateSystem(pub CoordinateSystemVariety,pub bool);
-
 impl CoordinateSystem {
-    pub fn build(spec: &HashMap<String,String>) -> (Option<CoordinateSystemVariety>,Option<bool>) {
-        (
-            spec.get("system").map(|coord_system| CoordinateSystemVariety::from_string(coord_system)),
-            spec.get("direction").map(|x| x == "reverse")
-        )
+    pub fn build(spec: &HashMap<String,String>) -> Option<CoordinateSystem> {
+        spec.get("system").map(|coord_system| CoordinateSystem::from_string(coord_system))
     }
 
-    pub fn from_build(coord_system: Option<CoordinateSystemVariety>, reverse: Option<bool>) -> CoordinateSystem {
-        let coord_system = coord_system.unwrap_or(CoordinateSystemVariety::Window);
-        let reverse = reverse.unwrap_or(false);
-        CoordinateSystem(coord_system,reverse)
+    pub fn from_build(coord_system: Option<CoordinateSystem>) -> CoordinateSystem {
+        coord_system.unwrap_or(CoordinateSystem::Window)
     }
 
     pub fn is_dustbin(&self) -> bool {
-        match self.0 {
-            CoordinateSystemVariety::Dustbin => true,
+        match self {
+            CoordinateSystem::Dustbin => true,
             _ => false
         }
     }
 
     pub fn is_tracking(&self) -> bool {
-        match self.0 {
-            CoordinateSystemVariety::Tracking | CoordinateSystemVariety::TrackingSpecial | CoordinateSystemVariety::TrackingWindow => true,
+        match self {
+            CoordinateSystem::Tracking | CoordinateSystem::TrackingSpecial | CoordinateSystem::TrackingWindow => true,
             _ => false
         }
     }
 
-    pub fn secondary_stack(&self) -> bool { self.1 }
-
-    pub fn negative_pixels(&self) -> bool { self.1 }
-
     pub fn up_from_bottom(&self) -> bool {
-        match (&self.0,self.1) {
-            (&CoordinateSystemVariety::Sideways,true) => true,
+        match self {
+            CoordinateSystem::SidewaysRight => true,
             _ => false
         }
     }
 
     pub fn flip_xy(&self) -> bool {
-        match self.0 {
-            CoordinateSystemVariety::Sideways => true,
+        match self {
+            CoordinateSystem::SidewaysLeft | CoordinateSystem::SidewaysRight => true,
             _ => false
         }
     }

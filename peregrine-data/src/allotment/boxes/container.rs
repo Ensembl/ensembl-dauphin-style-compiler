@@ -1,6 +1,6 @@
 use std::{sync::{Arc, Mutex}, rc::Rc};
 use peregrine_toolkit::{lock, puzzle::{DelayedSetter, derived, cache_constant, commute_rc, constant, StaticValue, promise_delayed, short_memoized_clonable, cache_constant_clonable }, eachorevery::eoestruct::StructTemplate};
-use crate::{allotment::{core::{allotmentname::{AllotmentName, AllotmentNamePart}, boxtraits::{ContainerSpecifics, Coordinated, BuildSize, Stackable}, boxpositioncontext::BoxPositionContext}, style::{style::{ContainerAllotmentStyle}}, util::rangeused::RangeUsed, globals::allotmentmetadata::LocalAllotmentMetadataBuilder}, CoordinateSystem, shape::metadata::MetadataStyle};
+use crate::{allotment::{core::{allotmentname::{AllotmentName, AllotmentNamePart}, boxtraits::{ContainerSpecifics, Coordinated, BuildSize, Stackable}, boxpositioncontext::BoxPositionContext}, style::{style::{ContainerAllotmentStyle}}, util::rangeused::RangeUsed, globals::allotmentmetadata::LocalAllotmentMetadataBuilder}, shape::metadata::MetadataStyle, CoordinateSystem};
 
 fn internal_height(child_height: &StaticValue<f64>, min_height: f64, padding_top: f64, padding_bottom: f64) -> StaticValue<f64> {
     cache_constant(derived(child_height.clone(),move |child_height| {

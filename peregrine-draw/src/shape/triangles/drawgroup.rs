@@ -1,4 +1,4 @@
-use peregrine_data::{CoordinateSystem, DirectColour, CoordinateSystemVariety};
+use peregrine_data::{DirectColour, CoordinateSystem};
 use crate::shape::{heraldry::heraldry::{HeraldryCanvasesUsed, HeraldryScale}, layers::geometry::{GeometryProcessName, GeometryYielder, TrianglesGeometry}};
 
 #[derive(Clone,PartialEq,Eq,Hash)]
@@ -18,11 +18,11 @@ pub struct DrawGroup {
 }
 
 fn geometry(coord_system: &CoordinateSystem) -> TrianglesGeometry {
-    match coord_system.0 {
-        CoordinateSystemVariety::Tracking => TrianglesGeometry::Tracking,
-        CoordinateSystemVariety::TrackingSpecial => TrianglesGeometry::TrackingSpecial(true),
-        CoordinateSystemVariety::TrackingWindow => TrianglesGeometry::TrackingSpecial(false),
-        CoordinateSystemVariety::Content => TrianglesGeometry::Window(true),
+    match coord_system {
+        CoordinateSystem::Tracking => TrianglesGeometry::Tracking,
+        CoordinateSystem::TrackingSpecial => TrianglesGeometry::TrackingSpecial(true),
+        CoordinateSystem::TrackingWindow => TrianglesGeometry::TrackingSpecial(false),
+        CoordinateSystem::Content => TrianglesGeometry::Window(true),
         _ => TrianglesGeometry::Window(false)
     }
 }
@@ -43,7 +43,6 @@ impl DrawGroup {
     }
 
     pub(crate) fn coord_system(&self) -> &CoordinateSystem { &self.coordsystem }
-
     pub(crate) fn shape_category(&self) -> &ShapeCategory { &self.shape_category }
 
     pub(crate) fn geometry_process_name(&self) -> GeometryProcessName {

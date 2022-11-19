@@ -1,4 +1,4 @@
-use peregrine_data::{ Colour, DrawnType, Patina, RectangleShape, Shape, ShapeDemerge, CoordinateSystem, HollowEdge2, LeafStyle, DrawingShape };
+use peregrine_data::{ Colour, DrawnType, Patina, RectangleShape, Shape, ShapeDemerge, HollowEdge2, LeafStyle, DrawingShape, CoordinateSystem };
 use peregrine_toolkit::eachorevery::EachOrEvery;
 use super::text::{prepare_text};
 use crate::shape::core::drawshape::{SimpleShapePatina};

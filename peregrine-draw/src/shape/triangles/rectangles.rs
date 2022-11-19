@@ -10,7 +10,7 @@ use crate::webgl::{ ProcessStanzaElements };
 use peregrine_data::reactive::{Observable, Observer};
 use peregrine_data::{ SpaceBaseArea, SpaceBase, PartialSpaceBase, HollowEdge2, SpaceBasePoint, LeafStyle, AttachmentPoint };
 use peregrine_toolkit::eachorevery::EachOrEvery;
-use peregrine_toolkit::{lock, log};
+use peregrine_toolkit::{lock};
 use super::drawgroup::DrawGroup;
 use super::triangleadder::TriangleAdder;
 use crate::util::message::Message;
@@ -405,7 +405,7 @@ fn add_spacebase_area4<A>(area: &SpaceBaseArea<f64,A>, depth: &EachOrEvery<i8>, 
             /* We're unpacked. f_0 and f_1 are "proportion of screenfuls to add", 1 for -ve, 0 for +ve */
             let (mut f_0,mut f_1) = (0.,0.);
             /* whole coord-system is negative, flip it */
-            if group.coord_system().negative_pixels() {
+            if group.coord_system().up_from_bottom() {
                 let (a,b) = (n_0,n_1);
                 n_0 = -b-1.;
                 n_1 = -a-1.;

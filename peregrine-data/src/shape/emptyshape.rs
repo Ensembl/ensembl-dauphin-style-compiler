@@ -2,7 +2,7 @@ use std::hash::Hash;
 use std::sync::Arc;
 use peregrine_toolkit::eachorevery::EachOrEveryFilter;
 
-use crate::{SpaceBaseArea, DataMessage, LeafRequest, Shape, allotment::transformers::transformers::{Transformer, TransformerVariety}, CoordinateSystem, LeafStyle, ShapeDemerge};
+use crate::{SpaceBaseArea, DataMessage, LeafRequest, Shape, allotment::transformers::transformers::{Transformer, TransformerVariety}, LeafStyle, ShapeDemerge, CoordinateSystem};
 
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub struct EmptyShape<A>(SpaceBaseArea<f64,A>);

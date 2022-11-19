@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{CoordinateSystem, SpaceBase, allotment::style::style::LeafStyle};
+use crate::{SpaceBase, allotment::style::style::LeafStyle, CoordinateSystem};
 
 use super::{transformertraits::{SpaceBaseTransformer, GraphTransformer}};
 

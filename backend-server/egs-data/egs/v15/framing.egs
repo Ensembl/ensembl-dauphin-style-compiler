@@ -4,8 +4,8 @@ import "lib:peregrine"; use "peregrine";
 pad_left := use_allotment("pad-left/content");
 pad_right := use_allotment("pad-right/content");
 
-style("pad-left/",["system","depth","set-datum"][],["sideways","57","pad-left"][]);
-style("pad-right/",["system","direction","depth"][],["sideways","reverse","54"][]);
+style("pad-left/",["system","depth","set-datum"][],["left","57","pad-left"][]);
+style("pad-right/",["system","depth"][],["right","54"][]);
 
 
 white_patina := patina_filled(simple_colour(direct_colour(255,255,255,255)));

@@ -1,6 +1,6 @@
 use peregrine_toolkit::{puzzle::{StaticValue, StaticAnswer, commute}};
 
-use crate::{CoordinateSystemVariety, CoordinateSystem};
+use crate::{CoordinateSystem};
 
 use super::globalvalue::{LocalValueBuilder, LocalValueSpec, GlobalValueBuilder, GlobalValueSpec};
 
@@ -16,19 +16,14 @@ impl LocalPlayingFieldBuilder {
     }
 
     pub(crate) fn set(&mut self, coord_system: &CoordinateSystem, value: StaticValue<f64>) {
-        let edge = match (&coord_system.0,coord_system.1) {
-            (CoordinateSystemVariety::Tracking, false) => PlayingFieldEdge::Top,
-            (CoordinateSystemVariety::Tracking, true) => PlayingFieldEdge::Bottom,
-            (CoordinateSystemVariety::TrackingSpecial, false) => PlayingFieldEdge::Top,
-            (CoordinateSystemVariety::TrackingSpecial, true) => PlayingFieldEdge::Bottom,
-            (CoordinateSystemVariety::TrackingWindow, false) => PlayingFieldEdge::Top,
-            (CoordinateSystemVariety::TrackingWindow, true) => PlayingFieldEdge::Bottom,
-            (CoordinateSystemVariety::Window, false) => PlayingFieldEdge::Top,
-            (CoordinateSystemVariety::Window, true) => PlayingFieldEdge::Bottom,
-            (CoordinateSystemVariety::Content, false) => PlayingFieldEdge::Top,
-            (CoordinateSystemVariety::Content, true) => PlayingFieldEdge::Bottom,
-            (CoordinateSystemVariety::Sideways, false) => PlayingFieldEdge::Left,
-            (CoordinateSystemVariety::Sideways, true) => PlayingFieldEdge::Right,
+        let edge = match coord_system {
+            CoordinateSystem::Tracking => PlayingFieldEdge::Top,
+            CoordinateSystem::TrackingSpecial => PlayingFieldEdge::Top,
+            CoordinateSystem::TrackingWindow => PlayingFieldEdge::Top,
+            CoordinateSystem::Window => PlayingFieldEdge::Top,
+            CoordinateSystem::Content => PlayingFieldEdge::Top,
+            CoordinateSystem::SidewaysLeft => PlayingFieldEdge::Left,
+            CoordinateSystem::SidewaysRight => PlayingFieldEdge::Right,
             _ => { return; }
         };
         self.0.entry(edge).add_local(value);

@@ -21,11 +21,6 @@ allotment_overlay_top := use_allotment("window-top/ruler/background/overlay");
 allotment_underlay_top := use_allotment("window-top/ruler/background/underlay");
 allotment_top := use_allotment("window-top/ruler/main/content");
 
-allotment_window_bottom := use_allotment("window-bottom/ruler/background/content");
-allotment_overlay_bottom := use_allotment("window-bottom/ruler/background/overlay");
-allotment_underlay_bottom := use_allotment("window-bottom/ruler/background/underlay");
-allotment_bottom := use_allotment("window-bottom/ruler/main/content");
-
 style("**/ruler/",["type","priority"][],["overlay","-1000"][]);
 style("**/ruler/background/",["type","depth"][],["overlay","55"][]);
 style("**/ruler/main/",["system"][],["tracking-window"][]);
@@ -34,33 +29,32 @@ style("**/ruler/background/underlay",["depth"][],["53"][]);
 style("**/ruler/background/overlay",["depth"][],["58"][]);
 
 style("window-top/",["system","priority","type"][],["window","-1000","overlay"][]);
-style("window-bottom/",["system","direction","priority","type"][],["window","reverse","-1000","overlay"][]);
 
 background_patina := patina_filled(simple_colour(direct_colour(255,255,255,255)));
 marker_patina := patina_hollow(simple_colour(direct_colour(120,120,120,255)),1);
 
 /* background */
 rectangle(spacebase(0,0,0),spacebase(1,16,0),background_patina,allotment_underlay_top);
-rectangle(spacebase(0,0,0),spacebase(1,16,0),background_patina,allotment_underlay_bottom);
+rectangle(spacebase(0,-1,0),spacebase(1,-16,0),background_patina,allotment_underlay_top);
 
 /* maypole zone */
 notice(format(["maypole"]));
 maypole_patina := patina_special_zone("maypole");
 rectangle(spacebase(0,0,0),spacebase(1,16,0),maypole_patina,allotment_underlay_top);
-rectangle(spacebase(0,0,0),spacebase(1,16,0),maypole_patina,allotment_underlay_bottom);
+rectangle(spacebase(0,-1,0),spacebase(1,-16,0),maypole_patina,allotment_underlay_top);
 
 /* top and bottom separators */
 rectangle(spacebase(0,16,0),spacebase(1,16,0),marker_patina,allotment_window_top);
-rectangle(spacebase(0,16,0),spacebase(1,16,0),marker_patina,allotment_window_bottom);
+rectangle(spacebase(0,-16,0),spacebase(1,-16,0),marker_patina,allotment_window_top);
 
 /* text */
 textpen := pen("'IBM Plex Mono', sans-serif",12,direct_colour(120,120,120,255),[][]);
 text2(spacebase(markings,2,4),textpen,strings,allotment_top);
-text2(spacebase(markings,2,4),textpen,strings,allotment_bottom);
+text2(spacebase(markings,-14,4),textpen,strings,allotment_top);
 
 /* markers */
 rectangle(spacebase(markings,0,0),spacebase(markings,16,0),marker_patina,allotment_top);
-rectangle(spacebase(markings,0,0),spacebase(markings,16,0),marker_patina,allotment_bottom);
+rectangle(spacebase(markings,-1,0),spacebase(markings,-16,0),marker_patina,allotment_top);
 
 /* "bp" box and text ... */
 /* ... top */
@@ -68,6 +62,6 @@ text2(spacebase(0,2,4),textpen,"bp",allotment_overlay_top);
 rectangle(spacebase(0,0,48),spacebase(0,16,48),marker_patina,allotment_overlay_top); /* vert */
 rectangle(spacebase(0,16,0),spacebase(0,16,48),marker_patina,allotment_overlay_top); /* horiz */
 /* ... bottom */
-text2(spacebase(0,2,4),textpen,"bp",allotment_overlay_bottom);
-rectangle(spacebase(0,0,48),spacebase(0,16,48),marker_patina,allotment_overlay_bottom); /* vert */
-rectangle(spacebase(0,16,0),spacebase(0,16,48),marker_patina,allotment_overlay_bottom); /* horiz */
+text2(spacebase(0,-14,4),textpen,"bp",allotment_overlay_top);
+rectangle(spacebase(0,-1,48),spacebase(0,-16,48),marker_patina,allotment_overlay_top); /* vert */
+rectangle(spacebase(0,-16,0),spacebase(0,-16,48),marker_patina,allotment_overlay_top); /* horiz */

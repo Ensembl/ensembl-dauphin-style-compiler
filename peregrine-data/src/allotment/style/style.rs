@@ -1,6 +1,6 @@
 use std::{collections::HashMap};
 
-use crate::{CoordinateSystem, CoordinateSystemVariety, allotment::stylespec::specifiedstyle::InheritableStyle, shape::metadata::MetadataStyle};
+use crate::{CoordinateSystem, allotment::stylespec::specifiedstyle::InheritableStyle, shape::metadata::MetadataStyle};
 
 #[cfg_attr(any(test,debug_assertions),derive(Debug))]
 #[derive(Clone,PartialEq,Eq,Hash)]
@@ -115,7 +115,7 @@ pub struct LeafStyle {
 impl LeafStyle {
     pub fn dustbin() -> LeafStyle {
         LeafStyle {
-            coord_system: CoordinateSystem(CoordinateSystemVariety::Dustbin,false),
+            coord_system: CoordinateSystem::Dustbin,
             depth: 0,
             priority: 0,
             indent: Indent::None,
@@ -125,7 +125,7 @@ impl LeafStyle {
 
     pub fn default() -> LeafStyle {
         LeafStyle {
-            coord_system: CoordinateSystem(CoordinateSystemVariety::Window,false),
+            coord_system: CoordinateSystem::Window,
             depth: 0,
             priority: 0,
             indent: Indent::None,
@@ -151,7 +151,7 @@ impl ContainerAllotmentStyle {
     pub(crate) fn empty() -> ContainerAllotmentStyle {
         ContainerAllotmentStyle {
             allot_type: ContainerAllotmentType::Stack,
-            coord_system: CoordinateSystem(CoordinateSystemVariety::Tracking,false),
+            coord_system: CoordinateSystem::Tracking,
             leaf: InheritableStyle::empty(),
             padding: Padding::empty(),
             priority: 0,
@@ -163,7 +163,7 @@ impl ContainerAllotmentStyle {
 
     pub(crate) fn build(spec: &HashMap<String,String>) -> ContainerAllotmentStyle {
         let allot_type = ContainerAllotmentType::build(spec);
-        let (coord_system,reverse) = CoordinateSystem::build(spec);
+        let coord_system = CoordinateSystem::build(spec).unwrap_or(CoordinateSystem::Window);
         let priority = spec.get("priority").map(|x| x.as_str());
         let priority = priority.map(|x| x.parse::<i64>().ok()).flatten().unwrap_or(0);
         let ranged = spec.get("extent").map(|x| x.as_str()).unwrap_or("wide") == "compact";
@@ -172,7 +172,7 @@ impl ContainerAllotmentStyle {
         ContainerAllotmentStyle {
             allot_type,
             padding: Padding::build(spec),
-            coord_system: CoordinateSystem::from_build(coord_system,reverse),
+            coord_system,
             leaf: InheritableStyle::new(spec),
             priority,
             ranged,

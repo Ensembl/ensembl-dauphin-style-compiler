@@ -318,7 +318,7 @@ pub use self::shape::{
     Pen, Plotter, ShapeDemerge, SettingMode,
     ProgramShapesBuilder, AbstractShapesContainer, AttachmentPoint
 };
-pub use self::allotment::core::coordsystem::{ CoordinateSystem, CoordinateSystemVariety };
+pub use self::allotment::core::coordsystem::{ CoordinateSystem };
 pub use self::switch::switches::{ Switches };
 pub use self::switch::track::Track;
 pub use self::train::{ DrawingCarriage, CarriageExtent };

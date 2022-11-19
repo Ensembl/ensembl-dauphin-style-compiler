@@ -1,4 +1,4 @@
-use crate::{CoordinateSystem, SpaceBase, SpaceBaseArea, PartialSpaceBase, allotment::style::style::LeafStyle};
+use crate::{SpaceBase, SpaceBaseArea, PartialSpaceBase, allotment::style::style::LeafStyle, CoordinateSystem};
 
 pub trait SpaceBaseTransformer {
     type X;

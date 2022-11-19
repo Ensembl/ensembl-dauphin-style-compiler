@@ -1,13 +1,11 @@
 use std::collections::HashMap;
-
-use crate::{CoordinateSystemVariety, allotment::style::style::{Indent, LeafAllotmentType}, LeafStyle, CoordinateSystem};
+use crate::{CoordinateSystem, allotment::style::style::{Indent, LeafAllotmentType}, LeafStyle};
 
 #[cfg_attr(any(test,debug_assertions),derive(Debug))]
 #[derive(Clone)]
 pub struct InheritableStyle {
-    coord_system: Option<CoordinateSystemVariety>,
+    coord_system: Option<CoordinateSystem>,
     bump_invisible: Option<bool>,
-    reverse: Option<bool>,
     depth: Option<i8>,
     indent: Option<Indent>
 }
@@ -17,7 +15,6 @@ impl InheritableStyle {
         InheritableStyle {
             coord_system: None,
             bump_invisible: None,
-            reverse: None,
             depth: None,
             indent: None
         }
@@ -26,11 +23,11 @@ impl InheritableStyle {
     pub(crate) fn new(spec: &HashMap<String,String>) -> InheritableStyle {
         let depth = spec.get("depth").map(|x| x.as_str());
         let depth = depth.map(|x| x.parse::<i8>().ok()).flatten();
-        let (coord_system,reverse) = CoordinateSystem::build(spec);
+        let coord_system = CoordinateSystem::build(spec);
         let indent = Indent::build(spec);
         let bump_invisible = spec.get("bump-width").map(|x| x.as_str() == "none");
         InheritableStyle {
-            depth, coord_system, reverse, indent, bump_invisible
+            depth, coord_system, indent, bump_invisible
         }
     }
 
@@ -41,9 +38,6 @@ impl InheritableStyle {
         if other.coord_system.is_some() {
             self.coord_system = other.coord_system.clone();
         }
-        if other.reverse.is_some() {
-            self.reverse = other.reverse.clone();
-        }
         if other.indent.is_some() {
             self.indent = other.indent.clone();
         }
@@ -53,11 +47,10 @@ impl InheritableStyle {
     }
 
     pub(crate) fn make(&self, style: &SpecifiedStyle) -> LeafStyle {
-        let variety = self.coord_system.as_ref().unwrap_or(&CoordinateSystemVariety::Window).clone();
-        let reverse = self.reverse.unwrap_or(false);
+        let coord_system = self.coord_system.as_ref().unwrap_or(&CoordinateSystem::Window).clone();
         LeafStyle {
             depth: self.depth.unwrap_or(0),
-            coord_system: CoordinateSystem(variety,reverse),
+            coord_system,
             priority: style.priority,
             indent: self.indent.as_ref().unwrap_or(&Indent::None).clone(),
             bump_invisible: self.bump_invisible.unwrap_or(false)
