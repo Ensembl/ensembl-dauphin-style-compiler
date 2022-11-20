@@ -32,7 +32,12 @@
     },
     {
         "key": "CFG_DEBUG_CLEANUP",
-        "question": "Debug cleanup",
+        "question": "Debug commander cleanup",
+        "options": ["no","yes"]
+    },
+    {
+        "key": "CFG_DEBUG_DROPS",
+        "question": "Debug drops",
         "options": ["no","yes"]
     },
     {

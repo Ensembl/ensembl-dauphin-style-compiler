@@ -39,6 +39,9 @@ fi
 if [ "x$CFG_DEBUG_CLEANUP" = "xyes" ] ; then
   FLAGS="$FLAGS --cfg debug_unregister"
 fi
+if [ "x$CFG_DEBUG_DROPS" = "xyes" ] ; then
+  FLAGS="$FLAGS --cfg debug_drops"
+fi
 if [ "x$FORCE_DPR" != "x" ] && [ "x$FORCE_DPR_YN" = "xyes" ] ; then
   export FORCE_DPR="$FORCE_DPR"
 fi

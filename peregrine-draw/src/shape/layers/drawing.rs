@@ -179,11 +179,22 @@ impl Drawing {
 
     pub(crate) fn discard(&mut self, gl: &mut WebGlGlobal) -> Result<(),Error> {
         let mut state = lock!(self.0);
-        for process in &mut state.processes {
+        for mut process in state.processes.drain(..) {
             process.discard(gl)?;
         }
         let gl = gl.refs();
         state.canvases.discard(gl.flat_store,gl.bindery)?;
         Ok(())
+    }
+}
+
+#[cfg(debug_drops)]
+impl Drop for Drawing {
+    fn drop(&mut self) {
+        use peregrine_toolkit::log;
+
+        if lock!(self.0).processes.len() > 0 {
+            log!("drop Drawing with canvases!");
+        }
     }
 }

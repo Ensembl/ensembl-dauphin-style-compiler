@@ -44,6 +44,17 @@ impl DrawingAllFlats {
     }
 }
 
+#[cfg(debug_drops)]
+impl Drop for DrawingAllFlats {
+    fn drop(&mut self) {
+        use peregrine_toolkit::log;
+
+        if self.main_canvases.len() > 0 {
+            log!("drop DAF wich canvases!");
+        }
+    }
+}
+
 /* One overall, differentiates FLATS */
 pub(crate) struct DrawingAllFlatsBuilder {
     responses: KeyedData<FlatPositionCampaignHandle,Option<FlatId>>,

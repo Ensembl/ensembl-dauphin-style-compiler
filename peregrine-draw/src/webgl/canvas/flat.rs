@@ -1,5 +1,6 @@
 use std::{f64::consts::PI};
 
+use peregrine_toolkit::plumbing::lease::Lease;
 use wasm_bindgen::{JsCast, JsValue, prelude::Closure};
 use web_sys::{CanvasRenderingContext2d, Document, HtmlCanvasElement, HtmlImageElement };
 use peregrine_data::{ DirectColour, PenGeometry, Background };
@@ -27,12 +28,11 @@ fn sub(a: u32, b: u32) -> u32 { a.max(b) - b } // avoiding underflow
 
 pub(crate) struct Flat {
     bitmap_multiplier: f64,
-    element: Option<HtmlFlatCanvas>,
+    element: Option<Lease<HtmlFlatCanvas>>,
     context: Option<CanvasRenderingContext2d>,
     weave: CanvasWeave,
     font: Option<String>,
     font_height: Option<u32>,
-    size: (u32,u32),
     discarded: bool,
     gl_texture: Option<SelfManagedWebGlTexture>,
     is_active: bool,
@@ -42,13 +42,12 @@ pub(crate) struct Flat {
 impl Flat {
     pub(super) fn new(canvas_store: &mut CanvasStore, png_cache: &PngCache, document: &Document, weave: &CanvasWeave, size: (u32,u32), bitmap_multiplier: f32) -> Result<Flat,Error> {
         let el = canvas_store.allocate(document, size.0, size.1, weave.round_up())?;
-        let context = el.element()
+        let context = el.get().element()
             .get_context("2d").map_err(|_| Error::fatal("cannot get 2d context"))?
             .unwrap()
             .dyn_into::<CanvasRenderingContext2d>().map_err(|_| Error::fatal("cannot get 2d context"))?;
         Ok(Flat {
             bitmap_multiplier: bitmap_multiplier as f64,
-            size: el.size(),
             element: Some(el),
             context: Some(context),
             weave: weave.clone(),
@@ -187,11 +186,11 @@ impl Flat {
         Ok(())
     }
 
-    pub(crate) fn size(&self) -> &(u32,u32) { &self.size }
+    pub(crate) fn size(&self) -> (u32,u32) { self.element.as_ref().unwrap().get().size() }
     pub(crate) fn weave(&self) -> &CanvasWeave { &self.weave }
     pub(crate) fn element(&self) -> Result<&HtmlCanvasElement,Error> {
         if self.discarded { return Err(Error::fatal("set_font on discarded flat canvas")); }
-        Ok(&self.element.as_ref().unwrap().element())
+        Ok(&self.element.as_ref().unwrap().get().element())
     }
 
     pub(super) fn context(&self) -> Result<&CanvasRenderingContext2d,Error> {
@@ -199,13 +198,23 @@ impl Flat {
         Ok(&self.context.as_ref().unwrap())
     }
 
-    pub(super) fn discard(&mut self, canvas_store: &mut CanvasStore) -> Result<(),Error> {
+    pub(super) fn discard(&mut self) -> Result<(),Error> {
         if self.discarded { return Ok(()); }
-        canvas_store.free(self.element.take().unwrap());
         self.element = None;
         self.context = None;
         self.font = None;
         self.discarded = true;
         Ok(())
+    }
+}
+
+#[cfg(debug_drops)]
+impl Drop for Flat {
+    fn drop(&mut self) {
+        use peregrine_toolkit::log;
+
+        if !self.discarded {
+            log!("undiscarded drop of flat");
+        }
     }
 }

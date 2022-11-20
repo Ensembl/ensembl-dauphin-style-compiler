@@ -143,3 +143,17 @@ impl GLCarriage {
         Ok(())
     }
 }
+
+#[cfg(debug_drops)]
+impl Drop for GLCarriage {
+    fn drop(&mut self) {
+        use peregrine_toolkit::log;
+
+        let state = lock!(self.0);
+        let discarded = state.discarded;
+        drop(state);
+        if !discarded {
+            log!("bad drop for GLCarriage");
+        }
+    }
+}
