@@ -43,6 +43,10 @@ impl SpectreState {
         self.spectres.push((Arc::downgrade(&spectre),self.new_shapes.needed_on_drop()));
     }
 
+    fn any_spectres(&self) -> bool {
+        self.spectres.len() > 0
+    }
+
     fn get_spectres(&mut self) -> Vec<Arc<dyn Spectre>> {
         let mut out = vec![];
         let mut new = vec![];
@@ -53,10 +57,11 @@ impl SpectreState {
             }
         }
         self.spectres = new;
-        if out.len() == 0 {
-            self.redraw_lock = None;
-        }
         out
+    }
+
+    fn clear_lock(&mut self) {
+        self.redraw_lock = None;
     }
 
     fn new_shapes(&mut self) -> bool {
@@ -94,7 +99,7 @@ impl SpectreManager {
     }
 
     pub(crate) fn active(&self) -> bool {
-        self.get_spectres().len() > 0
+        lock!(self.state).any_spectres()
     }
 
     fn get_spectres(&self) -> Vec<Arc<dyn Spectre>> {
@@ -102,10 +107,15 @@ impl SpectreManager {
     }
 
     pub(crate) fn draw(&mut self, gl: &Arc<Mutex<WebGlGlobal>>, assets: &Assets, stage: &ReadStage, session: &mut DrawingSession) -> Result<(),Message> {
-        if self.state.lock().unwrap().new_shapes() {
-            self.drawing.set(gl,assets,&self.get_spectres());
+        let spectres = self.get_spectres();
+        if lock!(self.state).new_shapes() {
+            self.drawing.set(gl,assets,&spectres);
         }
-        self.drawing.draw(&mut *lock!(gl),stage,session)
+        self.drawing.draw(&mut *lock!(gl),stage,session)?;
+        if spectres.len() == 0 {
+            lock!(self.state).clear_lock();
+        }
+        Ok(())
     }
 
     pub(crate) fn update(&self, gl: &WebGlGlobal) -> Result<(),Message> { self.drawing.update(gl) }

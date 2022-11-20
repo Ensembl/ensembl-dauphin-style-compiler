@@ -248,6 +248,15 @@ impl GlRailwayData {
             self.get_our_train(id,15).get_hotspot(stage,position)
         }).unwrap_or(Ok(vec![]))
     }
+
+    fn any_hotspot(&mut self, stage: &ReadStage, position: (f64,f64), special_only: bool) -> Result<bool,Message> {
+        match &self.fade_state {
+            FadeState::Constant(x) => x.as_ref(),
+            FadeState::Fading(_,x,_,_,_) => Some(x)
+        }.cloned().as_ref().map(|id| {
+            self.get_our_train(id,15).any_hotspot(stage,position,special_only)
+        }).unwrap_or(Ok(false))
+    }
 }
 
 #[derive(Clone)]
@@ -301,6 +310,10 @@ impl GlRailway {
 
     pub(crate) fn get_hotspot(&self,stage: &ReadStage, position: (f64,f64)) -> Result<Vec<SingleHotspotEntry>,Message> {
         lock!(self.data).get_hotspot(stage,position)
+    }
+
+    pub(crate) fn any_hotspot(&self,stage: &ReadStage, position: (f64,f64), special_only: bool) -> Result<bool,Message> {
+        lock!(self.data).any_hotspot(stage,position,special_only)
     }
 
     pub fn scale(&self) -> Option<Scale> { lock!(self.data).scale() }

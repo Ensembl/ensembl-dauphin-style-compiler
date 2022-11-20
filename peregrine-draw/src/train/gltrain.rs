@@ -70,6 +70,15 @@ impl GLTrain {
         Ok(out)
     }
 
+    pub(crate) fn any_hotspot(&self, stage: &ReadStage, position: (f64,f64), special_only: bool) -> Result<bool,Message> {
+        for carriage in &lock!(self.0).carriages {
+           if carriage.any_hotspot(stage,position,special_only)? {
+               return Ok(true);
+           }
+        }
+        Ok(false)
+    }
+
     pub(crate) fn draw(&mut self, gl: &Arc<Mutex<WebGlGlobal>>, stage: &ReadStage, session: &mut DrawingSession) -> Result<(),Message> {
         let mut carriages = lock!(self.0).carriages.iter().cloned().collect::<Vec<_>>();
         for mut carriage in carriages.drain(..) {

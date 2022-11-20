@@ -8,6 +8,15 @@ pub enum HotspotResult {
     Special(String)
 }
 
+impl HotspotResult {
+    pub fn is_special(&self) -> bool {
+        match self {
+            HotspotResult::Special(_) => true,
+            _ => false
+        }
+    }
+}
+
 identitynumber!(IDS);
 
 #[derive(Clone)]

@@ -3,7 +3,7 @@ use crate::{input::low::modifiers::Modifiers, run::CursorCircumstance, util::{ M
 use crate::util::monostable::Monostable;
 use crate::input::low::lowlevel::{ LowLevelState };
 use js_sys::Date;
-use peregrine_toolkit::plumbing::oneshot::OneShot;
+use peregrine_toolkit::{plumbing::oneshot::OneShot};
 use super::{drag::DragState };
 use crate::run::{ PgConfigKey, PgPeregrineConfig };
 use crate::input::InputEventKind;

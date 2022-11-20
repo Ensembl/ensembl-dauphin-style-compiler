@@ -1,7 +1,7 @@
 use std::rc::Rc;
 use std::sync::{Mutex, Arc};
 use commander::PromiseFuture;
-use peregrine_toolkit::{lock, log};
+use peregrine_toolkit::{lock};
 
 struct NeededData {
     edge: bool,
@@ -108,7 +108,7 @@ impl Needed {
 struct NeededOnDropInternal(Needed);
 
 impl Drop for NeededOnDropInternal {
-    fn drop(&mut self) { log!("needed drop"); self.0.set(); }
+    fn drop(&mut self) { self.0.set(); }
 }
 
 #[derive(Clone)]

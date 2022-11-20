@@ -125,6 +125,15 @@ impl GLCarriage {
         }
     }
 
+    pub(crate) fn any_hotspot(&self, stage: &ReadStage, position: (f64,f64), special_only: bool) -> Result<bool,Message> {
+        let state = lock!(self.0);
+        if let Some(drawing) = get_drawing(&state)? {
+            drawing.any_hotspot(stage,position,special_only)
+        } else {
+            Ok(false)
+        }
+    }
+
     pub fn discard(&mut self, gl: &mut WebGlGlobal) -> Result<(),Message> {
         let mut state = lock!(self.0);
         state.discarded = true;

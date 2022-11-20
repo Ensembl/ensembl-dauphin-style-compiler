@@ -189,7 +189,7 @@ impl DragStateData {
 
     fn hold_timer_expired(&mut self, gl: &WebGlGlobal) -> Result<(),Message> {
         if !self.alive { return Ok(()); }
-        if self.mode == DragMode::Unknown {
+        if self.mode == DragMode::Unknown && !self.lowlevel.is_drag_disabled() {
             self.set_mode(DragMode::Hold);
             let tlbr = self.make_ants();
             let ants = self.lowlevel.spectre_manager_mut().marching_ants()?;

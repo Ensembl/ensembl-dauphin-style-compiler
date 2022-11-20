@@ -16,6 +16,7 @@ use crate::input::{ InputEvent };
 use super::mapping::InputMap;
 use js_sys::Date;
 use peregrine_data::{Commander };
+use peregrine_toolkit::lock;
 use peregrine_toolkit::plumbing::distributor::Distributor;
 use peregrine_toolkit_async::sync::needed::Needed;
 use super::pointer::cursor::{ Cursor, CursorHandle };
@@ -33,7 +34,8 @@ pub struct LowLevelState {
     cursor: Cursor,
     spectres: SpectreManager,
     pointer_last_seen: Arc<Mutex<Option<(f64,f64)>>>,
-    target_reporter: TargetReporter
+    target_reporter: TargetReporter,
+    drag_disabled: Arc<Mutex<bool>>
 }
 
 impl LowLevelState {
@@ -52,7 +54,8 @@ impl LowLevelState {
             stage: Arc::new(Mutex::new(None)),
             spectres: spectres.clone(),
             pointer_last_seen: Arc::new(Mutex::new(None)),
-            target_reporter: target_reporter.clone() 
+            target_reporter: target_reporter.clone(),
+            drag_disabled: Arc::new(Mutex::new(false)),
         },distributor))
     }
 
@@ -101,6 +104,7 @@ impl LowLevelState {
         self.cursor.set(circ)
     }
 
+    pub(crate) fn is_drag_disabled(&self) -> bool { *lock!(self.drag_disabled) }
     pub(crate) fn spectre_manager(&self) -> &SpectreManager { &self.spectres }
     pub(crate) fn spectre_manager_mut(&mut self) -> &mut SpectreManager { &mut self.spectres }
 
@@ -136,14 +140,14 @@ impl LowLevelInput {
 
     pub fn set_artificial(&self, name: &str, start: bool) { self.state.set_artificial(name,start); }
     pub fn pointer_last_seen(&self) -> Option<(f64,f64)> { self.state.pointer_last_seen() }
-
     pub fn get_mouse_move_waiter(&self) -> Needed { self.mouse_moved.clone() }
 
-    pub fn set_hotspot(&mut self, yn: bool) {
+    pub fn set_hotspot(&mut self, yn: bool, disable_drag: bool) {
         if yn {
             self.hotspot_cursor_handle = Some(Arc::new(self.state.set_cursor(&CursorCircumstance::Hotspot)));
         } else {
             self.hotspot_cursor_handle = None;
         }
+        *lock!(self.state.drag_disabled) = disable_drag;
     }
 }
