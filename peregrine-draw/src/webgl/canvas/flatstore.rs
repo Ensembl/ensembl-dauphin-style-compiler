@@ -1,7 +1,7 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::{Arc, Mutex}};
 use super::{pngcache::PngCache, weave::CanvasWeave};
 use keyed::KeyedOptionalValues;
-use peregrine_toolkit::error::Error;
+use peregrine_toolkit::{error::Error, lock };
 use web_sys::{ Document };
 use super::flat::Flat;
 use keyed::keyed_handle;
@@ -16,7 +16,7 @@ pub(crate) struct FlatStore {
     bitmap_multiplier: f32,
     canvas_store: CanvasStore,
     scratch: HashMap<CanvasWeave,Flat>,
-    main_canvases: KeyedOptionalValues<FlatId,Flat>,
+    main_canvases: KeyedOptionalValues<FlatId,Arc<Mutex<Flat>>>,
     png_cache: PngCache
 }
 
@@ -43,36 +43,44 @@ impl FlatStore {
         }
         if !use_cached {
             let canvas = Flat::new(&mut self.canvas_store,&self.png_cache,document,&CanvasWeave::Crisp,size,self.bitmap_multiplier)?;
-            self.scratch.insert(weave.clone(),canvas);
+            if let Some(mut old) = self.scratch.insert(weave.clone(),canvas) {
+                old.discard();
+            }
         }
         Ok(self.scratch.get_mut(weave).unwrap())
     }
 
     pub(super) fn allocate(&mut self, document: &Document, weave: &CanvasWeave, size: (u32,u32)) -> Result<FlatId,Error> {
-        Ok(self.main_canvases.add(Flat::new(&mut self.canvas_store,&self.png_cache,document,weave,size,self.bitmap_multiplier)?))
+        Ok(self.main_canvases.add(Arc::new(Mutex::new(Flat::new(&mut self.canvas_store,&self.png_cache,document,weave,size,self.bitmap_multiplier)?))))
     }
 
-    pub(crate) fn get(&self, id: &FlatId) -> Result<&Flat,Error> {
-        self.main_canvases.get(id).map_err(|_| Error::fatal("missing key B"))
+    pub(crate) fn retrieve<F,X>(&self, id: &FlatId, cb: F) -> Result<X,Error>
+            where F: FnOnce(&Flat) -> X {
+        let x = self.main_canvases.get(&id).map_err(|_| Error::fatal("missing key B"))?;
+        let y = lock!(x);
+        Ok(cb(&y))
     }
 
-    pub(crate) fn get_mut(&mut self, id: &FlatId) -> Result<&mut Flat,Error> {
-        self.main_canvases.get_mut(id).map_err(|_| Error::fatal("missing key B"))
+    pub(crate) fn modify<F,X>(&self, id: &FlatId, cb: F) -> Result<X,Error>
+            where F: FnOnce(&mut Flat) -> X {
+        let x = self.main_canvases.get(&id).map_err(|_| Error::fatal("missing key B"))?;
+        let mut y = lock!(x);
+        Ok(cb(&mut y))
     }
 
     pub(crate) fn discard(&mut self, id: &FlatId) -> Result<(),Error> {
-        self.main_canvases.get_mut(id).map_err(|_| Error::fatal("missing key A"))?.discard(&mut self.canvas_store)?;
+        self.modify(id,|flat| flat.discard())??;
         self.main_canvases.remove(id);
         Ok(())
     }
 
-    pub(crate) fn discard_all(&mut self) -> Result<(),Error> {
+    fn discard_all(&mut self) -> Result<(),Error> {
         for canvas in self.main_canvases.values_mut() {
-            canvas.discard(&mut self.canvas_store)?;
+            lock!(canvas).discard()?;
         }
         self.main_canvases = KeyedOptionalValues::new();
         for (_,mut canvas) in self.scratch.drain() {
-            canvas.discard(&mut self.canvas_store)?;
+            canvas.discard()?;
         }
         Ok(())
     }

@@ -53,7 +53,7 @@ impl TextureDraw {
     fn add_rectangle_one(&self, addable: &mut dyn ProcessStanzaAddable, attrib: &AttribHandle, dims: &mut dyn Iterator<Item=((u32,u32),(u32,u32))>, csize: &(u32,u32)) -> Result<(),Message> {
         let mut data = vec![];
         if self.1 {
-            for (origin,size) in dims {
+            for (origin,_size) in dims {
                 push(&mut data, origin.0,origin.1,&csize);
                 push(&mut data, origin.0,origin.1,&csize);
                 push(&mut data, origin.0,origin.1,&csize);
@@ -72,10 +72,10 @@ impl TextureDraw {
     }
 
     pub(crate) fn add_rectangle(&self, addable: &mut dyn ProcessStanzaAddable, canvas: &FlatId, dims: &[CanvasTextureArea], flat_store: &FlatStore) -> Result<(),Message> {
-        let size = flat_store.get(canvas).map_err(|e| Message::DataError(DataMessage::XXXTransitional(e)))?.size();
+        let size = flat_store.retrieve(canvas, |flat| { flat.size().clone() }).map_err(|e| Message::DataError(DataMessage::XXXTransitional(e)))?;
         let mut texture_data = dims.iter()
             .map(|x| (x.texture_origin(),x.size()));
-        self.add_rectangle_one(addable,&self.0.texture,&mut texture_data,size)?;
+        self.add_rectangle_one(addable,&self.0.texture,&mut texture_data,&size)?;
         Ok(())
     }
 }

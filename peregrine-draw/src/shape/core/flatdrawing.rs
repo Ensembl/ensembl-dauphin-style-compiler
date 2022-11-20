@@ -131,16 +131,18 @@ impl<H: KeyedHandle+Clone,T: FlatDrawingItem> FlatDrawingManager<H,T> {
         let mut sizes = allocator.sizes(self.request.as_ref().unwrap());
         let mut origins_iter = origins.drain(..);
         let mut sizes_iter = sizes.drain(..);
-        if let Some(canvas_id) = &self.canvas_id {
-            let canvas = store.get_mut(canvas_id)?;
-            for (text,boundary) in self.texts.values_mut() {
-                let text_origin = origins_iter.next().unwrap();
-                let size = sizes_iter.next().unwrap(); // XXX assumes always the same
-                boundary.set_origin(text_origin);
-                boundary.update_padded_size(size);
-                let size = boundary.size_with_padding()?;
-                text.build(canvas,text_origin,size)?;
-            }
+        if let Some(canvas_id) = self.canvas_id.clone() {
+            store.modify(&canvas_id, |canvas| {
+                for (text,boundary) in self.texts.values_mut() {
+                    let text_origin = origins_iter.next().unwrap();
+                    let size = sizes_iter.next().unwrap(); // XXX assumes always the same
+                    boundary.set_origin(text_origin);
+                    boundary.update_padded_size(size);
+                    let size = boundary.size_with_padding()?;
+                    text.build(canvas,text_origin,size)?;
+                }
+                Ok(())
+            })??;
         }
         Ok(())
     }

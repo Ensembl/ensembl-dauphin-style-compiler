@@ -82,8 +82,8 @@ impl TextureValues {
 
     pub fn set_value(&mut self, flat_store: &FlatStore, flat_id: &FlatId) -> Result<(),Error> {
         self.flat_id = Some(flat_id.clone());
-        let flat = flat_store.get(flat_id)?;
-        self.flat_size = Some(flat.size().clone());
+        let size = flat_store.retrieve(flat_id,|flat| { flat.size().clone() })?;
+        self.flat_size = Some(size);
         Ok(())
     }
 

@@ -69,17 +69,19 @@ fn apply_weave(context: &WebGlRenderingContext,weave: &CanvasWeave) -> Result<()
 }
 
 fn create_texture(context: &WebGlRenderingContext,canvas_store: &FlatStore, our_data: &FlatId) -> Result<SelfManagedWebGlTexture,Error> {
-    let canvas = canvas_store.get(our_data)?;
+    let (element,weave) = canvas_store.retrieve(our_data, |flat| {
+        (flat.element().cloned(),flat.weave().clone())
+    })?;
     let texture = context.create_texture().ok_or_else(|| Error::fatal("cannot create texture"))?;
     handle_context_errors2(context)?;
     context.bind_texture(WebGlRenderingContext::TEXTURE_2D,Some(&texture));
     handle_context_errors2(context)?;
     context.tex_image_2d_with_u32_and_u32_and_canvas( // wow
         WebGlRenderingContext::TEXTURE_2D,0,WebGlRenderingContext::RGBA as i32,WebGlRenderingContext::RGBA,
-        WebGlRenderingContext::UNSIGNED_BYTE,canvas.element()?
+        WebGlRenderingContext::UNSIGNED_BYTE,&element?
     ).map_err(|e| Error::fatal(&format!("cannot bind texture: {:?}",&e.as_string())))?;
     handle_context_errors2(context)?;
-    apply_weave(context,canvas.weave())?;
+    apply_weave(context,&weave)?;
     Ok(SelfManagedWebGlTexture::new(texture,context))
 }
 
@@ -121,7 +123,7 @@ impl TextureBindery {
     fn find_victim(&mut self, flat_store: &mut FlatStore) -> Result<FlatId,Error> {
         let flats = self.available_or_active.iter().cloned().collect::<Vec<_>>();
         for (i,flat_id) in flats.iter().enumerate() {
-            if !*flat_store.get_mut(&flat_id)?.is_active() {
+            if !flat_store.modify(&flat_id, |flat| *flat.is_active())? {
                 self.available_or_active.swap_remove(i);
                 return Ok(flat_id.clone());
             }
@@ -131,7 +133,7 @@ impl TextureBindery {
 
     fn make_one_unavailable(&mut self, flat_store: &mut FlatStore) -> Result<(),Error> {
         let old_item = self.find_victim(flat_store)?;
-        flat_store.get_mut(&old_item)?.set_gl_texture(None);
+        flat_store.modify(&old_item, |flat| { flat.set_gl_texture(None) })?;
         Ok(())
     }
 
@@ -141,7 +143,7 @@ impl TextureBindery {
         }
         self.available_or_active.push(flat.clone());
         let texture = create_texture(context,flat_store,flat)?;
-        flat_store.get_mut(flat)?.set_gl_texture(Some(texture));
+        flat_store.modify(&flat, |flat| { flat.set_gl_texture(Some(texture)) })?;
         Ok(())
     }
 
@@ -151,15 +153,15 @@ impl TextureBindery {
             self.make_available(flat_id,flat_store,context)?;
         }
         /* Promote from AVAILABLE to ACTIVE */
-        *flat_store.get_mut(flat_id)?.is_active() = true;
+        flat_store.modify(flat_id, |flat| { *flat.is_active() = true; })?;
         /* Allocate a gl index for this program */
         let our_gl_index = self.next_gl_index;
         self.next_gl_index += 1;
         /* Actually bind it */
         context.active_texture(WebGlRenderingContext::TEXTURE0 + our_gl_index);
         handle_context_errors2(context)?;
-        let texture = flat_store.get(flat_id)?.get_gl_texture().unwrap();
-        context.bind_texture(WebGlRenderingContext::TEXTURE_2D,Some(texture.texture()));
+        let texture = flat_store.retrieve(flat_id, |flat| { flat.get_gl_texture().unwrap().texture().clone() })?;
+        context.bind_texture(WebGlRenderingContext::TEXTURE_2D,Some(&texture));
         handle_context_errors2(context)?;
         Ok(our_gl_index)
     }
@@ -168,15 +170,15 @@ impl TextureBindery {
         if let Some(pos) = self.available_or_active.iter().position(|id| id == flat) {
             self.available_or_active.swap_remove(pos);
         }
-        flat_store.get_mut(flat)?.set_gl_texture(None);
+        flat_store.modify(&flat, |flat| { flat.set_gl_texture(None) })?;
         Ok(())
     }
 
     pub(crate) fn clear(&mut self, flat_store: &mut FlatStore) -> Result<(),Error> {
         for flat_id in &self.available_or_active {
-            let is_active = flat_store.get_mut(&flat_id)?.is_active();
-            if *is_active {
-                *flat_store.get_mut(&flat_id)?.is_active() = false;
+            let is_active = flat_store.modify(&flat_id, |flat| *flat.is_active())?;
+            if is_active {
+                flat_store.modify(flat_id, |flat| { *flat.is_active() = false; })?;
             }
         }
         self.current_epoch += 1;
