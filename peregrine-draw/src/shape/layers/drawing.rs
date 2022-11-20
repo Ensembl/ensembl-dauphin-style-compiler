@@ -77,8 +77,8 @@ impl DrawingBuilder {
         let flats = self.flats.take().unwrap().built();
         let processes = self.main_layer.build(gl,&flats,retain_test).await?;
         Ok(if let Some(processes) = processes {
-            let tools = self.tools.build();
-            Some(Drawing::new_real(processes,flats,tools.zmenus,self.dynamic_shapes,&*lock!(gl))?)
+            let tools = self.tools.build()?;
+            Some(Drawing::new_real(processes,flats,tools.hotspots,self.dynamic_shapes,&*lock!(gl))?)
         } else {
             None
         })
@@ -88,7 +88,7 @@ impl DrawingBuilder {
 struct DrawingData {
     processes: Vec<Process>,
     canvases: DrawingAllFlats,
-    zmenus: DrawingHotspots,
+    hotspots: DrawingHotspots,
     dynamic_shapes: Vec<Box<dyn DynamicShape>>,
     recompute: Needed
 }
@@ -128,11 +128,11 @@ impl Drawing {
         drawing.build(gl,retain_test).await
     }
 
-    fn new_real(processes: Vec<Process>, canvases: DrawingAllFlats, zmenus: DrawingHotspots, dynamic_shapes: Vec<Box<dyn DynamicShape>>, gl: &WebGlGlobal) -> Result<Drawing,Message> {
+    fn new_real(processes: Vec<Process>, canvases: DrawingAllFlats, hotspots: DrawingHotspots, dynamic_shapes: Vec<Box<dyn DynamicShape>>, gl: &WebGlGlobal) -> Result<Drawing,Message> {
         let mut out = Drawing(Arc::new(Mutex::new(DrawingData {
             processes,
             canvases,
-            zmenus,
+            hotspots,
             dynamic_shapes,
             recompute: Needed::new()
         })));
@@ -140,12 +140,12 @@ impl Drawing {
         Ok(out)
     }
 
-    pub(crate) fn set_zmenu_px_per_screen(&mut self, px_per_screen: f64) {
-        lock!(self.0).zmenus.set_px_per_screen(px_per_screen);
+    pub(crate) fn set_hotspot_px_per_screen(&mut self, px_per_screen: (f64,f64)) {
+        lock!(self.0).hotspots.set_px_per_screen(px_per_screen);
     }
 
     pub(crate) fn get_hotspot(&self, stage: &ReadStage, position: (f64,f64)) -> Result<Vec<SingleHotspotEntry>,Message> {
-        lock!(self.0).zmenus.get_hotspot(stage,position)
+        lock!(self.0).hotspots.get_hotspot(stage,position)
     }
 
     pub(crate) fn draw(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage, session: &mut DrawingSession, opacity: f64) -> Result<(),Message> {

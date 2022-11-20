@@ -15,6 +15,8 @@ pub enum CoordinateSystem {
 
     /* base = bp, tangent = x-px, normal = y-px (-ve = bottom)
      * moves as user scrolls, vertically attached to viewport
+     * 
+     * Typical use: headers and footers.
      */
     TrackingWindow,
 
@@ -31,8 +33,8 @@ pub enum CoordinateSystem {
     /* base = 0->top-of-window, 1->bottom-of-window, tangent = y-px,  normal = x-px (-ve = bottom)
      * drawing relative to the window on left and right.
      * 
-     * THough both can access left and right via negative coordinates, playingfield squeeze means
-     * we need to keep track of where we are just for sideways types.
+     * Though both can access left and right via negative coordinates, playingfield squeeze means
+     * we need to keep track of which side the box is on for sideways types.
      */
     SidewaysLeft,
     SidewaysRight,

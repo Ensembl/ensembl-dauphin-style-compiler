@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 use peregrine_data::{Assets, Scale};
 use peregrine_toolkit::error::Error;
-use crate::{shape::{core::{text::DrawingText, bitmap::DrawingBitmap}, heraldry::heraldry::DrawingHeraldry}, webgl::{global::WebGlGlobal, canvas::flatplotallocator::FlatPositionManager, CanvasWeave, DrawingAllFlatsBuilder, FlatStore}, util::fonts::Fonts, hotspots::drawinghotspots::{DrawingHotspots, DrawingHotspotsBuilder}};
+use crate::{shape::{core::{text::DrawingText, bitmap::DrawingBitmap}, heraldry::heraldry::DrawingHeraldry}, webgl::{global::WebGlGlobal, canvas::flatplotallocator::FlatPositionManager, CanvasWeave, DrawingAllFlatsBuilder, FlatStore}, util::fonts::Fonts, hotspots::drawinghotspots::{DrawingHotspots, DrawingHotspotsBuilder}, Message};
 
 pub(crate) struct ToolPreparations {
     crisp: FlatPositionManager,
@@ -31,14 +31,14 @@ impl ToolPreparations {
 }
 
 pub(crate) struct DrawingTools {
-    pub zmenus: DrawingHotspots
+    pub hotspots: DrawingHotspots
 }
 
 pub(crate) struct DrawingToolsBuilder {
     text: DrawingText,
     bitmap: DrawingBitmap,
     heraldry: DrawingHeraldry,
-    zmenus: DrawingHotspotsBuilder
+    hotspots: DrawingHotspotsBuilder
 }
 
 impl DrawingToolsBuilder {
@@ -47,19 +47,19 @@ impl DrawingToolsBuilder {
             text: DrawingText::new(fonts,bitmap_multiplier),
             bitmap: DrawingBitmap::new(assets),
             heraldry: DrawingHeraldry::new(),
-            zmenus: DrawingHotspotsBuilder::new(scale, left)
+            hotspots: DrawingHotspotsBuilder::new(scale, left)
         }
     }
 
     pub(crate) fn text(&mut self) -> &mut DrawingText { &mut self.text }
     pub(crate) fn bitmap(&mut self) -> &mut DrawingBitmap { &mut self.bitmap }
     pub(crate) fn heraldry(&mut self) -> &mut DrawingHeraldry { &mut self.heraldry }
-    pub(crate) fn hotspots(&mut self) -> &mut DrawingHotspotsBuilder { &mut self.zmenus }
+    pub(crate) fn hotspots(&mut self) -> &mut DrawingHotspotsBuilder { &mut self.hotspots }
 
-    pub(crate) fn build(self) -> DrawingTools {
-        DrawingTools {
-            zmenus: self.zmenus.build()
-        }
+    pub(crate) fn build(self) -> Result<DrawingTools,Message> {
+        Ok(DrawingTools {
+            hotspots: self.hotspots.build()?
+        })
     }
 
     pub(crate) async fn start_preparation(&mut self, gl: &Arc<Mutex<WebGlGlobal>>) -> Result<ToolPreparations,Error> {

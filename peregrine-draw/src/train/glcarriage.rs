@@ -108,7 +108,7 @@ impl GLCarriage {
         let opacity = state.opacity.lock().unwrap().clone();
         let in_view =  state.in_view(stage)?;
         if let Some(mut drawing) = get_drawing(&state)? {
-            drawing.set_zmenu_px_per_screen(stage.x().drawable_size()?);
+            drawing.set_hotspot_px_per_screen((stage.x().drawable_size()?,stage.y().drawable_size()?));
             if in_view {
                 drawing.draw(gl,stage,session,opacity)?;
             }

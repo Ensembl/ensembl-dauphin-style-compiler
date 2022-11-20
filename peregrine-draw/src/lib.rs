@@ -229,7 +229,9 @@ mod webgl {
 }
 
 mod hotspots {
-    mod drawscreenhotspots;
+    mod coordconverter;
+    mod trackinghotspots;
+    mod windowhotspots;
     mod drawhotspotstore;
     pub(crate) mod drawinghotspots;
 }

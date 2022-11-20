@@ -1,16 +1,3 @@
-/* We don't want to constrain the user in zmenu size, but also want to keep small values compact
- * and fast (ie vec not map), so we do it diagonally, like you do with enumerating the rationals:
- * 
- * 0136
- * 247
- * 58
- * 9
- * etc.
- * 
- * (x+y)(x+y+1)/2 + y as you are in diagonal number x+y and these start with nth triangle number
- * and increase by one with each y-coord
- */
-
 use std::{ops::Range};
 
 pub trait HotspotStoreProfile<V> {
@@ -18,23 +5,22 @@ pub trait HotspotStoreProfile<V> {
     type Coords;
     type Area;
 
-    fn get_zone(&self, context: &Self::Context, coords: &Self::Coords) -> Option<(usize,usize)>;
+    fn diagonalise(&self, x: usize, y: usize) -> usize;
+    fn get_zones(&self, context: &Self::Context, coords: &Self::Coords) -> Vec<(usize,usize)>;
     fn intersects(&self, context: &Self::Context, coords: &Self::Coords, value: &V) -> bool;
-    fn add_zones(&self, a: &Self::Area) -> (Range<usize>,Range<usize>);
+    fn add_zones(&self, a: &Self::Area) -> Option<(Range<usize>,Range<usize>)>;
 }
 
 pub struct HotSpotStore<C,A,X,V> {
-    getter: Box<dyn HotspotStoreProfile<V,Context=X,Coords=C,Area=A>>,
+    profile: Box<dyn HotspotStoreProfile<V,Context=X,Coords=C,Area=A>>,
     data: Vec<Option<Vec<usize>>>,
     values: Vec<V>
 }
 
-fn diagonal(x: usize, y: usize) -> usize { (x+y)*(x+y+1)/2+y }
-
 impl<C,A,X,V> HotSpotStore<C,A,X,V> {
-    pub fn new(getter: Box<dyn HotspotStoreProfile<V,Context=X,Coords=C,Area=A>>) -> HotSpotStore<C,A,X,V> {
+    pub fn new(profile: Box<dyn HotspotStoreProfile<V,Context=X,Coords=C,Area=A>>) -> HotSpotStore<C,A,X,V> {
         HotSpotStore {
-            getter,
+            profile,
             data: vec![],
             values: vec![]
         }
@@ -43,16 +29,17 @@ impl<C,A,X,V> HotSpotStore<C,A,X,V> {
     pub fn add(&mut self, a: &A, value: V) {
         let index = self.values.len();
         self.values.push(value);
-        let (x_range,y_range) = self.getter.add_zones(a);
-        let c_max = diagonal(x_range.end-1,y_range.end-1);
-        if c_max >= self.data.len() {
-            self.data.resize_with(c_max+1,Default::default);
-        }
-        for y in y_range {
-            for x in x_range.clone() {
-                let c = diagonal(x,y);
-                self.data[c].get_or_insert(vec![]).push(index);
+        if let Some((x_range,y_range)) = self.profile.add_zones(a) {
+            let c_max = self.profile.diagonalise(x_range.end-1,y_range.end-1);
+            if c_max >= self.data.len() {
+                self.data.resize_with(c_max+1,Default::default);
             }
+            for y in y_range {
+                for x in x_range.clone() {
+                    let c = self.profile.diagonalise(x,y);
+                    self.data[c].get_or_insert(vec![]).push(index);
+                }
+            }    
         }
     }
 
@@ -61,16 +48,15 @@ impl<C,A,X,V> HotSpotStore<C,A,X,V> {
     }
 
     pub fn get<'b>(&'b self, context: &X, coord: &C) -> Vec<&'b V> {
-        if let Some((x,y)) = self.getter.get_zone(context,coord) {
-            let indexes = self.data.get(diagonal(x,y)).map(|x| x.as_ref()).flatten();
-            indexes.map(|vv| {
-                vv.iter()
+        let mut out = vec![];
+        for (x,y) in self.profile.get_zones(context,coord) {
+            if let Some(indexes) = self.data.get(self.profile.diagonalise(x,y)).map(|x| x.as_ref()).flatten() {
+                let more = indexes.iter()
                     .map(|v| &self.values[*v])
-                    .filter(|v| self.getter.intersects(context,coord,v))
-                    .collect::<Vec<_>>()
-            }).unwrap_or(vec![])
-        } else {
-            vec![]
+                    .filter(|v| self.profile.intersects(context,coord,v));
+                out.extend(more);
+            }
         }
+        out
     }
 }

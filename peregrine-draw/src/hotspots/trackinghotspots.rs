@@ -1,42 +1,13 @@
 use std::{ops::Range};
-use peregrine_data::{LeafStyle, SingleHotspotEntry, Scale, HotspotGroupEntry, SpaceBasePoint, SpaceBasePointRef};
+use peregrine_data::{LeafStyle, SingleHotspotEntry, Scale, HotspotGroupEntry, SpaceBasePoint };
 use peregrine_toolkit::{hotspots::hotspotstore::{HotspotStoreProfile}, ubail};
 use crate::{Message, stage::{stage::ReadStage, axis::UnitConverter}};
-use super::drawhotspotstore::{PointPair, DrawHotspotStore};
+use super::{drawhotspotstore::{PointPair, DrawHotspotStore}, coordconverter::CoordToPxConverter};
 
-const HORIZ_ZONES : u64 = 10;
-const VERT_ZONE_HEIGHT : u64 = 200;
+const HORIZ_ZONES : usize = 10;
+const VERT_ZONE_HEIGHT : usize = 200;
 
 fn order(a: f64, b: f64) -> (f64,f64) { (a.min(b),a.max(b)) }
-
-struct CoordToPxConverter {
-    left: f64,
-    bp_per_px: f64,
-    car_px_left: f64,
-    px_per_carriage: f64
-}
-
-impl CoordToPxConverter {
-    fn new(context: &UnitConverter, left: f64, bp_per_carriage: f64) -> Option<CoordToPxConverter> {
-        let bp_per_px = context.px_delta_to_bp(1.);
-        let car_px_left = context.bp_to_pos_px(left).ok();
-        let car_px_left = if let Some(x) = car_px_left { x } else { return None; };
-        Some(CoordToPxConverter {
-            px_per_carriage: bp_per_carriage / bp_per_px,
-            bp_per_px,
-            car_px_left,
-            left,
-        })
-    }
-
-    fn coord_to_px(&self, c: &SpaceBasePointRef<f64,LeafStyle>) -> f64 {
-        (c.base - self.left) / self.bp_per_px + self.car_px_left + c.tangent
-    }
-
-    fn px_to_car_prop(&self, px: f64) -> f64 {
-        (px - self.car_px_left) / self.px_per_carriage
-    }
-}
 
 struct DrawingHotspotProfile {
     left: f64,
@@ -83,31 +54,33 @@ impl HotspotStoreProfile<SingleHotspotEntry> for DrawingHotspotProfile {
     type Area = PointPair;
     type Context = UnitConverter;
 
+    fn diagonalise(&self, x: usize, y: usize) -> usize { x + y*HORIZ_ZONES }
+
     fn intersects(&self, context: &UnitConverter, coords: &(f64,f64), entry: &SingleHotspotEntry) -> bool {
         let coord_to_px = ubail!(self.converter(context),false);
         entry.coordinates().map(|(c1,c2)| {            
-            coords.0 >= coord_to_px.coord_to_px(&c1) && 
-            coords.0 <= coord_to_px.coord_to_px(&c2) && 
+            coords.0 >= coord_to_px.tracking_coord_to_px(&c1) && 
+            coords.0 <= coord_to_px.tracking_coord_to_px(&c2) && 
             coords.1 >= *c1.normal && 
             coords.1 <= *c2.normal
         }).unwrap_or(false)
     }
 
-    fn get_zone(&self, context: &UnitConverter, position: &(f64,f64)) -> Option<(usize,usize)> {
-        let coord_to_px = ubail!(self.converter(context),None);
+    fn get_zones(&self, context: &UnitConverter, position: &(f64,f64)) -> Vec<(usize,usize)> {
+        let coord_to_px = ubail!(self.converter(context),vec![]);
         let carriage_prop = coord_to_px.px_to_car_prop(position.0);
-        if carriage_prop < 0. || carriage_prop > 1. { return None; }
-        Some((
+        if carriage_prop < 0. || carriage_prop >= 1. { return vec![]; }
+        vec![(
             (carriage_prop * HORIZ_ZONES as f64).floor() as usize,
             (position.1 / VERT_ZONE_HEIGHT as f64).floor() as usize
-        ))
+        )]
     }
 
-    fn add_zones(&self, a: &PointPair) -> (Range<usize>,Range<usize>) {
+    fn add_zones(&self, a: &PointPair) -> Option<(Range<usize>,Range<usize>)> {
         let left_scr = self.bp_to_carriage_prop(self.max_bp_pair_pos(&a,true));
         let right_scr = self.bp_to_carriage_prop(self.max_bp_pair_pos(&a,false));
         let (top_px,bottom_px) = order(a.0.normal,a.1.normal);
-        (
+        Some((
             (
                  ((left_scr*(HORIZ_ZONES as f64)).floor() as usize) ..
                 (((right_scr*(HORIZ_ZONES as f64)).floor() as usize)+1)
@@ -115,15 +88,15 @@ impl HotspotStoreProfile<SingleHotspotEntry> for DrawingHotspotProfile {
                  ((top_px/(VERT_ZONE_HEIGHT as f64)) as usize) ..
                 (((bottom_px/(VERT_ZONE_HEIGHT as f64)) as usize)+1)
             )
-        )
+        ))
     }
 }
 
-pub(super) struct DrawScreenHotspots {
-    store: DrawHotspotStore
+pub(super) struct TrackingHotspots {
+    store: DrawHotspotStore<UnitConverter>
 }
 
-impl DrawScreenHotspots {
+impl TrackingHotspots {
     fn make_profile(min_px_per_screen: f64, scale: &Option<Scale>, left: f64) -> DrawingHotspotProfile {
         let max_bp_per_screen = scale.as_ref().map(|s| s.bp_per_screen_range().1).unwrap_or(1) as f64;
         let max_bp_per_px = max_bp_per_screen / min_px_per_screen;
@@ -131,13 +104,14 @@ impl DrawScreenHotspots {
         DrawingHotspotProfile::new(left,bp_per_carriage,max_bp_per_px)
     }
 
-    pub(super) fn new(min_px_per_screen: f64, scale: &Option<Scale>, left: f64, entries: &[HotspotGroupEntry]) -> Result<DrawScreenHotspots,Message> {
-        Ok(DrawScreenHotspots {
+    pub(super) fn new(min_px_per_screen: f64, scale: &Option<Scale>, left: f64, entries: &[HotspotGroupEntry]) -> Result<TrackingHotspots,Message> {
+        Ok(TrackingHotspots {
             store: DrawHotspotStore::new(Box::new(Self::make_profile(min_px_per_screen,scale,left)),entries)?
         })
     }
 
     pub(crate) fn get_hotspot(&self, stage: &ReadStage, position_px: (f64,f64)) -> Result<Vec<SingleHotspotEntry>,Message> {
-        self.store.get_hotspot(stage,position_px)
+        let converter = stage.x().unit_converter()?;
+        self.store.get_hotspot(&converter,position_px)
     }
 }
