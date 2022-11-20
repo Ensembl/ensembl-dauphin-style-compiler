@@ -43,9 +43,9 @@ impl DrawingBuilder {
         })
     }
 
-    pub(crate) fn prepare_shape(&mut self, shape: &DrawingShape, gl: &mut WebGlGlobal) -> Result<Vec<GLShape>,Message> {
+    pub(crate) fn prepare_shape(&mut self, shape: &DrawingShape) -> Result<Vec<GLShape>,Message> {
         let shape = shape.clone(); // XXX don't clone
-        prepare_shape_in_layer(&mut self.tools,shape,gl)
+        prepare_shape_in_layer(&mut self.tools,shape)
     }
 
     pub(crate) async fn prepare_tools(&mut self, gl: &Arc<Mutex<WebGlGlobal>>) -> Result<(),Error> {
@@ -53,8 +53,7 @@ impl DrawingBuilder {
         let mut drawable = DrawingAllFlatsBuilder::new();
         let mut lgl = lock!(gl);
         prep.allocate(&mut lgl,&mut drawable)?;
-        let gl_ref = lgl.refs();
-        self.tools.finish_preparation(gl_ref.flat_store,prep)?;
+        self.tools.finish_preparation(prep)?;
         self.flats = Some(drawable);
         Ok(())
     }
@@ -101,7 +100,7 @@ impl Drawing {
         /* convert core shape data model into gl shapes */
         let mut lgl = lock!(gl);
         let mut drawing = DrawingBuilder::new(scale,&mut lgl,assets,left)?;
-        let mut prepared_shapes = shapes.iter().map(|s| drawing.prepare_shape(s,&mut lgl)).collect::<Result<Vec<_>,_>>()?;
+        let mut prepared_shapes = shapes.iter().map(|s| drawing.prepare_shape(s)).collect::<Result<Vec<_>,_>>()?;
         /* gather and allocate aux requirements (2d canvas space etc) */
         drop(lgl);
         drawing.prepare_tools(gl).await.map_err(|e| Message::DataError(DataMessage::XXXTransitional(e)))?;
@@ -183,7 +182,7 @@ impl Drawing {
             process.discard(gl)?;
         }
         let gl = gl.refs();
-        state.canvases.discard(gl.flat_store,gl.bindery)?;
+        state.canvases.discard(gl.bindery)?;
         Ok(())
     }
 }

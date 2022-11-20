@@ -12,7 +12,6 @@ use js_sys::Boolean;
 use js_sys::Map;
 use peregrine_toolkit::error::Error;
 use peregrine_toolkit::lock;
-use peregrine_toolkit::log;
 use peregrine_toolkit::plumbing::lease::Lease;
 use peregrine_toolkit::plumbing::lease::LeaseManager;
 use web_sys::{CanvasRenderingContext2d, Document, HtmlCanvasElement};
@@ -22,19 +21,19 @@ use wasm_bindgen::JsValue;
 const MINIMUM : u32 = 256;
 const SCALE : u32 = 2;
 
-pub struct HtmlFlatCanvas {
+pub struct PlaneCanvas {
     element: HtmlCanvasElement,
     size: (u32,u32) 
 }
 
-impl HtmlFlatCanvas {
-    fn new(document: &Document, x: u32, y: u32) -> Result<HtmlFlatCanvas,Error> {
+impl PlaneCanvas {
+    fn new(document: &Document, x: u32, y: u32) -> Result<PlaneCanvas,Error> {
         let element = document.create_element("canvas").map_err(|_| Error::fatal("cannot create canvas"))?;
         let element =  element.dyn_into::<HtmlCanvasElement>().map_err(|_| Error::fatal("could not cast canvas to HtmlCanvasElement"))?;
         element.set_width(x);
         element.set_height(y);
         //document.body().unwrap().append_child(&element);
-        Ok(HtmlFlatCanvas {
+        Ok(PlaneCanvas {
             element,
             size: (x,y)
         })
@@ -72,16 +71,20 @@ fn rounded(mut v: u32) -> u32 {
 
 #[cfg(debug_canvasstore)]
 #[derive(Clone)]
-struct Stats(Arc<Mutex<Vec<(u32,u32)>>>);
+struct Stats(Arc<Mutex<(Vec<(u32,u32)>,usize)>>);
 
 #[cfg(debug_canvasstore)]
 impl Stats {
-    fn new() -> Stats { Stats(Arc::new(Mutex::new(vec![]))) }
+    fn new() -> Stats { Stats(Arc::new(Mutex::new((vec![],0)))) }
+    fn another(&self) { lock!(self.0).1 += 1; }
     fn add(&self, x: u32, y: u32) {
+        use peregrine_toolkit::log;
+
         let mut state = lock!(self.0);
-        state.push((x,y));
-        let count : u32 = state.iter().map(|c| c.0*c.1/1000).sum();
-        log!("{} canvases, {} Mp in play {:?}",state.len(),count/1000,state);
+        state.0.push((x,y));
+        let count : u32 = state.0.iter().map(|c| c.0*c.1/1000).sum();
+        log!("{} canvases, {} Mp in play {:?}, {}% cached",
+            state.0.len(),count/1000,state,100-state.0.len()*100/state.1.max(1));
     }
 }
 
@@ -92,12 +95,13 @@ struct Stats;
 #[cfg(not(debug_canvasstore))]
 impl Stats {
     fn new() -> Stats { Stats }
+    fn another(&self) {}
     fn add(&self, _x: u32, _y: u32) {}
 }
 
 #[derive(Clone)]
 pub struct CanvasStore {
-    canvases: Arc<Mutex<HashMap<(u32,u32),LeaseManager<HtmlFlatCanvas,Error>>>>,
+    canvases: Arc<Mutex<HashMap<(u32,u32),LeaseManager<PlaneCanvas,Error>>>>,
     stats: Stats,
 }
 
@@ -109,19 +113,18 @@ impl CanvasStore {
         }
     }
 
-    pub fn allocate(&self, document: &Document, mut x: u32, mut y: u32, round_up: bool) -> Result<Lease<HtmlFlatCanvas>,Error> {
-        let size = (x*y) as f64;
+    pub fn allocate(&self, document: &Document, mut x: u32, mut y: u32, round_up: bool) -> Result<Lease<PlaneCanvas>,Error> {
         let document = document.clone();
         if round_up {
             x = rounded(x);
             y = rounded(y);
         }
-        log!("{}% used",size*100./((x*y) as f64));
         let stats = self.stats.clone();
+        stats.another();
         let mut canvas = lock!(self.canvases).entry((x,y)).or_insert_with(move || {
             LeaseManager::new(move || {
                 stats.add(x,y);
-                HtmlFlatCanvas::new(&document,x,y)
+                PlaneCanvas::new(&document,x,y)
             })
         }).allocate()?;
         canvas.get_mut().clear()?;

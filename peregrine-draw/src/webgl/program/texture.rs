@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use crate::shape::layers::consts::PR_LOW;
-use crate::webgl::{FlatId, FlatStore, GLArity};
+use crate::webgl::{FlatId,  GLArity};
 use crate::webgl::global::{WebGlGlobalRefs};
 use crate::util::message::Message;
 use keyed::keyed_handle;
@@ -80,16 +80,17 @@ impl TextureValues {
         TextureValues { texture: texture, flat_id: None, flat_size: None, bound: false }
     }
 
-    pub fn set_value(&mut self, flat_store: &FlatStore, flat_id: &FlatId) -> Result<(),Error> {
+    pub fn set_value(&mut self, flat_id: &FlatId) -> Result<(),Error> {
         self.flat_id = Some(flat_id.clone());
-        let size = flat_store.retrieve(flat_id,|flat| { flat.size().clone() })?;
+        let size = flat_id.retrieve(|flat| { flat.size().clone() });
         self.flat_size = Some(size);
         Ok(())
     }
 
     pub(super) fn apply(&mut self, gl: &mut WebGlGlobalRefs) -> Result<(),Error> {
         if let (Some(flat_id),Some(location)) = (&self.flat_id,&self.texture.location) {
-            let index = gl.bindery.allocate(flat_id,gl.flat_store,gl.context)?;
+            gl.bindery.allocate(flat_id,gl.context)?;
+            let index = flat_id.retrieve(|flat| flat.get_gl_texture().unwrap().gl_index());
             self.bound = true;
             gl.context.uniform1i(Some(location),index as i32);
             handle_context_errors2(gl.context)?;
@@ -108,7 +109,7 @@ impl TextureValues {
     pub fn discard(&mut self, gl: &mut WebGlGlobalRefs) -> Result<(),Error> {
         if self.bound {
             if let Some(flat) = &self.flat_id {
-                gl.bindery.free(flat,gl.flat_store)?;
+                gl.bindery.free(flat)?;
             }
         }
         Ok(())

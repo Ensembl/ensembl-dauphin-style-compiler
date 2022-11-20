@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 use peregrine_data::{Assets, Scale};
 use peregrine_toolkit::error::Error;
-use crate::{shape::{core::{text::DrawingText, bitmap::DrawingBitmap}, heraldry::heraldry::DrawingHeraldry}, webgl::{global::WebGlGlobal, canvas::flatplotallocator::FlatPositionManager, CanvasWeave, DrawingAllFlatsBuilder, FlatStore}, util::fonts::Fonts, hotspots::drawinghotspots::{DrawingHotspots, DrawingHotspotsBuilder}, Message};
+use crate::{shape::{core::{text::DrawingText, bitmap::DrawingBitmap}, heraldry::heraldry::DrawingHeraldry}, webgl::{global::WebGlGlobal, canvas::flatplotallocator::FlatPositionManager, CanvasWeave, DrawingAllFlatsBuilder}, util::fonts::Fonts, hotspots::drawinghotspots::{DrawingHotspots, DrawingHotspotsBuilder}, Message};
 
 pub(crate) struct ToolPreparations {
     crisp: FlatPositionManager,
@@ -70,10 +70,10 @@ impl DrawingToolsBuilder {
         Ok(preparations)
     }
 
-    pub(crate) fn finish_preparation(&mut self, canvas_store: &mut FlatStore, mut preparations: ToolPreparations) -> Result<(),Error> {
-        self.text.manager().draw_at_locations(canvas_store,&mut preparations.crisp)?;
-        self.bitmap.manager().draw_at_locations(canvas_store,&mut preparations.crisp)?;
-        self.heraldry.draw_at_locations(canvas_store,&mut preparations)?;
+    pub(crate) fn finish_preparation(&mut self, mut preparations: ToolPreparations) -> Result<(),Error> {
+        self.text.manager().draw_at_locations(&mut preparations.crisp)?;
+        self.bitmap.manager().draw_at_locations(&mut preparations.crisp)?;
+        self.heraldry.draw_at_locations(&mut preparations)?;
         Ok(())
     }
 }

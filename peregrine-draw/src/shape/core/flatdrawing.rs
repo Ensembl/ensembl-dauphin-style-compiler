@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use keyed::{KeyedData, KeyedHandle};
 use peregrine_toolkit::error::Error;
 use crate::webgl::canvas::flatplotallocator::FlatPositionManager;
-use crate::webgl::{ FlatId, FlatStore, Flat, FlatPositionCampaignHandle };
+use crate::webgl::{ FlatId, PlaneCanvasAndContext, FlatPositionCampaignHandle };
 use crate::webgl::global::WebGlGlobal;
 use super::texture::{CanvasTextureArea };
 use crate::util::message::Message;
@@ -13,7 +13,7 @@ pub(crate) trait FlatDrawingItem {
     fn group_hash(&self) -> Option<u64> { None }
     fn calc_size(&mut self, gl: &mut WebGlGlobal) -> Result<(u32,u32),Error>;
     fn padding(&mut self, _gl: &mut WebGlGlobal) -> Result<(u32,u32),Error> { Ok((0,0)) }
-    fn build(&mut self, canvas: &mut Flat, text_origin: (u32,u32), size: (u32,u32)) -> Result<(),Error>;
+    fn build(&mut self, canvas: &mut PlaneCanvasAndContext, text_origin: (u32,u32), size: (u32,u32)) -> Result<(),Error>;
 }
 
 /* here, size and origins are inclusive of padding */
@@ -125,14 +125,14 @@ impl<H: KeyedHandle+Clone,T: FlatDrawingItem> FlatDrawingManager<H,T> {
         Ok(())
     }
 
-    pub(crate) fn draw_at_locations(&mut self, store: &mut FlatStore, allocator: &mut FlatPositionManager) -> Result<(),Error> {
+    pub(crate) fn draw_at_locations(&mut self, allocator: &mut FlatPositionManager) -> Result<(),Error> {
         self.canvas_id = allocator.canvas()?.cloned();
         let mut origins = allocator.origins(self.request.as_ref().unwrap());
         let mut sizes = allocator.sizes(self.request.as_ref().unwrap());
         let mut origins_iter = origins.drain(..);
         let mut sizes_iter = sizes.drain(..);
         if let Some(canvas_id) = self.canvas_id.clone() {
-            store.modify(&canvas_id, |canvas| {
+            canvas_id.modify(|canvas| {
                 for (text,boundary) in self.texts.values_mut() {
                     let text_origin = origins_iter.next().unwrap();
                     let size = sizes_iter.next().unwrap(); // XXX assumes always the same
@@ -142,7 +142,7 @@ impl<H: KeyedHandle+Clone,T: FlatDrawingItem> FlatDrawingManager<H,T> {
                     text.build(canvas,text_origin,size)?;
                 }
                 Ok(())
-            })??;
+            })?;
         }
         Ok(())
     }

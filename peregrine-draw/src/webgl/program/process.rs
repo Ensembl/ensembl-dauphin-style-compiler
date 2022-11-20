@@ -63,10 +63,7 @@ impl ProcessBuilder {
         let mut textures = program.make_textures();
         for (name,value) in self.textures {
             let handle = self.builder.get_texture_handle(&name)?;
-            let mut lgl = lock!(gl);
-            let gl_ref = lgl.refs();
-            textures.get_mut(&handle).set_value(gl_ref.flat_store,&value).map_err(|e| Message::DataError(DataMessage::XXXTransitional(e)))?;
-            drop(lgl);
+            textures.get_mut(&handle).set_value(&value).map_err(|e| Message::DataError(DataMessage::XXXTransitional(e)))?;
             cdr_tick(0).await;
         }
         Process::new(gl,program,&self.builder,self.stanza_builder,uniforms,textures,left,character).await
@@ -115,7 +112,7 @@ impl Process {
 
     pub(super) fn draw(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage, opacity: f64, dpr: f64, stats: &mut SessionMetric) -> Result<(),Message> {
         let mut gl = gl.refs();
-        gl.bindery.clear(gl.flat_store).map_err(|e| Message::DataError(DataMessage::XXXTransitional(e)))?;
+        gl.bindery.clear().map_err(|e| Message::DataError(DataMessage::XXXTransitional(e)))?;
         let program_stage = self.program_stage.clone();
         program_stage.apply(stage,self.left,opacity,dpr,self)?;
         self.program.select_program(gl.context)?;

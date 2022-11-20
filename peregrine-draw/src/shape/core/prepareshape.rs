@@ -103,7 +103,7 @@ impl ShapeDemerge for GLCategoriser {
     }
 }
 
-pub(crate) fn prepare_shape_in_layer(tools: &mut DrawingToolsBuilder, shape: DrawingShape, gl: &mut WebGlGlobal) -> Result<Vec<GLShape>,Message> {
+pub(crate) fn prepare_shape_in_layer(tools: &mut DrawingToolsBuilder, shape: DrawingShape) -> Result<Vec<GLShape>,Message> {
     let mut out = vec![];
     let demerge = shape.demerge(&GLCategoriser());
     for (draw_group,shape) in demerge {
@@ -114,7 +114,7 @@ pub(crate) fn prepare_shape_in_layer(tools: &mut DrawingToolsBuilder, shape: Dra
                 out.push(GLShape::Wiggle(shape.range(),shape.values(),shape.plotter().clone(),shape.get_style().depth));
             },
             Shape::Text(shape) => {
-                prepare_text(&mut out,tools,&shape,&draw_group,gl);
+                prepare_text(&mut out,tools,&shape,&draw_group);
             },
             Shape::Image(shape) => {
                 let depth = shape.position().allotments().map(|x| x.depth);

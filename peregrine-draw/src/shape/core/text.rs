@@ -10,7 +10,7 @@ use crate::shape::triangles::rectangles::GLAttachmentPoint;
 use crate::util::fonts::Fonts;
 use crate::webgl::canvas::flatplotallocator::FlatPositionManager;
 use crate::webgl::canvas::structuredtext::StructuredText;
-use crate::webgl::{ CanvasWeave, Flat };
+use crate::webgl::{ CanvasWeave, PlaneCanvasAndContext };
 use crate::webgl::global::WebGlGlobal;
 use super::drawshape::{GLShape, ShapeToAdd, dims_to_sizes, draw_points_from_canvas2};
 use super::flatdrawing::{FlatDrawingItem, FlatDrawingManager};
@@ -47,8 +47,8 @@ impl FlatDrawingItem for Text {
     fn calc_size(&mut self, gl: &mut WebGlGlobal) -> Result<(u32,u32),Error> {
         let gl_ref = gl.refs();
         let document = gl_ref.document.clone();
-        let canvas = gl_ref.flat_store.scratch(&document,&CanvasWeave::Crisp,(100,100))?;
-        self.text.measure(canvas)
+        let mut canvas = gl_ref.flat_store.scratch(&document,&CanvasWeave::Crisp,(100,100))?;
+        self.text.measure(canvas.get_mut())
     }
 
     fn padding(&mut self, _: &mut WebGlGlobal) -> Result<(u32,u32),Error> { Ok((PAD,PAD)) }
@@ -65,7 +65,7 @@ impl FlatDrawingItem for Text {
         Some(hasher.finish())
     }
 
-    fn build(&mut self, canvas: &mut Flat, text_origin: (u32,u32), size: (u32,u32)) -> Result<(),Error> {
+    fn build(&mut self, canvas: &mut PlaneCanvasAndContext, text_origin: (u32,u32), size: (u32,u32)) -> Result<(),Error> {
         self.text.draw(canvas,text_origin,size)
     }
 }
@@ -91,7 +91,7 @@ impl DrawingText {
     pub(crate) fn manager(&mut self) -> &mut FlatDrawingManager<TextHandle,Text> { &mut self.0 }
 }
 
-pub(super) fn prepare_text(out: &mut Vec<GLShape>, tools: &mut DrawingToolsBuilder, shape: &TextShape<LeafStyle>, draw_group: &DrawGroup, gl: &mut WebGlGlobal) {
+pub(super) fn prepare_text(out: &mut Vec<GLShape>, tools: &mut DrawingToolsBuilder, shape: &TextShape<LeafStyle>, draw_group: &DrawGroup) {
     let depth = shape.position().allotments().map(|x| x.depth);
     let drawing_text = tools.text();
     let background = shape.pen().background();

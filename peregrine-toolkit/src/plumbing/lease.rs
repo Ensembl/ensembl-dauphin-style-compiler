@@ -1,5 +1,5 @@
 use std::{sync::{Arc, Mutex}};
-use crate::{lock, log};
+use crate::{lock};
 
 // CANNOT BE CLONE
 pub struct Lease<X> {
@@ -9,14 +9,18 @@ pub struct Lease<X> {
 
 impl<X> Drop for Lease<X> {
     fn drop(&mut self) {
-        log!("returned");
         (self.dropper)(self.value.take().unwrap());
     }
 }
 
 impl<X> Lease<X> {
+    pub fn new<F>(dropper: F, value: X) -> Lease<X>
+            where F: FnMut(X) + 'static {
+        Lease { dropper: Box::new(dropper), value: Some(value) }
+    }
+
     pub fn get(&self) -> &X { self.value.as_ref().unwrap() }
-    pub fn get_mut(&mut self) -> &X { self.value.as_mut().unwrap() }
+    pub fn get_mut(&mut self) -> &mut X { self.value.as_mut().unwrap() }
 }
 
 #[derive(Clone)]
@@ -40,6 +44,6 @@ impl<X,E> LeaseManager<X,E> {
             lock!(self.ctor)()?
         };
         let stable = self.stable.clone();
-        Ok(Lease { value: Some(x), dropper: Box::new(move |v| lock!(stable).push(v)) })
+        Ok(Lease::new(move |v| lock!(stable).push(v),x))
     }
 }

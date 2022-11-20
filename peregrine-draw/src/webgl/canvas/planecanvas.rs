@@ -1,10 +1,11 @@
-use std::{f64::consts::PI};
+use std::{f64::consts::PI, fmt::Debug};
 
+use peregrine_toolkit::{identitynumber, hashable};
 use peregrine_toolkit::plumbing::lease::Lease;
 use wasm_bindgen::{JsCast, JsValue, prelude::Closure};
 use web_sys::{CanvasRenderingContext2d, Document, HtmlCanvasElement, HtmlImageElement };
 use peregrine_data::{ DirectColour, PenGeometry, Background };
-use super::{bindery::SelfManagedWebGlTexture, canvasstore::HtmlFlatCanvas, pngcache::PngCache, weave::CanvasWeave};
+use super::{bindery::SelfManagedWebGlTexture, canvasstore::PlaneCanvas, pngcache::PngCache, weave::CanvasWeave};
 use super::canvasstore::CanvasStore;
 use peregrine_toolkit::{js::exception::js_result_to_option_console, error::Error };
 
@@ -26,9 +27,13 @@ fn draw_png_onload(context: CanvasRenderingContext2d, el: HtmlImageElement, orig
 
 fn sub(a: u32, b: u32) -> u32 { a.max(b) - b } // avoiding underflow
 
-pub(crate) struct Flat {
+identitynumber!(IDS);
+hashable!(PlaneCanvasAndContext,id);
+
+pub(crate) struct PlaneCanvasAndContext {
+    id: u64,
     bitmap_multiplier: f64,
-    element: Option<Lease<HtmlFlatCanvas>>,
+    element: Option<Lease<PlaneCanvas>>,
     context: Option<CanvasRenderingContext2d>,
     weave: CanvasWeave,
     font: Option<String>,
@@ -39,14 +44,21 @@ pub(crate) struct Flat {
     png_cache: PngCache
 }
 
-impl Flat {
-    pub(super) fn new(canvas_store: &mut CanvasStore, png_cache: &PngCache, document: &Document, weave: &CanvasWeave, size: (u32,u32), bitmap_multiplier: f32) -> Result<Flat,Error> {
+impl Debug for PlaneCanvasAndContext {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("PlaneCanvasAndContext").field("id", &self.id).finish()
+    }
+}
+
+impl PlaneCanvasAndContext {
+    pub(super) fn new(canvas_store: &mut CanvasStore, png_cache: &PngCache, document: &Document, weave: &CanvasWeave, size: (u32,u32), bitmap_multiplier: f32) -> Result<PlaneCanvasAndContext,Error> {
         let el = canvas_store.allocate(document, size.0, size.1, weave.round_up())?;
         let context = el.get().element()
             .get_context("2d").map_err(|_| Error::fatal("cannot get 2d context"))?
             .unwrap()
             .dyn_into::<CanvasRenderingContext2d>().map_err(|_| Error::fatal("cannot get 2d context"))?;
-        Ok(Flat {
+        Ok(PlaneCanvasAndContext {
+            id: IDS.next(),
             bitmap_multiplier: bitmap_multiplier as f64,
             element: Some(el),
             context: Some(context),
@@ -60,8 +72,10 @@ impl Flat {
         })
     }
 
+    pub(crate) fn id(&self) -> u64 { self.id }
     pub(crate) fn bitmap_multiplier(&self) -> f64 { self.bitmap_multiplier }
     pub(crate) fn get_gl_texture(&self) -> Option<&SelfManagedWebGlTexture> { self.gl_texture.as_ref() }
+    pub(crate) fn get_gl_texture_mut(&mut self) -> Option<&mut SelfManagedWebGlTexture> { self.gl_texture.as_mut() }
     pub(crate) fn set_gl_texture(&mut self, texture: Option<SelfManagedWebGlTexture>) { self.gl_texture = texture; }
     pub(crate) fn is_active(&mut self) -> &mut bool { &mut self.is_active }
 
@@ -101,7 +115,7 @@ impl Flat {
         let radius = radius as f64 * multiplier;
         let context = self.context()?;
         context.begin_path();
-        context.arc(origin.0,origin.1,radius-1.,0.,2.*PI).map_err(|x| Error::fatal("cannot draw arc"))?;
+        context.arc(origin.0,origin.1,radius-1.,0.,2.*PI).map_err(|_x| Error::fatal("cannot draw arc"))?;
         context.set_fill_style(&colour_to_css(colour).into());
         context.fill();
         Ok(())
@@ -197,24 +211,13 @@ impl Flat {
         if self.discarded { return Err(Error::fatal("set_font on discarded flat canvas")); }
         Ok(&self.context.as_ref().unwrap())
     }
+}
 
-    pub(super) fn discard(&mut self) -> Result<(),Error> {
-        if self.discarded { return Ok(()); }
+impl Drop for PlaneCanvasAndContext {
+    fn drop(&mut self) {
         self.element = None;
         self.context = None;
         self.font = None;
         self.discarded = true;
-        Ok(())
-    }
-}
-
-#[cfg(debug_drops)]
-impl Drop for Flat {
-    fn drop(&mut self) {
-        use peregrine_toolkit::log;
-
-        if !self.discarded {
-            log!("undiscarded drop of flat");
-        }
     }
 }

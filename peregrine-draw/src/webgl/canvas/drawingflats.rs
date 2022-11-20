@@ -4,7 +4,7 @@ use crate::webgl::{CanvasWeave, TextureBindery};
 use keyed::KeyedData;
 use peregrine_toolkit::error::Error;
 use crate::webgl::ProcessBuilder;
-use super::flatstore::{ FlatId, FlatStore };
+use super::flatstore::{ FlatId };
 use super::flatplotallocator::FlatPositionCampaignHandle;
 use crate::webgl::global::WebGlGlobal;
 use crate::util::message::Message;
@@ -35,10 +35,9 @@ impl DrawingAllFlats {
         Ok(())
     }
 
-    pub(crate) fn discard(&mut self, store: &mut FlatStore, bindery: &mut TextureBindery) -> Result<(),Error> {
+    pub(crate) fn discard(&mut self, bindery: &mut TextureBindery) -> Result<(),Error> {
         for (id,_) in self.main_canvases.drain() {
-            bindery.free(&id,store)?;
-            store.discard(&id)?;
+            bindery.free(&id)?;
         }
         Ok(())
     }

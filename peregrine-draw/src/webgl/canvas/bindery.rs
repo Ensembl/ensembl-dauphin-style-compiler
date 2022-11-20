@@ -1,4 +1,4 @@
-use crate::webgl::{ FlatId, FlatStore };
+use crate::webgl::{ FlatId };
 use crate::webgl::GPUSpec;
 use super::weave::CanvasWeave;
 use peregrine_toolkit::error::Error;
@@ -6,13 +6,28 @@ use web_sys::WebGlRenderingContext;
 use web_sys::WebGlTexture;
 use crate::webgl::util::handle_context_errors2;
 
-/* We don't want to recreate textures if we don't have to. The main reason for this is repeated draws of multiple
- * programs (likely from adjacent carriages).
+/* 2D drawing contexts, must be converted to WebGL "textures" "bound" to the GPU. This process
+ * allocates a handle to the texture (a WebGlTexture). In addition, textures must be bound to
+ * indexes for the GPU on each run. This isn't a complex operation, but we do it here.
  *
- * Textures are in one of three states: ACTIVE, AVAILABLE, or SLEEPING. Textures which are ACTIVE or AVAILABLE have
- * been created in WebGL, SLEEPING have not. ACTIVE are needed for this render but AVAILABLE are not (yet!). Should
- * insufficent texture slots be available, we can first take an AVAILABLE texture and unbind it to free the space.
- * On the other hand, if we wish use an AVAILABLE texture, we can do so without rebinding.
+ * This has shown itself to be a slow operation. It is best if we keep textures bound even
+ * between runs of a program. If we do this we will end up with the situation at the start of the
+ * program run that some random selection of potentially usable canvases will have been made
+ * textures.
+ * 
+ * This store has a Vec, available_or_active, which contains all current textures. Each is stored
+ * wrapped in a dropper, which unallocates its texture when it is dropped.
+ * 
+ */
+
+/* We don't want to recreate textures if we don't have to. The main reason for this is repeated
+ * draws of multiple programs (likely from adjacent carriages).
+ *
+ * Textures are in one of three states: ACTIVE, AVAILABLE, or SLEEPING. Textures which are ACTIVE 
+ * or AVAILABLE have been created in WebGL, SLEEPING have not. ACTIVE are needed for this render
+ * but AVAILABLE are not (yet!). Should insufficent texture slots be available, we can first take 
+ * an AVAILABLE texture and unbind it to free the space. On the other hand, if we wish use an
+ * AVAILABLE texture, we can do so without rebinding.
  *
  * There are three operations during draw.
  * allocate(): a texture needs to be bound, ie transferred from SLEEPING or AVAILABLE to ACTIVE.
@@ -68,10 +83,10 @@ fn apply_weave(context: &WebGlRenderingContext,weave: &CanvasWeave) -> Result<()
     Ok(())
 }
 
-fn create_texture(context: &WebGlRenderingContext,canvas_store: &FlatStore, our_data: &FlatId) -> Result<SelfManagedWebGlTexture,Error> {
-    let (element,weave) = canvas_store.retrieve(our_data, |flat| {
+fn create_texture(context: &WebGlRenderingContext, our_data: &FlatId) -> Result<SelfManagedWebGlTexture,Error> {
+    let (element,weave) = our_data.retrieve(|flat| {
         (flat.element().cloned(),flat.weave().clone())
-    })?;
+    });
     let texture = context.create_texture().ok_or_else(|| Error::fatal("cannot create texture"))?;
     handle_context_errors2(context)?;
     context.bind_texture(WebGlRenderingContext::TEXTURE_2D,Some(&texture));
@@ -85,19 +100,28 @@ fn create_texture(context: &WebGlRenderingContext,canvas_store: &FlatStore, our_
     Ok(SelfManagedWebGlTexture::new(texture,context))
 }
 
-pub struct SelfManagedWebGlTexture(WebGlTexture,WebGlRenderingContext);
+pub struct SelfManagedWebGlTexture {
+    texture: WebGlTexture,
+    context: WebGlRenderingContext,
+    gl_index: Option<u32>
+}
 
 impl SelfManagedWebGlTexture {
     pub fn new(texture: WebGlTexture, context: &WebGlRenderingContext) -> SelfManagedWebGlTexture {
-        SelfManagedWebGlTexture(texture,context.clone())
+        SelfManagedWebGlTexture {
+            texture,
+            context: context.clone(),
+            gl_index: None
+        }
     }
 
-    pub fn texture(&self) -> &WebGlTexture { &self.0 }
+    pub fn texture(&self) -> &WebGlTexture { &self.texture }
+    pub fn gl_index(&self) -> u32 { self.gl_index.unwrap() }
 }
 
 impl Drop for SelfManagedWebGlTexture {
     fn drop(&mut self) {
-        self.1.delete_texture(Some(&self.0));
+        self.context.delete_texture(Some(&self.texture));
         // XXX errors
     }
 }
@@ -105,7 +129,6 @@ impl Drop for SelfManagedWebGlTexture {
 pub(crate) struct TextureBindery {
     available_or_active: Vec<FlatId>,
     max_textures: usize,
-    current_epoch: i64,
     next_gl_index: u32
 }
 
@@ -115,15 +138,14 @@ impl TextureBindery {
         TextureBindery {
             available_or_active: vec![],
             max_textures,
-            current_epoch: 0,
             next_gl_index: 0
         }
     }
 
-    fn find_victim(&mut self, flat_store: &mut FlatStore) -> Result<FlatId,Error> {
+    fn find_victim(&mut self) -> Result<FlatId,Error> {
         let flats = self.available_or_active.iter().cloned().collect::<Vec<_>>();
         for (i,flat_id) in flats.iter().enumerate() {
-            if !flat_store.modify(&flat_id, |flat| *flat.is_active())? {
+            if !flat_id.modify(|flat| *flat.is_active()) {
                 self.available_or_active.swap_remove(i);
                 return Ok(flat_id.clone());
             }
@@ -131,57 +153,60 @@ impl TextureBindery {
         return Err(Error::fatal("too many textures bound"));
     }
 
-    fn make_one_unavailable(&mut self, flat_store: &mut FlatStore) -> Result<(),Error> {
-        let old_item = self.find_victim(flat_store)?;
-        flat_store.modify(&old_item, |flat| { flat.set_gl_texture(None) })?;
+    fn make_one_unavailable(&mut self) -> Result<(),Error> {
+        let old_item = self.find_victim()?;
+        old_item.modify(|flat| { flat.set_gl_texture(None) });
         Ok(())
     }
 
-    fn make_available(&mut self, flat: &FlatId, flat_store: &mut FlatStore, context: &WebGlRenderingContext) -> Result<(),Error> {
+    fn make_available(&mut self, flat: &FlatId, context: &WebGlRenderingContext) -> Result<(),Error> {
         if self.available_or_active.len() >= self.max_textures {
-            self.make_one_unavailable(flat_store)?;
+            self.make_one_unavailable()?;
         }
         self.available_or_active.push(flat.clone());
-        let texture = create_texture(context,flat_store,flat)?;
-        flat_store.modify(&flat, |flat| { flat.set_gl_texture(Some(texture)) })?;
+        let texture = create_texture(context,flat)?;
+        flat.modify(|flat| { flat.set_gl_texture(Some(texture)) });
         Ok(())
     }
 
-    pub(crate) fn allocate(&mut self, flat_id: &FlatId, flat_store: &mut FlatStore, context: &WebGlRenderingContext) -> Result<u32,Error> {
+    pub(crate) fn allocate(&mut self, flat_id: &FlatId, context: &WebGlRenderingContext) -> Result<(),Error> {
         /* Promote to AVAILABLE if SLEEPING */
         if !self.available_or_active.contains(flat_id) {
-            self.make_available(flat_id,flat_store,context)?;
+            self.make_available(flat_id,context)?;
         }
         /* Promote from AVAILABLE to ACTIVE */
-        flat_store.modify(flat_id, |flat| { *flat.is_active() = true; })?;
+        flat_id.modify(|flat| { *flat.is_active() = true; });
         /* Allocate a gl index for this program */
         let our_gl_index = self.next_gl_index;
         self.next_gl_index += 1;
         /* Actually bind it */
         context.active_texture(WebGlRenderingContext::TEXTURE0 + our_gl_index);
         handle_context_errors2(context)?;
-        let texture = flat_store.retrieve(flat_id, |flat| { flat.get_gl_texture().unwrap().texture().clone() })?;
+        let texture = flat_id.modify(|flat| { 
+            let texture = flat.get_gl_texture_mut().unwrap();
+            texture.gl_index = Some(our_gl_index);
+            flat.get_gl_texture().unwrap().texture().clone()
+        });
         context.bind_texture(WebGlRenderingContext::TEXTURE_2D,Some(&texture));
         handle_context_errors2(context)?;
-        Ok(our_gl_index)
-    }
-
-    pub(crate) fn free(&mut self, flat: &FlatId, flat_store: &mut FlatStore) -> Result<(),Error> {
-        if let Some(pos) = self.available_or_active.iter().position(|id| id == flat) {
-            self.available_or_active.swap_remove(pos);
-        }
-        flat_store.modify(&flat, |flat| { flat.set_gl_texture(None) })?;
         Ok(())
     }
 
-    pub(crate) fn clear(&mut self, flat_store: &mut FlatStore) -> Result<(),Error> {
+    pub(crate) fn free(&mut self, flat: &FlatId) -> Result<(),Error> {
+        if let Some(pos) = self.available_or_active.iter().position(|id| id == flat) {
+            self.available_or_active.swap_remove(pos);
+        }
+        flat.modify(|flat| { flat.set_gl_texture(None) });
+        Ok(())
+    }
+
+    pub(crate) fn clear(&mut self) -> Result<(),Error> {
         for flat_id in &self.available_or_active {
-            let is_active = flat_store.modify(&flat_id, |flat| *flat.is_active())?;
+            let is_active = flat_id.modify(|flat| *flat.is_active());
             if is_active {
-                flat_store.modify(flat_id, |flat| { *flat.is_active() = false; })?;
+                flat_id.modify(|flat| { *flat.is_active() = false; });
             }
         }
-        self.current_epoch += 1;
         self.next_gl_index = 0;
         Ok(())
     }

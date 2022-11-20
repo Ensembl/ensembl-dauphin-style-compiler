@@ -8,7 +8,7 @@ use peregrine_toolkit::lock;
 use crate::shape::core::flatdrawing::{FlatDrawingItem, FlatDrawingManager};
 use crate::shape::core::texture::CanvasTextureArea;
 use crate::shape::layers::drawingtools::ToolPreparations;
-use crate::webgl::{Flat, FlatStore};
+use crate::webgl::{PlaneCanvasAndContext};
 use crate::webgl::global::WebGlGlobal;
 use crate::util::message::Message;
 use crate::webgl::canvas::flatstore::FlatId;
@@ -23,7 +23,7 @@ fn pad(z: (u32,u32)) -> (u32,u32) {
     (z.0+PAD,z.1+PAD)
 }
 
-fn stripe_stamp(canvas: &Flat, t: (u32,u32), a: &DirectColour, b: &DirectColour, p: u32) -> Result<(),Error> {
+fn stripe_stamp(canvas: &PlaneCanvasAndContext, t: (u32,u32), a: &DirectColour, b: &DirectColour, p: u32) -> Result<(),Error> {
     canvas.rectangle(t,(STAMP,STAMP),b,true)?;
     canvas.path(t,&[
         (0,    0),
@@ -118,7 +118,7 @@ impl FlatDrawingItem for Heraldry {
         Some(hasher.finish())
     }
 
-    fn build(&mut self, canvas: &mut Flat, text_origin: (u32,u32), size: (u32,u32)) -> Result<(),Error> {
+    fn build(&mut self, canvas: &mut PlaneCanvasAndContext, text_origin: (u32,u32), size: (u32,u32)) -> Result<(),Error> {
         match self {
             Heraldry::Stripe(a,b,prop,count) => {
                 let p = STAMP * (*prop) / 100;
@@ -223,10 +223,10 @@ impl DrawingHeraldry {
         })
     }
 
-    pub(crate) fn draw_at_locations(&mut self, store: &mut FlatStore, preparations: &mut ToolPreparations) -> Result<(),Error> {
-        self.horiz.draw_at_locations(store,preparations.heraldry_h_manager())?;
-        self.vert.draw_at_locations(store,preparations.heraldry_v_manager())?;
-        self.crisp.draw_at_locations(store,preparations.crisp_manager())?;
+    pub(crate) fn draw_at_locations(&mut self, preparations: &mut ToolPreparations) -> Result<(),Error> {
+        self.horiz.draw_at_locations(preparations.heraldry_h_manager())?;
+        self.vert.draw_at_locations(preparations.heraldry_v_manager())?;
+        self.crisp.draw_at_locations(preparations.crisp_manager())?;
         Ok(())
     }
 

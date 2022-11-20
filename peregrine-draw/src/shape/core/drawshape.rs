@@ -151,8 +151,7 @@ fn draw_area_from_canvas(layer: &mut Layer, gl: &mut WebGlGlobal, draw_group: &D
     let left = layer.left();
     let mut rectangles = RectanglesData::new_area(layer, &mut geometry_yielder, &mut patina_yielder,&area,depth,left,false,&draw_group,edge,wobble)?;
     let campaign = rectangles.elements_mut();
-    let gl_ref = gl.refs();
-    patina_yielder.draw()?.add_rectangle(campaign,&canvas,&dims,gl_ref.flat_store)?;
+    patina_yielder.draw()?.add_rectangle(campaign,&canvas,&dims)?;
     campaign.close()?;
     Ok(Box::new(Rectangles::new(rectangles,gl)))
 }
@@ -163,8 +162,7 @@ pub(super) fn draw_points_from_canvas2(layer: &mut Layer, gl: &mut WebGlGlobal, 
     let left = layer.left();
     let mut rectangles = RectanglesData::new_sized(layer, &mut geometry_yielder, &mut patina_yielder,&points,run,x_sizes,y_sizes,depth,left,false,&draw_group,attachment,wobble)?;
     let campaign = rectangles.elements_mut();
-    let gl_ref = gl.refs();
-    patina_yielder.draw()?.add_rectangle(campaign,&canvas,&dims,gl_ref.flat_store)?;
+    patina_yielder.draw()?.add_rectangle(campaign,&canvas,&dims)?;
     campaign.close()?;
     Ok(Box::new(Rectangles::new(rectangles,gl)))
 }
