@@ -6,15 +6,21 @@
  */
 
 use std::collections::HashMap;
+use std::sync::Arc;
+use std::sync::Mutex;
 use js_sys::Boolean;
 use js_sys::Map;
 use peregrine_toolkit::error::Error;
+use peregrine_toolkit::lock;
+use peregrine_toolkit::log;
+use peregrine_toolkit::plumbing::lease::Lease;
+use peregrine_toolkit::plumbing::lease::LeaseManager;
 use web_sys::{CanvasRenderingContext2d, Document, HtmlCanvasElement};
 use wasm_bindgen::JsCast;
 use wasm_bindgen::JsValue;
 
 const MINIMUM : u32 = 256;
-const SCALE : u32 = 4;
+const SCALE : u32 = 2;
 
 pub struct HtmlFlatCanvas {
     element: HtmlCanvasElement,
@@ -64,40 +70,61 @@ fn rounded(mut v: u32) -> u32 {
     power
 }
 
+#[cfg(debug_canvasstore)]
+#[derive(Clone)]
+struct Stats(Arc<Mutex<Vec<(u32,u32)>>>);
+
+#[cfg(debug_canvasstore)]
+impl Stats {
+    fn new() -> Stats { Stats(Arc::new(Mutex::new(vec![]))) }
+    fn add(&self, x: u32, y: u32) {
+        let mut state = lock!(self.0);
+        state.push((x,y));
+        let count : u32 = state.iter().map(|c| c.0*c.1/1000).sum();
+        log!("{} canvases, {} Mp in play {:?}",state.len(),count/1000,state);
+    }
+}
+
+#[cfg(not(debug_canvasstore))]
+#[derive(Clone)]
+struct Stats;
+
+#[cfg(not(debug_canvasstore))]
+impl Stats {
+    fn new() -> Stats { Stats }
+    fn add(&self, _x: u32, _y: u32) {}
+}
+
+#[derive(Clone)]
 pub struct CanvasStore {
-    canvases: HashMap<(u32,u32),Vec<HtmlFlatCanvas>>
+    canvases: Arc<Mutex<HashMap<(u32,u32),LeaseManager<HtmlFlatCanvas,Error>>>>,
+    stats: Stats,
 }
 
 impl CanvasStore {
     pub fn new() -> CanvasStore {
         CanvasStore {
-            canvases: HashMap::new()
+            canvases: Arc::new(Mutex::new(HashMap::new())),
+            stats: Stats::new()
         }
     }
 
-    pub fn allocate(&mut self, document: &Document, mut x: u32, mut y: u32, round_up: bool) -> Result<HtmlFlatCanvas,Error> {
+    pub fn allocate(&self, document: &Document, mut x: u32, mut y: u32, round_up: bool) -> Result<Lease<HtmlFlatCanvas>,Error> {
+        let size = (x*y) as f64;
+        let document = document.clone();
         if round_up {
             x = rounded(x);
             y = rounded(y);
         }
-        if let Some(list) = self.canvases.get_mut(&(x,y)) {
-            if let Some(value) = list.pop() {
-                value.clear()?;
-                return Ok(value);
-            }
-        }
-        let out = HtmlFlatCanvas::new(document,x,y)?;
-        out.clear()?;
-        Ok(out)
-    }
-
-    pub fn free(&mut self, element: HtmlFlatCanvas) {
-        self.canvases.entry((element.size.0,element.size.1)).or_insert_with(|| vec![]).push(element);
-    }
-
-    pub fn discard(&mut self) {
-        for (_,mut lists) in self.canvases.drain() {
-            lists.clear(); // Should destroy nodes
-        }
+        log!("{}% used",size*100./((x*y) as f64));
+        let stats = self.stats.clone();
+        let mut canvas = lock!(self.canvases).entry((x,y)).or_insert_with(move || {
+            LeaseManager::new(move || {
+                stats.add(x,y);
+                HtmlFlatCanvas::new(&document,x,y)
+            })
+        }).allocate()?;
+        canvas.get_mut().clear()?;
+        Ok(canvas)
     }
 }

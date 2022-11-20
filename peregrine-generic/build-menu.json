@@ -41,6 +41,11 @@
         "options": ["no","yes"]
     },
     {
+        "key": "CFG_DEBUG_CANVASSTORE",
+        "question": "Debug canvas store",
+        "options": ["no","yes"]
+    },
+    {
         "key": "CFG_DEBUG_SAMPLER",
         "question": "Use performance sampler",
         "options": ["no","yes"]

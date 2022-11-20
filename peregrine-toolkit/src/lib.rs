@@ -51,6 +51,7 @@ pub mod plumbing {
     pub mod distributor;
     pub mod onchange;
     pub mod oneshot;
+    pub mod lease;
 }
 
 pub mod puzzle {
