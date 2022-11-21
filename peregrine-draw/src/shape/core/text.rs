@@ -1,5 +1,4 @@
 use peregrine_data::{ DirectColour, PenGeometry, Background, LeafStyle, TextShape, SpaceBase };
-use keyed::keyed_handle;
 use peregrine_toolkit::eachorevery::EachOrEvery;
 use peregrine_toolkit::error::Error;
 use peregrine_toolkit::lock;
@@ -8,18 +7,16 @@ use crate::shape::layers::layer::Layer;
 use crate::shape::triangles::drawgroup::DrawGroup;
 use crate::shape::triangles::rectangles::GLAttachmentPoint;
 use crate::util::fonts::Fonts;
-use crate::webgl::canvas::flatplotallocator::FlatPositionManager;
 use crate::webgl::canvas::structuredtext::StructuredText;
+use crate::webgl::canvas::tessellate::canvastessellator::CanvasTessellator;
 use crate::webgl::{ CanvasWeave, CanvasAndContext };
 use crate::webgl::global::WebGlGlobal;
 use super::drawshape::{GLShape, ShapeToAdd, dims_to_sizes, draw_points_from_canvas2};
-use super::flatdrawing::{FlatDrawingItem, FlatDrawingManager};
+use super::flatdrawing::{FlatDrawingItem, FlatDrawingManager, CanvasItemHandle};
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 use std::sync::{Arc, Mutex};
 use crate::util::message::Message;
-
-keyed_handle!(TextHandle);
 
 const PAD : u32 = 4;
 
@@ -27,14 +24,15 @@ fn pad(x: (u32,u32)) -> (u32,u32) {
     (x.0+PAD,x.1+PAD)
 }
 
+#[derive(Clone)]
 pub(crate) struct Text {
-    text: StructuredText,
+    text: Arc<StructuredText>,
 }
 
 impl Text {
     fn new(pen: &PenGeometry, text: &str, colour: &DirectColour, background: &Option<Background>) -> Text {
         Text {
-            text: StructuredText::new(pen,text,colour,background)
+            text: Arc::new(StructuredText::new(pen,text,colour,background))
         }
     }
 
@@ -46,7 +44,7 @@ impl Text {
 impl FlatDrawingItem for Text {
     fn calc_size(&mut self, gl: &mut WebGlGlobal) -> Result<(u32,u32),Error> {
         let gl_ref = gl.refs();
-        let mut canvas = gl_ref.flat_store.scratch(&CanvasWeave::Crisp,(100,100))?;
+        let mut canvas = gl_ref.scratch_canvases.scratch(&CanvasWeave::Crisp,(100,100))?;
         self.text.measure(canvas.get_mut())
     }
 
@@ -69,25 +67,25 @@ impl FlatDrawingItem for Text {
     }
 }
 
-pub struct DrawingText(FlatDrawingManager<TextHandle,Text>,Fonts,f64);
+pub struct DrawingText(FlatDrawingManager,Vec<Text>,Fonts,f64);
 
 impl DrawingText {
     pub(crate) fn new(fonts: &Fonts, bitmap_multiplier: f64) -> DrawingText {
-        DrawingText(FlatDrawingManager::new(),fonts.clone(),bitmap_multiplier)
+        DrawingText(FlatDrawingManager::new(),vec![],fonts.clone(),bitmap_multiplier)
     }
 
-    pub fn add_text(&mut self, pen: &PenGeometry, text: &str, colour: &DirectColour, background: &Option<Background>) -> TextHandle {
+    pub fn add_text(&mut self, pen: &PenGeometry, text: &str, colour: &DirectColour, background: &Option<Background>) -> CanvasItemHandle {
         self.0.add(Text::new(pen,text,colour,background))
     }
 
-    pub(crate) async fn calculate_requirements(&mut self, gl: &Arc<Mutex<WebGlGlobal>>, allocator: &mut FlatPositionManager) -> Result<(),Error> {
-        for text in self.0.iter_mut() {
-            text.prepare(&self.1,self.2).await;
+    pub(crate) async fn calculate_requirements(&mut self, gl: &Arc<Mutex<WebGlGlobal>>, allocator: &mut CanvasTessellator) -> Result<(),Error> {
+        for text in self.1.iter() {
+            text.prepare(&self.2,self.3).await;
         }
         self.0.calculate_requirements(&mut *lock!(gl),allocator)
     }
 
-    pub(crate) fn manager(&mut self) -> &mut FlatDrawingManager<TextHandle,Text> { &mut self.0 }
+    pub(crate) fn manager(&mut self) -> &mut FlatDrawingManager { &mut self.0 }
 }
 
 pub(super) fn prepare_text(out: &mut Vec<GLShape>, tools: &mut DrawingToolsBuilder, shape: &TextShape<LeafStyle>, draw_group: &DrawGroup) {
@@ -108,10 +106,10 @@ pub(super) fn prepare_text(out: &mut Vec<GLShape>, tools: &mut DrawingToolsBuild
 pub(super) fn draw_text(layer: &mut Layer, gl: &mut WebGlGlobal, tools: &mut DrawingToolsBuilder,
                     points: SpaceBase<f64,LeafStyle>,
                     run: Option<SpaceBase<f64,()>>,
-                    handles: &[TextHandle], depth: EachOrEvery<i8>, draw_group: &DrawGroup,
+                    handles: &[CanvasItemHandle], depth: EachOrEvery<i8>, draw_group: &DrawGroup,
                     attachment: GLAttachmentPoint,
                 ) -> Result<ShapeToAdd,Message> {
-    let bitmap_multiplier = gl.refs().flat_store.bitmap_multiplier() as f64;
+    let bitmap_multiplier = gl.refs().canvas_source.bitmap_multiplier() as f64;
     let text = tools.text();
     let bitmap_dims = handles.iter()
         .map(|handle| text.manager().get_texture_areas_on_bitmap(handle))

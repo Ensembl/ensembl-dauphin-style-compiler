@@ -2,18 +2,15 @@ use std::collections::hash_map::DefaultHasher;
 use std::hash::{ Hash, Hasher };
 use std::sync::{Arc, Mutex};
 use peregrine_data::{ DirectColour };
-use keyed::keyed_handle;
 use peregrine_toolkit::error::Error;
 use peregrine_toolkit::lock;
-use crate::shape::core::flatdrawing::{FlatDrawingItem, FlatDrawingManager};
+use crate::shape::core::flatdrawing::{FlatDrawingItem, FlatDrawingManager, CanvasItemHandle};
 use crate::shape::core::texture::CanvasTextureArea;
 use crate::shape::layers::drawingtools::ToolPreparations;
 use crate::webgl::{CanvasAndContext, CanvasInUse};
 use crate::webgl::global::WebGlGlobal;
 use crate::util::message::Message;
 use super::bardots::HeraldryBarDots;
-
-keyed_handle!(InternalHeraldryHandle);
 
 const STAMP : u32 = 32;
 const PAD : u32 = 8;
@@ -97,7 +94,7 @@ impl Heraldry {
 
 impl FlatDrawingItem for Heraldry {
     fn calc_size(&mut self, gl: &mut WebGlGlobal) -> Result<(u32,u32),Error> {
-        let bitmap_multiplier = gl.refs().flat_store.bitmap_multiplier();
+        let bitmap_multiplier = gl.refs().canvas_source.bitmap_multiplier();
         Ok(match self {
             Heraldry::Stripe(_,_,_,count) => (STAMP*count.0,STAMP*count.1),
             Heraldry::BarDots(dots) => dots.size(bitmap_multiplier as f64)
@@ -162,9 +159,9 @@ impl HeraldryHandleType {
 #[derive(Clone)]
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub(crate) enum HeraldryHandle {
-    HorizVert(InternalHeraldryHandle,InternalHeraldryHandle),
-    Horiz(InternalHeraldryHandle),
-    Crisp(InternalHeraldryHandle)
+    HorizVert(CanvasItemHandle,CanvasItemHandle),
+    Horiz(CanvasItemHandle),
+    Crisp(CanvasItemHandle)
 }
 
 #[derive(Clone,PartialEq,Eq,Hash,Debug)]
@@ -175,9 +172,9 @@ pub(crate) enum HeraldryCanvas {
 }
 
 pub struct DrawingHeraldry {
-    horiz: FlatDrawingManager<InternalHeraldryHandle,Heraldry>,
-    vert: FlatDrawingManager<InternalHeraldryHandle,Heraldry>,
-    crisp: FlatDrawingManager<InternalHeraldryHandle,Heraldry>
+    horiz: FlatDrawingManager,
+    vert: FlatDrawingManager,
+    crisp: FlatDrawingManager
 }
 
 impl DrawingHeraldry {

@@ -12,7 +12,7 @@ use crate::{Assets, PgCommanderTaskSpec, DrawingCarriage, BackendNamespace, Sett
 use commander::{CommanderStream, PromiseFuture};
 use peregrine_toolkit::eachorevery::eoestruct::{StructValue};
 use peregrine_toolkit::error::{err_web_drop, Error};
-use peregrine_toolkit::{log_extra, lock, log};
+use peregrine_toolkit::{log_extra, lock};
 use peregrine_toolkit_async::sync::blocker::{Blocker, Lockout};
 use super::pgcore::PeregrineCore;
 
@@ -112,7 +112,6 @@ impl ApiQueueCampaign {
                 data.train_set.transition_complete();
             },
             ApiMessage::SetPosition(centre,size,only_if_unknown) =>{
-                log!("SetPosition({:?},{:?},{:?})",centre,size,only_if_unknown);
                 if let Some(centre) = centre {
                     self.viewport = self.viewport.set_position(centre,only_if_unknown);
                 }

@@ -5,7 +5,7 @@ use peregrine_toolkit::log_extra;
 use peregrine_toolkit_async::sync::retainer::RetainTest;
 
 use crate::shape::layers::patina::PatinaProcess;
-use crate::webgl::{ ProcessBuilder, Process, DrawingAllFlats };
+use crate::webgl::{ ProcessBuilder, Process, DrawingCanvases };
 use super::geometry::{GeometryProcessName, GeometryYielder, TrianglesGeometry, GeometryAdder};
 use super::programstore::ProgramStore;
 use super::patina::{PatinaProcessName, PatinaYielder};
@@ -26,7 +26,8 @@ TODO wiggle width
 TODO intersection cache
 */
 
-#[derive(Clone,Debug,PartialEq,Eq,Hash)]
+#[derive(Clone,PartialEq,Eq,Hash)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub(crate) struct ProgramCharacter(pub GeometryProcessName, pub PatinaProcessName);
 
 impl ProgramCharacter {
@@ -73,7 +74,7 @@ impl Layer {
         Ok(self.store.get_mut(&character).unwrap().get_process_mut())
     }
 
-    pub(super) async fn build(mut self, gl: &Arc<Mutex<WebGlGlobal>>, canvases: &DrawingAllFlats, retain: &RetainTest) -> Result<Option<Vec<Process>>,Message> {
+    pub(super) async fn build(mut self, gl: &Arc<Mutex<WebGlGlobal>>, canvases: &DrawingCanvases, retain: &RetainTest) -> Result<Option<Vec<Process>>,Message> {
         let mut processes = vec![];
         let mut characters = self.store.keys().cloned().collect::<Vec<_>>();
         characters.sort_by_cached_key(|c| c.order());

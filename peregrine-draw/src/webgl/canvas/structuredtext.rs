@@ -151,7 +151,7 @@ impl StructuredText {
         StructuredTextGroup(&self.pen)
     }
 
-    pub(crate) fn draw(&mut self, canvas: &mut CanvasAndContext, text_origin: (u32,u32), size: (u32,u32)) -> Result<(),Error> {
+    pub(crate) fn draw(&self, canvas: &mut CanvasAndContext, text_origin: (u32,u32), size: (u32,u32)) -> Result<(),Error> {
         canvas.set_font(&self.pen)?;
         let background = self.background.clone().unwrap_or_else(|| Background::none());
         canvas.background(text_origin,size,&background,false)?;

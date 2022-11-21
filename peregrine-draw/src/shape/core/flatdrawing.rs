@@ -1,9 +1,8 @@
 use std::collections::HashMap;
-
-use keyed::{KeyedData, KeyedHandle};
+use keyed::{KeyedData, KeyedHandle, keyed_handle};
 use peregrine_toolkit::error::Error;
-use crate::webgl::canvas::flatplotallocator::FlatPositionManager;
-use crate::webgl::{ CanvasInUse, CanvasAndContext, FlatPositionCampaignHandle };
+use crate::webgl::canvas::tessellate::canvastessellator::{TessellationGroupHandle, CanvasTessellator};
+use crate::webgl::{ CanvasInUse, CanvasAndContext };
 use crate::webgl::global::WebGlGlobal;
 use super::texture::{CanvasTextureArea };
 use crate::util::message::Message;
@@ -13,19 +12,19 @@ pub(crate) trait FlatDrawingItem {
     fn group_hash(&self) -> Option<u64> { None }
     fn calc_size(&mut self, gl: &mut WebGlGlobal) -> Result<(u32,u32),Error>;
     fn padding(&mut self, _gl: &mut WebGlGlobal) -> Result<(u32,u32),Error> { Ok((0,0)) }
-    fn build(&mut self, canvas: &mut CanvasAndContext, text_origin: (u32,u32), size: (u32,u32)) -> Result<(),Error>;
+    fn build(&mut self, canvas: &mut CanvasAndContext, origin: (u32,u32), size: (u32,u32)) -> Result<(),Error>;
 }
 
 /* here, size and origins are inclusive of padding */
-pub(crate) struct FlatBoundary {
-    text_origin: Option<(u32,u32)>,
+struct FlatBoundary {
+    origin: Option<(u32,u32)>,
     size: Option<(u32,u32)>,
     padding: (u32,u32)
 }
 
 impl FlatBoundary {
     fn new() -> FlatBoundary {
-        FlatBoundary { text_origin: None, size: None, padding: (0,0) }
+        FlatBoundary { origin: None, size: None, padding: (0,0) }
     }
 
     fn size_without_padding(&self) -> Result<(u32,u32),Error> {
@@ -47,7 +46,7 @@ impl FlatBoundary {
     }
 
     fn set_origin(&mut self, text: (u32,u32)) {
-        self.text_origin = Some(text);
+        self.origin = Some(text);
     }
 
     fn pad(&self, v: (u32,u32)) -> (u32,u32) {
@@ -56,7 +55,7 @@ impl FlatBoundary {
 
     fn get_texture_areas_on_bitmap(&self) -> Result<CanvasTextureArea,Message> {
         Ok(CanvasTextureArea::new(
-            self.pad(unpack(&self.text_origin)?),
+            self.pad(unpack(&self.origin)?),
             unpack(&self.size)?
         ))
     }
@@ -66,16 +65,18 @@ fn unpack<T: Clone>(data: &Option<T>) -> Result<T,Message> {
     data.as_ref().cloned().ok_or_else(|| Message::CodeInvariantFailed("texture packing failure, t origin".to_string()))
 }
 
-pub(crate) struct FlatDrawingManager<H: KeyedHandle,T: FlatDrawingItem> {
-    hashed_items: HashMap<u64,H>,
-    texts: KeyedData<H,(T,FlatBoundary)>,
-    request: Option<FlatPositionCampaignHandle>,
-    groups: HashMap<Option<u64>,Vec<H>>,
+keyed_handle!(CanvasItemHandle);
+
+pub(crate) struct FlatDrawingManager {
+    hashed_items: HashMap<u64,CanvasItemHandle>,
+    texts: KeyedData<CanvasItemHandle,(Box<dyn FlatDrawingItem>,FlatBoundary)>,
+    request: Option<TessellationGroupHandle>,
+    groups: HashMap<Option<u64>,Vec<CanvasItemHandle>>,
     canvas_id: Option<CanvasInUse>
 }
 
-impl<H: KeyedHandle+Clone,T: FlatDrawingItem> FlatDrawingManager<H,T> {
-    pub fn new() -> FlatDrawingManager<H,T> {
+impl FlatDrawingManager {
+    pub(crate) fn new() -> FlatDrawingManager {
         FlatDrawingManager {
             hashed_items: HashMap::new(),
             texts: KeyedData::new(),
@@ -85,7 +86,7 @@ impl<H: KeyedHandle+Clone,T: FlatDrawingItem> FlatDrawingManager<H,T> {
         }
     }
 
-    pub(crate) fn add(&mut self, item: T) -> H {
+    pub(crate) fn add<T>(&mut self, item: T) -> CanvasItemHandle where T: FlatDrawingItem + 'static {
         let hash = item.compute_hash();
         if let Some(hash) = hash {
             if let Some(old) = self.hashed_items.get(&hash) {
@@ -93,7 +94,7 @@ impl<H: KeyedHandle+Clone,T: FlatDrawingItem> FlatDrawingManager<H,T> {
             }
         }
         let group = item.group_hash();
-        let handle = self.texts.add((item,FlatBoundary::new()));
+        let handle = self.texts.add((Box::new(item),FlatBoundary::new()));
         if let Some(hash) = hash {
             self.hashed_items.insert(hash,handle.clone());
         }
@@ -115,7 +116,7 @@ impl<H: KeyedHandle+Clone,T: FlatDrawingItem> FlatDrawingManager<H,T> {
         Ok(())
     }
 
-    pub(crate) fn calculate_requirements(&mut self, gl: &mut WebGlGlobal, allocator: &mut FlatPositionManager) -> Result<(),Error> {
+    pub(crate) fn calculate_requirements(&mut self, gl: &mut WebGlGlobal, allocator: &mut CanvasTessellator) -> Result<(),Error> {
         self.calc_sizes(gl)?;
         let mut sizes = vec![];
         for (_,boundary) in self.texts.values_mut() {
@@ -125,7 +126,7 @@ impl<H: KeyedHandle+Clone,T: FlatDrawingItem> FlatDrawingManager<H,T> {
         Ok(())
     }
 
-    pub(crate) fn draw_at_locations(&mut self, allocator: &mut FlatPositionManager) -> Result<(),Error> {
+    pub(crate) fn draw_at_locations(&mut self, allocator: &mut CanvasTessellator) -> Result<(),Error> {
         self.canvas_id = allocator.canvas()?.cloned();
         let mut origins = allocator.origins(self.request.as_ref().unwrap());
         let mut sizes = allocator.sizes(self.request.as_ref().unwrap());
@@ -151,11 +152,7 @@ impl<H: KeyedHandle+Clone,T: FlatDrawingItem> FlatDrawingManager<H,T> {
         self.canvas_id.as_ref().cloned()
     }
 
-    pub(crate) fn get_texture_areas_on_bitmap(&self, handle: &H) -> Result<CanvasTextureArea,Message> {
+    pub(crate) fn get_texture_areas_on_bitmap(&self, handle: &CanvasItemHandle) -> Result<CanvasTextureArea,Message> {
         self.texts.get(handle).1.get_texture_areas_on_bitmap()
-    }
-
-    pub(crate) fn iter_mut(&mut self) -> impl Iterator<Item=&mut T> {
-        self.texts.values_mut().map(|x| &mut x.0)
     }
 }

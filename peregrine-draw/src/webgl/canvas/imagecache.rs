@@ -4,22 +4,22 @@ use peregrine_toolkit::lock;
 use web_sys::{HtmlImageElement};
 
 #[derive(Clone)]
-pub struct PngCache {
+pub struct ImageCache {
     cache: Arc<Mutex<HashMap<String,HtmlImageElement>>>
 }
 
-impl PngCache {
-    pub(super) fn new() -> PngCache {
-        PngCache {
+impl ImageCache {
+    pub(crate) fn new() -> ImageCache {
+        ImageCache {
             cache: Arc::new(Mutex::new(HashMap::new()))
         }
     }
 
-    pub(super) fn get(&self, name: &str) -> Option<HtmlImageElement> {
+    pub(crate) fn get(&self, name: &str) -> Option<HtmlImageElement> {
         lock!(self.cache).get(name).cloned()
     }
 
-    pub(super) fn set(&self, name: &str, element: HtmlImageElement) {
+    pub(crate) fn set(&self, name: &str, element: HtmlImageElement) {
         lock!(self.cache).insert(name.to_string(),element);
     }
 }

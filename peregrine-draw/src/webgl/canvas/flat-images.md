@@ -23,4 +23,10 @@ When a canvas is needed we must take out a context which is stateful. The operat
 
 At this stage, no WebGL use has entered our API. We could equally use a `CanvasInUse` for other purposes (but don't, at the moment).
 
-A `CanvasInUseAllocator` allows you to create a `CanvasInUse`.
+A `ScratchCanvasAllocator` allows you to get a direct, temporary lease on a `ScratchCanvasAllocator` which can be much faster, but you can't guarantee who else might draw on it, so it's used for quick borrow/use/dispose for exmaple, when measuring texts.
+
+## Tessellating
+
+The things we need to draw are small; so small that they can't have a canvas each but must be packed together into a single canvas.
+
+The algorithm used is a custom, shelf-based allocator which compromises on speed and packing density. It is inside `packer.rs` which exposes `allocate_horizontal`, `allocate_vertical` and `allocate_areas` to the rest of the code. These functions map a list of sizes to a list of offsets to non-overlapping rectangles. The three methods exist because the algotihm needs to bedifferent depending on the desirededge-behaviour of the canvas (wrapping or not) and these three are unified in `CanvasWeave::tessellate` which calls the appropriate method.

@@ -4,9 +4,9 @@ use peregrine_data::reactive::Observable;
 use peregrine_data::{ Colour, DirectColour, DrawnType, Patina, Plotter, SpaceBaseArea, HollowEdge2, SpaceBase, LeafStyle, HotspotPatina };
 use peregrine_toolkit::eachorevery::{EachOrEvery, EachOrEveryFilterBuilder};
 use super::directcolourdraw::DirectYielder;
+use super::flatdrawing::CanvasItemHandle;
 use super::spotcolourdraw::SpotColourYielder;
-use super::text::{TextHandle, draw_text};
-use super::bitmap::BitmapHandle;
+use super::text::draw_text;
 use super::super::layers::layer::{ Layer };
 use super::texture::{CanvasTextureArea, TextureYielder};
 use crate::shape::core::wigglegeometry::{make_wiggle};
@@ -110,8 +110,8 @@ impl DrawingShapePatina {
 }
 
 pub(crate) enum GLShape {
-    Text(SpaceBase<f64,LeafStyle>,Option<SpaceBase<f64,()>>,Vec<TextHandle>,EachOrEvery<i8>,DrawGroup,GLAttachmentPoint),
-    Image(SpaceBase<f64,LeafStyle>,Vec<BitmapHandle>,EachOrEvery<i8>,DrawGroup),
+    Text(SpaceBase<f64,LeafStyle>,Option<SpaceBase<f64,()>>,Vec<CanvasItemHandle>,EachOrEvery<i8>,DrawGroup,GLAttachmentPoint),
+    Image(SpaceBase<f64,LeafStyle>,Vec<CanvasItemHandle>,EachOrEvery<i8>,DrawGroup),
     Heraldry(SpaceBaseArea<f64,LeafStyle>,EachOrEvery<HeraldryHandle>,EachOrEvery<i8>,DrawGroup,HeraldryCanvas,HeraldryScale,Option<HollowEdge2<f64>>,Option<SpaceBaseArea<Observable<'static,f64>,()>>),
     Wiggle((f64,f64),Arc<Vec<Option<f64>>>,Plotter,i8),
     SpaceBaseRect(SpaceBaseArea<f64,LeafStyle>,SimpleShapePatina,EachOrEvery<i8>,DrawGroup,Option<SpaceBaseArea<Observable<'static,f64>,()>>),
@@ -190,7 +190,7 @@ pub(crate) enum ShapeToAdd {
 }
 
 pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &mut WebGlGlobal, tools: &mut DrawingToolsBuilder, shape: GLShape) -> Result<ShapeToAdd,Message> {
-    let bitmap_multiplier = gl.refs().flat_store.bitmap_multiplier() as f64;
+    let bitmap_multiplier = gl.refs().canvas_source.bitmap_multiplier() as f64;
     match shape {
         GLShape::Wiggle((start,end),yy,Plotter(_,colour),depth) => {
             let mut geometry_yielder = GeometryYielder::new(GeometryProcessName::Wiggle);

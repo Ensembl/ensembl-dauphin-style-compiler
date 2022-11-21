@@ -100,7 +100,7 @@ impl TextureValues {
             handle_context_errors2(gl.context)?;
         }
         if let Some(flat_scale) = &self.texture.location_scale {
-            let bitmap_multiplier = gl.flat_store.bitmap_multiplier();
+            let bitmap_multiplier = gl.canvas_source.bitmap_multiplier();
             gl.context.uniform2f(Some(flat_scale),bitmap_multiplier, bitmap_multiplier);
         }
         Ok(())

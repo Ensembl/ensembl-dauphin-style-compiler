@@ -1,15 +1,14 @@
 use std::sync::{Arc, Mutex};
 use std::{f64::consts::PI, fmt::Debug, hash::Hash };
-
+use peregrine_toolkit::error::Error;
 use peregrine_toolkit::{identitynumber, hashable, lock};
 use peregrine_toolkit::plumbing::lease::Lease;
-use wasm_bindgen::{JsCast, JsValue, prelude::Closure};
-use web_sys::{CanvasRenderingContext2d, Document, HtmlCanvasElement, HtmlImageElement };
+use wasm_bindgen::{JsCast, JsValue};
+use web_sys::{CanvasRenderingContext2d, HtmlCanvasElement, HtmlImageElement };
 use peregrine_data::{ DirectColour, PenGeometry, Background };
+use crate::shape::core::bitmap::Bitmap;
 use super::canvas::Canvas;
-use super::{bindery::SelfManagedWebGlTexture, pngcache::PngCache, weave::CanvasWeave};
-use super::canvassource::CanvasSource;
-use peregrine_toolkit::{js::exception::js_result_to_option_console, error::Error };
+use super::{bindery::SelfManagedWebGlTexture, weave::CanvasWeave};
 
 const MIN_ROUNDING_SIZE: u32 = 8; // px :should be configurable in Background object if anyone wants it
 const MAX_ROUNDING_SIZE: u32 = 16; // px :should be configurable in Background object if anyone wants it
@@ -22,8 +21,8 @@ fn colour_to_css(c: &DirectColour) -> String {
     format!("rgb({},{},{},{})",c.0,c.1,c.2,c.3)
 }
 
-fn draw_png_onload(context: CanvasRenderingContext2d, el: HtmlImageElement, origin: (u32,u32), size: (u32,u32)) -> Result<(),JsValue> {
-    context.draw_image_with_html_image_element_and_dw_and_dh(&el,origin.0 as f64,origin.1 as f64,size.0 as f64,size.1 as f64)?;
+fn draw_png_onload(context: CanvasRenderingContext2d, el: &HtmlImageElement, origin: (u32,u32), size: (u32,u32)) -> Result<(),JsValue> {
+    context.draw_image_with_html_image_element_and_dw_and_dh(el,origin.0 as f64,origin.1 as f64,size.0 as f64,size.1 as f64)?;
     Ok(())
 }
 
@@ -43,7 +42,6 @@ pub(crate) struct CanvasAndContext {
     discarded: bool,
     gl_texture: Option<SelfManagedWebGlTexture>,
     is_active: bool,
-    png_cache: PngCache
 }
 
 impl Debug for CanvasAndContext {
@@ -53,15 +51,14 @@ impl Debug for CanvasAndContext {
 }
 
 impl CanvasAndContext {
-    pub(super) fn new(canvas_store: &mut CanvasSource, png_cache: &PngCache, weave: &CanvasWeave, size: (u32,u32)) -> Result<CanvasAndContext,Error> {
-        let el = canvas_store.allocate(size.0, size.1, weave.round_up())?;
+    pub(super) fn new(el: Lease<Canvas>, weave: &CanvasWeave, size: (u32,u32), bitmap_multiplier: f32) -> Result<CanvasAndContext,Error> {
         let context = el.get().element()
             .get_context("2d").map_err(|_| Error::fatal("cannot get 2d context"))?
             .unwrap()
             .dyn_into::<CanvasRenderingContext2d>().map_err(|_| Error::fatal("cannot get 2d context"))?;
         Ok(CanvasAndContext {
             id: IDS.next(),
-            bitmap_multiplier: canvas_store.bitmap_multiplier() as f64,
+            bitmap_multiplier: bitmap_multiplier as f64,
             element: Some(el),
             context: Some(context),
             weave: weave.clone(),
@@ -70,7 +67,6 @@ impl CanvasAndContext {
             discarded: false,
             gl_texture: None,
             is_active: false,
-            png_cache: png_cache.clone()
         })
     }
 
@@ -123,32 +119,17 @@ impl CanvasAndContext {
         Ok(())
     }
 
-    fn draw_png_real(&self, context: CanvasRenderingContext2d, name: Option<String>, origin: (u32,u32), size: (u32,u32), data: &[u8]) -> Result<(),JsValue> {
-        if let Some(name) = &name {
-            if let Some(el) = self.png_cache.get(name) {
-                draw_png_onload(context,el,origin,size)?;
-                return Ok(());
-            }
-        }
-        let ascii_data = base64::encode(data);
-        let img = HtmlImageElement::new()?;
-        let img2 = img.clone();
-        img.set_src(&format!("data:image/png;base64,{0}",ascii_data));
-        let png_cache = self.png_cache.clone();
-        let closure = Closure::once_into_js(move || {
-            js_result_to_option_console(draw_png_onload(context,img2.clone(),origin,size));
-            if let Some(name) = &name {
-                png_cache.set(name,img2.clone());
-            }
+    fn draw_png_real(&self, context: CanvasRenderingContext2d, name: Option<String>, origin: (u32,u32), size: (u32,u32), bitmap: &mut Bitmap) -> Result<(),JsValue> {
+        bitmap.onload(move |el| {
+            draw_png_onload(context,el,origin,size);
         });
-        img.set_onload(Some(&closure.as_ref().unchecked_ref()));
         Ok(())
     }    
 
-    pub(crate) fn draw_png(&self, name: Option<String>, origin: (u32,u32), size: (u32,u32), data: &[u8]) -> Result<(),Error> {
+    pub(crate) fn draw_png(&self, name: Option<String>, origin: (u32,u32), size: (u32,u32), bitmap: &mut Bitmap) -> Result<(),Error> {
         if self.discarded { return Err(Error::fatal("set_font on discarded flat canvas")); }
         let context = self.context()?.clone();
-        self.draw_png_real(context,name,origin,size,data).map_err(|_| Error::fatal("cannot carate png"))?;
+        self.draw_png_real(context,name,origin,size,bitmap).map_err(|_| Error::fatal("cannot carate png"))?;
         Ok(())
     }
 
@@ -228,8 +209,8 @@ impl Drop for CanvasAndContext {
 pub struct CanvasInUse(Arc<Mutex<CanvasAndContext>>);
 
 impl CanvasInUse {
-    pub(crate) fn new(canvas_store: &mut CanvasSource, png_cache: &PngCache, document: &Document, weave: &CanvasWeave, size: (u32,u32)) -> Result<CanvasInUse,Error> {
-        Ok(CanvasInUse(Arc::new(Mutex::new(CanvasAndContext::new(canvas_store,png_cache,weave,size)?))))
+    pub(crate) fn new(lease: Lease<Canvas>, weave: &CanvasWeave, size: (u32,u32), bitmap_multiplier: f32) -> Result<CanvasInUse,Error> {
+        Ok(CanvasInUse(Arc::new(Mutex::new(CanvasAndContext::new(lease,weave,size,bitmap_multiplier)?))))
     }
 
     pub(crate) fn retrieve<F,X>(&self, cb: F) -> X

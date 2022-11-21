@@ -100,7 +100,8 @@ pub(crate) enum PatinaProcess {
 
 // TODO texture types
 
-#[derive(Clone,Debug,PartialEq,Eq,Hash)]
+#[derive(Clone,PartialEq,Eq,Hash)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub enum PatinaProcessName { Direct, Spot(DirectColour), Texture(CanvasInUse), FreeTexture(CanvasInUse) }
 
 impl PatinaProcessName {

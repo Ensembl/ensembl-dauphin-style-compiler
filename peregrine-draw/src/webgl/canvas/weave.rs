@@ -1,8 +1,8 @@
 use peregrine_toolkit::error::Error;
 
-use crate::{webgl::{ global::WebGlGlobal}};
+use crate::{webgl::{GPUSpec}};
 
-use super::packer::{allocate_areas, allocate_horizontal, allocate_vertical};
+use super::tessellate::packer::{allocate_areas, allocate_horizontal, allocate_vertical};
 
 #[allow(dead_code)]
 #[derive(Clone,PartialEq,Eq,Hash,Debug)]
@@ -15,13 +15,11 @@ pub(crate) enum CanvasWeave {
 }
 
 impl CanvasWeave {
-    pub(crate) fn pack(&self, sizes: &[(u32,u32)], gl: &mut WebGlGlobal) -> Result<(Vec<(u32,u32)>,u32,u32),Error> {
-        let gl_refs = gl.refs();
-        let gpu_spec = gl_refs.gpuspec;
+    pub(crate) fn tessellate(&self, sizes: &[(u32,u32)], gpu_spec: &GPUSpec) -> Result<(Vec<(u32,u32)>,u32,u32),Error> {
         match self {
             CanvasWeave::HorizStack => allocate_horizontal(&sizes,gpu_spec),
             CanvasWeave::VertStack => allocate_vertical(&sizes,gpu_spec),
-            _ =>  allocate_areas(&sizes,gl_refs.gpuspec)
+            _ =>  allocate_areas(&sizes,gpu_spec)
         }
     }
 

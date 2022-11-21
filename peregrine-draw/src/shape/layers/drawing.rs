@@ -10,7 +10,7 @@ use peregrine_toolkit_async::sync::retainer::RetainTest;
 use super::super::core::prepareshape::{ prepare_shape_in_layer };
 use super::super::core::drawshape::{ add_shape_to_layer, GLShape };
 use crate::shape::core::drawshape::ShapeToAdd;
-use crate::webgl::{ DrawingAllFlats, DrawingAllFlatsBuilder, DrawingSession, Process};
+use crate::webgl::{ DrawingCanvases, DrawingCanvasesBuilder, DrawingSession, Process};
 use crate::webgl::global::WebGlGlobal;
 use crate::stage::stage::ReadStage;
 use crate::util::message::Message;
@@ -27,17 +27,17 @@ pub(crate) trait DynamicShape {
 pub(crate) struct DrawingBuilder {
     main_layer: Layer,
     tools: DrawingToolsBuilder,
-    flats: Option<DrawingAllFlatsBuilder>,
+    flats: Option<DrawingCanvasesBuilder>,
     dynamic_shapes: Vec<Box<dyn DynamicShape>>
 }
 
 impl DrawingBuilder {
     pub(crate) fn new(scale: Option<&Scale>, gl: &mut WebGlGlobal, assets: &Assets, left: f64) -> Result<DrawingBuilder,Message> {
         let gl_ref = gl.refs();
-        let bitmap_multiplier = gl_ref.flat_store.bitmap_multiplier() as f64;
+        let bitmap_multiplier = gl_ref.canvas_source.bitmap_multiplier() as f64;
         Ok(DrawingBuilder {
             main_layer: Layer::new(gl_ref.program_store,left)?,
-            tools: DrawingToolsBuilder::new(gl_ref.fonts,assets,scale,left,bitmap_multiplier),
+            tools: DrawingToolsBuilder::new(gl_ref.fonts,assets,gl_ref.image_cache,scale,left,bitmap_multiplier),
             flats: None,
             dynamic_shapes: vec![]
         })
@@ -50,7 +50,7 @@ impl DrawingBuilder {
 
     pub(crate) async fn prepare_tools(&mut self, gl: &Arc<Mutex<WebGlGlobal>>) -> Result<(),Error> {
         let mut prep = self.tools.start_preparation(gl).await?;
-        let mut drawable = DrawingAllFlatsBuilder::new();
+        let mut drawable = DrawingCanvasesBuilder::new();
         let mut lgl = lock!(gl);
         prep.allocate(&mut lgl,&mut drawable)?;
         self.tools.finish_preparation(prep)?;
@@ -86,7 +86,7 @@ impl DrawingBuilder {
 
 struct DrawingData {
     processes: Vec<Process>,
-    canvases: DrawingAllFlats,
+    canvases: DrawingCanvases,
     hotspots: DrawingHotspots,
     dynamic_shapes: Vec<Box<dyn DynamicShape>>,
     recompute: Needed
@@ -127,7 +127,7 @@ impl Drawing {
         drawing.build(gl,retain_test).await
     }
 
-    fn new_real(processes: Vec<Process>, canvases: DrawingAllFlats, hotspots: DrawingHotspots, dynamic_shapes: Vec<Box<dyn DynamicShape>>, gl: &WebGlGlobal) -> Result<Drawing,Message> {
+    fn new_real(processes: Vec<Process>, canvases: DrawingCanvases, hotspots: DrawingHotspots, dynamic_shapes: Vec<Box<dyn DynamicShape>>, gl: &WebGlGlobal) -> Result<Drawing,Message> {
         let mut out = Drawing(Arc::new(Mutex::new(DrawingData {
             processes,
             canvases,

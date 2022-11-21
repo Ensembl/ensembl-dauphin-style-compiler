@@ -12,7 +12,10 @@ use peregrine_toolkit::error::Error;
 use peregrine_toolkit::lock;
 use peregrine_toolkit::plumbing::lease::Lease;
 use peregrine_toolkit::plumbing::lease::LeaseManager;
-use web_sys::{CanvasRenderingContext2d, Document, HtmlCanvasElement};
+use web_sys::{Document};
+use crate::webgl::CanvasInUse;
+use crate::webgl::CanvasWeave;
+
 use super::canvas::Canvas;
 
 const MINIMUM : u32 = 256;
@@ -75,7 +78,7 @@ impl CanvasSource {
         }
     }
 
-    pub fn allocate(&self, mut x: u32, mut y: u32, round_up: bool) -> Result<Lease<Canvas>,Error> {
+    pub(super) fn allocate(&self, mut x: u32, mut y: u32, round_up: bool) -> Result<Lease<Canvas>,Error> {
         let document = self.document.clone();
         if round_up {
             x = rounded(x);
@@ -94,4 +97,9 @@ impl CanvasSource {
     }
 
     pub(crate) fn bitmap_multiplier(&self) -> f32 { self.bitmap_multiplier }
+
+    pub(super) fn make(&self, weave: &CanvasWeave, size: (u32,u32)) -> Result<CanvasInUse,Error> {
+        let lease = self.allocate(size.0, size.1, weave.round_up())?;
+        Ok(CanvasInUse::new(lease,weave,size,self.bitmap_multiplier)?)
+    }
 }

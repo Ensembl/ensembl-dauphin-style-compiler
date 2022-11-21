@@ -6,7 +6,6 @@ use crate::shape::heraldry::heraldry::{Heraldry, HeraldryCanvasesUsed};
 use crate::shape::layers::drawingtools::DrawingToolsBuilder;
 use crate::shape::triangles::drawgroup::{DrawGroup, ShapeCategory};
 use crate::util::message::Message;
-use crate::webgl::global::WebGlGlobal;
 use super::drawshape::{ GLShape };
 
 fn split_spacebaserect(tools: &mut DrawingToolsBuilder, shape: &RectangleShape<LeafStyle>, draw_group: &DrawGroup) -> Result<Vec<GLShape>,Message> {
