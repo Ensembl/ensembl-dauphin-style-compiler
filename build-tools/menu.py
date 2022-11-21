@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 
-import re, sys, getopt, shlex, json
+import re, sys, getopt, shlex, json, os.path
 
 def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
@@ -18,7 +18,7 @@ for (option,value) in optlist:
     elif option == '--no-rich':
         use_rich = False
     elif option == '--use-prev':
-        use_prev = value
+        use_prev = os.path.expanduser(value)
     elif option == '--quick':
         quick = True
 
@@ -134,8 +134,8 @@ class ChooseOne:
                 return options[0]
 
 def conditions_met(conditions,values):
-    if "eq" in conditions:
-        if values.get(conditions["eq"][0],None) != conditions["eq"][1]:
+    for cond in conditions.get("eq",[]):
+        if values.get(cond[0],None) != cond[1]:
             return False
     return True
 
@@ -171,7 +171,7 @@ def ask_all(questions):
         # Show settings for confirmation
         print(rich("\0X\0gSummary:\0-"))
         for q in questions:
-            if conditions_met(q[3],out):
+            if conditions_met(q[3],out) and not q[4]:
                 print(rich("{0}: \0c{1}\0-".format(q[1].label(),out[q[0]])))
         print("\n")
 
@@ -197,10 +197,11 @@ with open(config_file,'r') as f:
             if verifier["verifier"] == "number":
                 verifiers.append(VerifyNumber(verifier.get("min",None),verifier.get("max",None)))
         conditions = prompt.get("conditions",{})
+        internal = prompt.get("internal",False)
         if "options" in prompt:
-            config.append([prompt["key"],ChooseOne(prompt["question"],prompt["options"]),verifiers,conditions]),
+            config.append([prompt["key"],ChooseOne(prompt["question"],prompt["options"]),verifiers,conditions,internal]),
         else:
-            config.append([prompt["key"],Free(prompt["question"],prompt.get("default","")),verifiers,conditions])
+            config.append([prompt["key"],Free(prompt["question"],prompt.get("default","")),verifiers,conditions,internal])
 
 print(rich("\0X\0yConfiguration\0-\nFor default (\0ggreen\0-) hit enter. Unambiguous prefixes are fine. Defaults usually sensible.\n"))
 

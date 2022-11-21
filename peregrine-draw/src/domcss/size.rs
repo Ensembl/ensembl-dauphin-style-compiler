@@ -37,7 +37,7 @@ use std::sync::{ Arc, Mutex };
 use crate::run::inner::LockedPeregrineInnerAPI;
 use crate::util::{message::Message };
 use commander::{cdr_timer};
-use peregrine_toolkit::{log_extra, lock, log};
+use peregrine_toolkit::{log_extra, lock };
 use peregrine_toolkit_async::sync::needed::Needed;
 use web_sys::{ WebGlRenderingContext, window };
 use super::{dom::PeregrineDom };
@@ -100,12 +100,12 @@ impl SizeManagerState {
                 let min_x = min_x.min(WebGlRenderingContext::MAX_VIEWPORT_DIMS);
                 let min_y = min_y.min(WebGlRenderingContext::MAX_VIEWPORT_DIMS);
                 if canvas_x < min_x || canvas_y <min_y {
-                    log!("test_update_canvas_size/B({},{})",min_x,min_y);
+                    log_extra!("test_update_canvas_size/B({},{})",min_x,min_y);
                     return Some((min_x,min_y));
                 }
             } else if (container_x != canvas_x || container_y != canvas_y) && (canvas_x != 0 || canvas_y != 0) {
                 /* canvas = (0,0) on shutdown: don't waste time */
-                log!("test_update_canvas_size/C container ({},{}) canvas ({},{})",container_x,container_y,canvas_x,canvas_y);
+                log_extra!("test_update_canvas_size/C container ({},{}) canvas ({},{})",container_x,container_y,canvas_x,canvas_y);
                 return Some((container_x,container_y));
             }
         }

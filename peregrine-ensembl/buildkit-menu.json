@@ -23,7 +23,7 @@
         "key": "CFG_EC_BRANCH",
         "question": "ensembl-client branch to use",
         "default": "main",
-        "conditions": { "eq": ["CFG_EC","github"] }
+        "conditions": { "eq": [["CFG_EC","github"]] }
     },
     {
         "key": "CFG_EGB",
@@ -34,7 +34,7 @@
         "key": "CFG_EGB_BRANCH",
         "question": "ensembl-genome-browser branch to use",
         "default": "main",
-        "conditions": { "eq": ["CFG_EGB","github"] }
+        "conditions": { "eq": [["CFG_EGB","github"]] }
     },
     {
         "key": "CFG_EC_DAILY",

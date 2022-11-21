@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::{Arc, Mutex}, rc::Rc};
 use peregrine_toolkit::{lock, error::Error};
 use crate::{Stick, StickId, metric::{datastreammetric::PacketDatastreamMetricBuilder, metricreporter::MetricCollector}, request::minirequests::{datareq::DataRequest, datares::{DataResponse}, jumpreq::JumpReq, jumpres::{JumpLocation, JumpRes}, programreq::ProgramReq, stickreq::StickReq, stickres::StickRes, expandreq::ExpandReq}, PacketPriority, BackendNamespace, shapeload::programname::ProgramName};
-use super::{minirequest::{MiniRequest}, manager::{RequestManager}, miniresponse::MiniResponseAttempt};
+use super::{minirequest::{MiniRequest}, manager::{RequestManager}, miniresponse::{MiniResponseAttempt, MiniResponseError}};
 
 #[derive(Clone)]
 pub struct Backend {
@@ -22,14 +22,14 @@ impl Backend {
     pub fn backend_namespace(&self) -> &BackendNamespace { &self.name }
 
     async fn submit<F,T>(&self, priority: &PacketPriority, request: MiniRequest, cb: F) -> Result<T,Error>
-            where F: Fn(MiniResponseAttempt) -> Result<T,Error> {
+            where F: Fn(MiniResponseAttempt) -> Result<T,MiniResponseError> {
         self.manager.submit(&self.name,priority,&Rc::new(request), |v| {
             cb(v)
         }).await
     }
 
     async fn submit_hi<F,T>(&self, request: MiniRequest, cb: F) -> Result<T,Error>
-            where F: Fn(MiniResponseAttempt) -> Result<T,Error> {
+            where F: Fn(MiniResponseAttempt) -> Result<T,MiniResponseError> {
         self.submit(&PacketPriority::RealTime,request,cb).await
     }
 

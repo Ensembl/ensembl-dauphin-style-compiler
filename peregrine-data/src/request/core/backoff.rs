@@ -1,7 +1,7 @@
 use std::rc::Rc;
 use commander::cdr_timer;
 use peregrine_toolkit::error::Error;
-use super::{manager::{LowLevelRequestManager}, minirequest::MiniRequest, queue::QueueKey, miniresponse::MiniResponseAttempt};
+use super::{manager::{LowLevelRequestManager}, minirequest::MiniRequest, queue::QueueKey, miniresponse::{MiniResponseAttempt, MiniResponseError}};
 
 pub struct Backoff { 
     manager: LowLevelRequestManager,
@@ -23,13 +23,14 @@ impl Backoff {
     }
 
     pub(crate) async fn backoff<F,T>(&mut self, req: &Rc<MiniRequest>, cb: F) -> Result<T,Error>
-            where F: Fn(MiniResponseAttempt) -> Result<T,Error> {
+            where F: Fn(MiniResponseAttempt) -> Result<T,MiniResponseError> {
         let mut last_error = None;
         for _ in 0..self.repeats {
             let resp = self.manager.execute(&self.key,req)?.get().await;
             match cb(resp) {
                 Ok(r) => { return Ok(r); },
-                Err(e) => { last_error = Some(e); }
+                Err(MiniResponseError::Retry(e)) => { last_error = Some(e); },
+                Err(MiniResponseError::NoRetry(e)) => { last_error = Some(e); break; },
             }
             self.manager.message(Error::tmp(&format!("temporary backend failure: {}",self.errname())));
             cdr_timer(500.).await;

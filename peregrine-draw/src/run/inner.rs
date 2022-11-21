@@ -33,7 +33,6 @@ use commander::{CommanderStream, Lock, LockGuard, cdr_lock};
 use peregrine_data::{ StickId };
 use peregrine_message::PeregrineMessage;
 
-// XXX deduplicate
 fn to_left_right(position: f64, scale: f64) -> (f64,f64) {
     ((position-scale/2.), (position+scale/2.))
 }
@@ -231,8 +230,8 @@ impl PeregrineInnerAPI {
         self.data_api.invalidate();
     }
 
-    pub(crate) fn set_position(&mut self, centre: Option<f64>, size: Option<f64>) {
-        self.data_api.set_position(centre,size);
+    pub(crate) fn set_position(&mut self, centre: Option<f64>, size: Option<f64>, only_if_unknown: bool) {
+        self.data_api.set_position(centre,size,only_if_unknown);
         self.target_reporter.set_position(centre,size);
     }
 
@@ -246,17 +245,13 @@ impl PeregrineInnerAPI {
 
     pub(super) fn goto(&mut self, centre: f64, scale: f64) -> Result<(),Message> {
         let stage = lock!(self.stage).read_stage().clone();
-        let mut proceed = true;
+        let mut only_if_unknown = false;
         if stage.ready() {
             let old_centre = stage.x().position()?;
             let old_scale = stage.x().bp_per_screen()?;
-            if !position_changed((old_centre,old_scale),(centre,scale)) {
-                proceed = false;
-            }
+            only_if_unknown = !position_changed((old_centre,old_scale),(centre,scale));
         }
-        if proceed {
-            self.input.goto(centre,scale)?;
-        }
+        self.input.goto(centre,scale,only_if_unknown)?;
         Ok(())
     }
 
