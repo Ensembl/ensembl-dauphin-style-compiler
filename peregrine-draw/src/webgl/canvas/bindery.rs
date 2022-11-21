@@ -1,5 +1,5 @@
-use crate::webgl::{ FlatId };
 use crate::webgl::GPUSpec;
+use super::canvasinuse::CanvasInUse;
 use super::weave::CanvasWeave;
 use peregrine_toolkit::error::Error;
 use web_sys::WebGlRenderingContext;
@@ -83,7 +83,7 @@ fn apply_weave(context: &WebGlRenderingContext,weave: &CanvasWeave) -> Result<()
     Ok(())
 }
 
-fn create_texture(context: &WebGlRenderingContext, our_data: &FlatId) -> Result<SelfManagedWebGlTexture,Error> {
+fn create_texture(context: &WebGlRenderingContext, our_data: &CanvasInUse) -> Result<SelfManagedWebGlTexture,Error> {
     let (element,weave) = our_data.retrieve(|flat| {
         (flat.element().cloned(),flat.weave().clone())
     });
@@ -127,7 +127,7 @@ impl Drop for SelfManagedWebGlTexture {
 }
 
 pub(crate) struct TextureBindery {
-    available_or_active: Vec<FlatId>,
+    available_or_active: Vec<CanvasInUse>,
     max_textures: usize,
     next_gl_index: u32
 }
@@ -142,7 +142,7 @@ impl TextureBindery {
         }
     }
 
-    fn find_victim(&mut self) -> Result<FlatId,Error> {
+    fn find_victim(&mut self) -> Result<CanvasInUse,Error> {
         let flats = self.available_or_active.iter().cloned().collect::<Vec<_>>();
         for (i,flat_id) in flats.iter().enumerate() {
             if !flat_id.modify(|flat| *flat.is_active()) {
@@ -159,7 +159,7 @@ impl TextureBindery {
         Ok(())
     }
 
-    fn make_available(&mut self, flat: &FlatId, context: &WebGlRenderingContext) -> Result<(),Error> {
+    fn make_available(&mut self, flat: &CanvasInUse, context: &WebGlRenderingContext) -> Result<(),Error> {
         if self.available_or_active.len() >= self.max_textures {
             self.make_one_unavailable()?;
         }
@@ -169,7 +169,7 @@ impl TextureBindery {
         Ok(())
     }
 
-    pub(crate) fn allocate(&mut self, flat_id: &FlatId, context: &WebGlRenderingContext) -> Result<(),Error> {
+    pub(crate) fn allocate(&mut self, flat_id: &CanvasInUse, context: &WebGlRenderingContext) -> Result<(),Error> {
         /* Promote to AVAILABLE if SLEEPING */
         if !self.available_or_active.contains(flat_id) {
             self.make_available(flat_id,context)?;
@@ -192,7 +192,7 @@ impl TextureBindery {
         Ok(())
     }
 
-    pub(crate) fn free(&mut self, flat: &FlatId) -> Result<(),Error> {
+    pub(crate) fn free(&mut self, flat: &CanvasInUse) -> Result<(),Error> {
         if let Some(pos) = self.available_or_active.iter().position(|id| id == flat) {
             self.available_or_active.swap_remove(pos);
         }

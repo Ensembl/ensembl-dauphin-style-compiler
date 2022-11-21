@@ -1,12 +1,14 @@
-use std::{f64::consts::PI, fmt::Debug};
+use std::sync::{Arc, Mutex};
+use std::{f64::consts::PI, fmt::Debug, hash::Hash };
 
-use peregrine_toolkit::{identitynumber, hashable};
+use peregrine_toolkit::{identitynumber, hashable, lock};
 use peregrine_toolkit::plumbing::lease::Lease;
 use wasm_bindgen::{JsCast, JsValue, prelude::Closure};
 use web_sys::{CanvasRenderingContext2d, Document, HtmlCanvasElement, HtmlImageElement };
 use peregrine_data::{ DirectColour, PenGeometry, Background };
-use super::{bindery::SelfManagedWebGlTexture, canvasstore::PlaneCanvas, pngcache::PngCache, weave::CanvasWeave};
-use super::canvasstore::CanvasStore;
+use super::canvas::Canvas;
+use super::{bindery::SelfManagedWebGlTexture, pngcache::PngCache, weave::CanvasWeave};
+use super::canvassource::CanvasSource;
 use peregrine_toolkit::{js::exception::js_result_to_option_console, error::Error };
 
 const MIN_ROUNDING_SIZE: u32 = 8; // px :should be configurable in Background object if anyone wants it
@@ -28,12 +30,12 @@ fn draw_png_onload(context: CanvasRenderingContext2d, el: HtmlImageElement, orig
 fn sub(a: u32, b: u32) -> u32 { a.max(b) - b } // avoiding underflow
 
 identitynumber!(IDS);
-hashable!(PlaneCanvasAndContext,id);
+hashable!(CanvasAndContext,id);
 
-pub(crate) struct PlaneCanvasAndContext {
+pub(crate) struct CanvasAndContext {
     id: u64,
     bitmap_multiplier: f64,
-    element: Option<Lease<PlaneCanvas>>,
+    element: Option<Lease<Canvas>>,
     context: Option<CanvasRenderingContext2d>,
     weave: CanvasWeave,
     font: Option<String>,
@@ -44,22 +46,22 @@ pub(crate) struct PlaneCanvasAndContext {
     png_cache: PngCache
 }
 
-impl Debug for PlaneCanvasAndContext {
+impl Debug for CanvasAndContext {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("PlaneCanvasAndContext").field("id", &self.id).finish()
+        f.debug_struct("CanvasAndContext").field("id", &self.id).finish()
     }
 }
 
-impl PlaneCanvasAndContext {
-    pub(super) fn new(canvas_store: &mut CanvasStore, png_cache: &PngCache, document: &Document, weave: &CanvasWeave, size: (u32,u32), bitmap_multiplier: f32) -> Result<PlaneCanvasAndContext,Error> {
-        let el = canvas_store.allocate(document, size.0, size.1, weave.round_up())?;
+impl CanvasAndContext {
+    pub(super) fn new(canvas_store: &mut CanvasSource, png_cache: &PngCache, weave: &CanvasWeave, size: (u32,u32)) -> Result<CanvasAndContext,Error> {
+        let el = canvas_store.allocate(size.0, size.1, weave.round_up())?;
         let context = el.get().element()
             .get_context("2d").map_err(|_| Error::fatal("cannot get 2d context"))?
             .unwrap()
             .dyn_into::<CanvasRenderingContext2d>().map_err(|_| Error::fatal("cannot get 2d context"))?;
-        Ok(PlaneCanvasAndContext {
+        Ok(CanvasAndContext {
             id: IDS.next(),
-            bitmap_multiplier: bitmap_multiplier as f64,
+            bitmap_multiplier: canvas_store.bitmap_multiplier() as f64,
             element: Some(el),
             context: Some(context),
             weave: weave.clone(),
@@ -143,7 +145,7 @@ impl PlaneCanvasAndContext {
         Ok(())
     }    
 
-    pub(crate) fn draw_png(&self,  name: Option<String>,origin: (u32,u32), size: (u32,u32), data: &[u8]) -> Result<(),Error> {
+    pub(crate) fn draw_png(&self, name: Option<String>, origin: (u32,u32), size: (u32,u32), data: &[u8]) -> Result<(),Error> {
         if self.discarded { return Err(Error::fatal("set_font on discarded flat canvas")); }
         let context = self.context()?.clone();
         self.draw_png_real(context,name,origin,size,data).map_err(|_| Error::fatal("cannot carate png"))?;
@@ -213,11 +215,55 @@ impl PlaneCanvasAndContext {
     }
 }
 
-impl Drop for PlaneCanvasAndContext {
+impl Drop for CanvasAndContext {
     fn drop(&mut self) {
         self.element = None;
         self.context = None;
         self.font = None;
         self.discarded = true;
+    }
+}
+
+#[derive(Clone)]
+pub struct CanvasInUse(Arc<Mutex<CanvasAndContext>>);
+
+impl CanvasInUse {
+    pub(crate) fn new(canvas_store: &mut CanvasSource, png_cache: &PngCache, document: &Document, weave: &CanvasWeave, size: (u32,u32)) -> Result<CanvasInUse,Error> {
+        Ok(CanvasInUse(Arc::new(Mutex::new(CanvasAndContext::new(canvas_store,png_cache,weave,size)?))))
+    }
+
+    pub(crate) fn retrieve<F,X>(&self, cb: F) -> X
+            where F: FnOnce(&CanvasAndContext) -> X {
+        let y = lock!(self.0);
+        cb(&y)
+    }
+
+    pub(crate) fn modify<F,X>(&self, cb: F) -> X
+            where F: FnOnce(&mut CanvasAndContext) -> X {
+        let mut y = lock!(self.0);
+        cb(&mut y)
+    }
+}
+
+impl PartialEq for CanvasInUse {
+    fn eq(&self, other: &Self) -> bool {
+        let a = lock!(self.0).id();
+        let b = lock!(other.0).id();
+        a == b
+    }
+}
+
+impl Eq for CanvasInUse {}
+
+impl Hash for CanvasInUse {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        lock!(self.0).id().hash(state);
+    }
+}
+
+#[cfg(debug_assertions)]
+impl Debug for CanvasInUse {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        lock!(self.0).fmt(f)
     }
 }

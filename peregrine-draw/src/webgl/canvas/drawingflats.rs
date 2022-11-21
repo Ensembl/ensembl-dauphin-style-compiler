@@ -4,13 +4,13 @@ use crate::webgl::{CanvasWeave, TextureBindery};
 use keyed::KeyedData;
 use peregrine_toolkit::error::Error;
 use crate::webgl::ProcessBuilder;
-use super::flatstore::{ FlatId };
+use super::canvasinuse::CanvasInUse;
 use super::flatplotallocator::FlatPositionCampaignHandle;
 use crate::webgl::global::WebGlGlobal;
 use crate::util::message::Message;
 
 pub struct DrawingAllFlats {
-    main_canvases: HashMap<FlatId,String>
+    main_canvases: HashMap<CanvasInUse,String>
 }
 
 impl DrawingAllFlats {
@@ -20,7 +20,7 @@ impl DrawingAllFlats {
         }
     }
 
-    fn allocate(&mut self, gl: &mut WebGlGlobal, weave: &CanvasWeave, size: (u32,u32), uniform_name: &str) -> Result<FlatId,Error> {
+    fn allocate(&mut self, gl: &mut WebGlGlobal, weave: &CanvasWeave, size: (u32,u32), uniform_name: &str) -> Result<CanvasInUse,Error> {
         let gl_ref = gl.refs();
         let document = gl_ref.document.clone();
         let id = gl_ref.flat_store.allocate(&document,weave,size)?;
@@ -28,7 +28,7 @@ impl DrawingAllFlats {
         Ok(id)
     }
 
-    pub(crate) fn add_process(&self, id: &FlatId, process: &mut ProcessBuilder) -> Result<(),Message> {
+    pub(crate) fn add_process(&self, id: &CanvasInUse, process: &mut ProcessBuilder) -> Result<(),Message> {
         if let Some(uniform_name) = self.main_canvases.get(id) {
             process.set_texture(uniform_name,id)?;
         }
@@ -56,7 +56,7 @@ impl Drop for DrawingAllFlats {
 
 /* One overall, differentiates FLATS */
 pub(crate) struct DrawingAllFlatsBuilder {
-    responses: KeyedData<FlatPositionCampaignHandle,Option<FlatId>>,
+    responses: KeyedData<FlatPositionCampaignHandle,Option<CanvasInUse>>,
     drawing_flats: DrawingAllFlats
 }
 
@@ -68,11 +68,11 @@ impl DrawingAllFlatsBuilder {
         }
     }
 
-    pub(super) fn add(&mut self, id: FlatPositionCampaignHandle, canvas: &FlatId) {
+    pub(super) fn add(&mut self, id: FlatPositionCampaignHandle, canvas: &CanvasInUse) {
         self.responses.insert(&id,canvas.clone());
     }
 
-    pub(super) fn make_canvas(&mut self, gl: &mut WebGlGlobal, weave: &CanvasWeave, size: (u32,u32), uniform_name: &str) -> Result<FlatId,Error> {
+    pub(super) fn make_canvas(&mut self, gl: &mut WebGlGlobal, weave: &CanvasWeave, size: (u32,u32), uniform_name: &str) -> Result<CanvasInUse,Error> {
         self.drawing_flats.allocate(gl,weave,size,uniform_name)
     }
 

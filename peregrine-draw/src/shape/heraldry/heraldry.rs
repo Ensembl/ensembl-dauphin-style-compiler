@@ -8,10 +8,9 @@ use peregrine_toolkit::lock;
 use crate::shape::core::flatdrawing::{FlatDrawingItem, FlatDrawingManager};
 use crate::shape::core::texture::CanvasTextureArea;
 use crate::shape::layers::drawingtools::ToolPreparations;
-use crate::webgl::{PlaneCanvasAndContext};
+use crate::webgl::{CanvasAndContext, CanvasInUse};
 use crate::webgl::global::WebGlGlobal;
 use crate::util::message::Message;
-use crate::webgl::canvas::flatstore::FlatId;
 use super::bardots::HeraldryBarDots;
 
 keyed_handle!(InternalHeraldryHandle);
@@ -23,7 +22,7 @@ fn pad(z: (u32,u32)) -> (u32,u32) {
     (z.0+PAD,z.1+PAD)
 }
 
-fn stripe_stamp(canvas: &PlaneCanvasAndContext, t: (u32,u32), a: &DirectColour, b: &DirectColour, p: u32) -> Result<(),Error> {
+fn stripe_stamp(canvas: &CanvasAndContext, t: (u32,u32), a: &DirectColour, b: &DirectColour, p: u32) -> Result<(),Error> {
     canvas.rectangle(t,(STAMP,STAMP),b,true)?;
     canvas.path(t,&[
         (0,    0),
@@ -118,7 +117,7 @@ impl FlatDrawingItem for Heraldry {
         Some(hasher.finish())
     }
 
-    fn build(&mut self, canvas: &mut PlaneCanvasAndContext, text_origin: (u32,u32), size: (u32,u32)) -> Result<(),Error> {
+    fn build(&mut self, canvas: &mut CanvasAndContext, text_origin: (u32,u32), size: (u32,u32)) -> Result<(),Error> {
         match self {
             Heraldry::Stripe(a,b,prop,count) => {
                 let p = STAMP * (*prop) / 100;
@@ -230,7 +229,7 @@ impl DrawingHeraldry {
         Ok(())
     }
 
-    pub(crate) fn canvas_id(&self, canvas: &HeraldryCanvas) -> Option<FlatId> {
+    pub(crate) fn canvas_id(&self, canvas: &HeraldryCanvas) -> Option<CanvasInUse> {
         match canvas {
             HeraldryCanvas::Horiz => self.horiz.canvas_id(),
             HeraldryCanvas::Vert => self.vert.canvas_id(),

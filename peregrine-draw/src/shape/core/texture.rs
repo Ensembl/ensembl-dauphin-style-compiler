@@ -1,6 +1,6 @@
 use crate::shape::layers::patina::{PatinaProcess, PatinaProcessName, PatinaAdder, PatinaYielder};
 use crate::webgl::{ AttribHandle, ProcessStanzaAddable, ProgramBuilder };
-use crate::webgl::{ FlatId };
+use crate::webgl::{ CanvasInUse };
 use crate::util::message::Message;
 
 #[cfg_attr(debug_assertions,derive(Debug))]
@@ -68,7 +68,7 @@ impl TextureDraw {
         Ok(())
     }
 
-    pub(crate) fn add_rectangle(&self, addable: &mut dyn ProcessStanzaAddable, canvas: &FlatId, dims: &[CanvasTextureArea]) -> Result<(),Message> {
+    pub(crate) fn add_rectangle(&self, addable: &mut dyn ProcessStanzaAddable, canvas: &CanvasInUse, dims: &[CanvasTextureArea]) -> Result<(),Message> {
         let size = canvas.retrieve(|flat| { flat.size().clone() });
         let mut texture_data = dims.iter()
             .map(|x| (x.texture_origin(),x.size()));
@@ -83,7 +83,7 @@ pub(crate) struct TextureYielder {
 }
 
 impl TextureYielder {
-    pub(crate) fn new(flat_id: &FlatId, free: bool) -> TextureYielder {
+    pub(crate) fn new(flat_id: &CanvasInUse, free: bool) -> TextureYielder {
         let patina_process_name = if free { PatinaProcessName::FreeTexture(flat_id.clone()) } else { PatinaProcessName::Texture(flat_id.clone()) };
         TextureYielder { 
             texture: None,

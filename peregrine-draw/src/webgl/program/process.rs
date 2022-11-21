@@ -13,7 +13,7 @@ use peregrine_toolkit::error::Error;
 use peregrine_toolkit::lock;
 use crate::webgl::util::handle_context_errors;
 use crate::stage::stage::{ ReadStage, ProgramStage };
-use crate::webgl::{ FlatId };
+use crate::webgl::{ CanvasInUse };
 use crate::webgl::global::WebGlGlobal;
 use crate::util::message::Message;
 
@@ -21,7 +21,7 @@ pub(crate) struct ProcessBuilder {
     builder: Rc<ProgramBuilder>,
     stanza_builder: ProcessStanzaBuilder,
     uniforms: Vec<(UniformHandle,Vec<f32>)>,
-    textures: Vec<(String,FlatId)>
+    textures: Vec<(String,CanvasInUse)>
 }
 
 impl ProcessBuilder {
@@ -40,7 +40,7 @@ impl ProcessBuilder {
         Ok(())
     }
 
-    pub(crate) fn set_texture(&mut self, uniform_name: &str, canvas_id: &FlatId) -> Result<(),Message> {
+    pub(crate) fn set_texture(&mut self, uniform_name: &str, canvas_id: &CanvasInUse) -> Result<(),Message> {
         self.textures.push((uniform_name.to_string(),canvas_id.clone()));
         Ok(())
     }

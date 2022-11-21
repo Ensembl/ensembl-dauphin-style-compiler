@@ -1,7 +1,7 @@
 use std::{hash::{Hash, Hasher}, sync::Mutex};
 use peregrine_data::{PenGeometry, DirectColour, Background};
 use peregrine_toolkit::{lock, error::Error};
-use crate::{util::fonts::Fonts, webgl::PlaneCanvasAndContext};
+use crate::{util::fonts::Fonts, webgl::CanvasAndContext};
 
 /* \0cXXYYZZ -- override colour X,Y,Z (hex)
  * \0c-      -- reset colour
@@ -29,7 +29,7 @@ struct StructuredTextPart {
 }
 
 impl StructuredTextPart {
-    fn measure(&self, canvas: &mut PlaneCanvasAndContext, parent: &StructuredText) -> Result<(u32, u32),Error> {
+    fn measure(&self, canvas: &mut CanvasAndContext, parent: &StructuredText) -> Result<(u32, u32),Error> {
         if let Some(measured) = *lock!(self.measured) {
             return Ok(measured);
         }
@@ -40,7 +40,7 @@ impl StructuredTextPart {
         Ok(size)
     }
 
-    fn draw(&self, canvas: &mut PlaneCanvasAndContext, text_origin: (u32,u32), parent: &StructuredText) -> Result<(),Error> {
+    fn draw(&self, canvas: &mut CanvasAndContext, text_origin: (u32,u32), parent: &StructuredText) -> Result<(),Error> {
         let pen = self.pen.as_ref().unwrap_or(&parent.pen);
         let colour = self.colour.as_ref().unwrap_or(&parent.colour);
         canvas.set_font(pen)?;
@@ -137,7 +137,7 @@ impl StructuredText {
         fonts.load_font(&new_font).await;
     }
 
-    pub(crate) fn measure(&self, canvas: &mut PlaneCanvasAndContext) -> Result<(u32, u32),Error> {
+    pub(crate) fn measure(&self, canvas: &mut CanvasAndContext) -> Result<(u32, u32),Error> {
         let mut size = (0,0);
         for part in &self.parts {
             let part_size = part.measure(canvas,self)?;
@@ -151,7 +151,7 @@ impl StructuredText {
         StructuredTextGroup(&self.pen)
     }
 
-    pub(crate) fn draw(&mut self, canvas: &mut PlaneCanvasAndContext, text_origin: (u32,u32), size: (u32,u32)) -> Result<(),Error> {
+    pub(crate) fn draw(&mut self, canvas: &mut CanvasAndContext, text_origin: (u32,u32), size: (u32,u32)) -> Result<(),Error> {
         canvas.set_font(&self.pen)?;
         let background = self.background.clone().unwrap_or_else(|| Background::none());
         canvas.background(text_origin,size,&background,false)?;

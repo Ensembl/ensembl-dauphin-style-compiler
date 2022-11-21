@@ -1,5 +1,5 @@
 use crate::{run::{ PgPeregrineConfig }, shape::layers::programstore::ProgramStore, util::fonts::Fonts, PgCommanderWeb, domcss::dom::PeregrineDom};
-use crate::webgl::{ FlatStore, TextureBindery };
+use crate::webgl::{ CanvasInUseAllocator, TextureBindery };
 use web_sys::Document;
 pub use url::Url;
 pub use web_sys::{ console, WebGlRenderingContext };
@@ -10,7 +10,7 @@ use super::{GPUSpec, glbufferstore::GLBufferStore};
 pub struct WebGlGlobal {
     program_store: ProgramStore,
     context: WebGlRenderingContext,
-    flat_store: FlatStore,
+    flat_store: CanvasInUseAllocator,
     bindery: TextureBindery,
     document: Document,
     canvas_size: Option<(u32,u32)>,
@@ -23,7 +23,7 @@ pub struct WebGlGlobal {
 pub(crate) struct WebGlGlobalRefs<'a> {
     pub program_store: &'a ProgramStore,
     pub context: &'a WebGlRenderingContext,
-    pub flat_store: &'a mut FlatStore,
+    pub flat_store: &'a mut CanvasInUseAllocator,
     pub bindery: &'a mut TextureBindery,
     pub document: &'a Document,
     pub canvas_size: &'a mut Option<(u32,u32)>,
@@ -41,7 +41,7 @@ impl WebGlGlobal {
         let gpuspec = GPUSpec::new(&context)?;
         let program_store = ProgramStore::new(commander)?;
         let fonts = Fonts::new()?;
-        let flat_store = FlatStore::new(dom.device_pixel_ratio());
+        let flat_store = CanvasInUseAllocator::new(dom.document(),dom.device_pixel_ratio());
         let bindery = TextureBindery::new(&gpuspec);
         Ok(WebGlGlobal {
             program_store, 

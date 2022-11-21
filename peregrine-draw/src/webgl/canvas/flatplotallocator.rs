@@ -1,6 +1,6 @@
 use keyed::KeyedData;
 use peregrine_toolkit::error::Error;
-use crate::webgl::{FlatId };
+use super::canvasinuse::CanvasInUse;
 use super::weave::{ CanvasWeave };
 use super::drawingflats::{ DrawingAllFlatsBuilder };
 use crate::webgl::global::WebGlGlobal;
@@ -17,7 +17,7 @@ pub(crate) struct FlatPositionManager {
     uniform_name: String,
     requests: KeyedData<FlatPositionCampaignHandle,Option<Campaign>>,
     weave: CanvasWeave,
-    canvas: Option<FlatId>
+    canvas: Option<CanvasInUse>
 }
 
 impl FlatPositionManager {
@@ -65,7 +65,7 @@ impl FlatPositionManager {
         self.requests.get(id).as_ref().unwrap().sizes.clone()
     }
 
-    pub(crate) fn canvas(&self) -> Result<Option<&FlatId>,Error> { Ok(self.canvas.as_ref()) }
+    pub(crate) fn canvas(&self) -> Result<Option<&CanvasInUse>,Error> { Ok(self.canvas.as_ref()) }
 
     pub(crate) fn make(&mut self, gl: &mut WebGlGlobal, drawable: &mut DrawingAllFlatsBuilder) -> Result<(),Error> {
         self.allocate(gl,drawable)?;

@@ -10,7 +10,7 @@ use crate::shape::triangles::rectangles::GLAttachmentPoint;
 use crate::util::fonts::Fonts;
 use crate::webgl::canvas::flatplotallocator::FlatPositionManager;
 use crate::webgl::canvas::structuredtext::StructuredText;
-use crate::webgl::{ CanvasWeave, PlaneCanvasAndContext };
+use crate::webgl::{ CanvasWeave, CanvasAndContext };
 use crate::webgl::global::WebGlGlobal;
 use super::drawshape::{GLShape, ShapeToAdd, dims_to_sizes, draw_points_from_canvas2};
 use super::flatdrawing::{FlatDrawingItem, FlatDrawingManager};
@@ -46,8 +46,7 @@ impl Text {
 impl FlatDrawingItem for Text {
     fn calc_size(&mut self, gl: &mut WebGlGlobal) -> Result<(u32,u32),Error> {
         let gl_ref = gl.refs();
-        let document = gl_ref.document.clone();
-        let mut canvas = gl_ref.flat_store.scratch(&document,&CanvasWeave::Crisp,(100,100))?;
+        let mut canvas = gl_ref.flat_store.scratch(&CanvasWeave::Crisp,(100,100))?;
         self.text.measure(canvas.get_mut())
     }
 
@@ -65,7 +64,7 @@ impl FlatDrawingItem for Text {
         Some(hasher.finish())
     }
 
-    fn build(&mut self, canvas: &mut PlaneCanvasAndContext, text_origin: (u32,u32), size: (u32,u32)) -> Result<(),Error> {
+    fn build(&mut self, canvas: &mut CanvasAndContext, text_origin: (u32,u32), size: (u32,u32)) -> Result<(),Error> {
         self.text.draw(canvas,text_origin,size)
     }
 }

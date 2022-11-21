@@ -8,57 +8,15 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::Mutex;
-use js_sys::Boolean;
-use js_sys::Map;
 use peregrine_toolkit::error::Error;
 use peregrine_toolkit::lock;
 use peregrine_toolkit::plumbing::lease::Lease;
 use peregrine_toolkit::plumbing::lease::LeaseManager;
 use web_sys::{CanvasRenderingContext2d, Document, HtmlCanvasElement};
-use wasm_bindgen::JsCast;
-use wasm_bindgen::JsValue;
+use super::canvas::Canvas;
 
 const MINIMUM : u32 = 256;
 const SCALE : u32 = 2;
-
-pub struct PlaneCanvas {
-    element: HtmlCanvasElement,
-    size: (u32,u32) 
-}
-
-impl PlaneCanvas {
-    fn new(document: &Document, x: u32, y: u32) -> Result<PlaneCanvas,Error> {
-        let element = document.create_element("canvas").map_err(|_| Error::fatal("cannot create canvas"))?;
-        let element =  element.dyn_into::<HtmlCanvasElement>().map_err(|_| Error::fatal("could not cast canvas to HtmlCanvasElement"))?;
-        element.set_width(x);
-        element.set_height(y);
-        //document.body().unwrap().append_child(&element);
-        Ok(PlaneCanvas {
-            element,
-            size: (x,y)
-        })
-    }
-
-    pub fn element(&self) -> &HtmlCanvasElement { &self.element }
-    pub fn size(&self) -> (u32,u32) { self.size }
-
-    pub fn context(&self) -> Result<CanvasRenderingContext2d,Error> {
-        let context_options = Map::new();
-        context_options.set(&JsValue::from_str("alpha"),&Boolean::from(JsValue::TRUE));
-        context_options.set(&JsValue::from_str("desynchronized"),&Boolean::from(JsValue::TRUE));
-        self.element
-            .get_context_with_context_options("2d",&context_options)
-            .map_err(|_| Error::fatal("cannot get 2d context"))?
-            .unwrap()
-            .dyn_into::<CanvasRenderingContext2d>().map_err(|_| Error::fatal("cannot get 2d context"))
-    }
-
-    fn clear(&self) -> Result<(),Error> {
-        let context = self.context()?;
-        context.clear_rect(0.,0.,self.size.0 as f64,self.size.1 as f64);
-        Ok(())
-    }
-}
 
 fn rounded(mut v: u32) -> u32 {
     if v < MINIMUM { v = MINIMUM; }
@@ -100,21 +58,25 @@ impl Stats {
 }
 
 #[derive(Clone)]
-pub struct CanvasStore {
-    canvases: Arc<Mutex<HashMap<(u32,u32),LeaseManager<PlaneCanvas,Error>>>>,
+pub struct CanvasSource {
+    canvases: Arc<Mutex<HashMap<(u32,u32),LeaseManager<Canvas,Error>>>>,
+    document: Document,
+    bitmap_multiplier: f32,
     stats: Stats,
 }
 
-impl CanvasStore {
-    pub fn new() -> CanvasStore {
-        CanvasStore {
+impl CanvasSource {
+    pub fn new(document: &Document, bitmap_multiplier: f32) -> CanvasSource {
+        CanvasSource {
             canvases: Arc::new(Mutex::new(HashMap::new())),
+            document: document.clone(),
+            bitmap_multiplier,
             stats: Stats::new()
         }
     }
 
-    pub fn allocate(&self, document: &Document, mut x: u32, mut y: u32, round_up: bool) -> Result<Lease<PlaneCanvas>,Error> {
-        let document = document.clone();
+    pub fn allocate(&self, mut x: u32, mut y: u32, round_up: bool) -> Result<Lease<Canvas>,Error> {
+        let document = self.document.clone();
         if round_up {
             x = rounded(x);
             y = rounded(y);
@@ -124,10 +86,12 @@ impl CanvasStore {
         let mut canvas = lock!(self.canvases).entry((x,y)).or_insert_with(move || {
             LeaseManager::new(move || {
                 stats.add(x,y);
-                PlaneCanvas::new(&document,x,y)
+                Canvas::new(&document,x,y)
             })
         }).allocate()?;
         canvas.get_mut().clear()?;
         Ok(canvas)
     }
+
+    pub(crate) fn bitmap_multiplier(&self) -> f32 { self.bitmap_multiplier }
 }

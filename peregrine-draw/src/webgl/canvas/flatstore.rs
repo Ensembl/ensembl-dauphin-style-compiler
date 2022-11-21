@@ -1,68 +1,26 @@
-use std::{collections::HashMap, hash::Hash, fmt::Debug, sync::{Arc, Mutex}};
-use super::{pngcache::PngCache, weave::CanvasWeave};
+use std::{collections::HashMap, sync::{Arc, Mutex}};
+use super::{pngcache::PngCache, weave::CanvasWeave, canvasinuse::CanvasInUse};
 use peregrine_toolkit::{error::Error, lock, plumbing::lease::Lease };
 use web_sys::{ Document };
-use super::planecanvas::PlaneCanvasAndContext;
-use super::canvasstore::CanvasStore;
+use super::canvasinuse::CanvasAndContext;
+use super::canvassource::CanvasSource;
 
 // TODO test discard webgl buffers etc
 // TODO document etc to common data structure
 
-//keyed_handle!(FlatId);
-
 #[derive(Clone)]
-pub struct FlatId(Arc<Mutex<PlaneCanvasAndContext>>);
-
-impl FlatId {
-    pub(crate) fn retrieve<F,X>(&self, cb: F) -> X
-            where F: FnOnce(&PlaneCanvasAndContext) -> X {
-        let y = lock!(self.0);
-        cb(&y)
-    }
-
-    pub(crate) fn modify<F,X>(&self, cb: F) -> X
-            where F: FnOnce(&mut PlaneCanvasAndContext) -> X {
-        let mut y = lock!(self.0);
-        cb(&mut y)
-    }
-}
-
-impl PartialEq for FlatId {
-    fn eq(&self, other: &Self) -> bool {
-        let a = lock!(self.0).id();
-        let b = lock!(other.0).id();
-        a == b
-    }
-}
-
-impl Eq for FlatId {}
-
-impl Hash for FlatId {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        lock!(self.0).id().hash(state);
-    }
-}
-
-#[cfg(debug_assertions)]
-impl Debug for FlatId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        lock!(self.0).fmt(f)
-    }
-}
-
-#[derive(Clone)]
-pub(crate) struct FlatStore {
+pub(crate) struct CanvasInUseAllocator {
     bitmap_multiplier: f32,
-    canvas_store: CanvasStore,
-    scratch: Arc<Mutex<HashMap<CanvasWeave,PlaneCanvasAndContext>>>,
+    canvas_store: CanvasSource,
+    scratch: Arc<Mutex<HashMap<CanvasWeave,CanvasAndContext>>>,
     png_cache: PngCache
 }
 
-impl FlatStore {
-    pub(crate) fn new(bitmap_multiplier: f32) -> FlatStore {
-        FlatStore {
+impl CanvasInUseAllocator {
+    pub(crate) fn new(document: &Document, bitmap_multiplier: f32) -> CanvasInUseAllocator {
+        CanvasInUseAllocator {
             bitmap_multiplier,
-            canvas_store: CanvasStore::new(),
+            canvas_store: CanvasSource::new(document,bitmap_multiplier),
             scratch: Arc::new(Mutex::new(HashMap::new())),
             png_cache: PngCache::new(),
         }
@@ -70,7 +28,7 @@ impl FlatStore {
 
     pub(crate) fn bitmap_multiplier(&self) -> f32 { self.bitmap_multiplier }
 
-    pub(crate) fn scratch(&mut self, document: &Document, weave: &CanvasWeave, size: (u32,u32)) -> Result<Lease<PlaneCanvasAndContext>,Error> {
+    pub(crate) fn scratch(&mut self, weave: &CanvasWeave, size: (u32,u32)) -> Result<Lease<CanvasAndContext>,Error> {
         let mut use_cached = false;
         if let Some(existing) = lock!(self.scratch).get(weave) {
             let ex_size = existing.size();
@@ -79,7 +37,7 @@ impl FlatStore {
             }
         }
         if !use_cached {
-            let canvas = PlaneCanvasAndContext::new(&mut self.canvas_store,&self.png_cache,document,&CanvasWeave::Crisp,size,self.bitmap_multiplier)?;
+            let canvas = CanvasAndContext::new(&mut self.canvas_store,&self.png_cache,&CanvasWeave::Crisp,size)?;
             lock!(self.scratch).insert(weave.clone(),canvas);
         }
         let canvas = lock!(self.scratch).remove(weave).unwrap();
@@ -90,7 +48,7 @@ impl FlatStore {
         },canvas))
     }
 
-    pub(super) fn allocate(&mut self, document: &Document, weave: &CanvasWeave, size: (u32,u32)) -> Result<FlatId,Error> {
-        Ok(FlatId(Arc::new(Mutex::new(PlaneCanvasAndContext::new(&mut self.canvas_store,&self.png_cache,document,weave,size,self.bitmap_multiplier)?))))
+    pub(super) fn allocate(&mut self, document: &Document, weave: &CanvasWeave, size: (u32,u32)) -> Result<CanvasInUse,Error> {
+        Ok(CanvasInUse::new(&mut self.canvas_store,&self.png_cache,document,weave,size)?)
     }
 }

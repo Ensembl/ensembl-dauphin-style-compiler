@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use crate::shape::layers::consts::PR_LOW;
-use crate::webgl::{FlatId,  GLArity};
+use crate::webgl::{CanvasInUse,  GLArity};
 use crate::webgl::global::{WebGlGlobalRefs};
 use crate::util::message::Message;
 use keyed::keyed_handle;
@@ -70,7 +70,7 @@ impl Texture {
 
 pub(crate) struct TextureValues {
     texture: Texture,
-    flat_id: Option<FlatId>,
+    flat_id: Option<CanvasInUse>,
     flat_size: Option<(u32,u32)>,
     bound: bool
 }
@@ -80,7 +80,7 @@ impl TextureValues {
         TextureValues { texture: texture, flat_id: None, flat_size: None, bound: false }
     }
 
-    pub fn set_value(&mut self, flat_id: &FlatId) -> Result<(),Error> {
+    pub fn set_value(&mut self, flat_id: &CanvasInUse) -> Result<(),Error> {
         self.flat_id = Some(flat_id.clone());
         let size = flat_id.retrieve(|flat| { flat.size().clone() });
         self.flat_size = Some(size);

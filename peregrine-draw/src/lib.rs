@@ -154,11 +154,12 @@ mod util {
 mod webgl {
     pub(crate) mod canvas {
         pub(crate) mod bindery;
-        pub(crate) mod canvasstore;
+        pub(crate) mod canvas;
+        pub(crate) mod canvassource;
         pub(crate) mod drawingflats;
         pub(crate) mod flatplotallocator;
         pub(crate) mod pngcache;
-        pub(crate) mod planecanvas;
+        pub(crate) mod canvasinuse;
         pub(crate) mod packer;
         pub(crate) mod flatstore;
         pub(crate) mod weave;
@@ -166,8 +167,8 @@ mod webgl {
     }
 
     pub(crate) use canvas::weave::CanvasWeave;
-    pub(crate) use canvas::planecanvas::PlaneCanvasAndContext;
-    pub(crate) use canvas::flatstore::{ FlatId, FlatStore };
+    pub(crate) use canvas::canvasinuse::{ CanvasAndContext, CanvasInUse };
+    pub(crate) use canvas::flatstore::{CanvasInUseAllocator };
     pub(crate) use canvas::bindery::{ TextureBindery };
     pub(crate) use canvas::drawingflats::{ DrawingAllFlats, DrawingAllFlatsBuilder };
     pub(crate) use canvas::flatplotallocator::{ FlatPositionCampaignHandle };

@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use keyed::{KeyedData, KeyedHandle};
 use peregrine_toolkit::error::Error;
 use crate::webgl::canvas::flatplotallocator::FlatPositionManager;
-use crate::webgl::{ FlatId, PlaneCanvasAndContext, FlatPositionCampaignHandle };
+use crate::webgl::{ CanvasInUse, CanvasAndContext, FlatPositionCampaignHandle };
 use crate::webgl::global::WebGlGlobal;
 use super::texture::{CanvasTextureArea };
 use crate::util::message::Message;
@@ -13,7 +13,7 @@ pub(crate) trait FlatDrawingItem {
     fn group_hash(&self) -> Option<u64> { None }
     fn calc_size(&mut self, gl: &mut WebGlGlobal) -> Result<(u32,u32),Error>;
     fn padding(&mut self, _gl: &mut WebGlGlobal) -> Result<(u32,u32),Error> { Ok((0,0)) }
-    fn build(&mut self, canvas: &mut PlaneCanvasAndContext, text_origin: (u32,u32), size: (u32,u32)) -> Result<(),Error>;
+    fn build(&mut self, canvas: &mut CanvasAndContext, text_origin: (u32,u32), size: (u32,u32)) -> Result<(),Error>;
 }
 
 /* here, size and origins are inclusive of padding */
@@ -71,7 +71,7 @@ pub(crate) struct FlatDrawingManager<H: KeyedHandle,T: FlatDrawingItem> {
     texts: KeyedData<H,(T,FlatBoundary)>,
     request: Option<FlatPositionCampaignHandle>,
     groups: HashMap<Option<u64>,Vec<H>>,
-    canvas_id: Option<FlatId>
+    canvas_id: Option<CanvasInUse>
 }
 
 impl<H: KeyedHandle+Clone,T: FlatDrawingItem> FlatDrawingManager<H,T> {
@@ -147,7 +147,7 @@ impl<H: KeyedHandle+Clone,T: FlatDrawingItem> FlatDrawingManager<H,T> {
         Ok(())
     }
 
-    pub(crate) fn canvas_id(&self) ->Option<FlatId> {
+    pub(crate) fn canvas_id(&self) ->Option<CanvasInUse> {
         self.canvas_id.as_ref().cloned()
     }
 

@@ -3,7 +3,7 @@ use keyed::keyed_handle;
 use peregrine_toolkit::error::Error;
 use peregrine_toolkit::lock;
 use crate::webgl::canvas::flatplotallocator::FlatPositionManager;
-use crate::webgl::{ PlaneCanvasAndContext };
+use crate::webgl::{ CanvasAndContext };
 use crate::webgl::global::WebGlGlobal;
 use super::flatdrawing::{FlatDrawingItem, FlatDrawingManager};
 use std::collections::hash_map::DefaultHasher;
@@ -70,7 +70,7 @@ impl FlatDrawingItem for Bitmap {
         Some(hasher.finish())
     }
 
-    fn build(&mut self, canvas: &mut PlaneCanvasAndContext, text_origin: (u32,u32), size: (u32,u32)) -> Result<(),Error> {
+    fn build(&mut self, canvas: &mut CanvasAndContext, text_origin: (u32,u32), size: (u32,u32)) -> Result<(),Error> {
         canvas.draw_png(Some(self.name.clone()),pad(text_origin),size,&self.bytes)?;
         Ok(())
     }
