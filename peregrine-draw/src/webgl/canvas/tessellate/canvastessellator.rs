@@ -1,94 +1,78 @@
 use std::sync::{Arc, Mutex};
-
-use peregrine_toolkit::{error::Error, lock, log};
+use peregrine_toolkit::{error::Error, lock};
 use crate::{shape::core::{texture::CanvasTextureArea}};
 
 #[cfg_attr(debug_assertions,derive(Debug))]
-struct FlatBoundaryImpl {
+pub(crate) struct FlatBoundary {
     origin: Option<(u32,u32)>,
     size: (u32,u32),
-    padding: (u32,u32)
-
+    padding: (u32,u32),
+    area: Option<CanvasTextureArea>
 }
 
-impl FlatBoundaryImpl {
-    fn pad(&self, v: (u32,u32)) -> (u32,u32) {
-        (v.0+self.padding.0,v.1+self.padding.1)
+pub(crate) struct CanvasItemSize((u32,u32),(u32,u32));
+
+impl CanvasItemSize {
+    pub(crate) fn new(size: (u32,u32), padding: (u32,u32)) -> CanvasItemSize {
+        CanvasItemSize(size,padding)
     }
 }
-
-#[derive(Clone)]
-#[cfg_attr(debug_assertions,derive(Debug))]
-pub(crate) struct FlatBoundary(Arc<Mutex<FlatBoundaryImpl>>);
 
 fn unpack<T: Clone>(data: &Option<T>) -> Result<T,Error> {
     data.as_ref().cloned().ok_or_else(|| Error::fatal("texture packing failure, t origin"))
 }
 
 impl FlatBoundary {
-    pub(crate) fn new(size: (u32,u32), padding: (u32,u32)) -> FlatBoundary {
-        FlatBoundary(Arc::new(Mutex::new(FlatBoundaryImpl { origin: None, size, padding })))
-    }
-
-    pub(crate) fn size_with_padding(&self) -> Result<(u32,u32),Error> {
-        let state = lock!(self.0);
-        Ok((state.size.0+state.padding.0,state.size.1+state.padding.1))
-    }
-
-    pub(crate) fn origin(&self) -> Result<(u32,u32),Error> {
-        lock!(self.0).origin.ok_or_else(|| Error::fatal("texture get size unset"))
-    }
-
-    pub(crate) fn set_origin(&mut self, text: (u32,u32)) {
-        lock!(self.0).origin = Some(text);
-    }
-
-    pub(crate) fn drawn_area(&self) -> Result<CanvasTextureArea,Error> {
-        let state = lock!(self.0);
-        Ok(CanvasTextureArea::new(
-            state.pad(unpack(&state.origin)?),
-            state.size
-        ))
-    }
-
-    pub fn expand_to_canvas(&mut self, x: Option<u32>, y: Option<u32>) {
-        let mut state = lock!(self.0);
-        if let Some(x) = x { state.size.0 = x-state.padding.0; }
-        if let Some(y) = y { state.size.1 = y-state.padding.1; }
-        log!("expanded to {:?}",state.size);
-    }
-}
-
-pub(crate) struct CanvasTessellationPrepare {
-    items: Vec<FlatBoundary>,
-    with_origin: usize
-}
-
-impl CanvasTessellationPrepare {
-    pub(crate) fn new() -> CanvasTessellationPrepare {
-        CanvasTessellationPrepare { items: vec![], with_origin: 0 }
-    }
-
-    pub(crate) fn add(&mut self, item: FlatBoundary) -> Result<(),Error> {
-        self.items.push(item);
-        Ok(())
-    }
-
-    pub(crate) fn add_origin(&mut self, origin: (u32,u32)) {
-        self.items[self.with_origin].set_origin(origin);
-        self.with_origin += 1;
-    }
-
-    pub(crate) fn bump(&mut self, len: usize) {
-        self.with_origin += len;
-    }
-
-    pub fn expand_to_canvas(&mut self, x: Option<u32>, y: Option<u32>) {
-        for item in &mut self.items {
-            item.expand_to_canvas(x,y);
+    pub(crate) fn new(size: CanvasItemSize) -> FlatBoundary {
+        FlatBoundary {
+            origin: None,
+            size: size.0,
+            padding: size.1,
+            area: None
         }
     }
 
-    pub(crate) fn items(&self) -> &[FlatBoundary] { &self.items }
-    pub(crate) fn items_mut(&mut self) -> &mut Vec<FlatBoundary> { &mut self.items }
+    fn pad(&self, v: (u32,u32)) -> (u32,u32) {
+        (v.0+self.padding.0,v.1+self.padding.1)
+    }
+
+    pub(crate) fn size(&self) -> Result<(u32,u32),Error> {
+        Ok((self.size.0+self.padding.0,self.size.1+self.padding.1))
+    }
+
+    pub(crate) fn area(&self) -> CanvasTextureArea { self.area.clone().unwrap() }
+
+    pub(crate) fn origin(&self) -> Result<(u32,u32),Error> {
+        self.origin.ok_or_else(|| Error::fatal("texture get size unset"))
+    }
+
+    pub(crate) fn set_origin(&mut self, text: (u32,u32)) {
+        self.origin = Some(text);
+    }
+
+    pub fn build(&mut self, x: Option<u32>, y: Option<u32>) -> Result<(),Error> {
+        if let Some(x) = x { self.size.0 = x-self.padding.0; }
+        if let Some(y) = y { self.size.1 = y-self.padding.1; }
+        self.area = Some(CanvasTextureArea::new(
+            self.pad(unpack(&self.origin)?),
+            self.size
+        ));
+        Ok(())
+    }
+}
+
+#[derive(Clone)]
+#[cfg_attr(debug_assertions,derive(Debug))]
+pub struct CanvasLocationSource(Arc<Mutex<Option<CanvasTextureArea>>>);
+
+impl CanvasLocationSource {
+    pub(crate) fn new() -> CanvasLocationSource {
+        CanvasLocationSource(Arc::new(Mutex::new(None)))
+    }
+
+    pub(crate) fn set(&self, area: CanvasTextureArea) { *lock!(self.0) = Some(area); }
+
+    pub(crate) fn get(&self) -> Result<CanvasTextureArea,Error> {
+        lock!(self.0).as_ref().map(|x| x.clone()).ok_or_else(|| Error::fatal("source not ready"))
+    }
 }

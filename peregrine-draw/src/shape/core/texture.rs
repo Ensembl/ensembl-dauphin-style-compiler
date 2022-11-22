@@ -4,6 +4,7 @@ use crate::shape::layers::patina::{PatinaProcess, PatinaProcessName, PatinaAdder
 use crate::webgl::{ AttribHandle, ProcessStanzaAddable, ProgramBuilder, UniformHandle, ProcessBuilder };
 use crate::webgl::{ CanvasInUse };
 
+#[derive(Clone)]
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub struct CanvasTextureArea {
     origin: (u32,u32),

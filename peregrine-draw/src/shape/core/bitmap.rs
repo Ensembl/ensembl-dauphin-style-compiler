@@ -5,7 +5,7 @@ use wasm_bindgen::JsCast;
 use wasm_bindgen::prelude::Closure;
 use web_sys::HtmlImageElement;
 use crate::webgl::canvas::imagecache::ImageCache;
-use crate::webgl::canvas::tessellate::canvastessellator::FlatBoundary;
+use crate::webgl::canvas::tessellate::canvastessellator::{CanvasItemSize};
 use crate::webgl::{ CanvasAndContext };
 use crate::webgl::global::WebGlGlobal;
 use super::flatdrawing::{FlatDrawingItem};
@@ -84,10 +84,10 @@ fn dpr_round(size: u32, dpr: f32, scale: u32) -> u32 {
 }
 
 impl FlatDrawingItem for Bitmap {
-    fn calc_size(&self, gl: &mut WebGlGlobal) -> Result<FlatBoundary,Error> {
+    fn calc_size(&self, gl: &mut WebGlGlobal) -> Result<CanvasItemSize,Error> {
         let dpr = gl.device_pixel_ratio();
         let size = (dpr_round(self.width,dpr,self.scale),dpr_round(self.height,dpr,self.scale));
-        Ok(FlatBoundary::new(size,(PAD,PAD)))
+        Ok(CanvasItemSize::new(size,(PAD,PAD)))
     }
 
     fn compute_hash(&self) -> Option<u64> {
@@ -96,7 +96,7 @@ impl FlatDrawingItem for Bitmap {
         Some(hasher.finish())
     }
 
-    fn build(&self, canvas: &mut CanvasAndContext, origin: (u32,u32), size: (u32,u32)) -> Result<(),Error> {
+    fn draw_on_bitmap(&self, canvas: &mut CanvasAndContext, origin: (u32,u32), size: (u32,u32)) -> Result<(),Error> {
         canvas.draw_png(pad(origin),size,self)?;
         Ok(())
     }

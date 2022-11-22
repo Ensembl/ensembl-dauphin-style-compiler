@@ -27,13 +27,13 @@ fn split_spacebaserect(tools: &mut DrawingToolsBuilder, shape: &RectangleShape<L
                 },
                 ShapeCategory::Heraldry(HeraldryCanvasesUsed::Solid(heraldry_canvas),scale) => {
                     let heraldry = make_heraldry(shape.patina())?;
-                    let handles = heraldry.map(|x| x.add(tools));
+                    let handles = heraldry.map_results(|x| x.add(tools))?;
                     out.push(GLShape::Heraldry(shape.area().clone(),handles,depth,draw_group.clone(),heraldry_canvas.clone(),scale.clone(),None,wobble));
                 },
                 ShapeCategory::Heraldry(HeraldryCanvasesUsed::Hollow(heraldry_canvas_h,heraldry_canvas_v),scale) => {
                     let width = width.unwrap_or(0.);
                     let heraldry = make_heraldry(shape.patina())?;
-                    let handles = heraldry.map(|x| x.add(tools));
+                    let handles = heraldry.map_results(|x| x.add(tools))?;
                     // XXX too much cloning, at least Arc them
                     let area = shape.area();
                     out.push(GLShape::Heraldry(area.clone(),handles.clone(),depth.clone(),draw_group.clone(),heraldry_canvas_h.clone(),scale.clone(),Some(HollowEdge2::Left(width)),wobble.clone()));
@@ -51,7 +51,7 @@ fn split_spacebaserect(tools: &mut DrawingToolsBuilder, shape: &RectangleShape<L
     Ok(out)
 }
 
-fn colour_to_heraldry(colour: &Colour, hollow: bool) -> Option<Heraldry> {
+fn colour_to_heraldry(colour: &Colour, _hollow: bool) -> Option<Heraldry> {
     match colour {
         Colour::Stripe(a,b,c,_prop) => {
             Some(Heraldry::Stripe(a.clone(),b.clone(),50,*c))
@@ -119,7 +119,7 @@ pub(crate) fn prepare_shape_in_layer(tools: &mut DrawingToolsBuilder, shape: Dra
                 let names = shape.iter_names().collect::<Vec<_>>();
                 let mut all_bitmaps = names.iter().map(|asset| drawing_bitmap.make(&shape.channel(),asset)).collect::<Result<Vec<_>,_>>()?;
                 let manager = tools.manager(&CanvasType::Crisp);
-                let handles = all_bitmaps.drain(..).map(|x| manager.add(x)).collect();
+                let handles = all_bitmaps.drain(..).map(|x| manager.add(x)).collect::<Result<_,_>>()?;
                 out.push(GLShape::Image(shape.position().clone(),handles,depth,draw_group));
             },
             Shape::SpaceBaseRect(shape) => {

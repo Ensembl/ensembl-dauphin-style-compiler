@@ -1,8 +1,7 @@
-use crate::{shape::{layers::patina::{PatinaProcess, PatinaProcessName, PatinaAdder, PatinaYielder}, util::eoethrow::{eoe_throw, eoe_throw2}}, webgl::{ AttribHandle, ProcessStanzaAddable, ProgramBuilder }};
+use crate::{shape::{layers::patina::{PatinaProcess, PatinaProcessName, PatinaAdder, PatinaYielder}, util::eoethrow::{eoe_throw2}}, webgl::{ AttribHandle, ProcessStanzaAddable, ProgramBuilder }};
 use peregrine_data::{DirectColour};
 use peregrine_toolkit::{eachorevery::EachOrEvery, error::Error};
 use super::super::util::arrayutil::scale_colour;
-use crate::util::message::Message;
 
 #[derive(Clone)]
 pub struct DirectProgram {

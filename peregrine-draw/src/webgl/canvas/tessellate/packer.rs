@@ -1,8 +1,7 @@
 use std::collections::BTreeMap;
-use peregrine_toolkit::error::Error;
+use peregrine_toolkit::{error::Error};
 use crate::webgl::GPUSpec;
-
-use super::canvastessellator::CanvasTessellationPrepare;
+use super::canvastessellator::{FlatBoundary};
 
 /* see alloc.md in guide for details */
 
@@ -126,48 +125,63 @@ impl Bin {
 
 // TODO test this algorithm
 
-pub(crate) fn allocate_areas(sizes: &[(u32,u32)], gpu_spec: &GPUSpec) -> Result<(Vec<(u32,u32)>,u32,u32),Error> {
-    let max_size = gpu_spec.max_texture_size() as u64;
-    let max_width = sizes.iter().map(|(w,_)| *w as u64).max();
-    let square_dim : u64 = sizes.iter().map(|(w,h)| (w*h) as f64).sum::<f64>().sqrt() as u64;
+fn tallest_first(sizes: &[(u32,u32)]) -> Vec<usize> {
     let mut sorted = sizes.iter().enumerate().collect::<Vec<_>>();
     sorted.sort_by_key(|(_,(w,h))| (*h,*w));
     sorted.reverse();
-    let max_width = if let Some(max_width) = max_width { max_width+1 } else { return Ok((vec![],1,1)); };
-    let mut texture_width = max_width.max(square_dim).next_power_of_two();
-    if texture_width > max_size {
-        return Err(Error::fatal("cannot pack rectangles: all attempts failed"));
+    sorted.iter().map(|x| x.0).collect()
+}
+
+fn initial_width(sizes: &[(u32,u32)]) -> u64 {
+    let max_width = sizes.iter().map(|(w,_)| *w as u64).max().unwrap()+1;
+    let square_dim : u64 = sizes.iter().map(|(w,h)| (w*h) as f64).sum::<f64>().sqrt() as u64;
+    max_width.max(square_dim).next_power_of_two()
+}
+
+fn attempt_at_width(order: &[usize], sizes: &[(u32,u32)], texture_width: u64) -> (Vec<(u32,u32)>,u32) {
+    let mut out = vec![(0,0);order.len()];
+    let mut bin = Bin::new(texture_width as u32);
+    for index in order {
+        let area = &sizes[*index];
+        out[*index] = bin.allocate(area.0,area.1);
     }
+    (out,bin.height())
+}
+
+pub(crate) fn allocate_areas(items: &mut [&mut FlatBoundary], gpu_spec: &GPUSpec) -> Result<(u32,u32),Error> {
+    let sizes = items.iter().map(|x| x.size()).collect::<Result<Vec<_>,_>>()?;
+    if sizes.len() == 0 { return Ok((1,1)); }
+    let order = tallest_first(&sizes);
+    let max_size = gpu_spec.max_texture_size() as u64;
+    let mut texture_width = initial_width(&sizes);
     loop {
-        let mut out = vec![(0,0);sorted.len()];
-        let mut bin = Bin::new(texture_width as u32);
-        for (index,_) in &sorted {
-            let area = &sizes[*index];
-            out[*index] = bin.allocate(area.0,area.1);
+        if texture_width > max_size {
+            return Err(Error::fatal("cannot pack rectangles: all attempts failed"));
         }
-        let texture_height = bin.height().next_power_of_two() as u64;
+        let (out,texture_height) = attempt_at_width(&order,&sizes,texture_width);
+        let texture_height = texture_height.next_power_of_two() as u64;
         if texture_height <= max_size {
-            return Ok((out,texture_width as u32,texture_height as u32));
+            for (i,origin) in out.iter().enumerate() {
+                items[i].set_origin(*origin);
+            }
+            return Ok((texture_width as u32,texture_height as u32));
         }
         texture_width *= 2;
     }
 }
 
-pub(crate) fn allocate_linear(prepare: &mut CanvasTessellationPrepare, gpu_spec: &GPUSpec, horizontal: bool) -> Result<(u32,u32),Error> {
-    if prepare.items().len() == 0 {
-        return Ok((1,1))
-    }
+pub(crate) fn allocate_linear(items: &mut [&mut FlatBoundary], gpu_spec: &GPUSpec, horizontal: bool) -> Result<(u32,u32),Error> {
+    if items.len() == 0 { return Ok((1,1)) }
     let (stack,other) = if horizontal { (0,1) } else { (1,0) };
     let mut cur  = vec![0,0];
     let mut max = vec![0,0];
-    for item in prepare.items_mut().iter_mut() {
+    for item in items.iter_mut() {
         item.set_origin((cur[0],cur[1]));
-        let size = item.size_with_padding()?;
+        let size = item.size()?;
         let size = vec![size.0,size.1];
         cur[stack] += size[stack];
         max[other] = max[other].max(size[other]);
     }
-    prepare.bump(prepare.items().len());
     let mut size = (max[0].max(cur[0]),max[1].max(cur[1]));
     let max_size = gpu_spec.max_texture_size();
     if size.0 > max_size || size.1 > max_size {

@@ -5,7 +5,6 @@ use peregrine_data::{ Colour, DirectColour, DrawnType, Patina, Plotter, SpaceBas
 use peregrine_toolkit::eachorevery::{EachOrEvery, EachOrEveryFilterBuilder};
 use peregrine_toolkit::error::Error;
 use super::directcolourdraw::DirectYielder;
-use super::flatdrawing::CanvasItemHandle;
 use super::spotcolourdraw::SpotColourYielder;
 use super::text::draw_text;
 use super::super::layers::layer::{ Layer };
@@ -19,6 +18,7 @@ use crate::shape::layers::patina::{PatinaYielder, Freedom};
 use crate::shape::triangles::rectangles::{Rectangles, RectanglesData, GLAttachmentPoint };
 use crate::shape::triangles::drawgroup::DrawGroup;
 use crate::shape::util::eoethrow::{eoe_throw2};
+use crate::webgl::canvas::tessellate::canvastessellator::CanvasLocationSource;
 use crate::webgl::{ ProcessStanzaAddable, CanvasInUse };
 use crate::webgl::global::WebGlGlobal;
 
@@ -110,8 +110,8 @@ impl DrawingShapePatina {
 }
 
 pub(crate) enum GLShape {
-    Text(SpaceBase<f64,LeafStyle>,Option<SpaceBase<f64,()>>,Vec<CanvasItemHandle>,EachOrEvery<i8>,DrawGroup,GLAttachmentPoint),
-    Image(SpaceBase<f64,LeafStyle>,Vec<CanvasItemHandle>,EachOrEvery<i8>,DrawGroup),
+    Text(SpaceBase<f64,LeafStyle>,Option<SpaceBase<f64,()>>,Vec<CanvasLocationSource>,EachOrEvery<i8>,DrawGroup,GLAttachmentPoint),
+    Image(SpaceBase<f64,LeafStyle>,Vec<CanvasLocationSource>,EachOrEvery<i8>,DrawGroup),
     Heraldry(SpaceBaseArea<f64,LeafStyle>,EachOrEvery<HeraldryHandle>,EachOrEvery<i8>,DrawGroup,HeraldryCanvas,HeraldryScale,Option<HollowEdge2<f64>>,Option<SpaceBaseArea<Observable<'static,f64>,()>>),
     Wiggle((f64,f64),Arc<Vec<Option<f64>>>,Plotter,i8),
     SpaceBaseRect(SpaceBaseArea<f64,LeafStyle>,SimpleShapePatina,EachOrEvery<i8>,DrawGroup,Option<SpaceBaseArea<Observable<'static,f64>,()>>),
@@ -171,7 +171,7 @@ fn draw_heraldry_canvas(layer: &mut Layer, gl: &mut WebGlGlobal, tools: &mut Dra
     let mut filter_builder = EachOrEveryFilterBuilder::new();
     for (i,handle) in eoe_throw2("heraldry",handles.iter(count))?.enumerate() {
         if let Some(handle) = handle.get_texture_area_on_bitmap(&heraldry_canvas) {
-            let area = handle.drawn_area()?;
+            let area = handle.get()?;
             dims.push(area);
             filter_builder.set(i);
         }
@@ -205,7 +205,7 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &mut WebGlGlobal, tools:
         },
         GLShape::Image(points,handles,depth,kind) => {
             let bitmap_dims = handles.iter()
-                .map(|handle| handle.drawn_area())
+                .map(|handle| handle.get())
                 .collect::<Result<Vec<_>,_>>()?;
             if bitmap_dims.len() == 0 { return Ok(ShapeToAdd::None); }
             let (x_sizes,y_sizes) = dims_to_sizes(&bitmap_dims,1./bitmap_multiplier);
