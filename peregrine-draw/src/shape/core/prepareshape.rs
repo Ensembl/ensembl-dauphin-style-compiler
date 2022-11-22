@@ -1,12 +1,12 @@
 use peregrine_data::{ Colour, DrawnType, Patina, RectangleShape, Shape, ShapeDemerge, HollowEdge2, LeafStyle, DrawingShape, CoordinateSystem };
 use peregrine_toolkit::eachorevery::EachOrEvery;
-use super::text::{prepare_text};
 use crate::shape::core::drawshape::{SimpleShapePatina};
 use crate::shape::heraldry::heraldry::{Heraldry, HeraldryCanvasesUsed};
-use crate::shape::layers::drawingtools::DrawingToolsBuilder;
+use crate::shape::layers::drawingtools::{DrawingToolsBuilder, CanvasType};
 use crate::shape::triangles::drawgroup::{DrawGroup, ShapeCategory};
 use crate::util::message::Message;
 use super::drawshape::{ GLShape };
+use super::text::prepare_text;
 
 fn split_spacebaserect(tools: &mut DrawingToolsBuilder, shape: &RectangleShape<LeafStyle>, draw_group: &DrawGroup) -> Result<Vec<GLShape>,Message> {
     let mut out = vec![];
@@ -26,22 +26,20 @@ fn split_spacebaserect(tools: &mut DrawingToolsBuilder, shape: &RectangleShape<L
                     out.push(GLShape::SpaceBaseRect(shape.area().clone(),SimpleShapePatina::spot_from_patina(c,shape.patina())?,depth,draw_group.clone(),wobble));
                 },
                 ShapeCategory::Heraldry(HeraldryCanvasesUsed::Solid(heraldry_canvas),scale) => {
-                    let heraldry_tool = tools.heraldry();
                     let heraldry = make_heraldry(shape.patina())?;
-                    let handles = heraldry.map(|x| heraldry_tool.add(x.clone()));
+                    let handles = heraldry.map(|x| x.add(tools));
                     out.push(GLShape::Heraldry(shape.area().clone(),handles,depth,draw_group.clone(),heraldry_canvas.clone(),scale.clone(),None,wobble));
                 },
                 ShapeCategory::Heraldry(HeraldryCanvasesUsed::Hollow(heraldry_canvas_h,heraldry_canvas_v),scale) => {
                     let width = width.unwrap_or(0.);
-                    let heraldry_tool = tools.heraldry();
                     let heraldry = make_heraldry(shape.patina())?;
-                    let handles = heraldry.map(|x| heraldry_tool.add(x.clone()));
+                    let handles = heraldry.map(|x| x.add(tools));
                     // XXX too much cloning, at least Arc them
                     let area = shape.area();
-                    out.push(GLShape::Heraldry(area.clone(),handles.clone(),depth.clone(),draw_group.clone(),heraldry_canvas_v.clone(),scale.clone(),Some(HollowEdge2::Left(width)),wobble.clone()));
-                    out.push(GLShape::Heraldry(area.clone(),handles.clone(),depth.clone(),draw_group.clone(),heraldry_canvas_v.clone(),scale.clone(),Some(HollowEdge2::Right(width)),wobble.clone()));
-                    out.push(GLShape::Heraldry(area.clone(),handles.clone(),depth.clone(),draw_group.clone(),heraldry_canvas_h.clone(),scale.clone(),Some(HollowEdge2::Top(width)),wobble.clone()));
-                    out.push(GLShape::Heraldry(area.clone(),handles,depth,draw_group.clone(),heraldry_canvas_h.clone(),scale.clone(),Some(HollowEdge2::Bottom(width)),wobble.clone()));
+                    out.push(GLShape::Heraldry(area.clone(),handles.clone(),depth.clone(),draw_group.clone(),heraldry_canvas_h.clone(),scale.clone(),Some(HollowEdge2::Left(width)),wobble.clone()));
+                    out.push(GLShape::Heraldry(area.clone(),handles.clone(),depth.clone(),draw_group.clone(),heraldry_canvas_h.clone(),scale.clone(),Some(HollowEdge2::Right(width)),wobble.clone()));
+                    out.push(GLShape::Heraldry(area.clone(),handles.clone(),depth.clone(),draw_group.clone(),heraldry_canvas_v.clone(),scale.clone(),Some(HollowEdge2::Top(width)),wobble.clone()));
+                    out.push(GLShape::Heraldry(area.clone(),handles,depth,draw_group.clone(),heraldry_canvas_v.clone(),scale.clone(),Some(HollowEdge2::Bottom(width)),wobble.clone()));
                 }
             }
         },
@@ -119,7 +117,9 @@ pub(crate) fn prepare_shape_in_layer(tools: &mut DrawingToolsBuilder, shape: Dra
                 let depth = shape.position().allotments().map(|x| x.depth);
                 let drawing_bitmap = tools.bitmap();
                 let names = shape.iter_names().collect::<Vec<_>>();
-                let handles = names.iter().map(|asset| drawing_bitmap.add_bitmap(&shape.channel(),asset)).collect::<Result<Vec<_>,_>>()?;
+                let mut all_bitmaps = names.iter().map(|asset| drawing_bitmap.make(&shape.channel(),asset)).collect::<Result<Vec<_>,_>>()?;
+                let manager = tools.manager(&CanvasType::Crisp);
+                let handles = all_bitmaps.drain(..).map(|x| manager.add(x)).collect();
                 out.push(GLShape::Image(shape.position().clone(),handles,depth,draw_group));
             },
             Shape::SpaceBaseRect(shape) => {

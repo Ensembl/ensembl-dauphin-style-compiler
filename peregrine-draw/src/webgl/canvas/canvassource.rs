@@ -85,11 +85,12 @@ impl CanvasSource {
             y = rounded(y);
         }
         let stats = self.stats.clone();
+        let dpr = self.bitmap_multiplier;
         stats.another();
         let mut canvas = lock!(self.canvases).entry((x,y)).or_insert_with(move || {
             LeaseManager::new(move || {
                 stats.add(x,y);
-                Canvas::new(&document,x,y)
+                Canvas::new(&document,x,y,dpr)
             })
         }).allocate()?;
         canvas.get_mut().clear()?;

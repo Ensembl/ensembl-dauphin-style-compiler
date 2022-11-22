@@ -1,15 +1,12 @@
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{ Hash, Hasher };
-use std::sync::{Arc, Mutex};
 use peregrine_data::{ DirectColour };
 use peregrine_toolkit::error::Error;
-use peregrine_toolkit::lock;
-use crate::shape::core::flatdrawing::{FlatDrawingItem, FlatDrawingManager, CanvasItemHandle};
-use crate::shape::core::texture::CanvasTextureArea;
-use crate::shape::layers::drawingtools::ToolPreparations;
-use crate::webgl::{CanvasAndContext, CanvasInUse};
+use crate::shape::core::flatdrawing::{FlatDrawingItem, CanvasItemHandle};
+use crate::shape::layers::drawingtools::{CanvasType, DrawingToolsBuilder};
+use crate::shape::layers::patina::Freedom;
+use crate::webgl::{CanvasAndContext};
 use crate::webgl::global::WebGlGlobal;
-use crate::util::message::Message;
 use super::bardots::HeraldryBarDots;
 
 const STAMP : u32 = 32;
@@ -90,6 +87,24 @@ impl Heraldry {
     pub(crate) fn canvases_used(&self) -> HeraldryCanvasesUsed {
         self.handle_type().canvases_used()
     }
+
+    pub(crate) fn add(&self, manager: &mut DrawingToolsBuilder) -> HeraldryHandle {
+        match self.handle_type() {
+            HeraldryHandleType::Horiz => {
+                HeraldryHandle::Horiz(manager.manager(&CanvasType::HeraldryHoriz).add(self.clone()))
+            },
+            HeraldryHandleType::Crisp => {
+                HeraldryHandle::Crisp(manager.manager(&CanvasType::HeraldryVert).add(self.clone()))
+            },
+            HeraldryHandleType::HorizVert => {
+                let rotated = self.rotate(); // rotated is vertical line
+                HeraldryHandle::HorizVert(
+                    manager.manager(&CanvasType::HeraldryHoriz).add(self.clone()), // gets horiz line
+                    manager.manager(&CanvasType::HeraldryVert).add(rotated) // gets vertical line
+                )
+            }
+        }
+    }
 }
 
 impl FlatDrawingItem for Heraldry {
@@ -164,6 +179,18 @@ pub(crate) enum HeraldryHandle {
     Crisp(CanvasItemHandle)
 }
 
+impl HeraldryHandle {
+    pub(crate) fn get_texture_area_on_bitmap(&self, canvas: &HeraldryCanvas) -> Option<(CanvasType,&CanvasItemHandle)> {
+        match (canvas,self) {
+            (HeraldryCanvas::Horiz,HeraldryHandle::Horiz(h)) => Some((CanvasType::HeraldryVert,h)),
+            (HeraldryCanvas::Horiz,HeraldryHandle::HorizVert(h,_)) => Some((CanvasType::HeraldryHoriz,h)),
+            (HeraldryCanvas::Vert,HeraldryHandle::HorizVert(_,v)) => Some((CanvasType::HeraldryVert,v)),
+            (HeraldryCanvas::Crisp,HeraldryHandle::Crisp(h)) => Some((CanvasType::Crisp,h)),
+            _ => None
+        }
+    }
+}
+
 #[derive(Clone,PartialEq,Eq,Hash,Debug)]
 pub(crate) enum HeraldryCanvas {
     Horiz,
@@ -171,66 +198,20 @@ pub(crate) enum HeraldryCanvas {
     Crisp
 }
 
-pub struct DrawingHeraldry {
-    horiz: FlatDrawingManager,
-    vert: FlatDrawingManager,
-    crisp: FlatDrawingManager
-}
-
-impl DrawingHeraldry {
-    pub fn new() -> DrawingHeraldry { 
-        DrawingHeraldry {
-            horiz: FlatDrawingManager::new(),
-            vert: FlatDrawingManager::new(),
-            crisp: FlatDrawingManager::new()
+impl HeraldryCanvas {
+    pub(crate) fn to_canvas_type(&self) -> CanvasType {
+        match self {
+            HeraldryCanvas::Horiz => CanvasType::HeraldryHoriz,
+            HeraldryCanvas::Vert => CanvasType::HeraldryVert,
+            HeraldryCanvas::Crisp => CanvasType::Crisp
         }
     }
 
-    pub(crate) fn add(&mut self, heraldry: Heraldry) -> HeraldryHandle {
-        match heraldry.handle_type() {
-            HeraldryHandleType::Horiz => {
-                HeraldryHandle::Horiz(self.horiz.add(heraldry))
-            },
-            HeraldryHandleType::Crisp => {
-                HeraldryHandle::Crisp(self.crisp.add(heraldry))
-            },
-            HeraldryHandleType::HorizVert => {
-                let heraldry_rotated = heraldry.rotate();
-                HeraldryHandle::HorizVert(self.horiz.add(heraldry_rotated),self.vert.add(heraldry))        
-            }
-        }
-    }
-
-    pub(crate) async fn calculate_requirements(&mut self, gl: &Arc<Mutex<WebGlGlobal>>, preparations: &mut ToolPreparations) -> Result<(),Error> {
-        let mut gl = lock!(gl);
-        self.horiz.calculate_requirements(&mut gl,preparations.heraldry_h_manager())?;
-        self.vert.calculate_requirements(&mut gl,preparations.heraldry_v_manager())?;
-        self.crisp.calculate_requirements(&mut gl,preparations.crisp_manager())?;
-        Ok(())
-    }
-
-    pub(crate) fn get_texture_area_on_bitmap(&self, handle: &HeraldryHandle, canvas: &HeraldryCanvas) -> Result<Option<CanvasTextureArea>,Message> {
-        Ok(match (canvas,handle) {
-            (HeraldryCanvas::Horiz,HeraldryHandle::Horiz(h)) => Some(self.horiz.get_texture_areas_on_bitmap(h)?),
-            (HeraldryCanvas::Horiz,HeraldryHandle::HorizVert(h,_)) => Some(self.horiz.get_texture_areas_on_bitmap(h)?),
-            (HeraldryCanvas::Vert,HeraldryHandle::HorizVert(_,v)) => Some(self.vert.get_texture_areas_on_bitmap(v)?),
-            (HeraldryCanvas::Crisp,HeraldryHandle::Crisp(h)) => Some(self.crisp.get_texture_areas_on_bitmap(h)?),
-            _ => None
-        })
-    }
-
-    pub(crate) fn draw_at_locations(&mut self, preparations: &mut ToolPreparations) -> Result<(),Error> {
-        self.horiz.draw_at_locations(preparations.heraldry_h_manager())?;
-        self.vert.draw_at_locations(preparations.heraldry_v_manager())?;
-        self.crisp.draw_at_locations(preparations.crisp_manager())?;
-        Ok(())
-    }
-
-    pub(crate) fn canvas_id(&self, canvas: &HeraldryCanvas) -> Option<CanvasInUse> {
-        match canvas {
-            HeraldryCanvas::Horiz => self.horiz.canvas_id(),
-            HeraldryCanvas::Vert => self.vert.canvas_id(),
-            HeraldryCanvas::Crisp => self.crisp.canvas_id()
+    pub fn to_freedom(&self) -> Freedom {
+        match self {
+            HeraldryCanvas::Horiz => Freedom::Vertical,
+            HeraldryCanvas::Vert => Freedom::Horizontal,
+            HeraldryCanvas::Crisp => Freedom::None,
         }
     }
 }

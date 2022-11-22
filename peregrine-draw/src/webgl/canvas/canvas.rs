@@ -11,12 +11,12 @@ pub struct Canvas {
 }
 
 impl Canvas {
-    pub(super) fn new(document: &Document, x: u32, y: u32) -> Result<Canvas,Error> {
+    pub(super) fn new(document: &Document, x: u32, y: u32, dpr: f32) -> Result<Canvas,Error> {
         let element = document.create_element("canvas").map_err(|_| Error::fatal("cannot create canvas"))?;
         let element =  element.dyn_into::<HtmlCanvasElement>().map_err(|_| Error::fatal("could not cast canvas to HtmlCanvasElement"))?;
         element.set_width(x);
         element.set_height(y);
-        //document.body().unwrap().append_child(&element);
+        document.body().unwrap().append_child(&element);
         Ok(Canvas {
             element,
             size: (x,y)
@@ -39,6 +39,7 @@ impl Canvas {
 
     pub(super) fn clear(&self) -> Result<(),Error> {
         let context = self.context()?;
+        context.set_fill_style(&"red".into());
         context.clear_rect(0.,0.,self.size.0 as f64,self.size.1 as f64);
         Ok(())
     }

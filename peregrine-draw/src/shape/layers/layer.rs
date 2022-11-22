@@ -95,8 +95,18 @@ impl Layer {
                 _ => {}
             }
             match &character.1 {
-                PatinaProcessName::Texture(flat_id) |
-                PatinaProcessName::FreeTexture(flat_id) =>{
+                PatinaProcessName::Texture(flat_id) => {
+                    canvases.add_process(&flat_id,prog.get_process_mut())?;
+                },
+                PatinaProcessName::FreeTexture(flat_id,freedom) =>{
+                    let draw = match prog.get_patina() {
+                        PatinaProcess::FreeTexture(draw) => Some(draw),
+                        _ => None
+                    }.cloned();
+                    if let Some(draw) = draw {
+                        let process = prog.get_process_mut();
+                        draw.set_freedom(process,freedom);
+                    }
                     canvases.add_process(&flat_id,prog.get_process_mut())?;
                 },
                 PatinaProcessName::Spot(colour) => {

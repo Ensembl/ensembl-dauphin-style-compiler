@@ -2,8 +2,9 @@ use peregrine_data::{ DirectColour, PenGeometry, Background, LeafStyle, TextShap
 use peregrine_toolkit::eachorevery::EachOrEvery;
 use peregrine_toolkit::error::Error;
 use peregrine_toolkit::lock;
-use crate::shape::layers::drawingtools::DrawingToolsBuilder;
+use crate::shape::layers::drawingtools::{DrawingToolsBuilder, CanvasType};
 use crate::shape::layers::layer::Layer;
+use crate::shape::layers::patina::Freedom;
 use crate::shape::triangles::drawgroup::DrawGroup;
 use crate::shape::triangles::rectangles::GLAttachmentPoint;
 use crate::util::fonts::Fonts;
@@ -67,25 +68,25 @@ impl FlatDrawingItem for Text {
     }
 }
 
-pub struct DrawingText(FlatDrawingManager,Vec<Text>,Fonts,f64);
+pub struct DrawingText(Vec<Text>,Fonts,f64);
 
 impl DrawingText {
     pub(crate) fn new(fonts: &Fonts, bitmap_multiplier: f64) -> DrawingText {
-        DrawingText(FlatDrawingManager::new(),vec![],fonts.clone(),bitmap_multiplier)
+        DrawingText(vec![],fonts.clone(),bitmap_multiplier)
     }
 
-    pub fn add_text(&mut self, pen: &PenGeometry, text: &str, colour: &DirectColour, background: &Option<Background>) -> CanvasItemHandle {
-        self.0.add(Text::new(pen,text,colour,background))
+    fn make(&mut self, pen: &PenGeometry, text: &str, colour: &DirectColour, background: &Option<Background>) -> Text {
+        let text = Text::new(pen,text,colour,background);
+        self.0.push(text.clone());
+        text
     }
 
-    pub(crate) async fn calculate_requirements(&mut self, gl: &Arc<Mutex<WebGlGlobal>>, allocator: &mut CanvasTessellator) -> Result<(),Error> {
-        for text in self.1.iter() {
-            text.prepare(&self.2,self.3).await;
+    pub(crate) async fn prepare_for_allocation(&self) -> Result<(),Error> {
+        for text in self.0.iter() {
+            text.prepare(&self.1,self.2).await;
         }
-        self.0.calculate_requirements(&mut *lock!(gl),allocator)
+        Ok(())
     }
-
-    pub(crate) fn manager(&mut self) -> &mut FlatDrawingManager { &mut self.0 }
 }
 
 pub(super) fn prepare_text(out: &mut Vec<GLShape>, tools: &mut DrawingToolsBuilder, shape: &TextShape<LeafStyle>, draw_group: &DrawGroup) {
@@ -94,11 +95,14 @@ pub(super) fn prepare_text(out: &mut Vec<GLShape>, tools: &mut DrawingToolsBuild
     let background = shape.pen().background();
     let texts = shape.iter_texts().collect::<Vec<_>>();
     let colours_iter = shape.pen().colours().iter(texts.len()).unwrap();
-    let mut handles = vec![];
+    let mut all_texts = vec![];
     for (text,colour) in texts.iter().zip(colours_iter) {
-        let id = drawing_text.add_text(&shape.pen().geometry(),&text,colour,background);
-        handles.push(id);
+        let item = drawing_text.make(&shape.pen().geometry(),&text,colour,background);
+        all_texts.push(item);
     }
+    drop(drawing_text);
+    let manager = tools.manager(&CanvasType::Crisp);
+    let handles = all_texts.drain(..).map(|x| manager.add(x)).collect();
     let positions = shape.position().clone();
     out.push(GLShape::Text(positions,shape.run().cloned(),handles,depth,draw_group.clone(),GLAttachmentPoint::new(shape.pen().attachment())));
 }
@@ -110,13 +114,12 @@ pub(super) fn draw_text(layer: &mut Layer, gl: &mut WebGlGlobal, tools: &mut Dra
                     attachment: GLAttachmentPoint,
                 ) -> Result<ShapeToAdd,Message> {
     let bitmap_multiplier = gl.refs().canvas_source.bitmap_multiplier() as f64;
-    let text = tools.text();
     let bitmap_dims = handles.iter()
-        .map(|handle| text.manager().get_texture_areas_on_bitmap(handle))
+        .map(|handle| tools.manager(&CanvasType::Crisp).get_texture_areas_on_bitmap(handle))
         .collect::<Result<Vec<_>,_>>()?;
     if bitmap_dims.len() == 0 { return Ok(ShapeToAdd::None); }
     let (x_sizes,y_sizes) = dims_to_sizes(&bitmap_dims,1./bitmap_multiplier);
-    let canvas = text.manager().canvas_id().ok_or_else(|| Message::CodeInvariantFailed("no canvas id A".to_string()))?;
-    let rectangles = draw_points_from_canvas2(layer,gl,&draw_group,&points,&run,x_sizes,y_sizes,&depth,&canvas,&bitmap_dims,false,attachment,None)?;
+    let canvas = tools.manager(&CanvasType::Crisp).canvas_id().ok_or_else(|| Message::CodeInvariantFailed("no canvas id A".to_string()))?;
+    let rectangles = draw_points_from_canvas2(layer,gl,&draw_group,&points,&run,x_sizes,y_sizes,&depth,&canvas,&bitmap_dims,&Freedom::None,attachment,None)?;
     Ok(ShapeToAdd::Dynamic(rectangles))
 }

@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 use std::{f64::consts::PI, fmt::Debug, hash::Hash };
 use peregrine_toolkit::error::Error;
-use peregrine_toolkit::{identitynumber, hashable, lock};
+use peregrine_toolkit::{identitynumber, hashable, lock, log};
 use peregrine_toolkit::plumbing::lease::Lease;
 use wasm_bindgen::{JsCast, JsValue};
 use web_sys::{CanvasRenderingContext2d, HtmlCanvasElement, HtmlImageElement };

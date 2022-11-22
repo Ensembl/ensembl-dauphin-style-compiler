@@ -1,5 +1,5 @@
 use peregrine_data::DirectColour;
-use peregrine_toolkit::error::Error;
+use peregrine_toolkit::{error::Error, log};
 use crate::{webgl::{CanvasAndContext}};
 use super::heraldry::{HeraldryHandleType, HeraldryScale};
 
@@ -51,7 +51,7 @@ impl HeraldryBarDots {
         }
     }
 
-    pub(super) fn padding(&mut self) -> (u32,u32) { (PAD,PAD) }
+    pub(super) fn padding(&mut self) -> (u32,u32) { (0,0) }
 
     pub(super) fn rotate(&self) -> HeraldryBarDots {
         let mut out = self.clone();
@@ -80,7 +80,7 @@ impl HeraldryBarDots {
         let offset= if self.dir { (0,50-self.prop/2) } else { (50-self.prop/2,0) };
         let extent = ((extent.0*unit.0) / 100,(extent.1*unit.1) / 100);
         let offset = ((offset.0*unit.0) / 100,(offset.1*unit.1) / 100);
-        canvas.rectangle(t,unit,&self.col_a,true)?;
+        canvas.rectangle(t,unit,&self.col_a,false)?;
         canvas.path((t.0+offset.0,t.1+offset.1),&[
             (0,       0),
             (extent.0,0),
@@ -92,7 +92,7 @@ impl HeraldryBarDots {
     
     pub(super) fn draw(&self, canvas: &mut CanvasAndContext, text_origin: (u32,u32), size: (u32,u32)) -> Result<(),Error> {
         let bitmap_multiplier = canvas.bitmap_multiplier();
-        let unit = self.unit_size(bitmap_multiplier);
+        let unit = self.unit_size(1.);
         let count = (size.0/unit.0,size.1/unit.1);
         for y in 0..count.1 {
             for x in 0..count.0 {

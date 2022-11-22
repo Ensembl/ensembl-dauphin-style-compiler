@@ -80,14 +80,35 @@ impl PatinaProgramName {
                     AttributeProto::new(PR_DEF,GLArity::Vec2,"aTextureCoord"),
                     Varying::new(PR_DEF,GLArity::Vec2,"vTextureCoord"),
                     Statement::new_vertex("vTextureCoord = aTextureCoord"),
+                    UniformProto::new_fragment(PR_LOW,GLArity::Vec2,"uFreedom"),
                     SetFlag::new("need-origin"),
-                    Statement::new_fragment("gl_FragColor = texture2D(uSampler,vec2(
-                            (gl_FragCoord.x-vOrigin.x)/uSamplerSize.x+vTextureCoord.x,
-                            (gl_FragCoord.y-vOrigin.y)/uSamplerSize.y+vTextureCoord.y))"),
+                    Statement::new_fragment("gl_FragColor = texture2D(uSampler,
+                        vec2(
+                            uFreedom.y*(gl_FragCoord.x-vOrigin.x)/uSamplerSize.x+vTextureCoord.x,
+                            uFreedom.x*(gl_FragCoord.y-vOrigin.y)/uSamplerSize.y+vTextureCoord.y)
+                        )"),
                     Statement::new_fragment("gl_FragColor.a = gl_FragColor.a * uOpacity"),
                 ]
             }
         )
+    }
+}
+
+#[derive(Clone,PartialEq,Eq,Hash)]
+#[cfg_attr(debug_assertions,derive(Debug))]
+pub(crate) enum Freedom {
+    None,
+    Horizontal,
+    Vertical
+}
+
+impl Freedom {
+    pub(crate) fn as_gl(&self) -> (f32,f32) {
+        match self {
+            Freedom::None => (0.,0.),
+            Freedom::Horizontal => (1.,0.),
+            Freedom::Vertical => (0.,1.),
+        }
     }
 }
 
@@ -102,7 +123,7 @@ pub(crate) enum PatinaProcess {
 
 #[derive(Clone,PartialEq,Eq,Hash)]
 #[cfg_attr(debug_assertions,derive(Debug))]
-pub enum PatinaProcessName { Direct, Spot(DirectColour), Texture(CanvasInUse), FreeTexture(CanvasInUse) }
+pub(crate) enum PatinaProcessName { Direct, Spot(DirectColour), Texture(CanvasInUse), FreeTexture(CanvasInUse,Freedom) }
 
 impl PatinaProcessName {
     pub(super) fn get_program_name(&self) -> PatinaProgramName {
@@ -110,7 +131,7 @@ impl PatinaProcessName {
             PatinaProcessName::Direct => PatinaProgramName::Direct,
             PatinaProcessName::Spot(_) => PatinaProgramName::Spot,
             PatinaProcessName::Texture(_) => PatinaProgramName::Texture,
-            PatinaProcessName::FreeTexture(_) => PatinaProgramName::FreeTexture
+            PatinaProcessName::FreeTexture(_,_) => PatinaProgramName::FreeTexture
         }
     }
 
@@ -119,7 +140,7 @@ impl PatinaProcessName {
             PatinaProcessName::Direct => 0,
             PatinaProcessName::Spot(_) => 1,
             PatinaProcessName::Texture(_) => 2,
-            PatinaProcessName::FreeTexture(_) => 3
+            PatinaProcessName::FreeTexture(_,_) => 3
         }
     }
 }

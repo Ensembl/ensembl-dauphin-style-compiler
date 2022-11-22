@@ -76,7 +76,9 @@ impl RectangleShape<LeafStyle> {
         };
         let mut out = vec![];
         for (draw_group,filter) in demerge {
-            out.push((draw_group,self.filter(&filter)));
+            if filter.count() > 0 {
+                out.push((draw_group,self.filter(&filter)));
+            }
         }
         out
     }

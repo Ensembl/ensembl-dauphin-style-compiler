@@ -1,5 +1,7 @@
-use crate::shape::layers::patina::{PatinaProcess, PatinaProcessName, PatinaAdder, PatinaYielder};
-use crate::webgl::{ AttribHandle, ProcessStanzaAddable, ProgramBuilder };
+use peregrine_toolkit::log;
+
+use crate::shape::layers::patina::{PatinaProcess, PatinaProcessName, PatinaAdder, PatinaYielder, Freedom};
+use crate::webgl::{ AttribHandle, ProcessStanzaAddable, ProgramBuilder, UniformHandle, ProcessBuilder };
 use crate::webgl::{ CanvasInUse };
 use crate::util::message::Message;
 
@@ -20,13 +22,15 @@ impl CanvasTextureArea {
 
 #[derive(Clone)]
 pub struct TextureProgram {
-    texture: AttribHandle
+    texture: AttribHandle,
+    freedom: Option<UniformHandle>
 }
 
 impl TextureProgram {
     pub(crate) fn new(builder: &ProgramBuilder) -> Result<TextureProgram,Message> {
         Ok(TextureProgram {
-            texture: builder.get_attrib_handle("aTextureCoord")?
+            texture: builder.get_attrib_handle("aTextureCoord")?,
+            freedom: builder.try_get_uniform_handle("uFreedom")
         })
     }
 }
@@ -47,14 +51,16 @@ impl TextureDraw {
         Ok(TextureDraw(variety.clone(),free))
     }
 
-    fn add_rectangle_one(&self, addable: &mut dyn ProcessStanzaAddable, attrib: &AttribHandle, dims: &mut dyn Iterator<Item=((u32,u32),(u32,u32))>, csize: &(u32,u32)) -> Result<(),Message> {
+    fn add_rectangle_one(&self, addable: &mut dyn ProcessStanzaAddable, attrib: &AttribHandle, dims: &mut dyn Iterator<Item=((u32,u32),(u32,u32))>, csize: &(u32,u32), freedom: &Freedom) -> Result<(),Message> {
         let mut data = vec![];
         if self.1 {
-            for (origin,_size) in dims {
+            let (fx,fy)= freedom.as_gl().into();
+            let (fx,fy) = (fx as u32, fy as u32);
+            for (origin,size) in dims {
                 push(&mut data, origin.0,origin.1,&csize);
-                push(&mut data, origin.0,origin.1,&csize);
-                push(&mut data, origin.0,origin.1,&csize);
-                push(&mut data, origin.0,origin.1,&csize);
+                push(&mut data, origin.0,origin.1+size.1*fx,&csize);
+                push(&mut data, origin.0+size.0*fy,origin.1,&csize);
+                push(&mut data, origin.0+size.0*fy,origin.1+size.1*fx,&csize);
             }
         } else {
             for (origin,size) in dims {
@@ -68,11 +74,18 @@ impl TextureDraw {
         Ok(())
     }
 
-    pub(crate) fn add_rectangle(&self, addable: &mut dyn ProcessStanzaAddable, canvas: &CanvasInUse, dims: &[CanvasTextureArea]) -> Result<(),Message> {
+    pub(crate) fn set_freedom(&self, process: &mut ProcessBuilder, freedom: &Freedom) {
+        let x = freedom.as_gl();
+        if let Some(handle) = &self.0.freedom {
+            process.set_uniform(handle,vec![x.0,x.1]);
+        }
+    }
+
+    pub(crate) fn add_rectangle(&self, addable: &mut dyn ProcessStanzaAddable, canvas: &CanvasInUse, dims: &[CanvasTextureArea], freedom: &Freedom) -> Result<(),Message> {
         let size = canvas.retrieve(|flat| { flat.size().clone() });
         let mut texture_data = dims.iter()
             .map(|x| (x.texture_origin(),x.size()));
-        self.add_rectangle_one(addable,&self.0.texture,&mut texture_data,&size)?;
+        self.add_rectangle_one(addable,&self.0.texture,&mut texture_data,&size,&freedom)?;
         Ok(())
     }
 }
@@ -83,8 +96,12 @@ pub(crate) struct TextureYielder {
 }
 
 impl TextureYielder {
-    pub(crate) fn new(flat_id: &CanvasInUse, free: bool) -> TextureYielder {
-        let patina_process_name = if free { PatinaProcessName::FreeTexture(flat_id.clone()) } else { PatinaProcessName::Texture(flat_id.clone()) };
+    pub(crate) fn new(flat_id: &CanvasInUse, freedom: &Freedom) -> TextureYielder {
+        let patina_process_name = match freedom {
+            Freedom::None => PatinaProcessName::Texture(flat_id.clone()),
+            Freedom::Horizontal => PatinaProcessName::FreeTexture(flat_id.clone(),Freedom::Horizontal),
+            Freedom::Vertical => PatinaProcessName::FreeTexture(flat_id.clone(),Freedom::Vertical),
+        };
         TextureYielder { 
             texture: None,
             patina_process_name

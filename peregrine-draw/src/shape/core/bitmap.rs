@@ -5,10 +5,9 @@ use wasm_bindgen::JsCast;
 use wasm_bindgen::prelude::Closure;
 use web_sys::HtmlImageElement;
 use crate::webgl::canvas::imagecache::ImageCache;
-use crate::webgl::canvas::tessellate::canvastessellator::CanvasTessellator;
 use crate::webgl::{ CanvasAndContext };
 use crate::webgl::global::WebGlGlobal;
-use super::flatdrawing::{FlatDrawingItem, FlatDrawingManager, CanvasItemHandle};
+use super::flatdrawing::{FlatDrawingItem};
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 use std::mem;
@@ -52,7 +51,7 @@ impl Bitmap {
         })
     }
 
-    fn fresh(asset: &Asset, channel: &BackendNamespace, name: &str) -> Result<HtmlImageElement,Message> {
+    fn fresh(asset: &Asset, _channel: &BackendNamespace, name: &str) -> Result<HtmlImageElement,Message> {
         let bytes = asset.bytes().ok_or_else(|| Message::BadAsset(format!("missing asset: {}",name)))?.data_as_bytes().map_err(|_| Message::BadAsset("expected bytes".to_string()))?.clone();
         let ascii_data = base64::encode(&*bytes);
         let image = HtmlImageElement::new().map_err(|e| Message::BadAsset(format!("creating image element: {:?}",e)))?;
@@ -105,7 +104,6 @@ impl FlatDrawingItem for Bitmap {
 }
 
 pub struct DrawingBitmap {
-    manager: FlatDrawingManager,
     image_cache: ImageCache,
     assets: Assets
 }
@@ -113,19 +111,12 @@ pub struct DrawingBitmap {
 impl DrawingBitmap {
     pub fn new(assets: &Assets, image_cache: &ImageCache) -> DrawingBitmap {
         DrawingBitmap {
-            manager: FlatDrawingManager::new(),
             image_cache: image_cache.clone(),
             assets: assets.clone()
         }
     }
 
-    pub fn add_bitmap(&mut self, channel: &BackendNamespace, asset: &str) -> Result<CanvasItemHandle,Message> {
-        Ok(self.manager.add(Bitmap::new(&self.assets,&self.image_cache,channel,asset)?))
+    pub(crate) fn make(&mut self, channel: &BackendNamespace, asset: &str) -> Result<Bitmap,Message> {
+        Ok(Bitmap::new(&self.assets,&self.image_cache,channel,asset)?)
     }
-
-    pub(crate) async fn calculate_requirements(&mut self, gl: &Arc<Mutex<WebGlGlobal>>, allocator: &mut CanvasTessellator) -> Result<(),Error> {
-        self.manager.calculate_requirements(&mut *lock!(gl),allocator)
-    }
-
-    pub(crate) fn manager(&mut self) -> &mut FlatDrawingManager { &mut self.manager }
 }
