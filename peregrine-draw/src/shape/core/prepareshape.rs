@@ -1,14 +1,14 @@
 use peregrine_data::{ Colour, DrawnType, Patina, RectangleShape, Shape, ShapeDemerge, HollowEdge2, LeafStyle, DrawingShape, CoordinateSystem };
 use peregrine_toolkit::eachorevery::EachOrEvery;
+use peregrine_toolkit::error::Error;
 use crate::shape::core::drawshape::{SimpleShapePatina};
 use crate::shape::heraldry::heraldry::{Heraldry, HeraldryCanvasesUsed};
 use crate::shape::layers::drawingtools::{DrawingToolsBuilder, CanvasType};
 use crate::shape::triangles::drawgroup::{DrawGroup, ShapeCategory};
-use crate::util::message::Message;
 use super::drawshape::{ GLShape };
 use super::text::prepare_text;
 
-fn split_spacebaserect(tools: &mut DrawingToolsBuilder, shape: &RectangleShape<LeafStyle>, draw_group: &DrawGroup) -> Result<Vec<GLShape>,Message> {
+fn split_spacebaserect(tools: &mut DrawingToolsBuilder, shape: &RectangleShape<LeafStyle>, draw_group: &DrawGroup) -> Result<Vec<GLShape>,Error> {
     let mut out = vec![];
     let depth = shape.area().top_left().allotments().map(|x| x.depth);
     let wobble = shape.wobble().clone();
@@ -63,15 +63,15 @@ fn colour_to_heraldry(colour: &Colour, hollow: bool) -> Option<Heraldry> {
     }
 }
 
-fn make_heraldry(patina: &Patina) -> Result<EachOrEvery<Heraldry>,Message> {
+fn make_heraldry(patina: &Patina) -> Result<EachOrEvery<Heraldry>,Error> {
     let (colours,hollow) = match patina {
         Patina::Drawn(DrawnType::Fill,c) => (c,false),
         Patina::Drawn(DrawnType::Stroke(_),c) => (c,true),
-        _ => Err(Message::CodeInvariantFailed(format!("heraldry attempted on non filled/hollow")))?
+        _ => Err(Error::fatal("heraldry attempted on non filled/hollow"))?
     };
     colours.map_results(|colour| {
         colour_to_heraldry(colour,hollow)
-            .ok_or_else(|| Message::CodeInvariantFailed(format!("heraldry attempted on non-heraldic colour")))
+            .ok_or_else(|| Error::fatal("heraldry attempted on non-heraldic colour"))
     })
 }
 
@@ -100,7 +100,7 @@ impl ShapeDemerge for GLCategoriser {
     }
 }
 
-pub(crate) fn prepare_shape_in_layer(tools: &mut DrawingToolsBuilder, shape: DrawingShape) -> Result<Vec<GLShape>,Message> {
+pub(crate) fn prepare_shape_in_layer(tools: &mut DrawingToolsBuilder, shape: DrawingShape) -> Result<Vec<GLShape>,Error> {
     let mut out = vec![];
     let demerge = shape.demerge(&GLCategoriser());
     for (draw_group,shape) in demerge {

@@ -5,6 +5,7 @@ use wasm_bindgen::JsCast;
 use wasm_bindgen::prelude::Closure;
 use web_sys::HtmlImageElement;
 use crate::webgl::canvas::imagecache::ImageCache;
+use crate::webgl::canvas::tessellate::canvastessellator::FlatBoundary;
 use crate::webgl::{ CanvasAndContext };
 use crate::webgl::global::WebGlGlobal;
 use super::flatdrawing::{FlatDrawingItem};
@@ -12,7 +13,6 @@ use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 use std::mem;
 use std::sync::{Arc, Mutex};
-use crate::util::message::Message;
 
 // TODO padding measurements!
 
@@ -32,8 +32,8 @@ pub(crate) struct Bitmap {
 }
 
 impl Bitmap {
-    fn new(assets: &Assets, image_cache: &ImageCache, channel: &BackendNamespace, name: &str) -> Result<Bitmap,Message> {
-        let asset = assets.get(Some(channel),name).ok_or_else(|| Message::BadAsset(format!("missing asset: {}",name)))?;
+    fn new(assets: &Assets, image_cache: &ImageCache, channel: &BackendNamespace, name: &str) -> Result<Bitmap,Error> {
+        let asset = assets.get(Some(channel),name).ok_or_else(|| Error::fatal(&format!("missing asset: {}",name)))?;
         let image = if let Some(cached) = image_cache.get(name) {
             cached
         } else {
@@ -43,18 +43,18 @@ impl Bitmap {
         };
         Ok(Bitmap {
             name: name.to_string(),
-            width: asset.metadata_u32("width").ok_or_else(|| Message::BadAsset(format!("missing width: {}",name)))?,
-            height: asset.metadata_u32("height").ok_or_else(|| Message::BadAsset(format!("missing height: {}",name)))?,
+            width: asset.metadata_u32("width").ok_or_else(|| Error::fatal(&format!("missing width: {}",name)))?,
+            height: asset.metadata_u32("height").ok_or_else(|| Error::fatal(&format!("missing height: {}",name)))?,
             scale: asset.metadata_u32("scale").unwrap_or(100),
             el: Arc::new(image),
             onload: Arc::new(Mutex::new(None))
         })
     }
 
-    fn fresh(asset: &Asset, _channel: &BackendNamespace, name: &str) -> Result<HtmlImageElement,Message> {
-        let bytes = asset.bytes().ok_or_else(|| Message::BadAsset(format!("missing asset: {}",name)))?.data_as_bytes().map_err(|_| Message::BadAsset("expected bytes".to_string()))?.clone();
+    fn fresh(asset: &Asset, _channel: &BackendNamespace, name: &str) -> Result<HtmlImageElement,Error> {
+        let bytes = asset.bytes().ok_or_else(|| Error::fatal(&format!("missing asset: {}",name)))?.data_as_bytes().map_err(|_| Error::fatal("expected bytes"))?.clone();
         let ascii_data = base64::encode(&*bytes);
-        let image = HtmlImageElement::new().map_err(|e| Message::BadAsset(format!("creating image element: {:?}",e)))?;
+        let image = HtmlImageElement::new().map_err(|e| Error::fatal(&format!("creating image element: {:?}",e)))?;
         let queue : Arc<Mutex<Option<Vec<Box<dyn FnOnce(&HtmlImageElement) + 'static>>>>> = Arc::new(Mutex::new(Some(vec![])));
         let queue2 = queue.clone();
         let el = image.clone();
@@ -84,12 +84,11 @@ fn dpr_round(size: u32, dpr: f32, scale: u32) -> u32 {
 }
 
 impl FlatDrawingItem for Bitmap {
-    fn calc_size(&self, gl: &mut WebGlGlobal) -> Result<(u32,u32),Error> {
+    fn calc_size(&self, gl: &mut WebGlGlobal) -> Result<FlatBoundary,Error> {
         let dpr = gl.device_pixel_ratio();
-        Ok((dpr_round(self.width,dpr,self.scale),dpr_round(self.height,dpr,self.scale)))
+        let size = (dpr_round(self.width,dpr,self.scale),dpr_round(self.height,dpr,self.scale));
+        Ok(FlatBoundary::new(size,(PAD,PAD)))
     }
-
-    fn padding(&self, _: &mut WebGlGlobal) -> Result<(u32,u32),Error> { Ok((PAD,PAD)) }
 
     fn compute_hash(&self) -> Option<u64> {
         let mut hasher = DefaultHasher::new();
@@ -116,7 +115,7 @@ impl DrawingBitmap {
         }
     }
 
-    pub(crate) fn make(&mut self, channel: &BackendNamespace, asset: &str) -> Result<Bitmap,Message> {
+    pub(crate) fn make(&mut self, channel: &BackendNamespace, asset: &str) -> Result<Bitmap,Error> {
         Ok(Bitmap::new(&self.assets,&self.image_cache,channel,asset)?)
     }
 }

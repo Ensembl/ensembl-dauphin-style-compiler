@@ -9,6 +9,7 @@ use super::shapeprogram::ShapeProgram;
 use crate::stage::stage::get_stage_source;
 use crate::util::message::Message;
 use enum_iterator::{Sequence, all};
+use peregrine_toolkit::error::Error;
 use peregrine_toolkit::{lock, log_extra};
 
 #[cfg_attr(debug_assertions,derive(Debug))]
@@ -28,7 +29,7 @@ pub(crate) struct ProgramStoreEntry {
 }
 
 impl ProgramStoreEntry {
-    fn new(builder: ProgramBuilder, index: &ProgramIndex) -> Result<ProgramStoreEntry,Message> {
+    fn new(builder: ProgramBuilder, index: &ProgramIndex) -> Result<ProgramStoreEntry,Error> {
         let geometry = index.0.make_geometry_program(&builder)?;
         let patina = index.1.make_patina_program(&builder)?;
         Ok(ProgramStoreEntry {
@@ -38,7 +39,7 @@ impl ProgramStoreEntry {
         })
     }
     
-    pub(crate) fn make_shape_program(&self) -> Result<ShapeProgram,Message> {
+    pub(crate) fn make_shape_program(&self) -> Result<ShapeProgram,Error> {
         let geometry = self.geometry.clone();
         let patina = self.patina.make_patina_process()?;
         let process = ProcessBuilder::new(self.builder.clone());
@@ -57,7 +58,7 @@ impl ProgramStoreData {
         })
     }
 
-    fn make_program(&mut self, index: &ProgramIndex) -> Result<(),Message> {
+    fn make_program(&mut self, index: &ProgramIndex) -> Result<(),Error> {
         let mut source = SourceInstrs::new(vec![]);
         source.merge(get_stage_source());
         source.merge(index.0.get_source());
@@ -67,7 +68,7 @@ impl ProgramStoreData {
         Ok(())
     }
 
-    fn get_program(&mut self, geometry: GeometryProgramName, patina: PatinaProgramName) -> Result<&ProgramStoreEntry,Message> {
+    fn get_program(&mut self, geometry: GeometryProgramName, patina: PatinaProgramName) -> Result<&ProgramStoreEntry,Error> {
         let index = ProgramIndex(geometry,patina);
         if self.programs.get(&index).is_none() {
             self.make_program(&index)?;
@@ -101,7 +102,7 @@ impl ProgramStore {
         Ok(out)
     }
 
-    pub(super) fn get_shape_program(&self, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> Result<ShapeProgram,Message> {
+    pub(super) fn get_shape_program(&self, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> Result<ShapeProgram,Error> {
         lock!(self.0).get_program(geometry.get_program_name(),patina.get_program_name())?.make_shape_program()
     }
 }

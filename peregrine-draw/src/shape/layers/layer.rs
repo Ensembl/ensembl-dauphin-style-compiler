@@ -1,6 +1,7 @@
 use std::sync::{Arc, Mutex};
 use std::{collections::HashMap};
 use commander::cdr_tick;
+use peregrine_toolkit::error::Error;
 use peregrine_toolkit::log_extra;
 use peregrine_toolkit_async::sync::retainer::RetainTest;
 
@@ -9,7 +10,6 @@ use crate::webgl::{ ProcessBuilder, Process, DrawingCanvases };
 use super::geometry::{GeometryProcessName, GeometryYielder, TrianglesGeometry, GeometryAdder};
 use super::programstore::ProgramStore;
 use super::patina::{PatinaProcessName, PatinaYielder};
-use crate::util::message::Message;
 use crate::webgl::global::WebGlGlobal;
 use super::shapeprogram::ShapeProgram;
 
@@ -47,7 +47,7 @@ pub(crate) struct Layer {
 }
 
 impl Layer {
-    pub fn new(programs: &ProgramStore, left: f64) -> Result<Layer,Message> {
+    pub fn new(programs: &ProgramStore, left: f64) -> Result<Layer,Error> {
         Ok(Layer {
             programs: programs.clone(),
             store: HashMap::new(),
@@ -57,14 +57,14 @@ impl Layer {
 
     pub(crate) fn left(&self) -> f64 { self.left }
 
-    fn shape_program(&mut self, character: &ProgramCharacter) -> Result<&mut ShapeProgram,Message> {
+    fn shape_program(&mut self, character: &ProgramCharacter) -> Result<&mut ShapeProgram,Error> {
         if !self.store.contains_key(&character) {
             self.store.insert(character.clone(),self.programs.get_shape_program(&character.0,&character.1)?);
         }
         Ok(self.store.get_mut(&character).unwrap())
     }
 
-    pub(crate) fn get_process_builder(&mut self, geometry: &mut GeometryYielder, patina: &mut dyn PatinaYielder) -> Result<&mut ProcessBuilder,Message> {
+    pub(crate) fn get_process_builder(&mut self, geometry: &mut GeometryYielder, patina: &mut dyn PatinaYielder) -> Result<&mut ProcessBuilder,Error> {
         let geometry_name = geometry.name();
         let patina_name = patina.name();
         let character = ProgramCharacter(geometry_name.clone(),patina_name.clone());
@@ -74,7 +74,7 @@ impl Layer {
         Ok(self.store.get_mut(&character).unwrap().get_process_mut())
     }
 
-    pub(super) async fn build(mut self, gl: &Arc<Mutex<WebGlGlobal>>, canvases: &DrawingCanvases, retain: &RetainTest) -> Result<Option<Vec<Process>>,Message> {
+    pub(super) async fn build(mut self, gl: &Arc<Mutex<WebGlGlobal>>, canvases: &DrawingCanvases, retain: &RetainTest) -> Result<Option<Vec<Process>>,Error> {
         let mut processes = vec![];
         let mut characters = self.store.keys().cloned().collect::<Vec<_>>();
         characters.sort_by_cached_key(|c| c.order());

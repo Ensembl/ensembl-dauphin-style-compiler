@@ -8,6 +8,7 @@ use crate::shape::triangles::drawgroup::DrawGroup;
 use crate::shape::triangles::rectangles::GLAttachmentPoint;
 use crate::util::fonts::Fonts;
 use crate::webgl::canvas::structuredtext::StructuredText;
+use crate::webgl::canvas::tessellate::canvastessellator::FlatBoundary;
 use crate::webgl::{ CanvasWeave, CanvasAndContext };
 use crate::webgl::global::WebGlGlobal;
 use super::drawshape::{GLShape, ShapeToAdd, dims_to_sizes, draw_points_from_canvas2};
@@ -15,13 +16,8 @@ use super::flatdrawing::{FlatDrawingItem, CanvasItemHandle};
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 use std::sync::{Arc};
-use crate::util::message::Message;
 
 const PAD : u32 = 4;
-
-fn pad(x: (u32,u32)) -> (u32,u32) {
-    (x.0+PAD,x.1+PAD)
-}
 
 #[derive(Clone)]
 pub(crate) struct Text {
@@ -41,13 +37,11 @@ impl Text {
 }
 
 impl FlatDrawingItem for Text {
-    fn calc_size(&self, gl: &mut WebGlGlobal) -> Result<(u32,u32),Error> {
+    fn calc_size(&self, gl: &mut WebGlGlobal) -> Result<FlatBoundary,Error> {
         let gl_ref = gl.refs();
         let mut canvas = gl_ref.scratch_canvases.scratch(&CanvasWeave::Crisp,(100,100))?;
-        self.text.measure(canvas.get_mut())
+        Ok(FlatBoundary::new( self.text.measure(canvas.get_mut())?,(PAD,PAD)))
     }
-
-    fn padding(&self, _: &mut WebGlGlobal) -> Result<(u32,u32),Error> { Ok((PAD,PAD)) }
 
     fn compute_hash(&self) -> Option<u64> {
         let mut hasher = DefaultHasher::new();
@@ -110,14 +104,14 @@ pub(super) fn draw_text(layer: &mut Layer, gl: &mut WebGlGlobal, tools: &mut Dra
                     run: Option<SpaceBase<f64,()>>,
                     handles: &[CanvasItemHandle], depth: EachOrEvery<i8>, draw_group: &DrawGroup,
                     attachment: GLAttachmentPoint,
-                ) -> Result<ShapeToAdd,Message> {
+                ) -> Result<ShapeToAdd,Error> {
     let bitmap_multiplier = gl.refs().canvas_source.bitmap_multiplier() as f64;
     let bitmap_dims = handles.iter()
         .map(|handle| handle.drawn_area())
         .collect::<Result<Vec<_>,_>>()?;
     if bitmap_dims.len() == 0 { return Ok(ShapeToAdd::None); }
     let (x_sizes,y_sizes) = dims_to_sizes(&bitmap_dims,1./bitmap_multiplier);
-    let canvas = tools.manager(&CanvasType::Crisp).canvas_id().ok_or_else(|| Message::CodeInvariantFailed("no canvas id A".to_string()))?;
+    let canvas = tools.manager(&CanvasType::Crisp).canvas_id().ok_or_else(|| Error::fatal("no canvas id A"))?;
     let rectangles = draw_points_from_canvas2(layer,gl,&draw_group,&points,&run,x_sizes,y_sizes,&depth,&canvas,&bitmap_dims,&Freedom::None,attachment,None)?;
     Ok(ShapeToAdd::Dynamic(rectangles))
 }

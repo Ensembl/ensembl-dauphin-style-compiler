@@ -5,6 +5,7 @@ use crate::shape::layers::layer::ProgramCharacter;
 use crate::stage::stage::{ ReadStage };
 use crate::webgl::util::handle_context_errors;
 use peregrine_data::{PeregrineCore, Scale};
+use peregrine_toolkit::error::Error;
 use web_sys::{ WebGlRenderingContext };
 use crate::webgl::global::WebGlGlobal;
 use crate::util::message::Message;
@@ -65,7 +66,7 @@ impl DrawingSession {
 
     pub(crate) fn metric(&mut self) -> &mut SessionMetric { &mut self.metric }
 
-    pub(crate) fn run_process(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage, process: &mut Process, opacity: f64) -> Result<(),Message> {
+    pub(crate) fn run_process(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage, process: &mut Process, opacity: f64) -> Result<(),Error> {
         self.metric.add_process(process.number_of_buffers());
         process.draw(gl,stage,opacity,gl.device_pixel_ratio().into(),&mut self.metric)
     }

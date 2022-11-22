@@ -1,11 +1,11 @@
 use super::super::program::attribute::{ Attribute, AttribHandle };
 use keyed::{ KeyedData, KeyedDataMaker };
+use peregrine_toolkit::error::Error;
 use super::stanza::{AttribSource, ProcessStanza};
 use super::builder::ProcessStanzaAddable;
 use std::rc::Rc;
 use std::cell::RefCell;
 use std::sync::{Arc, Mutex};
-use crate::util::message::Message;
 use crate::webgl::global::WebGlGlobal;
 
 #[derive(Clone)]
@@ -17,7 +17,7 @@ pub(crate) struct ProcessStanzaArray {
 }
 
 impl ProcessStanzaArray {
-    pub(super) fn new(active: &Rc<RefCell<bool>>, maker: &KeyedDataMaker<'static,AttribHandle,AttribSource>, len: usize) -> Result<ProcessStanzaArray,Message> {
+    pub(super) fn new(active: &Rc<RefCell<bool>>, maker: &KeyedDataMaker<'static,AttribHandle,AttribSource>, len: usize) -> Result<ProcessStanzaArray,Error> {
         let mut out = ProcessStanzaArray {
             attribs: Rc::new(RefCell::new(maker.make())),
             active: active.clone(),
@@ -28,23 +28,23 @@ impl ProcessStanzaArray {
         Ok(out)
     }
 
-    pub(super) async fn make_stanza(&self, values: &KeyedData<AttribHandle,Attribute>, gl: &Arc<Mutex<WebGlGlobal>>) -> Result<Option<ProcessStanza>,Message> {
+    pub(super) async fn make_stanza(&self, values: &KeyedData<AttribHandle,Attribute>, gl: &Arc<Mutex<WebGlGlobal>>) -> Result<Option<ProcessStanza>,Error> {
         ProcessStanza::new_array(gl,self.len,values,&self.attribs.borrow()).await
     }
 
-    pub(crate) fn open(&mut self) -> Result<(),Message> {
+    pub(crate) fn open(&mut self) -> Result<(),Error> {
         if self.self_active { return Ok(()); }
         if *self.active.borrow() {
-            return Err(Message::CodeInvariantFailed(format!("can only have one active campaign/array at once")));
+            return Err(Error::fatal("can only have one active campaign/array at once"));
         }
         *self.active.borrow_mut() = true;
         self.self_active = true;
         Ok(())
     }
 
-    pub(crate) fn close(&mut self) -> Result<(),Message> {
+    pub(crate) fn close(&mut self) -> Result<(),Error> {
         if !self.self_active {
-            return Err(Message::CodeInvariantFailed(format!("closing unopened campaign/array")));
+            return Err(Error::fatal("closing unopened campaign/array"));
         }
         self.self_active = false;
         *self.active.borrow_mut() = false;
@@ -53,13 +53,13 @@ impl ProcessStanzaArray {
 }
 
 impl ProcessStanzaAddable for ProcessStanzaArray {
-    fn add(&mut self, handle: &AttribHandle, values: Vec<f32>, _dims: usize) -> Result<(),Message> {
+    fn add(&mut self, handle: &AttribHandle, values: Vec<f32>, _dims: usize) -> Result<(),Error> {
         // TODO check size
         self.attribs.borrow_mut().get_mut(handle).get().extend_from_slice(&values);
         Ok(())
     }
 
-    fn add_n(&mut self, handle: &AttribHandle, values: Vec<f32>, dims: usize) -> Result<(),Message> {
+    fn add_n(&mut self, handle: &AttribHandle, values: Vec<f32>, dims: usize) -> Result<(),Error> {
         let values_size = values.len();
         if values_size == 0 { return Ok(()); }
         let mut offset = 0;

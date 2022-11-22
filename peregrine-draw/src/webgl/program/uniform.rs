@@ -6,8 +6,7 @@ use super::super::{ GLArity, GPUSpec, Precision, Phase };
 use peregrine_toolkit::error::Error;
 use web_sys::{ WebGlUniformLocation, WebGlRenderingContext, WebGlProgram };
 use keyed::keyed_handle;
-use crate::webgl::util::handle_context_errors;
-use crate::util::message::Message;
+use crate::webgl::util::{handle_context_errors2};
 
 keyed_handle!(UniformHandle);
 
@@ -47,7 +46,7 @@ impl Source for UniformProto {
         format!("uniform {} {};\n",spec.best_size(&self.precision,&self.phase).as_string(self.arity),self.name)
     }
 
-    fn register(&self, builder: &mut ProgramBuilder, _flags: &HashSet<String>) -> Result<(),Message> {
+    fn register(&self, builder: &mut ProgramBuilder, _flags: &HashSet<String>) -> Result<(),Error> {
         builder.add_uniform(&self)
     }
 }
@@ -59,9 +58,9 @@ pub(crate) struct Uniform {
 }
 
 impl Uniform {
-    pub fn new(proto: &UniformProto, context: &WebGlRenderingContext, program: &WebGlProgram) -> Result<Uniform,Message> {
+    pub fn new(proto: &UniformProto, context: &WebGlRenderingContext, program: &WebGlProgram) -> Result<Uniform,Error> {
         let location = context.get_uniform_location(program,&proto.name);
-        handle_context_errors(context)?;
+        handle_context_errors2(context)?;
         Ok(Uniform { proto: proto.clone(), location })
     }
 }
@@ -81,7 +80,7 @@ impl UniformValues {
         }
     }
 
-    pub(super) fn activate(&self, context: &WebGlRenderingContext) -> Result<(),Message> {
+    pub(super) fn activate(&self, context: &WebGlRenderingContext) -> Result<(),Error> {
         if !self.valid { return Ok(()); }
         if let Some(location) = &self.object.location {
             match self.object.proto.arity {
@@ -92,14 +91,14 @@ impl UniformValues {
                 GLArity::Matrix4 => context.uniform_matrix4fv_with_f32_array(Some(location),false,&self.gl_value),
                 GLArity::Sampler2D  => context.uniform1i(Some(location),self.gl_value[0] as i32)
             }
-            handle_context_errors(context)?;
+            handle_context_errors2(context)?;
         }
         Ok(())
     }
 
-    pub fn set_value(&mut self, our_value: &[f32]) -> Result<(),Message> {
+    pub fn set_value(&mut self, our_value: &[f32]) -> Result<(),Error> {
         if self.gl_value.len() != our_value.len() {
-            return Err(Message::CodeInvariantFailed(format!("uniform size mismatch {} type={} value={}",self.object.proto.name,self.object.proto.arity.to_num(),our_value.len())));
+            return Err(Error::fatal(&format!("uniform size mismatch {} type={} value={}",self.object.proto.name,self.object.proto.arity.to_num(),our_value.len())));
         }
         self.gl_value.copy_from_slice(&our_value);
         self.valid = true;

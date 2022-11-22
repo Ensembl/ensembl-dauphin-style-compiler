@@ -1,6 +1,6 @@
-use crate::{shape::{layers::patina::{PatinaProcess, PatinaProcessName, PatinaAdder, PatinaYielder}, util::eoethrow::eoe_throw}, webgl::{ AttribHandle, ProcessStanzaAddable, ProgramBuilder }};
+use crate::{shape::{layers::patina::{PatinaProcess, PatinaProcessName, PatinaAdder, PatinaYielder}, util::eoethrow::{eoe_throw, eoe_throw2}}, webgl::{ AttribHandle, ProcessStanzaAddable, ProgramBuilder }};
 use peregrine_data::{DirectColour};
-use peregrine_toolkit::eachorevery::EachOrEvery;
+use peregrine_toolkit::{eachorevery::EachOrEvery, error::Error};
 use super::super::util::arrayutil::scale_colour;
 use crate::util::message::Message;
 
@@ -10,7 +10,7 @@ pub struct DirectProgram {
 }
 
 impl DirectProgram {
-    pub(crate) fn new(builder: &ProgramBuilder) -> Result<DirectProgram,Message> {
+    pub(crate) fn new(builder: &ProgramBuilder) -> Result<DirectProgram,Error> {
         Ok(DirectProgram {
             colour: builder.get_attrib_handle("aVertexColour")?
         })
@@ -21,13 +21,13 @@ impl DirectProgram {
 pub struct DirectColourDraw(DirectProgram);
 
 impl DirectColourDraw {
-    pub(crate) fn new(variety: &DirectProgram) -> Result<DirectColourDraw,Message> {
+    pub(crate) fn new(variety: &DirectProgram) -> Result<DirectColourDraw,Error> {
         Ok(DirectColourDraw(variety.clone()))
     }
 
-    pub(crate) fn direct(&self, addable: &mut dyn ProcessStanzaAddable, colours: &EachOrEvery<DirectColour>, vertexes: usize, count: usize) -> Result<(),Message> {
+    pub(crate) fn direct(&self, addable: &mut dyn ProcessStanzaAddable, colours: &EachOrEvery<DirectColour>, vertexes: usize, count: usize) -> Result<(),Error> {
         let mut codes = vec![];
-        let colours = eoe_throw("direct colours",colours.iter(count))?;
+        let colours = eoe_throw2("direct colours",colours.iter(count))?;
         for c in colours {
             for _ in 0..vertexes {
                 codes.push(scale_colour(c.0));
@@ -54,22 +54,22 @@ impl DirectYielder {
         }
     }
 
-    pub(crate) fn draw(&self) -> Result<&DirectColourDraw,Message> {
-        self.draw.as_ref().ok_or_else(|| Message::CodeInvariantFailed(format!("using accessor without setting")))
+    pub(crate) fn draw(&self) -> Result<&DirectColourDraw,Error> {
+        self.draw.as_ref().ok_or_else(|| Error::fatal("using accessor without setting"))
     }
 }
 
 impl PatinaYielder for DirectYielder {
     fn name(&self) -> &PatinaProcessName { &self.patina_process_name }
 
-    fn make(&mut self, builder: &ProgramBuilder) -> Result<PatinaAdder,Message> {
+    fn make(&mut self, builder: &ProgramBuilder) -> Result<PatinaAdder,Error> {
         Ok(PatinaAdder::Direct(DirectProgram::new(builder)?))
     }
     
-    fn set(&mut self, program: &PatinaProcess) -> Result<(),Message> {
+    fn set(&mut self, program: &PatinaProcess) -> Result<(),Error> {
         self.draw = Some(match program {
             PatinaProcess::Direct(d) => d,
-            _ => { Err(Message::CodeInvariantFailed(format!("mismatched program: colour")))? }
+            _ => { Err(Error::fatal("mismatched program: colour"))? }
         }.clone());
         Ok(())
     }

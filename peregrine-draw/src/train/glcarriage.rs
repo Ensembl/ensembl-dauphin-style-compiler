@@ -60,7 +60,7 @@ impl GLCarriage {
                 let shapes = carriage.shapes().clone();
                 let drawing = Drawing::new(Some(scale),shapes,&gl,carriage.extent().left_right().0,&assets,&carriage.relevancy()).await;
                 redraw_needed.set();
-                drawing
+                drawing.map_err(|e| Message::DataError(DataMessage::XXXTransitional(e) ))
             })
         })));
         our_carriage.preflight_freewheel(carriage);
@@ -110,7 +110,7 @@ impl GLCarriage {
         if let Some(mut drawing) = get_drawing(&state)? {
             drawing.set_hotspot_px_per_screen((stage.x().drawable_size()?,stage.y().drawable_size()?));
             if in_view {
-                drawing.draw(gl,stage,session,opacity)?;
+                drawing.draw(gl,stage,session,opacity).map_err(|e| Message::DataError(DataMessage::XXXTransitional(e) ))?;
             }
         }
         Ok(())

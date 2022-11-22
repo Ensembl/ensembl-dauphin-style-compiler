@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 use super::drawingtools::DrawingToolsBuilder;
 use super::layer::Layer;
 use commander::cdr_tick;
-use peregrine_data::{Assets, Scale, DrawingShape, DataMessage, HotspotGroupEntry, SingleHotspotEntry };
+use peregrine_data::{Assets, Scale, DrawingShape, HotspotGroupEntry, SingleHotspotEntry };
 use peregrine_toolkit::error::Error;
 use peregrine_toolkit::lock;
 use peregrine_toolkit_async::sync::needed::Needed;
@@ -21,7 +21,7 @@ use peregrine_toolkit::log_extra;
 
 pub(crate) trait DynamicShape {
     fn any_dynamic(&self) -> bool;
-    fn recompute(&mut self, gl: &WebGlGlobal) -> Result<(),Message>;
+    fn recompute(&mut self, gl: &WebGlGlobal) -> Result<(),Error>;
 }
 
 pub(crate) struct DrawingBuilder {
@@ -32,7 +32,7 @@ pub(crate) struct DrawingBuilder {
 }
 
 impl DrawingBuilder {
-    pub(crate) fn new(scale: Option<&Scale>, gl: &mut WebGlGlobal, assets: &Assets, left: f64) -> Result<DrawingBuilder,Message> {
+    pub(crate) fn new(scale: Option<&Scale>, gl: &mut WebGlGlobal, assets: &Assets, left: f64) -> Result<DrawingBuilder,Error> {
         let gl_ref = gl.refs();
         let bitmap_multiplier = gl_ref.canvas_source.bitmap_multiplier() as f64;
         Ok(DrawingBuilder {
@@ -43,7 +43,7 @@ impl DrawingBuilder {
         })
     }
 
-    pub(crate) fn convert_to_glshape(&mut self, shape: &DrawingShape) -> Result<Vec<GLShape>,Message> {
+    pub(crate) fn convert_to_glshape(&mut self, shape: &DrawingShape) -> Result<Vec<GLShape>,Error> {
         let shape = shape.clone(); // XXX don't clone
         prepare_shape_in_layer(&mut self.tools,shape)
     }
@@ -57,7 +57,7 @@ impl DrawingBuilder {
         Ok(())
     }
 
-    pub(crate) fn add_shape(&mut self, gl: &mut WebGlGlobal, shape: GLShape) -> Result<(),Message> {
+    pub(crate) fn add_shape(&mut self, gl: &mut WebGlGlobal, shape: GLShape) -> Result<(),Error> {
         let (layer, tools,) = (&mut self.main_layer,&mut self.tools);
         match add_shape_to_layer(layer,gl,tools,shape)? {
             ShapeToAdd::Dynamic(dynamic) => {
@@ -71,7 +71,7 @@ impl DrawingBuilder {
         Ok(())
     }
 
-    pub(crate) async fn build(mut self, gl: &Arc<Mutex<WebGlGlobal>>, retain_test: &RetainTest) -> Result<Option<Drawing>,Message> {
+    pub(crate) async fn build(mut self, gl: &Arc<Mutex<WebGlGlobal>>, retain_test: &RetainTest) -> Result<Option<Drawing>,Error> {
         let flats = self.flats.take().unwrap().built();
         let processes = self.main_layer.build(gl,&flats,retain_test).await?;
         Ok(if let Some(processes) = processes {
@@ -95,14 +95,14 @@ struct DrawingData {
 pub(crate) struct Drawing(Arc<Mutex<DrawingData>>);
 
 impl Drawing {
-    pub(crate) async fn new(scale: Option<&Scale>, shapes: Arc<Vec<DrawingShape>>, gl: &Arc<Mutex<WebGlGlobal>>, left: f64, assets: &Assets, retain_test: &RetainTest) -> Result<Option<Drawing>,Message> {
+    pub(crate) async fn new(scale: Option<&Scale>, shapes: Arc<Vec<DrawingShape>>, gl: &Arc<Mutex<WebGlGlobal>>, left: f64, assets: &Assets, retain_test: &RetainTest) -> Result<Option<Drawing>,Error> {
         /* convert core shape data model into gl shapes */
         let mut lgl = lock!(gl);
         let mut drawing = DrawingBuilder::new(scale,&mut lgl,assets,left)?;
         let mut gl_shapes = shapes.iter().map(|s| drawing.convert_to_glshape(s)).collect::<Result<Vec<_>,_>>()?;
         /* gather and allocate aux requirements (2d canvas space etc) */
         drop(lgl);
-        drawing.prepare_tools(gl).await.map_err(|e| Message::DataError(DataMessage::XXXTransitional(e)))?;
+        drawing.prepare_tools(gl).await?;
         if !retain_test.test() {
             #[cfg(debug_trains)]
             log_extra!("drop discared after prepare");
@@ -126,7 +126,7 @@ impl Drawing {
         drawing.build(gl,retain_test).await
     }
 
-    fn new_real(processes: Vec<Process>, canvases: DrawingCanvases, hotspots: DrawingHotspots, dynamic_shapes: Vec<Box<dyn DynamicShape>>, gl: &WebGlGlobal) -> Result<Drawing,Message> {
+    fn new_real(processes: Vec<Process>, canvases: DrawingCanvases, hotspots: DrawingHotspots, dynamic_shapes: Vec<Box<dyn DynamicShape>>, gl: &WebGlGlobal) -> Result<Drawing,Error> {
         let mut out = Drawing(Arc::new(Mutex::new(DrawingData {
             processes,
             canvases,
@@ -150,7 +150,7 @@ impl Drawing {
         lock!(self.0).hotspots.any_hotspots(stage,position,special_only)
     }
 
-    pub(crate) fn draw(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage, session: &mut DrawingSession, opacity: f64) -> Result<(),Message> {
+    pub(crate) fn draw(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage, session: &mut DrawingSession, opacity: f64) -> Result<(),Error> {
         let mut state = lock!(self.0);
         let recompute =  state.recompute.is_needed();
         for process in &mut state.processes {
@@ -162,7 +162,7 @@ impl Drawing {
         Ok(())
     }
 
-    pub(crate) fn recompute(&mut self, gl: &WebGlGlobal) -> Result<(),Message> {
+    pub(crate) fn recompute(&mut self, gl: &WebGlGlobal) -> Result<(),Error> {
         let mut state = lock!(self.0);
         let mut any = false;
         for shape in &mut state.dynamic_shapes {

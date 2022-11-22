@@ -1,5 +1,6 @@
 use std::{sync::{Arc}};
 use peregrine_data::{ Scale, HotspotGroupEntry, SingleHotspotEntry };
+use peregrine_toolkit::error::Error;
 use crate::stage::{stage::{ ReadStage }, axis::UnitConverter};
 use crate::util::message::Message;
 
@@ -32,7 +33,7 @@ impl DrawingHotspotsBuilder {
         self.entries.push(entry);
     }
 
-    pub(crate) fn build(self) -> Result<DrawingHotspots,Message> {
+    pub(crate) fn build(self) -> Result<DrawingHotspots,Error> {
         DrawingHotspots::new(self)
     }
 }
@@ -75,7 +76,7 @@ pub struct DrawingHotspots {
 }
 
 impl DrawingHotspots {
-    fn new(builder: DrawingHotspotsBuilder) -> Result<DrawingHotspots,Message> {
+    fn new(builder: DrawingHotspotsBuilder) -> Result<DrawingHotspots,Error> {
         let bp_per_carriage = builder.scale.as_ref().map(|s| s.bp_in_carriage()).unwrap_or(1) as f64;
         Ok(DrawingHotspots {
             window: DrawHotspotStore::new(Box::new(WindowHotspotProfile::new(builder.left,bp_per_carriage)),&builder.entries)?,

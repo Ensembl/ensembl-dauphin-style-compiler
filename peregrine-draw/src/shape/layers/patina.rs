@@ -1,5 +1,6 @@
 use enum_iterator::Sequence;
 use peregrine_data::DirectColour;
+use peregrine_toolkit::error::Error;
 
 use super::super::core::directcolourdraw::{ DirectColourDraw, DirectProgram };
 use super::super::core::texture::{ TextureDraw, TextureProgram };
@@ -7,7 +8,6 @@ use crate::shape::core::spotcolourdraw::{SpotColourDraw, SpotProgram};
 use crate::webgl::{CanvasInUse, SetFlag};
 use crate::webgl::{ SourceInstrs, UniformProto, AttributeProto, GLArity, Varying, Statement, ProgramBuilder, TextureProto };
 use super::consts::{ PR_LOW, PR_DEF };
-use crate::util::message::Message;
 
 pub(crate) enum PatinaAdder {
     Direct(DirectProgram),
@@ -17,7 +17,7 @@ pub(crate) enum PatinaAdder {
 }
 
 impl PatinaAdder {
-    pub(super) fn make_patina_process(&self) -> Result<PatinaProcess,Message> {
+    pub(super) fn make_patina_process(&self) -> Result<PatinaProcess,Error> {
         Ok(match self {
             PatinaAdder::Direct(v) => PatinaProcess::Direct(DirectColourDraw::new(v)?),
             PatinaAdder::Texture(v) => PatinaProcess::Texture(TextureDraw::new(v,false)?),
@@ -38,12 +38,12 @@ impl PatinaProgramName {
 
 pub(crate) trait PatinaYielder {
     fn name(&self) -> &PatinaProcessName;
-    fn make(&mut self, builder: &ProgramBuilder) -> Result<PatinaAdder,Message>;
-    fn set(&mut self, program: &PatinaProcess) -> Result<(),Message>;
+    fn make(&mut self, builder: &ProgramBuilder) -> Result<PatinaAdder,Error>;
+    fn set(&mut self, program: &PatinaProcess) -> Result<(),Error>;
 }
 
 impl PatinaProgramName {
-    pub(super) fn make_patina_program(&self, builder: &ProgramBuilder) -> Result<PatinaAdder,Message> {
+    pub(super) fn make_patina_program(&self, builder: &ProgramBuilder) -> Result<PatinaAdder,Error> {
         Ok(match self {
             PatinaProgramName::Direct => PatinaAdder::Direct(DirectProgram::new(builder)?),
             PatinaProgramName::Texture => PatinaAdder::Texture(TextureProgram::new(builder)?),

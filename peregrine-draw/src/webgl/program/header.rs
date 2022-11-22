@@ -1,8 +1,7 @@
 use std::collections::HashSet;
-
+use peregrine_toolkit::error::Error;
 use super::source::Source;
 use super::program::{ ProgramBuilder };
-use crate::util::message::Message;
 
 #[derive(Clone)]
 pub(crate) struct Header {
@@ -20,7 +19,7 @@ impl Header {
 impl Source for Header {
     fn cloned(&self) -> Box<dyn Source> { Box::new(self.clone()) }
 
-    fn register(&self, builder: &mut ProgramBuilder, _flags: &HashSet<String>) -> Result<(),Message> {
+    fn register(&self, builder: &mut ProgramBuilder, _flags: &HashSet<String>) -> Result<(),Error> {
         builder.set_method(self.method);
         Ok(())
     }

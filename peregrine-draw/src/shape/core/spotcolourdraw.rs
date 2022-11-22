@@ -1,6 +1,6 @@
 use crate::{shape::{layers::patina::{PatinaAdder, PatinaProcess, PatinaProcessName, PatinaYielder}, util::arrayutil::scale_colour}, webgl::{ ProcessBuilder, UniformHandle, ProgramBuilder }};
 use peregrine_data::DirectColour;
-use crate::util::message::Message;
+use peregrine_toolkit::error::Error;
 
 #[derive(Clone)]
 pub struct SpotProgram {
@@ -8,13 +8,13 @@ pub struct SpotProgram {
 }
 
 impl SpotProgram {
-    pub(crate) fn new(builder: &ProgramBuilder) -> Result<SpotProgram,Message> {
+    pub(crate) fn new(builder: &ProgramBuilder) -> Result<SpotProgram,Error> {
         Ok(SpotProgram {
             uniform: builder.get_uniform_handle("uColour")?
         })
     }
 
-    fn set_spot(&self, builder: &mut ProcessBuilder, colour: &DirectColour) -> Result<(),Message> {
+    fn set_spot(&self, builder: &mut ProcessBuilder, colour: &DirectColour) -> Result<(),Error> {
         builder.set_uniform(&self.uniform,vec![
             scale_colour(colour.0),
             scale_colour(colour.1),
@@ -30,11 +30,11 @@ pub struct SpotColourDraw {
 }
 
 impl SpotColourDraw {
-    pub(crate) fn new(variety: &SpotProgram) -> Result<SpotColourDraw,Message> {
+    pub(crate) fn new(variety: &SpotProgram) -> Result<SpotColourDraw,Error> {
         Ok(SpotColourDraw { variety: variety.clone() })
     }
 
-    pub(crate) fn set_spot(&self, builder: &mut ProcessBuilder, colour: &DirectColour) -> Result<(),Message> {
+    pub(crate) fn set_spot(&self, builder: &mut ProcessBuilder, colour: &DirectColour) -> Result<(),Error> {
         self.variety.set_spot(builder,colour)
     }
 }
@@ -56,14 +56,14 @@ impl SpotColourYielder {
 impl PatinaYielder for SpotColourYielder {
     fn name(&self) -> &PatinaProcessName { &self.patina_process_name }
 
-    fn make(&mut self, builder: &ProgramBuilder) -> Result<PatinaAdder,Message> {
+    fn make(&mut self, builder: &ProgramBuilder) -> Result<PatinaAdder,Error> {
         Ok(PatinaAdder::Spot(SpotProgram::new(builder)?))
     }
     
-    fn set(&mut self, program: &PatinaProcess) -> Result<(),Message> {
+    fn set(&mut self, program: &PatinaProcess) -> Result<(),Error> {
         self.spot = Some(match program {
             PatinaProcess::Spot(t) => t,
-            _ => { Err(Message::CodeInvariantFailed(format!("mismatched program: texture")))? }
+            _ => { Err(Error::fatal("mismatched program: texture"))? }
         }.clone());
         Ok(())
     }

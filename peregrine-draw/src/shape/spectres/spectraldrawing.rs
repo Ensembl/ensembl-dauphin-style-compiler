@@ -1,5 +1,5 @@
 use std::sync::{Arc, Mutex};
-use peregrine_data::{Assets, reactive::Reactive, ProgramShapesBuilder };
+use peregrine_data::{Assets, reactive::Reactive, ProgramShapesBuilder, DataMessage };
 use peregrine_toolkit::{lock, puzzle::AnswerAllocator, error::err_web_drop};
 use peregrine_toolkit_async::{sync::retainer::{RetainTest, Retainer, retainer}};
 use crate::{Message, shape::{layers::drawing::Drawing}, stage::stage::ReadStage, webgl::{DrawingSession, global::WebGlGlobal}, PgCommanderWeb};
@@ -16,13 +16,13 @@ async fn draw_spectres<X>(gl: &Arc<Mutex<WebGlGlobal>>, assets: &Assets, spectre
     let mut aia = AnswerAllocator::new();
     let shapes = list.make_drawing_shapes(&mut aia.get());
     let shapes = shapes.map_err(|e| Message::DataError(peregrine_data::DataMessage::XXXTransitional(e)))?;
-    Drawing::new(None,Arc::new(shapes),gl,0.,assets,retain_test).await.transpose().unwrap()
+    Drawing::new(None,Arc::new(shapes),gl,0.,assets,retain_test).await.transpose().unwrap().map_err(|e| Message::DataError(DataMessage::XXXTransitional(e) ))
 }
 
 async fn draw<X>(gl: &Arc<Mutex<WebGlGlobal>>, assets: &Assets, spectres: &[X]) -> Result<(Drawing,Retainer),Message> where X: Spectre {
     let (retainer,retain_test) = retainer();
     let mut drawing = draw_spectres(gl,assets,spectres,&retain_test).await?;
-    drawing.recompute(&*lock!(gl))?;
+    drawing.recompute(&*lock!(gl)).map_err(|e| Message::DataError(DataMessage::XXXTransitional(e) ))?;
     Ok((drawing,retainer))
 }
 
@@ -73,7 +73,7 @@ impl SpectralDrawing {
 
     pub(crate) fn update(&self, gl: &WebGlGlobal) -> Result<(),Message> {
         if let Some((drawing,_)) = lock!(self.drawing).as_mut() {
-            drawing.recompute(gl)?;
+            drawing.recompute(gl).map_err(|e| Message::DataError(DataMessage::XXXTransitional(e) ))?;
         }
         self.reactive.run_observers();
         Ok(())
@@ -81,7 +81,7 @@ impl SpectralDrawing {
 
     pub(crate) fn draw(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage, session: &mut DrawingSession) -> Result<(),Message> {
         if let Some((drawing,_)) = lock!(self.drawing).as_mut() {
-            drawing.draw(gl,stage,session,1.0)?;
+            drawing.draw(gl,stage,session,1.0).map_err(|e| Message::DataError(DataMessage::XXXTransitional(e) ))?;
         }
         Ok(())
     }

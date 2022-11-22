@@ -1,6 +1,6 @@
 use peregrine_data::{Assets, Scale};
 use peregrine_toolkit::{error::Error};
-use crate::{shape::{core::{text::DrawingText, bitmap::DrawingBitmap, flatdrawing::FlatDrawingManager}}, webgl::{global::WebGlGlobal, CanvasWeave, DrawingCanvasesBuilder, canvas::{imagecache::ImageCache}}, util::fonts::Fonts, hotspots::drawinghotspots::{DrawingHotspots, DrawingHotspotsBuilder}, Message};
+use crate::{shape::{core::{text::DrawingText, bitmap::DrawingBitmap, flatdrawing::FlatDrawingManager}}, webgl::{global::WebGlGlobal, CanvasWeave, DrawingCanvasesBuilder, canvas::{imagecache::ImageCache}}, util::fonts::Fonts, hotspots::drawinghotspots::{DrawingHotspots, DrawingHotspotsBuilder}};
 
 const CANVAS_TYPE_LEN : usize = 3;
 
@@ -64,7 +64,7 @@ impl DrawingToolsBuilder {
     pub(crate) fn bitmap(&mut self) -> &mut DrawingBitmap { &mut self.bitmap }
     pub(crate) fn hotspots(&mut self) -> &mut DrawingHotspotsBuilder { &mut self.hotspots }
 
-    pub(crate) fn build(self) -> Result<DrawingTools,Message> {
+    pub(crate) fn build(self) -> Result<DrawingTools,Error> {
         Ok(DrawingTools {
             hotspots: self.hotspots.build()?
         })

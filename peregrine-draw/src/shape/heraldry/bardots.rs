@@ -1,5 +1,5 @@
 use peregrine_data::DirectColour;
-use peregrine_toolkit::{error::Error, log};
+use peregrine_toolkit::{error::Error};
 use crate::{webgl::{CanvasAndContext}};
 use super::heraldry::{HeraldryHandleType, HeraldryScale};
 

@@ -2,6 +2,8 @@ use std::collections::BTreeMap;
 use peregrine_toolkit::error::Error;
 use crate::webgl::GPUSpec;
 
+use super::canvastessellator::CanvasTessellationPrepare;
+
 /* see alloc.md in guide for details */
 
 const SPLIT_FACTOR_NUM : u32 = 1;
@@ -151,28 +153,27 @@ pub(crate) fn allocate_areas(sizes: &[(u32,u32)], gpu_spec: &GPUSpec) -> Result<
     }
 }
 
-pub(crate) fn allocate_vertical(sizes: &[(u32,u32)], gpu_spec: &GPUSpec) -> Result<(Vec<(u32,u32)>,u32,u32),Error> {
-    if sizes.len() == 0 {
-        return Ok((vec![],1,1))
+pub(crate) fn allocate_linear(prepare: &mut CanvasTessellationPrepare, gpu_spec: &GPUSpec, horizontal: bool) -> Result<(u32,u32),Error> {
+    if prepare.items().len() == 0 {
+        return Ok((1,1))
     }
-    let texture_height  = sizes.iter().map(|x| x.1).sum::<u32>().next_power_of_two();
-    let texture_width = sizes.iter().map(|x| x.0).max().unwrap().next_power_of_two();
+    let (stack,other) = if horizontal { (0,1) } else { (1,0) };
+    let mut cur  = vec![0,0];
+    let mut max = vec![0,0];
+    for item in prepare.items_mut().iter_mut() {
+        item.set_origin((cur[0],cur[1]));
+        let size = item.size_with_padding()?;
+        let size = vec![size.0,size.1];
+        cur[stack] += size[stack];
+        max[other] = max[other].max(size[other]);
+    }
+    prepare.bump(prepare.items().len());
+    let mut size = (max[0].max(cur[0]),max[1].max(cur[1]));
     let max_size = gpu_spec.max_texture_size();
-    if texture_height > max_size || texture_width > max_size {
+    if size.0 > max_size || size.1 > max_size {
         return Err(Error::fatal("cannot pack rectangles: all attempts failed"));
     }
-    let mut offsets = vec![];
-    let mut y_offset = 0;
-    for (_,y) in sizes.iter() {
-        offsets.push((0,y_offset));
-        y_offset += *y;
-    }
-    Ok((offsets,texture_width,texture_height))
-}
-
-pub(crate) fn allocate_horizontal(sizes: &[(u32,u32)], gpu_spec: &GPUSpec) -> Result<(Vec<(u32,u32)>,u32,u32),Error> {
-    let flipped_sizes = sizes.iter().map(|(x,y)| (*y,*x)).collect::<Vec<_>>();
-    let (flipped_offsets,width,height) = allocate_vertical(&flipped_sizes,gpu_spec)?;
-    let offsets = flipped_offsets.iter().map(|(x,y)| (*y,*x)).collect();
-    Ok((offsets,height,width))
+    size.0 = size.0.next_power_of_two();
+    size.1 = size.1.next_power_of_two();
+    Ok(size)
 }

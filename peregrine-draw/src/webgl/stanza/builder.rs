@@ -1,17 +1,17 @@
 use super::super::program::attribute::{ Attribute, AttributeProto, AttribHandle };
 use keyed::{ KeyedValues, KeyedDataMaker };
+use peregrine_toolkit::error::Error;
 use super::array::ProcessStanzaArray;
 use super::elements::{ ProcessStanzaElements, ProcessStanzaElementsEntry };
 use super::stanza::{AttribSource, ProcessStanza};
 use std::rc::Rc;
 use std::cell::RefCell;
 use std::sync::{Arc, Mutex};
-use crate::util::message::Message;
 use crate::webgl::global::WebGlGlobal;
 
 pub trait ProcessStanzaAddable {
-    fn add(&mut self, handle: &AttribHandle, values: Vec<f32>, dims: usize) -> Result<(),Message>;
-    fn add_n(&mut self, handle: &AttribHandle, values: Vec<f32>, dims: usize) ->Result<(),Message>;
+    fn add(&mut self, handle: &AttribHandle, values: Vec<f32>, dims: usize) -> Result<(),Error>;
+    fn add_n(&mut self, handle: &AttribHandle, values: Vec<f32>, dims: usize) -> Result<(),Error>;
 }
 
 pub struct ProcessStanzaBuilder {
@@ -43,22 +43,22 @@ impl ProcessStanzaBuilder {
         self.elements.last_mut().unwrap()
     }
 
-    pub(crate) fn make_elements(&mut self, count: usize, indexes: &[u16]) -> Result<ProcessStanzaElements,Message> {
+    pub(crate) fn make_elements(&mut self, count: usize, indexes: &[u16]) -> Result<ProcessStanzaElements,Error> {
         if self.elements.len() == 0 {
             self.make_elements_entry();
         }
         ProcessStanzaElements::new(self,count,indexes)
     }
 
-    pub(crate) fn make_array(&mut self, len: usize) -> Result<ProcessStanzaArray,Message> {
+    pub(crate) fn make_array(&mut self, len: usize) -> Result<ProcessStanzaArray,Error> {
         let out = ProcessStanzaArray::new(&self.active,&self.maker,len)?;
         self.arrays.push(out.clone());
         Ok(out)
     }
 
-    pub(crate) async fn make_stanzas(&self, gl: &Arc<Mutex<WebGlGlobal>>, attribs: &KeyedValues<AttribHandle,Attribute>) -> Result<Vec<ProcessStanza>,Message> {
+    pub(crate) async fn make_stanzas(&self, gl: &Arc<Mutex<WebGlGlobal>>, attribs: &KeyedValues<AttribHandle,Attribute>) -> Result<Vec<ProcessStanza>,Error> {
         if *self.active.borrow() {
-            return Err(Message::CodeInvariantFailed(format!("attempt to make while campaign still open")));
+            return Err(Error::fatal("attempt to make while campaign still open"));
         }
         let mut out = vec![];
         for element in &self.elements {

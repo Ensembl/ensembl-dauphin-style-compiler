@@ -3,6 +3,7 @@ use std::sync::Arc;
 use peregrine_data::reactive::Observable;
 use peregrine_data::{ Colour, DirectColour, DrawnType, Patina, Plotter, SpaceBaseArea, HollowEdge2, SpaceBase, LeafStyle, HotspotPatina };
 use peregrine_toolkit::eachorevery::{EachOrEvery, EachOrEveryFilterBuilder};
+use peregrine_toolkit::error::Error;
 use super::directcolourdraw::DirectYielder;
 use super::flatdrawing::CanvasItemHandle;
 use super::spotcolourdraw::SpotColourYielder;
@@ -17,10 +18,9 @@ use crate::shape::layers::geometry::{GeometryYielder, GeometryProcessName };
 use crate::shape::layers::patina::{PatinaYielder, Freedom};
 use crate::shape::triangles::rectangles::{Rectangles, RectanglesData, GLAttachmentPoint };
 use crate::shape::triangles::drawgroup::DrawGroup;
-use crate::shape::util::eoethrow::eoe_throw;
+use crate::shape::util::eoethrow::{eoe_throw2};
 use crate::webgl::{ ProcessStanzaAddable, CanvasInUse };
 use crate::webgl::global::WebGlGlobal;
-use crate::util::message::Message;
 
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub(crate) enum SimpleShapePatina {
@@ -32,18 +32,18 @@ pub(crate) enum SimpleShapePatina {
     None
 }
 
-fn simplify_colours(colours: &EachOrEvery<Colour>) -> Result<EachOrEvery<DirectColour>,Message> {
+fn simplify_colours(colours: &EachOrEvery<Colour>) -> Result<EachOrEvery<DirectColour>,Error> {
     Ok(colours.map_results(|colour| {
         match colour {
             Colour::Direct(d) => Ok(d.clone()),
             Colour::Spot(d) => Ok(d.clone()),
-            _ => Err(Message::CodeInvariantFailed(format!("attempt to simplify pattern to colour")))
+            _ => Err(Error::fatal("attempt to simplify pattern to colour"))
         }
     })?)
 }
 
 impl SimpleShapePatina {
-    pub(crate) fn from_patina(patina: &Patina) -> Result<SimpleShapePatina,Message> {
+    pub(crate) fn from_patina(patina: &Patina) -> Result<SimpleShapePatina,Error> {
         Ok(match patina {
             Patina::Drawn(drawn_variety,colours) => {
                 match drawn_variety {
@@ -56,7 +56,7 @@ impl SimpleShapePatina {
         })
     }
 
-    pub(crate) fn spot_from_patina(colour: &DirectColour, patina: &Patina) -> Result<SimpleShapePatina,Message> {
+    pub(crate) fn spot_from_patina(colour: &DirectColour, patina: &Patina) -> Result<SimpleShapePatina,Error> {
         Ok(match patina {
             Patina::Drawn(drawn_variety,_) => {
                 match drawn_variety {
@@ -117,7 +117,7 @@ pub(crate) enum GLShape {
     SpaceBaseRect(SpaceBaseArea<f64,LeafStyle>,SimpleShapePatina,EachOrEvery<i8>,DrawGroup,Option<SpaceBaseArea<Observable<'static,f64>,()>>),
 }
 
-fn add_colour(addable: &mut dyn ProcessStanzaAddable, simple_shape_patina: &DrawingShapePatina, count: usize) -> Result<(),Message> {
+fn add_colour(addable: &mut dyn ProcessStanzaAddable, simple_shape_patina: &DrawingShapePatina, count: usize) -> Result<(),Error> {
     let vertexes = match simple_shape_patina {
         DrawingShapePatina::Solid(_,_) => 4,
         DrawingShapePatina::Hollow(_,_) => 8,
@@ -144,7 +144,7 @@ pub(super) fn dims_to_sizes(areas: &[CanvasTextureArea], factor: f64) -> (Vec<f6
     (x_sizes,y_sizes)
 }
 
-fn draw_area_from_canvas(layer: &mut Layer, gl: &mut WebGlGlobal, draw_group: &DrawGroup, area: &SpaceBaseArea<f64,LeafStyle>, depth: &EachOrEvery<i8>, canvas: &CanvasInUse, dims: &[CanvasTextureArea], free: bool, edge: &Option<HollowEdge2<f64>>, freedom: &Freedom, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>) -> Result<Box<dyn DynamicShape>,Message> {
+fn draw_area_from_canvas(layer: &mut Layer, gl: &mut WebGlGlobal, draw_group: &DrawGroup, area: &SpaceBaseArea<f64,LeafStyle>, depth: &EachOrEvery<i8>, canvas: &CanvasInUse, dims: &[CanvasTextureArea], free: bool, edge: &Option<HollowEdge2<f64>>, freedom: &Freedom, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>) -> Result<Box<dyn DynamicShape>,Error> {
     let mut geometry_yielder = draw_group.geometry_yielder();
     let mut patina_yielder = TextureYielder::new(canvas,freedom);
     let left = layer.left();
@@ -155,7 +155,7 @@ fn draw_area_from_canvas(layer: &mut Layer, gl: &mut WebGlGlobal, draw_group: &D
     Ok(Box::new(Rectangles::new(rectangles,gl)))
 }
 
-pub(super) fn draw_points_from_canvas2(layer: &mut Layer, gl: &mut WebGlGlobal, draw_group: &DrawGroup, points: &SpaceBase<f64,LeafStyle>, run: &Option<SpaceBase<f64,()>>, x_sizes: Vec<f64>, y_sizes:Vec<f64>, depth: &EachOrEvery<i8>, canvas: &CanvasInUse, dims: &[CanvasTextureArea], freedom: &Freedom, attachment: GLAttachmentPoint, wobble: Option<SpaceBase<Observable<'static,f64>,()>>) -> Result<Box<dyn DynamicShape>,Message> {
+pub(super) fn draw_points_from_canvas2(layer: &mut Layer, gl: &mut WebGlGlobal, draw_group: &DrawGroup, points: &SpaceBase<f64,LeafStyle>, run: &Option<SpaceBase<f64,()>>, x_sizes: Vec<f64>, y_sizes:Vec<f64>, depth: &EachOrEvery<i8>, canvas: &CanvasInUse, dims: &[CanvasTextureArea], freedom: &Freedom, attachment: GLAttachmentPoint, wobble: Option<SpaceBase<Observable<'static,f64>,()>>) -> Result<Box<dyn DynamicShape>,Error> {
     let mut geometry_yielder = draw_group.geometry_yielder();
     let mut patina_yielder = TextureYielder::new(canvas,freedom);
     let left = layer.left();
@@ -166,10 +166,10 @@ pub(super) fn draw_points_from_canvas2(layer: &mut Layer, gl: &mut WebGlGlobal, 
     Ok(Box::new(Rectangles::new(rectangles,gl)))
 }
 
-fn draw_heraldry_canvas(layer: &mut Layer, gl: &mut WebGlGlobal, tools: &mut DrawingToolsBuilder, kind: &DrawGroup, area_a: &SpaceBaseArea<f64,LeafStyle>, handles: &EachOrEvery<HeraldryHandle>, depth: &EachOrEvery<i8>, heraldry_canvas: &HeraldryCanvas, scale: &HeraldryScale, edge: &Option<HollowEdge2<f64>>, count: usize, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>) -> Result<Option<Box<dyn DynamicShape>>,Message> {
+fn draw_heraldry_canvas(layer: &mut Layer, gl: &mut WebGlGlobal, tools: &mut DrawingToolsBuilder, kind: &DrawGroup, area_a: &SpaceBaseArea<f64,LeafStyle>, handles: &EachOrEvery<HeraldryHandle>, depth: &EachOrEvery<i8>, heraldry_canvas: &HeraldryCanvas, scale: &HeraldryScale, edge: &Option<HollowEdge2<f64>>, count: usize, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>) -> Result<Option<Box<dyn DynamicShape>>,Error> {
     let mut dims = vec![];
     let mut filter_builder = EachOrEveryFilterBuilder::new();
-    for (i,handle) in eoe_throw("heraldry",handles.iter(count))?.enumerate() {
+    for (i,handle) in eoe_throw2("heraldry",handles.iter(count))?.enumerate() {
         if let Some(handle) = handle.get_texture_area_on_bitmap(&heraldry_canvas) {
             let area = handle.drawn_area()?;
             dims.push(area);
@@ -178,7 +178,7 @@ fn draw_heraldry_canvas(layer: &mut Layer, gl: &mut WebGlGlobal, tools: &mut Dra
     }
     let filter = filter_builder.make(area_a.len());
     if filter.count() == 0 { return Ok(None); }
-    let canvas = tools.manager(&heraldry_canvas.to_canvas_type()).canvas_id().ok_or_else(|| Message::CodeInvariantFailed("no canvas id A".to_string()))?;
+    let canvas = tools.manager(&heraldry_canvas.to_canvas_type()).canvas_id().ok_or_else(|| Error::fatal("no canvas id A"))?;
     Ok(Some(draw_area_from_canvas(layer,gl,kind,&area_a.filter(&filter),&depth.filter(&filter),&canvas,&dims,scale.is_free(),edge,&heraldry_canvas.to_freedom(),wobble)?))
 }
 
@@ -188,7 +188,7 @@ pub(crate) enum ShapeToAdd {
     None
 }
 
-pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &mut WebGlGlobal, tools: &mut DrawingToolsBuilder, shape: GLShape) -> Result<ShapeToAdd,Message> {
+pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &mut WebGlGlobal, tools: &mut DrawingToolsBuilder, shape: GLShape) -> Result<ShapeToAdd,Error> {
     let bitmap_multiplier = gl.refs().canvas_source.bitmap_multiplier() as f64;
     match shape {
         GLShape::Wiggle((start,end),yy,Plotter(_,colour),depth) => {
@@ -209,7 +209,7 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &mut WebGlGlobal, tools:
                 .collect::<Result<Vec<_>,_>>()?;
             if bitmap_dims.len() == 0 { return Ok(ShapeToAdd::None); }
             let (x_sizes,y_sizes) = dims_to_sizes(&bitmap_dims,1./bitmap_multiplier);
-            let canvas = tools.manager(&CanvasType::Crisp).canvas_id().ok_or_else(|| Message::CodeInvariantFailed("no canvas id A".to_string()))?;
+            let canvas = tools.manager(&CanvasType::Crisp).canvas_id().ok_or_else(|| Error::fatal("no canvas id A"))?;
             let rectangles = draw_points_from_canvas2(layer,gl,&kind,&points,&None,x_sizes,y_sizes,&depth,&canvas,&bitmap_dims,&Freedom::None,GLAttachmentPoint::Left,None)?;
             Ok(ShapeToAdd::Dynamic(rectangles))
         },

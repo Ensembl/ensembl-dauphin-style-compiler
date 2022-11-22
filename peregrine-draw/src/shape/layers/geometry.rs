@@ -4,8 +4,8 @@ use super::super::core::wigglegeometry::WiggleAdder;
 use crate::shape::layers::consts::{ PR_DEF, PR_LOW };
 use crate::shape::triangles::triangleadder::TriangleAdder;
 use crate::webgl::{AttributeProto, Conditional, Declaration, GLArity, Header, ProgramBuilder, SourceInstrs, Statement, Varying, UniformProto};
+use peregrine_toolkit::error::Error;
 use web_sys::{ WebGlRenderingContext };
-use crate::util::message::Message;
 use enum_iterator::Sequence;
 
 #[derive(Clone)]
@@ -31,13 +31,13 @@ impl GeometryYielder {
         }
     }
 
-    pub fn get_adder<T: 'static>(&self) -> Result<&T,Message> {
+    pub fn get_adder<T: 'static>(&self) -> Result<&T,Error> {
         let x  = self.link.as_ref().map(|x| x.downcast_ref()).flatten();
-        x.ok_or_else(|| Message::CodeInvariantFailed(format!("incorrect adder type")))
+        x.ok_or_else(|| Error::fatal("incorrect adder type"))
     }
 
     pub(crate) fn name(&self) -> &GeometryProcessName { &self.name }
-    pub(crate) fn set(&mut self, program: &GeometryAdder) -> Result<(),Message> {
+    pub(crate) fn set(&mut self, program: &GeometryAdder) -> Result<(),Error> {
         self.link = Some(program.to_any());
         Ok(())
     }
@@ -57,7 +57,7 @@ pub(crate) enum GeometryProgramName {
 }
 
 impl GeometryProgramName {
-    pub(crate) fn make_geometry_program(&self, builder: &ProgramBuilder) -> Result<GeometryAdder,Message> {
+    pub(crate) fn make_geometry_program(&self, builder: &ProgramBuilder) -> Result<GeometryAdder,Error> {
         Ok(match self {
             GeometryProgramName::Wiggle => GeometryAdder::Wiggle(WiggleAdder::new(builder)?),
             GeometryProgramName::Triangles(_) => GeometryAdder::Triangles(TriangleAdder::new(builder)?),

@@ -2,7 +2,7 @@ use peregrine_toolkit::error::Error;
 
 use crate::{webgl::{GPUSpec}};
 
-use super::tessellate::{packer::{allocate_areas, allocate_horizontal, allocate_vertical}, canvastessellator::CanvasTessellationPrepare};
+use super::tessellate::{packer::{allocate_areas, allocate_linear}, canvastessellator::CanvasTessellationPrepare};
 
 #[allow(dead_code)]
 #[derive(Clone,PartialEq,Eq,Hash,Debug)]
@@ -16,14 +16,18 @@ pub(crate) enum CanvasWeave {
 
 impl CanvasWeave {
     pub(crate) fn tessellate(&self, prepare: &mut CanvasTessellationPrepare, gpu_spec: &GPUSpec) -> Result<(u32,u32),Error> {
-        let (origins,width,height) = match self {
-            CanvasWeave::HorizStack => allocate_horizontal(prepare.size(),gpu_spec),
-            CanvasWeave::VertStack => allocate_vertical(prepare.size(),gpu_spec),
-            _ =>  allocate_areas(&prepare.size(),gpu_spec)
-        }?;
-        for origin in &origins {
-            prepare.add_origin(*origin);
-        }
+        let sizes = prepare.items().iter().map(|item| item.size_with_padding()).collect::<Result<Vec<_>,_>>()?;
+        let (width,height) = match self {
+            CanvasWeave::HorizStack => allocate_linear(prepare,gpu_spec,true)?,
+            CanvasWeave::VertStack => allocate_linear(prepare,gpu_spec,false)?,
+            _ =>  {
+                let (origins,width,height) = allocate_areas(&sizes,gpu_spec)?;
+                for origin in &origins {
+                    prepare.add_origin(*origin);
+                }
+                (width,height)
+            }
+        };
         let (x,y) = match self {
             CanvasWeave::VertStack => (Some(width),None),
             CanvasWeave::HorizStack => (None,Some(height)),

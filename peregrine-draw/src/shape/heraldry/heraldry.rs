@@ -5,6 +5,7 @@ use peregrine_toolkit::error::Error;
 use crate::shape::core::flatdrawing::{FlatDrawingItem, CanvasItemHandle};
 use crate::shape::layers::drawingtools::{CanvasType, DrawingToolsBuilder};
 use crate::shape::layers::patina::Freedom;
+use crate::webgl::canvas::tessellate::canvastessellator::FlatBoundary;
 use crate::webgl::{CanvasAndContext};
 use crate::webgl::global::WebGlGlobal;
 use super::bardots::HeraldryBarDots;
@@ -108,19 +109,17 @@ impl Heraldry {
 }
 
 impl FlatDrawingItem for Heraldry {
-    fn calc_size(&self, gl: &mut WebGlGlobal) -> Result<(u32,u32),Error> {
+    fn calc_size(&self, gl: &mut WebGlGlobal) -> Result<FlatBoundary,Error> {
         let bitmap_multiplier = gl.refs().canvas_source.bitmap_multiplier();
-        Ok(match self {
+        let size = match self {
             Heraldry::Stripe(_,_,_,count) => (STAMP*count.0,STAMP*count.1),
             Heraldry::BarDots(dots) => dots.size(bitmap_multiplier as f64)
-        })
-    }
-
-    fn padding(&self, _: &mut WebGlGlobal) -> Result<(u32,u32),Error> {
-        Ok(match  self {
+        };
+        let padding = match self {
             Heraldry::Stripe(_,_,_,_) => (PAD,PAD),
             Heraldry::BarDots(bardots) => bardots.padding()
-        })
+        };
+        Ok(FlatBoundary::new(size,padding))
     }
 
     fn compute_hash(&self) -> Option<u64> {

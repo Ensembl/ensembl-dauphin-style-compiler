@@ -21,7 +21,7 @@ impl DrawingCanvases {
         self.main_canvases.insert(canvas.clone(),uniform_name.to_string());
     }
 
-    pub(crate) fn add_process(&self, id: &CanvasInUse, process: &mut ProcessBuilder) -> Result<(),Message> {
+    pub(crate) fn add_process(&self, id: &CanvasInUse, process: &mut ProcessBuilder) -> Result<(),Error> {
         if let Some(uniform_name) = self.main_canvases.get(id) {
             process.set_texture(uniform_name,id)?;
         }

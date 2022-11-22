@@ -3,14 +3,13 @@ use std::collections::HashSet;
 use crate::shape::layers::consts::PR_LOW;
 use crate::webgl::{CanvasInUse,  GLArity};
 use crate::webgl::global::{WebGlGlobalRefs};
-use crate::util::message::Message;
 use keyed::keyed_handle;
 use peregrine_toolkit::error::Error;
 use web_sys::{ WebGlUniformLocation, WebGlRenderingContext, WebGlProgram };
 use super::source::{ Source };
 use super::super::{ GPUSpec, Phase };
 use super::program::{ ProgramBuilder };
-use crate::webgl::util::{handle_context_errors, handle_context_errors2};
+use crate::webgl::util::{handle_context_errors2};
 
 // XXX some merging into uniform?
 
@@ -46,7 +45,7 @@ impl Source for TextureProto {
             self.name)
     }
 
-    fn register(&self, builder: &mut ProgramBuilder, _flags: &HashSet<String>) -> Result<(),Message> {
+    fn register(&self, builder: &mut ProgramBuilder, _flags: &HashSet<String>) -> Result<(),Error> {
         builder.add_texture(&self)
     }
 }
@@ -59,11 +58,11 @@ pub(crate) struct Texture {
 }
 
 impl Texture {
-    pub(super) fn new(proto: &TextureProto, context: &WebGlRenderingContext, program: &WebGlProgram) -> Result<Texture,Message> {
+    pub(super) fn new(proto: &TextureProto, context: &WebGlRenderingContext, program: &WebGlProgram) -> Result<Texture,Error> {
         let location = context.get_uniform_location(program,&proto.name);
         let location_size = context.get_uniform_location(program,&proto.size_name);
         let location_scale = context.get_uniform_location(program,&proto.scale_name);
-        handle_context_errors(context)?;
+        handle_context_errors2(context)?;
         Ok(Texture { location, location_size, location_scale })
     }
 }

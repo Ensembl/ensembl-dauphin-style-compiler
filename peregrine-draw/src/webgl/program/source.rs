@@ -1,14 +1,15 @@
 use std::collections::HashSet;
 
+use peregrine_toolkit::error::Error;
+
 use super::super::{ GPUSpec, Phase };
 use super::program::{ ProgramBuilder };
-use crate::util::message::Message;
 
 pub(crate) trait Source {
     fn cloned(&self) -> Box<dyn Source>;
     fn declare(&self, _spec: &GPUSpec, _phase: Phase, _flags: &HashSet<String>) -> String { String::new() }
     fn statement(&self, _phase: Phase, _flags: &HashSet<String>) -> String { String::new() }
-    fn register(&self, _builder: &mut ProgramBuilder, _flags: &HashSet<String>) -> Result<(),Message> { Ok(()) }
+    fn register(&self, _builder: &mut ProgramBuilder, _flags: &HashSet<String>) -> Result<(),Error> { Ok(()) }
     fn set_flags(&self, _flags: &mut HashSet<String>) {}
 }
 
@@ -66,7 +67,7 @@ impl SourceInstrs {
             self.statement(phase,&flags))
     }
 
-    pub(crate) fn register(&self, builder: &mut ProgramBuilder, flags: &HashSet<String>) -> Result<(),Message> {
+    pub(crate) fn register(&self, builder: &mut ProgramBuilder, flags: &HashSet<String>) -> Result<(),Error> {
         for v in self.source.iter() {
             v.register(builder,flags)?;
         }

@@ -1,22 +1,23 @@
+use peregrine_toolkit::error::Error;
+
 use super::super::layers::layer::{ Layer };
 use crate::shape::layers::geometry::{GeometryAdder, GeometryYielder};
 use crate::shape::layers::patina::PatinaYielder;
 use crate::webgl::{AttribHandle, ProcessBuilder, ProcessStanzaAddable, ProcessStanzaArray, ProgramBuilder};
 use super::super::util::arrayutil::{ interleave_pair, apply_left };
-use crate::util::message::Message;
 
 const THICKNESS: f64 = 1.; // XXX
 
 pub(crate) fn make_wiggle(layer: &mut Layer, geometry_yielder: &mut GeometryYielder, patina_yielder: &mut dyn PatinaYielder,
                     start: f64, end: f64, yy: &[Option<f64>],
-                    left: f64, depth: i8)-> Result<(ProcessStanzaArray,usize),Message> {
+                    left: f64, depth: i8)-> Result<(ProcessStanzaArray,usize),Error> {
     let process = layer.get_process_builder(geometry_yielder,patina_yielder)?;
     let adder = geometry_yielder.get_adder::<GeometryAdder>()?;
     match adder {
         GeometryAdder::Wiggle(w) => {
             w.add_wiggle(process,start,end,&yy,left,depth)
         },
-        _ => { return Err(Message::CodeInvariantFailed(format!("bad adder"))) }
+        _ => { return Err(Error::fatal("bad adder")) }
     }
 }
 
@@ -27,14 +28,14 @@ pub struct WiggleAdder {
 }
 
 impl WiggleAdder {
-    pub(crate) fn new(builder: &ProgramBuilder) -> Result<WiggleAdder,Message> {
+    pub(crate) fn new(builder: &ProgramBuilder) -> Result<WiggleAdder,Error> {
         Ok(WiggleAdder {
             data: builder.get_attrib_handle("aData")?,
             depth: builder.get_attrib_handle("aDepth")?
         })
     }
 
-    pub(crate) fn add_wiggle(&self, process: &mut ProcessBuilder, start: f64, end: f64, yy: &[Option<f64>], left: f64, depth: i8) -> Result<(ProcessStanzaArray,usize),Message> {
+    pub(crate) fn add_wiggle(&self, process: &mut ProcessBuilder, start: f64, end: f64, yy: &[Option<f64>], left: f64, depth: i8) -> Result<(ProcessStanzaArray,usize),Error> {
         if yy.len() > 1 {
             let mut pusher = WigglePusher {
                 prev_active: true,

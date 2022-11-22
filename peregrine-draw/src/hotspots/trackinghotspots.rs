@@ -1,6 +1,6 @@
 use std::{ops::Range};
 use peregrine_data::{LeafStyle, SingleHotspotEntry, Scale, HotspotGroupEntry, SpaceBasePoint };
-use peregrine_toolkit::{hotspots::hotspotstore::{HotspotStoreProfile}, ubail};
+use peregrine_toolkit::{hotspots::hotspotstore::{HotspotStoreProfile}, ubail, error::Error};
 use crate::{Message, stage::{stage::ReadStage, axis::UnitConverter}};
 use super::{drawhotspotstore::{PointPair, DrawHotspotStore}, coordconverter::CoordToPxConverter};
 
@@ -104,7 +104,7 @@ impl TrackingHotspots {
         DrawingHotspotProfile::new(left,bp_per_carriage,max_bp_per_px)
     }
 
-    pub(super) fn new(min_px_per_screen: f64, scale: &Option<Scale>, left: f64, entries: &[HotspotGroupEntry]) -> Result<TrackingHotspots,Message> {
+    pub(super) fn new(min_px_per_screen: f64, scale: &Option<Scale>, left: f64, entries: &[HotspotGroupEntry]) -> Result<TrackingHotspots,Error> {
         Ok(TrackingHotspots {
             store: DrawHotspotStore::new(Box::new(Self::make_profile(min_px_per_screen,scale,left)),entries)?
         })
