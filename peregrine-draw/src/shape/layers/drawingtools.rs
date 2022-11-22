@@ -1,7 +1,6 @@
-use std::sync::{Arc, Mutex};
 use peregrine_data::{Assets, Scale};
-use peregrine_toolkit::{error::Error, lock};
-use crate::{shape::{core::{text::DrawingText, bitmap::DrawingBitmap, flatdrawing::FlatDrawingManager}}, webgl::{global::WebGlGlobal, CanvasWeave, DrawingCanvasesBuilder, canvas::{tessellate::canvastessellator::CanvasTessellator, imagecache::ImageCache}}, util::fonts::Fonts, hotspots::drawinghotspots::{DrawingHotspots, DrawingHotspotsBuilder}, Message};
+use peregrine_toolkit::{error::Error};
+use crate::{shape::{core::{text::DrawingText, bitmap::DrawingBitmap, flatdrawing::FlatDrawingManager}}, webgl::{global::WebGlGlobal, CanvasWeave, DrawingCanvasesBuilder, canvas::{imagecache::ImageCache}}, util::fonts::Fonts, hotspots::drawinghotspots::{DrawingHotspots, DrawingHotspotsBuilder}, Message};
 
 const CANVAS_TYPE_LEN : usize = 3;
 
@@ -39,25 +38,6 @@ impl CanvasType {
     }
 }
 
-pub(crate) struct ToolPreparations {
-    tessellators: Vec<CanvasTessellator>,
-}
-
-impl ToolPreparations {
-    fn new() -> ToolPreparations {
-        ToolPreparations {
-            tessellators: (0..CANVAS_TYPE_LEN).map(|x| CanvasTessellator::new(&CanvasType::from_index(x).to_weave(),"uSampler")).collect(),
-        }
-    }
-
-    pub(super) fn allocate(&mut self, gl: &mut WebGlGlobal, drawable: &mut DrawingCanvasesBuilder) -> Result<(),Error> {
-        for i in 0..CANVAS_TYPE_LEN {
-            self.tessellators[i].make(gl,drawable)?;
-        }
-        Ok(())
-    }
-}
-
 pub(crate) struct DrawingTools {
     pub hotspots: DrawingHotspots
 }
@@ -72,7 +52,7 @@ pub(crate) struct DrawingToolsBuilder {
 impl DrawingToolsBuilder {
     pub(super) fn new(fonts: &Fonts, assets: &Assets, image_cache: &ImageCache, scale: Option<&Scale>, left: f64, bitmap_multiplier: f64) -> DrawingToolsBuilder {
         DrawingToolsBuilder {
-            manager: (0..CANVAS_TYPE_LEN).map(|_| FlatDrawingManager::new()).collect(),
+            manager: (0..CANVAS_TYPE_LEN).map(|x| FlatDrawingManager::new(&CanvasType::from_index(x).to_weave(),"uSampler")).collect(),
             text: DrawingText::new(fonts,bitmap_multiplier),
             bitmap: DrawingBitmap::new(assets,image_cache),
             hotspots: DrawingHotspotsBuilder::new(scale, left)
@@ -90,18 +70,14 @@ impl DrawingToolsBuilder {
         })
     }
 
-    pub(crate) async fn start_preparation(&mut self, gl: &Arc<Mutex<WebGlGlobal>>) -> Result<ToolPreparations,Error> {
-        let mut preparations = ToolPreparations::new();
+    pub(crate) async fn preprep(&mut self) -> Result<(),Error> {
         self.text.prepare_for_allocation().await?;
-        for i in 0..CANVAS_TYPE_LEN {
-            self.manager[i].calculate_requirements(&mut *lock!(gl),&mut preparations.tessellators[i])?;
-        }
-        Ok(preparations)
+        Ok(())
     }
 
-    pub(crate) fn finish_preparation(&mut self, mut preparations: ToolPreparations) -> Result<(),Error> {
+    pub(crate) fn prepare(&mut self, gl: &mut WebGlGlobal, drawable: &mut DrawingCanvasesBuilder) -> Result<(),Error> {
         for i in 0..CANVAS_TYPE_LEN {
-            self.manager[i].draw_at_locations(&mut preparations.tessellators[i])?;
+            self.manager[i].draw_on_bitmap(gl,drawable)?;
         }
         Ok(())
     }

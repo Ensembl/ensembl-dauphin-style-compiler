@@ -51,7 +51,7 @@ impl HeraldryBarDots {
         }
     }
 
-    pub(super) fn padding(&mut self) -> (u32,u32) { (0,0) }
+    pub(super) fn padding(&self) -> (u32,u32) { (0,0) }
 
     pub(super) fn rotate(&self) -> HeraldryBarDots {
         let mut out = self.clone();

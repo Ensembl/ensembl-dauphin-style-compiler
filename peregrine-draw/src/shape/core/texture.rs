@@ -1,5 +1,3 @@
-use peregrine_toolkit::log;
-
 use crate::shape::layers::patina::{PatinaProcess, PatinaProcessName, PatinaAdder, PatinaYielder, Freedom};
 use crate::webgl::{ AttribHandle, ProcessStanzaAddable, ProgramBuilder, UniformHandle, ProcessBuilder };
 use crate::webgl::{ CanvasInUse };
@@ -7,16 +5,16 @@ use crate::util::message::Message;
 
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub struct CanvasTextureArea {
-    texture_origin: (u32,u32),
+    origin: (u32,u32),
     size: (u32,u32)
 }
 
 impl CanvasTextureArea {
-    pub(crate) fn new(texture_origin: (u32,u32), size: (u32,u32)) -> CanvasTextureArea {
-        CanvasTextureArea { texture_origin, size }
+    pub(crate) fn new(origin: (u32,u32), size: (u32,u32)) -> CanvasTextureArea {
+        CanvasTextureArea { origin, size }
     }
 
-    pub(crate) fn texture_origin(&self) -> (u32,u32) { self.texture_origin }
+    pub(crate) fn origin(&self) -> (u32,u32) { self.origin }
     pub(crate) fn size(&self) -> (u32,u32) { self.size }
 }
 
@@ -84,7 +82,7 @@ impl TextureDraw {
     pub(crate) fn add_rectangle(&self, addable: &mut dyn ProcessStanzaAddable, canvas: &CanvasInUse, dims: &[CanvasTextureArea], freedom: &Freedom) -> Result<(),Message> {
         let size = canvas.retrieve(|flat| { flat.size().clone() });
         let mut texture_data = dims.iter()
-            .map(|x| (x.texture_origin(),x.size()));
+            .map(|x| (x.origin(),x.size()));
         self.add_rectangle_one(addable,&self.0.texture,&mut texture_data,&size,&freedom)?;
         Ok(())
     }

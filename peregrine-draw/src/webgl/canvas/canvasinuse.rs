@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 use std::{f64::consts::PI, fmt::Debug, hash::Hash };
 use peregrine_toolkit::error::Error;
-use peregrine_toolkit::{identitynumber, hashable, lock, log};
+use peregrine_toolkit::{identitynumber, hashable, lock};
 use peregrine_toolkit::plumbing::lease::Lease;
 use wasm_bindgen::{JsCast, JsValue};
 use web_sys::{CanvasRenderingContext2d, HtmlCanvasElement, HtmlImageElement };
@@ -119,17 +119,17 @@ impl CanvasAndContext {
         Ok(())
     }
 
-    fn draw_png_real(&self, context: CanvasRenderingContext2d, name: Option<String>, origin: (u32,u32), size: (u32,u32), bitmap: &mut Bitmap) -> Result<(),JsValue> {
+    fn draw_png_real(&self, context: CanvasRenderingContext2d, origin: (u32,u32), size: (u32,u32), bitmap: &Bitmap) -> Result<(),JsValue> {
         bitmap.onload(move |el| {
             draw_png_onload(context,el,origin,size);
         });
         Ok(())
     }    
 
-    pub(crate) fn draw_png(&self, name: Option<String>, origin: (u32,u32), size: (u32,u32), bitmap: &mut Bitmap) -> Result<(),Error> {
+    pub(crate) fn draw_png(&self, origin: (u32,u32), size: (u32,u32), bitmap: &Bitmap) -> Result<(),Error> {
         if self.discarded { return Err(Error::fatal("set_font on discarded flat canvas")); }
         let context = self.context()?.clone();
-        self.draw_png_real(context,name,origin,size,bitmap).map_err(|_| Error::fatal("cannot carate png"))?;
+        self.draw_png_real(context,origin,size,bitmap).map_err(|_| Error::fatal("cannot carate png"))?;
         Ok(())
     }
 

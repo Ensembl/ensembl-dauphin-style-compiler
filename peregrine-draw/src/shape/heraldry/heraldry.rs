@@ -108,7 +108,7 @@ impl Heraldry {
 }
 
 impl FlatDrawingItem for Heraldry {
-    fn calc_size(&mut self, gl: &mut WebGlGlobal) -> Result<(u32,u32),Error> {
+    fn calc_size(&self, gl: &mut WebGlGlobal) -> Result<(u32,u32),Error> {
         let bitmap_multiplier = gl.refs().canvas_source.bitmap_multiplier();
         Ok(match self {
             Heraldry::Stripe(_,_,_,count) => (STAMP*count.0,STAMP*count.1),
@@ -116,7 +116,7 @@ impl FlatDrawingItem for Heraldry {
         })
     }
 
-    fn padding(&mut self, _: &mut WebGlGlobal) -> Result<(u32,u32),Error> {
+    fn padding(&self, _: &mut WebGlGlobal) -> Result<(u32,u32),Error> {
         Ok(match  self {
             Heraldry::Stripe(_,_,_,_) => (PAD,PAD),
             Heraldry::BarDots(bardots) => bardots.padding()
@@ -129,7 +129,7 @@ impl FlatDrawingItem for Heraldry {
         Some(hasher.finish())
     }
 
-    fn build(&mut self, canvas: &mut CanvasAndContext, text_origin: (u32,u32), size: (u32,u32)) -> Result<(),Error> {
+    fn build(&self, canvas: &mut CanvasAndContext, text_origin: (u32,u32), size: (u32,u32)) -> Result<(),Error> {
         match self {
             Heraldry::Stripe(a,b,prop,count) => {
                 let p = STAMP * (*prop) / 100;
@@ -172,7 +172,6 @@ impl HeraldryHandleType {
 }
 
 #[derive(Clone)]
-#[cfg_attr(debug_assertions,derive(Debug))]
 pub(crate) enum HeraldryHandle {
     HorizVert(CanvasItemHandle,CanvasItemHandle),
     Horiz(CanvasItemHandle),
@@ -180,12 +179,12 @@ pub(crate) enum HeraldryHandle {
 }
 
 impl HeraldryHandle {
-    pub(crate) fn get_texture_area_on_bitmap(&self, canvas: &HeraldryCanvas) -> Option<(CanvasType,&CanvasItemHandle)> {
+    pub(crate) fn get_texture_area_on_bitmap(&self, canvas: &HeraldryCanvas) -> Option<&CanvasItemHandle> {
         match (canvas,self) {
-            (HeraldryCanvas::Horiz,HeraldryHandle::Horiz(h)) => Some((CanvasType::HeraldryVert,h)),
-            (HeraldryCanvas::Horiz,HeraldryHandle::HorizVert(h,_)) => Some((CanvasType::HeraldryHoriz,h)),
-            (HeraldryCanvas::Vert,HeraldryHandle::HorizVert(_,v)) => Some((CanvasType::HeraldryVert,v)),
-            (HeraldryCanvas::Crisp,HeraldryHandle::Crisp(h)) => Some((CanvasType::Crisp,h)),
+            (HeraldryCanvas::Horiz,HeraldryHandle::Horiz(h)) => Some(h),
+            (HeraldryCanvas::Horiz,HeraldryHandle::HorizVert(h,_)) => Some(h),
+            (HeraldryCanvas::Vert,HeraldryHandle::HorizVert(_,v)) => Some(v),
+            (HeraldryCanvas::Crisp,HeraldryHandle::Crisp(c)) => Some(c),
             _ => None
         }
     }

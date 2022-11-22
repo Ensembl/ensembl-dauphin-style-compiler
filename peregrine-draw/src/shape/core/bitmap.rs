@@ -68,7 +68,7 @@ impl Bitmap {
         Ok(image)
     }
 
-    pub(crate) fn onload<F>(&mut self, cb: F) where F: FnOnce(&HtmlImageElement) + 'static {
+    pub(crate) fn onload<F>(&self, cb: F) where F: FnOnce(&HtmlImageElement) + 'static {
         let mut queue = lock!(self.onload);
         if let Some(queue) = &mut *queue {
             queue.push(Box::new(cb));
@@ -84,12 +84,12 @@ fn dpr_round(size: u32, dpr: f32, scale: u32) -> u32 {
 }
 
 impl FlatDrawingItem for Bitmap {
-    fn calc_size(&mut self, gl: &mut WebGlGlobal) -> Result<(u32,u32),Error> {
+    fn calc_size(&self, gl: &mut WebGlGlobal) -> Result<(u32,u32),Error> {
         let dpr = gl.device_pixel_ratio();
         Ok((dpr_round(self.width,dpr,self.scale),dpr_round(self.height,dpr,self.scale)))
     }
 
-    fn padding(&mut self, _: &mut WebGlGlobal) -> Result<(u32,u32),Error> { Ok((PAD,PAD)) }
+    fn padding(&self, _: &mut WebGlGlobal) -> Result<(u32,u32),Error> { Ok((PAD,PAD)) }
 
     fn compute_hash(&self) -> Option<u64> {
         let mut hasher = DefaultHasher::new();
@@ -97,8 +97,8 @@ impl FlatDrawingItem for Bitmap {
         Some(hasher.finish())
     }
 
-    fn build(&mut self, canvas: &mut CanvasAndContext, origin: (u32,u32), size: (u32,u32)) -> Result<(),Error> {
-        canvas.draw_png(Some(self.name.clone()),pad(origin),size,self)?;
+    fn build(&self, canvas: &mut CanvasAndContext, origin: (u32,u32), size: (u32,u32)) -> Result<(),Error> {
+        canvas.draw_png(pad(origin),size,self)?;
         Ok(())
     }
 }

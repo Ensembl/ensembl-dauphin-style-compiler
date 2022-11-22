@@ -101,7 +101,7 @@ impl<K: KeyedHandle,T> KeyedData<K,T> {
 
     pub fn items(&self) -> impl Iterator<Item=(K,&T)> { self.values().enumerate().map(|(i,v)| (K::new(i),v)) }
 
-    pub fn take(mut self) -> Vec<(K,T)> { self.0.drain(..).enumerate().map(|(i,v)| (K::new(i),v)).collect() }
+    pub fn take(&mut self) -> Vec<(K,T)> { self.0.drain(..).enumerate().map(|(i,v)| (K::new(i),v)).collect() }
 
     pub fn map_into<F,U,E>(mut self, f: F) -> Result<KeyedData<K,U>,E> where F: Fn(K,T) -> Result<U,E> {
         Ok(KeyedData(self.0.drain(..).enumerate().map(|(i,t)| f(K::new(i),t)).collect::<Result<_,_>>()?,PhantomData))

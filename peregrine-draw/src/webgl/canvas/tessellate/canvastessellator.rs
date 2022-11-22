@@ -1,78 +1,88 @@
-use keyed::KeyedData;
 use peregrine_toolkit::error::Error;
-use crate::webgl::{global::WebGlGlobal, CanvasWeave, CanvasInUse, DrawingCanvasesBuilder};
-use keyed::keyed_handle;
 
-keyed_handle!(TessellationGroupHandle);
+use crate::{Message, shape::core::texture::CanvasTextureArea};
 
-struct Campaign {
+#[cfg_attr(debug_assertions,derive(Debug))]
+pub(crate) struct FlatBoundary {
+    origin: Option<(u32,u32)>,
+    size: Option<(u32,u32)>,
+    padding: (u32,u32)
+}
+
+fn unpack<T: Clone>(data: &Option<T>) -> Result<T,Message> {
+    data.as_ref().cloned().ok_or_else(|| Message::CodeInvariantFailed("texture packing failure, t origin".to_string()))
+}
+
+impl FlatBoundary {
+    pub(crate) fn new() -> FlatBoundary {
+        FlatBoundary { origin: None, size: None, padding: (0,0) }
+    }
+
+    fn size_without_padding(&self) -> Result<(u32,u32),Error> {
+        self.size.ok_or_else(|| Error::fatal("texture get size unset"))
+    }
+
+    pub(crate) fn size_with_padding(&self) -> Result<(u32,u32),Error> {
+        let size = self.size_without_padding()?;
+        Ok((size.0+self.padding.0,size.1+self.padding.1))
+    }
+
+    pub(crate) fn origin(&self) -> Result<(u32,u32),Error> {
+        self.origin.ok_or_else(|| Error::fatal("texture get size unset"))
+    }
+
+    pub(crate) fn update_padded_size(&mut self, size: (u32,u32)) {
+        self.size = Some((size.0-self.padding.0,size.1-self.padding.1));
+    }
+
+    pub(crate) fn set_size(&mut self, size: (u32,u32), padding: (u32,u32)) {
+        self.size = Some(size);
+        self.padding = padding;
+    }
+
+    pub(crate) fn set_origin(&mut self, text: (u32,u32)) {
+        self.origin = Some(text);
+    }
+
+    fn pad(&self, v: (u32,u32)) -> (u32,u32) {
+        (v.0+self.padding.0,v.1+self.padding.1)
+    }
+
+    pub(crate) fn drawn_area(&self) -> Result<CanvasTextureArea,Message> {
+        Ok(CanvasTextureArea::new(
+            self.pad(unpack(&self.origin)?),
+            unpack(&self.size)?
+        ))
+    }
+}
+
+pub(crate) struct CanvasTessellationPrepare {
     origin: Vec<(u32,u32)>,
     sizes: Vec<(u32,u32)>
 }
 
-pub(crate) struct CanvasTessellator {
-    uniform_name: String,
-    requests: KeyedData<TessellationGroupHandle,Option<Campaign>>,
-    weave: CanvasWeave,
-    canvas: Option<CanvasInUse>
-}
+impl CanvasTessellationPrepare {
+    pub(crate) fn new() -> CanvasTessellationPrepare {
+        CanvasTessellationPrepare { origin: vec![], sizes: vec![] }
+    }
 
-impl CanvasTessellator {
-    pub(crate) fn new(weave: &CanvasWeave, uniform_name: &str) -> CanvasTessellator {
-        CanvasTessellator {
-            uniform_name: uniform_name.to_string(),
-            weave: weave.clone(),
-            requests: KeyedData::new(),
-            canvas: None
+    pub(crate) fn add_size(&mut self, item: (u32,u32)) {
+        self.sizes.push(item);
+    }
+
+    pub(crate) fn add_origin(&mut self, item: (u32,u32)) {
+        self.origin.push(item);
+    }
+
+    pub fn expand_to_canvas(&mut self, x: Option<u32>, y: Option<u32>) {
+        if let Some(x) = x {
+            for size in &mut self.sizes { size.0 = x; }
+        }
+        if let Some(y) = y {
+            for size in &mut self.sizes { size.1 = y; }
         }
     }
 
-    pub(crate) fn insert(&mut self, sizes: &[(u32,u32)]) -> TessellationGroupHandle {
-        self.requests.add(Some(Campaign {
-            sizes: sizes.to_vec(), origin: vec![]
-        }))
-    }
-
-    fn allocate(&mut self, gl: &mut WebGlGlobal, drawing_canvases: &mut DrawingCanvasesBuilder) -> Result<(),Error> {
-        let mut sizes = vec![];
-        let ids : Vec<_> = self.requests.keys().collect();
-        for req_id in &ids {
-            let req = self.requests.get(req_id).as_ref().unwrap();
-            sizes.extend(req.sizes.iter());
-        }
-        if sizes.len() == 0 { return Ok(()); }
-        let (mut origins,width,height) = self.weave.tessellate(&sizes,&gl.gpu_spec())?;
-        let mut origins_iter = origins.drain(..);
-        for req_id in &ids {
-            let req = self.requests.get_mut(req_id).as_mut().unwrap();
-            for size in req.sizes.iter_mut() {
-                req.origin.push(origins_iter.next().unwrap());
-                *size = self.weave.expand_size(size,&(width,height));
-            }
-        }
-        let canvas = gl.canvas_source().make(&self.weave,(width,height))?;
-        drawing_canvases.make_canvas(&canvas,&self.uniform_name);
-        self.canvas = Some(canvas);
-        Ok(())
-    }
-
-    pub(crate) fn origins(&self, id: &TessellationGroupHandle) -> Vec<(u32,u32)> {
-        self.requests.get(id).as_ref().unwrap().origin.clone()
-    }
-
-    pub(crate) fn sizes(&self, id: &TessellationGroupHandle) -> Vec<(u32,u32)> {
-        self.requests.get(id).as_ref().unwrap().sizes.clone()
-    }
-
-    pub(crate) fn canvas(&self) -> Result<Option<&CanvasInUse>,Error> { Ok(self.canvas.as_ref()) }
-
-    pub(crate) fn make(&mut self, gl: &mut WebGlGlobal, drawable: &mut DrawingCanvasesBuilder) -> Result<(),Error> {
-        self.allocate(gl,drawable)?;
-        for (id,_) in self.requests.items() {
-            if let Some(canvas) = &self.canvas {
-                drawable.add(id,canvas);
-            }
-        }
-        Ok(())
-    }
+    pub(crate) fn origin(&self) -> &[(u32,u32)] { &self.origin }
+    pub(crate) fn size(&self) -> &[(u32,u32)] { &self.sizes }
 }

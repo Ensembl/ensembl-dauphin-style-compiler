@@ -1,7 +1,6 @@
 use peregrine_data::{ DirectColour, PenGeometry, Background, LeafStyle, TextShape, SpaceBase };
 use peregrine_toolkit::eachorevery::EachOrEvery;
 use peregrine_toolkit::error::Error;
-use peregrine_toolkit::lock;
 use crate::shape::layers::drawingtools::{DrawingToolsBuilder, CanvasType};
 use crate::shape::layers::layer::Layer;
 use crate::shape::layers::patina::Freedom;
@@ -9,14 +8,13 @@ use crate::shape::triangles::drawgroup::DrawGroup;
 use crate::shape::triangles::rectangles::GLAttachmentPoint;
 use crate::util::fonts::Fonts;
 use crate::webgl::canvas::structuredtext::StructuredText;
-use crate::webgl::canvas::tessellate::canvastessellator::CanvasTessellator;
 use crate::webgl::{ CanvasWeave, CanvasAndContext };
 use crate::webgl::global::WebGlGlobal;
 use super::drawshape::{GLShape, ShapeToAdd, dims_to_sizes, draw_points_from_canvas2};
-use super::flatdrawing::{FlatDrawingItem, FlatDrawingManager, CanvasItemHandle};
+use super::flatdrawing::{FlatDrawingItem, CanvasItemHandle};
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc};
 use crate::util::message::Message;
 
 const PAD : u32 = 4;
@@ -43,13 +41,13 @@ impl Text {
 }
 
 impl FlatDrawingItem for Text {
-    fn calc_size(&mut self, gl: &mut WebGlGlobal) -> Result<(u32,u32),Error> {
+    fn calc_size(&self, gl: &mut WebGlGlobal) -> Result<(u32,u32),Error> {
         let gl_ref = gl.refs();
         let mut canvas = gl_ref.scratch_canvases.scratch(&CanvasWeave::Crisp,(100,100))?;
         self.text.measure(canvas.get_mut())
     }
 
-    fn padding(&mut self, _: &mut WebGlGlobal) -> Result<(u32,u32),Error> { Ok((PAD,PAD)) }
+    fn padding(&self, _: &mut WebGlGlobal) -> Result<(u32,u32),Error> { Ok((PAD,PAD)) }
 
     fn compute_hash(&self) -> Option<u64> {
         let mut hasher = DefaultHasher::new();
@@ -63,7 +61,7 @@ impl FlatDrawingItem for Text {
         Some(hasher.finish())
     }
 
-    fn build(&mut self, canvas: &mut CanvasAndContext, text_origin: (u32,u32), size: (u32,u32)) -> Result<(),Error> {
+    fn build(&self, canvas: &mut CanvasAndContext, text_origin: (u32,u32), size: (u32,u32)) -> Result<(),Error> {
         self.text.draw(canvas,text_origin,size)
     }
 }
@@ -115,7 +113,7 @@ pub(super) fn draw_text(layer: &mut Layer, gl: &mut WebGlGlobal, tools: &mut Dra
                 ) -> Result<ShapeToAdd,Message> {
     let bitmap_multiplier = gl.refs().canvas_source.bitmap_multiplier() as f64;
     let bitmap_dims = handles.iter()
-        .map(|handle| tools.manager(&CanvasType::Crisp).get_texture_areas_on_bitmap(handle))
+        .map(|handle| handle.drawn_area())
         .collect::<Result<Vec<_>,_>>()?;
     if bitmap_dims.len() == 0 { return Ok(ShapeToAdd::None); }
     let (x_sizes,y_sizes) = dims_to_sizes(&bitmap_dims,1./bitmap_multiplier);

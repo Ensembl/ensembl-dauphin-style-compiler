@@ -1,8 +1,9 @@
 use std::collections::HashMap;
-use keyed::{KeyedData, KeyedHandle, keyed_handle};
+use std::sync::{Arc, Mutex};
 use peregrine_toolkit::error::Error;
-use crate::webgl::canvas::tessellate::canvastessellator::{TessellationGroupHandle, CanvasTessellator};
-use crate::webgl::{ CanvasInUse, CanvasAndContext };
+use peregrine_toolkit::lock;
+use crate::webgl::canvas::tessellate::canvastessellator::{CanvasTessellationPrepare, FlatBoundary};
+use crate::webgl::{ CanvasInUse, CanvasAndContext, CanvasWeave, DrawingCanvasesBuilder };
 use crate::webgl::global::WebGlGlobal;
 use super::texture::{CanvasTextureArea };
 use crate::util::message::Message;
@@ -10,79 +11,40 @@ use crate::util::message::Message;
 pub(crate) trait FlatDrawingItem {
     fn compute_hash(&self) -> Option<u64> { None }
     fn group_hash(&self) -> Option<u64> { None }
-    fn calc_size(&mut self, gl: &mut WebGlGlobal) -> Result<(u32,u32),Error>;
-    fn padding(&mut self, _gl: &mut WebGlGlobal) -> Result<(u32,u32),Error> { Ok((0,0)) }
-    fn build(&mut self, canvas: &mut CanvasAndContext, origin: (u32,u32), size: (u32,u32)) -> Result<(),Error>;
+    fn calc_size(&self, gl: &mut WebGlGlobal) -> Result<(u32,u32),Error>;
+    fn padding(&self, _gl: &mut WebGlGlobal) -> Result<(u32,u32),Error> { Ok((0,0)) }
+    fn build(&self, canvas: &mut CanvasAndContext, origin: (u32,u32), size: (u32,u32)) -> Result<(),Error>;
 }
 
-/* here, size and origins are inclusive of padding */
-struct FlatBoundary {
-    origin: Option<(u32,u32)>,
-    size: Option<(u32,u32)>,
-    padding: (u32,u32)
-}
+#[derive(Clone)]
+pub(crate) struct CanvasItemHandle(Arc<Mutex<FlatBoundary>>,Option<CanvasInUse>,Arc<dyn FlatDrawingItem>);
 
-impl FlatBoundary {
-    fn new() -> FlatBoundary {
-        FlatBoundary { origin: None, size: None, padding: (0,0) }
+impl CanvasItemHandle {
+    pub(crate) fn drawn_area(&self) -> Result<CanvasTextureArea,Message> {
+        lock!(self.0).drawn_area()
     }
 
-    fn size_without_padding(&self) -> Result<(u32,u32),Error> {
-        self.size.ok_or_else(|| Error::fatal("texture get size unset"))
-    }
-
-    fn size_with_padding(&self) -> Result<(u32,u32),Error> {
-        let size = self.size_without_padding()?;
-        Ok((size.0+self.padding.0,size.1+self.padding.1))
-    }
-
-    fn update_padded_size(&mut self, size: (u32,u32)) {
-        self.size = Some((size.0-self.padding.0,size.1-self.padding.1));
-    }
-
-    fn set_size(&mut self, size: (u32,u32), padding: (u32,u32)) {
-        self.size = Some(size);
-        self.padding = padding;
-    }
-
-    fn set_origin(&mut self, text: (u32,u32)) {
-        self.origin = Some(text);
-    }
-
-    fn pad(&self, v: (u32,u32)) -> (u32,u32) {
-        (v.0+self.padding.0,v.1+self.padding.1)
-    }
-
-    fn get_texture_areas_on_bitmap(&self) -> Result<CanvasTextureArea,Message> {
-        Ok(CanvasTextureArea::new(
-            self.pad(unpack(&self.origin)?),
-            unpack(&self.size)?
-        ))
+    pub(crate) fn canvas_id(&self) -> Option<&CanvasInUse> {
+        self.1.as_ref()
     }
 }
-
-fn unpack<T: Clone>(data: &Option<T>) -> Result<T,Message> {
-    data.as_ref().cloned().ok_or_else(|| Message::CodeInvariantFailed("texture packing failure, t origin".to_string()))
-}
-
-keyed_handle!(CanvasItemHandle);
 
 pub(crate) struct FlatDrawingManager {
+    weave: CanvasWeave,
+    uniform_name: String,
     hashed_items: HashMap<u64,CanvasItemHandle>,
-    texts: KeyedData<CanvasItemHandle,(Box<dyn FlatDrawingItem>,FlatBoundary)>,
-    request: Option<TessellationGroupHandle>,
-    groups: HashMap<Option<u64>,Vec<CanvasItemHandle>>,
+    texts: Vec<CanvasItemHandle>,
     canvas_id: Option<CanvasInUse>
 }
 
 impl FlatDrawingManager {
-    pub(crate) fn new() -> FlatDrawingManager {
+    pub(crate) fn new(weave: &CanvasWeave, uniform_name: &str) -> FlatDrawingManager {
         FlatDrawingManager {
             hashed_items: HashMap::new(),
-            texts: KeyedData::new(),
-            groups: HashMap::new(),
-            request: None,
-            canvas_id: None
+            texts: vec![],
+            canvas_id: None,
+            weave: weave.clone(),
+            uniform_name: uniform_name.to_string()
         }
     }
 
@@ -93,66 +55,55 @@ impl FlatDrawingManager {
                 return old.clone();
             }
         }
-        let group = item.group_hash();
-        let handle = self.texts.add((Box::new(item),FlatBoundary::new()));
+        let boundary = Arc::new(Mutex::new(FlatBoundary::new()));
+        let handle = CanvasItemHandle(boundary.clone(),None,Arc::new(item));
+        self.texts.push(handle.clone());
         if let Some(hash) = hash {
             self.hashed_items.insert(hash,handle.clone());
         }
-        self.groups.entry(group).or_insert(vec![]).push(handle.clone());
         handle
     }
 
     fn calc_sizes(&mut self, gl: &mut WebGlGlobal) -> Result<(),Error> {
-        let mut handles = vec![];
-        for group in self.groups.values() {
-            handles.extend(group.iter().cloned());
-        }
-        for handle in handles.drain(..) {
-            let v = self.texts.get_mut(&handle);
-            let size = v.0.calc_size(gl)?;
-            let padding = v.0.padding(gl)?;
-            v.1.set_size(size,padding);
+        self.texts.sort_by_key(|h| h.2.group_hash());
+        for item in self.texts.iter_mut() {
+            let size = item.2.calc_size(gl)?;
+            let padding = item.2.padding(gl)?;
+            lock!(item.0).set_size(size,padding);
         }
         Ok(())
     }
 
-    pub(crate) fn calculate_requirements(&mut self, gl: &mut WebGlGlobal, allocator: &mut CanvasTessellator) -> Result<(),Error> {
+    pub(crate) fn draw_on_bitmap(&mut self, gl: &mut WebGlGlobal, drawable: &mut DrawingCanvasesBuilder) -> Result<(),Error> {
         self.calc_sizes(gl)?;
-        let mut sizes = vec![];
-        for (_,boundary) in self.texts.values_mut() {
-            sizes.push(boundary.size_with_padding()?);
+        let mut prepare = CanvasTessellationPrepare::new();
+        for boundary in &self.texts {
+            prepare.add_size(lock!(boundary.0).size_with_padding()?);
         }
-        self.request = Some(allocator.insert(&sizes));
-        Ok(())
-    }
-
-    pub(crate) fn draw_at_locations(&mut self, allocator: &mut CanvasTessellator) -> Result<(),Error> {
-        self.canvas_id = allocator.canvas()?.cloned();
-        let mut origins = allocator.origins(self.request.as_ref().unwrap());
-        let mut sizes = allocator.sizes(self.request.as_ref().unwrap());
-        let mut origins_iter = origins.drain(..);
-        let mut sizes_iter = sizes.drain(..);
-        if let Some(canvas_id) = self.canvas_id.clone() {
-            canvas_id.modify(|canvas| {
-                for (text,boundary) in self.texts.values_mut() {
-                    let text_origin = origins_iter.next().unwrap();
-                    let size = sizes_iter.next().unwrap(); // XXX assumes always the same
-                    boundary.set_origin(text_origin);
-                    boundary.update_padded_size(size);
-                    let size = boundary.size_with_padding()?;
-                    text.build(canvas,text_origin,size)?;
-                }
-                Ok(())
-            })?;
+        let (width,height) = self.weave.tessellate(&mut prepare,gl.gpu_spec())?;
+        let canvas_id = gl.canvas_source().make(&self.weave,(width,height))?;
+        drawable.add_canvas(&canvas_id,&self.uniform_name);
+        self.canvas_id = Some(canvas_id.clone());
+        let origins = prepare.origin();
+        let sizes = prepare.size();
+        for (boundary,(origin,size)) in self.texts.iter().zip(origins.iter().zip(sizes.iter())) {
+            let mut boundary = lock!(boundary.0);
+            boundary.set_origin(*origin);
+            boundary.update_padded_size(*size);
         }
+        let texts = &mut self.texts; 
+        canvas_id.modify(|canvas| {
+            for item in texts {
+                let boundary = lock!(item.0);
+                let size = boundary.size_with_padding()?;
+                item.2.build(canvas,boundary.origin()?,size)?;
+            }
+            Ok(())
+        })?;
         Ok(())
     }
 
     pub(crate) fn canvas_id(&self) ->Option<CanvasInUse> {
         self.canvas_id.as_ref().cloned()
-    }
-
-    pub(crate) fn get_texture_areas_on_bitmap(&self, handle: &CanvasItemHandle) -> Result<CanvasTextureArea,Message> {
-        self.texts.get(handle).1.get_texture_areas_on_bitmap()
     }
 }

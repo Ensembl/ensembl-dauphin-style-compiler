@@ -1,11 +1,9 @@
 use std::collections::HashMap;
 
 use crate::webgl::{TextureBindery};
-use keyed::KeyedData;
 use peregrine_toolkit::error::Error;
 use crate::webgl::ProcessBuilder;
 use super::canvasinuse::CanvasInUse;
-use super::tessellate::canvastessellator::TessellationGroupHandle;
 use crate::util::message::Message;
 
 pub struct DrawingCanvases {
@@ -51,24 +49,21 @@ impl Drop for DrawingCanvases {
 
 /* One overall, differentiates FLATS */
 pub(crate) struct DrawingCanvasesBuilder {
-    responses: KeyedData<TessellationGroupHandle,Option<CanvasInUse>>,
+    responses: Vec<CanvasInUse>,
     drawing_flats: DrawingCanvases
 }
 
 impl DrawingCanvasesBuilder {
     pub(crate) fn new() -> DrawingCanvasesBuilder {
         DrawingCanvasesBuilder {
-            responses: KeyedData::new(),
+            responses: vec![],
             drawing_flats: DrawingCanvases::new()
         }
     }
 
-    pub(super) fn add(&mut self, id: TessellationGroupHandle, canvas: &CanvasInUse) {
-        self.responses.insert(&id,canvas.clone());
-    }
-
-    pub(super) fn make_canvas(&mut self, canvas: &CanvasInUse, uniform_name: &str) {
+    pub(crate) fn add_canvas(&mut self, canvas: &CanvasInUse, uniform_name: &str) {
         self.drawing_flats.allocate(canvas,uniform_name);
+        self.responses.push(canvas.clone());
     }
 
     pub(crate) fn built(self) -> DrawingCanvases { self.drawing_flats }
