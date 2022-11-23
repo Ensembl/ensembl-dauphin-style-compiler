@@ -169,6 +169,7 @@ mod webgl {
         pub(crate) mod scratchcanvases;
         pub(crate) mod weave;
         pub(crate) mod structuredtext;
+        pub(crate) mod texturebinding;
     }
 
     pub(crate) use canvas::weave::CanvasWeave;
