@@ -86,7 +86,7 @@ impl ExecutorTasks {
     }
 
     pub(crate) fn start_task(&mut self, handle: &TaskContainerHandle) {
-        if let Some(slot) = self.handle_slot.get(&handle) {
+        if let Some(slot) = self.handle_slot.get(handle) {
             if self.other_using_slot(slot,handle) {
                 /* Don't add to runnable until slot is free */
                 return;
@@ -104,7 +104,7 @@ impl ExecutorTasks {
     }
 
     fn remove_from_slot_queue(&mut self, handle: &TaskContainerHandle) {
-        if let Some(slot) = self.handle_slot.get(&handle) {
+        if let Some(slot) = self.handle_slot.get(handle) {
             if let Some(queue) = self.slot_queue.get_mut(slot) {
                 if let Some(pos) = queue.iter().position(|v| v == handle) {
                     queue.remove(pos);
@@ -119,7 +119,7 @@ impl ExecutorTasks {
     pub(crate) fn remove_task(&mut self, handle: &TaskContainerHandle) {
         self.runnable.remove(&self.tasks,handle);
         self.remove_from_slot_queue(handle);
-        self.handle_slot.remove(&handle);
+        self.handle_slot.remove(handle);
         self.debug_register(&handle,false);
         self.tasks.remove(&handle);
     }
