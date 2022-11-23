@@ -5,10 +5,9 @@ use wasm_bindgen::JsCast;
 use wasm_bindgen::prelude::Closure;
 use web_sys::HtmlImageElement;
 use crate::webgl::canvas::imagecache::ImageCache;
-use crate::webgl::canvas::tessellate::canvastessellator::{CanvasItemSize};
+use crate::webgl::canvas::composition::canvasitem::{CanvasItemSize, CanvasItem};
 use crate::webgl::{ CanvasAndContext };
 use crate::webgl::global::WebGlGlobal;
-use super::flatdrawing::{FlatDrawingItem};
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 use std::mem;
@@ -83,7 +82,7 @@ fn dpr_round(size: u32, dpr: f32, scale: u32) -> u32 {
     ( ((size*100/scale) as f32) * dpr ).round() as u32
 }
 
-impl FlatDrawingItem for Bitmap {
+impl CanvasItem for Bitmap {
     fn calc_size(&self, gl: &mut WebGlGlobal) -> Result<CanvasItemSize,Error> {
         let dpr = gl.device_pixel_ratio();
         let size = (dpr_round(self.width,dpr,self.scale),dpr_round(self.height,dpr,self.scale));

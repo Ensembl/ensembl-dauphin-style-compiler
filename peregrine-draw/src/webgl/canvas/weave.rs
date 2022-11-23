@@ -2,7 +2,7 @@ use peregrine_toolkit::error::Error;
 
 use crate::{webgl::{GPUSpec}};
 
-use super::tessellate::{packer::{allocate_areas, allocate_linear}, canvastessellator::{FlatBoundary}};
+use super::composition::{packer::{allocate_areas, allocate_linear}, areabuilder::CanvasItemAreaBuilder};
 
 #[allow(dead_code)]
 #[derive(Clone,PartialEq,Eq,Hash,Debug)]
@@ -15,21 +15,20 @@ pub(crate) enum CanvasWeave {
 }
 
 impl CanvasWeave {
-    pub(crate) fn tessellate(&self, items: &mut [&mut FlatBoundary], gpu_spec: &GPUSpec) -> Result<(u32,u32),Error> {
-        let (width,height) = match self {
+    pub(crate) fn tessellate(&self, items: &mut [&mut CanvasItemAreaBuilder], gpu_spec: &GPUSpec) -> Result<(u32,u32),Error> {
+        Ok(match self {
             CanvasWeave::HorizStack => allocate_linear(items,gpu_spec,true)?,
             CanvasWeave::VertStack => allocate_linear(items,gpu_spec,false)?,
             _ =>  allocate_areas(items,gpu_spec)?
-        };
-        let (x,y) = match self {
+        })
+    }
+
+    pub(crate) fn force_size(&self, width: u32, height: u32) -> (Option<u32>,Option<u32>) {
+        match self {
             CanvasWeave::VertStack => (Some(width),None),
             CanvasWeave::HorizStack => (None,Some(height)),
             _ => (None,None)
-        };
-        for item in items {
-            item.build(x,y)?;
         }
-        Ok((width,height))
     }
 
     pub(crate) fn round_up(&self) -> bool {

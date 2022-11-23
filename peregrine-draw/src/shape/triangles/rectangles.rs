@@ -4,7 +4,7 @@ use crate::shape::layers::geometry::{GeometryYielder, GeometryAdder };
 use crate::shape::layers::layer::Layer;
 use crate::shape::layers::patina::PatinaYielder;
 use crate::shape::util::arrayutil::{rectangle4};
-use crate::shape::util::eoethrow::{eoe_throw, eoe_throw2};
+use crate::shape::util::eoethrow::{eoe_throw2};
 use crate::webgl::global::WebGlGlobal;
 use crate::webgl::{ ProcessStanzaElements };
 use peregrine_data::reactive::{Observable, Observer};
@@ -14,7 +14,6 @@ use peregrine_toolkit::error::Error;
 use peregrine_toolkit::{lock};
 use super::drawgroup::DrawGroup;
 use super::triangleadder::TriangleAdder;
-use crate::util::message::Message;
 
 fn apply_wobble<A: Clone>(pos: &SpaceBase<f64,A>, wobble: &SpaceBase<Observable<'static,f64>,()>) -> SpaceBase<f64,A> {
     let wobble = wobble.map_all(|obs| obs.get());

@@ -84,7 +84,6 @@ mod shape {
         pub(crate) mod drawshape;
         pub(super) mod directcolourdraw;
         pub(super) mod spotcolourdraw;
-        pub(crate) mod flatdrawing;
         pub(crate) mod text;
         pub(crate) mod texture;
         pub(crate) mod wigglegeometry;
@@ -153,12 +152,15 @@ mod util {
 
 mod webgl {
     pub(crate) mod canvas {
-        pub(crate) mod tessellate {
+        pub(crate) mod composition {
+            pub(crate) mod areabuilder;
             pub(crate) mod packer;
-            pub(crate) mod canvastessellator;
+            pub(crate) mod compositionbuilder;
+            pub(crate) mod canvasitem;
         }
 
         pub(crate) mod bindery;
+        pub(crate) mod binding;
         pub(crate) mod canvas;
         pub(crate) mod canvassource;
         pub(crate) mod drawingcanvases;

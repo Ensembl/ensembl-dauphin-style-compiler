@@ -1,24 +1,9 @@
 use peregrine_toolkit::error::Error;
 
 use crate::shape::layers::patina::{PatinaProcess, PatinaProcessName, PatinaAdder, PatinaYielder, Freedom};
+use crate::webgl::canvas::composition::canvasitem::CanvasItemArea;
 use crate::webgl::{ AttribHandle, ProcessStanzaAddable, ProgramBuilder, UniformHandle, ProcessBuilder };
 use crate::webgl::{ CanvasInUse };
-
-#[derive(Clone)]
-#[cfg_attr(debug_assertions,derive(Debug))]
-pub struct CanvasTextureArea {
-    origin: (u32,u32),
-    size: (u32,u32)
-}
-
-impl CanvasTextureArea {
-    pub(crate) fn new(origin: (u32,u32), size: (u32,u32)) -> CanvasTextureArea {
-        CanvasTextureArea { origin, size }
-    }
-
-    pub(crate) fn origin(&self) -> (u32,u32) { self.origin }
-    pub(crate) fn size(&self) -> (u32,u32) { self.size }
-}
 
 #[derive(Clone)]
 pub struct TextureProgram {
@@ -81,7 +66,7 @@ impl TextureDraw {
         }
     }
 
-    pub(crate) fn add_rectangle(&self, addable: &mut dyn ProcessStanzaAddable, canvas: &CanvasInUse, dims: &[CanvasTextureArea], freedom: &Freedom) -> Result<(),Error> {
+    pub(crate) fn add_rectangle(&self, addable: &mut dyn ProcessStanzaAddable, canvas: &CanvasInUse, dims: &[CanvasItemArea], freedom: &Freedom) -> Result<(),Error> {
         let size = canvas.retrieve(|flat| { flat.size().clone() });
         let mut texture_data = dims.iter()
             .map(|x| (x.origin(),x.size()));

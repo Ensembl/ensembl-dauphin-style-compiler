@@ -118,7 +118,7 @@ pub(crate) fn prepare_shape_in_layer(tools: &mut DrawingToolsBuilder, shape: Dra
                 let drawing_bitmap = tools.bitmap();
                 let names = shape.iter_names().collect::<Vec<_>>();
                 let mut all_bitmaps = names.iter().map(|asset| drawing_bitmap.make(&shape.channel(),asset)).collect::<Result<Vec<_>,_>>()?;
-                let manager = tools.manager(&CanvasType::Crisp);
+                let manager = tools.composition_builder(&CanvasType::Crisp);
                 let handles = all_bitmaps.drain(..).map(|x| manager.add(x)).collect::<Result<_,_>>()?;
                 out.push(GLShape::Image(shape.position().clone(),handles,depth,draw_group));
             },

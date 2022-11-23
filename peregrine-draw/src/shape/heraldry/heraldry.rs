@@ -2,10 +2,9 @@ use std::collections::hash_map::DefaultHasher;
 use std::hash::{ Hash, Hasher };
 use peregrine_data::{ DirectColour };
 use peregrine_toolkit::error::Error;
-use crate::shape::core::flatdrawing::{FlatDrawingItem};
 use crate::shape::layers::drawingtools::{CanvasType, DrawingToolsBuilder};
 use crate::shape::layers::patina::Freedom;
-use crate::webgl::canvas::tessellate::canvastessellator::{CanvasItemSize, CanvasLocationSource};
+use crate::webgl::canvas::composition::canvasitem::{CanvasItemSize, CanvasItemAreaSource, CanvasItem};
 use crate::webgl::{CanvasAndContext};
 use crate::webgl::global::WebGlGlobal;
 use super::bardots::HeraldryBarDots;
@@ -92,23 +91,23 @@ impl Heraldry {
     pub(crate) fn add(&self, manager: &mut DrawingToolsBuilder) -> Result<HeraldryHandle,Error> {
         Ok(match self.handle_type() {
             HeraldryHandleType::Horiz => {
-                HeraldryHandle::Horiz(manager.manager(&CanvasType::HeraldryHoriz).add(self.clone())?)
+                HeraldryHandle::Horiz(manager.composition_builder(&CanvasType::HeraldryHoriz).add(self.clone())?)
             },
             HeraldryHandleType::Crisp => {
-                HeraldryHandle::Crisp(manager.manager(&CanvasType::HeraldryVert).add(self.clone())?)
+                HeraldryHandle::Crisp(manager.composition_builder(&CanvasType::HeraldryVert).add(self.clone())?)
             },
             HeraldryHandleType::HorizVert => {
                 let rotated = self.rotate(); // rotated is vertical line
                 HeraldryHandle::HorizVert(
-                    manager.manager(&CanvasType::HeraldryHoriz).add(self.clone())?, // gets horiz line
-                    manager.manager(&CanvasType::HeraldryVert).add(rotated)? // gets vertical line
+                    manager.composition_builder(&CanvasType::HeraldryHoriz).add(self.clone())?, // gets horiz line
+                    manager.composition_builder(&CanvasType::HeraldryVert).add(rotated)? // gets vertical line
                 )
             }
         })
     }
 }
 
-impl FlatDrawingItem for Heraldry {
+impl CanvasItem for Heraldry {
     fn calc_size(&self, gl: &mut WebGlGlobal) -> Result<CanvasItemSize,Error> {
         let bitmap_multiplier = gl.refs().canvas_source.bitmap_multiplier();
         let size = match self {
@@ -172,13 +171,13 @@ impl HeraldryHandleType {
 
 #[derive(Clone)]
 pub(crate) enum HeraldryHandle {
-    HorizVert(CanvasLocationSource,CanvasLocationSource),
-    Horiz(CanvasLocationSource),
-    Crisp(CanvasLocationSource)
+    HorizVert(CanvasItemAreaSource,CanvasItemAreaSource),
+    Horiz(CanvasItemAreaSource),
+    Crisp(CanvasItemAreaSource)
 }
 
 impl HeraldryHandle {
-    pub(crate) fn get_texture_area_on_bitmap(&self, canvas: &HeraldryCanvas) -> Option<&CanvasLocationSource> {
+    pub(crate) fn get_texture_area_on_bitmap(&self, canvas: &HeraldryCanvas) -> Option<&CanvasItemAreaSource> {
         match (canvas,self) {
             (HeraldryCanvas::Horiz,HeraldryHandle::Horiz(h)) => Some(h),
             (HeraldryCanvas::Horiz,HeraldryHandle::HorizVert(h,_)) => Some(h),

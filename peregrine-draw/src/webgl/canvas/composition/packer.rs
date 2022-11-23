@@ -1,7 +1,8 @@
 use std::collections::BTreeMap;
 use peregrine_toolkit::{error::Error};
 use crate::webgl::GPUSpec;
-use super::canvastessellator::{FlatBoundary};
+
+use super::areabuilder::CanvasItemAreaBuilder;
 
 /* see alloc.md in guide for details */
 
@@ -148,8 +149,8 @@ fn attempt_at_width(order: &[usize], sizes: &[(u32,u32)], texture_width: u64) ->
     (out,bin.height())
 }
 
-pub(crate) fn allocate_areas(items: &mut [&mut FlatBoundary], gpu_spec: &GPUSpec) -> Result<(u32,u32),Error> {
-    let sizes = items.iter().map(|x| x.size()).collect::<Result<Vec<_>,_>>()?;
+pub(crate) fn allocate_areas(items: &mut [&mut CanvasItemAreaBuilder], gpu_spec: &GPUSpec) -> Result<(u32,u32),Error> {
+    let sizes = items.iter().map(|x| x.size()).collect::<Vec<_>>();
     if sizes.len() == 0 { return Ok((1,1)); }
     let order = tallest_first(&sizes);
     let max_size = gpu_spec.max_texture_size() as u64;
@@ -170,14 +171,14 @@ pub(crate) fn allocate_areas(items: &mut [&mut FlatBoundary], gpu_spec: &GPUSpec
     }
 }
 
-pub(crate) fn allocate_linear(items: &mut [&mut FlatBoundary], gpu_spec: &GPUSpec, horizontal: bool) -> Result<(u32,u32),Error> {
+pub(crate) fn allocate_linear(items: &mut [&mut CanvasItemAreaBuilder], gpu_spec: &GPUSpec, horizontal: bool) -> Result<(u32,u32),Error> {
     if items.len() == 0 { return Ok((1,1)) }
     let (stack,other) = if horizontal { (0,1) } else { (1,0) };
     let mut cur  = vec![0,0];
     let mut max = vec![0,0];
     for item in items.iter_mut() {
         item.set_origin((cur[0],cur[1]));
-        let size = item.size()?;
+        let size = item.size();
         let size = vec![size.0,size.1];
         cur[stack] += size[stack];
         max[other] = max[other].max(size[other]);

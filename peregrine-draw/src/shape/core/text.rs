@@ -8,11 +8,10 @@ use crate::shape::triangles::drawgroup::DrawGroup;
 use crate::shape::triangles::rectangles::GLAttachmentPoint;
 use crate::util::fonts::Fonts;
 use crate::webgl::canvas::structuredtext::StructuredText;
-use crate::webgl::canvas::tessellate::canvastessellator::{CanvasItemSize, CanvasLocationSource};
+use crate::webgl::canvas::composition::canvasitem::{CanvasItemSize, CanvasItemAreaSource, CanvasItem};
 use crate::webgl::{ CanvasWeave, CanvasAndContext };
 use crate::webgl::global::WebGlGlobal;
 use super::drawshape::{GLShape, ShapeToAdd, dims_to_sizes, draw_points_from_canvas2};
-use super::flatdrawing::{FlatDrawingItem};
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 use std::sync::{Arc};
@@ -36,7 +35,7 @@ impl Text {
     }
 }
 
-impl FlatDrawingItem for Text {
+impl CanvasItem for Text {
     fn calc_size(&self, gl: &mut WebGlGlobal) -> Result<CanvasItemSize,Error> {
         let gl_ref = gl.refs();
         let mut canvas = gl_ref.scratch_canvases.scratch(&CanvasWeave::Crisp,(100,100))?;
@@ -93,7 +92,7 @@ pub(super) fn prepare_text(out: &mut Vec<GLShape>, tools: &mut DrawingToolsBuild
         all_texts.push(item);
     }
     drop(drawing_text);
-    let manager = tools.manager(&CanvasType::Crisp);
+    let manager = tools.composition_builder(&CanvasType::Crisp);
     let handles = all_texts.drain(..).map(|x| manager.add(x)).collect::<Result<Vec<_>,_>>()?;
     let positions = shape.position().clone();
     out.push(GLShape::Text(positions,shape.run().cloned(),handles,depth,draw_group.clone(),GLAttachmentPoint::new(shape.pen().attachment())));
@@ -103,7 +102,7 @@ pub(super) fn prepare_text(out: &mut Vec<GLShape>, tools: &mut DrawingToolsBuild
 pub(super) fn draw_text(layer: &mut Layer, gl: &mut WebGlGlobal, tools: &mut DrawingToolsBuilder,
                     points: SpaceBase<f64,LeafStyle>,
                     run: Option<SpaceBase<f64,()>>,
-                    handles: &[CanvasLocationSource], depth: EachOrEvery<i8>, draw_group: &DrawGroup,
+                    handles: &[CanvasItemAreaSource], depth: EachOrEvery<i8>, draw_group: &DrawGroup,
                     attachment: GLAttachmentPoint,
                 ) -> Result<ShapeToAdd,Error> {
     let bitmap_multiplier = gl.refs().canvas_source.bitmap_multiplier() as f64;
@@ -112,7 +111,7 @@ pub(super) fn draw_text(layer: &mut Layer, gl: &mut WebGlGlobal, tools: &mut Dra
         .collect::<Result<Vec<_>,_>>()?;
     if bitmap_dims.len() == 0 { return Ok(ShapeToAdd::None); }
     let (x_sizes,y_sizes) = dims_to_sizes(&bitmap_dims,1./bitmap_multiplier);
-    let canvas = tools.manager(&CanvasType::Crisp).canvas_id().ok_or_else(|| Error::fatal("no canvas id A"))?;
+    let canvas = tools.composition_builder(&CanvasType::Crisp).canvas().ok_or_else(|| Error::fatal("no canvas id A"))?;
     let rectangles = draw_points_from_canvas2(layer,gl,&draw_group,&points,&run,x_sizes,y_sizes,&depth,&canvas,&bitmap_dims,&Freedom::None,attachment,None)?;
     Ok(ShapeToAdd::Dynamic(rectangles))
 }

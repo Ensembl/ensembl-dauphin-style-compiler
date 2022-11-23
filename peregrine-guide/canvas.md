@@ -1,5 +1,7 @@
 # Flat Canvases
 
+Rather out of date. See flat-images.md
+
 ## Introduction
 
 Flat canvases are 2d, pixel-based canvases. These can be used as textures for webgl objects. Flat canvases are used to render text. The reason for this decision is a bit complex. In the long run, flat canvases will be required for things like heat-maps. Text can be rendered on flat canvases relatively easily, so this was chosen as the initial use-case. It wouldn't surprise me if ultimately text moved off flat canvases to some other technique, but flat canavses themselves will likely always be needed.
