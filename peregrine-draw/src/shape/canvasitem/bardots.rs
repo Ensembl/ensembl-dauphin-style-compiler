@@ -28,12 +28,19 @@ pub(crate) struct HeraldryBarDots {
     variety: Variety
 }
 
+fn at_least_one(x: &mut (u32,u32)) {
+    x.0 = x.0.max(1);
+    x.1 = x.1.max(1);
+}
+
 impl HeraldryBarDots {
-    pub(super) fn new_bar(col_a: &DirectColour, col_b: &DirectColour, prop: u32, number: (u32,u32), dir: bool) -> HeraldryBarDots {
+    pub(super) fn new_bar(col_a: &DirectColour, col_b: &DirectColour, prop: u32, mut number: (u32,u32), dir: bool) -> HeraldryBarDots {
+        at_least_one(&mut number);
         HeraldryBarDots { col_a: col_a.clone(), col_b: col_b.clone(), prop, number, dir, variety: Variety::Bar }
     }
 
-    pub(super) fn new_dots(col_a: &DirectColour, col_b: &DirectColour, prop: u32, number: (u32,u32), dir: bool) -> HeraldryBarDots {
+    pub(super) fn new_dots(col_a: &DirectColour, col_b: &DirectColour, prop: u32, mut number: (u32,u32), dir: bool) -> HeraldryBarDots {
+        at_least_one(&mut number);
         HeraldryBarDots { col_a: col_a.clone(), col_b: col_b.clone(), prop, number, dir, variety: Variety::Dots }
     }
 
