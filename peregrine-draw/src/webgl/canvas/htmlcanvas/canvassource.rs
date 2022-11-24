@@ -72,7 +72,7 @@ pub struct CanvasSource {
     stats: Stats,
 }
 
-pub(super) fn create(document: &Document, x: u32, y: u32,) -> Result<HtmlCanvasElement,Error> {
+pub(super) fn create(document: &Document, x: u32, y: u32) -> Result<HtmlCanvasElement,Error> {
     let element = document.create_element("canvas").map_err(|_| Error::fatal("cannot create canvas"))?;
     let element =  element.dyn_into::<HtmlCanvasElement>().map_err(|_| Error::fatal("could not cast canvas to HtmlCanvasElement"))?;
     element.set_width(x);
@@ -100,12 +100,21 @@ fn clear(element: &HtmlCanvasElement, size: (u32,u32)) -> Result<(),Error> {
 
 impl CanvasSource {
     pub fn new(document: &Document, bitmap_multiplier: f32) -> CanvasSource {
-        CanvasSource {
+        let out = CanvasSource {
             canvases: Arc::new(Mutex::new(HashMap::new())),
             document: document.clone(),
             bitmap_multiplier,
             stats: Stats::new()
+        };
+        /* ~32MB: small potatoes */
+        for x in &[256,1024] {
+            for y in &[256,512,1024] {
+                for _ in 0..4 {
+                    out.allocate(*x,*y,true).ok();
+                }
+            }
         }
+        out
     }
 
     pub(super) fn allocate(&self, mut x: u32, mut y: u32, round_up: bool) -> Result<(Lease<HtmlCanvasElement>,(u32,u32)),Error> {
