@@ -24,13 +24,12 @@ use crate::webgl::canvas::binding::weave::CanvasWeave;
 use super::canvasinuse::CanvasInUse;
 
 const MINIMUM : u32 = 256;
-const SCALE : u32 = 2;
 
-fn rounded(mut v: u32) -> u32 {
+fn rounded(mut v: u32, scale: u32) -> u32 {
     if v < MINIMUM { v = MINIMUM; }
-    let mut  power = 1;
+    let mut power = 1;
     while power < v  {
-        power *= SCALE;
+        power *= scale;
     }
     power
 }
@@ -109,14 +108,13 @@ impl CanvasSource {
         }
     }
 
-    pub(super) fn allocate(&self, mut x: u32, mut y: u32, round_up: bool) -> Result<Lease<HtmlCanvasElement>,Error> {
+    pub(super) fn allocate(&self, mut x: u32, mut y: u32, round_up: bool) -> Result<(Lease<HtmlCanvasElement>,(u32,u32)),Error> {
         let document = self.document.clone();
         if round_up {
-            x = rounded(x);
-            y = rounded(y);
+            x = rounded(x,4);
+            y = rounded(y,2);
         }
         let stats = self.stats.clone();
-        let dpr = self.bitmap_multiplier;
         stats.another();
         let canvas = lock!(self.canvases).entry((x,y)).or_insert_with(move || {
             LeaseManager::new(move || {
@@ -125,13 +123,13 @@ impl CanvasSource {
             })
         }).allocate()?;
         clear(canvas.get(),(x,y))?;
-        Ok(canvas)
+        Ok((canvas,(x,y)))
     }
 
     pub(crate) fn bitmap_multiplier(&self) -> f32 { self.bitmap_multiplier }
 
     pub(crate) fn make(&self, weave: &CanvasWeave, size: (u32,u32)) -> Result<CanvasInUse,Error> {
-        let lease = self.allocate(size.0, size.1, weave.round_up())?;
+        let (lease,size) = self.allocate(size.0, size.1, weave.round_up())?;
         Ok(CanvasInUse::new(lease,size,weave,self.bitmap_multiplier)?)
     }
 }
