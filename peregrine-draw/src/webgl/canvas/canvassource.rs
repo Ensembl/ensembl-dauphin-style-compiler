@@ -101,6 +101,6 @@ impl CanvasSource {
 
     pub(crate) fn make(&self, weave: &CanvasWeave, size: (u32,u32)) -> Result<CanvasInUse,Error> {
         let lease = self.allocate(size.0, size.1, weave.round_up())?;
-        Ok(CanvasInUse::new(lease,weave,size,self.bitmap_multiplier)?)
+        Ok(CanvasInUse::new(lease,weave,self.bitmap_multiplier)?)
     }
 }

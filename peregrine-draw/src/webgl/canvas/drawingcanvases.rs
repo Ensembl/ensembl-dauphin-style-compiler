@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use crate::webgl::{TextureBindery};
 use peregrine_toolkit::error::Error;
 use crate::webgl::ProcessBuilder;
 use super::canvasinuse::CanvasInUse;
@@ -24,24 +23,6 @@ impl DrawingCanvases {
             process.set_texture(uniform_name,id)?;
         }
         Ok(())
-    }
-
-    pub(crate) fn discard(&mut self, bindery: &mut TextureBindery) -> Result<(),Error> {
-        for (id,_) in self.main_canvases.drain() {
-            bindery.free(&id)?;
-        }
-        Ok(())
-    }
-}
-
-#[cfg(debug_drops)]
-impl Drop for DrawingCanvases {
-    fn drop(&mut self) {
-        use peregrine_toolkit::log;
-
-        if self.main_canvases.len() > 0 {
-            log!("drop DAF wich canvases!");
-        }
     }
 }
 

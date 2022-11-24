@@ -1,5 +1,5 @@
 use std::{collections::{BTreeMap}, sync::{Arc, Mutex}, marker::PhantomData};
-use peregrine_toolkit::{lock, error::Error};
+use peregrine_toolkit::{lock};
 
 /* Manages the abstract part of managing texture bindings. Is polymorphic on anything webgl-
  * specific C => WebGlContext, W => CanvasWeave, X => WebGlTexture. This serves to make the
@@ -105,7 +105,7 @@ impl Stats {
 
 pub(crate) trait TextureProfile<C,W,X,E> {
     fn create(&mut self, context: &C, weave: W, slot: usize) -> Result<X,E>;
-    fn destroy(&mut self, context: &C, texture: &X);
+    fn destroy(&mut self, context: &C, texture: &X, slot: usize) -> Result<(),E>;
     fn no_slots(&self) -> E;
     fn stats(&mut self, _stats: &Stats) {}
 }
@@ -183,6 +183,9 @@ impl<X> TokenStateStore<X> {
 
     fn clear(&mut self, slot: usize) {
         if let Some(entry) = self.0.get_mut(slot) {
+            if let Some(bound_state) = entry {
+                *lock!(bound_state) = None;
+            }
             *entry = None;
         }
     }
@@ -225,12 +228,12 @@ impl StateMachine {
         self.active.clear();
     }
 
-    fn steal(&mut self) -> Result<usize,Error> {
+    fn steal(&mut self) -> Option<usize> {
         if let Some((timestamp,slot)) = self.vestigial_lru.iter().next().map(|(x,y)| (*x,*y)) {
             self.vestigial_lru.remove(&timestamp); /* unbind old */
-            Ok(slot)
+            Some(slot)
         } else {
-            Err(Error::fatal("no slots available"))
+            None
         }
     }
 }
@@ -241,7 +244,7 @@ struct BindingState<C,W,X,E> {
     slot_source: SlotSource,
     state_machine: StateMachine,
     token_state: TokenStateStore<X>,
-    dead_textures: Vec<X>
+    dead_textures: Vec<(BoundRef,X)>
 }
 
 impl<C,W,X,E> BindingState<C,W,X,E> {
@@ -263,26 +266,23 @@ impl<C,W,X,E> BindingState<C,W,X,E> {
     /* Drop on Active or Vestigial slot due to individual token being dropped.
      */
      fn drop_slot(&mut self, br: BoundRef, texture: X) {
-        self.token_state.clear(br.slot);  /* remove ref to our state */
-        self.slot_source.free(br.slot);   /* slot can be reused */
-        self.state_machine.free(br);      /* remove from state machine */
-        self.dead_textures.push(texture); /* texture can be tidied */
+        self.dead_textures.push((br,texture));
     }
 
-    fn get_slot(&mut self, context: &C) -> Result<usize,Error> {
+    fn get_slot(&mut self, context: &C) -> Result<usize,E> {
         if let Some(slot) = self.slot_source.allocate() {
             return Ok(slot);
         }
-        let slot = self.state_machine.steal()?;
+        let slot = self.state_machine.steal().ok_or_else(|| self.profile.no_slots())?;
         if let Some(victim) = lock!(self.token_state.get(slot)).as_ref() {
-            self.profile.destroy(context,&victim.texture);
+            self.profile.destroy(context,&victim.texture,victim.br.slot)?;
         }
         self.token_state.clear(slot);
         Ok(slot)
     }
 
     fn activate(&mut self, context: &C, weave: W, bound: &Arc<Mutex<Option<BoundSlotState<X>>>>) -> Result<(),E> {
-        self.tidy(context);
+        self.tidy(context)?;
         let mut bound_state = lock!(bound);
         if let Some(bound) = bound_state.as_mut() {
             /* vestigial or active */
@@ -293,7 +293,7 @@ impl<C,W,X,E> BindingState<C,W,X,E> {
         }
         /* unbound */
         drop(bound_state);
-        let slot = self.get_slot(context).map_err(|e| self.profile.no_slots())?;
+        let slot = self.get_slot(context)?;
         let texture = self.profile.create(context,weave,slot)?;
         self.stats.activate();
         self.stats.create();
@@ -301,20 +301,26 @@ impl<C,W,X,E> BindingState<C,W,X,E> {
         self.state_machine.activate(&mut br);                /* vestigial -> active */
         *lock!(bound) = Some(BoundSlotState { texture, br });
         self.token_state.set(slot,bound);
-        self.tidy(context);
+        self.tidy(context)?;
         self.profile.stats(&self.stats);
         Ok(())
     }
 
-    fn clear(&mut self, context: &C) {
-        self.tidy(context);
+    fn clear(&mut self, context: &C) -> Result<(),E> {
+        self.tidy(context)?;
         self.state_machine.clear();
+        Ok(())
     }
 
-    fn tidy(&mut self, context: &C) {
-        for texture in self.dead_textures.drain(..) {
-            self.profile.destroy(context,&texture);
+    fn tidy(&mut self, context: &C) -> Result<(),E> {
+        for (br,texture) in self.dead_textures.drain(..) {
+            let slot = br.slot;
+            self.token_state.clear(br.slot);  /* remove ref to our state */
+            self.slot_source.free(br.slot);   /* slot can be reused */
+            self.state_machine.free(br);      /* remove from state machine */    
+            self.profile.destroy(context,&texture,slot)?;
         }
+        Ok(())
     }
 }
 
@@ -326,8 +332,8 @@ impl<C,W,X,E> Binding<C,W,X,E> {
         Binding(Arc::new(Mutex::new(BindingState::new(Box::new(profile),max_slots))))
     }
 
-    pub(crate) fn new_token(&self, context: &C) -> Result<SlotToken<C,W,X,E>,Error> {
-        lock!(self.0).tidy(context);
+    pub(crate) fn new_token(&self, context: &C) -> Result<SlotToken<C,W,X,E>,E> {
+        lock!(self.0).tidy(context)?;
         Ok(SlotToken {
             binding: self.0.clone(),
             weave: PhantomData,
@@ -335,8 +341,9 @@ impl<C,W,X,E> Binding<C,W,X,E> {
         })
     }
 
-    pub(crate) fn clear(&self, context: &C) {
-        lock!(self.0).clear(context);
+    pub(crate) fn clear(&self, context: &C) -> Result<(),E> {
+        lock!(self.0).clear(context)?;
+        Ok(())
     }
 }
 
@@ -345,19 +352,20 @@ mod test {
     use super::*;
 
     #[derive(Clone)]
-    struct BindingProfile(Arc<Mutex<(Vec<(usize,usize,Option<usize>)>,(u64,u64))>>);
+    struct BindingProfile(Arc<Mutex<(Vec<(usize,usize,usize,bool)>,(u64,u64))>>);
 
     impl TextureProfile<usize,usize,usize,usize> for BindingProfile {
         fn create(&mut self, context: &usize, weave: usize, slot: usize) -> Result<usize,usize> {
-            lock!(self.0).0.push((*context,weave,Some(slot)));
+            lock!(self.0).0.push((*context,weave,slot,true));
             if weave > 50000 { return Err(weave); }
             Ok(context+weave)
         }
 
         fn no_slots(&self) -> usize { 42 }
 
-        fn destroy(&mut self, context: &usize, texture: &usize) {
-            lock!(self.0).0.push((*context,*texture,None));        
+        fn destroy(&mut self, context: &usize, texture: &usize, slot: usize) -> Result<(),usize> {
+            lock!(self.0).0.push((*context,*texture,slot,false)); 
+            Ok(())       
         }
 
         fn stats(&mut self, stats: &Stats) {
@@ -401,7 +409,7 @@ mod test {
         let binding = Binding::new(profile.clone(),4);
         /* create ten tokens, check not much has changed */
         let mut tt = (0..10)
-            .map(|i| binding.new_token(&1000) )
+            .map(|_| binding.new_token(&1000) )
             .collect::<Result<Vec<_>,_>>().ok().unwrap();
         assert_eq!(lock!(profile.0).0,vec![]);
         assert_eq!(lock!(profile.0).1,(0,0));
@@ -415,7 +423,7 @@ mod test {
         assert_eq!(lock!(binding.0).token_state.0.len(),0);
         /* first activation */
         assert_eq!((1000,0),tt[0].activate(0,&1000).ok().expect("A"));
-        assert_eq!(lock!(profile.0).0,vec![(1000,0,Some(0))]);
+        assert_eq!(lock!(profile.0).0,vec![(1000,0,0,true)]);
         assert_eq!(lock!(profile.0).1,(1,1));
         assert_eq!(lock!(binding.0).dead_textures.len(),0);
         assert_eq!(lock!(binding.0).state_machine.next_timestamp,2);
@@ -425,12 +433,12 @@ mod test {
         assert_eq!(lock!(binding.0).slot_source.unused_slot.len(),0);
         check_token_state(&binding,&[Some(Some((1,0,1000)))]);
         /* second to fourth activations */
-        let mut p = vec![(1000,0,Some(0))];
+        let mut p = vec![(1000,0,0,true)];
         let mut act = vec![(1,0)];
         let mut ts = vec![Some(Some((1,0,1000)))];
         for i in 1..4 {
             assert_eq!((1000+100*i,i as u32),tt[i].activate(100*i,&1000).ok().expect("B"));
-            p.push((1000,100*i,Some(i)));
+            p.push((1000,100*i,i,true));
             act.push((1+2*i as i64,i));
             ts.push(Some(Some((1+2*i as i64,i,1000+100*i))));
             assert_eq!(*lock!(profile.0).0,p);
@@ -446,7 +454,7 @@ mod test {
         /* fifth activation should fail as we have four active slots */
         assert!(tt[4].activate(400,&1000).is_err());
         /* clear so that everything is available again */
-        binding.clear(&1000);
+        binding.clear(&1000).expect("X");
         assert_eq!(*lock!(profile.0).0,p);
         assert_eq!(lock!(profile.0).1,(4,4));
         assert_eq!(lock!(binding.0).dead_textures.len(),0);
@@ -469,9 +477,12 @@ mod test {
         check_token_state(&binding,&ts);
         /* mess with state some more, drop the second allocation! */
         tt[1] = tt[0].clone();
+        assert_eq!(lock!(binding.0).dead_textures.len(),1);
+        lock!(binding.0).tidy(&1000).expect("Y");
+        p.push((1000,1100,1,false)); // from last change: tidy has now run.
         assert_eq!(*lock!(profile.0).0,p);
         assert_eq!(lock!(profile.0).1,(5,4));
-        assert_eq!(lock!(binding.0).dead_textures.len(),1);
+        assert_eq!(lock!(binding.0).dead_textures.len(),0);
         assert_eq!(lock!(binding.0).state_machine.next_timestamp,9);
         check_vestigial(&binding,&[(5,2),(7,3)]);
         check_active(&binding,&[(8,0)]);
@@ -480,8 +491,7 @@ mod test {
         check_token_state(&binding,&ts);
         /* sixth activation should proceed from free slot without evictions */
         assert_eq!((1500,1),tt[5].activate(500,&1000).ok().expect("D"));
-        p.push((1000,1100,None)); // from last change: tidy has now run.
-        p.push((1000,500,Some(1))); // this is our one.
+        p.push((1000,500,1,true)); // this is our one.
         assert_eq!(*lock!(profile.0).0,p);
         assert_eq!(lock!(profile.0).1,(6,5));
         assert_eq!(lock!(binding.0).dead_textures.len(),0);
@@ -493,8 +503,8 @@ mod test {
         check_token_state(&binding,&ts);
         /* seventh activation should evict/allocate slot 2 */
         assert_eq!((1600,2),tt[6].activate(600,&1000).ok().expect("E"));
-        p.push((1000,1200,None)); // slot 2 evicted
-        p.push((1000,600,Some(2))); // this is us
+        p.push((1000,1200,2,false)); // slot 2 evicted
+        p.push((1000,600,2,true)); // this is us
         assert_eq!(*lock!(profile.0).0,p);
         assert_eq!(lock!(profile.0).1,(7,6));
         assert_eq!(lock!(binding.0).dead_textures.len(),0);

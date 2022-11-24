@@ -5,6 +5,7 @@ use crate::webgl::{CanvasInUse,  GLArity};
 use crate::webgl::global::{WebGlGlobalRefs};
 use keyed::keyed_handle;
 use peregrine_toolkit::error::Error;
+use peregrine_toolkit::log;
 use web_sys::{ WebGlUniformLocation, WebGlRenderingContext, WebGlProgram };
 use super::source::{ Source };
 use super::super::{ GPUSpec, Phase };
@@ -88,8 +89,7 @@ impl TextureValues {
 
     pub(super) fn apply(&mut self, gl: &mut WebGlGlobalRefs) -> Result<(),Error> {
         if let (Some(flat_id),Some(location)) = (&self.flat_id,&self.texture.location) {
-            gl.bindery.allocate(flat_id,gl.context)?;
-            let index = flat_id.retrieve(|flat| flat.get_gl_texture().unwrap().gl_index());
+            let index = flat_id.modify(|c| c.activate(gl.textures,gl.context))?;
             self.bound = true;
             gl.context.uniform1i(Some(location),index as i32);
             handle_context_errors2(gl.context)?;
@@ -101,15 +101,6 @@ impl TextureValues {
         if let Some(flat_scale) = &self.texture.location_scale {
             let bitmap_multiplier = gl.canvas_source.bitmap_multiplier();
             gl.context.uniform2f(Some(flat_scale),bitmap_multiplier, bitmap_multiplier);
-        }
-        Ok(())
-    }
-
-    pub fn discard(&mut self, gl: &mut WebGlGlobalRefs) -> Result<(),Error> {
-        if self.bound {
-            if let Some(flat) = &self.flat_id {
-                gl.bindery.free(flat)?;
-            }
         }
         Ok(())
     }

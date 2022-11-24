@@ -1,10 +1,10 @@
 use crate::{run::{ PgPeregrineConfig }, shape::layers::programstore::ProgramStore, util::fonts::Fonts, PgCommanderWeb, domcss::dom::PeregrineDom};
-use crate::webgl::{ ScratchCanvasAllocator, TextureBindery };
+use crate::webgl::{ ScratchCanvasAllocator };
 pub use url::Url;
 pub use web_sys::{ console, WebGlRenderingContext };
 use crate::util::message::Message;
 use wasm_bindgen::JsCast;
-use super::{GPUSpec, glbufferstore::GLBufferStore, canvas::{canvassource::CanvasSource, imagecache::{ImageCache}}};
+use super::{GPUSpec, glbufferstore::GLBufferStore, canvas::{canvassource::CanvasSource, imagecache::{ImageCache}, texturebinding::TextureBinding}};
 
 pub struct WebGlGlobal {
     program_store: ProgramStore,
@@ -12,7 +12,7 @@ pub struct WebGlGlobal {
     canvas_source: CanvasSource,
     scratch_canvases: ScratchCanvasAllocator,
     image_cache: ImageCache,
-    bindery: TextureBindery,
+    textures: TextureBinding,
     canvas_size: Option<(u32,u32)>,
     gpuspec: GPUSpec,
     fonts: Fonts,
@@ -26,7 +26,7 @@ pub(crate) struct WebGlGlobalRefs<'a> {
     pub image_cache: &'a ImageCache,
     pub scratch_canvases: &'a mut ScratchCanvasAllocator,
     pub canvas_source: &'a mut CanvasSource,
-    pub bindery: &'a mut TextureBindery,
+    pub textures: &'a mut TextureBinding,
     pub canvas_size: &'a mut Option<(u32,u32)>,
     pub gpuspec: &'a GPUSpec,
     pub fonts: &'a Fonts,
@@ -45,13 +45,13 @@ impl WebGlGlobal {
         let fonts = Fonts::new()?;
         let canvas_source = CanvasSource::new(dom.document(),dom.device_pixel_ratio());
         let scratch_canvases = ScratchCanvasAllocator::new(&canvas_source);
-        let bindery = TextureBindery::new(&gpuspec);
+        let textures = TextureBinding::new(&gpuspec);
         Ok(WebGlGlobal {
             program_store, 
             scratch_canvases, 
             canvas_source,
             image_cache,
-            bindery,
+            textures,
             context: context.clone(),
             canvas_size: None,
             gpuspec,
@@ -71,7 +71,7 @@ impl WebGlGlobal {
             context: &self.context,
             image_cache: &self.image_cache,
             scratch_canvases: &mut self.scratch_canvases,
-            bindery: &mut self.bindery,
+            textures: &mut self.textures,
             canvas_source: &mut self.canvas_source,
             canvas_size: &mut self.canvas_size,
             gpuspec: &self.gpuspec,

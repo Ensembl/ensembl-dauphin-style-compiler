@@ -31,7 +31,7 @@ impl ScratchCanvasAllocator {
         }
         if !use_cached {
             let lease = self.canvas_store.allocate(size.0,size.1,false)?;
-            let canvas = CanvasAndContext::new(lease,&CanvasWeave::Crisp,size,self.canvas_store.bitmap_multiplier())?;
+            let canvas = CanvasAndContext::new(lease,&CanvasWeave::Crisp,self.canvas_store.bitmap_multiplier())?;
             lock!(self.scratch).insert(weave.clone(),canvas);
         }
         let canvas = lock!(self.scratch).remove(weave).unwrap();

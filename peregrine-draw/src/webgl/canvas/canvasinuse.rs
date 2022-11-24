@@ -4,11 +4,13 @@ use peregrine_toolkit::error::Error;
 use peregrine_toolkit::{identitynumber, hashable, lock};
 use peregrine_toolkit::plumbing::lease::Lease;
 use wasm_bindgen::{JsCast, JsValue};
-use web_sys::{CanvasRenderingContext2d, HtmlCanvasElement, HtmlImageElement };
+use web_sys::{CanvasRenderingContext2d, HtmlImageElement, WebGlRenderingContext };
 use peregrine_data::{ DirectColour, PenGeometry, Background };
 use crate::shape::core::bitmap::Bitmap;
+use crate::webgl::util::handle_context_errors2;
 use super::canvas::Canvas;
-use super::{bindery::SelfManagedWebGlTexture, weave::CanvasWeave};
+use super::texturebinding::{TextureBindingSlot, TextureBinding};
+use super::{weave::CanvasWeave};
 
 const MIN_ROUNDING_SIZE: u32 = 8; // px :should be configurable in Background object if anyone wants it
 const MAX_ROUNDING_SIZE: u32 = 16; // px :should be configurable in Background object if anyone wants it
@@ -34,14 +36,13 @@ hashable!(CanvasAndContext,id);
 pub(crate) struct CanvasAndContext {
     id: u64,
     bitmap_multiplier: f64,
-    element: Option<Lease<Canvas>>,
+    element: Lease<Canvas>,
     context: Option<CanvasRenderingContext2d>,
     weave: CanvasWeave,
     font: Option<String>,
     font_height: Option<u32>,
     discarded: bool,
-    gl_texture: Option<SelfManagedWebGlTexture>,
-    is_active: bool,
+    texture: Option<TextureBindingSlot>
 }
 
 impl Debug for CanvasAndContext {
@@ -51,7 +52,7 @@ impl Debug for CanvasAndContext {
 }
 
 impl CanvasAndContext {
-    pub(super) fn new(el: Lease<Canvas>, weave: &CanvasWeave, size: (u32,u32), bitmap_multiplier: f32) -> Result<CanvasAndContext,Error> {
+    pub(super) fn new(el: Lease<Canvas>, weave: &CanvasWeave, bitmap_multiplier: f32) -> Result<CanvasAndContext,Error> {
         let context = el.get().element()
             .get_context("2d").map_err(|_| Error::fatal("cannot get 2d context"))?
             .unwrap()
@@ -59,23 +60,30 @@ impl CanvasAndContext {
         Ok(CanvasAndContext {
             id: IDS.next(),
             bitmap_multiplier: bitmap_multiplier as f64,
-            element: Some(el),
+            element: el,
             context: Some(context),
             weave: weave.clone(),
             font: None,
             font_height: None,
             discarded: false,
-            gl_texture: None,
-            is_active: false,
+            texture: None
         })
     }
 
     pub(crate) fn id(&self) -> u64 { self.id }
     pub(crate) fn bitmap_multiplier(&self) -> f64 { self.bitmap_multiplier }
-    pub(crate) fn get_gl_texture(&self) -> Option<&SelfManagedWebGlTexture> { self.gl_texture.as_ref() }
-    pub(crate) fn get_gl_texture_mut(&mut self) -> Option<&mut SelfManagedWebGlTexture> { self.gl_texture.as_mut() }
-    pub(crate) fn set_gl_texture(&mut self, texture: Option<SelfManagedWebGlTexture>) { self.gl_texture = texture; }
-    pub(crate) fn is_active(&mut self) -> &mut bool { &mut self.is_active }
+
+    pub(crate) fn activate(&mut self, textures: &mut TextureBinding, context: &WebGlRenderingContext) -> Result<u32,Error> {
+        if self.texture.is_none() {
+            self.texture = Some(textures.new_token(context)?);
+        }
+        let (texture,slot) = self.texture.as_ref().unwrap().activate(&self.element.get().element(), &self.weave, context)?;
+        context.active_texture(WebGlRenderingContext::TEXTURE0 + (slot as u32));
+        handle_context_errors2(context)?;
+        context.bind_texture(WebGlRenderingContext::TEXTURE_2D,Some(&texture));
+        handle_context_errors2(context)?;
+        Ok(slot)
+    }
 
     pub(crate) fn set_font(&mut self, pen: &PenGeometry) -> Result<(),Error> {
         if self.discarded { return Err(Error::fatal("set_font on discarded flat canvas")); }
@@ -183,12 +191,7 @@ impl CanvasAndContext {
         Ok(())
     }
 
-    pub(crate) fn size(&self) -> (u32,u32) { self.element.as_ref().unwrap().get().size() }
-    pub(crate) fn weave(&self) -> &CanvasWeave { &self.weave }
-    pub(crate) fn element(&self) -> Result<&HtmlCanvasElement,Error> {
-        if self.discarded { return Err(Error::fatal("set_font on discarded flat canvas")); }
-        Ok(&self.element.as_ref().unwrap().get().element())
-    }
+    pub(crate) fn size(&self) -> (u32,u32) { self.element.get().size() }
 
     pub(super) fn context(&self) -> Result<&CanvasRenderingContext2d,Error> {
         if self.discarded { return Err(Error::fatal("set_font on discarded flat canvas")); }
@@ -198,7 +201,6 @@ impl CanvasAndContext {
 
 impl Drop for CanvasAndContext {
     fn drop(&mut self) {
-        self.element = None;
         self.context = None;
         self.font = None;
         self.discarded = true;
@@ -209,8 +211,8 @@ impl Drop for CanvasAndContext {
 pub struct CanvasInUse(Arc<Mutex<CanvasAndContext>>);
 
 impl CanvasInUse {
-    pub(crate) fn new(lease: Lease<Canvas>, weave: &CanvasWeave, size: (u32,u32), bitmap_multiplier: f32) -> Result<CanvasInUse,Error> {
-        Ok(CanvasInUse(Arc::new(Mutex::new(CanvasAndContext::new(lease,weave,size,bitmap_multiplier)?))))
+    pub(crate) fn new(lease: Lease<Canvas>, weave: &CanvasWeave, bitmap_multiplier: f32) -> Result<CanvasInUse,Error> {
+        Ok(CanvasInUse(Arc::new(Mutex::new(CanvasAndContext::new(lease,weave,bitmap_multiplier)?))))
     }
 
     pub(crate) fn retrieve<F,X>(&self, cb: F) -> X

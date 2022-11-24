@@ -180,8 +180,6 @@ impl Drawing {
         for mut process in state.processes.drain(..) {
             process.discard(gl)?;
         }
-        let gl = gl.refs();
-        state.canvases.discard(gl.bindery)?;
         Ok(())
     }
 }

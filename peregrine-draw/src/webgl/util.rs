@@ -1,10 +1,12 @@
 use peregrine_data::DataMessage;
 use web_sys::{ WebGlRenderingContext };
 use crate::util::message::Message;
-use peregrine_toolkit::error::Error;
+use peregrine_toolkit::error::{Error};
 
 #[cfg(debug_webgl)]
 pub(crate) fn handle_context_errors2(context: &WebGlRenderingContext) -> Result<(),Error> {
+    use peregrine_toolkit::error;
+
     let mut errors = vec![];
     loop {
         let err = context.get_error();
@@ -12,15 +14,14 @@ pub(crate) fn handle_context_errors2(context: &WebGlRenderingContext) -> Result<
         errors.push(err);
     }
     if errors.len() > 0 {
-        Err(Message::WebGLFailure(format!("context errors: {}",errors.iter().map(|x| format!("{}",x)).collect::<Vec<_>>().join(","))))
-    } else {
-        Ok(())
+        error!("context errors: {}",errors.iter().map(|x| format!("{}",x)).collect::<Vec<_>>().join(","));
     }
+    Ok(())
 }
 
 #[cfg(not(debug_webgl))]
 pub(crate) fn handle_context_errors2(_context: &WebGlRenderingContext) -> Result<(),Error> {
-    Ok(())
+   Ok(())
 }
 
 pub(crate) fn handle_context_errors(context: &WebGlRenderingContext) -> Result<(),Message> {

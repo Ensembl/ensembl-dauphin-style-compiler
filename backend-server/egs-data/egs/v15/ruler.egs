@@ -38,7 +38,6 @@ rectangle(spacebase(0,0,0),spacebase(1,16,0),background_patina,allotment_underla
 rectangle(spacebase(0,-1,0),spacebase(1,-16,0),background_patina,allotment_underlay_top);
 
 /* maypole zone */
-notice(format(["maypole"]));
 maypole_patina := patina_special_zone("maypole");
 rectangle(spacebase(0,0,0),spacebase(1,16,0),maypole_patina,allotment_underlay_top);
 rectangle(spacebase(0,-1,0),spacebase(1,-16,0),maypole_patina,allotment_underlay_top);

@@ -110,7 +110,7 @@ impl Process {
 
     pub(super) fn draw(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage, opacity: f64, dpr: f64, stats: &mut SessionMetric) -> Result<(),Error> {
         let mut gl = gl.refs();
-        gl.bindery.clear()?;
+        gl.textures.clear(gl.context);
         let program_stage = self.program_stage.clone();
         program_stage.apply(stage,self.left,opacity,dpr,self).map_err(|e| Error::fatal(&format!("XXX transition {:?}",e)))?;
         self.program.select_program(gl.context)?;
@@ -134,9 +134,6 @@ impl Process {
         let mut gl = gl.refs();
         for entry in self.uniforms.values_mut() {
             entry.discard(gl.context)?;
-        }
-        for entry in self.textures.values_mut() {
-            entry.discard(&mut gl)?;
         }
         for stanza in self.stanzas.iter_mut() {
             stanza.discard(gl.context)?;

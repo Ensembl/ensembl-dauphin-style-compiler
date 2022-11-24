@@ -3,9 +3,9 @@
  * of the code which uses the bindery. See binding.rs for purpose and details.
  */
 
-use peregrine_toolkit::error::Error;
-use web_sys::{WebGlRenderingContext, WebGlTexture};
-use crate::webgl::{CanvasWeave, CanvasInUse, util::handle_context_errors2, GPUSpec};
+use peregrine_toolkit::{error::Error};
+use web_sys::{WebGlRenderingContext, WebGlTexture, HtmlCanvasElement};
+use crate::webgl::{CanvasWeave, util::handle_context_errors2, GPUSpec};
 use super::binding::{Binding, TextureProfile, SlotToken, Stats};
 
 fn apply_weave(context: &WebGlRenderingContext,weave: &CanvasWeave) -> Result<(),Error> {
@@ -46,22 +46,20 @@ fn apply_weave(context: &WebGlRenderingContext,weave: &CanvasWeave) -> Result<()
 fn show_stats(activations: u64, creates: u64) {
     use peregrine_toolkit::log;
 
-    if (activations % 100) > 97 {
+    if activations > 0 && (activations % 5000) == 0 {
         let perc = 100 - (creates*100/activations);
         log!("{} activations needed {} creates, {}% hit rate",activations,creates,perc);
     }
 }
 
 #[cfg(not(debug_canvasstore))]
-fn show_stats(activations: u64, creates: u64) {}
+fn show_stats(_activations: u64, _creates: u64) {}
 
 struct Profile;
 
-impl TextureProfile<WebGlRenderingContext,(CanvasInUse,CanvasWeave),WebGlTexture,Error> for Profile {
-    fn create(&mut self, context: &WebGlRenderingContext, weave:(CanvasInUse,CanvasWeave), slot: usize) -> Result<WebGlTexture,Error> {
-        /* create the WebGL texture */
-        let (canvas,weave) = weave;
-        let element = canvas.retrieve(|c| Ok(c.element()?.clone()))?;
+impl TextureProfile<WebGlRenderingContext,(HtmlCanvasElement,CanvasWeave),WebGlTexture,Error> for Profile {
+    fn create(&mut self, context: &WebGlRenderingContext, weave:(HtmlCanvasElement,CanvasWeave), _slot: usize) -> Result<WebGlTexture,Error> {
+        let (element,weave) = weave;
         let texture = context.create_texture().ok_or_else(|| Error::fatal("cannot create texture"))?;
         handle_context_errors2(context)?;
         context.bind_texture(WebGlRenderingContext::TEXTURE_2D,Some(&texture));
@@ -72,17 +70,16 @@ impl TextureProfile<WebGlRenderingContext,(CanvasInUse,CanvasWeave),WebGlTexture
         ).map_err(|e| Error::fatal(&format!("cannot bind texture: {:?}",&e.as_string())))?;
         handle_context_errors2(context)?;
         apply_weave(context,&weave)?;
-        /* Bind the texture */
-        context.active_texture(WebGlRenderingContext::TEXTURE0 + (slot as u32));
-        handle_context_errors2(context)?;
-        context.bind_texture(WebGlRenderingContext::TEXTURE_2D,Some(&texture));
-        handle_context_errors2(context)?;
         Ok(texture)
     }
 
-    fn destroy(&mut self, context: &WebGlRenderingContext, texture: &WebGlTexture) {
-        /* delete the texture */
+    fn destroy(&mut self, context: &WebGlRenderingContext, texture: &WebGlTexture, slot: usize) -> Result<(),Error> {
+        context.active_texture(WebGlRenderingContext::TEXTURE0 + (slot as u32));
+        handle_context_errors2(context)?;
+        context.bind_texture(WebGlRenderingContext::TEXTURE_2D,None);
+        handle_context_errors2(context)?;
         context.delete_texture(Some(&texture));
+        Ok(())
     }
 
     fn no_slots(&self) -> Error { Error::fatal("no free slots") }
@@ -93,17 +90,17 @@ impl TextureProfile<WebGlRenderingContext,(CanvasInUse,CanvasWeave),WebGlTexture
 }
 
 #[derive(Clone)]
-pub(crate) struct TextureBindingSlot(SlotToken<WebGlRenderingContext,(CanvasInUse,CanvasWeave),WebGlTexture,Error>);
+pub(crate) struct TextureBindingSlot(SlotToken<WebGlRenderingContext,(HtmlCanvasElement,CanvasWeave),WebGlTexture,Error>);
 
 impl TextureBindingSlot {
-    pub(crate) fn activate(&self, canvas: &CanvasInUse, weave: &CanvasWeave, context: &WebGlRenderingContext) -> Result<(WebGlTexture,u32),Error> {
-        self.0.activate((canvas.clone(),weave.clone()),context)
+    pub(crate) fn activate(&self, element: &HtmlCanvasElement, weave: &CanvasWeave, context: &WebGlRenderingContext) -> Result<(WebGlTexture,u32),Error> {
+        self.0.activate((element.clone(),weave.clone()),context)
     }
 }
 
 #[derive(Clone)]
 pub(crate) struct TextureBinding {
-    binding: Binding<WebGlRenderingContext,(CanvasInUse,CanvasWeave),WebGlTexture,Error>
+    binding: Binding<WebGlRenderingContext,(HtmlCanvasElement,CanvasWeave),WebGlTexture,Error>
 }
 
 impl TextureBinding {
@@ -117,8 +114,8 @@ impl TextureBinding {
         self.binding.new_token(context).map(|t| TextureBindingSlot(t))
     }
 
-    pub(crate) fn clear(&self, context: &WebGlRenderingContext) {
-        self.binding.clear(context);
+    pub(crate) fn clear(&self, context: &WebGlRenderingContext) -> Result<(),Error> {
+        self.binding.clear(context)
     }
 }
  
