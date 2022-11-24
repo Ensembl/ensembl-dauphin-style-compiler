@@ -4,7 +4,7 @@ use std::hash::{Hash};
 use std::sync::{ Arc, Mutex };
 use peregrine_data::{Assets, CarriageSpeed, PeregrineCore, Scale, DrawingCarriage, TrainIdentity, PeregrineApiQueue, SingleHotspotEntry};
 use peregrine_toolkit::error::Error;
-use peregrine_toolkit::{lock, log};
+use peregrine_toolkit::{lock};
 use peregrine_toolkit_async::sync::needed::{Needed, NeededLock};
 use super::glcarriage::GLCarriage;
 use super::gltrain::GLTrain;
@@ -15,7 +15,7 @@ use crate::webgl::global::WebGlGlobal;
 use crate::util::message::Message;
 
 #[cfg(debug_trains)]
-use peregrine_toolkit::debug_log;
+use peregrine_toolkit::{log, debug_log};
 
 #[derive(Clone)]
 enum FadeState {
@@ -87,11 +87,10 @@ impl GlRailwayData {
         }
     }
 
-    fn drop_train(&mut self, extent: &TrainIdentity, gl: &Arc<Mutex<WebGlGlobal>>) {
+    fn drop_train(&mut self, extent: &TrainIdentity) {
         #[cfg(any(debug_assertions,debug_trains))] 
         self.check_train_unused(extent);
         #[cfg(debug_trains)] log!("GL drop train {:?}",extent);
-        self.get_our_train(&extent,0).discard(&mut *lock!(gl));
         self.trains.remove(extent);
     }
 
@@ -190,7 +189,7 @@ impl GlRailwayData {
                 let prop = self.prop(&speed,elapsed.unwrap());
                 if prop >= 1. {
                     #[cfg(debug_trains)]
-                    log!("fading done {:?}",from);
+                    debug_log!("fading done {:?}",from);
                     self.fade_state = FadeState::Constant(Some(to));
                     self.redraw_needed.set(); // probably not needed; belt-and-braces
                     complete = true;
@@ -272,7 +271,7 @@ impl GlRailway {
     }
 
     pub fn create_train(&mut self, train: &TrainIdentity) { lock!(self.data).create_train(train) }
-    pub fn drop_train(&mut self, train: &TrainIdentity, gl: &Arc<Mutex<WebGlGlobal>>) { lock!(self.data).drop_train(train,gl) }
+    pub fn drop_train(&mut self, train: &TrainIdentity) { lock!(self.data).drop_train(train) }
 
     pub(crate) fn create_carriage(&mut self, carriage: &DrawingCarriage, gl: &Arc<Mutex<WebGlGlobal>>, assets: &Assets) -> Result<(),Message> {
         lock!(self.data).create_carriage(carriage,gl,assets)

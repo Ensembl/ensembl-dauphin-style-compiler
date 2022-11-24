@@ -138,8 +138,4 @@ impl ProcessStanza {
         }
         Ok(())
     }
-
-    pub fn discard(&mut self, context: &WebGlRenderingContext) -> Result<(),Error> {
-        Ok(())
-    }
 }

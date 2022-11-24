@@ -44,13 +44,6 @@ impl GLTrain {
             carriage.set_opacity(amount);
         }
     }
-
-    pub(super) fn discard(&mut self, gl: &mut WebGlGlobal) -> Result<(),Message> {
-        for mut carriage in lock!(self.0).carriages.drain(..) {
-            carriage.discard(gl)?;
-        }
-        Ok(())
-    }
     
     pub(super) fn set_carriages(&mut self, new_carriages: Vec<GLCarriage>) -> Result<(),Message> {
         let mut state = lock!(self.0);

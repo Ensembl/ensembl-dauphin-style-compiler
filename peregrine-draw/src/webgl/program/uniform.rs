@@ -104,8 +104,4 @@ impl UniformValues {
         self.valid = true;
         Ok(())
     }
-
-    pub fn discard(&mut self, _context: &WebGlRenderingContext) -> Result<(),Error> {
-        Ok(())
-    }
 }

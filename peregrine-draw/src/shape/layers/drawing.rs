@@ -167,23 +167,4 @@ impl Drawing {
         }
         Ok(())
     }
-
-    pub(crate) fn discard(&mut self, gl: &mut WebGlGlobal) -> Result<(),Error> {
-        let mut state = lock!(self.0);
-        for mut process in state.processes.drain(..) {
-            process.discard(gl)?;
-        }
-        Ok(())
-    }
-}
-
-#[cfg(debug_drops)]
-impl Drop for Drawing {
-    fn drop(&mut self) {
-        use peregrine_toolkit::log;
-
-        if lock!(self.0).processes.len() > 0 {
-            log!("drop Drawing with processes!");
-        }
-    }
 }

@@ -129,7 +129,7 @@ impl CanvasSource {
     pub(crate) fn bitmap_multiplier(&self) -> f32 { self.bitmap_multiplier }
 
     pub(crate) fn make(&self, weave: &CanvasWeave, size: (u32,u32)) -> Result<CanvasInUse,Error> {
-        let (lease,size) = self.allocate(size.0, size.1, weave.round_up())?;
+        let (lease,size) = self.allocate(size.0,size.1,weave.round_up())?;
         Ok(CanvasInUse::new(lease,size,weave,self.bitmap_multiplier)?)
     }
 }

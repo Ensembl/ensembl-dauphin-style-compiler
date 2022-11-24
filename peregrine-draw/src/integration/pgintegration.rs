@@ -33,7 +33,7 @@ impl PeregrineIntegration for PgIntegration {
     }
 
     fn drop_train(&mut self, train: &TrainIdentity) {
-        self.trainset.drop_train(train,&self.webgl);
+        self.trainset.drop_train(train);
     }
 
     fn create_carriage(&mut self, carriage: &DrawingCarriage) {

@@ -16,8 +16,7 @@ struct GLCarriageData {
     extent: CarriageExtent,
     opacity: Mutex<f64>,
     drawing: AsyncOnce<Result<Option<Drawing>,Message>>,
-    preflight_done: bool,
-    discarded: bool
+    preflight_done: bool
 }
 
 fn get_drawing(data: &GLCarriageData) -> Result<Option<Drawing>,Message> {
@@ -53,7 +52,6 @@ impl GLCarriage {
             extent: carriage.extent().clone(),
             opacity: Mutex::new(1.),
             preflight_done: false,
-            discarded: false,
             drawing: AsyncOnce::new(async move {
                 let carriage = carriage2;
                 let scale = carriage.extent().scale();
@@ -102,9 +100,6 @@ impl GLCarriage {
         if !state.preflight_done {
             warn!("draw without preflight");
         }
-        if state.discarded {
-            panic!("draw on discarded glcarriage");
-        }
         let opacity = state.opacity.lock().unwrap().clone();
         let in_view =  state.in_view(stage)?;
         if let Some(mut drawing) = get_drawing(&state)? {
@@ -131,29 +126,6 @@ impl GLCarriage {
             drawing.any_hotspot(stage,position,special_only)
         } else {
             Ok(false)
-        }
-    }
-
-    pub fn discard(&mut self, gl: &mut WebGlGlobal) -> Result<(),Message> {
-        let mut state = lock!(self.0);
-        state.discarded = true;
-        if let Some(mut drawing) = get_drawing(&state)? {
-            drawing.discard(gl).map_err(|e| Message::DataError(DataMessage::XXXTransitional(e)))?;
-        }
-        Ok(())
-    }
-}
-
-#[cfg(debug_drops)]
-impl Drop for GLCarriage {
-    fn drop(&mut self) {
-        use peregrine_toolkit::log;
-
-        let state = lock!(self.0);
-        let discarded = state.discarded;
-        drop(state);
-        if !discarded {
-            log!("bad drop for GLCarriage");
         }
     }
 }

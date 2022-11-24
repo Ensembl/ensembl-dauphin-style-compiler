@@ -129,15 +129,4 @@ impl Process {
         stats.add_character(&self.character);
         Ok(())
     }
-
-    pub(crate) fn discard(&mut self,  gl: &mut WebGlGlobal) -> Result<(),Error> {
-        let mut gl = gl.refs();
-        for entry in self.uniforms.values_mut() {
-            entry.discard(gl.context)?;
-        }
-        for stanza in self.stanzas.iter_mut() {
-            stanza.discard(gl.context)?;
-        }
-        Ok(())
-    }
 }

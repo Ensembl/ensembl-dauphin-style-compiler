@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 use peregrine_data::{Assets, reactive::Reactive, ProgramShapesBuilder, DataMessage };
-use peregrine_toolkit::{lock, puzzle::AnswerAllocator, error::err_web_drop};
+use peregrine_toolkit::{lock, puzzle::AnswerAllocator};
 use peregrine_toolkit_async::{sync::retainer::{RetainTest, Retainer, retainer}};
 use crate::{Message, shape::{layers::drawing::Drawing}, stage::stage::ReadStage, webgl::{DrawingSession, global::WebGlGlobal}, PgCommanderWeb};
 
@@ -57,11 +57,7 @@ impl SpectralDrawing {
             if let Ok((drawing,retainer)) = draw(&gl,&assets,&spectres).await {
                 let index = lock!(self2.index);
                 if *index == our_index {
-                    let mut drawing_holder = lock!(self2.drawing);
-                    if let Some((mut drawing,_)) = drawing_holder.take() {
-                        err_web_drop(drawing.discard(&mut *lock!(gl)));
-                    }
-                    *drawing_holder = Some((drawing,retainer));
+                    *lock!(self2.drawing) = Some((drawing,retainer));
                 }
                 drop(index);
             }
