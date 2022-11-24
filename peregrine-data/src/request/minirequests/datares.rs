@@ -7,7 +7,7 @@ use std::fmt;
 use std::sync::Arc;
 use std::{collections::HashMap};
 use crate::core::dataalgorithm::DataAlgorithm;
-use crate::{ChannelSender};
+use crate::{ChannelSender, PacketPriority};
 use crate::core::channel::wrappedchannelsender::WrappedChannelSender;
 use crate::request::core::miniresponse::MiniResponseVariety;
 use crate::{metric::datastreammetric::PacketDatastreamMetricBuilder};
@@ -100,11 +100,11 @@ impl MiniResponseVariety for DataRes {
 }
 
 #[derive(Clone)]
-pub struct DataResponse(Arc<DataRes>);
+pub struct DataResponse(Arc<DataRes>,PacketPriority);
 
 impl DataResponse {
-    pub fn new(res: DataRes) -> DataResponse {
-        DataResponse(Arc::new(res))
+    pub fn new(res: DataRes, priority: PacketPriority) -> DataResponse {
+        DataResponse(Arc::new(res),priority)
     }
 
     pub(crate) fn account(&self, account_builder: &PacketDatastreamMetricBuilder) {
@@ -114,4 +114,5 @@ impl DataResponse {
     pub fn get2(&self, name: &str) -> anyhow::Result<&ReceivedData> { self.0.get2(name) }
 
     pub(crate) fn is_invariant(&self) -> bool { self.0.is_invariant() }
+    pub(crate) fn original_priority(&self) -> PacketPriority { self.1.clone() }
 }

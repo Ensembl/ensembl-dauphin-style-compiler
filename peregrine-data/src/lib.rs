@@ -204,7 +204,8 @@ mod run {
 }
 
 mod shape {
-    mod abstractshapescontainer;
+    pub(crate) mod abstractshapescontainer;
+    pub(crate) mod originstats;
     mod core;
     pub mod emptyshape;
     mod imageshape;

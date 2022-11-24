@@ -3,6 +3,7 @@ use commander::cdr_current_time;
 use peregrine_toolkit::error::Error;
 use std::collections::HashMap;
 use crate::run::pgdauphin::PgDauphinTaskSpec;
+use crate::shape::originstats::OriginStats;
 use crate::{ProgramShapesBuilder, ObjectBuilder };
 use std::any::Any;
 use std::sync::{ Arc };
@@ -11,7 +12,7 @@ use super::loadshapes::LoadMode;
 use super::shaperequest::ShapeRequest;
 use crate::util::memoized::{ Memoized, MemoizedType };
 use crate::api::{ PeregrineCoreBase };
-use peregrine_toolkit::{lock};
+use peregrine_toolkit::lock;
 
 pub struct RunReport {
     pub net_ms: f64
@@ -46,7 +47,7 @@ fn add_payloads(payloads: &mut HashMap<String,Box<dyn Any>>,
 
 async fn make_unfiltered_shapes(base: PeregrineCoreBase, request: ShapeRequest, mode: LoadMode, will_discard_output: bool) -> Result<Arc<AbstractShapesContainer>,Error> {
     base.booted.wait().await;
-    let shapes = Arc::new(Mutex::new(Some(ProgramShapesBuilder::new(&lock!(base.assets).clone()))));
+    let shapes = Arc::new(Mutex::new(Some(ProgramShapesBuilder::new(&lock!(base.assets).clone(),&mode))));
     let mut payloads = HashMap::new();
     let run_report = Arc::new(Mutex::new(RunReport::new()));
     add_payloads(&mut payloads,&request,&mode,&run_report,&shapes);
@@ -60,7 +61,7 @@ async fn make_unfiltered_shapes(base: PeregrineCoreBase, request: ShapeRequest, 
     let took_ms = cdr_current_time() - start;
     let net_time_ms = lock!(run_report).net_ms;
     if will_discard_output {
-        return Ok(Arc::new(AbstractShapesContainer::empty()))
+        return Ok(Arc::new(AbstractShapesContainer::empty(&mode)))
     }
     base.metrics.program_run(&request.track().track().program().name().indicative_name(),request.region().scale().get_index(),!mode.build_shapes(),net_time_ms,took_ms);
     let shapes = lock!(shapes).take().unwrap().to_abstract_shapes_container();
@@ -104,7 +105,8 @@ fn make_filtered_cache(kind: MemoizedType, unfiltered_shapes_cache: Memoized<Sha
 pub struct ShapeStore {
     realtime: Memoized<ShapeRequest,Result<Arc<AbstractShapesContainer>,Error>>,
     batch: Memoized<ShapeRequest,Result<Arc<AbstractShapesContainer>,Error>>,
-    network: Memoized<ShapeRequest,Result<Arc<AbstractShapesContainer>,Error>>
+    network: Memoized<ShapeRequest,Result<Arc<AbstractShapesContainer>,Error>>,
+    stats: Arc<Mutex<OriginStats>>
 }
 
 impl ShapeStore {
@@ -120,11 +122,12 @@ impl ShapeStore {
             realtime: filtered_cache,
             batch: batch_filtered_cache,
             network: network_filtered_cache,
+            stats: Arc::new(Mutex::new(OriginStats::empty()))
         }
     }
 
     pub async fn run(&self, lane: &ShapeRequest, mode: &LoadMode) -> Arc<Result<Arc<AbstractShapesContainer>,Error>> {
-        match mode {
+        let shapes = match mode {
             /* really get the shapes, we really want them, NOW! */
             LoadMode::RealTime => {
                 self.realtime.get(lane).await
@@ -141,16 +144,23 @@ impl ShapeStore {
             },
             /* run the network requests, don't worry about the output */
             LoadMode::Network => {
-                if let Some(value) = self.realtime.try_get(lane) {
-                    value
-                } else if let Some(value) = self.batch.try_get(lane) {
-                    value    
-                } else if let Some(value) = self.network.try_get(lane) {
-                    value
-                } else {
-                    self.network.get(lane).await
+                let value = self.realtime.try_get(lane)
+                    .or_else(|| self.batch.try_get(lane))
+                    .or_else(|| self.network.try_get(lane));
+                match value {
+                    Some(x) => x,
+                    None => self.network.get(lane).await
                 }
             }
+        };
+        if let LoadMode::RealTime = mode {
+            /* genuine request, so include in stats */
+            if let Ok(shapes) = shapes.as_ref() {
+                let mut stats = lock!(self.stats);
+                stats.merge(shapes.stats());
+                stats.report();
+            }
         }
+        shapes
     }
 }

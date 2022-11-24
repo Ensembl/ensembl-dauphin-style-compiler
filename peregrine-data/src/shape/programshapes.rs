@@ -1,7 +1,7 @@
 use std::{collections::{HashMap, HashSet}};
 use peregrine_toolkit::{debug_log, eachorevery::EachOrEvery};
 use super::{core::{ Patina, Pen, Plotter }, imageshape::ImageShape, rectangleshape::RectangleShape, textshape::TextShape, wiggleshape::WiggleShape, emptyshape::EmptyShape, shape::UnplacedShape};
-use crate::{LeafRequest, AbstractShapesContainer, allotment::core::leaflist::LeafList, BackendNamespace};
+use crate::{LeafRequest, AbstractShapesContainer, allotment::core::leaflist::LeafList, BackendNamespace, LoadMode};
 use crate::{Assets, DataMessage, SpaceBaseArea, reactive::Observable, SpaceBase, allotment::{stylespec::{stylegroup::AllotmentStyleGroup, styletreebuilder::StyleTreeBuilder, styletree::StyleTree}}};
 
 pub struct ProgramShapesBuilder {
@@ -9,17 +9,19 @@ pub struct ProgramShapesBuilder {
     shapes: Vec<UnplacedShape>,
     leafs: HashSet<LeafRequest>,
     carriage_universe: LeafList,
-    style: StyleTreeBuilder
+    style: StyleTreeBuilder,
+    mode: LoadMode
 }
 
 impl ProgramShapesBuilder {
-    pub fn new(assets: &Assets) -> ProgramShapesBuilder {
+    pub fn new(assets: &Assets, mode: &LoadMode) -> ProgramShapesBuilder {
         ProgramShapesBuilder {
             shapes: vec![],
             leafs: HashSet::new(),
             carriage_universe: LeafList::new(),
             style: StyleTreeBuilder::new(),
-            assets: assets.clone()
+            assets: assets.clone(),
+            mode: mode.clone()
         }
     }
 
@@ -79,6 +81,6 @@ impl ProgramShapesBuilder {
         for leaf in self.leafs {
             leaf.set_style(&style);
         }
-        AbstractShapesContainer::build(self.shapes,self.carriage_universe)
+        AbstractShapesContainer::build(self.shapes,self.carriage_universe,&self.mode)
     }
 }

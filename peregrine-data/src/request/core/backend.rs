@@ -37,7 +37,7 @@ impl Backend {
         let request = MiniRequest::Data(data_request.clone());
         let account_builder = PacketDatastreamMetricBuilder::new(&self.metrics,data_request.name(),priority,data_request.region());
         let r = self.submit(priority,request, |d| {
-            Ok(DataResponse::new(d.into_variety().into_data()?))
+            Ok(DataResponse::new(d.into_variety().into_data()?,priority.clone()))
         }).await?;
         r.account(&account_builder);
         Ok(r)

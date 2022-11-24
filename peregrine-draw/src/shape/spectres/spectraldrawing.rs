@@ -7,7 +7,7 @@ use crate::{Message, shape::{layers::drawing::Drawing}, stage::stage::ReadStage,
 use super::{spectre::{Spectre}};
 
 async fn draw_spectres<X>(gl: &Arc<Mutex<WebGlGlobal>>, assets: &Assets, spectres: &[X], retain_test: &RetainTest) -> Result<Drawing,Message> where X: Spectre {
-    let mut shapes = ProgramShapesBuilder::new(&Assets::empty());
+    let mut shapes = ProgramShapesBuilder::new(&Assets::empty(),&peregrine_data::LoadMode::RealTime);
     for spectre in spectres {
         spectre.draw(&mut shapes)?;
     }
