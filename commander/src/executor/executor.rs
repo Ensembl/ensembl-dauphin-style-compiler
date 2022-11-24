@@ -187,7 +187,7 @@ impl Executor {
         let expiry = now+slice;
         self.get_tasks().run_ticks(self.get_timings());
         loop {
-            //self.integration.reentering();
+            self.integration.reentering();
             if !self.main_step() { break; }
             now = self.integration.current_time();
             if now >= expiry { break; }

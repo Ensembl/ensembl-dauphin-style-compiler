@@ -180,8 +180,8 @@ impl Report {
 
     pub(crate) fn run(&self, commander: &PgCommanderWeb, shutdown: &OneShot) {
         let self2 = self.clone();
-        commander.add("report", 0, None, None, Box::pin(async move { self2.report_loop().await }));
+        commander.add("report", 5, None, None, Box::pin(async move { self2.report_loop().await }));
         let self2 = self.clone();
-        commander.add("report-fast", 0, None, None, Box::pin(async move { self2.fast_report_loop().await }));
+        commander.add("report-fast", 5, None, None, Box::pin(async move { self2.fast_report_loop().await }));
     }
 }
