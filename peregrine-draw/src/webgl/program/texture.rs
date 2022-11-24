@@ -1,11 +1,11 @@
 use std::collections::HashSet;
 
 use crate::shape::layers::consts::PR_LOW;
-use crate::webgl::{CanvasInUse,  GLArity};
+use crate::webgl::canvas::htmlcanvas::canvasinuse::CanvasInUse;
+use crate::webgl::{GLArity};
 use crate::webgl::global::{WebGlGlobalRefs};
 use keyed::keyed_handle;
 use peregrine_toolkit::error::Error;
-use peregrine_toolkit::log;
 use web_sys::{ WebGlUniformLocation, WebGlRenderingContext, WebGlProgram };
 use super::source::{ Source };
 use super::super::{ GPUSpec, Phase };

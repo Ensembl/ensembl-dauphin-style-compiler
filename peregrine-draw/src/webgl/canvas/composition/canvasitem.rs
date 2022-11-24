@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 use peregrine_toolkit::{error::Error, lock};
-use crate::webgl::{CanvasAndContext, global::WebGlGlobal, CanvasInUse};
+use crate::webgl::{global::WebGlGlobal, canvas::htmlcanvas::canvasinuse::CanvasAndContext };
 
 pub(crate) trait CanvasItem {
     fn compute_hash(&self) -> Option<u64> { None }

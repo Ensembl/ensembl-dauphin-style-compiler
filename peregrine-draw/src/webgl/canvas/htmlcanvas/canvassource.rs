@@ -8,15 +8,20 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::Mutex;
+use js_sys::Boolean;
+use js_sys::Map;
 use peregrine_toolkit::error::Error;
 use peregrine_toolkit::lock;
 use peregrine_toolkit::plumbing::lease::Lease;
 use peregrine_toolkit::plumbing::lease::LeaseManager;
+use wasm_bindgen::JsCast;
+use wasm_bindgen::JsValue;
+use web_sys::CanvasRenderingContext2d;
+use web_sys::HtmlCanvasElement;
 use web_sys::{Document};
-use crate::webgl::CanvasInUse;
-use crate::webgl::CanvasWeave;
+use crate::webgl::canvas::binding::weave::CanvasWeave;
 
-use super::canvas::Canvas;
+use super::canvasinuse::CanvasInUse;
 
 const MINIMUM : u32 = 256;
 const SCALE : u32 = 2;
@@ -62,10 +67,36 @@ impl Stats {
 
 #[derive(Clone)]
 pub struct CanvasSource {
-    canvases: Arc<Mutex<HashMap<(u32,u32),LeaseManager<Canvas,Error>>>>,
+    canvases: Arc<Mutex<HashMap<(u32,u32),LeaseManager<HtmlCanvasElement,Error>>>>,
     document: Document,
     bitmap_multiplier: f32,
     stats: Stats,
+}
+
+pub(super) fn create(document: &Document, x: u32, y: u32,) -> Result<HtmlCanvasElement,Error> {
+    let element = document.create_element("canvas").map_err(|_| Error::fatal("cannot create canvas"))?;
+    let element =  element.dyn_into::<HtmlCanvasElement>().map_err(|_| Error::fatal("could not cast canvas to HtmlCanvasElement"))?;
+    element.set_width(x);
+    element.set_height(y);
+    //document.body().unwrap().append_child(&element);
+    Ok(element)
+}
+
+fn context(element: &HtmlCanvasElement) -> Result<CanvasRenderingContext2d,Error> {
+    let context_options = Map::new();
+    context_options.set(&JsValue::from_str("alpha"),&Boolean::from(JsValue::TRUE));
+    context_options.set(&JsValue::from_str("desynchronized"),&Boolean::from(JsValue::TRUE));
+    element
+        .get_context_with_context_options("2d",&context_options)
+        .map_err(|_| Error::fatal("cannot get 2d context"))?
+        .unwrap()
+        .dyn_into::<CanvasRenderingContext2d>().map_err(|_| Error::fatal("cannot get 2d context"))
+}
+
+fn clear(element: &HtmlCanvasElement, size: (u32,u32)) -> Result<(),Error> {
+    let context = context(element)?;
+    context.clear_rect(0.,0.,size.0 as f64,size.1 as f64);
+    Ok(())
 }
 
 impl CanvasSource {
@@ -78,7 +109,7 @@ impl CanvasSource {
         }
     }
 
-    pub(super) fn allocate(&self, mut x: u32, mut y: u32, round_up: bool) -> Result<Lease<Canvas>,Error> {
+    pub(super) fn allocate(&self, mut x: u32, mut y: u32, round_up: bool) -> Result<Lease<HtmlCanvasElement>,Error> {
         let document = self.document.clone();
         if round_up {
             x = rounded(x);
@@ -87,13 +118,13 @@ impl CanvasSource {
         let stats = self.stats.clone();
         let dpr = self.bitmap_multiplier;
         stats.another();
-        let mut canvas = lock!(self.canvases).entry((x,y)).or_insert_with(move || {
+        let canvas = lock!(self.canvases).entry((x,y)).or_insert_with(move || {
             LeaseManager::new(move || {
                 stats.add(x,y);
-                Canvas::new(&document,x,y,dpr)
+                create(&document,x,y)
             })
         }).allocate()?;
-        canvas.get_mut().clear()?;
+        clear(canvas.get(),(x,y))?;
         Ok(canvas)
     }
 
@@ -101,6 +132,6 @@ impl CanvasSource {
 
     pub(crate) fn make(&self, weave: &CanvasWeave, size: (u32,u32)) -> Result<CanvasInUse,Error> {
         let lease = self.allocate(size.0, size.1, weave.round_up())?;
-        Ok(CanvasInUse::new(lease,weave,self.bitmap_multiplier)?)
+        Ok(CanvasInUse::new(lease,size,weave,self.bitmap_multiplier)?)
     }
 }

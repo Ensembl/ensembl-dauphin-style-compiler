@@ -1,10 +1,9 @@
 use crate::{run::{ PgPeregrineConfig }, shape::layers::programstore::ProgramStore, util::fonts::Fonts, PgCommanderWeb, domcss::dom::PeregrineDom};
-use crate::webgl::{ ScratchCanvasAllocator };
 pub use url::Url;
 pub use web_sys::{ console, WebGlRenderingContext };
 use crate::util::message::Message;
 use wasm_bindgen::JsCast;
-use super::{GPUSpec, glbufferstore::GLBufferStore, canvas::{canvassource::CanvasSource, imagecache::{ImageCache}, texturebinding::TextureBinding}};
+use super::{GPUSpec, glbufferstore::GLBufferStore, canvas::{imagecache::{ImageCache}, binding::texturebinding::TextureBinding, htmlcanvas::{canvassource::CanvasSource, scratchcanvases::ScratchCanvasAllocator}}};
 
 pub struct WebGlGlobal {
     program_store: ProgramStore,

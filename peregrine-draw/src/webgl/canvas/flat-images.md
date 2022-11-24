@@ -13,13 +13,11 @@ There are three essentially independent stages which can be potentially slow eit
 
 ## The Canvas Element itself
 
-The web_sys HTML canvas element is wrapped inside a `Canvas` object purely to make querying its size more efficient than doing so through the browser API. In all other ways it should be considered a raw HTML canvas DOM element.
-
-The `CanvasSource` is a source of these `Canvas` objects. It incorporates a cache of unused elements to reduce the number ofelements created. The main speed saving here is in reducing memory fragmentation over time.
+The `CanvasSource` is a source of `HtmlCanvasElement` objects. It incorporates a cache of unused elements to reduce the number ofelements created. The main speed saving here is in reducing memory fragmentation over time.
 
 ## The canvas in use
 
-When a canvas is needed we must take out a context which is stateful. The operations on the canvas are also not idiomatic for our use-case. To manage these two aspects, a `CanvasAndContext` object wraps a `Canvas` and provides better primitives for our use. This object is not clone, so a `CanvasInUse` object wraps it and provides mutability.
+When a canvas is needed we must take out a context which is stateful. The operations on the canvas are also not idiomatic for our use-case. To manage these two aspects, a `CanvasAndContext` object wraps an `HtmlCanvasElement` and provides better primitives for our use. This object is not clone, so a `CanvasInUse` object wraps it and provides mutability.
 
 At this stage, no WebGL use has entered our API. We could equally use a `CanvasInUse` for other purposes (but don't, at the moment).
 
@@ -32,6 +30,25 @@ The things we need to draw are small; so small that they can't have a canvas eac
 We call the narrow packing of blocks "tessellation," and the broader process of getting sizes, packing, drawing, etc the _composition_ of _canvas items_.
 
 The individual canvas items (text, images, etc), are of different types but are unified in implementing the `CanvasItem` trait. One canvas is composed with items by a `CompositionBuilder`. There are multiple "types" of canvas, even for one drawing (typically three or four), as they differ in various settings like wrapping behaviour, blurring, and the way they must be packed (in 2d, horizontally, verticall, etc) etc. Each type is a different `CanvasType`. The `DrawingToolsBuilder` struct maintains one `CompositionBuilder` per `CanvasType`.
+
+The details of this process are described in a later section, however the general scheme is that items are added to a `CompositionBuilder` and then a build method called which yields a `CanvasInUse`.
+
+## Binding to GPU
+
+Eventually a `CanvasInUse` which has been prepared as a texture by passing through `CompositionBuilder` will need to get to the GPU and bound for use in WebGL as a texture. GPUs have varying maximum limits for the number of textures, and the texture process is performance critical, so we need to do this sensibly.
+
+In practice there are an small number of integer-indexed slots on the GPU, and we must bind each canvas to one of them.
+
+Fortunately, there are generally more slots than canvases we need for any one program, so we can try to keep old textures "hanging around" for next time we draw. Unfortunately, there are not so many slots that the issue can be ignored entirely: sometimes canvases will have to be evicted from slots and recreated later, if and when needed.
+
+This process is known as binding or activation. Externally the API is simple. Each `CanvasInUse` has an `activate()` method which binds the canvas to a slot if not currently bound. This method takes a `TextureBinding` singleton object which manages the process. The method returns an integer, the slot, to be put into a WebGL uniform as a handle. `TextureBinding` also includes a `clear()` method which globally marks canvases as not currently in use, run at the start of a program.
+
+Behind the scenes, the algorithm is complex. It is split into two parts. `Binding` contains the core cache algorithm and the source details its operation in comments. `TextureBinding` layers on WebGL specifics. Binding is highly polymorphic to allow testing of the algorithm independent of WebGL.
+
+
+
+
+## Details of tessellation
 
 The stages are as follows.
 
@@ -56,28 +73,4 @@ The stages are as follows.
 Eventually the `CanvasInUse` structs made by the `CompositionBuilder` end up in the `Drawing` struct for safe-keeping. When the drawing is dropped, the `Drop` trait on the lease ensures the canvas get returned to the cache.
 
 The tessellation algorithm used is a custom, shelf-based allocator which compromises on speed and packing density. It is inside `packer.rs` which exposes `allocate_horizontal`, `allocate_vertical` and `allocate_areas` to the rest of the code.
-
-## Binding to GPU
-
-Eventually a `CanvasInUse` which has been prepared as a texture by passing through `CompositionBuilder` will need to get to the GPU and bound for use in WebGL. GPUs have varying limits for these things and the process is performance critical, so we need to do this sensibly. In practice there are an small number of slots on the GPU and we must bind the canvas to one of them.
-
-Fortunately, there are generally more slots than canvases we need for any one program, so we can hopefully keep old textures "hanging around" for next time we draw. But unfortunately, there are not so many that the issue can be ignored entirely: sometimes canvases will have to be evicted.
-
-Essentially, a canvas which we might wish to bind can be in one of three states:
-
-1. It could be *UNBOUND* and the GPU generally unaware of it. It would still be a `CanvasInUse` and have a drawing on it which cannot be stolen for other uses, but not used in the WebGL program running at that time.
-
-2. It could be *ACTIVE* and bound to the GPU and in use for the current program.
-
-3. It could be *VESTIGIAL* and still bound from an earlier operation, hopefully staying so until it is next needed, saving an expensive operation.
-
-There are three operations which can be performed on these states:
-
-1. `allocate()` is a request to bind acnavas to a slot. Any empty slot can be used, as can any binding a vestigial canvas (choosing the least-recently used first).  If a slot used by a vestigial canvas is used it becomes unbound. The allocated canvas becomes activ.
-
-2. `clear()` is called at the start of a program run: all active canavses are relegated to vestigial.
-
-3. `free()` is called on dropping an individual canvas, making it unbound.
-
-Binding is primarily managed by tokens internally within `CanvasInUse`. In a field inside `CanvasInUse` is a `SlotToken`. When a canvas is used (the allocate procedure) a flag is set on the canvas indicating the canvas is active. When the `SlotToken` is dropped, the `free()` procedure is run. `clear()` is run centreally in `Binding` alongside the `allocate()` procedure. This is acceptable in our Drop-based-freeing strategy as `clear()` is actually an initialisation operation.
 

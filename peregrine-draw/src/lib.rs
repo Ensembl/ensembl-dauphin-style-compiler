@@ -159,23 +159,23 @@ mod webgl {
             pub(crate) mod canvasitem;
         }
 
-        //pub(crate) mod bindery;
-        pub(crate) mod binding;
-        pub(crate) mod canvas;
-        pub(crate) mod canvassource;
+        pub(crate) mod binding {
+            pub(crate) mod binding;
+            pub(crate) mod texturebinding;
+            pub(crate) mod weave;
+        }
+
+        pub(crate) mod htmlcanvas {
+            pub(crate) mod canvassource;
+            pub(crate) mod scratchcanvases;
+            pub(crate) mod canvasinuse;
+        }
+
         pub(crate) mod drawingcanvases;
-        pub(crate) mod canvasinuse;
         pub(crate) mod imagecache;
-        pub(crate) mod scratchcanvases;
-        pub(crate) mod weave;
         pub(crate) mod structuredtext;
-        pub(crate) mod texturebinding;
     }
 
-    pub(crate) use canvas::weave::CanvasWeave;
-    pub(crate) use canvas::canvasinuse::{ CanvasAndContext, CanvasInUse };
-    pub(crate) use canvas::scratchcanvases::{ScratchCanvasAllocator };
-    //pub(crate) use canvas::bindery::{ TextureBindery };
     pub(crate) use canvas::drawingcanvases::{ DrawingCanvases, DrawingCanvasesBuilder };
 
     pub(super) mod gpuspec {

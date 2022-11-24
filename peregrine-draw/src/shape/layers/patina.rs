@@ -5,7 +5,8 @@ use peregrine_toolkit::error::Error;
 use super::super::core::directcolourdraw::{ DirectColourDraw, DirectProgram };
 use super::super::core::texture::{ TextureDraw, TextureProgram };
 use crate::shape::core::spotcolourdraw::{SpotColourDraw, SpotProgram};
-use crate::webgl::{CanvasInUse, SetFlag};
+use crate::webgl::canvas::htmlcanvas::canvasinuse::CanvasInUse;
+use crate::webgl::{SetFlag};
 use crate::webgl::{ SourceInstrs, UniformProto, AttributeProto, GLArity, Varying, Statement, ProgramBuilder, TextureProto };
 use super::consts::{ PR_LOW, PR_DEF };
 

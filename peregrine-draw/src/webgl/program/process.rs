@@ -1,6 +1,7 @@
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use crate::shape::layers::layer::ProgramCharacter;
+use crate::webgl::canvas::htmlcanvas::canvasinuse::CanvasInUse;
 use crate::webgl::{ ProcessStanzaBuilder, ProcessStanza };
 use super::program::{ Program, ProgramBuilder };
 use super::session::SessionMetric;
@@ -12,7 +13,6 @@ use peregrine_toolkit::error::Error;
 use peregrine_toolkit::lock;
 use crate::webgl::util::{handle_context_errors2};
 use crate::stage::stage::{ ReadStage, ProgramStage };
-use crate::webgl::{ CanvasInUse };
 use crate::webgl::global::WebGlGlobal;
 
 pub(crate) struct ProcessBuilder {

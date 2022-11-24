@@ -5,8 +5,8 @@
 
 use peregrine_toolkit::{error::Error};
 use web_sys::{WebGlRenderingContext, WebGlTexture, HtmlCanvasElement};
-use crate::webgl::{CanvasWeave, util::handle_context_errors2, GPUSpec};
-use super::binding::{Binding, TextureProfile, SlotToken, Stats};
+use crate::webgl::{util::handle_context_errors2, GPUSpec};
+use super::{binding::{Binding, TextureProfile, SlotToken, Stats}, weave::CanvasWeave};
 
 fn apply_weave(context: &WebGlRenderingContext,weave: &CanvasWeave) -> Result<(),Error> {
     let (minf,magf,wraps,wrapt) = match weave {

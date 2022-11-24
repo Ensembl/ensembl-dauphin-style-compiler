@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 use peregrine_toolkit::error::Error;
 use crate::webgl::ProcessBuilder;
-use super::canvasinuse::CanvasInUse;
+
+use super::htmlcanvas::canvasinuse::CanvasInUse;
 
 pub struct DrawingCanvases {
     main_canvases: HashMap<CanvasInUse,String>

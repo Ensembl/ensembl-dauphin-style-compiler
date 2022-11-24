@@ -1,6 +1,7 @@
 use peregrine_data::DirectColour;
 use peregrine_toolkit::{error::Error};
-use crate::{webgl::{CanvasAndContext}};
+use crate::webgl::canvas::htmlcanvas::canvasinuse::CanvasAndContext;
+
 use super::heraldry::{HeraldryHandleType, HeraldryScale};
 
 /* A bar indicates a certain number of stripes and strecthes.

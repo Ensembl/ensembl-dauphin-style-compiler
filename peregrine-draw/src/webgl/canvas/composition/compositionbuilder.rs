@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 use peregrine_toolkit::error::Error;
+use peregrine_toolkit::ubail;
+use crate::webgl::canvas::binding::weave::CanvasWeave;
 use crate::webgl::canvas::composition::canvasitem::{CanvasItemAreaSource};
-use crate::webgl::{ CanvasInUse, CanvasWeave };
+use crate::webgl::canvas::htmlcanvas::canvasinuse::CanvasInUse;
 use crate::webgl::global::WebGlGlobal;
 use super::areabuilder::CanvasItemAreaBuilder;
 use super::canvasitem::{CanvasItem};
@@ -49,7 +51,7 @@ impl CompositionBuilder {
         Ok(source)
     }
 
-    pub(crate) fn draw_on_bitmap(&mut self, gl: &mut WebGlGlobal) -> Result<CanvasInUse,Error> {
+    pub(crate) fn draw_on_bitmap(&mut self, gl: &mut WebGlGlobal) -> Result<Option<CanvasInUse>,Error> {
         self.texts.sort_by_key(|h| h.item.group_hash());
         for item in self.texts.iter_mut() {
             item.in_progress = Some(CanvasItemAreaBuilder::new(item.item.calc_size(gl)?));
@@ -58,7 +60,7 @@ impl CompositionBuilder {
         for handle in &mut self.texts {
             items.push(handle.in_progress.as_mut().unwrap());
         }
-        let (width,height) = self.weave.tessellate(&mut items,gl.gpu_spec())?;
+        let (width,height) = ubail!(self.weave.tessellate(&mut items,gl.gpu_spec())?,Ok(None));
         let canvas_id = gl.canvas_source().make(&self.weave,(width,height))?;
         let (force_width,force_height) = self.weave.force_size(width,height);
         for item in items {
@@ -77,7 +79,7 @@ impl CompositionBuilder {
             }
             Ok(())
         })?;
-        Ok(canvas_id)
+        Ok(Some(canvas_id))
     }
 
     pub(crate) fn canvas(&self) ->Option<CanvasInUse> {

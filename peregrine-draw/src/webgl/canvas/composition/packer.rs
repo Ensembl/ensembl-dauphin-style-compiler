@@ -149,9 +149,9 @@ fn attempt_at_width(order: &[usize], sizes: &[(u32,u32)], texture_width: u64) ->
     (out,bin.height())
 }
 
-pub(crate) fn allocate_areas(items: &mut [&mut CanvasItemAreaBuilder], gpu_spec: &GPUSpec) -> Result<(u32,u32),Error> {
+pub(crate) fn allocate_areas(items: &mut [&mut CanvasItemAreaBuilder], gpu_spec: &GPUSpec) -> Result<Option<(u32,u32)>,Error> {
     let sizes = items.iter().map(|x| x.size()).collect::<Vec<_>>();
-    if sizes.len() == 0 { return Ok((1,1)); }
+    if sizes.len() == 0 { return Ok(None); }
     let order = tallest_first(&sizes);
     let max_size = gpu_spec.max_texture_size() as u64;
     let mut texture_width = initial_width(&sizes);
@@ -165,14 +165,14 @@ pub(crate) fn allocate_areas(items: &mut [&mut CanvasItemAreaBuilder], gpu_spec:
             for (i,origin) in out.iter().enumerate() {
                 items[i].set_origin(*origin);
             }
-            return Ok((texture_width as u32,texture_height as u32));
+            return Ok(Some((texture_width as u32,texture_height as u32)));
         }
         texture_width *= 2;
     }
 }
 
-pub(crate) fn allocate_linear(items: &mut [&mut CanvasItemAreaBuilder], gpu_spec: &GPUSpec, horizontal: bool) -> Result<(u32,u32),Error> {
-    if items.len() == 0 { return Ok((1,1)) }
+pub(crate) fn allocate_linear(items: &mut [&mut CanvasItemAreaBuilder], gpu_spec: &GPUSpec, horizontal: bool) -> Result<Option<(u32,u32)>,Error> {
+    if items.len() == 0 { return Ok(None) }
     let (stack,other) = if horizontal { (0,1) } else { (1,0) };
     let mut cur  = vec![0,0];
     let mut max = vec![0,0];
@@ -190,5 +190,5 @@ pub(crate) fn allocate_linear(items: &mut [&mut CanvasItemAreaBuilder], gpu_spec
     }
     size.0 = size.0.next_power_of_two();
     size.1 = size.1.next_power_of_two();
-    Ok(size)
+    Ok(Some(size))
 }

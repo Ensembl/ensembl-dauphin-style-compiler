@@ -1,7 +1,4 @@
 use peregrine_toolkit::error::Error;
-
-use crate::webgl::CanvasInUse;
-
 use super::canvasitem::{CanvasItemArea, CanvasItemSize};
 
 #[cfg_attr(debug_assertions,derive(Debug))]

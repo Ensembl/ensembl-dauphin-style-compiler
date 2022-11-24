@@ -190,7 +190,7 @@ impl Drop for Drawing {
         use peregrine_toolkit::log;
 
         if lock!(self.0).processes.len() > 0 {
-            log!("drop Drawing with canvases!");
+            log!("drop Drawing with processes!");
         }
     }
 }

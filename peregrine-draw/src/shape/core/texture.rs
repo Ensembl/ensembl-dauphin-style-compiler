@@ -2,8 +2,8 @@ use peregrine_toolkit::error::Error;
 
 use crate::shape::layers::patina::{PatinaProcess, PatinaProcessName, PatinaAdder, PatinaYielder, Freedom};
 use crate::webgl::canvas::composition::canvasitem::CanvasItemArea;
+use crate::webgl::canvas::htmlcanvas::canvasinuse::CanvasInUse;
 use crate::webgl::{ AttribHandle, ProcessStanzaAddable, ProgramBuilder, UniformHandle, ProcessBuilder };
-use crate::webgl::{ CanvasInUse };
 
 #[derive(Clone)]
 pub struct TextureProgram {

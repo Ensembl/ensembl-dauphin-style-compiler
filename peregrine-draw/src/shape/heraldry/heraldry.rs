@@ -5,7 +5,7 @@ use peregrine_toolkit::error::Error;
 use crate::shape::layers::drawingtools::{CanvasType, DrawingToolsBuilder};
 use crate::shape::layers::patina::Freedom;
 use crate::webgl::canvas::composition::canvasitem::{CanvasItemSize, CanvasItemAreaSource, CanvasItem};
-use crate::webgl::{CanvasAndContext};
+use crate::webgl::canvas::htmlcanvas::canvasinuse::CanvasAndContext;
 use crate::webgl::global::WebGlGlobal;
 use super::bardots::HeraldryBarDots;
 

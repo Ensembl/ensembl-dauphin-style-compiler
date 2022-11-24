@@ -19,7 +19,8 @@ use crate::shape::triangles::rectangles::{Rectangles, RectanglesData, GLAttachme
 use crate::shape::triangles::drawgroup::DrawGroup;
 use crate::shape::util::eoethrow::{eoe_throw2};
 use crate::webgl::canvas::composition::canvasitem::{CanvasItemAreaSource, CanvasItemArea};
-use crate::webgl::{ ProcessStanzaAddable, CanvasInUse };
+use crate::webgl::canvas::htmlcanvas::canvasinuse::CanvasInUse;
+use crate::webgl::{ ProcessStanzaAddable };
 use crate::webgl::global::WebGlGlobal;
 
 #[cfg_attr(debug_assertions,derive(Debug))]
