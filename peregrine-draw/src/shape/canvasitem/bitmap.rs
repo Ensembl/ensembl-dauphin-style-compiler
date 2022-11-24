@@ -5,13 +5,14 @@ use wasm_bindgen::JsCast;
 use wasm_bindgen::prelude::Closure;
 use web_sys::HtmlImageElement;
 use crate::webgl::canvas::htmlcanvas::canvasinuse::CanvasAndContext;
-use crate::webgl::canvas::imagecache::ImageCache;
 use crate::webgl::canvas::composition::canvasitem::{CanvasItemSize, CanvasItem};
 use crate::webgl::global::WebGlGlobal;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 use std::mem;
 use std::sync::{Arc, Mutex};
+
+use super::imagecache::ImageCache;
 
 // TODO padding measurements!
 

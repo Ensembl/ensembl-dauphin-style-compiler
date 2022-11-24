@@ -6,11 +6,11 @@ use peregrine_toolkit::eachorevery::{EachOrEvery, EachOrEveryFilterBuilder};
 use peregrine_toolkit::error::Error;
 use super::directcolourdraw::DirectYielder;
 use super::spotcolourdraw::SpotColourYielder;
-use super::text::draw_text;
 use super::super::layers::layer::{ Layer };
 use super::texture::{TextureYielder};
+use crate::shape::canvasitem::heraldry::{HeraldryHandle, HeraldryCanvas, HeraldryScale};
+use crate::shape::canvasitem::text::draw_text;
 use crate::shape::core::wigglegeometry::{make_wiggle};
-use crate::shape::heraldry::heraldry::{HeraldryCanvas, HeraldryHandle, HeraldryScale};
 use crate::shape::layers::drawing::DynamicShape;
 use crate::shape::layers::drawingtools::{DrawingToolsBuilder, CanvasType};
 use crate::shape::layers::geometry::{GeometryYielder, GeometryProcessName };
@@ -134,7 +134,7 @@ fn add_colour(addable: &mut dyn ProcessStanzaAddable, simple_shape_patina: &Draw
     Ok(())
 }
 
-pub(super) fn dims_to_sizes(areas: &[CanvasItemArea], factor: f64) -> (Vec<f64>,Vec<f64>) {
+pub(crate) fn dims_to_sizes(areas: &[CanvasItemArea], factor: f64) -> (Vec<f64>,Vec<f64>) {
     let mut x_sizes = vec![];
     let mut y_sizes = vec![];
     for dim in areas {
@@ -156,7 +156,7 @@ fn draw_area_from_canvas(layer: &mut Layer, gl: &mut WebGlGlobal, draw_group: &D
     Ok(Box::new(Rectangles::new(rectangles,gl)))
 }
 
-pub(super) fn draw_points_from_canvas2(layer: &mut Layer, gl: &mut WebGlGlobal, draw_group: &DrawGroup, points: &SpaceBase<f64,LeafStyle>, run: &Option<SpaceBase<f64,()>>, x_sizes: Vec<f64>, y_sizes:Vec<f64>, depth: &EachOrEvery<i8>, canvas: &CanvasInUse, dims: &[CanvasItemArea], freedom: &Freedom, attachment: GLAttachmentPoint, wobble: Option<SpaceBase<Observable<'static,f64>,()>>) -> Result<Box<dyn DynamicShape>,Error> {
+pub(crate) fn draw_points_from_canvas2(layer: &mut Layer, gl: &mut WebGlGlobal, draw_group: &DrawGroup, points: &SpaceBase<f64,LeafStyle>, run: &Option<SpaceBase<f64,()>>, x_sizes: Vec<f64>, y_sizes:Vec<f64>, depth: &EachOrEvery<i8>, canvas: &CanvasInUse, dims: &[CanvasItemArea], freedom: &Freedom, attachment: GLAttachmentPoint, wobble: Option<SpaceBase<Observable<'static,f64>,()>>) -> Result<Box<dyn DynamicShape>,Error> {
     let mut geometry_yielder = draw_group.geometry_yielder();
     let mut patina_yielder = TextureYielder::new(canvas,freedom);
     let left = layer.left();

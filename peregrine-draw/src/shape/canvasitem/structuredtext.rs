@@ -1,9 +1,7 @@
 use std::{hash::{Hash, Hasher}, sync::Mutex};
 use peregrine_data::{PenGeometry, DirectColour, Background};
 use peregrine_toolkit::{lock, error::Error};
-use crate::{util::fonts::Fonts};
-
-use super::htmlcanvas::canvasinuse::CanvasAndContext;
+use crate::{util::fonts::Fonts, webgl::canvas::htmlcanvas::canvasinuse::CanvasAndContext};
 
 /* \0cXXYYZZ -- override colour X,Y,Z (hex)
  * \0c-      -- reset colour

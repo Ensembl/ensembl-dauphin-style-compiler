@@ -79,12 +79,10 @@ mod run {
 
 mod shape {
     pub(crate) mod core {
-        pub(crate) mod bitmap;
         pub(crate) mod prepareshape;
         pub(crate) mod drawshape;
         pub(super) mod directcolourdraw;
         pub(super) mod spotcolourdraw;
-        pub(crate) mod text;
         pub(crate) mod texture;
         pub(crate) mod wigglegeometry;
     }
@@ -103,9 +101,13 @@ mod shape {
         pub(crate) mod rectangles;
     }
 
-    pub(crate) mod heraldry {
+    pub(crate) mod canvasitem {
         pub(super) mod bardots;
         pub(crate) mod heraldry;
+        pub(crate) mod bitmap;
+        pub(crate) mod text;
+        pub(crate) mod imagecache;
+        pub(crate) mod structuredtext;
     }
 
     pub(crate) mod layers {
@@ -170,13 +172,7 @@ mod webgl {
             pub(crate) mod scratchcanvases;
             pub(crate) mod canvasinuse;
         }
-
-        pub(crate) mod drawingcanvases;
-        pub(crate) mod imagecache;
-        pub(crate) mod structuredtext;
     }
-
-    pub(crate) use canvas::drawingcanvases::{ DrawingCanvases, DrawingCanvasesBuilder };
 
     pub(super) mod gpuspec {
         pub(crate) mod glarity;

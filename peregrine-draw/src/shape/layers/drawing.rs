@@ -10,7 +10,7 @@ use peregrine_toolkit_async::sync::retainer::RetainTest;
 use super::super::core::prepareshape::{ prepare_shape_in_layer };
 use super::super::core::drawshape::{ add_shape_to_layer, GLShape };
 use crate::shape::core::drawshape::ShapeToAdd;
-use crate::webgl::{ DrawingCanvases, DrawingCanvasesBuilder, DrawingSession, Process};
+use crate::webgl::{ DrawingSession, Process};
 use crate::webgl::global::WebGlGlobal;
 use crate::stage::stage::ReadStage;
 use crate::util::message::Message;
@@ -27,7 +27,6 @@ pub(crate) trait DynamicShape {
 pub(crate) struct DrawingBuilder {
     main_layer: Layer,
     tools: DrawingToolsBuilder,
-    flats: Option<DrawingCanvasesBuilder>,
     dynamic_shapes: Vec<Box<dyn DynamicShape>>
 }
 
@@ -38,7 +37,6 @@ impl DrawingBuilder {
         Ok(DrawingBuilder {
             main_layer: Layer::new(gl_ref.program_store,left)?,
             tools: DrawingToolsBuilder::new(gl_ref.fonts,assets,gl_ref.image_cache,scale,left,bitmap_multiplier),
-            flats: None,
             dynamic_shapes: vec![]
         })
     }
@@ -50,10 +48,8 @@ impl DrawingBuilder {
 
     pub(crate) async fn prepare_tools(&mut self, gl: &Arc<Mutex<WebGlGlobal>>) -> Result<(),Error> {
         self.tools.preprep().await?;
-        let mut drawable = DrawingCanvasesBuilder::new();
         let mut lgl = lock!(gl);
-        self.tools.prepare(&mut lgl,&mut drawable)?;
-        self.flats = Some(drawable);
+        self.tools.prepare(&mut lgl)?;
         Ok(())
     }
 
@@ -71,12 +67,11 @@ impl DrawingBuilder {
         Ok(())
     }
 
-    pub(crate) async fn build(mut self, gl: &Arc<Mutex<WebGlGlobal>>, retain_test: &RetainTest) -> Result<Option<Drawing>,Error> {
-        let flats = self.flats.take().unwrap().built();
-        let processes = self.main_layer.build(gl,&flats,retain_test).await?;
+    pub(crate) async fn build(self, gl: &Arc<Mutex<WebGlGlobal>>, retain_test: &RetainTest) -> Result<Option<Drawing>,Error> {
+        let processes = self.main_layer.build(gl,retain_test).await?;
         Ok(if let Some(processes) = processes {
             let tools = self.tools.build()?;
-            Some(Drawing::new_real(processes,flats,tools.hotspots,self.dynamic_shapes,&*lock!(gl))?)
+            Some(Drawing::new_real(processes,tools.hotspots,self.dynamic_shapes,&*lock!(gl))?)
         } else {
             None
         })
@@ -85,7 +80,6 @@ impl DrawingBuilder {
 
 struct DrawingData {
     processes: Vec<Process>,
-    canvases: DrawingCanvases,
     hotspots: DrawingHotspots,
     dynamic_shapes: Vec<Box<dyn DynamicShape>>,
     recompute: Needed
@@ -126,10 +120,9 @@ impl Drawing {
         drawing.build(gl,retain_test).await
     }
 
-    fn new_real(processes: Vec<Process>, canvases: DrawingCanvases, hotspots: DrawingHotspots, dynamic_shapes: Vec<Box<dyn DynamicShape>>, gl: &WebGlGlobal) -> Result<Drawing,Error> {
+    fn new_real(processes: Vec<Process>, hotspots: DrawingHotspots, dynamic_shapes: Vec<Box<dyn DynamicShape>>, gl: &WebGlGlobal) -> Result<Drawing,Error> {
         let mut out = Drawing(Arc::new(Mutex::new(DrawingData {
             processes,
-            canvases,
             hotspots,
             dynamic_shapes,
             recompute: Needed::new()

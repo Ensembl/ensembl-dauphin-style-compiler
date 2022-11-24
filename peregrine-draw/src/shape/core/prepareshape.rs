@@ -1,12 +1,12 @@
 use peregrine_data::{ Colour, DrawnType, Patina, RectangleShape, Shape, ShapeDemerge, HollowEdge2, LeafStyle, DrawingShape, CoordinateSystem };
 use peregrine_toolkit::eachorevery::EachOrEvery;
 use peregrine_toolkit::error::Error;
+use crate::shape::canvasitem::heraldry::{HeraldryCanvasesUsed, Heraldry};
+use crate::shape::canvasitem::text::prepare_text;
 use crate::shape::core::drawshape::{SimpleShapePatina};
-use crate::shape::heraldry::heraldry::{Heraldry, HeraldryCanvasesUsed};
 use crate::shape::layers::drawingtools::{DrawingToolsBuilder, CanvasType};
 use crate::shape::triangles::drawgroup::{DrawGroup, ShapeCategory};
 use super::drawshape::{ GLShape };
-use super::text::prepare_text;
 
 fn split_spacebaserect(tools: &mut DrawingToolsBuilder, shape: &RectangleShape<LeafStyle>, draw_group: &DrawGroup) -> Result<Vec<GLShape>,Error> {
     let mut out = vec![];

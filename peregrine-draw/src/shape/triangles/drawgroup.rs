@@ -1,5 +1,5 @@
 use peregrine_data::{DirectColour, CoordinateSystem};
-use crate::shape::{heraldry::heraldry::{HeraldryCanvasesUsed, HeraldryScale}, layers::geometry::{GeometryProcessName, GeometryYielder, TrianglesGeometry}};
+use crate::shape::{layers::geometry::{GeometryProcessName, GeometryYielder, TrianglesGeometry}, canvasitem::heraldry::{HeraldryCanvasesUsed, HeraldryScale}};
 
 #[derive(Clone,PartialEq,Eq,Hash)]
 #[cfg_attr(debug_assertions,derive(Debug))]

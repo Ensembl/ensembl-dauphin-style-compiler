@@ -1,6 +1,6 @@
 use peregrine_data::{Assets, Scale};
 use peregrine_toolkit::{error::Error};
-use crate::{shape::{core::{text::DrawingText, bitmap::DrawingBitmap}}, webgl::{global::WebGlGlobal, DrawingCanvasesBuilder, canvas::{imagecache::ImageCache, composition::compositionbuilder::CompositionBuilder, binding::weave::CanvasWeave}}, util::fonts::Fonts, hotspots::drawinghotspots::{DrawingHotspots, DrawingHotspotsBuilder}};
+use crate::{webgl::{global::WebGlGlobal, canvas::{composition::compositionbuilder::CompositionBuilder, binding::weave::CanvasWeave}}, util::fonts::Fonts, hotspots::drawinghotspots::{DrawingHotspots, DrawingHotspotsBuilder}, shape::canvasitem::{text::DrawingText, bitmap::DrawingBitmap, imagecache::ImageCache}};
 
 const CANVAS_TYPE_LEN : usize = 3;
 
@@ -75,11 +75,9 @@ impl DrawingToolsBuilder {
         Ok(())
     }
 
-    pub(crate) fn prepare(&mut self, gl: &mut WebGlGlobal, drawable: &mut DrawingCanvasesBuilder) -> Result<(),Error> {
+    pub(crate) fn prepare(&mut self, gl: &mut WebGlGlobal) -> Result<(),Error> {
         for i in 0..CANVAS_TYPE_LEN {
-            if let Some(canvas) = self.manager[i].draw_on_bitmap(gl)? {
-                drawable.add_canvas(&canvas,"uSampler");
-            }
+            self.manager[i].draw_on_bitmap(gl)?;
         }
         Ok(())
     }

@@ -1,6 +1,7 @@
 use peregrine_data::{ DirectColour, PenGeometry, Background, LeafStyle, TextShape, SpaceBase };
 use peregrine_toolkit::eachorevery::EachOrEvery;
 use peregrine_toolkit::error::Error;
+use crate::shape::core::drawshape::{GLShape, ShapeToAdd, draw_points_from_canvas2, dims_to_sizes};
 use crate::shape::layers::drawingtools::{DrawingToolsBuilder, CanvasType};
 use crate::shape::layers::layer::Layer;
 use crate::shape::layers::patina::Freedom;
@@ -9,13 +10,12 @@ use crate::shape::triangles::rectangles::GLAttachmentPoint;
 use crate::util::fonts::Fonts;
 use crate::webgl::canvas::binding::weave::CanvasWeave;
 use crate::webgl::canvas::htmlcanvas::canvasinuse::CanvasAndContext;
-use crate::webgl::canvas::structuredtext::StructuredText;
 use crate::webgl::canvas::composition::canvasitem::{CanvasItemSize, CanvasItemAreaSource, CanvasItem};
 use crate::webgl::global::WebGlGlobal;
-use super::drawshape::{GLShape, ShapeToAdd, dims_to_sizes, draw_points_from_canvas2};
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 use std::sync::{Arc};
+use super::structuredtext::StructuredText;
 
 const PAD : u32 = 4;
 
@@ -81,7 +81,7 @@ impl DrawingText {
     }
 }
 
-pub(super) fn prepare_text(out: &mut Vec<GLShape>, tools: &mut DrawingToolsBuilder, shape: &TextShape<LeafStyle>, draw_group: &DrawGroup) -> Result<(),Error> {
+pub(crate) fn prepare_text(out: &mut Vec<GLShape>, tools: &mut DrawingToolsBuilder, shape: &TextShape<LeafStyle>, draw_group: &DrawGroup) -> Result<(),Error> {
     let depth = shape.position().allotments().map(|x| x.depth);
     let drawing_text = tools.text();
     let background = shape.pen().background();
@@ -100,7 +100,7 @@ pub(super) fn prepare_text(out: &mut Vec<GLShape>, tools: &mut DrawingToolsBuild
     Ok(())
 }
 
-pub(super) fn draw_text(layer: &mut Layer, gl: &mut WebGlGlobal, tools: &mut DrawingToolsBuilder,
+pub(crate) fn draw_text(layer: &mut Layer, gl: &mut WebGlGlobal, tools: &mut DrawingToolsBuilder,
                     points: SpaceBase<f64,LeafStyle>,
                     run: Option<SpaceBase<f64,()>>,
                     handles: &[CanvasItemAreaSource], depth: EachOrEvery<i8>, draw_group: &DrawGroup,

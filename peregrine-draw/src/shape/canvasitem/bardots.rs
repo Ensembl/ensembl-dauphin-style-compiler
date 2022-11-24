@@ -9,7 +9,6 @@ use super::heraldry::{HeraldryHandleType, HeraldryScale};
  */
 
 const BAR_WIDTH : u32 = 16;
-const PAD : u32 = 8;
 
 #[cfg_attr(debug_assertions, derive(Debug))]
 #[derive(Hash,Clone)]

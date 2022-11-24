@@ -1,9 +1,9 @@
-use crate::{run::{ PgPeregrineConfig }, shape::layers::programstore::ProgramStore, util::fonts::Fonts, PgCommanderWeb, domcss::dom::PeregrineDom};
+use crate::{run::{ PgPeregrineConfig }, shape::{layers::programstore::ProgramStore, canvasitem::imagecache::ImageCache}, util::fonts::Fonts, PgCommanderWeb, domcss::dom::PeregrineDom};
 pub use url::Url;
 pub use web_sys::{ console, WebGlRenderingContext };
 use crate::util::message::Message;
 use wasm_bindgen::JsCast;
-use super::{GPUSpec, glbufferstore::GLBufferStore, canvas::{imagecache::{ImageCache}, binding::texturebinding::TextureBinding, htmlcanvas::{canvassource::CanvasSource, scratchcanvases::ScratchCanvasAllocator}}};
+use super::{GPUSpec, glbufferstore::GLBufferStore, canvas::{binding::texturebinding::TextureBinding, htmlcanvas::{canvassource::CanvasSource, scratchcanvases::ScratchCanvasAllocator}}};
 
 pub struct WebGlGlobal {
     program_store: ProgramStore,

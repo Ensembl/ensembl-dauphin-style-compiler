@@ -6,7 +6,7 @@ use peregrine_toolkit::plumbing::lease::Lease;
 use wasm_bindgen::{JsCast, JsValue};
 use web_sys::{CanvasRenderingContext2d, HtmlImageElement, WebGlRenderingContext, HtmlCanvasElement };
 use peregrine_data::{ DirectColour, PenGeometry, Background };
-use crate::shape::core::bitmap::Bitmap;
+use crate::shape::canvasitem::bitmap::Bitmap;
 use crate::webgl::canvas::binding::texturebinding::{TextureBindingSlot, TextureBinding};
 use crate::webgl::canvas::binding::weave::CanvasWeave;
 use crate::webgl::util::handle_context_errors2;

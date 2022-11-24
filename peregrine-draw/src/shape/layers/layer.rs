@@ -6,7 +6,7 @@ use peregrine_toolkit::log_extra;
 use peregrine_toolkit_async::sync::retainer::RetainTest;
 
 use crate::shape::layers::patina::PatinaProcess;
-use crate::webgl::{ ProcessBuilder, Process, DrawingCanvases };
+use crate::webgl::{ ProcessBuilder, Process };
 use super::geometry::{GeometryProcessName, GeometryYielder, TrianglesGeometry, GeometryAdder};
 use super::programstore::ProgramStore;
 use super::patina::{PatinaProcessName, PatinaYielder};
@@ -74,7 +74,7 @@ impl Layer {
         Ok(self.store.get_mut(&character).unwrap().get_process_mut())
     }
 
-    pub(super) async fn build(mut self, gl: &Arc<Mutex<WebGlGlobal>>, canvases: &DrawingCanvases, retain: &RetainTest) -> Result<Option<Vec<Process>>,Error> {
+    pub(super) async fn build(mut self, gl: &Arc<Mutex<WebGlGlobal>>, retain: &RetainTest) -> Result<Option<Vec<Process>>,Error> {
         let mut processes = vec![];
         let mut characters = self.store.keys().cloned().collect::<Vec<_>>();
         characters.sort_by_cached_key(|c| c.order());
@@ -95,10 +95,10 @@ impl Layer {
                 _ => {}
             }
             match &character.1 {
-                PatinaProcessName::Texture(flat_id) => {
-                    canvases.add_process(&flat_id,prog.get_process_mut())?;
+                PatinaProcessName::Texture(canvas) => {
+                    prog.get_process_mut().set_texture("uSampler",canvas)?;
                 },
-                PatinaProcessName::FreeTexture(flat_id,freedom) =>{
+                PatinaProcessName::FreeTexture(canvas,freedom) =>{
                     let draw = match prog.get_patina() {
                         PatinaProcess::FreeTexture(draw) => Some(draw),
                         _ => None
@@ -107,7 +107,7 @@ impl Layer {
                         let process = prog.get_process_mut();
                         draw.set_freedom(process,freedom);
                     }
-                    canvases.add_process(&flat_id,prog.get_process_mut())?;
+                    prog.get_process_mut().set_texture("uSampler",canvas)?;
                 },
                 PatinaProcessName::Spot(colour) => {
                     let draw = match prog.get_patina() {
