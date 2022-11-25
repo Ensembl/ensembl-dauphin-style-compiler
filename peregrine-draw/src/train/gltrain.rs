@@ -74,7 +74,7 @@ impl GLTrain {
 
     pub(crate) fn special_hotspots(&self, stage: &ReadStage, position: (f64,f64)) -> Result<Vec<String>,Message> {
         let mut out = vec![];
-        for carriage in lock!(self.0).carriages.drain(..) {
+        for carriage in lock!(self.0).carriages.iter() {
             out.append(&mut carriage.special_hotspots(stage,position)?);
         }
         Ok(out)

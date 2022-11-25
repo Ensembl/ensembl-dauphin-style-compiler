@@ -11,13 +11,25 @@ mod input {
     }
 
     pub(crate) mod low {
-        mod pointer {
-            pub(crate) mod cursor;
-            mod drag;
-            pub(super) mod pinch;
-            pub(super) mod pointer;   
+        pub(crate) mod gesture {
+            pub(crate) mod core {
+                pub(crate) mod cursor;
+                pub(crate) mod finger;
+                pub(crate) mod gesture;
+                pub(crate) mod gesturenode;
+                pub(super) mod transition;    
+            }
+
+            pub(crate) mod node {
+                mod commontools;
+                pub(crate) mod pinch;
+                pub(crate) mod drag;
+                pub(super) mod marquee;
+                pub(crate) mod unknown;    
+            }
         }
 
+        pub(super) mod pointer;
         pub(crate) mod event;
         pub(crate) mod keyboardinput;
         pub(crate) mod mouseinput;

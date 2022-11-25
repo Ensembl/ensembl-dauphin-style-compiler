@@ -8,6 +8,7 @@ use crate::stage::stage::ReadStage;
 use crate::webgl::global::WebGlGlobal;
 use crate::{PgCommanderWeb, run::PgPeregrineConfig};
 use crate::util::Message;
+use super::gesture::core::cursor::{CursorHandle, Cursor};
 use super::modifiers::Modifiers;
 use super::{event::EventSystem, keyboardinput::{KeyboardEventHandler, keyboard_events}, mouseinput::mouse_events};
 use super::mapping::{ InputMapBuilder };
@@ -19,7 +20,6 @@ use peregrine_data::{Commander };
 use peregrine_toolkit::lock;
 use peregrine_toolkit::plumbing::distributor::Distributor;
 use peregrine_toolkit_async::sync::needed::Needed;
-use super::pointer::cursor::{ Cursor, CursorHandle };
 use crate::run::CursorCircumstance;
 
 // XXX pub

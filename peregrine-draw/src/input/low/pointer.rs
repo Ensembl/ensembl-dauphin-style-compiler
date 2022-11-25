@@ -1,14 +1,13 @@
 use std::sync::{ Arc, Mutex };
-use crate::{input::low::modifiers::Modifiers, run::CursorCircumstance, util::{ Message }, webgl::global::WebGlGlobal};
+use crate::{input::low::{modifiers::Modifiers}, run::CursorCircumstance, util::{ Message }, webgl::global::WebGlGlobal};
 use crate::util::monostable::Monostable;
 use crate::input::low::lowlevel::{ LowLevelState };
 use js_sys::Date;
 use peregrine_toolkit::{plumbing::oneshot::OneShot};
-use super::{drag::DragState };
 use crate::run::{ PgConfigKey, PgPeregrineConfig };
 use crate::input::InputEventKind;
-use super::cursor::CursorHandle;
-use super::pinch::ScreenPosition;
+
+use super::gesture::{core::{gesture::Gesture, cursor::CursorHandle}, node::pinch::ScreenPosition};
 
 pub(crate) struct PointerConfig {
     pub drag_cursor_delay: f64, // ms
@@ -53,7 +52,7 @@ pub(super) enum PointerAction {
 }
 
 impl PointerAction {
-    pub fn map(&self, state: &LowLevelState) -> Vec<(InputEventKind,Vec<f64>)> {
+    fn map(&self, state: &LowLevelState) -> Vec<(InputEventKind,Vec<f64>)> {
         let mut out = vec![];
         let (kinds,modifiers) = match self {
             PointerAction::RunningDrag(modifiers,amount) => (vec![("RunningDrag",vec![amount.0,amount.1]),("MirrorRunningDrag",vec![-amount.0,-amount.1])],modifiers),
@@ -85,6 +84,12 @@ impl PointerAction {
         }
         out
     }
+
+    pub(super) fn emit(&self, lowlevel: &LowLevelState, start: bool) {
+        for (kind,args) in self.map(lowlevel) {
+            lowlevel.send(kind,start,&args);
+        }
+    }
 }
 
 #[derive(Clone,Debug,PartialEq,Eq)]
@@ -99,11 +104,11 @@ struct RecentClick {
     time: f64
 }
 
-pub struct Pointer {
+pub(crate) struct Pointer {
     previous_click: Option<RecentClick>,
     start: (f64,f64),
     modifiers: Modifiers,
-    drag: Option<DragState>,
+    drag: Option<Gesture>,
     wheel_monostable: Monostable,
     wheel_cursor: Arc<Mutex<Option<(CursorHandle,CursorCircumstance)>>>
 }
@@ -154,18 +159,18 @@ impl Pointer {
         }
     }
 
-    pub(crate) fn process_event(&mut self, config: &PointerConfig, lowlevel: &LowLevelState, gl: &Arc<Mutex<WebGlGlobal>>, primary: (f64,f64), secondary: Option<(f64,f64)>, kind: &PointerEventKind) -> Result<(),Message> {
+    pub(crate) fn process_event(&mut self, config: &Arc<PointerConfig>, lowlevel: &LowLevelState, gl: &Arc<Mutex<WebGlGlobal>>, primary: (f64,f64), secondary: Option<(f64,f64)>, kind: &PointerEventKind) -> Result<(),Message> {
         match (&mut self.drag,kind) {
             (None,PointerEventKind::Down) => {
-                self.drag = Some(DragState::new(config,lowlevel,gl,primary,secondary,lowlevel.target_reporter())?);
+                self.drag = Some(Gesture::new(config,lowlevel,gl,primary,secondary,lowlevel.target_reporter())?);
                 self.start = primary;
                 self.modifiers = lowlevel.modifiers();
             },
             (Some(drag_state),PointerEventKind::Move) => {
-                drag_state.drag_continue(config,primary,secondary)?;
+                drag_state.drag_continue(primary,secondary)?;
             },
             (Some(drag_state),PointerEventKind::Up) => {
-                if !drag_state.drag_finished(config,primary,secondary)? {
+                if !drag_state.drag_finished(primary,secondary)? {
                     self.click(config,lowlevel);
                 }
                 self.drag = None;

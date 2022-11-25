@@ -6,8 +6,8 @@ use peregrine_toolkit_async::sync::needed::Needed;
 use web_sys::{Event, MouseEvent, PointerEvent, WheelEvent};
 use crate::util::{ Message };
 use crate::util::error::confused_browser;
+use super::pointer::{PointerEventKind, Pointer, PointerConfig};
 use super::{event::{ EventSystem }, lowlevel::LowLevelState };
-use crate::input::low::pointer::pointer::{ Pointer, PointerEventKind, PointerConfig };
 
 fn position(lowlevel: &LowLevelState, event: &MouseEvent) -> (f64,f64) {
     let rect = lowlevel.dom().canvas().get_bounding_client_rect();
