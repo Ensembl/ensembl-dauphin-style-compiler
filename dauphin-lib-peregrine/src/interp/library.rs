@@ -11,7 +11,7 @@ use super::track::{
 use super::geometry::{
     PatinaFilledDeserializer, PatinaHollowDeserializer, DirectColourDeserializer, ZMenuDeserializer, PatinaZMenuDeserializer,
     PenDeserializer, PlotterDeserializer, UseAllotmentDeserializer, SpaceBaseDeserializer, SimpleColourDeserializer,
-    StripedDeserializer, BarredDeserializer, BpRangeDeserializer, SpotColourDeserializer, PpcDeserializer, StyleDeserializer,
+    StripedDeserializer, BarredDeserializer, BpRangeDeserializer, PpcDeserializer, StyleDeserializer,
     PatinaMetadataDeserializer, BackgroundDeserializer, PatinaSettingSetDeserializer, PatinaSettingMemberDeserializer, PatinaSpecialZoneDeserializer
 };
 use super::shape::{
@@ -60,7 +60,6 @@ pub fn make_peregrine_interp() -> InterpLibRegister {
     set.push(OnlyWarmDeserializer());
     set.push(ImageDeserializer());
     set.push(BpRangeDeserializer());
-    set.push(SpotColourDeserializer());
     set.push(AppendGroupDeserializer());
     set.push(AppendDepthDeserializer());
     set.push(PpcDeserializer());

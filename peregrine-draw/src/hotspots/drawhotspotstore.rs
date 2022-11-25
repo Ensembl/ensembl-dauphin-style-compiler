@@ -1,17 +1,17 @@
 use peregrine_data::{LeafStyle, SingleHotspotEntry, HotspotGroupEntry, SpaceBasePoint};
-use peregrine_toolkit::{hotspots::hotspotstore::{HotSpotStore, HotspotStoreProfile}, log, error::Error};
+use peregrine_toolkit::{hotspots::hotspotstore::{HotspotStore, HotspotStoreProfile}, error::Error};
 use crate::{Message};
 
 pub(super) type PointPair = (SpaceBasePoint<f64,LeafStyle>,SpaceBasePoint<f64,LeafStyle>);
 
 pub(super) struct DrawHotspotStore<X> {
-    store: HotSpotStore<(f64,f64),PointPair,X,SingleHotspotEntry>
+    store: HotspotStore<(f64,f64),PointPair,X,SingleHotspotEntry>
 }
 
 impl<X> DrawHotspotStore<X> {
     pub(super) fn new(profile: Box<dyn HotspotStoreProfile<SingleHotspotEntry,Area=PointPair,Coords=(f64,f64),Context=X>>, entries: &[HotspotGroupEntry]) -> Result<DrawHotspotStore<X>,Error> {
         let mut out = DrawHotspotStore {
-            store: HotSpotStore::new(profile)
+            store: HotspotStore::new(profile)
         };
         out.init(entries);
         Ok(out)

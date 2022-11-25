@@ -1,11 +1,10 @@
-use peregrine_data::{DirectColour, CoordinateSystem};
+use peregrine_data::{CoordinateSystem};
 use crate::shape::{layers::geometry::{GeometryProcessName, GeometryYielder, TrianglesGeometry}, canvasitem::heraldry::{HeraldryCanvasesUsed, HeraldryScale}};
 
 #[derive(Clone,PartialEq,Eq,Hash)]
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub(crate) enum ShapeCategory {
     SolidColour,
-    SpotColour(DirectColour),
     Heraldry(HeraldryCanvasesUsed,HeraldryScale),
     Other
 }

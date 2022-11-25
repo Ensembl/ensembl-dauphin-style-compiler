@@ -51,6 +51,8 @@ impl Stats {
 
 
     fn add(&mut self, priority: &PacketPriority) { 
+        use peregrine_toolkit::log;
+
         self.source.push(priority.is_high());
         if self.source.len() >= STAT_WINDOW_SIZE {
             let perc = self.source.drain(..).filter(|x| *x).count() * 100 / STAT_WINDOW_SIZE;

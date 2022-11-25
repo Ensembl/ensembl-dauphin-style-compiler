@@ -1,10 +1,7 @@
 use enum_iterator::Sequence;
-use peregrine_data::DirectColour;
 use peregrine_toolkit::error::Error;
-
 use super::super::core::directcolourdraw::{ DirectColourDraw, DirectProgram };
 use super::super::core::texture::{ TextureDraw, TextureProgram };
-use crate::shape::core::spotcolourdraw::{SpotColourDraw, SpotProgram};
 use crate::webgl::canvas::htmlcanvas::canvasinuse::CanvasInUse;
 use crate::webgl::{SetFlag};
 use crate::webgl::{ SourceInstrs, UniformProto, AttributeProto, GLArity, Varying, Statement, ProgramBuilder, TextureProto };
@@ -12,7 +9,6 @@ use super::consts::{ PR_LOW, PR_DEF };
 
 pub(crate) enum PatinaAdder {
     Direct(DirectProgram),
-    Spot(SpotProgram),
     Texture(TextureProgram),
     FreeTexture(TextureProgram)
 }
@@ -23,13 +19,12 @@ impl PatinaAdder {
             PatinaAdder::Direct(v) => PatinaProcess::Direct(DirectColourDraw::new(v)?),
             PatinaAdder::Texture(v) => PatinaProcess::Texture(TextureDraw::new(v,false)?),
             PatinaAdder::FreeTexture(v) => PatinaProcess::FreeTexture(TextureDraw::new(v,true)?),
-            PatinaAdder::Spot(v) => PatinaProcess::Spot(SpotColourDraw::new(v)?)
         })
     }
 }
 
 #[derive(Clone,Debug,Hash,PartialEq,Eq,Sequence)]
-pub(crate) enum PatinaProgramName { Direct, Spot, Texture, FreeTexture }
+pub(crate) enum PatinaProgramName { Direct, Texture, FreeTexture }
 
 impl PatinaProgramName {
     pub(crate) fn key(&self) -> String {
@@ -49,7 +44,6 @@ impl PatinaProgramName {
             PatinaProgramName::Direct => PatinaAdder::Direct(DirectProgram::new(builder)?),
             PatinaProgramName::Texture => PatinaAdder::Texture(TextureProgram::new(builder)?),
             PatinaProgramName::FreeTexture => PatinaAdder::FreeTexture(TextureProgram::new(builder)?),
-            PatinaProgramName::Spot => PatinaAdder::Spot(SpotProgram::new(builder)?)
         })
     }
 
@@ -61,11 +55,6 @@ impl PatinaProgramName {
                     Varying::new(PR_LOW,GLArity::Vec4,"vColour"),
                     Statement::new_vertex("vColour = aVertexColour"),
                     Statement::new_fragment("gl_FragColor = vColour"),
-                    Statement::new_fragment("gl_FragColor.a = gl_FragColor.a * uOpacity")
-                ],
-                PatinaProgramName::Spot => vec![
-                    UniformProto::new_fragment(PR_LOW,GLArity::Vec4,"uColour"),
-                    Statement::new_fragment("gl_FragColor = uColour"),
                     Statement::new_fragment("gl_FragColor.a = gl_FragColor.a * uOpacity")
                 ],
                 PatinaProgramName::Texture => vec![
@@ -116,21 +105,19 @@ impl Freedom {
 pub(crate) enum PatinaProcess {
     Direct(DirectColourDraw),
     Texture(TextureDraw),
-    FreeTexture(TextureDraw),
-    Spot(SpotColourDraw)
+    FreeTexture(TextureDraw)
 }
 
 // TODO texture types
 
 #[derive(Clone,PartialEq,Eq,Hash)]
 #[cfg_attr(debug_assertions,derive(Debug))]
-pub(crate) enum PatinaProcessName { Direct, Spot(DirectColour), Texture(CanvasInUse), FreeTexture(CanvasInUse,Freedom) }
+pub(crate) enum PatinaProcessName { Direct, Texture(CanvasInUse), FreeTexture(CanvasInUse,Freedom) }
 
 impl PatinaProcessName {
     pub(super) fn get_program_name(&self) -> PatinaProgramName {
         match self {
             PatinaProcessName::Direct => PatinaProgramName::Direct,
-            PatinaProcessName::Spot(_) => PatinaProgramName::Spot,
             PatinaProcessName::Texture(_) => PatinaProgramName::Texture,
             PatinaProcessName::FreeTexture(_,_) => PatinaProgramName::FreeTexture
         }
@@ -139,9 +126,8 @@ impl PatinaProcessName {
     pub(super) fn order(&self) -> usize {
         match self {
             PatinaProcessName::Direct => 0,
-            PatinaProcessName::Spot(_) => 1,
-            PatinaProcessName::Texture(_) => 2,
-            PatinaProcessName::FreeTexture(_,_) => 3
+            PatinaProcessName::Texture(_) => 1,
+            PatinaProcessName::FreeTexture(_,_) => 2
         }
     }
 }

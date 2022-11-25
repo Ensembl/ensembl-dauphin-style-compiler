@@ -25,7 +25,6 @@ simple_interp_command!(SimpleColourInterpCommand,SimpleColourDeserializer,35,2,(
 simple_interp_command!(StripedInterpCommand,StripedDeserializer,36,6,(0,1,2,3,4,5));
 simple_interp_command!(BarredInterpCommand,BarredDeserializer,37,6,(0,1,2,3,4,5));
 simple_interp_command!(BpRangeInterpCommand,BpRangeDeserializer,45,1,(0));
-simple_interp_command!(SpotColourInterpCommand,SpotColourDeserializer,46,2,(0,1));
 simple_interp_command!(PpcInterpCommand,PpcDeserializer,49,1,(0));
 simple_interp_command!(StyleInterpCommand,StyleDeserializer,50,3,(0,1,2));
 simple_interp_command!(PatinaMetadataInterpCommand,PatinaMetadataDeserializer,54,4,(0,1,2,3));
@@ -130,25 +129,6 @@ impl InterpCommand for SimpleColourInterpCommand {
             DirectColour(255,255,255,0)
         };
         let colour_id = geometry_builder.add_colour(Colour::Direct(direct_colour));
-        let registers = context.registers_mut();
-        registers.write(&self.0,InterpValue::Indexes(vec![colour_id as usize]));
-        Ok(CommandResult::SyncResult())
-    }
-}
-
-impl InterpCommand for SpotColourInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
-        let registers = context.registers_mut();
-        let direct_ids = registers.get_indexes(&self.1)?.to_vec();
-        drop(registers);
-        let geometry_builder = get_instance::<ObjectBuilder>(context,"builder")?;
-        let direct_colour = if let Some(direct_id) = direct_ids.get(0) {
-            let dc = geometry_builder.direct_colour(*direct_id as u32)?;
-            dc.as_ref().clone()
-        } else {
-            DirectColour(255,255,255,0)
-        };
-        let colour_id = geometry_builder.add_colour(Colour::Spot(direct_colour));
         let registers = context.registers_mut();
         registers.write(&self.0,InterpValue::Indexes(vec![colour_id as usize]));
         Ok(CommandResult::SyncResult())

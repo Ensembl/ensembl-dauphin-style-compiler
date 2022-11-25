@@ -22,9 +22,6 @@ fn split_spacebaserect(tools: &mut DrawingToolsBuilder, shape: &RectangleShape<L
                 ShapeCategory::SolidColour | ShapeCategory::Other => {
                     out.push(GLShape::SpaceBaseRect(shape.area().clone(),SimpleShapePatina::from_patina(shape.patina())?,depth,draw_group.clone(),wobble));
                 },
-                ShapeCategory::SpotColour(c) => {
-                    out.push(GLShape::SpaceBaseRect(shape.area().clone(),SimpleShapePatina::spot_from_patina(c,shape.patina())?,depth,draw_group.clone(),wobble));
-                },
                 ShapeCategory::Heraldry(HeraldryCanvasesUsed::Solid(heraldry_canvas),scale) => {
                     let heraldry = make_heraldry(shape.patina())?;
                     let handles = heraldry.map_results(|x| x.add(tools))?;
@@ -91,8 +88,6 @@ impl ShapeDemerge for GLCategoriser {
         };
         let category = if let Some(heraldry) = colour_to_heraldry(colour,is_fill) {
             ShapeCategory::Heraldry(heraldry.canvases_used(),heraldry.scale())                                
-        } else if let Colour::Spot(spot) = colour {
-            ShapeCategory::SpotColour(spot.clone())
         } else {
             ShapeCategory::SolidColour
         };

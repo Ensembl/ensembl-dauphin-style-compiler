@@ -11,15 +11,15 @@ pub trait HotspotStoreProfile<V> {
     fn add_zones(&self, a: &Self::Area) -> Option<(Range<usize>,Range<usize>)>;
 }
 
-pub struct HotSpotStore<C,A,X,V> {
+pub struct HotspotStore<C,A,X,V> {
     profile: Box<dyn HotspotStoreProfile<V,Context=X,Coords=C,Area=A>>,
     data: Vec<Option<Vec<usize>>>,
     values: Vec<V>
 }
 
-impl<C,A,X,V> HotSpotStore<C,A,X,V> {
-    pub fn new(profile: Box<dyn HotspotStoreProfile<V,Context=X,Coords=C,Area=A>>) -> HotSpotStore<C,A,X,V> {
-        HotSpotStore {
+impl<C,A,X,V> HotspotStore<C,A,X,V> {
+    pub fn new(profile: Box<dyn HotspotStoreProfile<V,Context=X,Coords=C,Area=A>>) -> HotspotStore<C,A,X,V> {
+        HotspotStore {
             profile,
             data: vec![],
             values: vec![]

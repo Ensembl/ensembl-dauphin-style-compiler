@@ -5,7 +5,6 @@ use peregrine_data::{ Colour, DirectColour, DrawnType, Patina, Plotter, SpaceBas
 use peregrine_toolkit::eachorevery::{EachOrEvery, EachOrEveryFilterBuilder};
 use peregrine_toolkit::error::Error;
 use super::directcolourdraw::DirectYielder;
-use super::spotcolourdraw::SpotColourYielder;
 use super::super::layers::layer::{ Layer };
 use super::texture::{TextureYielder};
 use crate::shape::canvasitem::heraldry::{HeraldryHandle, HeraldryCanvas, HeraldryScale};
@@ -27,8 +26,6 @@ use crate::webgl::global::WebGlGlobal;
 pub(crate) enum SimpleShapePatina {
     Solid(EachOrEvery<DirectColour>),
     Hollow(EachOrEvery<DirectColour>),
-    SolidSpot(DirectColour),
-    HollowSpot(DirectColour),
     Hotspot(HotspotPatina),
     None
 }
@@ -37,7 +34,6 @@ fn simplify_colours(colours: &EachOrEvery<Colour>) -> Result<EachOrEvery<DirectC
     Ok(colours.map_results(|colour| {
         match colour {
             Colour::Direct(d) => Ok(d.clone()),
-            Colour::Spot(d) => Ok(d.clone()),
             _ => Err(Error::fatal("attempt to simplify pattern to colour"))
         }
     })?)
@@ -57,25 +53,10 @@ impl SimpleShapePatina {
         })
     }
 
-    pub(crate) fn spot_from_patina(colour: &DirectColour, patina: &Patina) -> Result<SimpleShapePatina,Error> {
-        Ok(match patina {
-            Patina::Drawn(drawn_variety,_) => {
-                match drawn_variety {
-                    DrawnType::Stroke(_) => SimpleShapePatina::HollowSpot(colour.clone()),
-                    DrawnType::Fill => SimpleShapePatina::SolidSpot(colour.clone()),
-                }
-            },
-            Patina::Hotspot(hotspot) => { SimpleShapePatina::Hotspot(hotspot.clone()) },
-            Patina::Metadata(_,_) => { SimpleShapePatina::None }
-        })
-    }
-
     fn build(&self) -> DrawingShapePatina {
         match self {
             SimpleShapePatina::Solid(c) => DrawingShapePatina::Solid(DirectYielder::new(),c.clone()),
             SimpleShapePatina::Hollow(c) => DrawingShapePatina::Hollow(DirectYielder::new(),c.clone()),
-            SimpleShapePatina::SolidSpot(c) => DrawingShapePatina::SolidSpot(SpotColourYielder::new(c)),
-            SimpleShapePatina::HollowSpot(c) => DrawingShapePatina::HollowSpot(SpotColourYielder::new(c)),
             SimpleShapePatina::Hotspot(hotspot) => DrawingShapePatina::Hotspot(hotspot.clone()),
             SimpleShapePatina::None => DrawingShapePatina::None
         }
@@ -85,15 +66,13 @@ impl SimpleShapePatina {
 enum DrawingShapePatina {
     Solid(DirectYielder,EachOrEvery<DirectColour>),
     Hollow(DirectYielder,EachOrEvery<DirectColour>),
-    SolidSpot(SpotColourYielder),
-    HollowSpot(SpotColourYielder),
     Hotspot(HotspotPatina),
     None
 }
 
 enum PatinaTarget<'a> {
     Visual(&'a mut dyn PatinaYielder),
-    HotSpot(HotspotPatina),
+    Hotspot(HotspotPatina),
     None
 }
 
@@ -102,9 +81,7 @@ impl DrawingShapePatina {
         match self {
             DrawingShapePatina::Solid(dc,_) => PatinaTarget::Visual(dc),
             DrawingShapePatina::Hollow(dc,_) => PatinaTarget::Visual(dc),
-            DrawingShapePatina::SolidSpot(dc) => PatinaTarget::Visual(dc),
-            DrawingShapePatina::HollowSpot(dc) => PatinaTarget::Visual(dc),
-            DrawingShapePatina::Hotspot(hotspot) => PatinaTarget::HotSpot(hotspot.clone()),
+            DrawingShapePatina::Hotspot(hotspot) => PatinaTarget::Hotspot(hotspot.clone()),
             DrawingShapePatina::None => PatinaTarget::None
         }
     }
@@ -228,14 +205,14 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &mut WebGlGlobal, tools:
             let left = layer.left();
             match drawing_shape_patina.yielder_mut() {
                 PatinaTarget::Visual(patina_yielder) => {
-                    let hollow = match simple_shape_patina { SimpleShapePatina::Hollow(_) | SimpleShapePatina::HollowSpot(_) => true, _ => false };
+                    let hollow = match simple_shape_patina { SimpleShapePatina::Hollow(_) => true, _ => false };
                     let mut rectangles = RectanglesData::new_area(layer,&mut geometry_yielder,patina_yielder,&area,&depth,left,hollow,&draw_group,&None,wobble)?;
                     let campaign = rectangles.elements_mut();
                     add_colour(campaign,&drawing_shape_patina,area.len())?;
                     campaign.close()?;
                     Ok(ShapeToAdd::Dynamic(Box::new(Rectangles::new(rectangles,&gl))))
                 },
-                PatinaTarget::HotSpot(hotspot) => {
+                PatinaTarget::Hotspot(hotspot) => {
                     Ok(ShapeToAdd::Hotspot(area,hotspot))
                 },
                 PatinaTarget::None => {

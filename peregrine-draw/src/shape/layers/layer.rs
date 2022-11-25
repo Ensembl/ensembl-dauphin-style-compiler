@@ -109,16 +109,6 @@ impl Layer {
                     }
                     prog.get_process_mut().set_texture("uSampler",canvas)?;
                 },
-                PatinaProcessName::Spot(colour) => {
-                    let draw = match prog.get_patina() {
-                        PatinaProcess::Spot(draw) => Some(draw),
-                        _ => None
-                    }.cloned();
-                    if let Some(draw) = draw {
-                        let process = prog.get_process_mut();
-                        draw.set_spot(process,colour)?;
-                    }
-                },
                 _ => {}
             }
             processes.push(prog.into_process().build(gl,self.left,character).await?);

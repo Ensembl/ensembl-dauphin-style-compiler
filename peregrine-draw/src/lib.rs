@@ -82,7 +82,6 @@ mod shape {
         pub(crate) mod prepareshape;
         pub(crate) mod drawshape;
         pub(super) mod directcolourdraw;
-        pub(super) mod spotcolourdraw;
         pub(crate) mod texture;
         pub(crate) mod wigglegeometry;
     }

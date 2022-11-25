@@ -24,7 +24,6 @@ simple_command!(SimpleColourCommand,SimpleColourCommandType,"peregrine","simple_
 simple_command!(StripedCommand,StripedCommandType,"peregrine","striped",6,(0,1,2,3,4,5));
 simple_command!(BarCommand,BarCommandType,"peregrine","barred",6,(0,1,2,3,4,5));
 simple_command!(BpRangeCommand,BpRangeCommandType,"peregrine","bp_range",1,(0));
-simple_command!(SpotColourCommand,SpotColourCommandType,"peregrine","spot_colour",2,(0,1));
 simple_command!(PpcCommand,PpcCommandType,"peregrine","px_per_carriage",1,(0));
 simple_command!(StyleCommand,StyleCommandType,"peregrine","style",3,(0,1,2));
 simple_command!(PatinaMMetadataName,PatinaMetadataCommandType,"peregrine","patina_metadata",4,(0,1,2,3));
