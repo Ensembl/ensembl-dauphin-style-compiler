@@ -120,12 +120,15 @@ impl GLCarriage {
         }
     }
 
-    pub(crate) fn any_hotspot(&self, stage: &ReadStage, position: (f64,f64), special_only: bool) -> Result<bool,Message> {
-        let state = lock!(self.0);
-        if let Some(drawing) = get_drawing(&state)? {
-            drawing.any_hotspot(stage,position,special_only)
-        } else {
-            Ok(false)
-        }
+    pub(crate) fn any_hotspot(&self, stage: &ReadStage, position: (f64,f64)) -> Result<bool,Message> {
+        Ok(get_drawing(&*lock!(self.0))?
+            .map(|d| d.any_hotspot(stage,position)).transpose()?
+            .unwrap_or(false))
+    }
+
+    pub(crate) fn special_hotspots(&self, stage: &ReadStage, position: (f64,f64)) -> Result<Vec<String>,Message> {
+        Ok(get_drawing(&*lock!(self.0))?
+            .map(|d| d.special_hotspots(stage,position)).transpose()?
+            .unwrap_or(vec![]))
     }
 }

@@ -9,10 +9,10 @@ pub enum HotspotResult {
 }
 
 impl HotspotResult {
-    pub fn is_special(&self) -> bool {
+    pub fn get_special(&self) -> Option<String> {
         match self {
-            HotspotResult::Special(_) => true,
-            _ => false
+            HotspotResult::Special(x) => Some(x.to_string()),
+            _ => None
         }
     }
 }

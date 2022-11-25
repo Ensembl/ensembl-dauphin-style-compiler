@@ -111,11 +111,11 @@ impl DrawingHotspots {
         Ok(out)
     }
 
-    pub(crate) fn any_hotspots(&self, stage: &ReadStage, position_px: (f64,f64), special_only: bool) -> Result<bool,Message> {
-        if special_only {
-            Ok(self.get_hotspot(stage,position_px)?.iter().any(|x| x.value().is_special()))
-        } else {
-            Ok(self.get_hotspot(stage,position_px)?.len() > 0)
-        }
+    pub(crate) fn any_hotspots(&self, stage: &ReadStage, position_px: (f64,f64)) -> Result<bool,Message> {
+        Ok(self.get_hotspot(stage,position_px)?.len() > 0)
+    }
+
+    pub(crate) fn special_hotspots(&self, stage: &ReadStage, position_px: (f64,f64)) -> Result<Vec<String>,Message> {
+        Ok(self.get_hotspot(stage,position_px)?.iter().filter_map(|x| x.value().get_special()).collect())
     }
 }

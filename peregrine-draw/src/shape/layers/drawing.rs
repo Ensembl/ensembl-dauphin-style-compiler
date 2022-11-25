@@ -139,8 +139,12 @@ impl Drawing {
         lock!(self.0).hotspots.get_hotspot(stage,position)
     }
 
-    pub(crate) fn any_hotspot(&self, stage: &ReadStage, position: (f64,f64), special_only: bool) -> Result<bool,Message> {
-        lock!(self.0).hotspots.any_hotspots(stage,position,special_only)
+    pub(crate) fn any_hotspot(&self, stage: &ReadStage, position: (f64,f64)) -> Result<bool,Message> {
+        lock!(self.0).hotspots.any_hotspots(stage,position)
+    }
+
+    pub(crate) fn special_hotspots(&self, stage: &ReadStage, position: (f64,f64)) -> Result<Vec<String>,Message> {
+        lock!(self.0).hotspots.special_hotspots(stage,position)
     }
 
     pub(crate) fn draw(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage, session: &mut DrawingSession, opacity: f64) -> Result<(),Error> {

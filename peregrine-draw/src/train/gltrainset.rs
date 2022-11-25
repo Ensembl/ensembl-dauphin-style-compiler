@@ -239,22 +239,29 @@ impl GlRailwayData {
         }
     }
 
-    fn get_hotspot(&mut self, stage: &ReadStage, position: (f64,f64)) -> Result<Vec<SingleHotspotEntry>,Message> {
+    fn train_for_hotspots(&mut self) -> Option<&mut GLTrain> {
         match &self.fade_state {
             FadeState::Constant(x) => x.as_ref(),
             FadeState::Fading(_,x,_,_,_) => Some(x)
-        }.cloned().as_ref().map(|id| {
-            self.get_our_train(id,15).get_hotspot(stage,position)
+        }.cloned().as_ref().map(move |id| self.get_our_train(&id,15))
+    }
+
+    fn get_hotspot(&mut self, stage: &ReadStage, position: (f64,f64)) -> Result<Vec<SingleHotspotEntry>,Message> {
+        self.train_for_hotspots().map(|t| {
+            t.get_hotspot(stage,position)
         }).unwrap_or(Ok(vec![]))
     }
 
-    fn any_hotspot(&mut self, stage: &ReadStage, position: (f64,f64), special_only: bool) -> Result<bool,Message> {
-        match &self.fade_state {
-            FadeState::Constant(x) => x.as_ref(),
-            FadeState::Fading(_,x,_,_,_) => Some(x)
-        }.cloned().as_ref().map(|id| {
-            self.get_our_train(id,15).any_hotspot(stage,position,special_only)
+    fn any_hotspot(&mut self, stage: &ReadStage, position: (f64,f64)) -> Result<bool,Message> {
+        self.train_for_hotspots().map(|t| {
+            t.any_hotspot(stage,position)
         }).unwrap_or(Ok(false))
+    }
+
+    fn special_hotspots(&mut self, stage: &ReadStage, position: (f64,f64)) -> Result<Vec<String>,Message> {
+        self.train_for_hotspots().map(|t| {
+            t.special_hotspots(stage,position)
+        }).unwrap_or(Ok(vec![]))
     }
 }
 
@@ -311,8 +318,12 @@ impl GlRailway {
         lock!(self.data).get_hotspot(stage,position)
     }
 
-    pub(crate) fn any_hotspot(&self,stage: &ReadStage, position: (f64,f64), special_only: bool) -> Result<bool,Message> {
-        lock!(self.data).any_hotspot(stage,position,special_only)
+    pub(crate) fn any_hotspot(&self,stage: &ReadStage, position: (f64,f64)) -> Result<bool,Message> {
+        lock!(self.data).any_hotspot(stage,position)
+    }
+
+    pub(crate) fn special_hotspots(&self,stage: &ReadStage, position: (f64,f64)) -> Result<Vec<String>,Message> {
+        lock!(self.data).special_hotspots(stage,position)
     }
 
     pub fn scale(&self) -> Option<Scale> { lock!(self.data).scale() }

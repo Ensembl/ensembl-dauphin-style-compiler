@@ -12,9 +12,9 @@ fn mouse_move_tick(input: &Input, mouse_position: &mut Option<(f64,f64)>, stage:
             if *old_position == position { return Ok(()); }
         }
         *mouse_position = Some(position);
-        let any_hotspot = train_set.any_hotspot(stage,position,false)?;
-        let special_hotspot = train_set.any_hotspot(stage,position,true)?;
-        input.set_hotspot(any_hotspot,special_hotspot);
+        let any_hotspot = train_set.any_hotspot(stage,position)?;
+        let special_hotspots = train_set.special_hotspots(stage,position)?;
+        input.set_hotspot(any_hotspot,&special_hotspots);
     }
     Ok(())
 }

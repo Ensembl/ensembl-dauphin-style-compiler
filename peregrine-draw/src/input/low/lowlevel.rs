@@ -135,19 +135,17 @@ impl LowLevelInput {
     }
 
     pub fn distributor_mut(&mut self) -> &mut Distributor<InputEvent> { &mut self.distributor }
-
     pub fn update_stage(&self, stage: &ReadStage) { self.state.update_stage(stage); }
-
     pub fn set_artificial(&self, name: &str, start: bool) { self.state.set_artificial(name,start); }
     pub fn pointer_last_seen(&self) -> Option<(f64,f64)> { self.state.pointer_last_seen() }
     pub fn get_mouse_move_waiter(&self) -> Needed { self.mouse_moved.clone() }
 
-    pub fn set_hotspot(&mut self, yn: bool, disable_drag: bool) {
+    pub fn set_hotspot(&mut self, yn: bool, special: &[String]) {
         if yn {
             self.hotspot_cursor_handle = Some(Arc::new(self.state.set_cursor(&CursorCircumstance::Hotspot)));
         } else {
             self.hotspot_cursor_handle = None;
         }
-        *lock!(self.state.drag_disabled) = disable_drag;
+        *lock!(self.state.drag_disabled) = special.len() > 0;
     }
 }

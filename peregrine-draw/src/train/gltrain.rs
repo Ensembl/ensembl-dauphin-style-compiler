@@ -63,13 +63,21 @@ impl GLTrain {
         Ok(out)
     }
 
-    pub(crate) fn any_hotspot(&self, stage: &ReadStage, position: (f64,f64), special_only: bool) -> Result<bool,Message> {
+    pub(crate) fn any_hotspot(&self, stage: &ReadStage, position: (f64,f64)) -> Result<bool,Message> {
         for carriage in &lock!(self.0).carriages {
-           if carriage.any_hotspot(stage,position,special_only)? {
+           if carriage.any_hotspot(stage,position)? {
                return Ok(true);
            }
         }
         Ok(false)
+    }
+
+    pub(crate) fn special_hotspots(&self, stage: &ReadStage, position: (f64,f64)) -> Result<Vec<String>,Message> {
+        let mut out = vec![];
+        for carriage in lock!(self.0).carriages.drain(..) {
+            out.append(&mut carriage.special_hotspots(stage,position)?);
+        }
+        Ok(out)
     }
 
     pub(crate) fn draw(&mut self, gl: &Arc<Mutex<WebGlGlobal>>, stage: &ReadStage, session: &mut DrawingSession) -> Result<(),Message> {

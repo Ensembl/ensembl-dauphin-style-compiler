@@ -102,8 +102,8 @@ impl Input {
         }
     }
 
-    pub fn set_hotspot(&self, yn: bool, disable_drag: bool) {
-        self.state(|state| state.low_level.set_hotspot(yn,disable_drag));
+    pub fn set_hotspot(&self, yn: bool, special: &[String]) {
+        self.state(|state| state.low_level.set_hotspot(yn,special));
     }
 
     pub fn update_stage(&self, stage: &ReadStage) { 
