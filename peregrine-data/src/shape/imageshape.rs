@@ -1,6 +1,6 @@
 use peregrine_toolkit::eachorevery::{EachOrEveryFilter, EachOrEvery};
-use crate::{DataMessage, ShapeDemerge, Shape, SpaceBase, allotment::{transformers::transformers::{Transformer, TransformerVariety}, style::{style::LeafStyle}}, LeafRequest, BackendNamespace, CoordinateSystem};
-use std::{hash::Hash, sync::Arc};
+use crate::{DataMessage, ShapeDemerge, Shape, SpaceBase, allotment::{transformers::transformers::{TransformerVariety}, style::{style::LeafStyle}, boxes::leaf::AnchoredLeaf}, LeafRequest, BackendNamespace, CoordinateSystem};
+use std::{hash::Hash,};
 
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub struct ImageShape<A> {
@@ -69,8 +69,8 @@ impl<A: Clone> ImageShape<A> {
     }
 }
 
-impl ImageShape<Arc<dyn Transformer>> {
-    fn demerge_by_variety(&self) -> Vec<((TransformerVariety,CoordinateSystem),ImageShape<Arc<dyn Transformer>>)> {
+impl ImageShape<AnchoredLeaf> {
+    fn demerge_by_variety(&self) -> Vec<((TransformerVariety,CoordinateSystem),ImageShape<AnchoredLeaf>)> {
         let demerge = self.position.allotments().demerge(self.position.len(),|x| {
             x.choose_variety()
         });
@@ -95,7 +95,7 @@ impl ImageShape<LeafStyle> {
     }
 }
 
-impl ImageShape<Arc<dyn Transformer>> {
+impl ImageShape<AnchoredLeaf> {
     pub fn make(&self) -> Vec<ImageShape<LeafStyle>> {
         let mut out = vec![];
         for ((variety,coord_system),images) in self.demerge_by_variety() {

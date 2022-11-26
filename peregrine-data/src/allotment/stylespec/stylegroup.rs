@@ -11,12 +11,6 @@ pub struct AllotmentStyleGroup {
 }
 
 impl AllotmentStyleGroup {
-    pub fn empty() -> AllotmentStyleGroup {
-        AllotmentStyleGroup {
-            tree: Arc::new(StyleTree::empty())
-        }
-    }
-
     pub fn new(tree: StyleTree) -> AllotmentStyleGroup {
         AllotmentStyleGroup {
             tree: Arc::new(tree)

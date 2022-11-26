@@ -1,6 +1,6 @@
 use peregrine_toolkit::eachorevery::EachOrEveryFilter;
-use crate::{DataMessage, Patina, ShapeDemerge, Shape, SpaceBaseArea, reactive::Observable, allotment::{transformers::transformers::{Transformer, TransformerVariety}, style::{style::{LeafStyle}}}, LeafRequest, CoordinateSystem};
-use std::{hash::Hash, sync::Arc};
+use crate::{DataMessage, Patina, ShapeDemerge, Shape, SpaceBaseArea, reactive::Observable, allotment::{transformers::transformers::{TransformerVariety}, style::{style::{LeafStyle}}, boxes::leaf::AnchoredLeaf}, LeafRequest, CoordinateSystem};
+use std::{hash::Hash};
 
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub struct RectangleShape<A> {
@@ -33,12 +33,14 @@ impl<A> RectangleShape<A> {
         }
     }
 
-    pub fn len(&self) -> usize { self.area.len() }
+    pub(crate) fn len(&self) -> usize { self.area.len() }
     pub fn area(&self) -> &SpaceBaseArea<f64,A> { &self.area }
+    pub fn patina(&self) -> &Patina { &self.patina }
+    pub fn wobble(&self) -> &Option<SpaceBaseArea<Observable<'static,f64>,()>> { &self.wobble }
 }
 
 impl RectangleShape<LeafRequest> {
-    pub fn new2(area: SpaceBaseArea<f64,LeafRequest>, patina: Patina, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>) -> Result<Shape<LeafRequest>,DataMessage> {
+    pub fn new(area: SpaceBaseArea<f64,LeafRequest>, patina: Patina, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>) -> Result<Shape<LeafRequest>,DataMessage> {
         let details = RectangleShape::new_details(area,patina.clone(),wobble.clone())?;
         Ok(Shape::SpaceBaseRect(details))
     }
@@ -54,11 +56,6 @@ impl<A> Clone for RectangleShape<A> where A: Clone {
     fn clone(&self) -> Self {
         Self { area: self.area.clone(), patina: self.patina.clone(), wobble: self.wobble.clone() }
     }
-}
-
-impl<A: Clone> RectangleShape<A> {
-    pub fn patina(&self) -> &Patina { &self.patina }
-    pub fn wobble(&self) -> &Option<SpaceBaseArea<Observable<'static,f64>,()>> { &self.wobble }
 }
 
 impl RectangleShape<LeafStyle> {
@@ -84,8 +81,8 @@ impl RectangleShape<LeafStyle> {
     }
 }
 
-impl RectangleShape<Arc<dyn Transformer>> {
-    fn demerge_by_variety(&self) -> Vec<((TransformerVariety,CoordinateSystem),RectangleShape<Arc<dyn Transformer>>)> {
+impl RectangleShape<AnchoredLeaf> {
+    fn demerge_by_variety(&self) -> Vec<((TransformerVariety,CoordinateSystem),RectangleShape<AnchoredLeaf>)> {
         let demerge = self.area.top_left().allotments().demerge(self.area.len(),|x| {
             x.choose_variety()
         });

@@ -1,8 +1,6 @@
 use std::hash::Hash;
-use std::sync::Arc;
 use peregrine_toolkit::eachorevery::EachOrEveryFilter;
-
-use crate::{SpaceBaseArea, DataMessage, LeafRequest, Shape, allotment::transformers::transformers::{Transformer, TransformerVariety}, LeafStyle, ShapeDemerge, CoordinateSystem};
+use crate::{SpaceBaseArea, DataMessage, LeafRequest, Shape, allotment::{transformers::transformers::{TransformerVariety}, boxes::leaf::AnchoredLeaf}, LeafStyle, ShapeDemerge, CoordinateSystem};
 
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub struct EmptyShape<A>(SpaceBaseArea<f64,A>);
@@ -54,8 +52,8 @@ impl EmptyShape<LeafStyle> {
     }
 }
 
-impl EmptyShape<Arc<dyn Transformer>> {
-    fn demerge_by_variety(&self) -> Vec<((TransformerVariety,CoordinateSystem),EmptyShape<Arc<dyn Transformer>>)> {
+impl EmptyShape<AnchoredLeaf> {
+    fn demerge_by_variety(&self) -> Vec<((TransformerVariety,CoordinateSystem),EmptyShape<AnchoredLeaf>)> {
         let demerge = self.0.top_left().allotments().demerge(self.0.len(),|x| {
             x.choose_variety()
         });
@@ -65,9 +63,7 @@ impl EmptyShape<Arc<dyn Transformer>> {
         }
         out
     }
-}
 
-impl EmptyShape<Arc<dyn Transformer>> {
     pub fn make(&self) -> Vec<EmptyShape<LeafStyle>> {
         let mut out = vec![];
         for ((variety,coord_system),rectangles) in self.demerge_by_variety() {

@@ -1,6 +1,6 @@
 use std::{sync::{Arc}};
 use peregrine_toolkit::{puzzle::{DelayedSetter, constant, derived, StaticValue, StaticAnswer, promise_delayed, cache_constant_clonable, delayed }};
-use crate::{allotment::{core::{allotmentname::{AllotmentName, AllotmentNamePart}, boxtraits::{Stackable, BuildSize, Transformable, Coordinated}, boxpositioncontext::BoxPositionContext}, transformers::{transformers::{Transformer, TransformerVariety}, simple::{SimpleTransformerHolder, SimpleTransformer}, drawinginfo::DrawingInfo}, style::{style::{LeafStyle, Indent}}, util::{rangeused::RangeUsed, bppxconverter::BpPxConverter}, globals::playingfield::PlayingFieldEdge}, CoordinateSystem};
+use crate::{allotment::{core::{allotmentname::{AllotmentName, AllotmentNamePart}, boxtraits::{Stackable, BuildSize, Coordinated}, boxpositioncontext::BoxPositionContext}, transformers::{transformers::{TransformerVariety}, simple::{SimpleTransformerHolder, SimpleTransformer}, drawinginfo::DrawingInfo}, style::{style::{LeafStyle, Indent}}, util::{rangeused::RangeUsed, bppxconverter::BpPxConverter}, globals::playingfield::PlayingFieldEdge}, CoordinateSystem};
 
 // TODO ranged bppxconverter
 fn full_range_piece(coord_system: &CoordinateSystem, base_range: &RangeUsed<f64>, pixel_range: &RangeUsed<f64>, bp_px_converter: &StaticValue<Arc<BpPxConverter>>) -> StaticValue<RangeUsed<f64>> {
@@ -66,6 +66,12 @@ impl FloatingLeaf {
             constant(RangeUsed::None)
         }
     }
+
+    pub(crate) fn name(&self) -> &AllotmentName { &self.name }
+
+    pub(crate) fn make(&self, answer_index: &StaticAnswer) -> AnchoredLeaf {
+        AnchoredLeaf::new(answer_index,self)
+    }
 }
 
 impl Stackable for FloatingLeaf {
@@ -102,20 +108,6 @@ impl Stackable for FloatingLeaf {
     }
 }
 
-impl Transformable for FloatingLeaf {
-    fn name(&self) -> &AllotmentName { &self.name }
-
-    fn cloned(&self) -> Arc<dyn Transformable> {
-        Arc::new(self.clone())
-    }
-
-    fn make(&self, answer_index: &StaticAnswer) -> Arc<dyn Transformer> {
-        Arc::new(AnchoredLeaf::new(answer_index,self))
-    }
-
-    fn get_style(&self) -> &LeafStyle { &self.statics }
-}
-
 impl Coordinated for FloatingLeaf {
     fn coordinate_system(&self) -> &CoordinateSystem { &self.statics.coord_system }
 }
@@ -138,15 +130,13 @@ impl AnchoredLeaf {
             indent: floating.indent.call(answer_index).unwrap_or(0.)
         }
     }
-}
 
-impl Transformer for AnchoredLeaf {
-    fn choose_variety(&self) -> (TransformerVariety,CoordinateSystem) { (TransformerVariety::SimpleTransformer,self.statics.coord_system.clone()) }
-    fn into_simple_transformer(&self) -> Option<SimpleTransformerHolder> { Some(SimpleTransformerHolder(Arc::new(self.clone()))) }
-    fn get_style(&self) -> &LeafStyle { &self.statics }
+    pub(crate) fn choose_variety(&self) -> (TransformerVariety,CoordinateSystem) { (TransformerVariety::SimpleTransformer,self.statics.coord_system.clone()) }
+    pub(crate) fn into_simple_transformer(&self) -> Option<SimpleTransformerHolder> { Some(SimpleTransformerHolder(Arc::new(self.clone()))) }
+    pub(crate) fn get_style(&self) -> &LeafStyle { &self.statics }
 
     #[cfg(any(debug_assertions,test))]
-    fn describe(&self) -> String {
+    pub(crate) fn describe(&self) -> String {
         format!("{:?}",self)
     }
 }

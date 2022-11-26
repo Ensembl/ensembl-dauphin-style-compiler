@@ -1,11 +1,11 @@
 use std::{collections::HashMap};
 use peregrine_toolkit::error::Error;
 use crate::{allotment::{core::{trainstate::CarriageTrainStateSpec, allotmentname::{AllotmentNamePart, AllotmentName}, boxpositioncontext::BoxPositionContext}, boxes::{ stacker::Stacker, overlay::Overlay, bumper::Bumper }, boxes::{leaf::{FloatingLeaf}}, transformers::drawinginfo::DrawingInfo, stylespec::stylegroup::AllotmentStyleGroup, style::style::ContainerAllotmentType}, LeafRequest, LeafStyle};
-use super::holder::{ContainerHolder, LeafHolder};
+use super::holder::{ContainerHolder};
 
 struct StyleBuilder<'a> {
     root: ContainerHolder,
-    leafs_made: HashMap<Vec<String>,LeafHolder>,
+    leafs_made: HashMap<Vec<String>,FloatingLeaf>,
     containers_made: HashMap<Vec<String>,ContainerHolder>,
     prep: &'a mut BoxPositionContext,
     dustbin: FloatingLeaf
@@ -61,21 +61,22 @@ impl<'a> StyleBuilder<'a> {
     }
 
     fn new_floating_leaf(&self, pending: &LeafRequest, name: &AllotmentNamePart, container: &mut ContainerHolder) -> Result<FloatingLeaf,Error> {
-        let child = FloatingLeaf::new(name,&self.prep.bp_px_converter,&pending.leaf_style(),&pending.drawing_info_clone());
-        container.add_leaf(&LeafHolder::Leaf(child.clone()));
+        let drawing_info = pending.drawing_info(|di| di.clone());
+        let child = FloatingLeaf::new(name,&self.prep.bp_px_converter,&pending.leaf_style(),&drawing_info);
+        container.add_leaf(&child);
         Ok(child)
     }
 
-    fn new_leaf(&mut self, pending: &LeafRequest, name: &AllotmentNamePart) -> Result<LeafHolder,Error> {
+    fn new_leaf(&mut self, pending: &LeafRequest, name: &AllotmentNamePart) -> Result<FloatingLeaf,Error> {
         Ok(if let Some((_,rest)) = name.pop() {
             let mut container = self.try_new_container(&rest,&pending.style())?;
-            LeafHolder::Leaf(self.new_floating_leaf(pending,name,&mut container)?)
+            self.new_floating_leaf(pending,name,&mut container)?
         } else {
-            LeafHolder::Leaf(self.dustbin.clone())
+            self.dustbin.clone()
         })
     }
 
-    fn try_new_leaf(&mut self, pending: &LeafRequest) -> Result<LeafHolder,Error> {
+    fn try_new_leaf(&mut self, pending: &LeafRequest) -> Result<FloatingLeaf,Error> {
         let name = AllotmentNamePart::new(pending.name().clone());
         let sequence = name.sequence().to_vec();
         Ok(if let Some(leaf) = self.leafs_made.get(&sequence) {
@@ -92,7 +93,7 @@ pub(crate) fn make_transformable(prep: &mut BoxPositionContext, pendings: &mut d
     /* Build box tree */
     let mut styler = StyleBuilder::new(prep);
     for pending in pendings {
-        let xformable = styler.try_new_leaf(&pending)?.into_tranfsormable();
+        let xformable = styler.try_new_leaf(&pending)?;
         styler.prep.plm.set_transformable(&pending.name(),&xformable);
     }
     /* Wire box tree */
@@ -122,7 +123,7 @@ mod test {
         for (name,height) in names.iter().zip(heights) {
             let leaf = LeafRequest::new(&AllotmentName::new(name));
             leaf.set_style(style);
-            leaf.update_drawing_info(|info| {
+            leaf.drawing_info(|info| {
                 info.merge_max_y(*height);
                 if let Some(ref mut pixel_range) = pixel_range_iter {
                     info.merge_pixel_range(pixel_range.next().unwrap());

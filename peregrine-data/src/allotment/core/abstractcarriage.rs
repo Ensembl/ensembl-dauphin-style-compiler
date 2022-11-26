@@ -1,6 +1,6 @@
 use std::{sync::{Arc, Mutex}};
 use peregrine_toolkit::{puzzle::{StaticAnswer}, lock, timer_start, timer_end, error::Error };
-use crate::{ShapeRequestGroup, CarriageExtent, shape::{shape::{DrawingShape, UnplacedShape, AbstractShape}, metadata::AbstractMetadataBuilder}, allotment::{core::allotmentname::allotmentname_hashmap, transformers::transformers::Transformer} };
+use crate::{ShapeRequestGroup, CarriageExtent, shape::{shape::{DrawingShape, UnplacedShape, FloatingShape}, metadata::AbstractMetadataBuilder}, allotment::{core::allotmentname::allotmentname_hashmap, boxes::leaf::AnchoredLeaf} };
 use super::{leaflist::LeafList, trainstate::{CarriageTrainStateSpec}};
 
 struct AbstractCarriageBuilder {
@@ -18,14 +18,14 @@ impl AbstractCarriageBuilder {
         let (prep,spec) = self.builder.position_boxes(self.shape_request_group.as_ref(),&metadata)?;
         /* update leafs to reflect container position */
         let shapes = self.shapes.iter().map(|x| 
-                x.map_new_allotment(|r| prep.plm.transformable(r.name()).cloned())
+                x.map_new_allotment(|r| prep.plm.transformable(r.name()).clone())
             ).collect::<Vec<_>>();
         Ok(AbstractCarriageState { shapes, spec })
     }
 }
 
 struct AbstractCarriageState {
-    shapes: Vec<AbstractShape>,
+    shapes: Vec<FloatingShape>,
     spec: CarriageTrainStateSpec
 }
 
@@ -86,18 +86,15 @@ impl AbstractCarriage {
 
     pub fn make_drawing_shapes(&self, answer: &mut StaticAnswer) -> Result<Vec<DrawingShape>,Error> {
         let mut out = vec![];
-        let mut transformer_cache = allotmentname_hashmap::<Arc<dyn Transformer>>();
+        let mut transformer_cache = allotmentname_hashmap::<AnchoredLeaf>();
         for input in lock!(self.0).ready()?.shapes.iter() {
             timer_start!("make_drawing_shapes");
             let z = input.map_new_allotment(|x| {
-                if let Some(value) = transformer_cache.get(x.name()) {
-                    value.clone()
-                } else {
-                    transformer_cache.insert(x.name().clone(),x.make(answer));
-                    transformer_cache.get(x.name()).unwrap().clone()
-                }
+                transformer_cache.entry(x.name().clone()).or_insert_with(|| {
+                    x.make(answer) // Transformable (FloatingLeaf) -> Transformer (AnchoredLeaf)
+                }).clone()
             });
-            out.append(&mut z.make());
+            out.append(&mut z.make()); // Transformer (AnchoredLeaf) -> LeafStyle
             timer_end!("make_drawing_shapes");
         }
         Ok(out)

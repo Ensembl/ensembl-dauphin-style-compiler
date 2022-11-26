@@ -107,9 +107,9 @@ impl Padding {
 pub struct LeafStyle {
     pub coord_system: CoordinateSystem,
     pub depth: i8,
-    pub priority: i64,
-    pub indent: Indent,
-    pub bump_invisible: bool
+    pub(crate) priority: i64,
+    pub(crate) indent: Indent,
+    pub(crate) bump_invisible: bool
 }
 
 impl LeafStyle {

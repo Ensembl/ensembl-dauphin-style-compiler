@@ -1,6 +1,6 @@
 use peregrine_toolkit::{eachorevery::{EachOrEveryFilter, EachOrEvery}};
-use crate::{DataMessage, Pen, ShapeDemerge, Shape, SpaceBase, allotment::{transformers::{transformers::{Transformer, TransformerVariety}}, style::{style::LeafStyle}, util::rangeused::RangeUsed, core::allotmentname::AllotmentName}, LeafRequest, SpaceBaseArea, PartialSpaceBase, CoordinateSystem};
-use std::{hash::Hash, sync::Arc};
+use crate::{DataMessage, Pen, ShapeDemerge, Shape, SpaceBase, allotment::{transformers::{transformers::{TransformerVariety}}, style::{style::LeafStyle}, util::rangeused::RangeUsed, core::allotmentname::AllotmentName, boxes::leaf::AnchoredLeaf}, LeafRequest, SpaceBaseArea, PartialSpaceBase, CoordinateSystem};
+use std::{hash::Hash};
 
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub struct TextShape<A> {
@@ -64,7 +64,7 @@ impl TextShape<LeafRequest> {
         if let Some(minor) = minor {
             /* Running */
             for ((top_left,bottom_right),text) in major.zip(minor).zip(self.iter_texts()) {
-                top_left.allotment.update_drawing_info(|allotment| {
+                top_left.allotment.drawing_info(|allotment| {
                     allotment.merge_base_range(&RangeUsed::Part(*top_left.base,*bottom_right.base+1.));
                     allotment.merge_pixel_range(&RangeUsed::Part(*top_left.tangent,(top_left.tangent+size*text.len() as f64).max(*bottom_right.tangent))); // Not ideal: assume square
                     allotment.merge_max_y((*top_left.normal + size).ceil());
@@ -73,7 +73,7 @@ impl TextShape<LeafRequest> {
         } else {
             /* Normal */
             for (position,text) in major.zip(self.iter_texts()) {
-                position.allotment.update_drawing_info(|allotment| {
+                position.allotment.drawing_info(|allotment| {
                     allotment.merge_base_range(&RangeUsed::Part(*position.base,*position.base+1.));
                     allotment.merge_pixel_range(&RangeUsed::Part(*position.tangent,position.tangent+size*text.len() as f64)); // Not ideal: assume square
                     allotment.merge_max_y((*position.normal + size).ceil());
@@ -124,8 +124,8 @@ impl TextShape<LeafStyle> {
     }
 }
 
-impl TextShape<Arc<dyn Transformer>> {
-    fn demerge_by_variety(&self) -> Vec<((TransformerVariety,CoordinateSystem),TextShape<Arc<dyn Transformer>>)> {
+impl TextShape<AnchoredLeaf> {
+    fn demerge_by_variety(&self) -> Vec<((TransformerVariety,CoordinateSystem),TextShape<AnchoredLeaf>)> {
         let demerge = self.position.allotments().demerge(self.position.len(),|x| {
             x.choose_variety()
         });

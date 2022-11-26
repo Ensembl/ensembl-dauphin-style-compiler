@@ -1,5 +1,4 @@
 use std::hash::Hash;
-use std::sync::Arc;
 use peregrine_toolkit::eachorevery::EachOrEveryFilter;
 use super::emptyshape::EmptyShape;
 use super::imageshape::ImageShape;
@@ -13,9 +12,9 @@ use crate::DataMessage;
 use crate::DrawnType;
 use crate::LeafRequest;
 use crate::SpaceBaseArea;
-use crate::allotment::core::boxtraits::Transformable;
+use crate::allotment::boxes::leaf::AnchoredLeaf;
+use crate::allotment::boxes::leaf::FloatingLeaf;
 use crate::allotment::style::style::LeafStyle;
-use crate::allotment::transformers::transformers::Transformer;
 use crate::allotment::util::rangeused::RangeUsed;
 
 pub trait ShapeDemerge {
@@ -41,7 +40,7 @@ pub enum Shape<A> {
 pub(crate) type UnplacedShape = Shape<LeafRequest>;
 
 /* -> A shape with reference only to the surroundings of its own carriage -> */
-pub(crate) type AbstractShape = Shape<Arc<dyn Transformable>>;
+pub(crate) type FloatingShape = Shape<FloatingLeaf>;
 
 /* -> A completely placed shape, ready to draw */
 pub type DrawingShape = Shape<LeafStyle>;
@@ -136,7 +135,7 @@ impl Shape<LeafStyle> {
     }
 }
 
-impl Shape<Arc<dyn Transformer>> {
+impl Shape<AnchoredLeaf> {
     pub fn make(&self) -> Vec<Shape<LeafStyle>> {
         match self {
             Shape::SpaceBaseRect(shape) => shape.make().drain(..).map(|x| Shape::SpaceBaseRect(x)).collect(),
@@ -150,7 +149,7 @@ impl Shape<Arc<dyn Transformer>> {
 
 fn register_space_area(area: &SpaceBaseArea<f64,LeafRequest>) {
     for (top_left,bottom_right) in area.iter() {
-        top_left.allotment.update_drawing_info(|allotment| {
+        top_left.allotment.drawing_info(|allotment| {
             allotment.merge_base_range(&RangeUsed::Part(*top_left.base,*bottom_right.base));
             allotment.merge_pixel_range(&RangeUsed::Part(*top_left.tangent,*bottom_right.tangent));
             allotment.merge_max_y(top_left.normal.ceil());
@@ -173,7 +172,7 @@ impl Shape<LeafRequest> {
             },
             Shape::Image(shape) => {
                 for (position,asset_name) in shape.position().iter().zip(shape.iter_names()) {
-                    position.allotment.update_drawing_info(|allotment| {
+                    position.allotment.drawing_info(|allotment| {
                         allotment.merge_base_range(&RangeUsed::Part(*position.base,*position.base+1.));
                         if let Some(asset) = assets.get(Some(&shape.channel()),asset_name) {
                             if let Some(height) = asset.metadata_u32("height") {
@@ -188,7 +187,7 @@ impl Shape<LeafRequest> {
             },
             Shape::Wiggle(shape) => {
                 for allotment in shape.iter_allotments(1) {
-                    allotment.update_drawing_info(|allotment| {
+                    allotment.drawing_info(|allotment| {
                         allotment.merge_base_range(&RangeUsed::All);
                         allotment.merge_max_y(shape.plotter().0);
                     });

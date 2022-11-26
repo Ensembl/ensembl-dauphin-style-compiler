@@ -1,14 +1,14 @@
 use std::{collections::{HashMap, HashSet}};
 use peregrine_toolkit::{debug_log, eachorevery::EachOrEvery};
 use super::{core::{ Patina, Pen, Plotter }, imageshape::ImageShape, rectangleshape::RectangleShape, textshape::TextShape, wiggleshape::WiggleShape, emptyshape::EmptyShape, shape::UnplacedShape};
-use crate::{LeafRequest, AbstractShapesContainer, allotment::core::leaflist::LeafList, BackendNamespace, LoadMode};
+use crate::{LeafRequest, FloatingShapesContainer, allotment::core::leaflist::LeafList, BackendNamespace, LoadMode};
 use crate::{Assets, DataMessage, SpaceBaseArea, reactive::Observable, SpaceBase, allotment::{stylespec::{stylegroup::AllotmentStyleGroup, styletreebuilder::StyleTreeBuilder, styletree::StyleTree}}};
 
 pub struct ProgramShapesBuilder {
     assets: Assets,
     shapes: Vec<UnplacedShape>,
     leafs: HashSet<LeafRequest>,
-    carriage_universe: LeafList,
+    leaf_list: LeafList,
     style: StyleTreeBuilder,
     mode: LoadMode
 }
@@ -18,7 +18,7 @@ impl ProgramShapesBuilder {
         ProgramShapesBuilder {
             shapes: vec![],
             leafs: HashSet::new(),
-            carriage_universe: LeafList::new(),
+            leaf_list: LeafList::new(),
             style: StyleTreeBuilder::new(),
             assets: assets.clone(),
             mode: mode.clone()
@@ -26,7 +26,7 @@ impl ProgramShapesBuilder {
     }
 
     pub fn use_allotment(&mut self, spec: &str) -> &LeafRequest {
-        let leaf = self.carriage_universe.pending_leaf(spec);
+        let leaf = self.leaf_list.pending_leaf(spec);
         self.leafs.insert(leaf.clone());
         leaf
     }
@@ -48,7 +48,7 @@ impl ProgramShapesBuilder {
     }
 
     pub fn add_rectangle(&mut self, area: SpaceBaseArea<f64,LeafRequest>, patina: Patina, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>) -> Result<(),DataMessage> {
-        self.push_shape(RectangleShape::new2(area,patina,wobble)?);
+        self.push_shape(RectangleShape::new(area,patina,wobble)?);
         Ok(())
     }
 
@@ -73,7 +73,7 @@ impl ProgramShapesBuilder {
         Ok(())
     }
 
-    pub fn to_abstract_shapes_container(self) -> AbstractShapesContainer {
+    pub fn to_abstract_shapes_container(self) -> FloatingShapesContainer {
         let style = AllotmentStyleGroup::new(StyleTree::new(self.style));
         if self.leafs.len() > 1000 {
             debug_log!("many leafs! {}",self.leafs.len());
@@ -81,6 +81,6 @@ impl ProgramShapesBuilder {
         for leaf in self.leafs {
             leaf.set_style(&style);
         }
-        AbstractShapesContainer::build(self.shapes,self.carriage_universe,&self.mode)
+        FloatingShapesContainer::build(self.shapes,self.leaf_list,&self.mode)
     }
 }

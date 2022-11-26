@@ -33,14 +33,6 @@ pub(super) struct StyleTreeNode {
 }
 
 impl StyleTreeNode {
-    fn empty() -> StyleTreeNode {
-        StyleTreeNode {
-            here: Styles { container: ContainerAllotmentStyle::empty(), leaf: SpecifiedStyle::empty() },
-            all: false,
-            children: HashMap::new()
-        }
-    }
-
     pub(super) fn new(container: ContainerAllotmentStyle, leaf: SpecifiedStyle, all: bool) -> StyleTreeNode {
         StyleTreeNode {
             here: Styles { container, leaf },
@@ -85,10 +77,6 @@ pub struct StyleTree {
 }
 
 impl StyleTree {
-    pub fn empty() -> StyleTree {
-        Self::root(StyleTreeNode::empty())
-    }
-
     pub fn new(mut builder: StyleTreeBuilder) -> StyleTree { builder.build() }
 
     pub fn get_container(&self, name: &AllotmentNamePart) -> &ContainerAllotmentStyle {

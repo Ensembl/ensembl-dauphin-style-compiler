@@ -1,6 +1,6 @@
 use peregrine_toolkit::eachorevery::{EachOrEveryFilter, EachOrEvery};
 
-use crate::{DataMessage, Plotter, ShapeDemerge, Shape, allotment::{transformers::transformers::Transformer, style::{style::LeafStyle}}, LeafRequest};
+use crate::{DataMessage, Plotter, ShapeDemerge, Shape, allotment::{style::{style::LeafStyle}, boxes::leaf::AnchoredLeaf}, LeafRequest};
 use std::{cmp::{max, min}, hash::Hash, sync::Arc};
 
 const SCALE : i64 = 200; // XXX configurable
@@ -139,7 +139,7 @@ impl WiggleShape<LeafStyle> {
 
 }
 
-impl WiggleShape<Arc<dyn Transformer>> {
+impl WiggleShape<AnchoredLeaf> {
     pub fn make(&self) -> Vec<WiggleShape<LeafStyle>> {
         let allotment = self.allotments.get(0).unwrap();
         let (variety,coord_system) = allotment.choose_variety();

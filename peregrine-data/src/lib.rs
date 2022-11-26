@@ -223,7 +223,7 @@ mod shape {
     };
     pub use self::settingmode::SettingMode;
     pub use self::shape::{ ShapeDemerge, Shape };
-    pub use self::abstractshapescontainer::AbstractShapesContainer;
+    pub use self::abstractshapescontainer::FloatingShapesContainer;
     pub use self::programshapes::ProgramShapesBuilder;
 }
 
@@ -317,7 +317,7 @@ pub use self::shape::shape::DrawingShape;
 pub use self::shape::{ 
     Patina, Colour, DirectColour, DrawnType, Shape, HotspotPatina, PenGeometry, Background,
     Pen, Plotter, ShapeDemerge, SettingMode,
-    ProgramShapesBuilder, AbstractShapesContainer, AttachmentPoint
+    ProgramShapesBuilder, FloatingShapesContainer, AttachmentPoint
 };
 pub use self::allotment::core::coordsystem::{ CoordinateSystem };
 pub use self::switch::switches::{ Switches };

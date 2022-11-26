@@ -1,6 +1,5 @@
-use std::sync::Arc;
 use peregrine_toolkit::error::Error;
-use crate::{allotment::{boxes::{stacker::Stacker, overlay::Overlay, bumper::Bumper}, boxes::{leaf::FloatingLeaf, root::{Root}}, core::boxtraits::{Stackable, Transformable}}};
+use crate::{allotment::{boxes::{stacker::Stacker, overlay::Overlay, bumper::Bumper}, boxes::{leaf::FloatingLeaf, root::{Root}}, core::boxtraits::{Stackable}}};
 
 #[derive(Clone)]
 pub enum ContainerHolder {
@@ -11,20 +10,12 @@ pub enum ContainerHolder {
 }
 
 impl ContainerHolder {
-    pub(crate) fn add_leaf(&mut self, child: &LeafHolder) {
-        match (self,child) {
-            (ContainerHolder::Root(root),LeafHolder::Leaf(leaf)) => {
-                root.add_child(leaf);
-            },
-            (ContainerHolder::Stack(stack),LeafHolder::Leaf(leaf)) => {
-                stack.add_child(leaf);
-            },
-            (ContainerHolder::Overlay(overlay),LeafHolder::Leaf(leaf)) => {
-                overlay.add_child(leaf);
-            },
-            (ContainerHolder::Bumper(bumper),LeafHolder::Leaf(leaf)) => {
-                bumper.add_child(leaf);
-            }
+    pub(crate) fn add_leaf(&mut self, leaf: &FloatingLeaf) {
+        match self {
+            ContainerHolder::Root(root) => { root.add_child(leaf); },
+            ContainerHolder::Stack(stack) => { stack.add_child(leaf); },
+            ContainerHolder::Overlay(overlay) => { overlay.add_child(leaf); },
+            ContainerHolder::Bumper(bumper) => { bumper.add_child(leaf); }
         }
     }
 
@@ -53,18 +44,5 @@ impl ContainerHolder {
             }
         }
         Ok(())
-    }
-}
-
-#[derive(Clone)]
-pub enum LeafHolder {
-    Leaf(FloatingLeaf)
-}
-
-impl LeafHolder {
-    pub(crate) fn into_tranfsormable(self) -> Arc<dyn Transformable> {
-        match self {
-            LeafHolder::Leaf(leaf) => Arc::new(leaf)
-        }
     }
 }
