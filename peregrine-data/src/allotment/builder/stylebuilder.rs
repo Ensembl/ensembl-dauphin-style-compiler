@@ -1,6 +1,6 @@
 use std::{collections::HashMap};
 use peregrine_toolkit::error::Error;
-use crate::{allotment::{core::{trainstate::CarriageTrainStateSpec, allotmentname::{AllotmentNamePart, AllotmentName}, boxpositioncontext::BoxPositionContext}, boxes::{ stacker::Stacker, overlay::Overlay, bumper::Bumper }, boxes::{leaf::{FloatingLeaf}}, transformers::drawinginfo::DrawingInfo, stylespec::stylegroup::AllotmentStyleGroup, style::style::ContainerAllotmentType}, LeafRequest, LeafStyle};
+use crate::{allotment::{core::{trainstate::CarriageTrainStateSpec, allotmentname::{AllotmentNamePart, AllotmentName}, boxpositioncontext::BoxPositionContext, drawinginfo::DrawingInfo}, boxes::{ stacker::Stacker, overlay::Overlay, bumper::Bumper }, boxes::{leaf::{FloatingLeaf}}, stylespec::stylegroup::AllotmentStyleGroup, style::style::ContainerAllotmentType}, LeafRequest, LeafStyle};
 use super::holder::{ContainerHolder};
 
 struct StyleBuilder<'a> {

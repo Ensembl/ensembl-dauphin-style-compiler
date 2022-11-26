@@ -1,5 +1,5 @@
 use peregrine_toolkit::eachorevery::EachOrEveryFilter;
-use crate::{DataMessage, Patina, ShapeDemerge, Shape, SpaceBaseArea, reactive::Observable, allotment::{transformers::transformers::{TransformerVariety}, style::{style::{LeafStyle}}, boxes::leaf::AnchoredLeaf}, LeafRequest, CoordinateSystem};
+use crate::{DataMessage, Patina, ShapeDemerge, Shape, SpaceBaseArea, reactive::Observable, allotment::{style::{style::{LeafStyle}}, boxes::leaf::AnchoredLeaf}, LeafRequest, CoordinateSystem};
 use std::{hash::Hash};
 
 #[cfg_attr(debug_assertions,derive(Debug))]
@@ -82,22 +82,22 @@ impl RectangleShape<LeafStyle> {
 }
 
 impl RectangleShape<AnchoredLeaf> {
-    fn demerge_by_variety(&self) -> Vec<((TransformerVariety,CoordinateSystem),RectangleShape<AnchoredLeaf>)> {
+    fn demerge_by_variety(&self) -> Vec<(CoordinateSystem,RectangleShape<AnchoredLeaf>)> {
         let demerge = self.area.top_left().allotments().demerge(self.area.len(),|x| {
-            x.choose_variety()
+            x.coordinate_system().clone()
         });
         let mut out = vec![];
-        for (variety,filter) in demerge {
-            out.push((variety,self.filter(&filter)));
+        for (coordinate_system,filter) in demerge {
+            out.push((coordinate_system,self.filter(&filter)));
         }
         out
     }
 
     pub fn make(&self) -> Vec<RectangleShape<LeafStyle>> {
         let mut out = vec![];
-        for ((variety,coord_system),rectangles) in self.demerge_by_variety() {
+        for (coord_system,rectangles) in self.demerge_by_variety() {
             out.push(RectangleShape {
-                area: variety.spacebasearea_transform(&coord_system,&rectangles.area),
+                area: rectangles.area.spacebasearea_transform(&coord_system),
                 patina: rectangles.patina.clone(),
                 wobble: rectangles.wobble.clone()
             });

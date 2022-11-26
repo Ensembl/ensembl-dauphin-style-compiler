@@ -1,6 +1,6 @@
 use std::{sync::{Arc}};
 use peregrine_toolkit::{puzzle::{DelayedSetter, constant, derived, StaticValue, StaticAnswer, promise_delayed, cache_constant_clonable, delayed }};
-use crate::{allotment::{core::{allotmentname::{AllotmentName, AllotmentNamePart}, boxtraits::{Stackable, BuildSize, Coordinated}, boxpositioncontext::BoxPositionContext}, transformers::{transformers::{TransformerVariety}, simple::{SimpleTransformerHolder, SimpleTransformer}, drawinginfo::DrawingInfo}, style::{style::{LeafStyle, Indent}}, util::{rangeused::RangeUsed, bppxconverter::BpPxConverter}, globals::playingfield::PlayingFieldEdge}, CoordinateSystem};
+use crate::{allotment::{core::{allotmentname::{AllotmentName, AllotmentNamePart}, boxtraits::{Stackable, BuildSize, Coordinated}, boxpositioncontext::BoxPositionContext, drawinginfo::DrawingInfo}, style::{style::{LeafStyle, Indent}}, util::{rangeused::RangeUsed, bppxconverter::BpPxConverter}, globals::playingfield::PlayingFieldEdge}, CoordinateSystem};
 
 // TODO ranged bppxconverter
 fn full_range_piece(coord_system: &CoordinateSystem, base_range: &RangeUsed<f64>, pixel_range: &RangeUsed<f64>, bp_px_converter: &StaticValue<Arc<BpPxConverter>>) -> StaticValue<RangeUsed<f64>> {
@@ -131,20 +131,15 @@ impl AnchoredLeaf {
         }
     }
 
-    pub(crate) fn choose_variety(&self) -> (TransformerVariety,CoordinateSystem) { (TransformerVariety::SimpleTransformer,self.statics.coord_system.clone()) }
-    pub(crate) fn into_simple_transformer(&self) -> Option<SimpleTransformerHolder> { Some(SimpleTransformerHolder(Arc::new(self.clone()))) }
+    pub(crate) fn coordinate_system(&self) -> &CoordinateSystem { &self.statics.coord_system }
     pub(crate) fn get_style(&self) -> &LeafStyle { &self.statics }
 
     #[cfg(any(debug_assertions,test))]
     pub(crate) fn describe(&self) -> String {
         format!("{:?}",self)
     }
-}
 
-impl SimpleTransformer for AnchoredLeaf {
-    fn top(&self) -> f64 { self.top }
-    fn bottom(&self) -> f64 { self.top + self.height }
-    fn indent(&self) -> f64 { self.indent }
-    fn as_simple_transformer(&self) -> &dyn SimpleTransformer { self }
-    fn get_style(&self) -> &LeafStyle { &self.statics }
+    pub(crate) fn top(&self) -> f64 { self.top }
+    pub(crate) fn bottom(&self) -> f64 { self.top + self.height }
+    pub(crate) fn indent(&self) -> f64 { self.indent }
 }

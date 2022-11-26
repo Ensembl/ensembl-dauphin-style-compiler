@@ -1,5 +1,5 @@
 use peregrine_toolkit::eachorevery::{EachOrEveryFilter, EachOrEvery};
-use crate::{DataMessage, ShapeDemerge, Shape, SpaceBase, allotment::{transformers::transformers::{TransformerVariety}, style::{style::LeafStyle}, boxes::leaf::AnchoredLeaf}, LeafRequest, BackendNamespace, CoordinateSystem};
+use crate::{DataMessage, ShapeDemerge, Shape, SpaceBase, allotment::{style::{style::LeafStyle}, boxes::leaf::AnchoredLeaf}, LeafRequest, BackendNamespace, CoordinateSystem};
 use std::{hash::Hash,};
 
 #[cfg_attr(debug_assertions,derive(Debug))]
@@ -70,13 +70,13 @@ impl<A: Clone> ImageShape<A> {
 }
 
 impl ImageShape<AnchoredLeaf> {
-    fn demerge_by_variety(&self) -> Vec<((TransformerVariety,CoordinateSystem),ImageShape<AnchoredLeaf>)> {
+    fn demerge_by_variety(&self) -> Vec<(CoordinateSystem,ImageShape<AnchoredLeaf>)> {
         let demerge = self.position.allotments().demerge(self.position.len(),|x| {
-            x.choose_variety()
+            x.coordinate_system().clone()
         });
         let mut out = vec![];
-        for (variety,filter) in demerge {
-            out.push((variety,self.filter(&filter)));
+        for (coord,filter) in demerge {
+            out.push((coord,self.filter(&filter)));
         }
         out
     }
@@ -98,9 +98,9 @@ impl ImageShape<LeafStyle> {
 impl ImageShape<AnchoredLeaf> {
     pub fn make(&self) -> Vec<ImageShape<LeafStyle>> {
         let mut out = vec![];
-        for ((variety,coord_system),images) in self.demerge_by_variety() {
+        for (coord_system,images) in self.demerge_by_variety() {
             out.push(ImageShape {
-                position: variety.spacebase_transform(&coord_system,&self.position),
+                position: self.position.spacebase_transform(&coord_system),
                 channel: self.channel.clone(),
                 names: images.names.clone()
             });

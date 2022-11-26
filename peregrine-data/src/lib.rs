@@ -32,6 +32,8 @@ mod allotment {
         pub(crate) mod leaflist;
         pub(crate) mod leafrequest;
         pub(crate) mod trainstate;
+        pub(crate) mod drawinginfo;
+        pub(crate) mod transformers;
     }
 
     pub(crate) mod globals {
@@ -49,13 +51,6 @@ mod allotment {
         pub(crate) mod stylegroup;
         pub(crate) mod styletree;
         pub(crate) mod styletreebuilder;
-    }
-
-    pub(crate) mod transformers {
-        pub(crate) mod drawinginfo;
-        pub(crate) mod transformertraits;
-        pub(crate) mod simple;
-        pub(crate) mod transformers;
     }
 
     pub(crate) mod util {

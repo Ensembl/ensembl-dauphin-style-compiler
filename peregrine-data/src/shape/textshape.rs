@@ -1,5 +1,5 @@
 use peregrine_toolkit::{eachorevery::{EachOrEveryFilter, EachOrEvery}};
-use crate::{DataMessage, Pen, ShapeDemerge, Shape, SpaceBase, allotment::{transformers::{transformers::{TransformerVariety}}, style::{style::LeafStyle}, util::rangeused::RangeUsed, core::allotmentname::AllotmentName, boxes::leaf::AnchoredLeaf}, LeafRequest, SpaceBaseArea, PartialSpaceBase, CoordinateSystem};
+use crate::{DataMessage, Pen, ShapeDemerge, Shape, SpaceBase, allotment::{style::{style::LeafStyle}, util::rangeused::RangeUsed, core::allotmentname::AllotmentName, boxes::leaf::AnchoredLeaf}, LeafRequest, SpaceBaseArea, PartialSpaceBase, CoordinateSystem};
 use std::{hash::Hash};
 
 #[cfg_attr(debug_assertions,derive(Debug))]
@@ -125,22 +125,22 @@ impl TextShape<LeafStyle> {
 }
 
 impl TextShape<AnchoredLeaf> {
-    fn demerge_by_variety(&self) -> Vec<((TransformerVariety,CoordinateSystem),TextShape<AnchoredLeaf>)> {
+    fn demerge_by_variety(&self) -> Vec<(CoordinateSystem,TextShape<AnchoredLeaf>)> {
         let demerge = self.position.allotments().demerge(self.position.len(),|x| {
-            x.choose_variety()
+            x.coordinate_system().clone()
         });
         let mut out = vec![];
-        for (variety,filter) in demerge {
-            out.push((variety,self.filter(&filter)));
+        for (coord,filter) in demerge {
+            out.push((coord,self.filter(&filter)));
         }
         out
     }
 
     pub fn make(&self) -> Vec<TextShape<LeafStyle>> {
         let mut out = vec![];
-        for ((variety,coord_system),texts) in self.demerge_by_variety() {
+        for (coord_system,texts) in self.demerge_by_variety() {
             out.push(TextShape {
-                position: variety.spacebase_transform(&coord_system,&texts.position),
+                position: texts.position.spacebase_transform(&coord_system),
                 run: texts.run.clone(),
                 text: texts.text.clone(),
                 pen: texts.pen.clone()

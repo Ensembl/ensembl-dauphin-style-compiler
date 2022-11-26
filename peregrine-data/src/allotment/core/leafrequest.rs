@@ -1,7 +1,7 @@
 use std::{sync::{Arc, Mutex}, borrow::BorrowMut };
 use peregrine_toolkit::lock;
-use crate::{allotment::{transformers::drawinginfo::DrawingInfo, stylespec::stylegroup::AllotmentStyleGroup, boxes::leaf::FloatingLeaf}, LeafStyle};
-use super::{allotmentname::{allotmentname_hashmap, AllotmentName, AllotmentNameHashMap}};
+use crate::{allotment::{stylespec::stylegroup::AllotmentStyleGroup, boxes::leaf::FloatingLeaf}, LeafStyle};
+use super::{allotmentname::{allotmentname_hashmap, AllotmentName, AllotmentNameHashMap}, drawinginfo::DrawingInfo};
 
 pub struct LeafTransformableMap {
     transformables: AllotmentNameHashMap<FloatingLeaf>
