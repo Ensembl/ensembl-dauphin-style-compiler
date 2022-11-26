@@ -42,7 +42,7 @@ When in a state the node will receive messages concerning movement of the mouse 
 
 The calls into the nodes (inside `GestureNodeImpl`) are:
 
-* `new` -- called when a node is newly created (the node may wish to set the cursor or set timers);
+* `init` -- called when a node is newly created (the node may wish to set the cursor or set timers);
 * `timeout` -- called when a timeout expires
 * `continues` -- the mouse has moved
 * `finished` -- the action is over as the mouse has been unclicked.

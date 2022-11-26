@@ -8,7 +8,7 @@ impl Drag {
 }
 
 impl GestureNodeImpl for Drag {
-    fn new(&mut self, transition: &mut GestureNodeTransition, _state: &mut GestureNodeState, _fingers: &mut OneOrTwoFingers) -> Result<(),Message> {
+    fn init(&mut self, transition: &mut GestureNodeTransition, _state: &mut GestureNodeState, _fingers: &mut OneOrTwoFingers) -> Result<(),Message> {
         transition.set_cursor(CursorCircumstance::Drag);
         Ok(())
     }

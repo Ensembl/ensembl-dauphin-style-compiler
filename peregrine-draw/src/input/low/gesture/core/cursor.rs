@@ -6,11 +6,11 @@ use crate::run::{ CursorCircumstance, PgConfigKey };
 use crate::util::error::confused_browser;
 
 /* handles help avoid nested stuff causing chaos */
-pub struct CursorHandle(Arc<Mutex<CursorState>>,pub usize);
+pub struct CursorHandle(Arc<Mutex<CursorState>>,usize,usize);
 
 impl Drop for CursorHandle {
     fn drop(&mut self) {
-        self.0.lock().unwrap().free(self.1);
+        self.0.lock().unwrap().free(self.1,self.2);
     }
 }
 
@@ -18,7 +18,7 @@ struct CursorState {
     default: CursorCircumstance,
     callback: Box<dyn Fn(&CursorCircumstance)>,
     next_handle: usize,
-    handle_values: BTreeMap<usize,CursorCircumstance>
+    handle_values: BTreeMap<(usize,usize),CursorCircumstance>
 }
 
 impl CursorState {
@@ -38,13 +38,13 @@ impl CursorState {
     fn allocate(&mut self, circ: &CursorCircumstance) -> usize {
         let index = self.next_handle;
         self.next_handle += 1;
-        self.handle_values.insert(index,circ.clone());
+        self.handle_values.insert((circ.priority(),index),circ.clone());
         self.update();
         index
     }
 
-    fn free(&mut self, handle: usize) {
-        self.handle_values.remove(&handle);
+    fn free(&mut self, prio: usize, handle: usize) {
+        self.handle_values.remove(&(prio,handle));
         self.update();
     }
 }
@@ -79,6 +79,6 @@ impl Cursor {
 
     pub fn set(&self, circ: &CursorCircumstance) -> CursorHandle {
         let index = self.state.lock().unwrap().allocate(circ);
-        CursorHandle(self.state.clone(),index)
+        CursorHandle(self.state.clone(),circ.priority(),index)
     }
 }

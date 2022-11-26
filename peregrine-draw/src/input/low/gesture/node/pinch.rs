@@ -115,8 +115,8 @@ impl Pinch {
 
 impl GestureNodeImpl for Pinch {
     fn continues(&mut self, _transition: &mut GestureNodeTransition, state: &mut GestureNodeState, fingers: &mut OneOrTwoFingers) -> Result<(),Message> {
-        if let Some(secondary) = fingers.secondary() {
-            self.set_position(fingers.primary().current(),secondary.current());
+        if let Some(two) = fingers.two_mut() {
+            self.set_position(two.first().current(),two.second().current());
             PointerAction::RunningPinch(state.initial_modifiers.clone(),self.position()).emit(&state.lowlevel,true);
         }
         Ok(())

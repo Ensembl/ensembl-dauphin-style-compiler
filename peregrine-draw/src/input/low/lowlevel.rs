@@ -22,9 +22,8 @@ use peregrine_toolkit::plumbing::distributor::Distributor;
 use peregrine_toolkit_async::sync::needed::Needed;
 use crate::run::CursorCircumstance;
 
-// XXX pub
 #[derive(Clone)]
-pub struct LowLevelState {
+pub(crate) struct LowLevelState {
     commander: PgCommanderWeb,
     distributor: Distributor<InputEvent>,
     dom: PeregrineDom,
@@ -35,7 +34,7 @@ pub struct LowLevelState {
     spectres: SpectreManager,
     pointer_last_seen: Arc<Mutex<Option<(f64,f64)>>>,
     target_reporter: TargetReporter,
-    drag_disabled: Arc<Mutex<bool>>
+    special: Arc<Mutex<Vec<String>>>
 }
 
 impl LowLevelState {
@@ -55,7 +54,7 @@ impl LowLevelState {
             spectres: spectres.clone(),
             pointer_last_seen: Arc::new(Mutex::new(None)),
             target_reporter: target_reporter.clone(),
-            drag_disabled: Arc::new(Mutex::new(false)),
+            special: Arc::new(Mutex::new(vec![])),
         },distributor))
     }
 
@@ -104,7 +103,10 @@ impl LowLevelState {
         self.cursor.set(circ)
     }
 
-    pub(crate) fn is_drag_disabled(&self) -> bool { *lock!(self.drag_disabled) }
+    pub(crate) fn special_status<F,X>(&self, cb: F) -> X where F: FnOnce(&[String]) -> X { 
+        cb(&lock!(self.special))
+    }
+    
     pub(crate) fn spectre_manager(&self) -> &SpectreManager { &self.spectres }
     pub(crate) fn spectre_manager_mut(&mut self) -> &mut SpectreManager { &mut self.spectres }
 
@@ -146,6 +148,6 @@ impl LowLevelInput {
         } else {
             self.hotspot_cursor_handle = None;
         }
-        *lock!(self.state.drag_disabled) = special.len() > 0;
+        *lock!(self.state.special) = special.to_vec();
     }
 }

@@ -75,7 +75,7 @@ impl PatinaProgramName {
                     Statement::new_fragment("gl_FragColor = texture2D(uSampler,
                         vec2(
                             uFreedom.y*(gl_FragCoord.x-vOrigin.x)/uSamplerSize.x+vTextureCoord.x,
-                            uFreedom.x*(gl_FragCoord.y-vOrigin.y)/uSamplerSize.y+vTextureCoord.y)
+                            -uFreedom.x*(gl_FragCoord.y-vOrigin.y)/uSamplerSize.y+vTextureCoord.y)
                         )"),
                     Statement::new_fragment("gl_FragColor.a = gl_FragColor.a * uOpacity"),
                 ]

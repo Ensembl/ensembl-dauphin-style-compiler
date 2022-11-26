@@ -76,7 +76,7 @@ impl GestureState {
         self.mode = mode;
         let mut transition = GestureNodeTransition::new(&self.timer_handles);
         self.timer_handles.invalidate();
-        self.mode.new(&mut transition,&mut self.state,&mut self.fingers)?;
+        self.mode.init(&mut transition,&mut self.state,&mut self.fingers)?;
         Ok(transition)
     }
 

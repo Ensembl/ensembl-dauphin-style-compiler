@@ -20,7 +20,8 @@ pub enum CursorCircumstance {
     Pinch,
     WheelNegative,
     WheelPositive,
-    Hotspot
+    Hotspot,
+    Maypole
 }
 
 impl CursorCircumstance {
@@ -32,8 +33,17 @@ impl CursorCircumstance {
             CursorCircumstance::Pinch,
             CursorCircumstance::WheelNegative,
             CursorCircumstance::WheelPositive,
-            CursorCircumstance::Hotspot
+            CursorCircumstance::Hotspot,
+            CursorCircumstance::Maypole
         ]
+    }
+
+    pub(crate) fn priority(&self) -> usize {
+        match self {
+            CursorCircumstance::Maypole => 1,
+            CursorCircumstance::Hold => 1,
+            _ => 0
+        }
     }
 }
 
@@ -142,6 +152,7 @@ lazy_static! {
             ConfigKeyInfo { key: PgConfigKey::Cursor(CursorCircumstance::Hold), name: "mouse.cursor.hold", default: &PgConfigValue::StaticStr("crosshair") },
             ConfigKeyInfo { key: PgConfigKey::Cursor(CursorCircumstance::Pinch), name: "mouse.cursor.pinch", default: &PgConfigValue::StaticStr("nsew-resize") },
             ConfigKeyInfo { key: PgConfigKey::Cursor(CursorCircumstance::Hotspot), name: "mouse.cursor.hotspot", default: &PgConfigValue::StaticStr("pointer") },
+            ConfigKeyInfo { key: PgConfigKey::Cursor(CursorCircumstance::Maypole), name: "mouse.cursor.maypole", default: &PgConfigValue::StaticStr("w-resize") },
             ConfigKeyInfo { key: PgConfigKey::DragCursorDelay, name: "mouse.drag-cursor-delay", default: &PgConfigValue::Float(100.) },
             ConfigKeyInfo { key: PgConfigKey::PullMaxSpeed, name: "pull.max-speed", default: &PgConfigValue::Float(1./40.) },
             ConfigKeyInfo { key: PgConfigKey::AutomatedPullMaxSpeed, name: "pull.max-speed.automated", default: &PgConfigValue::Float(1.) },
@@ -156,7 +167,7 @@ lazy_static! {
             ConfigKeyInfo { key: PgConfigKey::PinchMinSep, name: "touch.pinch-min-sep", default: &PgConfigValue::Float(16.) },
             ConfigKeyInfo { key: PgConfigKey::PinchMinScale, name: "touch.pinch-min-scale", default: &PgConfigValue::Float(1./1000000.) },
             ConfigKeyInfo { key: PgConfigKey::AuxBufferSize, name: "perf.aux-buffer-size", default: &PgConfigValue::Size(256*1024) },
-            ConfigKeyInfo { key: PgConfigKey::Spectre(SpectreConfigKey::MarchingAntsWidth), name: "spectre.ants.width", default: &PgConfigValue::Float(1.) },
+            ConfigKeyInfo { key: PgConfigKey::Spectre(SpectreConfigKey::MarchingAntsWidth), name: "spectre.ants.width", default: &PgConfigValue::Float(2.) },
             ConfigKeyInfo { key: PgConfigKey::Spectre(SpectreConfigKey::MarchingAntsLength), name: "spectre.ants.length", default: &PgConfigValue::Float(8.) },
             ConfigKeyInfo { key: PgConfigKey::Spectre(SpectreConfigKey::MarchingAntsProp), name: "spectre.ants.prop", default: &PgConfigValue::Float(0.5) },
             ConfigKeyInfo { key: PgConfigKey::Spectre(SpectreConfigKey::MarchingAntsColour), name: "spectre.ants.colour", default: &PgConfigValue::DirectColour(DirectColour(255,0,0,255)) },

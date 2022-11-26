@@ -60,7 +60,7 @@ impl Marquee {
 }
 
 impl GestureNodeImpl for Marquee {
-    fn new(&mut self, transition: &mut GestureNodeTransition, _state: &mut GestureNodeState, _fingers: &mut OneOrTwoFingers) -> Result<(),Message> {
+    fn init(&mut self, transition: &mut GestureNodeTransition, _state: &mut GestureNodeState, _fingers: &mut OneOrTwoFingers) -> Result<(),Message> {
         transition.set_cursor(CursorCircumstance::Hold);
         Ok(())
     }

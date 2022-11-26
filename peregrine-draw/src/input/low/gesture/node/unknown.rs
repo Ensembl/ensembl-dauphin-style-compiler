@@ -1,4 +1,4 @@
-use crate::{ Message, input::low::{gesture::core::{transition::{GestureNodeTransition, TimerHandle}, gesture::{GestureNodeState}, finger::OneOrTwoFingers, gesturenode::{GestureNode, GestureNodeImpl}}, pointer::PointerAction}, run::CursorCircumstance};
+use crate::{ Message, input::low::{gesture::{core::{transition::{GestureNodeTransition, TimerHandle}, gesture::{GestureNodeState}, finger::OneOrTwoFingers, gesturenode::{GestureNode, GestureNodeImpl}}, node::maypolenode::MaypoleNode}, pointer::PointerAction, lowlevel}, run::CursorCircumstance};
 use super::{drag::Drag, commontools::check_for_pinch, marquee::Marquee};
 
 pub(crate) struct Unknown {
@@ -16,7 +16,11 @@ impl Unknown {
 }
 
 impl GestureNodeImpl for Unknown {
-    fn new(&mut self, transition: &mut GestureNodeTransition, state: &mut GestureNodeState, _fingers: &mut OneOrTwoFingers) -> Result<(),Message> {
+    fn init(&mut self, transition: &mut GestureNodeTransition, state: &mut GestureNodeState, fingers: &mut OneOrTwoFingers) -> Result<(),Message> {
+        if state.lowlevel.special_status(|s| s.contains(&"maypole".to_string())) {
+            transition.new_mode(GestureNode::new(MaypoleNode::new(&mut state.lowlevel,&fingers)?));
+            return Ok(());
+        }
         self.hold_timer = Some(transition.add_timer(state.config.hold_delay));
         self.cursor_timer = Some(transition.add_timer(state.config.drag_cursor_delay));
         Ok(())
@@ -24,7 +28,7 @@ impl GestureNodeImpl for Unknown {
 
     fn timeout(&mut self, transition: &mut GestureNodeTransition, state: &mut GestureNodeState, fingers: &mut OneOrTwoFingers, handle: TimerHandle) -> Result<(),Message> {
         if let Some(hold_timer) = &self.hold_timer {
-            if handle == *hold_timer && !state.lowlevel.is_drag_disabled() {
+            if handle == *hold_timer && state.lowlevel.special_status(|s| s.len()) == 0 {
                 transition.new_mode(GestureNode::new(Marquee::new(&mut state.lowlevel,fingers)?));
                 PointerAction::SwitchToHold(state.initial_modifiers.clone(),fingers.primary().start()).emit(&state.lowlevel,true);
             }

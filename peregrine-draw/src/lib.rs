@@ -25,6 +25,7 @@ mod input {
                 pub(crate) mod pinch;
                 pub(crate) mod drag;
                 pub(super) mod marquee;
+                pub(super) mod maypolenode;
                 pub(crate) mod unknown;    
             }
         }
@@ -100,6 +101,7 @@ mod shape {
 
     pub(crate) mod spectres {
         pub(crate) mod ants;
+        pub(crate) mod maypole;
         pub(crate) mod stain;
         pub(crate) mod spectre;
         pub(crate) mod spectraldrawing;

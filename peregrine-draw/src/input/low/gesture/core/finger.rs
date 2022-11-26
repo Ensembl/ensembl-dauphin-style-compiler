@@ -1,3 +1,5 @@
+// TODO reduce clone-and-hack
+
 #[derive(Copy,Clone)]
 pub(super) struct OneFingerAxis {
     start: f64,
@@ -92,9 +94,9 @@ impl TwoFingers {
     }
 
     pub(crate) fn first(&self) -> &OneFinger { &self.0 }
-    pub(super) fn second(&self) -> &OneFinger { &self.1 }
-    pub(super) fn first_mut(&mut self) -> &mut OneFinger { &mut self.0 }
-    pub(super) fn second_mut(&mut self) -> &mut OneFinger { &mut self.1 }
+    pub(crate) fn second(&self) -> &OneFinger { &self.1 }
+    pub(crate) fn first_mut(&mut self) -> &mut OneFinger { &mut self.0 }
+    pub(crate) fn second_mut(&mut self) -> &mut OneFinger { &mut self.1 }
 
     fn calculate<F,G,X>(&self, access: G, cb: F) -> (X,X) 
             where F: Fn(f64,f64) -> X, G: Fn(&OneFinger) -> (f64,f64) {
@@ -134,9 +136,7 @@ impl OneOrTwoFingers {
     pub(super) fn new(primary: (f64,f64), secondary: Option<(f64,f64)>) -> OneOrTwoFingers {
         if let Some(secondary) = secondary {
             OneOrTwoFingers {
-                inner: OneOrTwoFingersInner::Two(TwoFingers::new(
-                    primary, secondary
-                )),
+                inner: OneOrTwoFingersInner::Two(TwoFingers::new(primary, secondary)),
                 new_secondary: true
         }
         } else {
@@ -158,20 +158,6 @@ impl OneOrTwoFingers {
         match &mut self.inner {
             OneOrTwoFingersInner::One(x) => x,
             OneOrTwoFingersInner::Two(x) => x.first_mut()
-        }
-    }
-
-    pub(crate) fn secondary(&self) -> Option<&OneFinger> {
-        match &self.inner {
-            OneOrTwoFingersInner::One(_) => None,
-            OneOrTwoFingersInner::Two(x) => Some(x.second())
-        }
-    }
-
-    pub(crate) fn secondary_mut(&mut self) -> Option<&mut OneFinger> {
-        match &mut self.inner {
-            OneOrTwoFingersInner::One(_) => None,
-            OneOrTwoFingersInner::Two(x) => Some(x.second_mut())
         }
     }
 
@@ -207,7 +193,7 @@ impl OneOrTwoFingers {
                 OneOrTwoFingersInner::Two(_) => { None }
             };
             if let Some(new) = new { self.inner = new; }
-            self.secondary_mut().unwrap().set(secondary);
+            self.two_mut().unwrap().second_mut().set(secondary);
         }
     }
 }

@@ -3,7 +3,7 @@ use crate::Message;
 use super::{finger::{ OneOrTwoFingers}, gesture::{GestureNodeState}, transition::{GestureNodeTransition, TimerHandle}};
 
 pub(crate) trait GestureNodeImpl {
-    fn new(&mut self, _transition: &mut GestureNodeTransition, _state: &mut GestureNodeState, _fingers: &mut OneOrTwoFingers) -> Result<(),Message> { Ok(()) }
+    fn init(&mut self, _transition: &mut GestureNodeTransition, _state: &mut GestureNodeState, _fingers: &mut OneOrTwoFingers) -> Result<(),Message> { Ok(()) }
     fn timeout(&mut self, _transition: &mut GestureNodeTransition, _state: &mut GestureNodeState, _fingers: &mut OneOrTwoFingers, _handle: TimerHandle) -> Result<(),Message> { Ok(()) }
     fn continues(&mut self, transition: &mut GestureNodeTransition, state: &mut GestureNodeState, fingers: &mut OneOrTwoFingers) -> Result<(),Message>;
     fn finished(&mut self, state: &mut GestureNodeState, fingers: &mut OneOrTwoFingers) -> Result<bool,Message>;
@@ -18,8 +18,8 @@ impl GestureNode {
 }
 
 impl GestureNodeImpl for GestureNode {
-    fn new(&mut self, transition: &mut GestureNodeTransition, state: &mut GestureNodeState, fingers: &mut OneOrTwoFingers) -> Result<(),Message> {
-        self.0.new(transition,state,fingers)
+    fn init(&mut self, transition: &mut GestureNodeTransition, state: &mut GestureNodeState, fingers: &mut OneOrTwoFingers) -> Result<(),Message> {
+        self.0.init(transition,state,fingers)
     }
 
     fn timeout(&mut self, transition: &mut GestureNodeTransition, state: &mut GestureNodeState,fingers: &mut OneOrTwoFingers, handle: TimerHandle) -> Result<(),Message> {
