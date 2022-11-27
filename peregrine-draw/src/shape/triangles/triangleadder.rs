@@ -21,7 +21,7 @@ impl TriangleAdder {
         })
     }
 
-    pub(super) fn add_data4(&self, elements: &mut ProcessStanzaElements, data: Vec<f32>, depths: Vec<f32>) -> Result<(),Error> {
+    pub(crate) fn add_data4(&self, elements: &mut ProcessStanzaElements, data: Vec<f32>, depths: Vec<f32>) -> Result<(),Error> {
         if let Some(depth) = &self.depth {
             elements.add(depth, depths, 1)?;
         }
@@ -29,14 +29,14 @@ impl TriangleAdder {
         Ok(())
     }
 
-    pub(super) fn add_origin_data4(&self, elements: &mut ProcessStanzaElements, data: Vec<f32>) -> Result<(),Error> {
+    pub(crate) fn add_origin_data4(&self, elements: &mut ProcessStanzaElements, data: Vec<f32>) -> Result<(),Error> {
         if let Some(origin_delta_handle) = &self.origin_coords {
             elements.add(origin_delta_handle,data,4)?;
         }
         Ok(())
     }
 
-    pub(super) fn add_run_data4(&self, elements: &mut ProcessStanzaElements, data: Vec<f32>) -> Result<(),Error> {
+    pub(crate) fn add_run_data4(&self, elements: &mut ProcessStanzaElements, data: Vec<f32>) -> Result<(),Error> {
         if let Some(run_delta_handle) = &self.run_coords {
             elements.add(run_delta_handle,data,4)?;
         }

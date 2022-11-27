@@ -1,7 +1,7 @@
 use std::{collections::{HashMap, HashSet}};
 use peregrine_toolkit::{debug_log, eachorevery::EachOrEvery};
 use super::{core::{ Patina, Pen, Plotter }, imageshape::ImageShape, rectangleshape::RectangleShape, textshape::TextShape, wiggleshape::WiggleShape, emptyshape::EmptyShape, shape::UnplacedShape};
-use crate::{LeafRequest, FloatingShapesContainer, allotment::core::leaflist::LeafList, BackendNamespace, LoadMode};
+use crate::{LeafRequest, FloatingShapesContainer, allotment::core::leaflist::LeafList, BackendNamespace, LoadMode, CircleShape};
 use crate::{Assets, DataMessage, SpaceBaseArea, reactive::Observable, SpaceBase, allotment::{stylespec::{stylegroup::AllotmentStyleGroup, styletreebuilder::StyleTreeBuilder, styletree::StyleTree}}};
 
 pub struct ProgramShapesBuilder {
@@ -49,6 +49,11 @@ impl ProgramShapesBuilder {
 
     pub fn add_rectangle(&mut self, area: SpaceBaseArea<f64,LeafRequest>, patina: Patina, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>) -> Result<(),DataMessage> {
         self.push_shape(RectangleShape::new(area,patina,wobble)?);
+        Ok(())
+    }
+
+    pub fn add_circle(&mut self, position: SpaceBase<f64,LeafRequest>, radius: EachOrEvery<f64>, patina: Patina, wobble: Option<SpaceBase<Observable<'static,f64>,()>>) -> Result<(),DataMessage> {
+        self.push_shape(CircleShape::new(position,radius,patina,wobble)?);
         Ok(())
     }
 

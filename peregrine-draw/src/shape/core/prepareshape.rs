@@ -1,4 +1,4 @@
-use peregrine_data::{ Colour, DrawnType, Patina, RectangleShape, Shape, ShapeDemerge, HollowEdge2, LeafStyle, DrawingShape, CoordinateSystem };
+use peregrine_data::{ Colour, DrawnType, Patina, RectangleShape, Shape, ShapeDemerge, HollowEdge2, LeafStyle, DrawingShape, CoordinateSystem, CircleShape };
 use peregrine_toolkit::eachorevery::EachOrEvery;
 use peregrine_toolkit::error::Error;
 use crate::shape::canvasitem::heraldry::{HeraldryCanvasesUsed, Heraldry};
@@ -42,6 +42,22 @@ fn split_spacebaserect(tools: &mut DrawingToolsBuilder, shape: &RectangleShape<L
         },
         Patina::Hotspot(hotspot) => {
             out.push(GLShape::SpaceBaseRect(shape.area().clone(),SimpleShapePatina::Hotspot(hotspot.clone()),depth,draw_group.clone(),None));
+        },
+        Patina::Metadata(_,_) => {}
+    }
+    Ok(out)
+}
+
+fn split_circle(shape: &CircleShape<LeafStyle>, draw_group: &DrawGroup) -> Result<Vec<GLShape>,Error> {
+    let mut out = vec![];
+    let depth = shape.position().allotments().map(|x| x.depth);
+    let wobble = shape.wobble().clone();
+    match shape.patina() {
+        Patina::Drawn(_,_) => {
+            out.push(GLShape::Circle(shape.position().clone(),shape.radius().clone(),SimpleShapePatina::from_patina(shape.patina())?,depth,draw_group.clone(),wobble));
+        },
+        Patina::Hotspot(hotspot) => {
+            out.push(GLShape::Circle(shape.position().clone(),shape.radius().clone(),SimpleShapePatina::Hotspot(hotspot.clone()),depth,draw_group.clone(),None));
         },
         Patina::Metadata(_,_) => {}
     }
@@ -119,6 +135,9 @@ pub(crate) fn prepare_shape_in_layer(tools: &mut DrawingToolsBuilder, shape: Dra
             },
             Shape::SpaceBaseRect(shape) => {
                 out.append(&mut split_spacebaserect(tools,&shape,&draw_group)?);
+            },
+            Shape::Circle(shape) => {
+                out.append(&mut split_circle(&shape,&draw_group)?);
             }
         }
     }

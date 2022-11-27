@@ -1,5 +1,5 @@
 use std::hash::Hash;
-use peregrine_toolkit::eachorevery::EachOrEveryFilter;
+use super::circleshape::CircleShape;
 use super::emptyshape::EmptyShape;
 use super::imageshape::ImageShape;
 use super::rectangleshape::RectangleShape;
@@ -30,6 +30,7 @@ pub trait ShapeDemerge {
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub enum Shape<A> {
     Text(TextShape<A>),
+    Circle(CircleShape<A>),
     Image(ImageShape<A>),
     Wiggle(WiggleShape<A>),
     SpaceBaseRect(RectangleShape<A>),
@@ -52,7 +53,8 @@ impl<A> Clone for Shape<A> where A: Clone {
             Self::Image(arg0) => Self::Image(arg0.clone()),
             Self::Wiggle(arg0) => Self::Wiggle(arg0.clone()),
             Self::SpaceBaseRect(arg0) => Self::SpaceBaseRect(arg0.clone()),
-            Self::Empty(arg0) => Self::Empty(arg0.clone())
+            Self::Empty(arg0) => Self::Empty(arg0.clone()),
+            Self::Circle(arg0) => Self::Circle(arg0.clone())
         }
     }
 }
@@ -64,7 +66,8 @@ impl<A> Shape<A> {
             Self::Image(arg0) => Shape::<B>::Image(arg0.map_new_allotment(cb)),
             Self::Wiggle(arg0) => Shape::<B>::Wiggle(arg0.map_new_allotment(cb)),
             Self::SpaceBaseRect(arg0) => Shape::<B>::SpaceBaseRect(arg0.map_new_allotment(cb)),
-            Self::Empty(arg0) => Shape::<B>::Empty(arg0.map_new_allotment(cb))
+            Self::Empty(arg0) => Shape::<B>::Empty(arg0.map_new_allotment(cb)),
+            Self::Circle(arg0) => Shape::<B>::Circle(arg0.map_new_allotment(cb)),
         }
     }
 
@@ -74,19 +77,8 @@ impl<A> Shape<A> {
             Shape::Text(shape) => shape.len(),
             Shape::Image(shape) => shape.len(),
             Shape::Wiggle(shape) => shape.len(),
-            Shape::Empty(shape) => shape.len()
-        }
-    }
-}
-
-impl<A: Clone> Shape<A> {
-    pub fn filter(&self, filter: &EachOrEveryFilter) -> Shape<A> {
-        match self {
-            Shape::SpaceBaseRect(shape) => Shape::SpaceBaseRect(shape.filter(filter)),
-            Shape::Text(shape) => Shape::Text(shape.filter(filter)),
-            Shape::Image(shape) => Shape::Image(shape.filter(filter)),
-            Shape::Wiggle(shape) => Shape::Wiggle(shape.filter(filter)),
-            Shape::Empty(shape) => Shape::Empty(shape.filter(filter))
+            Shape::Empty(shape) => shape.len(),
+            Shape::Circle(shape) => shape.len()
         }
     }
 }
@@ -98,7 +90,8 @@ impl Shape<LeafRequest> {
             Shape::Text(shape) => Shape::Text(shape.base_filter(min,max)),
             Shape::Image(shape) => Shape::Image(shape.base_filter(min,max)),
             Shape::Wiggle(shape) => Shape::Wiggle(shape.base_filter(min,max)),
-            Shape::Empty(shape) => Shape::Empty(shape.base_filter(min, max))
+            Shape::Empty(shape) => Shape::Empty(shape.base_filter(min, max)),
+            Shape::Circle(shape) => Shape::Circle(shape.base_filter(min, max))
         }
     }
 }
@@ -126,6 +119,11 @@ impl Shape<LeafStyle> {
                     (x,Shape::SpaceBaseRect(details))
                 ).collect()
             },
+            Shape::Circle(shape) => {
+                return shape.demerge(cat).drain(..).map(|(x,details)|
+                    (x,Shape::Circle(details))
+                ).collect()
+            },
             Shape::Empty(shape) => {
                 return shape.demerge(cat).drain(..).map(|(x,details)|
                     (x,Shape::Empty(details))
@@ -138,6 +136,7 @@ impl Shape<LeafStyle> {
 impl Shape<AnchoredLeaf> {
     pub fn make(&self) -> Vec<Shape<LeafStyle>> {
         match self {
+            Shape::Circle(shape) => shape.make().drain(..).map(|x| Shape::Circle(x)).collect(),
             Shape::SpaceBaseRect(shape) => shape.make().drain(..).map(|x| Shape::SpaceBaseRect(x)).collect(),
             Shape::Text(shape) => shape.make().drain(..).map(|x| Shape::Text(x)).collect(),
             Shape::Image(shape) => shape.make().drain(..).map(|x| Shape::Image(x)).collect(),
@@ -168,6 +167,9 @@ impl Shape<LeafRequest> {
                 register_space_area(area.area());
             },
             Shape::Text(shape) => {
+                shape.register_space();
+            },
+            Shape::Circle(shape) => {
                 shape.register_space();
             },
             Shape::Image(shape) => {

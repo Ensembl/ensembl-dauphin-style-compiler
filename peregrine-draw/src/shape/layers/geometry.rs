@@ -68,6 +68,11 @@ impl GeometryProgramName {
         /* Most actual data, tracks etc. Follows movements around the region. Optimised for minimal GPU work.
          * Cannot do anything relative to the screen bottom to minimise the number of buffers required:
          * rulers etc need to use TrackingSpecial.
+         * 
+         * x = x, px
+         * y = y, px
+         * z = x, bp
+         * a = depth
          */
         SourceInstrs::new(match self {
             GeometryProgramName::Triangles(TrianglesGeometry::Tracking) => vec![

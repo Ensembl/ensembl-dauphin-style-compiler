@@ -1,5 +1,5 @@
 use std::{collections::HashMap, sync::{Arc, Mutex}};
-use peregrine_data::{Colour, DirectColour, DrawnType, Patina, SpaceBase, SpaceBaseArea, PartialSpaceBase, reactive::{Observable}, ProgramShapesBuilder};
+use peregrine_data::{Colour, DirectColour, DrawnType, Patina, SpaceBase, SpaceBaseArea, PartialSpaceBase, reactive::{Observable}, ProgramShapesBuilder, LeafRequest};
 use peregrine_toolkit::{eachorevery::EachOrEvery, lock};
 use crate::{Message, run::{PgConfigKey, PgPeregrineConfig}, shape::{util::eoethrow::eoe_throw}};
 use super::{spectre::{AreaVariables, Spectre}, spectremanager::{SpectreConfigKey, SpectreManager}};
@@ -25,18 +25,11 @@ impl Maypole {
         Ok(maypole)
     }
 
-    pub(crate) fn set_position(&self, pos:f64) {
+    pub(crate) fn set_position(&self, pos: f64) {
         lock!(self.area).update((0.,pos,0.,0.));
     }
-}
 
-impl Spectre for Maypole {
-    fn draw(&self, shapes: &mut ProgramShapesBuilder) -> Result<(),Message> {
-        let leaf = shapes.use_allotment("window/origin/maypole").clone();
-        let mut props = HashMap::new();
-        props.insert("depth".to_string(),"121".to_string());
-        props.insert("system".to_string(), "window".to_string());
-        shapes.add_style("window/origin/maypole",props);
+    fn pole(&self, shapes: &mut ProgramShapesBuilder, leaf: &LeafRequest) -> Result<(),Message> {
         let pos2 = lock!(self.area).tlbr().clone();
         let top_left = PartialSpaceBase::from_spacebase(SpaceBase::new(
             &EachOrEvery::each(vec![0.]),
@@ -68,6 +61,40 @@ impl Spectre for Maypole {
             DrawnType::Stroke(self.width),
             EachOrEvery::every(Colour::Bar(DirectColour(255,255,255,0),self.colour.clone(),(self.length,self.length),self.prop))
         ),Some(obs)).map_err(|x| Message::DataError(x))?;
+        Ok(())
+    }
+
+    fn bobble(&self, shapes: &mut ProgramShapesBuilder, leaf: &LeafRequest) -> Result<(),Message> {
+        let pos2 = lock!(self.area).tlbr().clone();
+        let centre =  SpaceBase::new(
+            &EachOrEvery::each(vec![0.]),
+            &EachOrEvery::each(vec![8.]),
+            &EachOrEvery::each(vec![0.]),
+            &EachOrEvery::each(vec![leaf.clone()])
+        ).unwrap();
+        let obs = SpaceBase::new(
+            &EachOrEvery::each(vec![Observable::constant(0.)]),
+            &EachOrEvery::each(vec![Observable::constant(0.)]),
+            &EachOrEvery::every(pos2.1.observable()),
+            &EachOrEvery::every(())
+        ).unwrap();
+        let patina = Patina::Drawn(
+            DrawnType::Fill,
+            EachOrEvery::every(Colour::Direct(DirectColour(255,255,255,0))));
+        shapes.add_circle(centre,EachOrEvery::every(16.),patina,Some(obs)).map_err(|x| Message::DataError(x))?;
+        Ok(())
+    }
+}
+
+impl Spectre for Maypole {
+    fn draw(&self, shapes: &mut ProgramShapesBuilder) -> Result<(),Message> {
+        let leaf = shapes.use_allotment("window/origin/maypole").clone();
+        let mut props = HashMap::new();
+        props.insert("depth".to_string(),"121".to_string());
+        props.insert("system".to_string(), "window".to_string());
+        shapes.add_style("window/origin/maypole",props);
+        self.pole(shapes,&leaf)?;
+        self.bobble(shapes,&leaf)?;
         Ok(())
     }
 }

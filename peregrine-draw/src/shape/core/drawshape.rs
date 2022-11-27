@@ -4,11 +4,13 @@ use peregrine_data::reactive::Observable;
 use peregrine_data::{ Colour, DirectColour, DrawnType, Patina, Plotter, SpaceBaseArea, HollowEdge2, SpaceBase, LeafStyle, HotspotPatina };
 use peregrine_toolkit::eachorevery::{EachOrEvery, EachOrEveryFilterBuilder};
 use peregrine_toolkit::error::Error;
+use peregrine_toolkit::log;
 use super::directcolourdraw::DirectYielder;
 use super::super::layers::layer::{ Layer };
 use super::texture::{TextureYielder};
 use crate::shape::canvasitem::heraldry::{HeraldryHandle, HeraldryCanvas, HeraldryScale};
 use crate::shape::canvasitem::text::draw_text;
+use crate::shape::core::circlegeometry::make_circle;
 use crate::shape::core::wigglegeometry::{make_wiggle};
 use crate::shape::layers::drawing::DynamicShape;
 use crate::shape::layers::drawingtools::{DrawingToolsBuilder, CanvasType};
@@ -63,14 +65,14 @@ impl SimpleShapePatina {
     }
 }
 
-enum DrawingShapePatina {
+pub(crate) enum DrawingShapePatina {
     Solid(DirectYielder,EachOrEvery<DirectColour>),
     Hollow(DirectYielder,EachOrEvery<DirectColour>),
     Hotspot(HotspotPatina),
     None
 }
 
-enum PatinaTarget<'a> {
+pub(crate) enum PatinaTarget<'a> {
     Visual(&'a mut dyn PatinaYielder),
     Hotspot(HotspotPatina),
     None
@@ -93,6 +95,7 @@ pub(crate) enum GLShape {
     Heraldry(SpaceBaseArea<f64,LeafStyle>,EachOrEvery<HeraldryHandle>,EachOrEvery<i8>,DrawGroup,HeraldryCanvas,HeraldryScale,Option<HollowEdge2<f64>>,Option<SpaceBaseArea<Observable<'static,f64>,()>>),
     Wiggle((f64,f64),Arc<Vec<Option<f64>>>,Plotter,i8),
     SpaceBaseRect(SpaceBaseArea<f64,LeafStyle>,SimpleShapePatina,EachOrEvery<i8>,DrawGroup,Option<SpaceBaseArea<Observable<'static,f64>,()>>),
+    Circle(SpaceBase<f64,LeafStyle>,EachOrEvery<f64>,SimpleShapePatina,EachOrEvery<i8>,DrawGroup,Option<SpaceBase<Observable<'static,f64>,()>>)
 }
 
 fn add_colour(addable: &mut dyn ProcessStanzaAddable, simple_shape_patina: &DrawingShapePatina, count: usize) -> Result<(),Error> {
@@ -178,6 +181,14 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &mut WebGlGlobal, tools:
             array.close()?;
             Ok(ShapeToAdd::None)
         },
+        GLShape::Circle(position,radius,patina,depth,draw_group,wobble) => {
+            let mut geometry_yielder = draw_group.geometry_yielder();
+            let mut patina_yielder = patina.build();
+            let left = layer.left();
+            log!("circle {:?}",position);
+            make_circle(layer,&mut geometry_yielder,&mut patina_yielder,position,radius,depth,left,&draw_group)?;
+            Ok(ShapeToAdd::None)
+        },
         GLShape::Text(points,run,handles,depth,draw_group,attachment) => {
             draw_text(layer,gl,tools,points,run,&handles,depth,&draw_group,attachment)
         },
@@ -219,6 +230,6 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &mut WebGlGlobal, tools:
                     Ok(ShapeToAdd::None)
                 }
             }
-        }
+        },
     }
 }

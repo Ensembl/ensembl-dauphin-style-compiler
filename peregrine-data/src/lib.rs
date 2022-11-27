@@ -206,6 +206,7 @@ mod shape {
     mod imageshape;
     pub(crate) mod metadata;
     pub mod rectangleshape;
+    pub mod circleshape;
     pub(crate) mod textshape;
     pub(crate) mod shape;
     mod programshapes;
@@ -324,6 +325,7 @@ pub use self::spacebase::{
     reactive, HollowEdge2, SpaceBase, SpaceBaseArea, PartialSpaceBase,
     SpaceBasePoint, SpaceBasePointRef
 };
+pub use self::shape::circleshape::CircleShape;
 pub use self::shape::rectangleshape::RectangleShape;
 pub use self::shape::textshape::TextShape;
 pub use self::core::data::ReceivedData;

@@ -97,6 +97,7 @@ mod shape {
         pub(super) mod directcolourdraw;
         pub(crate) mod texture;
         pub(crate) mod wigglegeometry;
+        pub(crate) mod circlegeometry;
     }
 
     pub(crate) mod spectres {
@@ -217,6 +218,7 @@ mod webgl {
         pub(crate) mod array;
         pub(crate) mod builder;
         pub(crate) mod elements;
+        pub(crate) mod elementsentry;
         pub(crate) mod stanza;
     }
 

@@ -4,12 +4,11 @@ use commander::cdr_tick;
 use keyed::{ KeyedData };
 use peregrine_toolkit::error::Error;
 use peregrine_toolkit::lock;
-use web_sys::{ WebGlBuffer, WebGlRenderingContext };
+use web_sys::{ WebGlRenderingContext };
 use crate::webgl::glbufferstore::{GLIndexBuffer};
 use crate::webgl::global::WebGlGlobal;
-use crate::webgl::util::{handle_context_errors, handle_context_errors2};
+use crate::webgl::util::{handle_context_errors2};
 use crate::webgl::Attribute;
-use crate::util::message::Message;
 
 #[derive(Clone)]
 #[cfg_attr(debug_assertions,derive(Debug))]
@@ -25,23 +24,6 @@ impl AttribSource {
     pub fn get(&self) -> MutexGuard<Vec<f32>> {
         self.0.lock().unwrap()
     }
-}
-
-fn create_index_buffer(context: &WebGlRenderingContext, values: &[u16]) -> Result<WebGlBuffer,Message> {
-    let buffer = context.create_buffer().ok_or(Message::WebGLFailure(format!("failed to create buffer")))?;
-    context.bind_buffer(WebGlRenderingContext::ELEMENT_ARRAY_BUFFER,Some(&buffer));
-    // After `Int16Array::view` be very careful not to do any memory allocations before it's dropped.
-    unsafe {
-        let value_array = js_sys::Uint16Array::view(values);
-        context.buffer_data_with_array_buffer_view(
-            WebGlRenderingContext::ELEMENT_ARRAY_BUFFER,
-            &value_array,
-            WebGlRenderingContext::STATIC_DRAW,
-        );
-        drop(value_array);
-    }
-    handle_context_errors(context)?;
-    Ok(buffer)
 }
 
 pub(crate) struct ProcessStanza {

@@ -1,8 +1,9 @@
 use super::super::program::attribute::{ Attribute, AttributeProto, AttribHandle };
+use super::elementsentry::ProcessStanzaElementsEntry;
 use keyed::{ KeyedValues, KeyedDataMaker };
 use peregrine_toolkit::error::Error;
 use super::array::ProcessStanzaArray;
-use super::elements::{ ProcessStanzaElements, ProcessStanzaElementsEntry };
+use super::elements::{ ProcessStanzaElements };
 use super::stanza::{AttribSource, ProcessStanza};
 use std::rc::Rc;
 use std::cell::RefCell;

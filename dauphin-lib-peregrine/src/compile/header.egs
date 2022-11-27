@@ -87,6 +87,7 @@ proc text2(spacebaseid,penspec,string,allotment);
 proc running_text(spacebaseid,spacebaseid,penspec,string,allotment);
 proc wiggle(number,number,plotterspec,number,boolean,allotment);
 proc draw_image(spacebaseid,string,allotment);
+//proc circle(spacebaseid,number,patina,allotment);
 
 struct eoesgroupid { value: number };
 struct eoesvarid { value: number };
