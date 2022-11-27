@@ -1,27 +1,8 @@
 use enum_iterator::Sequence;
-use peregrine_toolkit::error::Error;
-use super::super::core::directcolourdraw::{ DirectColourDraw, DirectProgram };
-use super::super::core::texture::{ TextureDraw, TextureProgram };
 use crate::webgl::canvas::htmlcanvas::canvasinuse::CanvasInUse;
 use crate::webgl::{SetFlag};
-use crate::webgl::{ SourceInstrs, UniformProto, AttributeProto, GLArity, Varying, Statement, ProgramBuilder, TextureProto };
+use crate::webgl::{ SourceInstrs, UniformProto, AttributeProto, GLArity, Varying, Statement, TextureProto };
 use super::consts::{ PR_LOW, PR_DEF };
-
-pub(crate) enum PatinaAdder {
-    Direct(DirectProgram),
-    Texture(TextureProgram),
-    FreeTexture(TextureProgram)
-}
-
-impl PatinaAdder {
-    pub(super) fn make_patina_process(&self) -> Result<PatinaProcess,Error> {
-        Ok(match self {
-            PatinaAdder::Direct(v) => PatinaProcess::Direct(DirectColourDraw::new(v)?),
-            PatinaAdder::Texture(v) => PatinaProcess::Texture(TextureDraw::new(v,false)?),
-            PatinaAdder::FreeTexture(v) => PatinaProcess::FreeTexture(TextureDraw::new(v,true)?),
-        })
-    }
-}
 
 #[derive(Clone,Debug,Hash,PartialEq,Eq,Sequence)]
 pub(crate) enum PatinaProgramName { Direct, Texture, FreeTexture }
@@ -29,22 +10,6 @@ pub(crate) enum PatinaProgramName { Direct, Texture, FreeTexture }
 impl PatinaProgramName {
     pub(crate) fn key(&self) -> String {
         format!("{:?}",self)
-    }
-}
-
-pub(crate) trait PatinaYielder {
-    fn name(&self) -> &PatinaProcessName;
-    fn make(&mut self, builder: &ProgramBuilder) -> Result<PatinaAdder,Error>;
-    fn set(&mut self, program: &PatinaProcess) -> Result<(),Error>;
-}
-
-impl PatinaProgramName {
-    pub(super) fn make_patina_program(&self, builder: &ProgramBuilder) -> Result<PatinaAdder,Error> {
-        Ok(match self {
-            PatinaProgramName::Direct => PatinaAdder::Direct(DirectProgram::new(builder)?),
-            PatinaProgramName::Texture => PatinaAdder::Texture(TextureProgram::new(builder)?),
-            PatinaProgramName::FreeTexture => PatinaAdder::FreeTexture(TextureProgram::new(builder)?),
-        })
     }
 
     pub fn get_source(&self) -> SourceInstrs {
@@ -100,12 +65,14 @@ impl Freedom {
             Freedom::Vertical => (0.,1.),
         }
     }
-}
 
-pub(crate) enum PatinaProcess {
-    Direct(DirectColourDraw),
-    Texture(TextureDraw),
-    FreeTexture(TextureDraw)
+    pub(crate) fn is_free(&self) -> bool {
+        match self {
+            Freedom::None => false,
+            Freedom::Horizontal => true,
+            Freedom::Vertical => true,
+        }
+    }
 }
 
 // TODO texture types
@@ -120,6 +87,14 @@ impl PatinaProcessName {
             PatinaProcessName::Direct => PatinaProgramName::Direct,
             PatinaProcessName::Texture(_) => PatinaProgramName::Texture,
             PatinaProcessName::FreeTexture(_,_) => PatinaProgramName::FreeTexture
+        }
+    }
+
+    pub(crate) fn canvas_name(&self) -> Option<&CanvasInUse> {
+        match self {
+            PatinaProcessName::Direct => None,
+            PatinaProcessName::Texture(c) => Some(c),
+            PatinaProcessName::FreeTexture(c, _) => Some(c),
         }
     }
 

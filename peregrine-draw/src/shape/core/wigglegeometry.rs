@@ -1,25 +1,14 @@
 use peregrine_toolkit::error::Error;
-
-use super::super::layers::layer::{ Layer };
-use crate::shape::layers::geometry::{GeometryAdder, GeometryYielder, GeometryProcessName};
-use crate::shape::layers::patina::PatinaYielder;
-use crate::webgl::{AttribHandle, ProcessBuilder, ProcessStanzaAddable, ProcessStanzaArray, ProgramBuilder};
+use crate::webgl::{AttribHandle, ProcessBuilder, ProcessStanzaAddable, ProcessStanzaArray };
 use super::super::util::arrayutil::{ interleave_pair, apply_left };
 
 const THICKNESS: f64 = 1.; // XXX
 
-pub(crate) fn make_wiggle(layer: &mut Layer, geometry_process: &GeometryProcessName, patina_yielder: &mut dyn PatinaYielder,
+pub(crate) fn make_wiggle(process: &mut ProcessBuilder,
                     start: f64, end: f64, yy: &[Option<f64>],
                     left: f64, depth: i8)-> Result<(ProcessStanzaArray,usize),Error> {
-    let mut geometry_yielder = GeometryYielder::new(geometry_process);                    
-    let process = layer.get_process_builder(&mut geometry_yielder,patina_yielder)?;
-    let adder = geometry_yielder.get_adder()?;
-    match adder {
-        GeometryAdder::Wiggle(w) => {
-            w.add_wiggle(process,start,end,&yy,left,depth)
-        },
-        _ => { return Err(Error::fatal("bad adder")) }
-    }
+    let adder = WiggleAdder::new(&process)?;
+    adder.add_wiggle(process,start,end,&yy,left,depth)
 }
 
 #[derive(Clone)]
@@ -29,10 +18,11 @@ pub struct WiggleAdder {
 }
 
 impl WiggleAdder {
-    pub(crate) fn new(builder: &ProgramBuilder) -> Result<WiggleAdder,Error> {
+    pub(crate) fn new(process: &ProcessBuilder) -> Result<WiggleAdder,Error> {
+        let program = process.program_builder();
         Ok(WiggleAdder {
-            data: builder.get_attrib_handle("aData")?,
-            depth: builder.get_attrib_handle("aDepth")?
+            data: program.get_attrib_handle("aData")?,
+            depth: program.get_attrib_handle("aDepth")?
         })
     }
 

@@ -131,8 +131,7 @@ mod shape {
         pub(crate) mod geometry;
         pub(crate) mod programstore;
         pub(crate) mod layer;
-        pub(crate) mod shapeprogram;
-        pub(super) mod patina;
+        pub(crate) mod patina;
     }
 
     pub(crate) mod util {

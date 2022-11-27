@@ -11,7 +11,16 @@ pub struct TriangleAdder {
 }
 
 impl TriangleAdder {
-    pub(crate) fn new(builder: &ProgramBuilder) -> Result<TriangleAdder,Error> {
+    pub(crate) fn new(process: &mut ProcessBuilder) -> Result<TriangleAdder,Error> {
+        let builder = process.program_builder();
+        let is_vertical = process.geometry_name().is_vertical();
+        let handle = builder.try_get_uniform_handle("uUseVertical");
+        drop(builder);
+        if let Some(use_vertical) = handle {
+            let value = if is_vertical { 1. } else { 0. };
+            process.set_uniform(&use_vertical,vec![value])?;
+        }
+        let builder = process.program_builder();
         Ok(TriangleAdder {
             coords: builder.get_attrib_handle("aCoords")?,
             origin_coords: builder.try_get_attrib_handle("aOriginCoords"),

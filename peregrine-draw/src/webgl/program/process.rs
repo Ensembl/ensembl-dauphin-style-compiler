@@ -1,5 +1,7 @@
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
+use crate::shape::layers::geometry::GeometryProcessName;
+use crate::shape::layers::patina::PatinaProcessName;
 use crate::shape::layers::layer::ProgramCharacter;
 use crate::webgl::canvas::htmlcanvas::canvasinuse::CanvasInUse;
 use crate::webgl::{ ProcessStanzaBuilder, ProcessStanza };
@@ -16,6 +18,8 @@ use crate::stage::stage::{ ReadStage, ProgramStage };
 use crate::webgl::global::WebGlGlobal;
 
 pub(crate) struct ProcessBuilder {
+    geometry: GeometryProcessName,
+    patina: PatinaProcessName,
     builder: Rc<ProgramBuilder>,
     stanza_builder: ProcessStanzaBuilder,
     uniforms: Vec<(UniformHandle,Vec<f32>)>,
@@ -23,15 +27,21 @@ pub(crate) struct ProcessBuilder {
 }
 
 impl ProcessBuilder {
-    pub(crate) fn new(builder: Rc<ProgramBuilder>) -> ProcessBuilder {
+    pub(crate) fn new(builder: Rc<ProgramBuilder>, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> ProcessBuilder {
         let stanza_builder = builder.make_stanza_builder();
         ProcessBuilder {
             builder,
+            geometry:geometry.clone(),
+            patina: patina.clone(),
             stanza_builder,
             uniforms: vec![],
             textures: vec![]
         }
     }
+
+    pub(crate) fn program_builder(&self) -> &ProgramBuilder { &self.builder }
+    pub(crate) fn geometry_name(&self) -> &GeometryProcessName { &self.geometry }
+    pub(crate) fn patina_name(&self) -> &PatinaProcessName { &self.patina }
 
     pub(crate) fn set_uniform(&mut self, handle: &UniformHandle, values: Vec<f32>) -> Result<(),Error> {
         self.uniforms.push((handle.clone(),values));

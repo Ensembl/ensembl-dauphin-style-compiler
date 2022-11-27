@@ -1,5 +1,6 @@
 use peregrine_toolkit::error::Error;
 use web_sys::{ WebGlProgram, WebGlRenderingContext };
+use crate::shape::layers::programstore::WebGLProgramName;
 use crate::webgl::global::WebGlGlobal;
 use crate::webgl::{GPUSpec, ProcessStanza, ProcessStanzaBuilder, make_program};
 use super::attribute::{ Attribute, AttribHandle, AttributeProto };
@@ -18,18 +19,20 @@ pub struct ProgramBuilder {
     uniforms: KeyedValues<UniformHandle,UniformProto>,
     textures: KeyedValues<TextureHandle,TextureProto>,
     attribs: KeyedValues<AttribHandle,AttributeProto>,
-    method: u32
+    method: u32,
+    name: WebGLProgramName
 }
 
 impl ProgramBuilder {
-    pub(crate) fn new(source: &SourceInstrs) -> Result<ProgramBuilder,Error> {
+    pub(crate) fn new(source: &SourceInstrs, name:&WebGLProgramName) -> Result<ProgramBuilder,Error> {
         let mut out = ProgramBuilder {
             program: RefCell::new(None),
             source: source.clone(),
             uniforms: KeyedValues::new(),
             textures: KeyedValues::new(),
             attribs: KeyedValues::new(),
-            method: WebGlRenderingContext::TRIANGLES
+            method: WebGlRenderingContext::TRIANGLES,
+            name: name.clone()
         };
         let flags = source.get_flags();
         source.register(&mut out, &flags)?;

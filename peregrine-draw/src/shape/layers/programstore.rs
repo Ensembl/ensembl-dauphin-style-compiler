@@ -3,9 +3,8 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use crate::PgCommanderWeb;
 use crate::webgl::{ProcessBuilder, ProgramBuilder, SourceInstrs};
-use super::geometry::{GeometryProcessName, GeometryAdder, GeometryProgramName};
-use super::patina::{PatinaProcessName, PatinaAdder, PatinaProgramName};
-use super::shapeprogram::ShapeProgram;
+use super::geometry::{GeometryProcessName, GeometryProgramName};
+use super::patina::{PatinaProcessName, PatinaProgramName };
 use crate::stage::stage::get_stage_source;
 use crate::util::message::Message;
 use enum_iterator::{Sequence, all};
@@ -14,41 +13,33 @@ use peregrine_toolkit::{lock, log_extra};
 
 #[cfg_attr(debug_assertions,derive(Debug))]
 #[derive(Clone,PartialEq,Eq,Hash,Sequence)]
-struct ProgramIndex(GeometryProgramName,PatinaProgramName);
+pub(crate) struct WebGLProgramName(pub GeometryProgramName,pub PatinaProgramName);
 
-impl ProgramIndex {
-    fn all_programs() -> impl Iterator<Item=ProgramIndex> {
-        all::<ProgramIndex>()
+impl WebGLProgramName {
+    fn all_programs() -> impl Iterator<Item=WebGLProgramName> {
+        all::<WebGLProgramName>()
     }
 }
 
 pub(crate) struct ProgramStoreEntry {
-    builder: Rc<ProgramBuilder>,
-    geometry: GeometryAdder,
-    patina: PatinaAdder
+    builder: Rc<ProgramBuilder>
 }
 
 impl ProgramStoreEntry {
-    fn new(builder: ProgramBuilder, index: &ProgramIndex) -> Result<ProgramStoreEntry,Error> {
-        let geometry = index.0.make_geometry_program(&builder)?;
-        let patina = index.1.make_patina_program(&builder)?;
+    fn new(builder: ProgramBuilder) -> Result<ProgramStoreEntry,Error> {
         Ok(ProgramStoreEntry {
-            builder: Rc::new(builder),
-            geometry,
-            patina
+            builder: Rc::new(builder)
         })
     }
     
-    pub(crate) fn make_shape_program(&self) -> Result<ShapeProgram,Error> {
-        let geometry = self.geometry.clone();
-        let patina = self.patina.make_patina_process()?;
-        let process = ProcessBuilder::new(self.builder.clone());
-        Ok(ShapeProgram::new(process,geometry,patina))
+    pub(crate) fn make_shape_program(&self, geometry_name: &GeometryProcessName, patina_name: &PatinaProcessName) -> Result<ProcessBuilder,Error> {
+        let process = ProcessBuilder::new(self.builder.clone(),geometry_name,patina_name);
+        Ok(process)
     }
 }
 
 struct ProgramStoreData {
-    programs: HashMap<ProgramIndex,ProgramStoreEntry>
+    programs: HashMap<WebGLProgramName,ProgramStoreEntry>
 }
 
 impl ProgramStoreData {
@@ -58,18 +49,18 @@ impl ProgramStoreData {
         })
     }
 
-    fn make_program(&mut self, index: &ProgramIndex) -> Result<(),Error> {
+    fn make_program(&mut self, index: &WebGLProgramName) -> Result<(),Error> {
         let mut source = SourceInstrs::new(vec![]);
         source.merge(get_stage_source());
         source.merge(index.0.get_source());
         source.merge(index.1.get_source());
-        let builder = ProgramBuilder::new(&source)?;
-        self.programs.insert(index.clone(),ProgramStoreEntry::new(builder,&index)?);
+        let builder = ProgramBuilder::new(&source,index)?;
+        self.programs.insert(index.clone(),ProgramStoreEntry::new(builder)?);
         Ok(())
     }
 
     fn get_program(&mut self, geometry: GeometryProgramName, patina: PatinaProgramName) -> Result<&ProgramStoreEntry,Error> {
-        let index = ProgramIndex(geometry,patina);
+        let index = WebGLProgramName(geometry,patina);
         if self.programs.get(&index).is_none() {
             self.make_program(&index)?;
         }
@@ -82,7 +73,7 @@ pub struct ProgramStore(Arc<Mutex<ProgramStoreData>>);
 
 impl ProgramStore {
     async fn async_background_load(&self) -> Result<(),Message> {
-        for program in ProgramIndex::all_programs() {
+        for program in WebGLProgramName::all_programs() {
             lock!(self.0).get_program(program.0,program.1).ok(); // ok to discard result
         }
         log_extra!("program preloading done");
@@ -102,7 +93,7 @@ impl ProgramStore {
         Ok(out)
     }
 
-    pub(super) fn get_shape_program(&self, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> Result<ShapeProgram,Error> {
-        lock!(self.0).get_program(geometry.get_program_name(),patina.get_program_name())?.make_shape_program()
+    pub(super) fn get_shape_program(&self, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> Result<ProcessBuilder,Error> {
+        lock!(self.0).get_program(geometry.get_program_name(),patina.get_program_name())?.make_shape_program(geometry,patina)
     }
 }

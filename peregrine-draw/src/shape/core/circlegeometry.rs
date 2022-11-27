@@ -1,24 +1,24 @@
 use std::f64::consts::PI;
-use peregrine_data::{SpaceBase, LeafStyle, Patina};
+use peregrine_data::{SpaceBase, LeafStyle };
 use peregrine_toolkit::eachorevery::EachOrEvery;
 use peregrine_toolkit::error::Error;
 use peregrine_toolkit::log;
 use super::super::layers::layer::{ Layer };
-use super::drawshape::{DrawingShapePatina, PatinaTarget};
-use crate::shape::layers::geometry::{GeometryAdder, GeometryYielder, GeometryProcessName};
-use crate::shape::layers::patina::PatinaYielder;
+use super::directcolourdraw::{DirectColourDraw, DirectProgram};
+use crate::shape::layers::geometry::{GeometryProcessName};
+use crate::shape::layers::patina::{PatinaProcessName};
 use crate::shape::triangles::drawgroup::DrawGroup;
 use crate::shape::triangles::triangleadder::TriangleAdder;
-use crate::webgl::{AttribHandle, ProcessBuilder, ProcessStanzaAddable, ProcessStanzaArray, ProgramBuilder, ProcessStanzaElements};
-use super::super::util::arrayutil::{ interleave_pair, apply_left };
+use crate::webgl::{ProcessBuilder, ProcessStanzaElements};
 
 fn radius_to_segments(r: f64) -> usize { ((r/6.).max(3.).min(20.).round() as usize)*2+1 }
 
+/*
 fn add_patina(elements: &mut ProcessStanzaElements, patina: &DrawingShapePatina, count: &[usize]) -> Result<(),Error> {
     match patina {
         DrawingShapePatina::Solid(direct,colours) |
         DrawingShapePatina::Hollow(direct,colours) => {
-            direct.draw()?.direct_variable(elements,&colours,count)?;
+            direct.direct_variable(elements,&colours,count)?;
         },
         _ => {}
     }
@@ -100,14 +100,10 @@ pub(crate) fn make_circle(layer: &mut Layer,
 //        )-> Result<(ProcessStanzaArray,usize),Error> {
     if position.len() == 0 { return Ok(()); }
     match patina.yielder_mut() {
-        PatinaTarget::Visual(patina_yielder) => {
-            let mut geometry_yielder = GeometryYielder::new(geometry_process);
-            let mut builder = layer.get_process_builder(&mut geometry_yielder,patina_yielder)?;
-            let adder = match geometry_yielder.get_adder()? {
-                GeometryAdder::Triangles(adder) => { adder },
-                _ => { return Err(Error::fatal("bad adder")) }
-            };
-
+        PatinaTarget::Direct(patina_yielder) => {
+            let builder = layer.get_process_builder(geometry_process,&PatinaProcessName::Direct)?;
+            let draw = DirectColourDraw::new(&DirectProgram::new(builder.program_builder())?)?;
+            let adder = TriangleAdder::new(builder)?;
             /* set up webgl */
             let pos_iter = position.iter();
             let radius_iter = radius.iter(position.len()).expect("circle size mismatch");
@@ -116,14 +112,15 @@ pub(crate) fn make_circle(layer: &mut Layer,
             for ((pos,radius),depth) in pos_iter.zip(radius_iter).zip(depth_iter) {
                 log!("base {} normal {} tangent {} radius {} depth {}",pos.base,pos.normal,pos.tangent,radius,depth);
                 if !campaign.draw_one_circle(*pos.base,*pos.normal,*pos.tangent,*radius,*depth) {
-                    campaign.close(&mut builder,&adder,patina)?;
+                    campaign.close(builder,&adder,patina)?;
                     campaign = CircleCampaign::new();
                     campaign.draw_one_circle(*pos.base,*pos.normal,*pos.tangent,*radius,*depth);
                 }
             }
-            campaign.close(&mut builder,&adder,patina)?;
+            campaign.close(builder,&adder,patina)?;
         },
         _ => {}
     }
     Ok(())
 }
+*/

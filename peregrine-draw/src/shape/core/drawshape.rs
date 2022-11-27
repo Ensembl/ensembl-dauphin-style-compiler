@@ -5,17 +5,16 @@ use peregrine_data::{ Colour, DirectColour, DrawnType, Patina, Plotter, SpaceBas
 use peregrine_toolkit::eachorevery::{EachOrEvery, EachOrEveryFilterBuilder};
 use peregrine_toolkit::error::Error;
 use peregrine_toolkit::log;
-use super::directcolourdraw::DirectYielder;
+use super::directcolourdraw::{DirectProgram, DirectColourDraw};
 use super::super::layers::layer::{ Layer };
-use super::texture::{TextureYielder};
+use super::texture::{xxx_texture_name, TextureDraw};
 use crate::shape::canvasitem::heraldry::{HeraldryHandle, HeraldryCanvas, HeraldryScale};
 use crate::shape::canvasitem::text::draw_text;
-use crate::shape::core::circlegeometry::make_circle;
 use crate::shape::core::wigglegeometry::{make_wiggle};
 use crate::shape::layers::drawing::DynamicShape;
 use crate::shape::layers::drawingtools::{DrawingToolsBuilder, CanvasType};
-use crate::shape::layers::geometry::{GeometryYielder, GeometryProcessName };
-use crate::shape::layers::patina::{PatinaYielder, Freedom};
+use crate::shape::layers::geometry::{GeometryProcessName };
+use crate::shape::layers::patina::{Freedom, PatinaProcessName};
 use crate::shape::triangles::rectangles::{Rectangles, RectanglesData, GLAttachmentPoint };
 use crate::shape::triangles::drawgroup::DrawGroup;
 use crate::shape::util::eoethrow::{eoe_throw2};
@@ -54,39 +53,6 @@ impl SimpleShapePatina {
             Patina::Metadata(_,_) => { SimpleShapePatina::None }
         })
     }
-
-    fn build(&self) -> DrawingShapePatina {
-        match self {
-            SimpleShapePatina::Solid(c) => DrawingShapePatina::Solid(DirectYielder::new(),c.clone()),
-            SimpleShapePatina::Hollow(c) => DrawingShapePatina::Hollow(DirectYielder::new(),c.clone()),
-            SimpleShapePatina::Hotspot(hotspot) => DrawingShapePatina::Hotspot(hotspot.clone()),
-            SimpleShapePatina::None => DrawingShapePatina::None
-        }
-    }
-}
-
-pub(crate) enum DrawingShapePatina {
-    Solid(DirectYielder,EachOrEvery<DirectColour>),
-    Hollow(DirectYielder,EachOrEvery<DirectColour>),
-    Hotspot(HotspotPatina),
-    None
-}
-
-pub(crate) enum PatinaTarget<'a> {
-    Visual(&'a mut dyn PatinaYielder),
-    Hotspot(HotspotPatina),
-    None
-}
-
-impl DrawingShapePatina {
-    pub(crate) fn yielder_mut(&mut self) -> PatinaTarget {
-        match self {
-            DrawingShapePatina::Solid(dc,_) => PatinaTarget::Visual(dc),
-            DrawingShapePatina::Hollow(dc,_) => PatinaTarget::Visual(dc),
-            DrawingShapePatina::Hotspot(hotspot) => PatinaTarget::Hotspot(hotspot.clone()),
-            DrawingShapePatina::None => PatinaTarget::None
-        }
-    }
 }
 
 pub(crate) enum GLShape {
@@ -98,16 +64,16 @@ pub(crate) enum GLShape {
     Circle(SpaceBase<f64,LeafStyle>,EachOrEvery<f64>,SimpleShapePatina,EachOrEvery<i8>,DrawGroup,Option<SpaceBase<Observable<'static,f64>,()>>)
 }
 
-fn add_colour(addable: &mut dyn ProcessStanzaAddable, simple_shape_patina: &DrawingShapePatina, count: usize) -> Result<(),Error> {
-    let vertexes = match simple_shape_patina {
-        DrawingShapePatina::Solid(_,_) => 4,
-        DrawingShapePatina::Hollow(_,_) => 8,
+fn add_colour(addable: &mut dyn ProcessStanzaAddable, patina: &SimpleShapePatina, draw: &DirectColourDraw, count: usize) -> Result<(),Error> {
+    let vertexes = match patina {
+        SimpleShapePatina::Solid(_) => 4,
+        SimpleShapePatina::Hollow(_) => 8,
         _ => 0
     };
-    match simple_shape_patina {
-        DrawingShapePatina::Solid(direct,colours) |
-        DrawingShapePatina::Hollow(direct,colours) => {
-            direct.draw()?.direct(addable,&colours,vertexes,count)?;
+    match patina {
+        SimpleShapePatina::Solid(colours) |
+        SimpleShapePatina::Hollow(colours) => {
+            draw.direct(addable,&colours,vertexes,count)?;
         },
         _ => {}
     }
@@ -126,21 +92,25 @@ pub(crate) fn dims_to_sizes(areas: &[CanvasItemArea], factor: f64) -> (Vec<f64>,
 }
 
 fn draw_area_from_canvas(layer: &mut Layer, gl: &mut WebGlGlobal, draw_group: &DrawGroup, area: &SpaceBaseArea<f64,LeafStyle>, depth: &EachOrEvery<i8>, canvas: &CanvasInUse, dims: &[CanvasItemArea], free: bool, edge: &Option<HollowEdge2<f64>>, freedom: &Freedom, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>) -> Result<Box<dyn DynamicShape>,Error> {
-    let mut patina_yielder = TextureYielder::new(canvas,freedom);
     let left = layer.left();
-    let mut rectangles = RectanglesData::new_area(layer, &GeometryProcessName::Triangles(draw_group.geometry().clone()), &mut patina_yielder,&area,depth,left,false,&draw_group,edge,wobble)?;
+    let patina_name = xxx_texture_name(canvas,freedom);
+    let builder = layer.get_process_builder(&GeometryProcessName::Triangles(draw_group.geometry().clone()),&patina_name)?;
+    let draw = TextureDraw::new(builder,freedom)?;
+    let mut rectangles = RectanglesData::new_area(builder,&area,depth,left,false,&draw_group,edge,wobble)?;
     let campaign = rectangles.elements_mut();
-    patina_yielder.draw()?.add_rectangle(campaign,&canvas,&dims,freedom)?;
+    draw.add_rectangle(campaign,&canvas,&dims,freedom)?;
     campaign.close()?;
     Ok(Box::new(Rectangles::new(rectangles,gl)))
 }
 
 pub(crate) fn draw_points_from_canvas2(layer: &mut Layer, gl: &mut WebGlGlobal, draw_group: &DrawGroup, points: &SpaceBase<f64,LeafStyle>, run: &Option<SpaceBase<f64,()>>, x_sizes: Vec<f64>, y_sizes:Vec<f64>, depth: &EachOrEvery<i8>, canvas: &CanvasInUse, dims: &[CanvasItemArea], freedom: &Freedom, attachment: GLAttachmentPoint, wobble: Option<SpaceBase<Observable<'static,f64>,()>>) -> Result<Box<dyn DynamicShape>,Error> {
-    let mut patina_yielder = TextureYielder::new(canvas,freedom);
     let left = layer.left();
-    let mut rectangles = RectanglesData::new_sized(layer, &GeometryProcessName::Triangles(draw_group.geometry().clone()), &mut patina_yielder,&points,run,x_sizes,y_sizes,depth,left,false,&draw_group,attachment,wobble)?;
+    let patina_name = xxx_texture_name(canvas,freedom);
+    let builder = layer.get_process_builder(&GeometryProcessName::Triangles(draw_group.geometry().clone()),&patina_name)?;
+    let draw = TextureDraw::new(builder,freedom)?;
+    let mut rectangles = RectanglesData::new_sized(builder,&points,run,x_sizes,y_sizes,depth,left,false,&draw_group,attachment,wobble)?;
     let campaign = rectangles.elements_mut();
-    patina_yielder.draw()?.add_rectangle(campaign,&canvas,&dims,&Freedom::None)?;
+    draw.add_rectangle(campaign,&canvas,&dims,&Freedom::None)?;
     campaign.close()?;
     Ok(Box::new(Rectangles::new(rectangles,gl)))
 }
@@ -171,18 +141,18 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &mut WebGlGlobal, tools:
     let bitmap_multiplier = gl.refs().canvas_source.bitmap_multiplier() as f64;
     match shape {
         GLShape::Wiggle((start,end),yy,Plotter(_,colour),depth) => {
-            let mut patina_yielder = DirectYielder::new();
             let left = layer.left();
-            let (mut array,count) = make_wiggle(layer,&GeometryProcessName::Wiggle,&mut patina_yielder,start,end,&yy,left,depth)?;
-            patina_yielder.draw()?.direct(&mut array,&EachOrEvery::every(colour),1,count)?;
+            let process = layer.get_process_builder(&GeometryProcessName::Wiggle,&PatinaProcessName::Direct)?;
+            let (mut array,count) = make_wiggle(process,start,end,&yy,left,depth)?;
+            let draw = DirectColourDraw::new(&DirectProgram::new(process.program_builder())?)?;
+            draw.direct(&mut array,&EachOrEvery::every(colour),1,count)?;
             array.close()?;
             Ok(ShapeToAdd::None)
         },
         GLShape::Circle(position,radius,patina,depth,draw_group,wobble) => {
-            let mut patina_yielder = patina.build();
             let left = layer.left();
             log!("circle {:?}",position);
-            make_circle(layer,&GeometryProcessName::Triangles(draw_group.geometry().clone()),&mut patina_yielder,position,radius,depth,left,&draw_group)?;
+            //make_circle(layer,&GeometryProcessName::Triangles(draw_group.geometry().clone()),&mut patina_yielder,position,radius,depth,left,&draw_group)?;
             Ok(ShapeToAdd::None)
         },
         GLShape::Text(points,run,handles,depth,draw_group,attachment) => {
@@ -207,24 +177,25 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &mut WebGlGlobal, tools:
             }
         },
         GLShape::SpaceBaseRect(area,simple_shape_patina,depth,draw_group,wobble) => {
-            let mut drawing_shape_patina = simple_shape_patina.build();
             let left = layer.left();
-            match drawing_shape_patina.yielder_mut() {
-                PatinaTarget::Visual(patina_yielder) => {
+            match simple_shape_patina {
+                SimpleShapePatina::Solid(_) | SimpleShapePatina::Hollow(_) => {
                     let hollow = match simple_shape_patina { SimpleShapePatina::Hollow(_) => true, _ => false };
-                    let mut rectangles = RectanglesData::new_area(layer,&GeometryProcessName::Triangles(draw_group.geometry().clone()),patina_yielder,&area,&depth,left,hollow,&draw_group,&None,wobble)?;
+                    let builder = layer.get_process_builder(&GeometryProcessName::Triangles(draw_group.geometry().clone()),&PatinaProcessName::Direct)?;
+                    let mut rectangles = RectanglesData::new_area(builder,&area,&depth,left,hollow,&draw_group,&None,wobble)?;
+                    let draw = DirectColourDraw::new(&DirectProgram::new(builder.program_builder())?)?;
                     let campaign = rectangles.elements_mut();
-                    add_colour(campaign,&drawing_shape_patina,area.len())?;
+                    add_colour(campaign,&simple_shape_patina,&draw,area.len())?;
                     campaign.close()?;
                     Ok(ShapeToAdd::Dynamic(Box::new(Rectangles::new(rectangles,&gl))))
                 },
-                PatinaTarget::Hotspot(hotspot) => {
+                SimpleShapePatina::Hotspot(hotspot) => {
                     Ok(ShapeToAdd::Hotspot(area,hotspot))
                 },
-                PatinaTarget::None => {
+                _ => {
                     Ok(ShapeToAdd::None)
                 }
             }
-        },
+        }
     }
 }

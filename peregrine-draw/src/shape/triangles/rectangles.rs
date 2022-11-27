@@ -1,12 +1,9 @@
 use std::sync::{Arc, Mutex};
 use crate::shape::layers::drawing::DynamicShape;
-use crate::shape::layers::geometry::{GeometryYielder, GeometryAdder, GeometryProcessName };
-use crate::shape::layers::layer::Layer;
-use crate::shape::layers::patina::PatinaYielder;
 use crate::shape::util::arrayutil::{rectangle4};
 use crate::shape::util::eoethrow::{eoe_throw2};
 use crate::webgl::global::WebGlGlobal;
-use crate::webgl::{ ProcessStanzaElements };
+use crate::webgl::{ ProcessStanzaElements, ProcessBuilder };
 use peregrine_data::reactive::{Observable, Observer};
 use peregrine_data::{ SpaceBaseArea, SpaceBase, PartialSpaceBase, HollowEdge2, SpaceBasePoint, LeafStyle, AttachmentPoint };
 use peregrine_toolkit::eachorevery::EachOrEvery;
@@ -267,14 +264,14 @@ pub(crate) struct RectanglesData {
 }
 
 impl RectanglesData {
-    pub(crate) fn new_area(layer: &mut Layer, geometry_process: &GeometryProcessName, patina_yielder: &mut dyn PatinaYielder, area: &SpaceBaseArea<f64,LeafStyle>, depth: &EachOrEvery<i8>, left: f64, hollow: bool, kind: &DrawGroup, edge: &Option<HollowEdge2<f64>>, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>)-> Result<RectanglesData,Error> {
+    pub(crate) fn new_area(builder: &mut ProcessBuilder, area: &SpaceBaseArea<f64,LeafStyle>, depth: &EachOrEvery<i8>, left: f64, hollow: bool, kind: &DrawGroup, edge: &Option<HollowEdge2<f64>>, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>)-> Result<RectanglesData,Error> {
         let location = RectanglesLocation::Area(RectanglesLocationArea::new(area,wobble,depth.clone(),edge.clone())?);
-        Self::real_new(layer,geometry_process,patina_yielder,location,left,hollow,kind)
+        Self::real_new(builder,location,left,hollow,kind)
     }
 
-    pub(crate) fn new_sized(layer: &mut Layer, geometry_process: &GeometryProcessName, patina_yielder: &mut dyn PatinaYielder, points: &SpaceBase<f64,LeafStyle>, run: &Option<SpaceBase<f64,()>>, x_sizes: Vec<f64>, y_sizes: Vec<f64>, depth: &EachOrEvery<i8>, left: f64, hollow: bool, kind: &DrawGroup, attachment: GLAttachmentPoint, wobble: Option<SpaceBase<Observable<'static,f64>,()>>)-> Result<RectanglesData,Error> {
+    pub(crate) fn new_sized(builder: &mut ProcessBuilder, points: &SpaceBase<f64,LeafStyle>, run: &Option<SpaceBase<f64,()>>, x_sizes: Vec<f64>, y_sizes: Vec<f64>, depth: &EachOrEvery<i8>, left: f64, hollow: bool, kind: &DrawGroup, attachment: GLAttachmentPoint, wobble: Option<SpaceBase<Observable<'static,f64>,()>>)-> Result<RectanglesData,Error> {
         let location = RectanglesLocation::Sized(RectanglesLocationSized::new(points,run,wobble,depth.clone(),x_sizes,y_sizes,attachment)?);
-        Self::real_new(layer,geometry_process,patina_yielder,location,left,hollow,kind)
+        Self::real_new(builder,location,left,hollow,kind)
     }
 
     /*
@@ -283,19 +280,14 @@ impl RectanglesData {
      * ProcessStanzaBuilder::make_elements(index) -> ProcessStanzaElements
      */
 
-    fn real_new(layer: &mut Layer, geometry_process: &GeometryProcessName, patina_yielder: &mut dyn PatinaYielder, location: RectanglesLocation, left: f64, hollow: bool, kind: &DrawGroup)-> Result<RectanglesData,Error> {
-        let mut geometry_yielder = GeometryYielder::new(geometry_process);
-        let builder = layer.get_process_builder(&mut geometry_yielder,patina_yielder)?;
+    fn real_new(builder: &mut ProcessBuilder, location: RectanglesLocation, left: f64, hollow: bool, kind: &DrawGroup)-> Result<RectanglesData,Error> {
+        let adder = TriangleAdder::new(builder)?;
         let indexes = if hollow {
             vec![0,1,2, 1,2,3, 2,3,4, 3,4,5, 4,5,6, 5,6,7, 6,7,0, 7,0,1]
         } else {
             vec![0,3,1,2,0,3]
         };
         let elements = builder.get_stanza_builder().make_elements(location.len(),&indexes)?;
-        let adder = match geometry_yielder.get_adder()? {
-            GeometryAdder::Triangles(adder) => { adder },
-            _ => { return Err(Error::fatal("bad adder")) }
-        };
         Ok(RectanglesData {
             elements, left,
             width: if hollow { Some(0.) } else { None },
