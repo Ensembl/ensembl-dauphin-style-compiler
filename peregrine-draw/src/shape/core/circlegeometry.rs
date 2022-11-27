@@ -5,7 +5,7 @@ use peregrine_toolkit::error::Error;
 use peregrine_toolkit::log;
 use super::super::layers::layer::{ Layer };
 use super::drawshape::{DrawingShapePatina, PatinaTarget};
-use crate::shape::layers::geometry::{GeometryAdder, GeometryYielder};
+use crate::shape::layers::geometry::{GeometryAdder, GeometryYielder, GeometryProcessName};
 use crate::shape::layers::patina::PatinaYielder;
 use crate::shape::triangles::drawgroup::DrawGroup;
 use crate::shape::triangles::triangleadder::TriangleAdder;
@@ -93,7 +93,7 @@ impl CircleCampaign {
 }
 
 pub(crate) fn make_circle(layer: &mut Layer,
-            geometry_yielder: &mut GeometryYielder, patina: &mut DrawingShapePatina,
+            geometry_process: &GeometryProcessName, patina: &mut DrawingShapePatina,
             position: SpaceBase<f64,LeafStyle>, radius: EachOrEvery<f64>,
             depth: EachOrEvery<i8>, left: f64, draw_group: &DrawGroup
         ) -> Result<(),Error> {
@@ -101,9 +101,9 @@ pub(crate) fn make_circle(layer: &mut Layer,
     if position.len() == 0 { return Ok(()); }
     match patina.yielder_mut() {
         PatinaTarget::Visual(patina_yielder) => {
-
-            let mut builder = layer.get_process_builder(geometry_yielder,patina_yielder)?;
-            let adder = match geometry_yielder.get_adder::<GeometryAdder>()? {
+            let mut geometry_yielder = GeometryYielder::new(geometry_process);
+            let mut builder = layer.get_process_builder(&mut geometry_yielder,patina_yielder)?;
+            let adder = match geometry_yielder.get_adder()? {
                 GeometryAdder::Triangles(adder) => { adder },
                 _ => { return Err(Error::fatal("bad adder")) }
             };

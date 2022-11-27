@@ -126,10 +126,9 @@ pub(crate) fn dims_to_sizes(areas: &[CanvasItemArea], factor: f64) -> (Vec<f64>,
 }
 
 fn draw_area_from_canvas(layer: &mut Layer, gl: &mut WebGlGlobal, draw_group: &DrawGroup, area: &SpaceBaseArea<f64,LeafStyle>, depth: &EachOrEvery<i8>, canvas: &CanvasInUse, dims: &[CanvasItemArea], free: bool, edge: &Option<HollowEdge2<f64>>, freedom: &Freedom, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>) -> Result<Box<dyn DynamicShape>,Error> {
-    let mut geometry_yielder = draw_group.geometry_yielder();
     let mut patina_yielder = TextureYielder::new(canvas,freedom);
     let left = layer.left();
-    let mut rectangles = RectanglesData::new_area(layer, &mut geometry_yielder, &mut patina_yielder,&area,depth,left,false,&draw_group,edge,wobble)?;
+    let mut rectangles = RectanglesData::new_area(layer, &GeometryProcessName::Triangles(draw_group.geometry().clone()), &mut patina_yielder,&area,depth,left,false,&draw_group,edge,wobble)?;
     let campaign = rectangles.elements_mut();
     patina_yielder.draw()?.add_rectangle(campaign,&canvas,&dims,freedom)?;
     campaign.close()?;
@@ -137,10 +136,9 @@ fn draw_area_from_canvas(layer: &mut Layer, gl: &mut WebGlGlobal, draw_group: &D
 }
 
 pub(crate) fn draw_points_from_canvas2(layer: &mut Layer, gl: &mut WebGlGlobal, draw_group: &DrawGroup, points: &SpaceBase<f64,LeafStyle>, run: &Option<SpaceBase<f64,()>>, x_sizes: Vec<f64>, y_sizes:Vec<f64>, depth: &EachOrEvery<i8>, canvas: &CanvasInUse, dims: &[CanvasItemArea], freedom: &Freedom, attachment: GLAttachmentPoint, wobble: Option<SpaceBase<Observable<'static,f64>,()>>) -> Result<Box<dyn DynamicShape>,Error> {
-    let mut geometry_yielder = draw_group.geometry_yielder();
     let mut patina_yielder = TextureYielder::new(canvas,freedom);
     let left = layer.left();
-    let mut rectangles = RectanglesData::new_sized(layer, &mut geometry_yielder, &mut patina_yielder,&points,run,x_sizes,y_sizes,depth,left,false,&draw_group,attachment,wobble)?;
+    let mut rectangles = RectanglesData::new_sized(layer, &GeometryProcessName::Triangles(draw_group.geometry().clone()), &mut patina_yielder,&points,run,x_sizes,y_sizes,depth,left,false,&draw_group,attachment,wobble)?;
     let campaign = rectangles.elements_mut();
     patina_yielder.draw()?.add_rectangle(campaign,&canvas,&dims,&Freedom::None)?;
     campaign.close()?;
@@ -173,20 +171,18 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &mut WebGlGlobal, tools:
     let bitmap_multiplier = gl.refs().canvas_source.bitmap_multiplier() as f64;
     match shape {
         GLShape::Wiggle((start,end),yy,Plotter(_,colour),depth) => {
-            let mut geometry_yielder = GeometryYielder::new(GeometryProcessName::Wiggle);
             let mut patina_yielder = DirectYielder::new();
             let left = layer.left();
-            let (mut array,count) = make_wiggle(layer,&mut geometry_yielder,&mut patina_yielder,start,end,&yy,left,depth)?;
-            patina_yielder.draw()?.direct(&mut array, &EachOrEvery::every(colour),1,count)?;
+            let (mut array,count) = make_wiggle(layer,&GeometryProcessName::Wiggle,&mut patina_yielder,start,end,&yy,left,depth)?;
+            patina_yielder.draw()?.direct(&mut array,&EachOrEvery::every(colour),1,count)?;
             array.close()?;
             Ok(ShapeToAdd::None)
         },
         GLShape::Circle(position,radius,patina,depth,draw_group,wobble) => {
-            let mut geometry_yielder = draw_group.geometry_yielder();
             let mut patina_yielder = patina.build();
             let left = layer.left();
             log!("circle {:?}",position);
-            make_circle(layer,&mut geometry_yielder,&mut patina_yielder,position,radius,depth,left,&draw_group)?;
+            make_circle(layer,&GeometryProcessName::Triangles(draw_group.geometry().clone()),&mut patina_yielder,position,radius,depth,left,&draw_group)?;
             Ok(ShapeToAdd::None)
         },
         GLShape::Text(points,run,handles,depth,draw_group,attachment) => {
@@ -212,12 +208,11 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &mut WebGlGlobal, tools:
         },
         GLShape::SpaceBaseRect(area,simple_shape_patina,depth,draw_group,wobble) => {
             let mut drawing_shape_patina = simple_shape_patina.build();
-            let mut geometry_yielder = draw_group.geometry_yielder();
             let left = layer.left();
             match drawing_shape_patina.yielder_mut() {
                 PatinaTarget::Visual(patina_yielder) => {
                     let hollow = match simple_shape_patina { SimpleShapePatina::Hollow(_) => true, _ => false };
-                    let mut rectangles = RectanglesData::new_area(layer,&mut geometry_yielder,patina_yielder,&area,&depth,left,hollow,&draw_group,&None,wobble)?;
+                    let mut rectangles = RectanglesData::new_area(layer,&GeometryProcessName::Triangles(draw_group.geometry().clone()),patina_yielder,&area,&depth,left,hollow,&draw_group,&None,wobble)?;
                     let campaign = rectangles.elements_mut();
                     add_colour(campaign,&drawing_shape_patina,area.len())?;
                     campaign.close()?;

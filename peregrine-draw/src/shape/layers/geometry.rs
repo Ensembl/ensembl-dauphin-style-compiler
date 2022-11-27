@@ -20,25 +20,24 @@ impl GeometryAdder {
 
 pub struct GeometryYielder {
     name: GeometryProcessName,
-    link: Option<Box<dyn Any>>
+    link: Option<GeometryAdder>
 }
 
 impl GeometryYielder {
-    pub(crate) fn new(name: GeometryProcessName) -> GeometryYielder {
+    pub(crate) fn new(name: &GeometryProcessName) -> GeometryYielder {
         GeometryYielder {
-            name,
+            name: name.clone(),
             link: None
         }
     }
 
-    pub fn get_adder<T: 'static>(&self) -> Result<&T,Error> {
-        let x  = self.link.as_ref().map(|x| x.downcast_ref()).flatten();
-        x.ok_or_else(|| Error::fatal("incorrect adder type"))
+    pub(crate) fn get_adder(&self) -> Result<&GeometryAdder,Error> {
+        self.link.as_ref().ok_or_else(|| Error::fatal("incorrect adder type"))
     }
 
     pub(crate) fn name(&self) -> &GeometryProcessName { &self.name }
     pub(crate) fn set(&mut self, program: &GeometryAdder) -> Result<(),Error> {
-        self.link = Some(program.to_any());
+        self.link = Some(program.clone());
         Ok(())
     }
 }

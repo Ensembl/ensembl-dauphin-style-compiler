@@ -1,18 +1,19 @@
 use peregrine_toolkit::error::Error;
 
 use super::super::layers::layer::{ Layer };
-use crate::shape::layers::geometry::{GeometryAdder, GeometryYielder};
+use crate::shape::layers::geometry::{GeometryAdder, GeometryYielder, GeometryProcessName};
 use crate::shape::layers::patina::PatinaYielder;
 use crate::webgl::{AttribHandle, ProcessBuilder, ProcessStanzaAddable, ProcessStanzaArray, ProgramBuilder};
 use super::super::util::arrayutil::{ interleave_pair, apply_left };
 
 const THICKNESS: f64 = 1.; // XXX
 
-pub(crate) fn make_wiggle(layer: &mut Layer, geometry_yielder: &mut GeometryYielder, patina_yielder: &mut dyn PatinaYielder,
+pub(crate) fn make_wiggle(layer: &mut Layer, geometry_process: &GeometryProcessName, patina_yielder: &mut dyn PatinaYielder,
                     start: f64, end: f64, yy: &[Option<f64>],
                     left: f64, depth: i8)-> Result<(ProcessStanzaArray,usize),Error> {
-    let process = layer.get_process_builder(geometry_yielder,patina_yielder)?;
-    let adder = geometry_yielder.get_adder::<GeometryAdder>()?;
+    let mut geometry_yielder = GeometryYielder::new(geometry_process);                    
+    let process = layer.get_process_builder(&mut geometry_yielder,patina_yielder)?;
+    let adder = geometry_yielder.get_adder()?;
     match adder {
         GeometryAdder::Wiggle(w) => {
             w.add_wiggle(process,start,end,&yy,left,depth)
