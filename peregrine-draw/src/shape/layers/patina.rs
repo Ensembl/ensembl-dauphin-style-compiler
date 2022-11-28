@@ -7,6 +7,10 @@ use super::consts::{ PR_LOW, PR_DEF };
 #[derive(Clone,Debug,Hash,PartialEq,Eq,Sequence)]
 pub(crate) enum PatinaProgramName { Direct, Texture, FreeTexture }
 
+pub(crate) trait PatinaFactory {
+    fn patina_name(&self) -> PatinaProcessName;
+}
+
 impl PatinaProgramName {
     pub(crate) fn key(&self) -> String {
         format!("{:?}",self)

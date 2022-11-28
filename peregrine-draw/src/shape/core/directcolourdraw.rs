@@ -1,4 +1,4 @@
-use crate::{shape::{layers::{patina::{PatinaProcessName}}, util::eoethrow::{eoe_throw2}}, webgl::{ AttribHandle, ProcessStanzaAddable, ProgramBuilder }};
+use crate::{shape::{layers::{patina::{PatinaProcessName, PatinaFactory}}, util::eoethrow::{eoe_throw2}}, webgl::{ AttribHandle, ProcessStanzaAddable, ProgramBuilder, ProcessBuilder }};
 use peregrine_data::{DirectColour};
 use peregrine_toolkit::{eachorevery::EachOrEvery, error::Error};
 use super::super::util::arrayutil::scale_colour;
@@ -22,7 +22,7 @@ pub struct DirectColourDraw {
 }
 
 impl DirectColourDraw {
-    pub(crate) fn new(variety: &DirectProgram) -> Result<DirectColourDraw,Error> {
+    fn new(variety: &DirectProgram) -> Result<DirectColourDraw,Error> {
         Ok(DirectColourDraw {
             program: variety.clone()
         })
@@ -59,3 +59,18 @@ impl DirectColourDraw {
     }
 }
 
+pub(crate) struct ColourFragment;
+
+impl ColourFragment {
+    pub(crate) fn new() -> ColourFragment {
+        ColourFragment
+    }
+
+    pub(crate) fn make(&self, builder: &mut ProcessBuilder) -> Result<DirectColourDraw,Error> {
+        DirectColourDraw::new(&DirectProgram::new(builder.program_builder())?)
+    }
+}
+
+impl PatinaFactory for ColourFragment {
+    fn patina_name(&self) -> PatinaProcessName { PatinaProcessName::Direct }
+}

@@ -5,9 +5,9 @@ use peregrine_toolkit::error::Error;
 use peregrine_toolkit::log_extra;
 use peregrine_toolkit_async::sync::retainer::RetainTest;
 use crate::webgl::{ ProcessBuilder, Process };
-use super::geometry::{GeometryProcessName};
+use super::geometry::{GeometryProcessName, GeometryFactory};
 use super::programstore::ProgramStore;
-use super::patina::{PatinaProcessName};
+use super::patina::{PatinaProcessName, PatinaFactory};
 use crate::webgl::global::WebGlGlobal;
 
 /* 
@@ -52,8 +52,6 @@ impl Layer {
         })
     }
 
-    pub(crate) fn left(&self) -> f64 { self.left }
-
     fn shape_program(&mut self, character: &ProgramCharacter) -> Result<&mut ProcessBuilder,Error> {
         if !self.store.contains_key(&character) {
             self.store.insert(character.clone(),self.programs.get_shape_program(&character.0,&character.1)?);
@@ -61,8 +59,8 @@ impl Layer {
         Ok(self.store.get_mut(&character).unwrap())
     }
 
-    pub(crate) fn get_process_builder(&mut self, geometry_name: &GeometryProcessName, patina_name: &PatinaProcessName) -> Result<&mut ProcessBuilder,Error> {
-        let character = ProgramCharacter(geometry_name.clone(),patina_name.clone());
+    pub(crate) fn get_process_builder(&mut self, geometry_factory: &dyn GeometryFactory, patina_factory: &dyn PatinaFactory) -> Result<&mut ProcessBuilder,Error> {
+        let character = ProgramCharacter(geometry_factory.geometry_name(),patina_factory.patina_name());
         let process = self.shape_program(&character)?; 
         Ok(process)
     }

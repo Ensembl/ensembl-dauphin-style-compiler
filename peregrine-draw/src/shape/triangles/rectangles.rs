@@ -1,5 +1,6 @@
 use std::sync::{Arc, Mutex};
 use crate::shape::layers::drawing::DynamicShape;
+use crate::shape::layers::geometry::{GeometryFactory, GeometryProcessName};
 use crate::shape::util::arrayutil::{rectangle4};
 use crate::shape::util::eoethrow::{eoe_throw2};
 use crate::webgl::global::WebGlGlobal;
@@ -264,21 +265,15 @@ pub(crate) struct RectanglesData {
 }
 
 impl RectanglesData {
-    pub(crate) fn new_area(builder: &mut ProcessBuilder, area: &SpaceBaseArea<f64,LeafStyle>, depth: &EachOrEvery<i8>, left: f64, hollow: bool, kind: &DrawGroup, edge: &Option<HollowEdge2<f64>>, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>)-> Result<RectanglesData,Error> {
+    fn new_area(builder: &mut ProcessBuilder, area: &SpaceBaseArea<f64,LeafStyle>, depth: &EachOrEvery<i8>, left: f64, hollow: bool, kind: &DrawGroup, edge: &Option<HollowEdge2<f64>>, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>)-> Result<RectanglesData,Error> {
         let location = RectanglesLocation::Area(RectanglesLocationArea::new(area,wobble,depth.clone(),edge.clone())?);
         Self::real_new(builder,location,left,hollow,kind)
     }
 
-    pub(crate) fn new_sized(builder: &mut ProcessBuilder, points: &SpaceBase<f64,LeafStyle>, run: &Option<SpaceBase<f64,()>>, x_sizes: Vec<f64>, y_sizes: Vec<f64>, depth: &EachOrEvery<i8>, left: f64, hollow: bool, kind: &DrawGroup, attachment: GLAttachmentPoint, wobble: Option<SpaceBase<Observable<'static,f64>,()>>)-> Result<RectanglesData,Error> {
+    fn new_sized(builder: &mut ProcessBuilder, points: &SpaceBase<f64,LeafStyle>, run: &Option<SpaceBase<f64,()>>, x_sizes: Vec<f64>, y_sizes: Vec<f64>, depth: &EachOrEvery<i8>, left: f64, hollow: bool, kind: &DrawGroup, attachment: GLAttachmentPoint, wobble: Option<SpaceBase<Observable<'static,f64>,()>>)-> Result<RectanglesData,Error> {
         let location = RectanglesLocation::Sized(RectanglesLocationSized::new(points,run,wobble,depth.clone(),x_sizes,y_sizes,attachment)?);
         Self::real_new(builder,location,left,hollow,kind)
     }
-
-    /*
-     * Layer::get_process_builder() -> ProcessBuilder
-     * ProcessBuilder::get_stanza_builder() -> ProcessStanzaBuilder
-     * ProcessStanzaBuilder::make_elements(index) -> ProcessStanzaElements
-     */
 
     fn real_new(builder: &mut ProcessBuilder, location: RectanglesLocation, left: f64, hollow: bool, kind: &DrawGroup)-> Result<RectanglesData,Error> {
         let adder = TriangleAdder::new(builder)?;
@@ -318,6 +313,32 @@ impl RectanglesData {
             self.program.add_run_data4(&mut self.elements,data)?;
         }
         Ok(())
+    }
+}
+
+pub(crate) struct RectanglesDataFactory {
+    draw_group: DrawGroup
+}
+
+impl RectanglesDataFactory {
+    pub(crate) fn new(draw_group: &DrawGroup) -> RectanglesDataFactory {
+        RectanglesDataFactory {
+            draw_group: draw_group.clone()
+        }
+    }
+
+    pub(crate) fn make_area(&self, builder: &mut ProcessBuilder, area: &SpaceBaseArea<f64,LeafStyle>, depth: &EachOrEvery<i8>, left: f64, hollow: bool, edge: &Option<HollowEdge2<f64>>, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>)-> Result<RectanglesData,Error> {
+        RectanglesData::new_area(builder,area,depth,left,hollow,&self.draw_group,edge,wobble)
+    }
+
+    pub(crate) fn make_sized(&self, builder: &mut ProcessBuilder, points: &SpaceBase<f64,LeafStyle>, run: &Option<SpaceBase<f64,()>>, x_sizes: Vec<f64>, y_sizes: Vec<f64>, depth: &EachOrEvery<i8>, left: f64, hollow: bool, attachment: GLAttachmentPoint, wobble: Option<SpaceBase<Observable<'static,f64>,()>>)-> Result<RectanglesData,Error> {
+        RectanglesData::new_sized(builder,points,run,x_sizes,y_sizes,depth,left,hollow,&self.draw_group,attachment,wobble)
+    }
+}
+
+impl GeometryFactory for RectanglesDataFactory {
+    fn geometry_name(&self) -> GeometryProcessName {
+        GeometryProcessName::Triangles(self.draw_group.geometry())
     }
 }
 

@@ -1,8 +1,5 @@
-use super::super::core::wigglegeometry::WiggleAdder;
 use crate::shape::layers::consts::{ PR_DEF, PR_LOW };
-use crate::shape::triangles::triangleadder::TriangleAdder;
 use crate::webgl::{AttributeProto, Conditional, Declaration, GLArity, Header, ProgramBuilder, SourceInstrs, Statement, Varying, UniformProto, ProcessBuilder};
-use peregrine_toolkit::error::Error;
 use web_sys::{ WebGlRenderingContext };
 use enum_iterator::Sequence;
 
@@ -11,6 +8,10 @@ pub enum TrianglesGeometry {
     Tracking,
     TrackingSpecial(bool),
     Window(bool)
+}
+
+pub(crate) trait GeometryFactory {
+    fn geometry_name(&self) -> GeometryProcessName;
 }
 
 #[derive(Clone,Hash,PartialEq,Eq,Debug,Sequence)]

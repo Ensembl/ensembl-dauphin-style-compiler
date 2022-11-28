@@ -1,5 +1,5 @@
 use peregrine_toolkit::error::Error;
-use crate::shape::layers::patina::{ PatinaProcessName, Freedom};
+use crate::shape::layers::patina::{ PatinaProcessName, Freedom, PatinaFactory};
 use crate::webgl::canvas::composition::canvasitem::CanvasItemArea;
 use crate::webgl::canvas::htmlcanvas::canvasinuse::CanvasInUse;
 use crate::webgl::{ AttribHandle, ProcessStanzaAddable, ProgramBuilder, UniformHandle, ProcessBuilder };
@@ -36,7 +36,7 @@ fn push(data: &mut Vec<f32>,x: u32, y: u32, size: &(u32,u32)) {
 }
 
 impl TextureDraw {
-    pub(crate) fn new(builder: &mut ProcessBuilder, freedom: &Freedom) -> Result<TextureDraw,Error> {
+    fn new(builder: &mut ProcessBuilder, freedom: &Freedom) -> Result<TextureDraw,Error> {
         let program = TextureProgram::new(builder.program_builder())?;
         let process_name = builder.patina_name();
         let canvas = process_name.canvas_name().cloned();
@@ -82,10 +82,30 @@ impl TextureDraw {
     }
 }
 
-pub(crate) fn xxx_texture_name(flat_id: &CanvasInUse, freedom: &Freedom) -> PatinaProcessName {
-    match freedom {
-        Freedom::None => PatinaProcessName::Texture(flat_id.clone()),
-        Freedom::Horizontal => PatinaProcessName::FreeTexture(flat_id.clone(),Freedom::Horizontal),
-        Freedom::Vertical => PatinaProcessName::FreeTexture(flat_id.clone(),Freedom::Vertical),
+pub(crate) struct TextureDrawFactory {
+    canvas: CanvasInUse,
+    freedom: Freedom
+}
+
+impl TextureDrawFactory {
+    pub(crate) fn new(canvas: &CanvasInUse, freedom: &Freedom) -> TextureDrawFactory {
+        TextureDrawFactory {
+            canvas: canvas.clone(),
+            freedom: freedom.clone()
+        }
+    }
+
+    pub(crate) fn make(&self, builder: &mut ProcessBuilder) -> Result<TextureDraw,Error> {
+        TextureDraw::new(builder,&self.freedom)
+    }
+}
+
+impl PatinaFactory for TextureDrawFactory {
+    fn patina_name(&self) -> PatinaProcessName {
+        match self.freedom {
+            Freedom::None => PatinaProcessName::Texture(self.canvas.clone()),
+            Freedom::Horizontal => PatinaProcessName::FreeTexture(self.canvas.clone(),Freedom::Horizontal),
+            Freedom::Vertical => PatinaProcessName::FreeTexture(self.canvas.clone(),Freedom::Vertical),
+        }
     }
 }

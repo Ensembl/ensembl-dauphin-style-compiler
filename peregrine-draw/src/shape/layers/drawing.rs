@@ -27,7 +27,8 @@ pub(crate) trait DynamicShape {
 pub(crate) struct DrawingBuilder {
     main_layer: Layer,
     tools: DrawingToolsBuilder,
-    dynamic_shapes: Vec<Box<dyn DynamicShape>>
+    dynamic_shapes: Vec<Box<dyn DynamicShape>>,
+    left: f64
 }
 
 impl DrawingBuilder {
@@ -37,7 +38,8 @@ impl DrawingBuilder {
         Ok(DrawingBuilder {
             main_layer: Layer::new(gl_ref.program_store,left)?,
             tools: DrawingToolsBuilder::new(gl_ref.fonts,assets,gl_ref.image_cache,scale,left,bitmap_multiplier),
-            dynamic_shapes: vec![]
+            dynamic_shapes: vec![],
+            left
         })
     }
 
@@ -55,7 +57,7 @@ impl DrawingBuilder {
 
     pub(crate) fn add_shape(&mut self, gl: &mut WebGlGlobal, shape: GLShape) -> Result<(),Error> {
         let (layer, tools,) = (&mut self.main_layer,&mut self.tools);
-        match add_shape_to_layer(layer,gl,tools,shape)? {
+        match add_shape_to_layer(layer,self.left,gl,tools,shape)? {
             ShapeToAdd::Dynamic(dynamic) => {
                 self.dynamic_shapes.push(dynamic);
             },

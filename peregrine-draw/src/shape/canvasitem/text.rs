@@ -100,7 +100,7 @@ pub(crate) fn prepare_text(out: &mut Vec<GLShape>, tools: &mut DrawingToolsBuild
     Ok(())
 }
 
-pub(crate) fn draw_text(layer: &mut Layer, gl: &mut WebGlGlobal, tools: &mut DrawingToolsBuilder,
+pub(crate) fn draw_text(layer: &mut Layer, left: f64, gl: &mut WebGlGlobal, tools: &mut DrawingToolsBuilder,
                     points: SpaceBase<f64,LeafStyle>,
                     run: Option<SpaceBase<f64,()>>,
                     handles: &[CanvasItemAreaSource], depth: EachOrEvery<i8>, draw_group: &DrawGroup,
@@ -113,6 +113,6 @@ pub(crate) fn draw_text(layer: &mut Layer, gl: &mut WebGlGlobal, tools: &mut Dra
     if bitmap_dims.len() == 0 { return Ok(ShapeToAdd::None); }
     let (x_sizes,y_sizes) = dims_to_sizes(&bitmap_dims,1./bitmap_multiplier);
     let canvas = tools.composition_builder(&CanvasType::Crisp).canvas().ok_or_else(|| Error::fatal("no canvas id A"))?;
-    let rectangles = draw_points_from_canvas2(layer,gl,&draw_group,&points,&run,x_sizes,y_sizes,&depth,&canvas,&bitmap_dims,&Freedom::None,attachment,None)?;
+    let rectangles = draw_points_from_canvas2(layer,left,gl,&draw_group,&points,&run,x_sizes,y_sizes,&depth,&canvas,&bitmap_dims,&Freedom::None,attachment,None)?;
     Ok(ShapeToAdd::Dynamic(rectangles))
 }

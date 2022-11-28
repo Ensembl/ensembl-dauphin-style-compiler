@@ -1,15 +1,8 @@
 use peregrine_toolkit::error::Error;
-use crate::webgl::{AttribHandle, ProcessBuilder, ProcessStanzaAddable, ProcessStanzaArray };
+use crate::{webgl::{AttribHandle, ProcessBuilder, ProcessStanzaAddable, ProcessStanzaArray }, shape::layers::geometry::{GeometryFactory, GeometryProcessName}};
 use super::super::util::arrayutil::{ interleave_pair, apply_left };
 
-const THICKNESS: f64 = 1.; // XXX
-
-pub(crate) fn make_wiggle(process: &mut ProcessBuilder,
-                    start: f64, end: f64, yy: &[Option<f64>],
-                    left: f64, depth: i8)-> Result<(ProcessStanzaArray,usize),Error> {
-    let adder = WiggleAdder::new(&process)?;
-    adder.add_wiggle(process,start,end,&yy,left,depth)
-}
+const THICKNESS: f64 = 1.; // TODO configurable
 
 #[derive(Clone)]
 pub struct WiggleAdder {
@@ -18,7 +11,7 @@ pub struct WiggleAdder {
 }
 
 impl WiggleAdder {
-    pub(crate) fn new(process: &ProcessBuilder) -> Result<WiggleAdder,Error> {
+    fn new(process: &ProcessBuilder) -> Result<WiggleAdder,Error> {
         let program = process.program_builder();
         Ok(WiggleAdder {
             data: program.get_attrib_handle("aData")?,
@@ -54,6 +47,22 @@ impl WiggleAdder {
         } else {
             Ok((process.get_stanza_builder().make_array(0)?,0))
         }
+    }
+}
+
+pub(crate) struct WiggleAdderFactory;
+
+impl WiggleAdderFactory {
+    pub(crate) fn new() -> WiggleAdderFactory { WiggleAdderFactory }
+
+    pub(crate) fn make(&self, process: &mut ProcessBuilder) -> Result<WiggleAdder,Error> {
+        WiggleAdder::new(process)
+    }
+}
+
+impl GeometryFactory for WiggleAdderFactory {
+    fn geometry_name(&self) -> GeometryProcessName {
+        GeometryProcessName::Wiggle
     }
 }
 
