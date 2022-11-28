@@ -1,5 +1,5 @@
 use peregrine_toolkit::error::Error;
-use crate::{webgl::{AttribHandle, ProcessStanzaAddable, ProcessStanzaElements, ProgramBuilder, UniformHandle, ProcessBuilder}};
+use crate::{webgl::{AttribHandle, ProcessStanzaAddable, ProcessStanzaElements, UniformHandle, ProcessBuilder}};
 
 #[derive(Clone)]
 pub struct TriangleAdder {

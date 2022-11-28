@@ -35,42 +35,10 @@ pub(super) fn apply_wobble<A: Clone>(pos: &SpaceBase<f64,A>, wobble: &SpaceBase<
     })
 }
 
-#[cfg_attr(debug_assertions,derive(Debug))]
-enum RectanglesLocation {
-    Area(RectanglesLocationArea),
-    Sized(RectanglesLocationSized)
-}
-
-impl RectanglesLocation {
-    fn as_trait(&self) -> &dyn RectanglesImpl {
-        match self {
-            RectanglesLocation::Area(x) => x,
-            RectanglesLocation::Sized(x) => x
-        }
-    }
-
-    fn as_trait_mut(&mut self) -> &mut dyn RectanglesImpl {
-        match self {
-            RectanglesLocation::Area(x) => x,
-            RectanglesLocation::Sized(x) => x
-        }
-    }
-
-    fn wobbled_location(&self) -> (SpaceBaseArea<f64,LeafStyle>,Option<SpaceBase<f64,()>>) {
-        self.as_trait().wobbled_location()
-    }
-
-    fn depths(&self) -> &EachOrEvery<i8> { self.as_trait().depths() }
-    fn any_dynamic(&self) -> bool { self.as_trait().any_dynamic() }
-    fn wobble(&mut self) -> Option<Box<dyn FnMut() + 'static>> { self.as_trait_mut().wobble() }
-    fn watch(&self, observer: &mut Observer<'static>) { self.as_trait().watch(observer) }
-    fn len(&self) -> usize { self.as_trait().len() }
-}
-
 pub(crate) struct RectanglesData {
     elements: ProcessStanzaElements,
     program: TriangleAdder,
-    location: RectanglesLocation,
+    location: Box<dyn RectanglesImpl>,
     left: f64,
     width: Option<f64>,
     kind: DrawGroup
@@ -78,16 +46,16 @@ pub(crate) struct RectanglesData {
 
 impl RectanglesData {
     fn new_area(builder: &mut ProcessBuilder, area: &SpaceBaseArea<f64,LeafStyle>, depth: &EachOrEvery<i8>, left: f64, hollow: bool, kind: &DrawGroup, edge: &Option<HollowEdge2<f64>>, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>)-> Result<RectanglesData,Error> {
-        let location = RectanglesLocation::Area(RectanglesLocationArea::new(area,wobble,depth.clone(),edge.clone())?);
-        Self::real_new(builder,location,left,hollow,kind)
+        let location = RectanglesLocationArea::new(area,wobble,depth.clone(),edge.clone())?;
+        Self::real_new(builder,Box::new(location),left,hollow,kind)
     }
 
     fn new_sized(builder: &mut ProcessBuilder, points: &SpaceBase<f64,LeafStyle>, run: &Option<SpaceBase<f64,()>>, x_sizes: Vec<f64>, y_sizes: Vec<f64>, depth: &EachOrEvery<i8>, left: f64, hollow: bool, kind: &DrawGroup, attachment: GLAttachmentPoint, wobble: Option<SpaceBase<Observable<'static,f64>,()>>)-> Result<RectanglesData,Error> {
-        let location = RectanglesLocation::Sized(RectanglesLocationSized::new(points,run,wobble,depth.clone(),x_sizes,y_sizes,attachment)?);
-        Self::real_new(builder,location,left,hollow,kind)
+        let location = RectanglesLocationSized::new(points,run,wobble,depth.clone(),x_sizes,y_sizes,attachment)?;
+        Self::real_new(builder,Box::new(location),left,hollow,kind)
     }
 
-    fn real_new(builder: &mut ProcessBuilder, location: RectanglesLocation, left: f64, hollow: bool, kind: &DrawGroup)-> Result<RectanglesData,Error> {
+    fn real_new(builder: &mut ProcessBuilder, location: Box<dyn RectanglesImpl>, left: f64, hollow: bool, kind: &DrawGroup)-> Result<RectanglesData,Error> {
         let adder = TriangleAdder::new(builder)?;
         let indexes = if hollow {
             vec![0,1,2, 1,2,3, 2,3,4, 3,4,5, 4,5,6, 5,6,7, 6,7,0, 7,0,1]
