@@ -113,6 +113,8 @@ mod shape {
         pub(crate) mod drawgroup;
         pub(crate) mod triangleadder;
         pub(crate) mod rectangles;
+        pub(crate) mod sizedrectangles;
+        pub(crate) mod arearectangles;
     }
 
     pub(crate) mod canvasitem {

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use peregrine_data::reactive::Observable;
-use peregrine_data::{ Colour, DirectColour, DrawnType, Patina, Plotter, SpaceBaseArea, HollowEdge2, SpaceBase, LeafStyle, HotspotPatina };
+use peregrine_data::{ Colour, DirectColour, DrawnType, Patina, Plotter, SpaceBaseArea, HollowEdge2, SpaceBase, LeafStyle, HotspotPatina, AttachmentPoint, PartialSpaceBase };
 use peregrine_toolkit::eachorevery::{EachOrEvery, EachOrEveryFilterBuilder};
 use peregrine_toolkit::error::Error;
 use peregrine_toolkit::log;
@@ -14,13 +14,50 @@ use crate::shape::canvasitem::text::draw_text;
 use crate::shape::layers::drawing::DynamicShape;
 use crate::shape::layers::drawingtools::{DrawingToolsBuilder, CanvasType};
 use crate::shape::layers::patina::Freedom;
-use crate::shape::triangles::rectangles::{Rectangles, GLAttachmentPoint, RectanglesDataFactory };
+use crate::shape::triangles::rectangles::{Rectangles, RectanglesDataFactory };
 use crate::shape::triangles::drawgroup::DrawGroup;
 use crate::shape::util::eoethrow::{eoe_throw2};
 use crate::webgl::canvas::composition::canvasitem::{CanvasItemAreaSource, CanvasItemArea};
 use crate::webgl::canvas::htmlcanvas::canvasinuse::CanvasInUse;
 use crate::webgl::{ ProcessStanzaAddable };
 use crate::webgl::global::WebGlGlobal;
+
+#[cfg_attr(debug_assertions,derive(Debug))]
+#[derive(Clone)]
+pub(crate) enum GLAttachmentPoint {
+    Left,
+    Right
+}
+
+impl GLAttachmentPoint {
+    pub(crate) fn new(input: &AttachmentPoint) -> GLAttachmentPoint {
+        match input {
+            AttachmentPoint::Left => GLAttachmentPoint::Left,
+            AttachmentPoint::Right => GLAttachmentPoint::Right
+        }
+    }
+}
+
+impl GLAttachmentPoint {
+    pub(crate) fn sized_to_rectangle(&self,spacebase: &SpaceBase<f64,LeafStyle>, size_x: &[f64], size_y: &[f64]) -> Result<SpaceBaseArea<f64,LeafStyle>,Error> {
+        let mut near = spacebase.clone();
+        let mut far = spacebase.clone();
+        match self {
+            GLAttachmentPoint::Left => {
+                far.fold_tangent(size_x,|v,z| { *v + z });
+                far.fold_normal(size_y,|v,z| { *v + z });        
+            }
+            GLAttachmentPoint::Right => {
+                near.fold_tangent(size_x,|v,z| { *v - z });
+                far.fold_normal(size_y,|v,z| { *v + z });        
+            }
+        }
+        let area = eoe_throw2("rl1",SpaceBaseArea::new(
+            PartialSpaceBase::from_spacebase(near),
+            PartialSpaceBase::from_spacebase(far)))?;
+        Ok(area)
+    }
+}
 
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub(crate) enum SimpleShapePatina {

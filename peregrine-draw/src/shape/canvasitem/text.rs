@@ -1,12 +1,11 @@
 use peregrine_data::{ DirectColour, PenGeometry, Background, LeafStyle, TextShape, SpaceBase };
 use peregrine_toolkit::eachorevery::EachOrEvery;
 use peregrine_toolkit::error::Error;
-use crate::shape::core::drawshape::{GLShape, ShapeToAdd, draw_points_from_canvas2, dims_to_sizes};
+use crate::shape::core::drawshape::{GLShape, ShapeToAdd, draw_points_from_canvas2, dims_to_sizes, GLAttachmentPoint};
 use crate::shape::layers::drawingtools::{DrawingToolsBuilder, CanvasType};
 use crate::shape::layers::layer::Layer;
 use crate::shape::layers::patina::Freedom;
 use crate::shape::triangles::drawgroup::DrawGroup;
-use crate::shape::triangles::rectangles::GLAttachmentPoint;
 use crate::util::fonts::Fonts;
 use crate::webgl::canvas::binding::weave::CanvasWeave;
 use crate::webgl::canvas::htmlcanvas::canvasinuse::CanvasAndContext;
