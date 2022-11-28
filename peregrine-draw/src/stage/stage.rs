@@ -130,12 +130,13 @@ impl Stage {
     pub fn x_mut(&mut self) -> &mut StageAxis { &mut self.x }
     pub fn y_mut(&mut self) -> &mut StageAxis { &mut self.y }
 
-    pub fn notify_playingfield(&mut self, playing_field: &PlayingField) {
+    pub(crate) fn notify_playingfield(&mut self, playing_field: &PlayingField) {
         let squeeze = playing_field.squeeze;
         self.x.set_squeeze((squeeze.0 as f32, squeeze.1 as f32));
+        self.y.set_max_bottom(playing_field.height);
     }
 
-    pub fn notify_current(&mut self, viewport: &Viewport) {
+    pub(crate) fn notify_current(&mut self, viewport: &Viewport) {
         let position = viewport.position().unwrap();
         let bp_per_pixel = viewport.bp_per_screen().unwrap();        
         if let Ok(layout) = viewport.layout() {

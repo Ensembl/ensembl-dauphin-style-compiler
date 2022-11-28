@@ -21,7 +21,8 @@ pub enum CursorCircumstance {
     WheelNegative,
     WheelPositive,
     Hotspot,
-    Maypole
+    Maypole,
+    Vertical
 }
 
 impl CursorCircumstance {
@@ -34,7 +35,8 @@ impl CursorCircumstance {
             CursorCircumstance::WheelNegative,
             CursorCircumstance::WheelPositive,
             CursorCircumstance::Hotspot,
-            CursorCircumstance::Maypole
+            CursorCircumstance::Maypole,
+            CursorCircumstance::Vertical
         ]
     }
 
@@ -42,6 +44,7 @@ impl CursorCircumstance {
         match self {
             CursorCircumstance::Maypole => 1,
             CursorCircumstance::Hold => 1,
+            CursorCircumstance::Vertical => 1,
             _ => 0
         }
     }
@@ -90,6 +93,9 @@ pub enum PgConfigKey {
     GotoV, // Wijk and Nuij's V parameter for goto animations: overall animation speed
     GotoMaxS, // Maximum value of Wijk and Nuij's S parameter before bailing and using a fade
     Verbosity, // Message verbosity
+    MinVertOdometer,
+    MinVertNumerator,
+    MinVertDenominator
 }
 
 #[cfg(not(debug_assertions))]
@@ -132,6 +138,8 @@ lazy_static! {
             ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::DebugAction), name: "keys.debug-action", default: &PgConfigValue::StaticStr("") },
             ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PixelsLeft), name: "keys.pixels-left", default: &PgConfigValue::StaticStr("Alt-a[200]") },
             ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PixelsRight), name: "keys.pixels-right", default: &PgConfigValue::StaticStr("MirrorRunningDrag Alt-d[200]") },
+            ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PixelsUp), name: "keys.pixels-up", default: &PgConfigValue::StaticStr("") },
+            ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PixelsDown), name: "keys.pixels-down", default: &PgConfigValue::StaticStr("MirrorVerticalDrag") },
             ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PixelsIn), name: "keys.pixels-in", default: &PgConfigValue::StaticStr("Alt-w[200]") },
             ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PixelsOut), name: "keys.pixels-out", default: &PgConfigValue::StaticStr("Wheel Alt-s[200]") },
             ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PullLeft), name: "keys.pull-left", default: &PgConfigValue::StaticStr("") },
@@ -153,6 +161,7 @@ lazy_static! {
             ConfigKeyInfo { key: PgConfigKey::Cursor(CursorCircumstance::Pinch), name: "mouse.cursor.pinch", default: &PgConfigValue::StaticStr("nsew-resize") },
             ConfigKeyInfo { key: PgConfigKey::Cursor(CursorCircumstance::Hotspot), name: "mouse.cursor.hotspot", default: &PgConfigValue::StaticStr("pointer") },
             ConfigKeyInfo { key: PgConfigKey::Cursor(CursorCircumstance::Maypole), name: "mouse.cursor.maypole", default: &PgConfigValue::StaticStr("w-resize") },
+            ConfigKeyInfo { key: PgConfigKey::Cursor(CursorCircumstance::Vertical), name: "mouse.cursor.maypole", default: &PgConfigValue::StaticStr("n-resize") },
             ConfigKeyInfo { key: PgConfigKey::DragCursorDelay, name: "mouse.drag-cursor-delay", default: &PgConfigValue::Float(100.) },
             ConfigKeyInfo { key: PgConfigKey::PullMaxSpeed, name: "pull.max-speed", default: &PgConfigValue::Float(1./40.) },
             ConfigKeyInfo { key: PgConfigKey::AutomatedPullMaxSpeed, name: "pull.max-speed.automated", default: &PgConfigValue::Float(1.) },
@@ -174,8 +183,11 @@ lazy_static! {
             ConfigKeyInfo { key: PgConfigKey::Spectre(SpectreConfigKey::StainColour), name: "spectre.stain.colour", default: &PgConfigValue::DirectColour(DirectColour(50,50,50,100)) },
             ConfigKeyInfo { key: PgConfigKey::ReportUpdateFrequency, name: "report.update-frequency", default: &PgConfigValue::Float(250.) },
             ConfigKeyInfo { key: PgConfigKey::EndstopSound, name: "report.sound.endstop", default: &PgConfigValue::StaticStr("bell") },
-            ConfigKeyInfo { key: PgConfigKey::MinHoldDragSize, name: "animate.min-hold-drag-size", default: &PgConfigValue::Float(0.01) },
+            ConfigKeyInfo { key: PgConfigKey::MinHoldDragSize, name: "animate.min-hold-drag-size", default: &PgConfigValue::Float(16.) },
             ConfigKeyInfo { key: PgConfigKey::TargetReportTime, name: "report.target-update-time", default: &PgConfigValue::Float(5000.) },
+            ConfigKeyInfo { key: PgConfigKey::MinVertOdometer, name: "vert.odometer", default: &PgConfigValue::Float(16.) },
+            ConfigKeyInfo { key: PgConfigKey::MinVertNumerator, name: "vert.numerator", default: &PgConfigValue::Float(7.) },
+            ConfigKeyInfo { key: PgConfigKey::MinVertDenominator, name: "vert.denominator", default: &PgConfigValue::Float(10.) },
         ]};
 }
 

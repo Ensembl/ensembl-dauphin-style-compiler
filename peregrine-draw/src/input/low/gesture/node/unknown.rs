@@ -1,7 +1,8 @@
-use crate::{ Message, input::low::{gesture::{core::{transition::{GestureNodeTransition, TimerHandle}, gesture::{GestureNodeState}, finger::OneOrTwoFingers, gesturenode::{GestureNode, GestureNodeImpl}}, node::maypolenode::MaypoleNode}, pointer::PointerAction, lowlevel}, run::CursorCircumstance};
-use super::{drag::Drag, commontools::check_for_pinch, marquee::Marquee};
+use crate::{ Message, input::low::{gesture::{core::{transition::{GestureNodeTransition, TimerHandle}, gesture::{GestureNodeState}, finger::OneOrTwoFingers, gesturenode::{GestureNode, GestureNodeImpl}}, node::maypolenode::MaypoleNode}, pointer::PointerAction}, run::CursorCircumstance};
+use super::{drag::Drag, commontools::{check_for_pinch, go_vertical}, marquee::Marquee, vertical::Vertical};
 
 pub(crate) struct Unknown {
+    vertical_done: bool,
     hold_timer: Option<TimerHandle>,
     cursor_timer: Option<TimerHandle>
 }
@@ -9,6 +10,7 @@ pub(crate) struct Unknown {
 impl Unknown {
     pub(crate) fn new() -> Unknown {
         Unknown {
+            vertical_done: false,
             hold_timer: None,
             cursor_timer: None
         }
@@ -43,8 +45,14 @@ impl GestureNodeImpl for Unknown {
 
     fn continues(&mut self, transition: &mut GestureNodeTransition, state: &mut GestureNodeState, fingers: &mut OneOrTwoFingers) -> Result<(),Message> {
         if check_for_pinch(transition,state,fingers)? { return Ok(()); }
+        let (vertical,too_far) = go_vertical(fingers,&state.config);
+        if !self.vertical_done && vertical {
+            transition.new_mode(GestureNode::new(Vertical::new()));
+            return Ok(());
+        }
+        self.vertical_done = too_far;
         if fingers.primary().total_distance() > state.config.click_radius {
-            transition.new_mode(GestureNode::new(Drag::new()));
+            transition.new_mode(GestureNode::new(Drag::new(too_far)));
         }
         Ok(())
     }

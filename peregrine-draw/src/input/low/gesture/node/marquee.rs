@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use peregrine_toolkit::{lock};
+use peregrine_toolkit::{lock, log};
 use crate::{shape::spectres::{stain::Stain, ants::MarchingAnts}, input::low::{lowlevel::LowLevelState, gesture::core::{finger::{OneOrTwoFingers, OneFinger}, transition::GestureNodeTransition, gesture::GestureNodeState, gesturenode::GestureNodeImpl}, pointer::PointerAction }, Message, run::CursorCircumstance };
 
 pub(crate) struct Marquee {
@@ -52,6 +52,7 @@ impl Marquee {
             if converter.delta_bp_to_px(want_bp_per_screen) < state.config.min_hold_drag_size {
                 return Ok(None);
             }
+            log!("delta={}px diff={}px",converter.delta_bp_to_px(want_bp_per_screen),state.config.min_hold_drag_size);
             Ok(Some((want_bp_per_screen,centroid_bp,0.)))
         } else {
             Ok(None)
@@ -77,7 +78,9 @@ impl GestureNodeImpl for Marquee {
         PointerAction::RunningHold(state.initial_modifiers.clone(),delta).emit(&state.lowlevel,false);
         if let Some((scale,centre,y)) = self.compute_hold(state,fingers.primary())? {
             PointerAction::HoldDrag(state.initial_modifiers.clone(),scale,centre,y).emit(&state.lowlevel,true);
+            Ok(true)
+        } else {
+            Ok(false)
         }
-        Ok(true)
     }
 }

@@ -1,4 +1,4 @@
-use crate::{run::CursorCircumstance, Message, input::low::{pointer::PointerAction, gesture::core::{gesture::GestureNodeState, transition::GestureNodeTransition, gesturenode::GestureNode, finger::OneOrTwoFingers}}};
+use crate::{run::CursorCircumstance, Message, input::low::{pointer::{PointerAction, PointerConfig}, gesture::core::{gesture::GestureNodeState, transition::GestureNodeTransition, gesturenode::GestureNode, finger::OneOrTwoFingers}}};
 use super::pinch::Pinch;
 
 pub(super) fn check_for_pinch(transition: &mut GestureNodeTransition, state: &mut GestureNodeState, fingers: &mut OneOrTwoFingers) -> Result<bool,Message> {
@@ -22,4 +22,12 @@ pub(super) fn check_for_pinch(transition: &mut GestureNodeTransition, state: &mu
     } else {
         false
     })
+}
+
+pub(super) fn go_vertical(fingers: &OneOrTwoFingers, config: &PointerConfig) -> (bool,bool) {
+    let odometer = fingers.primary().odometer();
+    let total_px = fingers.primary().total_delta();
+    ((total_px.0+total_px.1).abs() > config.min_vert_denom && 
+                  total_px.1.abs() > config.min_vert_numer,
+      odometer.0+odometer.1 > config.min_vert_odometer)
 }

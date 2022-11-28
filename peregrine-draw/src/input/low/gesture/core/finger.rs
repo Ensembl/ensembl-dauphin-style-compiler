@@ -3,20 +3,26 @@
 #[derive(Copy,Clone)]
 pub(super) struct OneFingerAxis {
     start: f64,
-    current: f64
+    current: f64,
+    odometer: f64
 }
 
 impl OneFingerAxis {
     pub(super) fn new(position: f64) -> OneFingerAxis {
         OneFingerAxis {
             start: position,
-            current: position
+            current: position,
+            odometer: 0.
         }
     }
 
     pub(super) fn start(&self) -> f64 { self.start }
     pub(super) fn current(&self) -> f64 { self.current }
-    pub(super) fn set(&mut self, position: f64) { self.current = position; }
+    pub(super) fn odometer(&self) -> f64 { self.odometer }
+    pub(super) fn set(&mut self, position: f64) { 
+        self.odometer += (position-self.current).abs();
+        self.current = position;
+    }
     pub(super) fn reset(&mut self) { self.start = self.current; }
     pub(super) fn delta(&self) -> f64 { self.current - self.start }
 }
@@ -31,6 +37,7 @@ impl OneFingerDelta {
 
     fn start(&self) -> (f64,f64) { (self.0.start(),self.1.start()) }
     fn current(&self) -> (f64,f64) { (self.0.current(),self.1.current()) }
+    fn odometer(&self) -> (f64,f64) { (self.0.odometer(),self.1.odometer()) }
     fn set(&mut self, position: (f64,f64)) { self.0.set(position.0); self.1.set(position.1); }
     fn reset(&mut self) { self.0.reset(); self.1.reset(); }
     fn delta(&self) -> (f64,f64) { (self.0.delta(),self.1.delta()) }
@@ -52,6 +59,7 @@ impl OneFinger {
 
     pub(crate) fn start(&self) -> (f64,f64) { self.overall.start() }
     pub(crate) fn current(&self) -> (f64,f64) { self.overall.current() }
+    pub(crate) fn odometer(&self) -> (f64,f64) { self.overall.odometer() }
 
     pub(crate) fn total_delta(&self) -> (f64,f64) {
         self.overall.delta()

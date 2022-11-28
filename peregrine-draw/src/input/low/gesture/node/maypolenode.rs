@@ -1,6 +1,6 @@
 use std::sync::Arc;
 use peregrine_toolkit::lock;
-use crate::{Message, run::CursorCircumstance, input::low::{gesture::core::{transition::GestureNodeTransition, finger::OneOrTwoFingers, gesture::GestureNodeState, gesturenode::GestureNodeImpl}, pointer::PointerAction, lowlevel::LowLevelState}, shape::spectres::maypole::Maypole};
+use crate::{Message, run::CursorCircumstance, input::low::{gesture::core::{transition::GestureNodeTransition, finger::OneOrTwoFingers, gesture::GestureNodeState, gesturenode::GestureNodeImpl}, lowlevel::LowLevelState}, shape::spectres::maypole::Maypole};
 
 pub(crate) struct MaypoleNode {
     maypole: Arc<Maypole>
@@ -28,7 +28,7 @@ impl GestureNodeImpl for MaypoleNode {
         Ok(())
     }
 
-    fn finished(&mut self, state: &mut GestureNodeState, _fingers: &mut OneOrTwoFingers) -> Result<bool,Message> {
+    fn finished(&mut self, _state: &mut GestureNodeState, _fingers: &mut OneOrTwoFingers) -> Result<bool,Message> {
         Ok(true)
     }
 }

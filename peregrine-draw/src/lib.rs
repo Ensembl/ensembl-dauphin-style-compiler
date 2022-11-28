@@ -27,6 +27,7 @@ mod input {
                 pub(super) mod marquee;
                 pub(super) mod maypolenode;
                 pub(crate) mod unknown;    
+                pub(super) mod vertical;
             }
         }
 

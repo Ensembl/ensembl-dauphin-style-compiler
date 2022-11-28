@@ -2,7 +2,7 @@ use super::inner::{ PeregrineInnerAPI, LockedPeregrineInnerAPI };
 use commander::{ cdr_tick, cdr_current_time };
 use peregrine_data::Commander;
 use peregrine_toolkit::plumbing::oneshot::OneShot;
-use peregrine_toolkit::{lock, log_extra, log};
+use peregrine_toolkit::{lock, log_extra};
 use crate::domcss::dom::PeregrineDom;
 use crate::domcss::size::SizeManager;
 use crate::input::Input;
@@ -31,7 +31,7 @@ fn tick_again_if_spectres(lweb: &mut LockedPeregrineInnerAPI, input: &Input) {
 }
 
 fn animation_tick(lweb: &mut LockedPeregrineInnerAPI, input: &Input, size_manager: &SizeManager, dom: &PeregrineDom, elapsed: f64) -> Result<(),Message> {
-    dom.update_ypos(&mut *lock!(lweb.stage));
+    dom.ypos_detector().update(&mut *lock!(lweb.stage));
     let read_stage = &lock!(lweb.stage).read_stage();
     input.update_stage(read_stage);
     tick_again_if_spectres(lweb,input);

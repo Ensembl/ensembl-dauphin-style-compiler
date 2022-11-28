@@ -97,6 +97,7 @@ pub mod itertools;
 #[macro_use]
 pub mod lang;
 pub mod lesqlite2;
+pub mod rate;
 pub mod refs;
 pub mod sample;
 pub mod time;

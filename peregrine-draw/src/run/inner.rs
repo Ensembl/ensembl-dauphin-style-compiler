@@ -4,6 +4,7 @@ use crate::integration::pgcommander::PgCommanderWeb;
 use crate::integration::pgdauphin::PgDauphinIntegrationWeb;
 use crate::integration::pgintegration::PgIntegration;
 use crate::shape::spectres::spectremanager::SpectreManager;
+use crate::stage::axis::ReadStageAxis;
 use std::rc::Rc;
 use std::sync::{ Mutex, Arc };
 use crate::util::message::{ Message, message_register_callback, routed_message, message_register_default };
@@ -150,6 +151,7 @@ impl PeregrineInnerAPI {
         });
         let webgl = Arc::new(Mutex::new(WebGlGlobal::new(&commander,&dom,&config.draw)?));
         let stage = Arc::new(Mutex::new(Stage::new(&redraw_needed)));
+        dom.ypos_detector().add_stage_listener(&mut *lock!(stage));
         let report = Report::new(&config.draw,&message_sender,&dom.shutdown())?;
         let target_reporter = TargetReporter::new(&commander,dom.shutdown(),&config.draw,&report)?;
         let mut input = Input::new(queue_blocker);
@@ -237,6 +239,13 @@ impl PeregrineInnerAPI {
 
     pub(super) fn set_y(&mut self, y: f64) {
         lock!(self.stage).y_mut().set_position(y);
+    }
+
+    pub(crate) fn delta_y(&mut self, y: f64) {
+        let mut stage = lock!(self.stage);
+        if let (Ok(pos),Ok(size)) = (stage.y().position(),stage.y().drawable_size()) {
+            stage.y_mut().set_position(pos+y);
+        }
     }
 
     pub(super) fn jump(&mut self, location: &str) {

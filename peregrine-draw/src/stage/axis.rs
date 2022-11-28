@@ -1,3 +1,4 @@
+use std::mem;
 use std::rc::Rc;
 use std::cell::RefCell;
 use peregrine_toolkit_async::sync::needed::Needed;
@@ -134,7 +135,9 @@ impl UnitConverter {
 pub struct StageAxis {
     position: Option<f64>,
     bp_per_screen: Option<f64>,
+    update_listeners: Vec<Box<dyn FnMut(&StageAxis)>>,
     size: Option<f64>,
+    max_bottom: Option<f64>,
     draw_size: Option<f64>,
     scale_shift: Option<(f32,f32)>,
     squeeze: (f32,f32),
@@ -151,9 +154,11 @@ impl StageAxis {
         StageAxis {
             position: None,
             bp_per_screen: None,
+            update_listeners: vec![],
             size: None,
             draw_size: None,
             scale_shift: None,
+            max_bottom: None,
             redraw_needed: redraw_needed.clone(),
             boot: boot.clone(),
             squeeze: (0.,0.),
@@ -161,6 +166,10 @@ impl StageAxis {
             version: 0
         }
     }
+
+    pub fn add_listener<F>(&mut self, listener: F) where F: FnMut(&StageAxis) + 'static {
+        self.update_listeners.push(Box::new(listener));
+    } 
 
     fn recompute_scale_shift(&mut self) {
         if self.size.is_none() || self.draw_size.is_none() {
@@ -179,7 +188,22 @@ impl StageAxis {
         self.position.is_some() && self.bp_per_screen.is_some()
     }
 
+    fn run_listeners(&mut self) {
+        let mut listeners = mem::replace(&mut self.update_listeners,vec![]);
+        for listener in &mut listeners {
+            (listener)(self);
+        }
+        self.update_listeners = listeners;
+    }
+
     fn changed(&mut self) {
+        self.run_listeners();
+        if let Some(position) = self.position.as_mut() {
+            if let (Some(max_bottom),Some(size)) = (self.max_bottom,self.size) {
+                *position = position.min((max_bottom-size) as f64);
+            }    
+            *position = position.max(0.);
+        }
         if !self.boot.booted() {
             if self.data_ready() {
                 self.boot_lock.unlock();
@@ -192,7 +216,7 @@ impl StageAxis {
     }
 
     pub fn set_squeeze(&mut self, squeeze: (f32,f32)) { self.squeeze = squeeze; }
-
+    pub fn set_max_bottom(&mut self, viewport: f64) { self.max_bottom = Some(viewport); self.changed(); }
     pub fn set_position(&mut self, x: f64) { self.position = Some(x); self.changed(); }
     pub fn set_size(&mut self, x: f64) { self.size = Some(x); self.recompute_scale_shift(); self.changed(); }
     pub fn set_drawable_size(&mut self, x: f64) { self.draw_size = Some(x); self.recompute_scale_shift(); self.changed(); }
@@ -232,10 +256,12 @@ impl ReadStageAxis for StageAxis {
     fn copy(&self) -> StageAxis {
         StageAxis {
             position: self.position.clone(),
+            update_listeners: vec![], // Not accessible in reader anyway and can't be cloned
             bp_per_screen: self.bp_per_screen.clone(),
             size: self.size.clone(),
             draw_size: self.draw_size.clone(),
             scale_shift: self.scale_shift.clone(),
+            max_bottom: self.max_bottom.clone(),
             redraw_needed: self.redraw_needed.clone(),
             squeeze: self.squeeze.clone(),
             version: self.version,
@@ -245,7 +271,8 @@ impl ReadStageAxis for StageAxis {
     }    
 
     fn ready(&self) -> bool {
-        self.position.is_some() && self.bp_per_screen.is_some() && self.size.is_some() && self.draw_size.is_some()
+        self.position.is_some() && self.bp_per_screen.is_some() && 
+        self.size.is_some() && self.draw_size.is_some()
     }
 
     fn version(&self) -> u64 { self.version }

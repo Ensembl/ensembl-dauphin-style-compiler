@@ -1,10 +1,12 @@
-use crate::{Message, run::CursorCircumstance, input::low::{gesture::core::{transition::GestureNodeTransition, finger::OneOrTwoFingers, gesture::GestureNodeState, gesturenode::GestureNodeImpl}, pointer::PointerAction}};
-use super::{commontools::check_for_pinch};
+use crate::{Message, run::CursorCircumstance, input::low::{gesture::core::{transition::GestureNodeTransition, finger::OneOrTwoFingers, gesture::GestureNodeState, gesturenode::{GestureNodeImpl, GestureNode}}, pointer::PointerAction}};
+use super::{commontools::{check_for_pinch, go_vertical}, vertical::Vertical};
 
-pub(crate) struct Drag;
+pub(crate) struct Drag {
+    vertical_done: bool
+}
 
 impl Drag {
-    pub(super) fn new() -> Drag { Drag }
+    pub(super) fn new(vertical_done: bool) -> Drag { Drag { vertical_done } }
 }
 
 impl GestureNodeImpl for Drag {
@@ -14,6 +16,12 @@ impl GestureNodeImpl for Drag {
     }
 
     fn continues(&mut self, transition: &mut GestureNodeTransition, state: &mut GestureNodeState, fingers: &mut OneOrTwoFingers) -> Result<(),Message> {
+        let (vertical,too_far) = go_vertical(fingers,&state.config);
+        if !self.vertical_done && vertical {
+            transition.new_mode(GestureNode::new(Vertical::new()));
+            return Ok(());
+        }
+        self.vertical_done = too_far;
         if check_for_pinch(transition,state,fingers)? { return Ok(()); }
         let delta = fingers.primary_mut().take_delta();
         PointerAction::RunningDrag(state.initial_modifiers.clone(),delta).emit(&state.lowlevel,true);

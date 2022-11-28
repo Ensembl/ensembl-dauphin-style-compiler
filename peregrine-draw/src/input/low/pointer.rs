@@ -18,7 +18,10 @@ pub(crate) struct PointerConfig {
     pub pinch_min_sep: f64, // px
     pub pinch_min_scale: f64, // factor
     pub wheel_sensitivity: f64, // factor
-    pub min_hold_drag_size: f64 // factor
+    pub min_hold_drag_size: f64, // factor
+    pub min_vert_odometer: f64, // px
+    pub min_vert_numer: f64,
+    pub min_vert_denom: f64
 }
 
 impl PointerConfig {
@@ -33,12 +36,17 @@ impl PointerConfig {
             pinch_min_scale: config.get_f64(&PgConfigKey::PinchMinScale)?,
             wheel_sensitivity: config.get_f64(&PgConfigKey::WheelSensitivity)?,
             min_hold_drag_size: config.get_f64(&PgConfigKey::MinHoldDragSize)?,
+            min_vert_odometer: config.get_f64(&PgConfigKey::MinVertOdometer)?,
+            min_vert_numer: config.get_f64(&PgConfigKey::MinVertNumerator)?,
+            min_vert_denom: config.get_f64(&PgConfigKey::MinVertDenominator)?,
+
         })
     }
 }
 
 pub(super) enum PointerAction {
     RunningDrag(Modifiers,(f64,f64)),
+    VerticalDrag(Modifiers,(f64,f64)),
     RunningHold(Modifiers,(f64,f64)),
     RunningPinch(Modifiers,ScreenPosition),
     Drag(Modifiers,(f64,f64)),
@@ -56,6 +64,7 @@ impl PointerAction {
         let mut out = vec![];
         let (kinds,modifiers) = match self {
             PointerAction::RunningDrag(modifiers,amount) => (vec![("RunningDrag",vec![amount.0,amount.1]),("MirrorRunningDrag",vec![-amount.0,-amount.1])],modifiers),
+            PointerAction::VerticalDrag(modifiers,amount) => (vec![("VerticalDrag",vec![amount.0,amount.1]),("MirrorVerticalDrag",vec![-amount.0,-amount.1])],modifiers),
             PointerAction::RunningHold(modifiers,amount) => (vec![("RunningHold",vec![amount.0,amount.1]),("MirrorRunningHold",vec![-amount.0,-amount.1])],modifiers),
             PointerAction::RunningPinch(modifiers,pinch) => (
                 vec![("RunningPinch",pinch.parameters())],modifiers

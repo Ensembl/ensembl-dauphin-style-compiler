@@ -22,6 +22,8 @@ pub enum InputEventKind {
     PullOut,
     PixelsLeft, // [pixels]
     PixelsRight, // [pixels]
+    PixelsUp,
+    PixelsDown,
     SetPosition, // [scale, centre, y]
     AnimatePosition, // [scale, centre, y]
     PixelsIn,
@@ -37,6 +39,8 @@ impl InputEventKind {
             InputEventKind::PullRight,
             InputEventKind::PullIn,
             InputEventKind::PullOut,
+            InputEventKind::PixelsUp,
+            InputEventKind::PixelsDown,
             InputEventKind::PixelsLeft,
             InputEventKind::PixelsRight,
             InputEventKind::SetPosition,
