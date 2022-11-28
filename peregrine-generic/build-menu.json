@@ -8,7 +8,7 @@
         "key": "CFG_DEBUG_WEBGL",
         "question": "Debug webgl",
         "options": ["no","yes"],
-        "conditions": { "eq": ["CFG_RUST_MODE","dev"] }
+        "conditions": { "eq": [["CFG_RUST_MODE","dev"]] }
     },
     {
         "key": "CFG_NO_FLANK",
@@ -23,6 +23,11 @@
     {
         "key": "CFG_DEBUG_BIG_REQUESTS",
         "question": "Debug big requests",
+        "options": ["no","yes"]
+    },
+    {
+        "key": "CFG_DEBUG_DATA_REQUESTS",
+        "question": "Debug data requests",
         "options": ["no","yes"]
     },
     {
@@ -59,7 +64,7 @@
         "key": "FORCE_DPR",
         "question": "Force device pixel ratio to",
         "default": "1",
-        "conditions": { "eq": ["FORCE_DPR_YN","yes"] },
+        "conditions": { "eq": [["FORCE_DPR_YN","yes"]] },
         "verifiers": [
             {
                 "verifier": "number",

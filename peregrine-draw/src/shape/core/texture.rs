@@ -1,3 +1,5 @@
+use peregrine_data::DataMessage;
+
 use crate::shape::layers::patina::{PatinaProcess, PatinaProcessName, PatinaAdder, PatinaYielder};
 use crate::webgl::{ AttribHandle, ProcessStanzaAddable, ProgramBuilder };
 use crate::webgl::{ FlatId };
@@ -70,7 +72,7 @@ impl TextureDraw {
     }
 
     pub(crate) fn add_rectangle(&self, addable: &mut dyn ProcessStanzaAddable, canvas: &FlatId, dims: &[CanvasTextureArea], flat_store: &FlatStore) -> Result<(),Message> {
-        let size = flat_store.get(canvas)?.size();
+        let size = flat_store.get(canvas).map_err(|e| Message::DataError(DataMessage::XXXTransitional(e)))?.size();
         let mut texture_data = dims.iter()
             .map(|x| (x.texture_origin(),x.size()));
         self.add_rectangle_one(addable,&self.0.texture,&mut texture_data,size)?;

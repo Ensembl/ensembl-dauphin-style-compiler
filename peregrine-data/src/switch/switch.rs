@@ -1,27 +1,28 @@
-use std::collections::HashMap;
-use peregrine_toolkit::eachorevery::eoestruct::{StructBuilt, StructTemplate};
-use super::switchoverlay::SwitchOverlay;
-use super::trackconfig::TrackConfigNode;
-use crate::switch::track::Track;
+use std::collections::{HashMap, HashSet};
+use peregrine_toolkit::{eachorevery::eoestruct::StructValue};
+use super::expansion::Expansion;
+use crate::TrackModel;
 
 pub(crate) struct Switch {
     kids: HashMap<String,Switch>,
     radio: bool,
-    value: StructBuilt,
-    tracks: Vec<Track>,
-    triggers: Vec<Track>,
-    null: StructBuilt, // Convenience
+    value: StructValue,
+    tracks: Vec<TrackModel>,
+    triggers: Vec<TrackModel>,
+    expansions: Vec<Expansion>,
+    null: StructValue // Convenience
 }
 
 impl Switch {
     pub(super) fn new() -> Switch {
-        let null = StructTemplate::new_null().build().ok().unwrap();
+        let null = StructValue::new_null();
         Switch {
             kids: HashMap::new(),
             value: null.clone(),
             radio: false,
             tracks: vec![],
             triggers: vec![],
+            expansions: vec![],
             null
         }
     }
@@ -40,6 +41,21 @@ impl Switch {
         }
     }
 
+    pub(super) fn get_value(&self, path: &[&str]) -> &StructValue {
+        if path.len() > 0 {
+            if !self.value.truthy() { return &self.null; }
+            if let Some(kid) = self.kids.get(&path[0].to_string()) {
+                kid.get_value(&path[1..])
+            } else {
+                &self.null
+            }
+        } else {
+            &self.value
+        }
+    }
+
+    pub(super) fn find_expansions(&mut self,) -> &[Expansion] { &self.expansions }
+
     pub(super) fn remove(&mut self, path: &[&str]) {
         if path.len() > 1 {
             if let Some(child) = self.kids.get_mut(&path[0].to_string()) {
@@ -50,7 +66,7 @@ impl Switch {
         }
     }
 
-    pub(super) fn set(&mut self, value: StructBuilt) {
+    pub(super) fn set(&mut self, value: StructValue) {
         self.value = value;
     }
 
@@ -62,11 +78,15 @@ impl Switch {
         }
     }
 
-    pub fn add_track(&mut self, track: &Track, trigger: bool) {
+    pub(crate) fn add_track(&mut self, track: &TrackModel, trigger: bool) {
         self.tracks.push(track.clone());
         if trigger {
             self.triggers.push(track.clone());
         }
+    }
+
+    pub(crate) fn add_expansion(&mut self, expansion: &Expansion) {
+        self.expansions.push(expansion.clone());
     }
 
     fn unset_kids(&mut self) {
@@ -75,24 +95,11 @@ impl Switch {
         }
     }
 
-    pub(super) fn get_triggered(&self, out: &mut Vec<Track>) {
+    pub(super) fn get_triggered(&self, out: &mut HashSet<TrackModel>) {
         if !self.value.truthy() { return; }
         out.extend(self.triggers.iter().cloned());
         for kid in self.kids.values() {
             kid.get_triggered(out);
-        }
-    }
-
-    pub(super) fn build_track_config_list<'a>(&'a self, want_track: &Track, out: &mut TrackConfigNode, path: &mut Vec<&'a str>,mut active: bool, overlay: &SwitchOverlay, also_kids: bool) {
-        if self.tracks.contains(want_track) { active = true; }
-        if active { out.add_path(path,self.value.clone()); }
-        let kids = self.kids.iter();
-        if also_kids {
-            for (kid_name,kid) in kids {
-                path.push(kid_name);
-                kid.build_track_config_list(want_track,out,path,active,overlay,kid.value.truthy());
-                path.pop();
-            }
         }
     }
 }

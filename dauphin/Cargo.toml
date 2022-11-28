@@ -12,7 +12,7 @@ regex="*"
 serde_cbor="*"
 clap="*"
 rustyline="*"
-anyhow="1.0"
+anyhow=">=1.0"
 futures="*"
 
 dauphin_compile = { path = "../dauphin-compile" }

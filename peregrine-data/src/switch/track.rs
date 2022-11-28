@@ -1,53 +1,47 @@
-use std::sync::{ Arc, Mutex, MutexGuard };
-use identitynumber::{ identitynumber, hashable, orderable };
-use lazy_static::lazy_static;
-use peregrine_toolkit::eachorevery::eoestruct::StructBuilt;
-use crate::{ProgramName};
+use peregrine_toolkit::{ identitynumber, hashable, orderable };
+use peregrine_toolkit::error::Error;
+use peregrine_toolkit::log;
+use crate::BackendNamespace;
+use crate::core::program::programspec::ProgramModel;
+use crate::core::tagpred::TagPred;
 use crate::core::{ Layout, Scale };
-use super::switchoverlay::SwitchOverlay;
+use crate::request::tracks::trackmodel::TrackMapping;
 
 identitynumber!(IDS);
 
 #[derive(Clone)]
-#[cfg_attr(debug_assertions,derive(Debug))]
 pub struct Track {
     id: u64,
     min_scale: u64,
     max_scale: u64,
     scale_jump: u64,
-    program_name: ProgramName,
-    tags: Vec<String>,
-    switch_overlay: Arc<Mutex<SwitchOverlay>>
+    program: ProgramModel,
+    track_base: BackendNamespace,
+    mapping: TrackMapping,
+    tags: TagPred
 }
 
 hashable!(Track,id);
 orderable!(Track,id);
 
 impl Track {
-    pub fn new(program_name: &ProgramName, min_scale: u64, max_scale: u64, scale_jump: u64) -> Track { 
-        Track {
+    pub(crate) fn new(program: &ProgramModel, track_base: &BackendNamespace, mapping: &TrackMapping, min_scale: u64, max_scale: u64, scale_jump: u64, tag_pred: &str) -> Result<Track,Error> { 
+        Ok(Track {
             id: IDS.next(),
             min_scale, max_scale, scale_jump,
-            program_name: program_name.clone(),
-            tags: vec![],
-            switch_overlay: Arc::new(Mutex::new(SwitchOverlay::new()))
-        }
+            program: program.clone(),
+            track_base: track_base.clone(),
+            mapping: mapping.clone(),
+            tags: TagPred::new(tag_pred)?
+        })
     }
 
-    pub fn add_tag(&mut self, tag: &str) { self.tags.push(tag.to_string()); }
-
-    pub fn add_switch(&mut self, path: &[&str], value: StructBuilt) {
-        let mut switches = self.switch_overlay.lock().unwrap();
-        if value.truthy() { switches.set(path,value); } else { switches.clear(path); } // XXX single call
-    }
-
-    pub(super) fn overlay(&self) -> MutexGuard<SwitchOverlay> { self.switch_overlay.lock().unwrap() }
-
-    pub fn program_name(&self) -> &ProgramName { &self.program_name }
+    pub(crate) fn program(&self) -> &ProgramModel { &self.program }
+    pub(crate) fn mapping(&self) -> &TrackMapping { &self.mapping }
+    pub(crate) fn track_base(&self) -> &BackendNamespace { &self.track_base }
     pub fn id(&self) -> u64 { self.id }
     pub fn scale(&self) -> (u64,u64) { (self.min_scale,self.max_scale) }
     pub fn max_scale_jump(&self) -> u64 { self.scale_jump }
-    pub fn tags(&self) -> &[String] { &self.tags }
 
     pub fn best_scale(&self, request: &Scale) -> Option<Scale> {
         let request = request.get_index();
@@ -56,9 +50,9 @@ impl Track {
         Some(Scale::new(end-((end-request)/self.scale_jump)*self.scale_jump))
     }
 
-    pub fn available(&self, _layout: &Layout, scale: &Scale) -> bool {
-        // XXX filter on layout
-        let want_scale =scale.get_index();
+    pub fn available(&self, layout: &Layout, scale: &Scale) -> bool {
+        if !layout.stick().check_tags(&self.tags) { log!("missing track {:?}!",self.program.name()); return false; }
+        let want_scale = scale.get_index();
         if want_scale < self.min_scale || want_scale >= self.max_scale { return false; }
         true
     }

@@ -1,13 +1,13 @@
 use std::{sync::{Arc, Mutex}};
-use peregrine_toolkit::lock;
-use crate::{shapeload::{carriagebuilder::CarriageBuilder, loadshapes::LoadMode}, add_task, PgCommanderTaskSpec, async_complete_task, PeregrineCoreBase, ShapeStore, DataMessage, StickStore, train::model::trainextent::TrainExtent };
+use peregrine_toolkit::{lock, error::Error};
+use crate::{shapeload::{carriagebuilder::CarriageBuilder, loadshapes::LoadMode}, add_task, PgCommanderTaskSpec, async_complete_task, PeregrineCoreBase, ShapeStore, StickStore, train::model::trainextent::TrainExtent };
 
 #[cfg(debug_trains)]
 use peregrine_toolkit::log;
 
 use super::train::StickData;
 
-async fn load_one_carriage(base: &mut PeregrineCoreBase, shape_store: &ShapeStore, mut carriage: CarriageBuilder) -> Result<(),DataMessage> {
+async fn load_one_carriage(base: &mut PeregrineCoreBase, shape_store: &ShapeStore, mut carriage: CarriageBuilder) -> Result<(),Error> {
     carriage.load(base,&shape_store,LoadMode::RealTime).await
 }
 
@@ -32,8 +32,8 @@ pub(crate) fn load_carriage(base: &mut PeregrineCoreBase, shape_store: &ShapeSto
     async_complete_task(&base.commander, &base.messages,handle,|e| (e,false));
 }
 
-async fn load_one_stick(base: &mut PeregrineCoreBase, stick_store: &StickStore, train_extent: &TrainExtent, stick_data: &Arc<Mutex<StickData>>) -> Result<(),DataMessage> {
-    let output = stick_store.get(&train_extent.layout().stick()).await;
+async fn load_one_stick(base: &mut PeregrineCoreBase, stick_store: &StickStore, train_extent: &TrainExtent, stick_data: &Arc<Mutex<StickData>>) -> Result<(),Error> {
+    let output = stick_store.get(train_extent.layout().stick().get_id()).await;
     let data = match output {
         Ok(value) => StickData::Ready(value),
         Err(e) => {

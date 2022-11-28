@@ -9,7 +9,7 @@ use super::shapeprogram::ShapeProgram;
 use crate::stage::stage::get_stage_source;
 use crate::util::message::Message;
 use enum_iterator::{Sequence, all};
-use peregrine_toolkit::{lock, log, debug_log, log_extra};
+use peregrine_toolkit::{lock, log_extra};
 
 #[cfg_attr(debug_assertions,derive(Debug))]
 #[derive(Clone,PartialEq,Eq,Hash,Sequence)]
@@ -38,11 +38,11 @@ impl ProgramStoreEntry {
         })
     }
     
-    pub(crate) fn make_shape_program(&self, geometry_process_name: &GeometryProcessName) -> Result<ShapeProgram,Message> {
+    pub(crate) fn make_shape_program(&self) -> Result<ShapeProgram,Message> {
         let geometry = self.geometry.clone();
         let patina = self.patina.make_patina_process()?;
         let process = ProcessBuilder::new(self.builder.clone());
-        Ok(ShapeProgram::new(process,geometry,geometry_process_name.clone(),patina))
+        Ok(ShapeProgram::new(process,geometry,patina))
     }
 }
 
@@ -82,7 +82,6 @@ pub struct ProgramStore(Arc<Mutex<ProgramStoreData>>);
 impl ProgramStore {
     async fn async_background_load(&self) -> Result<(),Message> {
         for program in ProgramIndex::all_programs() {
-            debug_log!("preload {:?}",program);
             lock!(self.0).get_program(program.0,program.1).ok(); // ok to discard result
         }
         log_extra!("program preloading done");
@@ -103,6 +102,6 @@ impl ProgramStore {
     }
 
     pub(super) fn get_shape_program(&self, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> Result<ShapeProgram,Message> {
-        lock!(self.0).get_program(geometry.get_program_name(),patina.get_program_name())?.make_shape_program(geometry)
+        lock!(self.0).get_program(geometry.get_program_name(),patina.get_program_name())?.make_shape_program()
     }
 }

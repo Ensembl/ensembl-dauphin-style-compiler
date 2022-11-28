@@ -95,8 +95,7 @@ pub(crate) enum PatinaProcess {
     Direct(DirectColourDraw),
     Texture(TextureDraw),
     FreeTexture(TextureDraw),
-    Spot(SpotColourDraw),
-    None
+    Spot(SpotColourDraw)
 }
 
 // TODO texture types

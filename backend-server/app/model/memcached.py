@@ -25,18 +25,19 @@ STARTUP_PERIOD = 300
 STARTUP_INTERVAL = 1
 REGULAR_INTERVAL = 300
 
-
 class Memcached(object):
     """
 
     Args:
         prefix ():
     """
-    def __init__(self, prefix):
+    def __init__(self, prefix, bump_on_restart):
         self._start_time = time.time()
         self._last_check = 0
         self._last_bump_check = None
         self._bump = None
+        if bump_on_restart:
+            prefix += ":{}".format(self._start_time)
         self._prefix = prefix
         self._available = False
         if not PYMEMCACHE_FOUND:

@@ -22,7 +22,7 @@ pub struct LocalAligner(LocalValueSpec<String,f64,f64>);
 impl LocalAligner {
     pub(crate) fn new(builder: &LocalAlignerBuilder) -> LocalAligner {
         LocalAligner(LocalValueSpec::new(&builder.0,|x| {
-            commute(x,0.,|x,y| x.max(*y)).dearc()
+            commute(x,0.,|x,y| x.max(*y)).derc()
         }))
     }
 

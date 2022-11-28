@@ -12,9 +12,9 @@ anyhow="*"
 wasm-bindgen-futures = "*"
 console_error_panic_hook="*"
 url="*"
-lazy_static="*"
 serde={ version="*", features=["derive"] }
 serde_json="*"
+serde-wasm-bindgen="*"
 
 [dependencies.commander]
 version="*"

@@ -9,6 +9,7 @@ struct BlockerData {
     promises: Vec<PromiseFuture<()>>
 }
 
+// XXX race when not single threaded
 impl BlockerData {
     fn new() -> BlockerData {
         BlockerData {

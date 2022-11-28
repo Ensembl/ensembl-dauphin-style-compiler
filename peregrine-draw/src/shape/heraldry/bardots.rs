@@ -1,5 +1,6 @@
 use peregrine_data::DirectColour;
-use crate::{Message, webgl::{Flat}};
+use peregrine_toolkit::error::Error;
+use crate::{webgl::{Flat}};
 use super::heraldry::{HeraldryHandleType, HeraldryScale};
 
 /* A bar indicates a certain number of stripes and strecthes.
@@ -71,7 +72,7 @@ impl HeraldryBarDots {
         out
     }
 
-    fn draw_one(&self, canvas: &Flat, text_origin: (u32,u32), x: u32, y: u32) -> Result<(),Message> {
+    fn draw_one(&self, canvas: &Flat, text_origin: (u32,u32), x: u32, y: u32) -> Result<(),Error> {
         let bitmap_multiplier = canvas.bitmap_multiplier();
         let unit = self.unit_size(bitmap_multiplier);
         let t = (text_origin.0+x*unit.0,text_origin.1+y*unit.1);
@@ -89,7 +90,7 @@ impl HeraldryBarDots {
         Ok(())
     }
     
-    pub(super) fn draw(&self, canvas: &mut Flat, text_origin: (u32,u32), size: (u32,u32)) -> Result<(),Message> {
+    pub(super) fn draw(&self, canvas: &mut Flat, text_origin: (u32,u32), size: (u32,u32)) -> Result<(),Error> {
         let bitmap_multiplier = canvas.bitmap_multiplier();
         let unit = self.unit_size(bitmap_multiplier);
         let count = (size.0/unit.0,size.1/unit.1);

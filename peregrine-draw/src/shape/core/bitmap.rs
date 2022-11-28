@@ -1,5 +1,6 @@
-use peregrine_data::{Asset, Assets };
+use peregrine_data::{Asset, Assets, BackendNamespace };
 use keyed::keyed_handle;
+use peregrine_toolkit::error::Error;
 use peregrine_toolkit::lock;
 use crate::webgl::canvas::flatplotallocator::FlatPositionManager;
 use crate::webgl::{ Flat };
@@ -30,14 +31,14 @@ pub(crate) struct Bitmap {
 
 impl Bitmap {
     fn set_from_asset(&mut self, asset: &Asset, name: &str) -> Result<(),Message> {
-        self.bytes = asset.bytes().ok_or_else(|| Message::BadAsset(format!("missing asset: {}",name)))?.data().clone();
+        self.bytes = asset.bytes().ok_or_else(|| Message::BadAsset(format!("missing asset: {}",name)))?.data_as_bytes().map_err(|_| Message::BadAsset("expected bytes".to_string()))?.clone();
         self.width = asset.metadata_u32("width").ok_or_else(|| Message::BadAsset(format!("missing width: {}",name)))?;
         self.height = asset.metadata_u32("height").ok_or_else(|| Message::BadAsset(format!("missing height: {}",name)))?;
         self.scale = asset.metadata_u32("scale").unwrap_or(100);
         Ok(())
     }
 
-    fn new(assets: &Assets, name: &str) -> Result<Bitmap,Message> {
+    fn new(assets: &Assets, channel: &BackendNamespace, name: &str) -> Result<Bitmap,Message> {
         let mut out = Bitmap {
             name: name.to_string(),
             width: 0,
@@ -45,7 +46,7 @@ impl Bitmap {
             scale: 100,
             bytes: Arc::new(vec![])
         };
-        let asset = assets.get(name).ok_or_else(|| Message::BadAsset(format!("missing asset: {}",name)))?;
+        let asset = assets.get(Some(channel),name).ok_or_else(|| Message::BadAsset(format!("missing asset: {}",name)))?;
         out.set_from_asset(&asset,name)?;
         Ok(out)
     }
@@ -56,12 +57,12 @@ fn dpr_round(size: u32, dpr: f32, scale: u32) -> u32 {
 }
 
 impl FlatDrawingItem for Bitmap {
-    fn calc_size(&mut self, gl: &mut WebGlGlobal) -> Result<(u32,u32),Message> {
+    fn calc_size(&mut self, gl: &mut WebGlGlobal) -> Result<(u32,u32),Error> {
         let dpr = gl.device_pixel_ratio();
         Ok((dpr_round(self.width,dpr,self.scale),dpr_round(self.height,dpr,self.scale)))
     }
 
-    fn padding(&mut self, _: &mut WebGlGlobal) -> Result<(u32,u32),Message> { Ok((PAD,PAD)) }
+    fn padding(&mut self, _: &mut WebGlGlobal) -> Result<(u32,u32),Error> { Ok((PAD,PAD)) }
 
     fn compute_hash(&self) -> Option<u64> {
         let mut hasher = DefaultHasher::new();
@@ -69,7 +70,7 @@ impl FlatDrawingItem for Bitmap {
         Some(hasher.finish())
     }
 
-    fn build(&mut self, canvas: &mut Flat, text_origin: (u32,u32), size: (u32,u32)) -> Result<(),Message> {
+    fn build(&mut self, canvas: &mut Flat, text_origin: (u32,u32), size: (u32,u32)) -> Result<(),Error> {
         canvas.draw_png(Some(self.name.clone()),pad(text_origin),size,&self.bytes)?;
         Ok(())
     }
@@ -88,11 +89,11 @@ impl DrawingBitmap {
         }
     }
 
-    pub fn add_bitmap(&mut self, asset: &str) -> Result<BitmapHandle,Message> {
-        Ok(self.manager.add(Bitmap::new(&self.assets,asset)?))
+    pub fn add_bitmap(&mut self, channel: &BackendNamespace, asset: &str) -> Result<BitmapHandle,Message> {
+        Ok(self.manager.add(Bitmap::new(&self.assets,channel,asset)?))
     }
 
-    pub(crate) async fn calculate_requirements(&mut self, gl: &Arc<Mutex<WebGlGlobal>>, allocator: &mut FlatPositionManager) -> Result<(),Message> {
+    pub(crate) async fn calculate_requirements(&mut self, gl: &Arc<Mutex<WebGlGlobal>>, allocator: &mut FlatPositionManager) -> Result<(),Error> {
         self.manager.calculate_requirements(&mut *lock!(gl),allocator)
     }
 

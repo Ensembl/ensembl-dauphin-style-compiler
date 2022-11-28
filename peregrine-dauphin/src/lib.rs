@@ -1,13 +1,13 @@
 use commander::{ CommanderStream, cdr_tick };
 use peregrine_data::{ 
-    PgCommander, PgCommanderTaskSpec, InstancePayload, PeregrineCore, DataMessage, add_task
+    PgCommander, PgCommanderTaskSpec, InstancePayload, PeregrineCore, add_task
 };
 use peregrine_dauphin_queue::{ PgDauphinTaskSpec, PgDauphinRunTaskSpec, PgDauphinLoadTaskSpec };
 use dauphin_interp::{ Dauphin, CommandInterpretSuite, InterpretInstance, make_core_interp, PayloadFactory };
 use dauphin_lib_std::make_std_interp;
 use dauphin_lib_peregrine::{ make_peregrine_interp, add_peregrine_payloads };
+use peregrine_toolkit::error::Error;
 use peregrine_toolkit::log_extra;
-use peregrine_toolkit::plumbing::oneshot::OneShot;
 use std::any::Any;
 use std::collections::HashMap;
 
@@ -20,18 +20,18 @@ pub struct Process {
 }
 
 impl Process {
-    fn new(dauphin: &Dauphin, binary_name: &str, name: &str, instance: HashMap<String,Box<dyn Any>>) -> anyhow::Result<Process> {
+    fn new(dauphin: &Dauphin, name: &str, instance: HashMap<String,Box<dyn Any>>) -> anyhow::Result<Process> {
         let instance = InstancePayload::new(instance);
         let mut more_payloads = HashMap::new();
         more_payloads.insert(("peregrine".to_string(),"instance".to_string()),Box::new(instance) as Box<dyn PayloadFactory>);
         Ok(Process {
-            instance: Box::new(dauphin.run_stepwise(binary_name,name,&more_payloads)?)
+            instance: Box::new(dauphin.run_stepwise(name,&more_payloads)?)
         })
     }
 
-    pub async fn run(mut self) -> anyhow::Result<()> {
+    pub async fn run(mut self) -> Result<(),Error> {
         loop {
-            let out = self.instance.more().await?;
+            let out = self.instance.more().await.map_err(|e| Error::operr(&format!("XXXTMp wrap {:?}",e)))?;
             if !out { break; }
             cdr_tick(0).await;
         }
@@ -47,12 +47,12 @@ fn command_suite() -> anyhow::Result<CommandInterpretSuite> {
     Ok(cis)
 }
 
-fn load(dauphin: &mut Dauphin, spec: PgDauphinLoadTaskSpec, stream: CommanderStream<anyhow::Result<()>>) {
-    stream.add(dauphin.add_binary(&spec.bundle_name,&spec.data));
+fn load(dauphin: &mut Dauphin, spec: PgDauphinLoadTaskSpec, stream: CommanderStream<Result<(),Error>>) {
+    stream.add(dauphin.add_binary(&spec.data));
 }
 
-fn run(dauphin: &mut Dauphin, commander: &PgCommander, spec: PgDauphinRunTaskSpec, stream: CommanderStream<anyhow::Result<()>>) {
-    match Process::new(dauphin,&spec.bundle_name,&spec.in_bundle_name,spec.payloads) {
+fn run(dauphin: &mut Dauphin, commander: &PgCommander, spec: PgDauphinRunTaskSpec, stream: CommanderStream<Result<(),Error>>) {
+    match Process::new(dauphin,&spec.in_bundle_name,spec.payloads) {
         Ok(process) => {
             let stream = stream.clone();
             let task = PgCommanderTaskSpec {
@@ -69,15 +69,15 @@ fn run(dauphin: &mut Dauphin, commander: &PgCommander, spec: PgDauphinRunTaskSpe
             add_task(&commander,task);
         },
         Err(e) => {
-            stream.add(Err(e));
+            stream.add(Err(Error::operr(&format!("XXXTmp wrap {:?}",e))));
         }
     }
 }
 
-async fn main_loop(integration: Box<dyn PgDauphinIntegration>, core: PeregrineCore) -> Result<(),DataMessage> {
-    let mut dauphin = Dauphin::new(command_suite().map_err(|e| DataMessage::DauphinIntegrationError(e.to_string()))?);
+async fn main_loop(integration: Box<dyn PgDauphinIntegration>, core: PeregrineCore) -> Result<(),Error> {
+    let mut dauphin = Dauphin::new(command_suite().map_err(|e| Error::fatal(&format!("cannot run style compiler {}",e.to_string())))?);
     integration.add_payloads(&mut dauphin);
-    add_peregrine_payloads(&mut dauphin,&core.base,&core.agent_store,&core.switches);
+    add_peregrine_payloads(&mut dauphin,&core.agent_store);
     loop {
         let e = core.base.dauphin_queue.get().await;
         match e.task {

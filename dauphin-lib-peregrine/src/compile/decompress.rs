@@ -7,10 +7,6 @@ use dauphin_interp::runtime::{ Register };
 use dauphin_interp::util::DauphinError;
 use serde_cbor::Value as CborValue;
 
-simple_command!(Lesqlite2Command,Lesqlite2CommandType,"peregrine","lesqlite2",2,(0,1));
-simple_command!(ZigzagCommand,ZigzagCommandType,"peregrine","zigzag",2,(0,1));
-simple_command!(DeltaCommand,DeltaCommandType,"peregrine","delta",2,(0,1));
-simple_command!(ClassifyCommand,ClassifyCommandType,"peregrine","classify",3,(0,1,2));
 simple_command!(BaseFlipCommand,BaseFlipCommandType,"peregrine","base_flip",2,(0,1));
 
 /*                             0: out/D  1: out/A  2: out/B  3:in  */

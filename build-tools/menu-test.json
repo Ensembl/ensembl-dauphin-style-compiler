@@ -5,6 +5,30 @@
         "options": ["fred","wilma","pebbles"]
     },
     {
+        "key": "fruit",
+        "question": "Ask about fruit?",
+        "options": ["no","yes"],
+        "internal": true
+    },
+    {
+        "key": "yellow",
+        "question": "Ask about yellow things?",
+        "options": ["no","yes"],
+        "internal": true
+    },
+    {
+        "key": "apple",
+        "question": "Apple?",
+        "options": ["no","yes"],
+        "conditions": { "eq": [["fruit","yes"]] }
+    },
+    {
+        "key": "banana",
+        "question": "Banana?",
+        "options": ["no","yes"],
+        "conditions": { "eq": [["fruit","yes"],["yellow","yes"]] }
+    },
+    {
         "key": "port",
         "question": "Port number?",
         "default": "4444",

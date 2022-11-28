@@ -1,6 +1,7 @@
 use std::{sync::{ Arc, Mutex }};
 use commander::cdr_tick;
 use js_sys::Date;
+use peregrine_toolkit::lock;
 use peregrine_toolkit_async::sync::{blocker::{Blocker, Lockout}, needed::{Needed, NeededLock}};
 use crate::{ PeregrineInnerAPI, run::report::Report };
 use crate::run::{ PgPeregrineConfig };
@@ -107,9 +108,8 @@ impl InputTranslatorState {
         Ok(())
     }
 
-    fn just_goto(&mut self, inner: &mut PeregrineInnerAPI, centre: f64, bp_per_screen: f64) -> Result<(),Message> {
-        inner.set_x(centre);
-        inner.set_bp_per_screen(bp_per_screen);
+    fn just_goto(&mut self, inner: &mut PeregrineInnerAPI, centre: f64, bp_per_screen: f64, only_if_unknown: bool) -> Result<(),Message> {
+        inner.set_position(Some(centre),Some(bp_per_screen),only_if_unknown);
         self.target_reporter.force_report();
         Ok(())
     }
@@ -135,12 +135,12 @@ impl InputTranslatorState {
         return Ok(());
     }
 
-    fn goto(&mut self, inner: &mut PeregrineInnerAPI, centre: f64, bp_per_screen: f64) -> Result<(),Message> {
-        let ready = inner.stage().lock().unwrap().ready();
-        if ready {
+    fn goto(&mut self, inner: &mut PeregrineInnerAPI, centre: f64, bp_per_screen: f64, only_if_unknown: bool) -> Result<(),Message> {
+        let ready = lock!(inner.stage()).ready();
+        if ready && !only_if_unknown {
             self.animate_to(inner,centre,bp_per_screen,&Cadence::Smooth)?;
         } else {
-            self.just_goto(inner,centre,bp_per_screen)?;
+            self.just_goto(inner,centre,bp_per_screen,only_if_unknown)?;
         }
         Ok(())
     }
@@ -276,12 +276,12 @@ impl InputTranslator {
         Ok(out)
     }
 
-    pub fn goto(&self, api: &mut PeregrineInnerAPI, centre: f64, scale: f64) -> Result<(),Message> {
-        self.state.lock().unwrap().goto(api,centre,scale)?;
+    pub fn goto(&self, api: &mut PeregrineInnerAPI, centre: f64, scale: f64, only_if_unknown: bool) -> Result<(),Message> {
+        lock!(self.state).goto(api,centre,scale,only_if_unknown)?;
         Ok(())
     }
 
     pub fn set_limit(&self, limit: f64) {
-        self.state.lock().unwrap().set_limit(limit);
+        lock!(self.state).set_limit(limit);
     }
 }

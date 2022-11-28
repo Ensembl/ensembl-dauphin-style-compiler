@@ -1,5 +1,5 @@
 use std::fmt::{ self, Display, Formatter };
-use serde_cbor::Value as CborValue;
+use serde::Serialize;
 
 const MILESTONE_GAP : u64 = 3;
 
@@ -9,10 +9,6 @@ pub struct Scale(u64);
 impl Scale {
     pub fn new(scale: u64) -> Scale {
         Scale(scale)
-    }
-
-    pub fn encode(&self) -> CborValue {
-        CborValue::Integer(self.0 as i128)
     }
 
     pub fn new_bp_per_screen(bp_per_screen: f64) -> Scale {
@@ -70,5 +66,12 @@ impl Scale {
 impl Display for Scale {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(f,"{}",self.0)
+    }
+}
+
+impl Serialize for Scale {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+            where S: serde::Serializer {
+        serializer.serialize_u64(self.0)
     }
 }

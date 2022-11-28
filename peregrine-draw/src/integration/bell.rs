@@ -1,7 +1,7 @@
 use std::sync::{ Arc, Mutex };
-use peregrine_toolkit::lock;
+use peregrine_toolkit::{lock, js::timer::Timer};
 use crate::util::message::{ Message };
-use super::{timer::Timer, custom::{Custom, CustomSender}};
+use super::{custom::{Custom, CustomSender}};
 
 #[derive(Clone)]
 pub struct BellSender {

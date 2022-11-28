@@ -1,20 +1,18 @@
 use std::sync::{Arc, Mutex};
-
-use crate::core::channel::Channel;
 use crate::core::pixelsize::PixelSize;
 use crate::core::{ StickId, Viewport };
-use crate::request::core::request::{BackendRequest, RequestVariant};
-use crate::request::messages::metricreq::MetricReport;
+use crate::request::core::minirequest::MiniRequest;
+use crate::request::minirequests::metricreq::MetricReport;
 use crate::run::{add_task};
-use crate::run::bootstrap::bootstrap;
 use crate::shapeload::carriagebuilder::CarriageBuilder;
 use crate::train::main::datatasks::{load_stick, load_carriage};
 use crate::train::main::train::StickData;
 use crate::train::model::trainextent::TrainExtent;
-use crate::{Assets, PgCommanderTaskSpec, DrawingCarriage};
+use crate::{Assets, PgCommanderTaskSpec, DrawingCarriage, BackendNamespace, SettingMode };
 use commander::{CommanderStream, PromiseFuture};
-use peregrine_toolkit::eachorevery::eoestruct::StructBuilt;
-use peregrine_toolkit::{log_extra};
+use peregrine_toolkit::eachorevery::eoestruct::{StructValue};
+use peregrine_toolkit::error::{err_web_drop, Error};
+use peregrine_toolkit::{log_extra, lock, log};
 use peregrine_toolkit_async::sync::blocker::{Blocker, Lockout};
 use super::pgcore::PeregrineCore;
 
@@ -24,9 +22,9 @@ use super::pgcore::PeregrineCore;
  *    SetPosition
  *    SetBpPerScreen
  *    SetMinPxPerCarriage
- *    SetSwitch
- *    ClearSwitch
+ *    Switch
  *    RadioSwitch
+ *    UpdateSwitch
  *    RegenerateTrackConfig
  *    SetStick
  *
@@ -46,8 +44,10 @@ use super::pgcore::PeregrineCore;
  *    ReportMetric
  *    GeneralMetric
  *
+ * During startup:
+ *    AddBackend
+ * 
  * During boot.shutdown:
- *    Bootstrap
  *    SetAssets
  *    Ready
  *    Shutdown
@@ -55,18 +55,18 @@ use super::pgcore::PeregrineCore;
  */
 
  pub(crate) enum ApiMessage {
-    Ready,
+    AddBackend(String),
+    WaitForApplicationReady,
     TransitionComplete,
-    SetPosition(f64),
-    SetBpPerScreen(f64),
+    SetPosition(Option<f64>,Option<f64>,bool),
     SetStick(StickId),
     SetMinPxPerCarriage(u32),
-    Bootstrap(u64,Channel),
-    Switch(Vec<String>,StructBuilt),
+    Switch(Vec<String>,StructValue),
+    UpdateSwitch(Vec<String>,SettingMode),
     RadioSwitch(Vec<String>,bool),
     RegenerateTrackConfig,
     Jump(String,PromiseFuture<Option<(StickId,f64,f64)>>),
-    ReportMetric(Channel,MetricReport),
+    ReportMetric(BackendNamespace,MetricReport),
     GeneralMetric(String,Vec<(String,String)>,Vec<(String,f64)>),
     SetAssets(Assets),
     PingTrains,
@@ -89,10 +89,18 @@ impl ApiQueueCampaign {
         }
     }
 
+    async fn regenerate_tracks(&mut self, data: &mut PeregrineCore) -> Result<(),Error> {
+        self.viewport = self.viewport.set_track_config_list(&data.switches.get_track_config_list().await?);
+        Ok(())
+    }
+
     async fn run_message(&mut self, data: &mut PeregrineCore, message: ApiMessage) {
         match message {
-            ApiMessage::Ready => {
-                data.dauphin_ready();
+            ApiMessage::WaitForApplicationReady => {
+                data.base.channel_registry.booted().await;
+            },
+            ApiMessage::AddBackend(access) => {
+                err_web_drop(data.base.channel_registry.add_backend(&access).await);
             },
             ApiMessage::LoadStick(extent,output) => {
                 load_stick(&mut data.base,&data.agent_store.stick_store,&extent,&output);
@@ -101,14 +109,16 @@ impl ApiQueueCampaign {
                 load_carriage(&mut data.base, &data.agent_store.lane_store,&builder);
             }
             ApiMessage::TransitionComplete => {
-                let train_set = data.train_set.clone();
-                train_set.transition_complete();
+                data.train_set.transition_complete();
             },
-            ApiMessage::SetPosition(pos) =>{
-                self.viewport = self.viewport.set_position(pos);
-            },
-            ApiMessage::SetBpPerScreen(scale) => {
-                self.viewport = self.viewport.set_bp_per_screen(scale);
+            ApiMessage::SetPosition(centre,size,only_if_unknown) =>{
+                log!("SetPosition({:?},{:?},{:?})",centre,size,only_if_unknown);
+                if let Some(centre) = centre {
+                    self.viewport = self.viewport.set_position(centre,only_if_unknown);
+                }
+                if let Some(size) = size {
+                    self.viewport = self.viewport.set_bp_per_screen(size,only_if_unknown);
+                }
             },
             ApiMessage::SetMinPxPerCarriage(px) => {
                 self.viewport = self.viewport.set_pixel_size(&PixelSize::new(px))
@@ -119,7 +129,7 @@ impl ApiQueueCampaign {
             ApiMessage::SetStick(stick_id) => {
                 match data.agent_store.stick_store.get(&stick_id).await.as_ref().map(|x| x.as_ref()) {
                     Ok(stick) => {
-                        self.viewport = self.viewport.set_stick(&stick_id,stick.size());
+                        self.viewport = self.viewport.set_stick(stick);
                     },
                     Err(e) => {
                         data.base.messages.send(e.clone());
@@ -129,28 +139,29 @@ impl ApiQueueCampaign {
             ApiMessage::CarriageLoaded(carriage) => {
                 carriage.set_ready();
             },
-            ApiMessage::Bootstrap(identity,channel) => {
-                bootstrap(&data.base,&data.agent_store,channel,identity);
-            },
             ApiMessage::Switch(path,value) => {
-                data.switches.switch(&path.iter().map(|x| x.as_str()).collect::<Vec<_>>(),value);
-                self.viewport = self.viewport.set_track_config_list(&data.switches.get_track_config_list());
+                data.switches.switch(&path.iter().map(|x| x.as_str()).collect::<Vec<_>>(),value).await;
+                err_web_drop(self.regenerate_tracks(data).await);
+            },
+            ApiMessage::UpdateSwitch(path,value) => {
+                data.switches.update_switch(&path.iter().map(|x| x.as_str()).collect::<Vec<_>>(),value).await;
+                err_web_drop(self.regenerate_tracks(data).await);
             },
             ApiMessage::RadioSwitch(path,yn) => {
                 data.switches.radio_switch(&path.iter().map(|x| x.as_str()).collect::<Vec<_>>(),yn);
-                self.viewport = self.viewport.set_track_config_list(&data.switches.get_track_config_list());
+                err_web_drop(self.regenerate_tracks(data).await);
             },
             ApiMessage::RegenerateTrackConfig => {
-                self.viewport = self.viewport.set_track_config_list(&data.switches.get_track_config_list());
+                err_web_drop(self.regenerate_tracks(data).await);
             },
             ApiMessage::ReportMetric(channel,metric) => {
-                data.base.manager.execute_and_forget(&channel,BackendRequest::new(RequestVariant::Metric(metric)));
+                data.base.manager.execute_and_forget(&channel,MiniRequest::Metric(metric));
             },
             ApiMessage::GeneralMetric(name,tags,values) => {
                 data.base.metrics.add_general(&name,&tags,&values);
             },
             ApiMessage::SetAssets(assets) => {
-                *data.base.assets.lock().unwrap() = assets;
+                lock!(data.base.assets).add(&assets);
             },
             ApiMessage::PingTrains => {
                 data.train_set.ping();
@@ -185,22 +196,17 @@ impl PeregrineApiQueue {
         }
     }
 
-    fn update_train_set(&mut self, objects: &mut PeregrineCore) {
-        let viewport = objects.viewport.clone();
-        let train_set = objects.train_set.clone();
-        train_set.set(&viewport);
-    }
-
     fn update_viewport(&mut self, data: &mut PeregrineCore, new_viewport: Viewport) {
         if new_viewport != data.viewport {
-            data.viewport = new_viewport;
-            self.update_train_set(data);
+            data.viewport = new_viewport.clone();
+            data.train_set.set(&new_viewport);
         }
     }
 
     pub(crate) fn visual_blocker(&self) -> &Blocker { &self.visual_blocker }
 
     pub(crate) fn run(&self, data: &mut PeregrineCore) {
+        self.push(ApiMessage::WaitForApplicationReady);
         let mut self2 = self.clone();
         let mut data2 = data.clone();
         add_task::<()>(&data.base.commander,PgCommanderTaskSpec {

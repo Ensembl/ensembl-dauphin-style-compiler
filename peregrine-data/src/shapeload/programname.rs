@@ -1,29 +1,58 @@
 use std::fmt;
-use peregrine_toolkit::{cbor::{cbor_as_str, cbor_into_vec, check_array_len}, decompose_vec};
-use crate::core::channel::Channel;
-use serde_cbor::Value as CborValue;
+
+use peregrine_toolkit::serdetools::st_field;
+use serde::{Serialize, ser::SerializeSeq, de::Visitor, Deserialize, Deserializer};
 
 #[derive(Clone,Debug,Eq,Hash,PartialEq,PartialOrd,Ord)]
-pub struct ProgramName(pub Channel,pub String);
+pub struct ProgramName {
+    group: String,
+    name: String,
+    version: u32
+}
 
 impl ProgramName {
-    pub fn encode(&self) -> CborValue {
-        CborValue::Array(vec![
-            self.0.encode(),
-            CborValue::Text(self.1.clone())
-        ])
+    pub fn new(group: &str, name: &str, version: u32) -> ProgramName {
+        ProgramName { group: group.to_string(), name: name.to_string(), version }
     }
 
-    pub fn decode(value: CborValue) -> Result<ProgramName,String> {
-        let mut seq = cbor_into_vec(value)?;
-        check_array_len(&seq,2)?;
-        decompose_vec!(seq,channel,name);
-        Ok(ProgramName(Channel::decode(channel)?,cbor_as_str(&name)?.to_string()))
+    pub fn indicative_name(&self) -> String { format!("{}::{}::{}",self.group,self.name,self.version) }
+    pub fn group(&self) -> &str { &self.group }
+    pub fn name(&self) -> &str { &self.name }
+    pub fn version(&self) -> u32 { self.version }
+}
+
+impl Serialize for ProgramName {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+            where S: serde::Serializer {
+        let mut seq = serializer.serialize_seq(Some(3))?;
+        seq.serialize_element(&self.group)?;
+        seq.serialize_element(&self.name)?;
+        seq.serialize_element(&self.version)?;
+        seq.end()
     }
 }
 
-impl fmt::Display for ProgramName {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f,"{}/{}",self.0,self.1)
+struct ProgramNameVisitor;
+
+impl<'de> Visitor<'de> for ProgramNameVisitor {
+    type Value = ProgramName;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter.write_str("a ProgramName")
+    }
+
+    fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+            where A: serde::de::SeqAccess<'de> {
+        let group = st_field("group",seq.next_element()?)?;
+        let name = st_field("name",seq.next_element()?)?;
+        let version = st_field("version",seq.next_element()?)?;
+        Ok(ProgramName { group, name, version })
+    }
+}
+
+impl<'de> Deserialize<'de> for ProgramName {
+    fn deserialize<D>(deserializer: D) -> Result<ProgramName, D::Error>
+            where D: Deserializer<'de> {
+        deserializer.deserialize_seq(ProgramNameVisitor)
     }
 }

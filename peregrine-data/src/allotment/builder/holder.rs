@@ -1,5 +1,6 @@
 use std::sync::Arc;
-use crate::{allotment::{boxes::{stacker::Stacker, overlay::Overlay, bumper::Bumper}, boxes::{leaf::FloatingLeaf, root::{Root}}, core::boxtraits::{Stackable, Transformable}}, DataMessage};
+use peregrine_toolkit::error::Error;
+use crate::{allotment::{boxes::{stacker::Stacker, overlay::Overlay, bumper::Bumper}, boxes::{leaf::FloatingLeaf, root::{Root}}, core::boxtraits::{Stackable, Transformable}}};
 
 #[derive(Clone)]
 pub enum ContainerHolder {
@@ -27,16 +28,16 @@ impl ContainerHolder {
         }
     }
 
-    pub(super) fn stackable(&self) -> Result<&dyn Stackable,DataMessage> {
+    pub(super) fn stackable(&self) -> Result<&dyn Stackable,Error> {
         Ok(match self {
-            ContainerHolder::Root(_) => { return Err(DataMessage::BadBoxStack(format!("cannot add root as child"))); }
+            ContainerHolder::Root(_) => { return Err(Error::operr(&format!("bad box stack: cannot add root as child"))); }
             ContainerHolder::Stack(x) => x,
             ContainerHolder::Overlay(x) => x,
             ContainerHolder::Bumper(x) => x
         })
     }
 
-    pub(crate) fn add_container(&mut self, container: &ContainerHolder) -> Result<(),DataMessage> {
+    pub(crate) fn add_container(&mut self, container: &ContainerHolder) -> Result<(),Error> {
         match self {
             ContainerHolder::Bumper(parent) => {
                 parent.add_child(container.stackable()?);

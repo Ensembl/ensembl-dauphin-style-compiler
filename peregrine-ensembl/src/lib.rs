@@ -1,13 +1,12 @@
 use std::{collections::HashMap, sync::{ Arc, Mutex }};
 use std::fmt::Debug;
-mod standalonedom;
 use js_sys::{ Reflect, Array, JSON };
-use standalonedom::make_dom_from_element;
+use serde_wasm_bindgen::from_value;
 use wasm_bindgen::{prelude::*, JsCast};
 use peregrine_draw::{Endstop, Message, PeregrineAPI, PeregrineConfig, PgCommanderWeb};
-use peregrine_data::{Channel, ChannelLocation, StickId, zmenu_to_json };
+use peregrine_data::{ StickId, zmenu_to_json, DataMessage };
 use peregrine_message::{MessageKind, PeregrineMessage};
-use peregrine_toolkit::{url::Url, log, warn, error_important, eachorevery::eoestruct::{StructTemplate, struct_from_json}, js::jstojsonvalue::js_to_json};
+use peregrine_toolkit::{ log, warn, error_important, eachorevery::eoestruct::{StructValue}, js::{jstojsonvalue::js_to_json, dommanip::set_css}, error::{CallToAction, Error, ErrorType, err_web_drop}, map};
 use web_sys::{ Element };
 use serde::{Serialize, Deserialize};
 use serde_json::{ Map as JsonMap, Value as JsonValue };
@@ -147,26 +146,27 @@ impl GenomeBrowser {
          * use. See that file for details.
          */
         let target_element = get_or_error(&config_in,&["target_element","target_element_id"])?;
-        let dom = make_dom_from_element(&target_element.to_element()?)?;
         /*
          * Create a genome browser object.
          */
-        self.commander = Some(self.api.run(config,dom)?);
-        /*
-         * Ok, we're ready to go. Bootstrapping causes the genome browser to go to the backend and configure itself.
-         */
+        let element = target_element.to_element()?;
+        err_web_drop(set_css(&element.clone().dyn_into().ok().unwrap(),&map! {
+            "overflow-y" => "auto",
+            "position" => "relative"
+        }).map_err(|e| Error::fatal(&e)));
         let url = config_in.get("backend_url").unwrap().to_string()?;
-        self.api.bootstrap(&Channel::new(&ChannelLocation::HttpChannel(js_throw(Url::parse(&url)))));
+        self.commander = Some(self.api.run(config,&element,&url)?);
         /*
          * You have to turn on tracks _per se_, but we always want tracks.
          */
-        let tmpl_true = StructTemplate::new_boolean(true).build().ok().unwrap();
+        let tmpl_true = StructValue::new_boolean(true);
         self.api.switch(&["track"],tmpl_true.clone());
         self.api.switch(&["track","focus"],tmpl_true.clone());
         self.api.switch(&["track","focus","item"],tmpl_true.clone());
         self.api.switch(&["focus"],tmpl_true.clone());
         self.api.switch(&["settings"],tmpl_true.clone());
         self.api.switch(&["ruler"],tmpl_true.clone());
+        self.api.switch(&["ruler","one_based"],tmpl_true.clone());
         self.api.radio_switch(&["focus"],true);
         self.api.radio_switch(&["focus","gene"],true);
 
@@ -202,7 +202,7 @@ impl GenomeBrowser {
     }
     
     pub fn goto(&self, left: f64, right: f64) {
-        self.api.goto(left,right);
+        self.api.goto(left-1.,right);
     }
 
     pub fn set_y(&self,y: f64) {
@@ -210,26 +210,27 @@ impl GenomeBrowser {
     }
     
     pub fn set_switch(&self, path: &JsValue) {
-        let tmpl_true = StructTemplate::new_boolean(true).build().ok().unwrap();
-        let path : Vec<String> = path.into_serde().unwrap();
+        let tmpl_true = StructValue::new_boolean(true);
+        let path : Vec<String> = from_value(path.clone()).unwrap();
         self.api.switch(&path.iter().map(|x| x.as_str()).collect::<Vec<_>>(),tmpl_true);
     }
 
     pub fn clear_switch(&self, path: &JsValue) {
-        let tmpl_false = StructTemplate::new_boolean(false).build().ok().unwrap();
-        let path : Vec<String> = path.into_serde().unwrap();
+        let tmpl_false = StructValue::new_boolean(false);
+        let path : Vec<String> = from_value(path.clone()).unwrap();
         self.api.switch(&path.iter().map(|x| x.as_str()).collect::<Vec<_>>(),tmpl_false);
     }
 
     pub fn switch(&self, path: &JsValue, value: &JsValue) {
-        let path : Vec<String> = path.into_serde().unwrap();
+        let path : Vec<String> = from_value(path.clone()).unwrap();
         if let Ok(json) = js_to_json(value) {
-            if let Ok((template,_)) = struct_from_json(vec![],vec![],&json) {
-                if let Ok(build) = template.build() {
-                    self.api.switch(&path.iter().map(|x| x.as_str()).collect::<Vec<_>>(),build);
-                }
-            }
+            let value = StructValue::new_json_value(&json);
+            self.api.switch(&path.iter().map(|x| x.as_str()).collect::<Vec<_>>(),value);
         }
+    }
+
+    pub fn add_jsapi_channel(&self, name: &str, payload: JsValue) {
+        self.api.add_jsapi_channel(name,payload);
     }
 
     pub fn radio_switch(&self, path: &JsValue, yn: bool) {
@@ -250,10 +251,19 @@ impl GenomeBrowser {
                     let this = JsValue::null(); 
                     match message.kind() {
                         MessageKind::Error => {
+                            let mut kind = "error";
+                            match message {
+                                Message::DataError(DataMessage::XXXTransitional(e)) => {
+                                    if let ErrorType::Unavailable(CallToAction::BadVersion) = e.error_type {
+                                        kind = "out-of-date";
+                                    }
+                                },
+                                _ => {}
+                            }
                             /* func("error",error_as_string) */
-                            let kind = JsValue::from("error");
+                            let kind = JsValue::from(kind);
                             let msg = JsValue::from(message.to_string().as_str());
-                            let _ = closure.call2(&this,&kind,&msg);            
+                            let _ = closure.call2(&this,&kind,&msg);
                         },
                         MessageKind::Interface => {
                             match message {
@@ -263,8 +273,8 @@ impl GenomeBrowser {
 
                                     args.set(1,JsValue::from(js_throw(JsValue::from_serde(&LocationData {
                                         stick: stick.to_string(),
-                                        start: *start as f64,
-                                        end: *end as f64
+                                        start: (start+1.).round(),
+                                        end: end.round()
                                     }))));
 
                                     let _ = closure.apply(&this,&args);                    
@@ -275,8 +285,8 @@ impl GenomeBrowser {
 
                                     args.set(1,JsValue::from(js_throw(JsValue::from_serde(&LocationData {
                                         stick: stick.to_string(),
-                                        start: *start as f64,
-                                        end: *end as f64
+                                        start: (start+1.).round(),
+                                        end: end.round()
                                     }))));
                                     
                                     let _ = closure.apply(&this,&args);                    

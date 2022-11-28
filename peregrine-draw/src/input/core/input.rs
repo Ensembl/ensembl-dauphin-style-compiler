@@ -3,12 +3,13 @@ use peregrine_data::{PeregrineCore};
 use peregrine_toolkit_async::sync::blocker::{Blocker, Lockout};
 
 use crate::PeregrineInnerAPI;
+use crate::domcss::dom::PeregrineDom;
 use crate::input::translate::targetreporter::TargetReporter;
 use crate::input::translate::translatehotspots::{translate_hotspots};
 use crate::shape::core::spectre::Spectre;
 use crate::stage::stage::ReadStage;
 use crate::webgl::global::WebGlGlobal;
-use crate::{ PeregrineDom, run::PgPeregrineConfig, PgCommanderWeb };
+use crate::{ run::PgPeregrineConfig, PgCommanderWeb };
 use crate::util::Message;
 use crate::input::low::lowlevel::LowLevelInput;
 use crate::input::translate::InputTranslator;
@@ -81,7 +82,7 @@ impl Input {
 
     fn state<F,T>(&self, f: F) -> T where F: FnOnce(&mut InputState) -> T { f(self.state.lock().unwrap().as_mut().unwrap()) }
 
-    pub fn set_api(&mut self, dom: &PeregrineDom, config: &PgPeregrineConfig, inner_api: &PeregrineInnerAPI, commander: &PgCommanderWeb, target_reporter: &TargetReporter, gl: &Arc<Mutex<WebGlGlobal>>) -> Result<(),Message> {
+    pub(crate) fn set_api(&mut self, dom: &PeregrineDom, config: &PgPeregrineConfig, inner_api: &PeregrineInnerAPI, commander: &PgCommanderWeb, target_reporter: &TargetReporter, gl: &Arc<Mutex<WebGlGlobal>>) -> Result<(),Message> {
         let spectres = inner_api.spectres();
         let mut low_level = LowLevelInput::new(dom,commander,spectres,config,gl,&target_reporter)?;
         let translator = InputTranslator::new(config,&mut low_level,inner_api,commander,&self.queue_blocker,&target_reporter)?;
@@ -130,8 +131,8 @@ impl Input {
     pub(crate) fn get_spectres(&self) -> Vec<Spectre> { self.state(|state| state.low_level.get_spectres()) }
     pub fn set_artificial(&self, name: &str, start: bool) { self.state(|state| state.low_level.set_artificial(name,start)); }
 
-    pub(crate) fn goto(&self, centre: f64, scale: f64) -> Result<(),Message> {
-        self.state(|state| state.translator.goto(&mut state.inner_api.clone(),centre,scale))
+    pub(crate) fn goto(&self, centre: f64, scale: f64, only_if_unknown: bool) -> Result<(),Message> {
+        self.state(|state| state.translator.goto(&mut state.inner_api.clone(),centre,scale,only_if_unknown))
     }
 
     async fn jump_task(&self,data_api: PeregrineCore, location: String, lockout: Lockout) -> Result<(),Message> {
@@ -146,12 +147,11 @@ impl Input {
                 slide
             });
             if slide {
-                self.goto(centre,bp_per_screen)?;
+                self.goto(centre,bp_per_screen,false)?;
             } else {
                 self.state(|state| {
                     state.inner_api.set_stick(&stick);
-                    state.inner_api.set_x(centre);
-                    state.inner_api.set_bp_per_screen(bp_per_screen);
+                    state.inner_api.set_position(Some(centre),Some(bp_per_screen),false);
                     state.target_reporter.force_report();
                 });
             }

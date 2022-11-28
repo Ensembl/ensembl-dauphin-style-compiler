@@ -1,6 +1,6 @@
 use std::{collections::HashMap};
-use crate::{allotment::{core::{trainstate::CarriageTrainStateSpec, allotmentname::{AllotmentNamePart, AllotmentName}, boxpositioncontext::BoxPositionContext}, boxes::{ stacker::Stacker, overlay::Overlay, bumper::Bumper }, boxes::{leaf::{FloatingLeaf}}, transformers::drawinginfo::DrawingInfo, stylespec::stylegroup::AllotmentStyleGroup, style::style::ContainerAllotmentType}, DataMessage, LeafRequest, LeafStyle};
-
+use peregrine_toolkit::error::Error;
+use crate::{allotment::{core::{trainstate::CarriageTrainStateSpec, allotmentname::{AllotmentNamePart, AllotmentName}, boxpositioncontext::BoxPositionContext}, boxes::{ stacker::Stacker, overlay::Overlay, bumper::Bumper }, boxes::{leaf::{FloatingLeaf}}, transformers::drawinginfo::DrawingInfo, stylespec::stylegroup::AllotmentStyleGroup, style::style::ContainerAllotmentType}, LeafRequest, LeafStyle};
 use super::holder::{ContainerHolder, LeafHolder};
 
 struct StyleBuilder<'a> {
@@ -23,7 +23,7 @@ impl<'a> StyleBuilder<'a> {
         }
     }
 
-    fn new_container(&mut self, name: &AllotmentNamePart, styles: &AllotmentStyleGroup) -> Result<ContainerHolder,DataMessage> {
+    fn new_container(&mut self, name: &AllotmentNamePart, styles: &AllotmentStyleGroup) -> Result<ContainerHolder,Error> {
         let style = styles.get_container(name);
         let container = match &style.allot_type {
             ContainerAllotmentType::Stack => {
@@ -39,7 +39,7 @@ impl<'a> StyleBuilder<'a> {
         Ok(container)
     }
 
-    fn try_new_container(&mut self, name: &AllotmentNamePart, styles: &AllotmentStyleGroup) -> Result<ContainerHolder,DataMessage> {
+    fn try_new_container(&mut self, name: &AllotmentNamePart, styles: &AllotmentStyleGroup) -> Result<ContainerHolder,Error> {
         let sequence = name.sequence().to_vec();
         if let Some(container) = self.containers_made.get(&sequence) {
             Ok(container.clone())
@@ -60,13 +60,13 @@ impl<'a> StyleBuilder<'a> {
         }
     }
 
-    fn new_floating_leaf(&self, pending: &LeafRequest, name: &AllotmentNamePart, container: &mut ContainerHolder) -> Result<FloatingLeaf,DataMessage> {
+    fn new_floating_leaf(&self, pending: &LeafRequest, name: &AllotmentNamePart, container: &mut ContainerHolder) -> Result<FloatingLeaf,Error> {
         let child = FloatingLeaf::new(name,&self.prep.bp_px_converter,&pending.leaf_style(),&pending.drawing_info_clone());
         container.add_leaf(&LeafHolder::Leaf(child.clone()));
         Ok(child)
     }
 
-    fn new_leaf(&mut self, pending: &LeafRequest, name: &AllotmentNamePart) -> Result<LeafHolder,DataMessage> {
+    fn new_leaf(&mut self, pending: &LeafRequest, name: &AllotmentNamePart) -> Result<LeafHolder,Error> {
         Ok(if let Some((_,rest)) = name.pop() {
             let mut container = self.try_new_container(&rest,&pending.style())?;
             LeafHolder::Leaf(self.new_floating_leaf(pending,name,&mut container)?)
@@ -75,7 +75,7 @@ impl<'a> StyleBuilder<'a> {
         })
     }
 
-    fn try_new_leaf(&mut self, pending: &LeafRequest) -> Result<LeafHolder,DataMessage> {
+    fn try_new_leaf(&mut self, pending: &LeafRequest) -> Result<LeafHolder,Error> {
         let name = AllotmentNamePart::new(pending.name().clone());
         let sequence = name.sequence().to_vec();
         Ok(if let Some(leaf) = self.leafs_made.get(&sequence) {
@@ -88,7 +88,7 @@ impl<'a> StyleBuilder<'a> {
     }
 }
 
-pub(crate) fn make_transformable(prep: &mut BoxPositionContext, pendings: &mut dyn Iterator<Item=&LeafRequest>) -> Result<CarriageTrainStateSpec,DataMessage> {
+pub(crate) fn make_transformable(prep: &mut BoxPositionContext, pendings: &mut dyn Iterator<Item=&LeafRequest>) -> Result<CarriageTrainStateSpec,Error> {
     /* Build box tree */
     let mut styler = StyleBuilder::new(prep);
     for pending in pendings {
@@ -104,8 +104,8 @@ pub(crate) fn make_transformable(prep: &mut BoxPositionContext, pendings: &mut d
 mod test {
     use std::{sync::{Arc, Mutex}, collections::{HashMap}};
     use peregrine_toolkit::{puzzle::{AnswerAllocator}};
-    use crate::{allotment::{core::{allotmentname::AllotmentName, boxpositioncontext::BoxPositionContext, trainstate::CarriageTrainStateSpec}, stylespec::{stylegroup::AllotmentStyleGroup, styletreebuilder::StyleTreeBuilder, styletree::StyleTree}, util::{bppxconverter::BpPxConverter, rangeused::RangeUsed}, globals::{allotmentmetadata::{LocalAllotmentMetadata, GlobalAllotmentMetadataBuilder, GlobalAllotmentMetadata}, bumping::{GlobalBumpBuilder, GlobalBump}, trainpersistent::TrainPersistent}, builder::stylebuilder::make_transformable}, LeafRequest, shape::metadata::{AbstractMetadata, AbstractMetadataBuilder}};
-    use serde_json::Value as JsonValue;
+    use crate::{allotment::{core::{allotmentname::AllotmentName, boxpositioncontext::BoxPositionContext, trainstate::CarriageTrainStateSpec}, stylespec::{stylegroup::AllotmentStyleGroup, styletreebuilder::StyleTreeBuilder, styletree::StyleTree}, util::{bppxconverter::BpPxConverter, rangeused::RangeUsed}, globals::{allotmentmetadata::{LocalAllotmentMetadata, GlobalAllotmentMetadataBuilder, GlobalAllotmentMetadata}, bumping::{GlobalBumpBuilder, GlobalBump}, trainpersistent::TrainPersistent}, builder::stylebuilder::make_transformable}, LeafRequest, shape::metadata::{AbstractMetadataBuilder}};
+    use serde_json::{Value as JsonValue };
 
     fn make_pendings(names: &[&str], heights: &[f64], pixel_range: &[RangeUsed<f64>], style: &AllotmentStyleGroup) -> Vec<LeafRequest> {
         let heights = if heights.len() > 0 {
@@ -204,8 +204,9 @@ mod test {
     }
 
     fn check_metadata(a: &HashMap<String,JsonValue>, key: &str, cmp: &str) {
+        let cmp : JsonValue = serde_json::from_str(cmp).expect("bad cmp");
         if let Some(value) = a.get(key) {
-            assert_eq!(cmp.to_string(),value.clone())
+            assert_eq!(cmp,value.clone())
         }
     }
 
@@ -263,19 +264,20 @@ mod test {
         let (a,b) = (&metadata[0],&metadata[1]);
         assert!(a.contains_key("offset"));
         let (a,b) = 
-            if a.get("offset").map(|x| x.to_string()) == Some("\"0\"".to_string()) { 
+            if a.get("offset").map(|x| x.to_string()) == Some("0.0".to_string()) { 
                 (a,b) 
-            } else if b.get("offset").map(|x| x.to_string()) == Some("\"0\"".to_string()) { 
+            } else if b.get("offset").map(|x| x.to_string()) == Some("0.0".to_string()) { 
                 (b,a)
             } else {
+                println!("A {:?} B {:?}",a.get("offset").map(|x| x.to_string()),b.get("offset").map(|x| x.to_string()));
                 assert!(false);
                 panic!();
             };
-        check_metadata(a,"type","track");
-        check_metadata(a,"offset","0");
-        check_metadata(a,"height","21");
-        check_metadata(b,"type","track");
-        check_metadata(b,"offset","21");
-        check_metadata(b,"height","3");
+        check_metadata(a,"type","\"track\"");
+        check_metadata(a,"offset","0.0");
+        check_metadata(a,"height","21.0");
+        check_metadata(b,"type","\"track\"");
+        check_metadata(b,"offset","21.0");
+        check_metadata(b,"height","3.0");
     }
 }

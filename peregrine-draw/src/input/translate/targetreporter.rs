@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 use peregrine_data::DataMessage;
-use peregrine_toolkit_async::sync::{blocker::{Blocker, Lockout, self}, needed::Needed};
+use peregrine_toolkit_async::sync::{blocker::{Blocker, Lockout}, needed::Needed};
 use peregrine_toolkit::{lock, plumbing::oneshot::OneShot};
 use crate::{Message, PgCommanderWeb, run::{PgConfigKey, PgPeregrineConfig, report::Report}, util::debounce::Debounce};
 
@@ -78,7 +78,7 @@ impl TargetReporter {
         Ok(())
     }
 
-    pub fn new(commander: &PgCommanderWeb, shutdown: &OneShot, config: &PgPeregrineConfig, report: &Report) -> Result<TargetReporter,Message> {
+    pub(crate) fn new(commander: &PgCommanderWeb, shutdown: &OneShot, config: &PgPeregrineConfig, report: &Report) -> Result<TargetReporter,Message> {
         let out_stage :Arc<Mutex<TargetLocation>> = Arc::new(Mutex::new(TargetLocation::empty()));
         let out_stage2 = out_stage.clone();
         let report2 = report.clone();
@@ -103,14 +103,14 @@ impl TargetReporter {
         Ok(out)
     }
 
-    pub fn lock_updates(&self) -> Lockout {
+    pub(crate) fn lock_updates(&self) -> Lockout {
         lock!(self.0).blocker.lock()
     }
 
     async fn force_applier(&self) -> Result<(),Message> {
         let blocker = lock!(self.0).blocker.clone();
         blocker.wait().await;
-        let mut state = lock!(self.0);
+        let state = lock!(self.0);
         let ready = lock!(state.in_stage).is_ready();
         if ready && state.force_needed.is_needed() {
             *lock!(state.out_stage) = lock!(state.in_stage).clone();
@@ -119,18 +119,18 @@ impl TargetReporter {
         Ok(())
     }
 
-    pub fn apply_force(&self) {
+    pub(crate) fn apply_force(&self) {
         let commander = lock!(self.0).commander.clone();
         let self2 = self.clone();
         commander.add("force-applier", 0, None, None, Box::pin(async move { self2.force_applier().await }));
     }
 
-    pub fn force_report(&self) {
+    pub(crate) fn force_report(&self) {
         let state = lock!(self.0);
         state.force_needed.set();
     }
 
-    pub fn set_stick(&self, stick: &str) {
+    pub(crate) fn set_stick(&self, stick: &str) {
         let state = lock!(self.0);
         let mut value =  lock!(state.in_stage);
         let changed = value.stick != Some(stick.to_string());
@@ -142,19 +142,17 @@ impl TargetReporter {
         }
     }
 
-    pub fn set_x(&self, x: f64) {
-        let mut state = lock!(self.0);
-        let changed = lock!(state.in_stage).x != Some(x);
-        lock!(state.in_stage).x = Some(x);
-        if changed {
-            state.needed.set();
+    pub(crate) fn set_position(&self, centre: Option<f64>, size: Option<f64>) {
+        let state = lock!(self.0);
+        let mut changed = false;
+        if let Some(centre) = centre {
+            changed |= lock!(state.in_stage).x != Some(centre);
+            lock!(state.in_stage).x = Some(centre);    
         }
-    }
-
-    pub fn set_bp(&self, bp: f64) {
-        let mut state = lock!(self.0);
-        let changed = lock!(state.in_stage).bp_per_screen != Some(bp);
-        lock!(state.in_stage).bp_per_screen = Some(bp);
+        if let Some(size) = size {
+            changed |= lock!(state.in_stage).bp_per_screen != Some(size);
+            lock!(state.in_stage).bp_per_screen = Some(size);
+        }
         if changed {
             state.needed.set();
         }

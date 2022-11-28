@@ -1,5 +1,4 @@
 use peregrine_data::{StickId, Viewport, PlayingField};
-use peregrine_toolkit::log;
 use peregrine_toolkit_async::sync::needed::Needed;
 
 use crate::{ webgl::{ SourceInstrs, UniformProto, GLArity, UniformHandle, ProgramBuilder, Process }};
@@ -139,7 +138,7 @@ impl Stage {
         let position = viewport.position().unwrap();
         let bp_per_pixel = viewport.bp_per_screen().unwrap();        
         if let Ok(layout) = viewport.layout() {
-            self.stick = Some(layout.stick().clone());
+            self.stick = Some(layout.stick().get_id().clone());
         }
         self.x_mut().set_position(position);
         self.x_mut().set_bp_per_screen(bp_per_pixel);

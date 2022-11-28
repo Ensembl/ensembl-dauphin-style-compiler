@@ -1,0 +1,18 @@
+set = "ensembl-webteam/core"
+name = "ruler"
+version = 1
+description = """
+
+Draws the ruler.
+
+Doesn't use a backend endpoint.
+
+"""
+
+[setting.one_based]
+default = false
+description = """
+
+boolean: 1-based coordinate system
+
+"""

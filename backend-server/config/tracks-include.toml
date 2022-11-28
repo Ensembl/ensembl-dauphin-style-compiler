@@ -1,0 +1,3 @@
+[include.general]
+program_set = "ensembl-webteam/core"
+program_version = 1

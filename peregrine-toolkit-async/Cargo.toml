@@ -5,25 +5,12 @@ authors = ["ensembl-webteam@ebi.ac.uk"]
 edition = "2018"
 
 [dependencies]
-#anyhow="*"
-#js-sys="*"
-#wasm-bindgen="*"
-#serde="*"
-#serde_cbor="*"
-#serde_derive="*"
-#lazy_static="*"
+js-sys="*"
+wasm-bindgen=">=0.2.77"
 
 [dependencies.commander]
 version="*"
 path="../commander"
-
-#[dependencies.identitynumber]
-#version="*"
-#path="../identitynumber"
-
-#[dependencies.web-sys]
-#version="*"
-#features=["console"]
 
 [dependencies.peregrine_toolkit]
 version="*"

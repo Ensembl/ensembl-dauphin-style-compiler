@@ -1,10 +1,10 @@
 use crate::webgl::{ FlatId, FlatStore };
 use crate::webgl::GPUSpec;
 use super::weave::CanvasWeave;
+use peregrine_toolkit::error::Error;
 use web_sys::WebGlRenderingContext;
 use web_sys::WebGlTexture;
-use crate::webgl::util::handle_context_errors;
-use crate::util::message::Message;
+use crate::webgl::util::handle_context_errors2;
 
 /* We don't want to recreate textures if we don't have to. The main reason for this is repeated draws of multiple
  * programs (likely from adjacent carriages).
@@ -34,7 +34,7 @@ use crate::util::message::Message;
  * 
  */
 
-fn apply_weave(context: &WebGlRenderingContext,weave: &CanvasWeave) -> Result<(),Message> {
+fn apply_weave(context: &WebGlRenderingContext,weave: &CanvasWeave) -> Result<(),Error> {
     let (minf,magf,wraps,wrapt) = match weave {
         CanvasWeave::Crisp =>
             (WebGlRenderingContext::NEAREST,WebGlRenderingContext::NEAREST,
@@ -64,21 +64,21 @@ fn apply_weave(context: &WebGlRenderingContext,weave: &CanvasWeave) -> Result<()
     context.tex_parameteri(WebGlRenderingContext::TEXTURE_2D,
                         WebGlRenderingContext::TEXTURE_WRAP_T,
                         wrapt as i32);
-    handle_context_errors(context)?;
+    handle_context_errors2(context)?;
     Ok(())
 }
 
-fn create_texture(context: &WebGlRenderingContext,canvas_store: &FlatStore, our_data: &FlatId) -> Result<SelfManagedWebGlTexture,Message> {
+fn create_texture(context: &WebGlRenderingContext,canvas_store: &FlatStore, our_data: &FlatId) -> Result<SelfManagedWebGlTexture,Error> {
     let canvas = canvas_store.get(our_data)?;
-    let texture = context.create_texture().ok_or_else(|| Message::WebGLFailure("cannot create texture".to_string()))?;
-    handle_context_errors(context)?;
+    let texture = context.create_texture().ok_or_else(|| Error::fatal("cannot create texture"))?;
+    handle_context_errors2(context)?;
     context.bind_texture(WebGlRenderingContext::TEXTURE_2D,Some(&texture));
-    handle_context_errors(context)?;
+    handle_context_errors2(context)?;
     context.tex_image_2d_with_u32_and_u32_and_canvas( // wow
         WebGlRenderingContext::TEXTURE_2D,0,WebGlRenderingContext::RGBA as i32,WebGlRenderingContext::RGBA,
         WebGlRenderingContext::UNSIGNED_BYTE,canvas.element()?
-    ).map_err(|e| Message::WebGLFailure(format!("cannot bind texture: {:?}",&e.as_string())))?;
-    handle_context_errors(context)?;
+    ).map_err(|e| Error::fatal(&format!("cannot bind texture: {:?}",&e.as_string())))?;
+    handle_context_errors2(context)?;
     apply_weave(context,canvas.weave())?;
     Ok(SelfManagedWebGlTexture::new(texture,context))
 }
@@ -118,7 +118,7 @@ impl TextureBindery {
         }
     }
 
-    fn find_victim(&mut self, flat_store: &mut FlatStore) -> Result<FlatId,Message> {
+    fn find_victim(&mut self, flat_store: &mut FlatStore) -> Result<FlatId,Error> {
         let flats = self.available_or_active.iter().cloned().collect::<Vec<_>>();
         for (i,flat_id) in flats.iter().enumerate() {
             if !*flat_store.get_mut(&flat_id)?.is_active() {
@@ -126,16 +126,16 @@ impl TextureBindery {
                 return Ok(flat_id.clone());
             }
         }
-        return Err(Message::CodeInvariantFailed("too many textures bound".to_string()));
+        return Err(Error::fatal("too many textures bound"));
     }
 
-    fn make_one_unavailable(&mut self, flat_store: &mut FlatStore) -> Result<(),Message> {
+    fn make_one_unavailable(&mut self, flat_store: &mut FlatStore) -> Result<(),Error> {
         let old_item = self.find_victim(flat_store)?;
         flat_store.get_mut(&old_item)?.set_gl_texture(None);
         Ok(())
     }
 
-    fn make_available(&mut self, flat: &FlatId, flat_store: &mut FlatStore, context: &WebGlRenderingContext) -> Result<(),Message> {
+    fn make_available(&mut self, flat: &FlatId, flat_store: &mut FlatStore, context: &WebGlRenderingContext) -> Result<(),Error> {
         if self.available_or_active.len() >= self.max_textures {
             self.make_one_unavailable(flat_store)?;
         }
@@ -145,7 +145,7 @@ impl TextureBindery {
         Ok(())
     }
 
-    pub(crate) fn allocate(&mut self, flat_id: &FlatId, flat_store: &mut FlatStore, context: &WebGlRenderingContext) -> Result<u32,Message> {
+    pub(crate) fn allocate(&mut self, flat_id: &FlatId, flat_store: &mut FlatStore, context: &WebGlRenderingContext) -> Result<u32,Error> {
         /* Promote to AVAILABLE if SLEEPING */
         if !self.available_or_active.contains(flat_id) {
             self.make_available(flat_id,flat_store,context)?;
@@ -157,14 +157,14 @@ impl TextureBindery {
         self.next_gl_index += 1;
         /* Actually bind it */
         context.active_texture(WebGlRenderingContext::TEXTURE0 + our_gl_index);
-        handle_context_errors(context)?;
+        handle_context_errors2(context)?;
         let texture = flat_store.get(flat_id)?.get_gl_texture().unwrap();
         context.bind_texture(WebGlRenderingContext::TEXTURE_2D,Some(texture.texture()));
-        handle_context_errors(context)?;
+        handle_context_errors2(context)?;
         Ok(our_gl_index)
     }
 
-    pub(crate) fn free(&mut self, flat: &FlatId, flat_store: &mut FlatStore) -> Result<(),Message> {
+    pub(crate) fn free(&mut self, flat: &FlatId, flat_store: &mut FlatStore) -> Result<(),Error> {
         if let Some(pos) = self.available_or_active.iter().position(|id| id == flat) {
             self.available_or_active.swap_remove(pos);
         }
@@ -172,7 +172,7 @@ impl TextureBindery {
         Ok(())
     }
 
-    pub(crate) fn clear(&mut self, flat_store: &mut FlatStore) -> Result<(),Message> {
+    pub(crate) fn clear(&mut self, flat_store: &mut FlatStore) -> Result<(),Error> {
         for flat_id in &self.available_or_active {
             let is_active = flat_store.get_mut(&flat_id)?.is_active();
             if *is_active {

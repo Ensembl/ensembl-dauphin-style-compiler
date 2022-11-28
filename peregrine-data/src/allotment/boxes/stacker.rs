@@ -1,9 +1,6 @@
-use std::sync::Arc;
-
-use peregrine_toolkit::{puzzle::{ derived, DelayedSetter, delayed, compose, compose_slice, StaticValue, commute_clonable, cache_constant_clonable, compose_slice_vec, short_memoized_arc, short_memoized, cache_constant_arc }};
-
+use std::{sync::Arc, rc::Rc};
+use peregrine_toolkit::{puzzle::{ derived, DelayedSetter, delayed, compose, StaticValue, commute_clonable, cache_constant_clonable, compose_slice_vec, short_memoized, cache_constant_rc }};
 use crate::{allotment::{style::{style::{ContainerAllotmentStyle}}, core::{allotmentname::{AllotmentNamePart, AllotmentName}, boxtraits::{Stackable, BuildSize, ContainerSpecifics, Coordinated}, boxpositioncontext::BoxPositionContext}}, CoordinateSystem};
-
 use super::{container::{Container}};
 
 #[derive(Clone)]
@@ -25,7 +22,7 @@ struct AddedChild {
     height: StaticValue<f64>
 }
 
-fn child_tops<'a>(children: &[AddedChild]) -> (StaticValue<Arc<Vec<f64>>>,StaticValue<f64>) {
+fn child_tops<'a>(children: &[AddedChild]) -> (StaticValue<Rc<Vec<f64>>>,StaticValue<f64>) {
     let mut children = children.iter().enumerate().collect::<Vec<_>>();
     children.sort_by_cached_key(|c| c.1.priority);
     let positions = Arc::new(children.iter().map(|c| c.0).collect::<Vec<_>>());
@@ -35,7 +32,7 @@ fn child_tops<'a>(children: &[AddedChild]) -> (StaticValue<Arc<Vec<f64>>>,Static
     /* collate child heights */
     let heights = compose_slice_vec(&heights);
     /* set relative tops */
-    let relative_tops = cache_constant_arc(short_memoized(derived(heights,move |heights| {
+    let relative_tops = cache_constant_rc(short_memoized(derived(heights,move |heights| {
         let mut tops = vec![];
         let mut top = 0.;
         for height in &*heights {
@@ -53,8 +50,8 @@ fn child_tops<'a>(children: &[AddedChild]) -> (StaticValue<Arc<Vec<f64>>>,Static
 
 #[derive(Clone)]
 struct UnpaddedStacker {
-    relative_tops: StaticValue<Option<Arc<Vec<f64>>>>,
-    relative_tops_setter: DelayedSetter<'static,'static,Arc<Vec<f64>>>,
+    relative_tops: StaticValue<Option<Rc<Vec<f64>>>>,
+    relative_tops_setter: DelayedSetter<'static,'static,Rc<Vec<f64>>>,
 }
 
 impl UnpaddedStacker {

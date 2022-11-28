@@ -1,21 +1,19 @@
 use std::{sync::{Arc, Mutex}};
 use commander::{CommanderStream, cdr_tick, cdr_timer };
 use peregrine_data::{ZMenuFixed, GlobalAllotmentMetadata};
-use peregrine_toolkit::{plumbing::oneshot::OneShot, log};
+use peregrine_toolkit::{plumbing::oneshot::OneShot};
 use peregrine_toolkit_async::sync::{needed::{Needed, NeededLock}, changed::Changed};
 use crate::{Message, PgCommanderWeb, util::message::Endstop};
 use super::{PgConfigKey, PgPeregrineConfig};
 
 const TRIVIAL_PIXELS : f64 = 20000.; // if nothing would move more than 1px on a screen this size, ignore the change
 
-fn d(a: u64,b: u64) -> u64 { if a > b { a-b } else { b-a } }
-
 fn trivial_change(x_from: f64, x_to: f64, bp_from: f64, bp_to: f64) -> bool {
     let (left_from,right_from) = to_left_right(x_from,bp_from);
     let (left_to,right_to) = to_left_right(x_to,bp_to);
     let screenful = bp_from.min(bp_to);
-    let trivial_amount = (screenful / TRIVIAL_PIXELS -1.) as u64;
-    d(left_to,left_from) < trivial_amount && d(right_to,right_from) < trivial_amount
+    let trivial_amount = screenful / TRIVIAL_PIXELS -1.;
+    (left_to-left_from).abs() < trivial_amount && (right_to-right_from).abs() < trivial_amount
 }
 
 fn extract_coord(stick: &mut Changed<String>, x: &mut Changed<f64>, bp: &mut Changed<f64>) -> Option<(String,f64,f64)> {
@@ -31,8 +29,8 @@ fn extract_coord(stick: &mut Changed<String>, x: &mut Changed<f64>, bp: &mut Cha
     }
 }
 
-fn to_left_right(position: f64, scale: f64) -> (u64,u64) {
-    ((position-scale/2.).floor() as u64, (position+scale/2.).ceil() as u64)
+fn to_left_right(position: f64, scale: f64) -> (f64,f64) {
+    ((position-scale/2.), (position+scale/2.))
 }
 
 struct ReportData {

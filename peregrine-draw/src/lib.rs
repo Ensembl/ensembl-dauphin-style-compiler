@@ -1,9 +1,16 @@
+mod domcss {
+    pub(crate) mod dom;
+    pub(crate) mod size;
+    mod shutdown;
+    mod yposdetector;
+}
+
 mod input {
     mod core {
         pub mod input;
     }
 
-    mod low {
+    pub(crate) mod low {
         mod pointer {
             pub(crate) mod cursor;
             mod drag;
@@ -11,7 +18,7 @@ mod input {
             pub(super) mod pointer;   
         }
 
-        mod event;
+        pub(crate) mod event;
         pub(crate) mod keyboardinput;
         pub(crate) mod mouseinput;
         pub(crate) mod lowlevel; 
@@ -46,12 +53,9 @@ mod integration {
     mod bell;
     pub(crate) mod pgcommander;
     pub(crate) mod pgdauphin;
-    pub(crate) mod pgchannel;
     pub(crate) mod pgintegration;
     mod custom;
-    mod raf;
     mod stream;
-    pub(crate) mod timer;
 
     pub use self::pgcommander::PgCommanderWeb;
 }
@@ -60,18 +64,15 @@ mod run {
     mod buildconfig;
     pub mod api;
     mod config;
-    mod dom;
     mod globalconfig;
     pub mod inner;
     mod frame;
     mod mousemove;
     pub(crate) mod report;
-    mod size;
     pub(crate) mod sound;
 
     pub use self::config::{ PgPeregrineConfig, PgConfigKey, CursorCircumstance };
     pub use self::globalconfig::PeregrineConfig;
-    pub use self::dom::PeregrineDom;
     pub use self::api::{ PeregrineAPI };
     pub use self::inner::{ PeregrineInnerAPI };
 }
@@ -116,7 +117,7 @@ mod shape {
     }
 
     pub(crate) mod util {
-        pub(super) mod iterators;
+        pub(super) mod eoethrow;
         pub(crate) mod arrayutil;
     }
 }
@@ -135,17 +136,14 @@ mod train {
 }
 
 mod util {
-    pub(crate) mod ajax;
     pub(crate) mod error;
     pub(crate) mod message;
     pub(crate) mod monostable;
     pub(crate) mod debounce;
     pub(crate) mod resizeobserver;
-    pub(crate) mod promise;
     pub(crate) mod fonts;
     #[macro_use]
     pub(crate) mod misc;
-    pub use self::ajax::PgAjax;
     pub use self::message::{ Message, Endstop };
 }
 
@@ -226,6 +224,6 @@ mod webgl {
     mod util;
 }
 
-pub use crate::run::{ PeregrineInnerAPI, PeregrineDom, PeregrineAPI, PeregrineConfig };
-pub use self::util::{ PgAjax, Message, Endstop };
+pub use crate::run::{ PeregrineInnerAPI, PeregrineAPI, PeregrineConfig };
+pub use self::util::{ Message, Endstop };
 pub use crate::integration::PgCommanderWeb;

@@ -27,11 +27,11 @@ class Chromosome(object):
         seq_hash ():
         species ():
     """
-    def __init__(self, name, size, seq_hash, species):
+    def __init__(self, name, size, seq_hash, species, tags):
         self.name = name
         self.size = size
         self.topology = "linear"
-        self.tags = set(["local"])
+        self.tags = tags
         self.seq_hash = seq_hash
         self.genome_id = species.genome_id
         self.stick_name = "{0}:{1}".format(

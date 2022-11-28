@@ -12,7 +12,7 @@ mod allotment {
         mod holder;
         pub(crate) mod stylebuilder;
     }
-
+    
     pub(crate) mod collision {
         mod bumppart;
         pub(crate) mod bumpprocess;
@@ -69,29 +69,47 @@ mod api {
     mod agentstore;
     mod pgcore;
     mod queue;
+    mod instanceinfo;
 
     pub use agentstore::AgentStore;
     pub use api::{ PeregrineIntegration, CarriageSpeed, TrainIdentity };
     pub use self::pgcore::{ PeregrineCore, MessageSender, PeregrineCoreBase };
     pub use queue::{ PeregrineApiQueue };
+    pub use instanceinfo::InstanceInformation;
 }
 
 mod core {
+    pub(crate) mod channel {
+        pub(crate) mod backendnamespace;
+        pub(crate) mod accessorresolver;
+        pub(crate) mod channelintegration;
+        pub(crate) mod channelregistry;
+        pub(crate) mod channelboot;
+        pub(crate) mod wrappedchannelsender;
+    }
+
+    pub(crate) mod program {
+        mod packedprogramspec;
+        pub(crate) mod programspec;
+        pub(crate) mod programbundle;
+    }
+
+    pub(crate) mod dataalgorithm;
     pub(crate) mod asset;
     mod config;
     mod layout;
     pub(crate) mod pixelsize;
-    pub(crate) mod programbundle;
     mod scale;
     pub mod stick;
+    pub(crate) mod tagpred;
     pub(crate) mod version;
     mod viewport;
-    pub(crate) mod channel;
     pub(crate) mod data;
 
     pub use self::config::{ PgdPeregrineConfig, ConfigKey };
     pub use self::layout::Layout;
     pub use self::scale::Scale;
+    pub use self::program::programspec::{ ProgramModel, ProgramSetting };
     pub use stick::{ StickId, Stick, StickTopology };
     pub use self::asset::{ Asset, Assets };
     pub use viewport::Viewport;
@@ -99,31 +117,25 @@ mod core {
 
 mod index {
     pub(crate) mod stickstore;
-    pub(crate) mod stickauthority;
-    pub(crate) mod stickauthoritystore;
     pub(crate) mod jumpstore;
     pub use self::stickstore::StickStore;
-    pub use self::stickauthoritystore::AuthorityStore;
 }
 
 mod shapeload {
     pub(crate) mod anticipate;
     pub(crate) mod carriagebuilder;
     mod datastore;
+    mod objectbuilder;
     mod shaperequest;
     pub(crate) mod loadshapes;
-    pub(crate) mod programloader;
-    pub(crate) mod programregion;
     mod resultstore;
-    pub(crate) mod programdata;
     pub(crate) mod programname;
 
     pub use self::datastore::{ DataStore };
     pub use self::shaperequest::{ Region, ShapeRequest, ShapeRequestGroup };
-    pub use self::programdata::ProgramData;
-    pub use self::programname::ProgramName;
-    pub use self::programregion::{ ProgramRegion, ProgramRegionBuilder };
-    pub use self::resultstore::{ ShapeStore };
+    pub use self::loadshapes::LoadMode;
+    pub use self::resultstore::{ ShapeStore, RunReport };
+    pub use self::objectbuilder::ObjectBuilder;
 }
 
 mod metric {
@@ -140,19 +152,26 @@ mod request {
         pub(crate) mod backend;
         pub(crate) mod backoff;
         pub(crate) mod manager;
+        pub(crate) mod maxirequest;
+        pub(crate) mod maxiresponse;
         pub(crate) mod packet;
         pub(crate) mod queue;
-        pub(crate) mod request;
-        pub(crate) mod response;
+        pub(crate) mod minirequest;
+        pub(crate) mod miniresponse;
+        mod pendingattemptqueue;
+        mod attemptmatch;
+        pub(crate) mod sidecars;
+        pub(crate) mod packetpriority;
+        mod trafficcontrol;
     }
 
-    pub(crate) mod messages {
-        pub(crate) mod authorityreq;
-        pub(crate) mod authorityres;
-        pub(crate) mod bootstrapreq;
-        pub(crate) mod bootstrapres;
+    pub(crate) mod minirequests {
+        pub(crate) mod bootchannelreq;
+        pub(crate) mod bootchannelres;
         pub(crate) mod datareq;
         pub(crate) mod datares;
+        pub(crate) mod expandreq;
+        pub(crate) mod expandres;
         pub(crate) mod failureres;
         pub(crate) mod jumpreq;
         pub(crate) mod jumpres;
@@ -162,16 +181,24 @@ mod request {
         pub(crate) mod stickreq;
         pub(crate) mod stickres;
     }
+
+    pub(crate) mod tracks {
+        pub(crate) mod expansionmodel;
+        mod switchtree;
+        pub(crate) mod packedtrackres;
+        pub(crate) mod trackdata;
+        pub(crate) mod trackmodel;
+        pub(crate) mod trackres;
+    }
 }
 
 mod run {
     pub mod instancepayload;
-    pub mod bootstrap;
     pub mod pgcommander;
     pub mod pgdauphin;
     pub use self::pgcommander::Commander;
     pub use self::pgcommander::{ PgCommander, PgCommanderTaskSpec, add_task, complete_task, async_complete_task };
-    pub use self::pgdauphin::{ PgDauphin, PgDauphinTaskSpec };
+    pub use self::pgdauphin::{ PgDauphin };
     pub use self::instancepayload::InstancePayload;
 }
 
@@ -185,6 +212,7 @@ mod shape {
     pub(crate) mod textshape;
     pub(crate) mod shape;
     mod programshapes;
+    mod settingmode;
     mod zmenu;
     mod zmenufixed;
     mod wiggleshape;
@@ -193,6 +221,7 @@ mod shape {
         Patina, Pen, Colour, DirectColour, Plotter, DrawnType, Hotspot, PenGeometry,
         Background, AttachmentPoint
     };
+    pub use self::settingmode::SettingMode;
     pub use self::shape::{ ShapeDemerge, Shape };
     pub use self::zmenu::ZMenu;
     pub use self::abstractshapescontainer::AbstractShapesContainer;
@@ -210,10 +239,10 @@ pub(crate) mod spacebase {
 }
 
 pub(crate) mod switch {
+    pub(crate) mod expansion;
     pub(crate) mod track;
     pub(crate) mod switch;
     pub(crate) mod switches;
-    pub(crate) mod switchoverlay;
     pub(crate) mod trackconfig;
     pub(crate) mod trackconfiglist;
 }
@@ -264,19 +293,27 @@ mod util {
 pub use self::allotment::core::leafrequest::LeafRequest;
 pub use self::allotment::style::style::LeafStyle;
 pub use self::allotment::globals::{ allotmentmetadata::GlobalAllotmentMetadata, playingfield::PlayingField };
-pub use self::api::{ PeregrineCore, PeregrineCoreBase, PeregrineIntegration, PeregrineApiQueue, TrainIdentity, CarriageSpeed, AgentStore };
-pub use self::core::{ Asset, Assets, PgdPeregrineConfig, ConfigKey, Stick, StickId, StickTopology, Scale, Viewport };
-pub use self::core::channel::{ Channel, PacketPriority, ChannelLocation, ChannelIntegration };
-pub use self::index::{ StickStore, AuthorityStore };
-pub use self::shapeload::{ Region, ProgramName, ProgramRegion, ShapeStore, DataStore, ProgramData, ProgramRegionBuilder, ShapeRequest, ShapeRequestGroup };
+pub use self::api::{ PeregrineCore, PeregrineCoreBase, PeregrineIntegration, PeregrineApiQueue, TrainIdentity, CarriageSpeed, AgentStore, InstanceInformation };
+pub use self::core::{ Asset, Assets, PgdPeregrineConfig, ConfigKey, Stick, StickId, StickTopology, Scale, Viewport, ProgramModel, ProgramSetting };
+pub use self::core::channel::accessorresolver::{ AccessorResolver };
+pub use self::core::channel::backendnamespace::BackendNamespace;
+pub use self::core::dataalgorithm::DataAlgorithm;
+pub use self::core::channel::channelintegration::{ ChannelIntegration, ChannelSender, ChannelResponse, TrivialChannelResponse, ChannelMessageDecoder, null_payload };
+pub use self::index::{ StickStore };
+pub use self::core::program::programbundle::{ SuppliedBundle, UnpackedSuppliedBundle };
+pub use self::shapeload::{ Region, ShapeStore, DataStore, ShapeRequest, ShapeRequestGroup, LoadMode, ObjectBuilder, RunReport };
 pub use self::run::{ PgCommander, PgCommanderTaskSpec, PgDauphin, Commander, InstancePayload, add_task, complete_task, async_complete_task };
-pub use self::request::core::packet::{ RequestPacket, ResponsePacket };
+pub use self::request::core::maxirequest::{ MaxiRequest };
+pub use self::request::core::maxiresponse::{ MaxiResponse, MaxiResponseDeserialize };
+pub use self::request::core::minirequest::{ MiniRequest, MiniRequestAttempt };
+pub use self::request::core::miniresponse::MiniResponse;
+pub use self::request::core::packetpriority::PacketPriority;
 pub use self::request::core::backend::{ AllBackends, Backend };
 pub use self::shape::shape::DrawingShape;
 pub use self::shape::{ 
     Patina, Colour, DirectColour, DrawnType, Shape, Hotspot, PenGeometry, Background,
     ZMenu, Pen, Plotter, ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator,
-    ZMenuProxy, zmenu_fixed_vec_to_json, ShapeDemerge, zmenu_to_json,
+    ZMenuProxy, zmenu_fixed_vec_to_json, ShapeDemerge, zmenu_to_json, SettingMode,
     ProgramShapesBuilder, AbstractShapesContainer, AttachmentPoint
 };
 pub use self::allotment::core::coordsystem::{ CoordinateSystem, CoordinateSystemVariety };
@@ -291,5 +328,20 @@ pub use self::spacebase::{
 };
 pub use self::shape::rectangleshape::RectangleShape;
 pub use self::shape::textshape::TextShape;
+pub use self::core::data::ReceivedData;
 pub use self::request::core::manager::RequestManager;
-pub use self::request::messages::datareq::DataRequest;
+pub use self::request::tracks::trackmodel::{ TrackMapping, TrackModel, TrackModelDeserialize };
+pub use self::request::tracks::expansionmodel::ExpansionModel;
+pub use self::request::minirequests::failureres::FailureRes;
+pub use self::request::minirequests::bootchannelreq::BootChannelReq;
+pub use self::request::minirequests::bootchannelres::BootChannelRes;
+pub use self::request::minirequests::stickreq::StickReq;
+pub use self::request::minirequests::stickres::StickRes;
+pub use self::request::minirequests::jumpreq::JumpReq;
+pub use self::request::minirequests::jumpres::{ JumpLocation, JumpRes };
+pub use self::request::minirequests::datareq::DataRequest;
+pub use self::request::minirequests::datares::{ DataRes, DataResponse };
+pub use self::request::minirequests::expandreq::{ ExpandReq };
+pub use self::request::minirequests::expandres::{ ExpandRes };
+pub use self::request::minirequests::programreq::{ ProgramReq };
+pub use self::request::minirequests::programres::{ ProgramRes };

@@ -3,11 +3,12 @@ use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash};
 use std::sync::{ Arc, Mutex };
 use peregrine_data::{Assets, CarriageSpeed, PeregrineCore, Scale, DrawingCarriage, TrainIdentity, PeregrineApiQueue};
+use peregrine_toolkit::error::Error;
 use peregrine_toolkit::{lock, log};
 use peregrine_toolkit_async::sync::needed::{Needed, NeededLock};
 use super::glcarriage::GLCarriage;
 use super::gltrain::GLTrain;
-use crate::{PgCommanderWeb, PeregrineAPI};
+use crate::{PgCommanderWeb};
 use crate::shape::layers::drawingzmenus::HotspotEntryDetails;
 use crate::{run::{ PgPeregrineConfig, PgConfigKey }, stage::stage::{ Stage, ReadStage } };
 use crate::webgl::DrawingSession;
@@ -125,11 +126,11 @@ impl GlRailwayData {
         self.get_our_train(extent,2).set_max(len);
     }
 
-    fn start_fade(&mut self, train: &TrainIdentity, speed: CarriageSpeed) -> Result<(),Message> {
+    fn start_fade(&mut self, train: &TrainIdentity, speed: CarriageSpeed) -> Result<(),Error> {
         let from = match &self.fade_state {            
             FadeState::Constant(x) => x,
             FadeState::Fading(_,_,_,_,_) => {
-                return Err(Message::CodeInvariantFailed("overlapping fades sent to UI".to_string()));
+                return Err(Error::fatal("overlapping fades sent to UI"));
             }
         };
         #[cfg(debug_trains)]
@@ -293,7 +294,7 @@ impl GlRailway {
         Ok(())
     }
 
-    pub fn start_fade(&mut self, train: &TrainIdentity, max: u64, speed: CarriageSpeed) -> Result<(),Message> {
+    pub fn start_fade(&mut self, train: &TrainIdentity, max: u64, speed: CarriageSpeed) -> Result<(),Error> {
         self.data.lock().unwrap().start_fade(train,speed)?;
         self.data.lock().unwrap().set_max(&train,max);
         Ok(())

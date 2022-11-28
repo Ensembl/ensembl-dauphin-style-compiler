@@ -11,10 +11,14 @@ pub struct StructVar {
 impl StructVar {
     fn to_const(&self) -> Option<StructConst> { self.value.to_const() }
 
-    fn new(group:&mut StructVarGroup, value: StructVarValue) -> StructVar {
+    pub(super) fn new(group:&mut StructVarGroup, value: StructVarValue) -> StructVar {
         let id = StructValueId::new();
         group.0.push(id.clone());
         StructVar { value, id }
+    }
+    
+    pub fn new_value(group:&mut StructVarGroup, value: &StructVarValue) -> StructVar {
+        Self::new(group,value.clone())
     }
 
     pub fn new_number(group:&mut StructVarGroup, input: EachOrEvery<f64>) -> StructVar {
@@ -49,8 +53,8 @@ impl StructPair {
 pub enum StructTemplate {
     Var(StructVar),
     Const(StructConst),
-    Array(Arc<EachOrEvery<StructTemplate>>),
-    Object(Arc<EachOrEvery<StructPair>>),
+    Array(Arc<Vec<StructTemplate>>),
+    Object(Arc<Vec<StructPair>>),
     All(Vec<StructValueId>,Arc<StructTemplate>),
     Condition(StructVar,Arc<StructTemplate>)
 }
@@ -84,11 +88,11 @@ impl StructTemplate {
         Self::Const(StructConst::Null)
     }
 
-    pub fn new_array(input: EachOrEvery<StructTemplate>) -> StructTemplate {
+    pub fn new_array(input: Vec<StructTemplate>) -> StructTemplate {
         Self::Array(Arc::new(input))
     }
 
-    pub fn new_object(input: EachOrEvery<StructPair>) -> StructTemplate {
+    pub fn new_object(input: Vec<StructPair>) -> StructTemplate {
         Self::Object(Arc::new(input))
     }
 

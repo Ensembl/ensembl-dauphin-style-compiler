@@ -10,9 +10,9 @@ crate-type = ["cdylib"]
 [dependencies]
 anyhow="*"
 wasm-bindgen-futures = "*"
+serde-wasm-bindgen="*"
 console_error_panic_hook="*"
 url="*"
-lazy_static="*"
 serde_json="*"
 
 [dependencies.serde]

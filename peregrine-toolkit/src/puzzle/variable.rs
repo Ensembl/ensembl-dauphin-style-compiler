@@ -8,22 +8,22 @@ pub fn variable<'a,'f: 'a, T: 'a, F: 'f+'a>(f: F) -> Value<'f,'a,T> where F: Fn(
 
 #[cfg(test)]
 mod test {
-    use std::sync::{Arc, Mutex};
+    use std::{rc::Rc, cell::RefCell};
 
-    use crate::{puzzle::{AnswerAllocator}, lock};
+    use crate::{puzzle::{AnswerAllocator}};
 
     use super::variable;
 
     #[test]
     fn variable_smoke() {
         let mut a = AnswerAllocator::new();
-        let x = Arc::new(Mutex::new(2));
+        let x = Rc::new(RefCell::new(2));
         let x2 = x.clone();
         let v = variable(move |_| {
-            *lock!(x2) * 12
+            *x2.borrow() * 12
         });
         assert_eq!(24,v.call(&a.get()));
-        *lock!(x) = 3;
+        *x.borrow_mut() = 3;
         assert_eq!(36,v.call(&a.get()));
     }
 }

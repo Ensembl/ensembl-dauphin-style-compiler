@@ -165,3 +165,17 @@ class Tangle:
             for (tangle,_,state) in tangle_run:
                 tangle.finish(out,state,run_config)
         return out
+
+    def run2(self,out,inputs,**config):
+        run_config = RunTangle(**config)
+        for (input,tanglings) in self._tanglings:
+            data = inputs.get(input["name"],[])
+            tangle_run = [ (t,[(f,f.create()) for f in f],t.create()) for (t,f) in tanglings ]
+            for row in data:
+                for (tangle,filters,state) in tangle_run:
+                    if not all([f.check(row,s,run_config) for (f,s) in filters]):
+                        continue
+                    tangle.row(row,state,run_config)
+            for (tangle,_,state) in tangle_run:
+                tangle.finish2(out,state,run_config)
+        return out

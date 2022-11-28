@@ -1,3 +1,24 @@
+# 0.5.2
+  * Features:
+    * New JS "in-browserbackend" support
+    * Reform backend protocol for track-api integration
+    * Handle integer/float positions coherently
+    * Add support for ensembl "+1" co-ordinates
+    * Add "too old" message for in-field version migration
+    * "Auto-encoding" data in data endpoints (allowing js to send uncompressed data)
+  * Supporting changes:
+    * Support multiple backends
+    * Reform handling/meaning of channels
+    * API and then separate crates for backends (both network/python and js)
+    * Move cbor handling out of main code into python backend
+    * New StructValue format for arbitrary json-like data
+  * Improvements:
+    * Fix retry handling
+    * Speed up puzzle by removing thread-safety (is single thread activity)
+    * Less data transferred due to track setting changes
+  * Code tidying
+  * Remove unused style-compiler program types
+
 # 0.5.1
   * Features:
     * systematic handling of species for UUID support

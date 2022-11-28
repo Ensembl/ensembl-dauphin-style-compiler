@@ -1,4 +1,5 @@
 use std::sync::{ Arc, Mutex };
+use crate::domcss::dom::PeregrineDom;
 use crate::input::InputEventKind;
 use crate::input::low::modifiers::KeyboardModifiers;
 use crate::input::translate::targetreporter::TargetReporter;
@@ -6,7 +7,7 @@ use crate::shape::core::spectre::Spectre;
 use crate::shape::core::spectremanager::{SpectreHandle, SpectreManager};
 use crate::stage::stage::ReadStage;
 use crate::webgl::global::WebGlGlobal;
-use crate::{PeregrineDom, PgCommanderWeb, run::PgPeregrineConfig};
+use crate::{PgCommanderWeb, run::PgPeregrineConfig};
 use crate::util::Message;
 use super::modifiers::Modifiers;
 use super::{event::EventSystem, keyboardinput::{KeyboardEventHandler, keyboard_events}, mouseinput::mouse_events};

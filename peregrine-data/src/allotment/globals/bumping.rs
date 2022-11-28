@@ -1,10 +1,10 @@
-use std::sync::{Arc, Mutex};
+use std::{sync::{Arc, Mutex}, rc::Rc};
 use peregrine_toolkit::{puzzle::{StaticValue, StaticAnswer}, lock};
 use crate::{allotment::{collision::{collisionalgorithm::{BumpRequestSet, BumpResponses}}, core::allotmentname::AllotmentName}};
 use super::{globalvalue::{LocalValueBuilder, LocalValueSpec, GlobalValueBuilder, GlobalValueSpec}, trainpersistent::TrainPersistent};
 
 pub struct LocalBumpBuilder {
-    builder: LocalValueBuilder<AllotmentName,Arc<BumpRequestSet>,BumpResponses>
+    builder: LocalValueBuilder<AllotmentName,Rc<BumpRequestSet>,BumpResponses>
 }
 
 impl LocalBumpBuilder {
@@ -14,7 +14,7 @@ impl LocalBumpBuilder {
         }
     }
 
-    pub(crate) fn set(&mut self, name: &AllotmentName, requests: &StaticValue<Arc<BumpRequestSet>>) {
+    pub(crate) fn set(&mut self, name: &AllotmentName, requests: &StaticValue<Rc<BumpRequestSet>>) {
         self.builder.entry(name.clone()).add_local(requests.clone());
     }
 
@@ -23,7 +23,7 @@ impl LocalBumpBuilder {
     }
 }
 
-pub struct LocalBump(LocalValueSpec<AllotmentName,Arc<BumpRequestSet>,BumpResponses>);
+pub struct LocalBump(LocalValueSpec<AllotmentName,Rc<BumpRequestSet>,BumpResponses>);
 
 impl LocalBump {
     pub(crate) fn new(builder: &LocalBumpBuilder) -> LocalBump {
@@ -38,7 +38,7 @@ impl LocalBump {
     }
 }
 
-pub struct GlobalBumpBuilder(GlobalValueBuilder<AllotmentName,Arc<BumpRequestSet>,BumpResponses>);
+pub struct GlobalBumpBuilder(GlobalValueBuilder<AllotmentName,Rc<BumpRequestSet>,BumpResponses>);
 
 impl GlobalBumpBuilder {
     pub(crate) fn new() -> GlobalBumpBuilder {

@@ -58,14 +58,20 @@ egs_directory = config("EGS_DIRECTORY", default=os.path.join(base_directory,"egs
 
 EGS_FILES: str = config("EGS_FILES", default=egs_directory)
 EGS_GLOBS: List[str] = ["*.egs"]
-BEGS_CONFIG: str = config("BEGS_CONFIG", default=os.path.join(egs_directory,"begs_config.toml"))
+OLD_BEGS_CONFIG: str = config("OLD_BEGS_CONFIG", default=os.path.join(egs_directory,"begs_config.toml"))
 BEGS_FILES: str = config("BEGS_FILES", default=os.path.join(base_directory,"egs-data","begs"))
+BEGS_CONFIG: str = config("BEGS_CONFIG", default=os.path.join(BEGS_FILES,"program-inventory.toml"))
 
 METRIC_FILE = config("METRIC_FILE",default=os.path.join(base_directory,"metric.log"))
 
 ASSETS_DIR = config("ASSETS_DIR",default=os.path.join(base_directory,"assets"))
 ASSETS_TOML = config("ASSETS_TOML",default=os.path.join(config_directory,"assets.toml"))
-SPECIESLIST_TOML = config("SPECIESLIST_TLML",default=os.path.join(config_directory,"species-aliases.toml"))
+SPECIESLIST_TOML = config("SPECIESLIST_TOML",default=os.path.join(config_directory,"species-list.toml"))
+BOOT_TRACKS_TOML = config("BOOT_TRACKS_TOML",default=os.path.join(config_directory,"boot-tracks.toml"))
+EXTRA_TRACKS_TOML = config("EXTRA_TRACKS_TOML",default=os.path.join(config_directory,"extra-tracks.toml"))
+
+default_channel_str = config("DEFAULT_BACKEND_NAMESPACE", default="ensembl:main")
+DEFAULT_CHANNEL = default_channel_str.split(":")
 
 # logging configuration
 
@@ -77,8 +83,6 @@ if not os.path.exists(SOURCES_TOML):
 MEMCACHED = config("MEMCACHED", default="127.0.0.1:11211")
 MEMCACHED_PREFIX = config("MEMCACHED_PREFIX",default="")
 MEMCACHED_BUMP_ON_RESTART = config("MEMCACHED_BUMP_ON_RESTART",default = False)
-
-LO_PORT = config("LO_PORT",default=False)
 
 setup_logging()
 

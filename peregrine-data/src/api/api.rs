@@ -1,12 +1,11 @@
+use crate::InstanceInformation;
 use crate::allotment::globals::allotmentmetadata::GlobalAllotmentMetadata;
 use crate::allotment::globals::playingfield::PlayingField;
-use crate::core::channel::ChannelIntegration;
 use crate::train::drawing::drawingcarriage::DrawingCarriage;
 use crate::DataMessage;
 use crate::core::Viewport;
 use crate::core::Assets;
-use lazy_static::lazy_static;
-use identitynumber::identitynumber;
+use peregrine_toolkit::identitynumber;
 
 #[derive(Debug,Clone,PartialEq,Eq,Hash)]
 pub enum CarriageSpeed {
@@ -25,7 +24,8 @@ pub(crate) fn new_train_identity() -> TrainIdentity {
 }
 
 pub trait PeregrineIntegration {
-    fn set_assets(&mut self, assets: Assets);
+    fn report_instance_information(&self, info: &InstanceInformation);
+    fn set_assets(&mut self, assets: &Assets);
 
     fn create_train(&mut self, train: &TrainIdentity);
     fn drop_train(&mut self, train: &TrainIdentity);
@@ -38,5 +38,4 @@ pub trait PeregrineIntegration {
     fn notify_viewport(&mut self, viewport: &Viewport);
     fn notify_allotment_metadata(&mut self, metadata: &GlobalAllotmentMetadata);
     fn set_playing_field(&mut self, playing_field: PlayingField);
-    fn channel(&self) -> Box<dyn ChannelIntegration>;
 }

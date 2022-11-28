@@ -1,0 +1,88 @@
+set = "ensembl-webteam/core"
+name = "gene-overview"
+version = 1
+description = """
+
+Show the non-focus genes as mere blocks when very zoomed out. (No labels, zmenus etc).
+
+Uses data sequences from gene-overview endpoint:
+- starts
+- lengths
+- gene_biotypes_keys
+- gene_biotypes_values
+- strands
+
+Uses data sequences from the transcript endponit (for the focus gene):
+- starts
+- lengths
+- gene_id
+"""
+
+[setting.focus-gene]
+description = """
+
+Which gene is currently the focus gene (if any)? Object with keys "genome_id" and "item_id"
+identifying current focus gene, if any.
+
+"""
+
+[setting.pc-fwd]
+description = """
+
+boolean: if true show the pc-fwd track.
+
+"""
+
+[setting.pc-rev]
+description = """
+
+boolean: if true show the pc-rev track.
+
+"""
+
+[setting.other-fwd]
+description = """
+
+boolean: if true show the other-fwd track.
+
+"""
+
+[setting.other-rev]
+description = """
+
+boolean: if true show the other-rev track.
+
+"""
+
+
+[setting.pc-fwd-name]
+default = false
+description = """
+
+boolean: if true show gene track label on the pc-fwd track.
+
+"""
+
+[setting.pc-rev-name]
+default = false
+description = """
+
+boolean: if true show gene track label on the pc-rev track.
+
+"""
+
+[setting.other-fwd-name]
+default = false
+description = """
+
+boolean: if true show gene track label on the other-fwd track.
+
+"""
+
+[setting.other-rev-name]
+default = false
+description = """
+
+boolean: if true show gene track label on the other-rev track.
+
+"""

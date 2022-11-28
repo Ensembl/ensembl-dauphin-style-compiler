@@ -3,6 +3,7 @@ use std::hash::{ Hash, Hasher };
 use std::sync::{Arc, Mutex};
 use peregrine_data::{ DirectColour };
 use keyed::keyed_handle;
+use peregrine_toolkit::error::Error;
 use peregrine_toolkit::lock;
 use crate::shape::core::flatdrawing::{FlatDrawingItem, FlatDrawingManager};
 use crate::shape::core::texture::CanvasTextureArea;
@@ -22,7 +23,7 @@ fn pad(z: (u32,u32)) -> (u32,u32) {
     (z.0+PAD,z.1+PAD)
 }
 
-fn stripe_stamp(canvas: &Flat, t: (u32,u32), a: &DirectColour, b: &DirectColour, p: u32) -> Result<(),Message> {
+fn stripe_stamp(canvas: &Flat, t: (u32,u32), a: &DirectColour, b: &DirectColour, p: u32) -> Result<(),Error> {
     canvas.rectangle(t,(STAMP,STAMP),b,true)?;
     canvas.path(t,&[
         (0,    0),
@@ -96,7 +97,7 @@ impl Heraldry {
 }
 
 impl FlatDrawingItem for Heraldry {
-    fn calc_size(&mut self, gl: &mut WebGlGlobal) -> Result<(u32,u32),Message> {
+    fn calc_size(&mut self, gl: &mut WebGlGlobal) -> Result<(u32,u32),Error> {
         let bitmap_multiplier = gl.refs().flat_store.bitmap_multiplier();
         Ok(match self {
             Heraldry::Stripe(_,_,_,count) => (STAMP*count.0,STAMP*count.1),
@@ -104,7 +105,7 @@ impl FlatDrawingItem for Heraldry {
         })
     }
 
-    fn padding(&mut self, _: &mut WebGlGlobal) -> Result<(u32,u32),Message> {
+    fn padding(&mut self, _: &mut WebGlGlobal) -> Result<(u32,u32),Error> {
         Ok(match  self {
             Heraldry::Stripe(_,_,_,_) => (PAD,PAD),
             Heraldry::BarDots(bardots) => bardots.padding()
@@ -117,7 +118,7 @@ impl FlatDrawingItem for Heraldry {
         Some(hasher.finish())
     }
 
-    fn build(&mut self, canvas: &mut Flat, text_origin: (u32,u32), size: (u32,u32)) -> Result<(),Message> {
+    fn build(&mut self, canvas: &mut Flat, text_origin: (u32,u32), size: (u32,u32)) -> Result<(),Error> {
         match self {
             Heraldry::Stripe(a,b,prop,count) => {
                 let p = STAMP * (*prop) / 100;
@@ -204,7 +205,7 @@ impl DrawingHeraldry {
         }
     }
 
-    pub(crate) async fn calculate_requirements(&mut self, gl: &Arc<Mutex<WebGlGlobal>>, preparations: &mut ToolPreparations) -> Result<(),Message> {
+    pub(crate) async fn calculate_requirements(&mut self, gl: &Arc<Mutex<WebGlGlobal>>, preparations: &mut ToolPreparations) -> Result<(),Error> {
         let mut gl = lock!(gl);
         self.horiz.calculate_requirements(&mut gl,preparations.heraldry_h_manager())?;
         self.vert.calculate_requirements(&mut gl,preparations.heraldry_v_manager())?;
@@ -222,7 +223,7 @@ impl DrawingHeraldry {
         })
     }
 
-    pub(crate) fn draw_at_locations(&mut self, store: &mut FlatStore, preparations: &mut ToolPreparations) -> Result<(),Message> {
+    pub(crate) fn draw_at_locations(&mut self, store: &mut FlatStore, preparations: &mut ToolPreparations) -> Result<(),Error> {
         self.horiz.draw_at_locations(store,preparations.heraldry_h_manager())?;
         self.vert.draw_at_locations(store,preparations.heraldry_v_manager())?;
         self.crisp.draw_at_locations(store,preparations.crisp_manager())?;

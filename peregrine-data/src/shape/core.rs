@@ -1,7 +1,7 @@
 use std::{collections::{hash_map::DefaultHasher}, hash::{Hash, Hasher}, sync::Arc};
-use peregrine_toolkit::eachorevery::{EachOrEveryFilter, EachOrEvery, eoestruct::StructTemplate};
+use peregrine_toolkit::eachorevery::{EachOrEveryFilter, EachOrEvery, eoestruct::{StructTemplate}};
 
-use super::zmenu::ZMenu;
+use super::{zmenu::ZMenu, settingmode::SettingMode};
 
 #[derive(Clone,Debug,PartialEq,Eq,Hash)]
 pub struct DirectColour(pub u8,pub u8,pub u8,pub u8);
@@ -116,7 +116,7 @@ pub enum DrawnType {
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub enum Hotspot {
     ZMenu(ZMenu,Vec<(String,EachOrEvery<String>)>),
-    Switch(EachOrEvery<(Vec<String>,bool)>)
+    Setting(EachOrEvery<(Vec<String>,SettingMode)>)
 }
 
 impl Hotspot {
@@ -129,8 +129,8 @@ impl Hotspot {
                 }
                 Hotspot::ZMenu(zmenu.clone(),out)          
             },
-            Hotspot::Switch(values) => {
-                Hotspot::Switch(values.filter(filter))
+            Hotspot::Setting(values) => {
+                Hotspot::Setting(values.filter(filter))
             }
         }
     }
@@ -143,9 +143,7 @@ impl Hotspot {
                 }
                 true
             },
-            Hotspot::Switch(value) => {
-                value.compatible(len)
-            }
+            Hotspot::Setting(value) => { value.compatible(len) }
         }
     }
 }

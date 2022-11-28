@@ -1,21 +1,15 @@
 use std::collections::HashMap;
-use crate::eachorevery::EachOrEvery;
 use super::{eoestruct::{StructResult, StructError, StructConst, StructValueId}, StructTemplate, structbuilt::StructBuilt};
 
 
 #[cfg(debug_assertions)]
-pub(super) fn comma_separate<'a,F,Y>(input: &EachOrEvery<Y>, mut cb: F, output: &mut String) -> StructResult
+pub(super) fn comma_separate<'a,F,Y>(input: &[Y], mut cb: F, output: &mut String) -> StructResult
         where F: FnMut(&Y,&mut String) -> StructResult {
     let mut first = true;
-    if let Some(len) = input.len() {
-        for item in input.iter(len).unwrap() {
-            if !first { output.push_str(","); }
-            cb(item,output)?;
-            first = false;
-        }
-    } else {
-        cb(input.iter(1).unwrap().next().unwrap(),output)?;
-        output.push_str("...");
+    for item in input {
+        if !first { output.push_str(","); }
+        cb(item,output)?;
+        first = false;
     }
     Ok(())
 }

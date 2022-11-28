@@ -1,44 +1,41 @@
+use std::rc::Rc;
 use commander::cdr_timer;
-use crate::{core::channel::{Channel, PacketPriority}, util::message::DataMessage};
-
-use super::{manager::RequestManager, request::BackendRequest, response::BackendResponse};
+use peregrine_toolkit::error::Error;
+use super::{manager::{LowLevelRequestManager}, minirequest::MiniRequest, queue::QueueKey, miniresponse::{MiniResponseAttempt, MiniResponseError}};
 
 pub struct Backoff { 
-    manager: RequestManager,
-    channel: Channel,
-    priority: PacketPriority
+    manager: LowLevelRequestManager,
+    key: QueueKey,
+    repeats: usize
 }
 
 impl Backoff {
-    pub fn new(manager: &RequestManager, channel: &Channel, priority: &PacketPriority) -> Backoff {
+    pub(crate) fn new(manager: &LowLevelRequestManager, key: &QueueKey, repeats: usize) -> Backoff {
         Backoff {
             manager: manager.clone(),
-            channel: channel.clone(),
-            priority: priority.clone()
+            key: key.clone(),
+            repeats
         }
     }
 
-    pub async fn backoff<F,T>(&mut self, req: BackendRequest, cb: F) -> Result<T,DataMessage>
-                                                    where F: Fn(BackendResponse) -> Result<T,String> {
-        let channel = self.channel.clone();
+    fn errname(&self) -> String {
+        self.key.name.clone().map(|x| x.to_string()).unwrap_or_else(|| "*anon*".to_string())
+    }
+
+    pub(crate) async fn backoff<F,T>(&mut self, req: &Rc<MiniRequest>, cb: F) -> Result<T,Error>
+            where F: Fn(MiniResponseAttempt) -> Result<T,MiniResponseError> {
         let mut last_error = None;
-        for _ in 0..5 { // XXX configurable
-            let resp = self.manager.execute(channel.clone(),self.priority.clone(),req.clone()).await?;
+        for _ in 0..self.repeats {
+            let resp = self.manager.execute(&self.key,req)?.get().await;
             match cb(resp) {
                 Ok(r) => { return Ok(r); },
-                Err(e) => { last_error = Some(e); }
+                Err(MiniResponseError::Retry(e)) => { last_error = Some(e); },
+                Err(MiniResponseError::NoRetry(e)) => { last_error = Some(e); break; },
             }
-            self.manager.message(DataMessage::TemporaryBackendFailure(channel.clone()));
-            cdr_timer(500.).await; // XXX configurable
+            self.manager.message(Error::tmp(&format!("temporary backend failure: {}",self.errname())));
+            cdr_timer(500.).await;
         }
-        self.manager.message(DataMessage::FatalBackendFailure(channel.clone()));
-        Err(match last_error {
-            Some(e) => {
-                let e = DataMessage::BackendRefused(channel.clone(),e.to_string());
-                self.manager.message(e.clone());
-                DataMessage::BackendRefused(channel.clone(),e.to_string())
-            },
-            None => DataMessage::CodeInvariantFailed("unexpected downcast error in backoff".to_string())
-        })
+        self.manager.message(Error::operr(&format!("permanent backend failure: {}",self.errname())));
+        Err(last_error.unwrap_or_else(|| Error::fatal("unexpected downcast error in backoff")))
     }
 }

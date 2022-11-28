@@ -1,6 +1,7 @@
 [sources.bell]
 volume=0.1
 file="bell.ogg"
+chrome=true
 
 [sources.chevron-left]
 width=32

@@ -3,6 +3,7 @@ use std::sync::{ Arc, Mutex };
 use crate::executor::action::Action;
 use crate::executor::link::TaskLink;
 use crate::integration::reentering::ReenteringIntegration;
+use peregrine_toolkit::{ identitynumber, hashable };
 
 /* A Block sits behind a Waker and is responsible for
  *   1. blocking and unblocking a task when approriate;

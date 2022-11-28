@@ -1,8 +1,17 @@
 from __future__ import annotations
 
 import zlib, cbor2
+
+from data.v15.variant import VariantDataHandler15
+from data.v15.contig import ShimmerContigDataHandler15
+from data.v15.contig import ContigDataHandler15
+from data.v15.wiggle.gc import WiggleDataHandler15
+from data.v15.sequence import ZoomedSeqDataHandler15
+from data.v15.gene.genedata import TranscriptDataHandler15
+from data.v15.gene.genedata import GeneDataHandler15
+from data.v15.gene.genedata import GeneOverviewDataHandler15
 from tokenize import Number
-from typing import Any, ByteString, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 import time
 from .coremodel import Handler, Panel
 from .response import Response
@@ -45,6 +54,15 @@ handlers = [
     ("contig", ContigDataHandler2(),14),
     ("shimmer-contig", ShimmerContigDataHandler2(),14),
     ("variant", VariantDataHandler2(),14),
+
+    ("gene-overview", GeneOverviewDataHandler15(),15),
+    ("gene", GeneDataHandler15(),15),
+    ("transcript", TranscriptDataHandler15(),15),
+    ("zoomed-seq", ZoomedSeqDataHandler15(),15),
+    ("gc", WiggleDataHandler15(),15),
+    ("contig", ContigDataHandler15(),15),
+    ("shimmer-contig", ShimmerContigDataHandler15(),15),
+    ("variant", VariantDataHandler15(),15),
 ]
 
 def compress_payload(data):
@@ -98,7 +116,7 @@ class DataHandler(Handler):
             else:
                 data = handler.process_data(data_accessor,panel,scope,accept)
                 invariant = data.pop('__invariant',False)
-                out = Response(5,{'data': compress_payload(data), 'invariant': invariant })
+                out = Response(5,{ 'data': compress_payload(data), '__invariant': invariant })
         except DataException as e:
             out = e.to_response()
         time_taken_ms = (time.time() - start) * 1000.0

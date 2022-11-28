@@ -1,0 +1,28 @@
+[package]
+name = "peregrine_febe_javascript"
+version = "0.0.0"
+authors = ["ensembl-webteam@ebi.ac.uk"]
+edition = "2018"
+
+[dependencies]
+wasm-bindgen=">=0.2.77"
+serde-wasm-bindgen="*"
+js-sys="*"
+serde="*"
+serde_json="*"
+serde_derive="*"
+
+[dependencies.web-sys]
+version="*"
+
+[dependencies.peregrine_toolkit]
+version="*"
+path="../peregrine-toolkit"
+
+[dependencies.peregrine_toolkit_async]
+version="*"
+path="../peregrine-toolkit-async"
+
+[dependencies.peregrine_data]
+version="*"
+path="../peregrine-data"

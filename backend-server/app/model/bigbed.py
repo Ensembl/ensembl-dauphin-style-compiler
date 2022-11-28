@@ -30,6 +30,8 @@ def _get_bigbed_data(path, chrom, start, end):
         List of 3-tuples each being: start coordinate; end coordinate; rest of string
 
     """
+    if start >= chrom.size:
+        return []
     end = min(end, chrom.size)
     try:
         if not (path in _bigbeds):

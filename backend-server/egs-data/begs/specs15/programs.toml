@@ -1,0 +1,15 @@
+programs = [
+    "contig.toml",
+    "focus-transcript.toml",
+    "focus-zommed-transcript.toml",
+    "framing.toml",
+    "gc.toml",
+    "gene-overview.toml",
+    "gene.toml",
+    "ruler.toml",
+    "test.toml",
+    "transcript.toml",
+    "variant.toml",
+    "zoomed-seq.toml",
+    "zoomed-transcript.toml"
+]

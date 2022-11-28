@@ -8,17 +8,15 @@ edition = "2018"
 
 [dependencies]
 anyhow="*"
-async-trait="*"
 owning_ref="*"
-serde_cbor="*"
 serde={ version="*", features=["rc"] }
 serde_derive="*"
 serde_json="*"
+serde_repr="*"
 futures="*"
 lazy_static="*"
-lru="*"
 hashbrown="*"
-inflate="*"
+itertools="*"
 
 [dependencies.keyed]
 version="*"
@@ -51,15 +49,3 @@ path="../peregrine-toolkit"
 [dependencies.peregrine_toolkit_async]
 version="*"
 path="../peregrine-toolkit-async"
-
-# XXX
-[dependencies.web-sys]
-version="*"
-features=["console"]
-
-[dependencies.js-sys]
-version="*"
-
-[dependencies.identitynumber]
-version="*"
-path="../identitynumber"

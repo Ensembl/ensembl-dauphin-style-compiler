@@ -1,215 +1,146 @@
-use peregrine_toolkit::lock;
+use peregrine_toolkit::error::Error;
+use peregrine_toolkit::{ lock };
 use commander::{ CommanderStream };
 use peregrine_toolkit::plumbing::oneshot::OneShot;
 use peregrine_toolkit_async::sync::blocker::Blocker;
 use std::collections::HashMap;
-use std::future::Future;
-use std::pin::Pin;
 use std::rc::Rc;
 use std::sync::{ Arc, Mutex };
+use super::attemptmatch::{AttemptMatch};
 use super::backoff::Backoff;
-use super::queue::RequestQueue;
-use super::request::{BackendRequestAttempt, BackendRequest };
-use super::response::BackendResponse;
-use crate::core::channel::{Channel, ChannelIntegration, PacketPriority};
+use super::queue::{RequestQueue, QueueKey};
+use super::minirequest::MiniRequest;
+use super::miniresponse::{MiniResponseAttempt, MiniResponseError};
+use super::sidecars::RequestSidecars;
+use crate::core::channel::channelregistry::{ChannelRegistry};
+use crate::core::channel::wrappedchannelsender::WrappedChannelSender;
 use crate::core::version::VersionMetadata;
-use crate::{PgCommanderTaskSpec, ResponsePacket, add_task};
+use crate::{PgCommanderTaskSpec, add_task, PacketPriority, BackendNamespace, ChannelSender };
 use crate::api::MessageSender;
 use crate::run::{ PgCommander };
-use crate::util::message::DataMessage;
-
-pub trait PayloadReceiver {
-    fn receive(&self, channel: &Channel, response: ResponsePacket, itn: &Rc<Box<dyn ChannelIntegration>>, messages: &MessageSender) -> Pin<Box<dyn Future<Output=ResponsePacket>>>;
-}
 
 #[derive(Clone)]
-pub struct PayloadReceiverCollection(Arc<Mutex<Vec<Rc<Box<dyn PayloadReceiver>>>>>);
-
-impl PayloadReceiver for PayloadReceiverCollection {
-    fn receive(&self, channel: &Channel, mut response: ResponsePacket, itn: &Rc<Box<dyn ChannelIntegration>>, messages: &MessageSender) ->  Pin<Box<dyn Future<Output=ResponsePacket>>> {
-        let all = lock!(self.0).clone();
-        let itn = itn.clone();
-        let channel = channel.clone();
-        let messages = messages.clone();
-        Box::pin(async move {
-            for receiver in all.iter() {
-                response = receiver.receive(&channel,response,&itn,&messages).await;
-            }
-            response
-        })
-    }
-}
-
-enum QueueValue {
-    Queue(RequestQueue),
-    Redirect(Channel,PacketPriority)
-}
-
-pub struct RequestManagerData {
-    integration: Rc<Box<dyn ChannelIntegration>>,
+pub(crate) struct LowLevelRequestManager {
     version: VersionMetadata,
-    receiver: PayloadReceiverCollection,
+    sidecars: RequestSidecars,
     commander: PgCommander,
     shutdown: OneShot,
-    next_id: u64,
-    queues: HashMap<(Channel,PacketPriority),QueueValue>,
+    matcher: AttemptMatch,
+    queues: Arc<Mutex<HashMap<QueueKey,RequestQueue>>>,
     real_time_lock: Blocker,
     messages: MessageSender
 }
 
-impl RequestManagerData {
-    pub fn new(integration: Box<dyn ChannelIntegration>, commander: &PgCommander, shutdown: &OneShot, messages: &MessageSender, version: &VersionMetadata) -> RequestManagerData {
-        RequestManagerData {
-            integration: Rc::new(integration),
-            receiver: PayloadReceiverCollection(Arc::new(Mutex::new(vec![]))),
+impl LowLevelRequestManager {
+    pub(crate) fn new(sidecars: &RequestSidecars, commander: &PgCommander, shutdown: &OneShot, messages: &MessageSender, version: &VersionMetadata) -> LowLevelRequestManager {
+        LowLevelRequestManager {
+            sidecars: sidecars.clone(),
             commander: commander.clone(),
             shutdown: shutdown.clone(),
-            next_id: 0,
-            queues: HashMap::new(),
+            matcher: AttemptMatch::new(),
+            queues: Arc::new(Mutex::new(HashMap::new())),
             real_time_lock: Blocker::new(),
             messages: messages.clone(),
             version: version.clone()
         }
     }
 
-    pub fn message(&self, message: DataMessage) {
+    pub fn message(&self, message: Error) {
         self.messages.send(message);
     }
 
-    pub fn add_receiver(&mut self, receiver: Box<dyn PayloadReceiver>) {
-        lock!(self.receiver.0).push(Rc::new(receiver));
+    fn create_queue(&self, key: &QueueKey) -> Result<RequestQueue,Error> {
+        let queue = RequestQueue::new(key,&self.commander,&self.real_time_lock,&self.matcher,&self.sidecars,&self.version,&self.messages)?;
+        let queue2 = queue.clone();
+        self.shutdown.add(move || {
+            queue2.input_queue().close();
+        });
+        Ok(queue)
     }
 
-    fn get_pace(&self, priority: &PacketPriority) -> &[f64] {
-        match priority {
-            PacketPriority::Batch => &[0.,5000.,10000.,20000.,20000.,20000.],
-            PacketPriority::RealTime => &[0.,0.,500.,2000.,3000.,10000.]
+    fn get_queue(&mut self, key: &QueueKey) -> Result<RequestQueue,Error> {
+        let mut queues = lock!(self.queues);
+        let missing = queues.get(&key).is_none();
+        if missing {
+            let queue = self.create_queue(&key)?;
+            queues.insert(key.clone(),queue);
         }
+        Ok(queues.get_mut(&key).unwrap().clone()) // safe because of above insert
     }
 
-    fn get_priority(&self, priority: &PacketPriority) -> u8 {
-        match priority {
-            PacketPriority::Batch => 5,
-            PacketPriority::RealTime => 3
-        }
+    pub(crate) fn execute(&mut self, key: &QueueKey, request: &Rc<MiniRequest>) -> Result<CommanderStream<MiniResponseAttempt>,Error> {
+        let (request,stream) = self.matcher.make_attempt(request);
+        self.get_queue(key)?.input_queue().add(request);
+        Ok(stream.clone())
     }
 
-    fn get_queue(&mut self, channel: &Channel, priority: &PacketPriority) -> Result<RequestQueue,DataMessage> {
-        let mut channel = channel.clone();
-        let mut priority = priority.clone();
-        loop {
-            let key = (channel.clone(),priority.clone());
-            let missing = self.queues.get(&key).is_none();
-            if missing {
-                let commander = self.commander.clone();
-                let integration = self.integration.clone(); // Rc why? XXX
-                let mut queue = RequestQueue::new(&commander,&self.receiver,&integration,&self.version,&channel,&priority,&self.messages,self.get_pace(&priority),self.get_priority(&priority))?;
-                match priority {
-                    PacketPriority::RealTime => {
-                        queue.set_realtime_block(&self.real_time_lock);
-                    },
-                    _ => {
-                        queue.set_realtime_check(&self.real_time_lock);
-                    }
-                }
-                let mut queue2 = queue.clone();
-                self.shutdown.add(move || {
-                    queue2.shutdown();
-                });
-                self.queues.insert(key.clone(),QueueValue::Queue(queue));
-            }
-            match self.queues.get_mut(&key).unwrap() {
-                QueueValue::Queue(q) => { 
-                    return Ok(q.clone());
-                },
-                QueueValue::Redirect(new_channel,new_priority) => {
-                    channel = new_channel.clone();
-                    priority = new_priority.clone();
-                }
-            }
-        }
+    fn make_anon_key(&self, sender: &WrappedChannelSender, priority: &PacketPriority, name: &Option<BackendNamespace>) -> Result<QueueKey,Error> {
+        Ok(QueueKey::new(&sender,priority,&name))
     }
 
-    fn execute(&mut self, channel: Channel, priority: PacketPriority, request: BackendRequest) -> Result<CommanderStream<BackendResponse>,DataMessage> {
-        let msg_id = self.next_id;
-        self.next_id += 1;
-        let request = BackendRequestAttempt::new2(msg_id,request);
-        let response_stream = CommanderStream::new();
-        self.get_queue(&channel,&priority)?.queue_command(request,response_stream.clone());
-        Ok(response_stream)
-    }
-
-    fn set_timeout(&mut self, channel: &Channel, priority: &PacketPriority, timeout: f64) -> anyhow::Result<()> {
-        self.get_queue(channel,priority)?.set_timeout(timeout);
-        self.integration.set_timeout(channel,timeout);
-        Ok(())
-    }
-
-    fn set_lo_divert(&mut self, hi: &Channel, lo: &Channel) {
-        if hi != lo {
-            self.queues.insert((hi.clone(),PacketPriority::Batch),QueueValue::Redirect(lo.clone(),PacketPriority::Batch));
-        }
-    }
-
-    fn set_supported_versions(&self, supports: Option<&[u32]>, version: u32) {
-        self.integration.set_supported_versions(supports,version);
+    pub(crate) async fn submit_direct<F,T>(&self, sender: &WrappedChannelSender, priority: &PacketPriority, name: &Option<BackendNamespace>, request: &Rc<MiniRequest>, cb: F) 
+                                                                    -> Result<T,Error>
+            where F: Fn(MiniResponseAttempt) -> Result<T,MiniResponseError> {
+        let key = self.make_anon_key(sender,priority,name)?;
+        let repeats = if sender.backoff() { priority.repeats() } else { 1 };
+        let mut backoff = Backoff::new(self,&key,repeats);
+        backoff.backoff(request,cb).await
     }
 }
 
 #[derive(Clone)]
-pub struct RequestManager(Arc<Mutex<RequestManagerData>>);
+pub struct RequestManager {
+    low: LowLevelRequestManager,
+    channel_registry: ChannelRegistry
+}
 
 impl RequestManager {
-    pub fn new(integration: Box<dyn ChannelIntegration>, commander: &PgCommander, shutdown: &OneShot, messages: &MessageSender, version: &VersionMetadata) -> RequestManager {
-        RequestManager(Arc::new(Mutex::new(RequestManagerData::new(integration,commander,shutdown,messages,version))))
+    pub(crate) fn new(low: &LowLevelRequestManager, channel_registry: &ChannelRegistry) -> RequestManager {
+        RequestManager {
+            low: low.clone(),
+            channel_registry: channel_registry.clone()
+        }
     }
 
-    pub fn set_supported_versions(&self, support: Option<&[u32]>, version: u32) {
-        lock!(self.0).set_supported_versions(support,version);
+    fn make_key(&self, name: &BackendNamespace, priority: &PacketPriority) -> Result<(QueueKey,bool),Error> {
+        let sender = self.channel_registry.name_to_sender(name)?;
+        Ok((QueueKey::new(&sender,priority,&Some(name.clone())),sender.backoff()))
     }
 
-    pub fn set_lo_divert(&self, channel_hi: &Channel, channel_lo: &Channel) {
-        lock!(self.0).set_lo_divert(channel_hi,channel_lo);
-    }
-
-    pub fn set_timeout(&self, channel: &Channel, priority: &PacketPriority, timeout: f64) -> anyhow::Result<()> {
-        lock!(self.0).set_timeout(channel,priority,timeout)
-    }
-
-    pub async fn execute(&mut self, channel: Channel, priority: PacketPriority, request: BackendRequest) -> Result<BackendResponse,DataMessage> {
-        let m = lock!(self.0).execute(channel,priority,request)?;
-        Ok(m.get().await)
-    }
-
-    pub async fn submit<F,T>(&self, channel: &Channel, priority: &PacketPriority, request: BackendRequest, cb: F) 
-                                                                    -> Result<T,DataMessage>
-                                                                    where F: Fn(BackendResponse) -> Result<T,String> {
-        let mut backoff = Backoff::new(self,channel,priority);
+    pub(crate) async fn submit<F,T>(&self, name: &BackendNamespace, priority: &PacketPriority, request: &Rc<MiniRequest>, cb: F) 
+                                                                    -> Result<T,Error>
+            where F: Fn(MiniResponseAttempt) -> Result<T,MiniResponseError> {
+        let (key,enable_backoff) = self.make_key(name,priority)?;
+        let repeats = if enable_backoff { priority.repeats() } else { 1 };
+        let mut backoff = Backoff::new(&self.low,&key,repeats);
         backoff.backoff(request,cb).await
     }
 
-    pub(crate) fn execute_and_forget(&self, channel: &Channel, request: BackendRequest) {
-        let commander = lock!(self.0).commander.clone();
+    pub(crate) async fn submit_direct<F,T>(&self, sender: &WrappedChannelSender, priority: &PacketPriority, name: &Option<BackendNamespace>, request: MiniRequest, cb: F) 
+                                                                    -> Result<T,Error>
+            where F: Fn(MiniResponseAttempt) -> Result<T,MiniResponseError> {
+        self.low.submit_direct(sender,priority,name,&Rc::new(request),cb).await
+    }
+
+    pub(crate) fn execute_and_forget(&self, name: &BackendNamespace, request: MiniRequest) {
+        let commander = self.low.commander.clone();
         let mut manager = self.clone();
-        let channel = channel.clone();
-        add_task(&commander,PgCommanderTaskSpec {
-            name: "message".to_string(),
-            prio: 11,
-            timeout: None,
-            slot: None,
-            task: Box::pin(async move { 
-                manager.execute(channel,PacketPriority::Batch,request).await.ok();
-                Ok(())
-            }),
-            stats: false
-        });
+        if let Ok((key,_)) = self.make_key(name,&PacketPriority::Batch) {
+            add_task(&commander,PgCommanderTaskSpec {
+                name: "message".to_string(),
+                prio: 11,
+                timeout: None,
+                slot: None,
+                task: Box::pin(async move { 
+                    manager.low.execute(&key,&Rc::new(request)).ok().unwrap().get().await;
+                    Ok(())
+                }),
+                stats: false
+            });
+        }
     }
 
-    pub fn add_receiver(&mut self, receiver: Box<dyn PayloadReceiver>) {
-        lock!(self.0).add_receiver(receiver);
-    }
-
-    pub fn message(&self, message: DataMessage) {
-        lock!(self.0).message(message);
+    pub fn message(&self, message: Error) {
+        self.low.message(message);
     }
 }

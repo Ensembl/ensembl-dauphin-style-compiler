@@ -1,0 +1,25 @@
+import "lib:std"; use "std";
+import "lib:peregrine"; use "peregrine";
+
+style("tracks/track/special2/",["min-height","priority","report","type"][],["32","-2","track;switch-id=special","overlay"][]);
+style("tracks/track/special2/base/",["system"][],["tracking"][]);
+
+req := make_request("self()","test-with-data",get_region());
+data := get_data(req);
+halt(only_warm(),[data]);
+start := data_number(data,"start");
+end := data_number(data,"end");
+
+
+red := setting_number("red",[][]);
+green := setting_number("green",[][]);
+blue := setting_number("blue",[][]);
+
+hollow_colour := patina_hollow(simple_colour(direct_colour(red*255/100,green*255/100,blue*255/100,255)),1);
+
+window_allotment := use_allotment("tracks/track/special2/window/content");
+base_allotment := use_allotment("tracks/track/special2/base/content");
+rectangle(spacebase(0,0,0),spacebase(1,16,0),hollow_colour,window_allotment);
+
+solid_colour := patina_filled(simple_colour(direct_colour(red*255/100,green*255/100,blue*255/100,255)));
+rectangle(spacebase(start,0,0),spacebase(end,16,0),solid_colour,base_allotment);

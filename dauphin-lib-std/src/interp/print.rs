@@ -15,6 +15,7 @@
  */
 
 use anyhow::{ anyhow as err, bail };
+use peregrine_toolkit::log;
 use std::cell::Ref;
 use std::rc::Rc;
 use dauphin_interp::command::{ InterpCommand, InterpLibRegister, CommandDeserializer, CommandResult };
@@ -179,8 +180,8 @@ impl CommandDeserializer for CommaFormatDeserializer {
 fn format_number(number: f64) -> String {
     let mut number = number.round() as i64;
     let mut out = vec![];
-    while number > 1000 {
-        out.push(format!("{0:0<3}",number%1000));
+    while number >= 1000 {
+        out.push(format!("{0:0>3}",number%1000));
         number /= 1000;
     }
     out.push(number.to_string());

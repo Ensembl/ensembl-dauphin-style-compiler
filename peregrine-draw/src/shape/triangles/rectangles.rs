@@ -4,7 +4,7 @@ use crate::shape::layers::geometry::{GeometryYielder, GeometryAdder };
 use crate::shape::layers::layer::Layer;
 use crate::shape::layers::patina::PatinaYielder;
 use crate::shape::util::arrayutil::{rectangle4};
-use crate::shape::util::iterators::eoe_throw;
+use crate::shape::util::eoethrow::eoe_throw;
 use crate::webgl::global::WebGlGlobal;
 use crate::webgl::{ ProcessStanzaElements };
 use peregrine_data::reactive::{Observable, Observer};

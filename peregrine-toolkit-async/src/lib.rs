@@ -1,3 +1,7 @@
+pub mod js {
+    pub mod promise;
+}
+
 pub mod sync {
     pub mod asynconce;
     pub mod blocker;

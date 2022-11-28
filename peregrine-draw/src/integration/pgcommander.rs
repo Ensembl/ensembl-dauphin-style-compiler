@@ -2,11 +2,11 @@ use std::pin::Pin;
 use std::sync::{ Arc, Mutex, MutexGuard, Weak };
 use std::future::Future;
 use commander::{ Executor, Integration, Lock, RunConfig, RunSlot, SleepQuantity, TaskHandle, cdr_new_agent, cdr_add, cdr_in_agent };
+use peregrine_toolkit::js::raf::Raf;
+use peregrine_toolkit::js::timer::Timer;
 use peregrine_toolkit::lock;
 use js_sys::Date;
 use super::bell::{ BellReceiver, make_bell, BellSender };
-use super::raf::Raf;
-use super::timer::Timer;
 use peregrine_data::{ Commander, DataMessage };
 use crate::util::message::{ message, Message };
 
@@ -134,7 +134,7 @@ impl PgCommanderWeb {
             timer: None
         }));
         let (bell_sender, bell_receiver) = make_bell()?;
-        let integration = PgIntegration {
+        let integration = PeregrineCommanderIntegration {
             quantity,
             bell_sender
         };
@@ -200,12 +200,12 @@ impl Commander for PgCommanderWeb {
 }
 
 #[derive(Clone)]
-pub struct PgIntegration {
+struct PeregrineCommanderIntegration {
     quantity: Arc<Mutex<SleepQuantity>>,
     bell_sender: BellSender
 }
 
-impl Integration for PgIntegration {
+impl Integration for PeregrineCommanderIntegration {
     fn current_time(&self) -> f64 {
         Date::now()
     }

@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
+use peregrine_toolkit::error::Error;
 use crate::webgl::GPUSpec;
-use crate::util::message::Message;
 
 /* see alloc.md in guide for details */
 
@@ -124,7 +124,7 @@ impl Bin {
 
 // TODO test this algorithm
 
-pub(crate) fn allocate_areas(sizes: &[(u32,u32)], gpu_spec: &GPUSpec) -> Result<(Vec<(u32,u32)>,u32,u32),Message> {
+pub(crate) fn allocate_areas(sizes: &[(u32,u32)], gpu_spec: &GPUSpec) -> Result<(Vec<(u32,u32)>,u32,u32),Error> {
     let max_size = gpu_spec.max_texture_size() as u64;
     let max_width = sizes.iter().map(|(w,_)| *w as u64).max();
     let square_dim : u64 = sizes.iter().map(|(w,h)| (w*h) as f64).sum::<f64>().sqrt() as u64;
@@ -134,7 +134,7 @@ pub(crate) fn allocate_areas(sizes: &[(u32,u32)], gpu_spec: &GPUSpec) -> Result<
     let max_width = if let Some(max_width) = max_width { max_width+1 } else { return Ok((vec![],1,1)); };
     let mut texture_width = max_width.max(square_dim).next_power_of_two();
     if texture_width > max_size {
-        return Err(Message::CannotPackRectangles(format!("all attempts failed")));
+        return Err(Error::fatal("cannot pack rectangles: all attempts failed"));
     }
     loop {
         let mut out = vec![(0,0);sorted.len()];
@@ -151,7 +151,7 @@ pub(crate) fn allocate_areas(sizes: &[(u32,u32)], gpu_spec: &GPUSpec) -> Result<
     }
 }
 
-pub(crate) fn allocate_vertical(sizes: &[(u32,u32)], gpu_spec: &GPUSpec) -> Result<(Vec<(u32,u32)>,u32,u32),Message> {
+pub(crate) fn allocate_vertical(sizes: &[(u32,u32)], gpu_spec: &GPUSpec) -> Result<(Vec<(u32,u32)>,u32,u32),Error> {
     if sizes.len() == 0 {
         return Ok((vec![],1,1))
     }
@@ -159,7 +159,7 @@ pub(crate) fn allocate_vertical(sizes: &[(u32,u32)], gpu_spec: &GPUSpec) -> Resu
     let texture_width = sizes.iter().map(|x| x.0).max().unwrap().next_power_of_two();
     let max_size = gpu_spec.max_texture_size();
     if texture_height > max_size || texture_width > max_size {
-        return Err(Message::CannotPackRectangles(format!("all attempts failed")));
+        return Err(Error::fatal("cannot pack rectangles: all attempts failed"));
     }
     let mut offsets = vec![];
     let mut y_offset = 0;
@@ -170,7 +170,7 @@ pub(crate) fn allocate_vertical(sizes: &[(u32,u32)], gpu_spec: &GPUSpec) -> Resu
     Ok((offsets,texture_width,texture_height))
 }
 
-pub(crate) fn allocate_horizontal(sizes: &[(u32,u32)], gpu_spec: &GPUSpec) -> Result<(Vec<(u32,u32)>,u32,u32),Message> {
+pub(crate) fn allocate_horizontal(sizes: &[(u32,u32)], gpu_spec: &GPUSpec) -> Result<(Vec<(u32,u32)>,u32,u32),Error> {
     let flipped_sizes = sizes.iter().map(|(x,y)| (*y,*x)).collect::<Vec<_>>();
     let (flipped_offsets,width,height) = allocate_vertical(&flipped_sizes,gpu_spec)?;
     let offsets = flipped_offsets.iter().map(|(x,y)| (*y,*x)).collect();

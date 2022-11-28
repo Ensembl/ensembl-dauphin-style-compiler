@@ -1,16 +1,18 @@
+use js_sys::JsString;
 use peregrine_data::Asset;
 use peregrine_data::Assets;
+use peregrine_data::BackendNamespace;
 use peregrine_toolkit::log_extra;
 use peregrine_toolkit::plumbing::distributor::Distributor;
 use peregrine_toolkit::plumbing::oneshot::OneShot;
+use peregrine_toolkit_async::js::promise::promise_to_future;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::Mutex;
-use js_sys::{ Uint8Array};
+use js_sys::{ Uint8Array };
 use wasm_bindgen::{JsCast, JsValue, prelude::Closure};
 use web_sys::{ AudioContext, AudioBufferSourceNode, AudioBuffer, AudioContextState };
 use commander::{CommanderStream, PromiseFuture};
-use crate::util::promise::promise_to_future;
 use crate::{Message, PgCommanderWeb };
 
 use super::PgConfigKey;
@@ -20,7 +22,7 @@ use super::PgPeregrineConfig;
 struct PromiseBgd(Arc<Mutex<Option<(Closure<dyn FnMut(JsValue)>,Closure<dyn FnMut(JsValue)>)>>>);
 
 enum SoundQueueItem {
-    Play(String),
+    Play(Option<BackendNamespace>,String),
     Shutdown
 }
 
@@ -39,7 +41,7 @@ impl SoundState {
         let bytes = asset.bytes();
         if bytes.is_none() { return Ok(None); }
         let bytes = bytes.unwrap();
-        let promise = self.audio_context()?.decode_audio_data(&Uint8Array::from(bytes.data().as_ref().as_ref()).buffer())?;
+        let promise = self.audio_context()?.decode_audio_data(&Uint8Array::from(bytes.data_as_bytes().map_err(|_| JsValue::from(""))?.as_ref().as_ref()).buffer())?;
         let audio_buffer = promise_to_future(promise).await?.dyn_into::<AudioBuffer>()?;
         Ok(Some(audio_buffer))
     }
@@ -52,8 +54,8 @@ impl SoundState {
         Ok(self.samples.get(name).unwrap().as_ref())
     }
 
-    async fn try_play(&mut self, name: &str) -> Result<(),JsValue> {
-        let asset = self.assets.get(name);
+    async fn try_play(&mut self, channel: Option<&BackendNamespace>, name: &str) -> Result<(),JsValue> {
+        let asset = self.assets.get(channel,name);
         if asset.is_none() { return Ok(()); }
         let asset = asset.unwrap();
         promise_to_future(self.audio_context()?.resume()?).await.ok(); // handle autoplay-protection having stopped earlier sounds
@@ -86,8 +88,8 @@ impl SoundState {
         Ok(())
     }
 
-    async fn play(&mut self, name: &str) {
-        self.try_play(name).await.ok();
+    async fn play(&mut self, channel: Option<&BackendNamespace>, name: &str) {
+        self.try_play(channel,name).await.ok();
     }
 }
 
@@ -114,7 +116,7 @@ impl SoundComposer {
                 if let Some(ding) = &self.ding_sound {
                     if stops.len() > 0 {
                         if !self.dinged {
-                            self.sound.play(ding);
+                            self.sound.play(None,&ding);
                             self.dinged = true;
                         }
                     } else {
@@ -136,8 +138,8 @@ impl Sound {
     async fn run_loop(&mut self, mut state: SoundState) -> Result<(),Message> {
         loop {
             match self.queue.get().await {
-                SoundQueueItem::Play(asset) => {
-                    state.play(&asset).await;
+                SoundQueueItem::Play(channel,asset) => {
+                    state.play(channel.as_ref(),&asset).await;
                 },
                 SoundQueueItem::Shutdown => { break; }
             }
@@ -146,8 +148,8 @@ impl Sound {
         Ok(())
     }
 
-    pub(crate) fn play(&mut self, sound: &str) {
-        self.queue.add(SoundQueueItem::Play(sound.to_string()))
+    pub(crate) fn play(&mut self, channel: Option<&BackendNamespace>, sound: &str) {
+        self.queue.add(SoundQueueItem::Play(channel.cloned(),sound.to_string()))
     }
 
     pub(crate) fn new(config: &PgPeregrineConfig, commander: &PgCommanderWeb, assets: &Assets, messages: &mut Distributor<Message>, shutdown: &OneShot) -> Result<Sound,Message> {
