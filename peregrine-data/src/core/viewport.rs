@@ -94,15 +94,17 @@ impl Viewport {
         }
     }
 
-    pub(crate) fn set_position(&self, position: f64) -> Viewport {
+    pub(crate) fn set_position(&self, position: f64, only_if_unknown: bool) -> Viewport {
         let mut out = self.clone();
+        if only_if_unknown && self.position.is_some() { return out; }
         out.position = Some(position);
         out.update_by_limits();
         out
     }
 
-    pub(crate) fn set_bp_per_screen(&self, scale: f64) -> Viewport {
+    pub(crate) fn set_bp_per_screen(&self, scale: f64, only_if_unknown: bool) -> Viewport {
         let mut out = self.clone();
+        if only_if_unknown && self.bp_per_screen.is_some() { return out; }
         out.bp_per_screen = Some(scale);
         out.update_by_limits();
         out

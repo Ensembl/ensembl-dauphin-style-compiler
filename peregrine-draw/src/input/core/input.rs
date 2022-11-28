@@ -131,8 +131,8 @@ impl Input {
     pub(crate) fn get_spectres(&self) -> Vec<Spectre> { self.state(|state| state.low_level.get_spectres()) }
     pub fn set_artificial(&self, name: &str, start: bool) { self.state(|state| state.low_level.set_artificial(name,start)); }
 
-    pub(crate) fn goto(&self, centre: f64, scale: f64) -> Result<(),Message> {
-        self.state(|state| state.translator.goto(&mut state.inner_api.clone(),centre,scale))
+    pub(crate) fn goto(&self, centre: f64, scale: f64, only_if_unknown: bool) -> Result<(),Message> {
+        self.state(|state| state.translator.goto(&mut state.inner_api.clone(),centre,scale,only_if_unknown))
     }
 
     async fn jump_task(&self,data_api: PeregrineCore, location: String, lockout: Lockout) -> Result<(),Message> {
@@ -147,11 +147,11 @@ impl Input {
                 slide
             });
             if slide {
-                self.goto(centre,bp_per_screen)?;
+                self.goto(centre,bp_per_screen,false)?;
             } else {
                 self.state(|state| {
                     state.inner_api.set_stick(&stick);
-                    state.inner_api.set_position(Some(centre),Some(bp_per_screen));
+                    state.inner_api.set_position(Some(centre),Some(bp_per_screen),false);
                     state.target_reporter.force_report();
                 });
             }

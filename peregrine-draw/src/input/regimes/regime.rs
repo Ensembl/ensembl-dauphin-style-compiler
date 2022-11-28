@@ -151,7 +151,7 @@ impl Regime {
             inner.invalidate();
         }
         if update.x.is_some() || update.bp.is_some() {
-            inner.set_position(update.x,update.bp);
+            inner.set_position(update.x,update.bp,false);
         }
         Ok(finished)
     }
