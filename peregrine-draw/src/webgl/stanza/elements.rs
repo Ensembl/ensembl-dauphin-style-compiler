@@ -29,6 +29,9 @@ impl ProcessStanzaElements {
         Ok(out)
     }
 
+    pub(crate) fn number_of_shapes(&self) -> usize { self.shape_count }
+    pub(crate) fn points_per_shape(&self) -> usize { self.points_per_shape }
+
     fn allocate_entries(&mut self, stanza_builder: &mut ProcessStanzaBuilder, indexes: &[u16]) -> Result<(),Error> {
         let mut remaining_shapes = self.shape_count;
         while remaining_shapes > 0 {

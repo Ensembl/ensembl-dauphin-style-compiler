@@ -90,7 +90,7 @@ impl ImageShape<AnchoredLeaf> {
 impl ImageShape<LeafStyle> {
     pub(crate) fn demerge<T: Hash + Clone + Eq,D>(self, cat: &D) -> Vec<(T,ImageShape<LeafStyle>)> where D: ShapeDemerge<X=T> {
         let demerge = self.position.allotments().demerge(self.position.len(),|x| {
-            cat.categorise(&x.coord_system)
+            cat.categorise(&x.coord_system,x.depth)
         });
         let mut out = vec![];
         for (draw_group,filter) in demerge {

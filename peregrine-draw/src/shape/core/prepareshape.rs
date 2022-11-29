@@ -50,14 +50,13 @@ fn split_spacebaserect(tools: &mut DrawingToolsBuilder, shape: &RectangleShape<L
 
 fn split_polygon(shape: &PolygonShape<LeafStyle>, draw_group: &DrawGroup) -> Result<Vec<GLShape>,Error> {
     let mut out = vec![];
-    let depth = shape.position().allotments().map(|x| x.depth);
     let wobble = shape.wobble().clone();
     match shape.patina() {
         Patina::Drawn(_,_) => {
-  //          out.push(GLShape::Polygon(shape.position().clone(),shape.radius().clone(),SimpleShapePatina::from_patina(shape.patina())?,depth,draw_group.clone(),wobble));
+            out.push(GLShape::Polygon(shape.position().clone(),shape.radius().clone(),draw_group.depth(),shape.points(),shape.angle(),SimpleShapePatina::from_patina(shape.patina())?,draw_group.clone(),wobble));
         },
         Patina::Hotspot(hotspot) => {
-//            out.push(GLShape::Polygon(shape.position().clone(),shape.radius().clone(),SimpleShapePatina::Hotspot(hotspot.clone()),depth,draw_group.clone(),None));
+            out.push(GLShape::Polygon(shape.position().clone(),shape.radius().clone(),draw_group.depth(),shape.points(),shape.angle(),SimpleShapePatina::Hotspot(hotspot.clone()),draw_group.clone(),None));
         },
         Patina::Metadata(_,_) => {}
     }
@@ -93,11 +92,11 @@ pub struct GLCategoriser();
 impl ShapeDemerge for GLCategoriser {
     type X = DrawGroup;
 
-    fn categorise(&self, coord_system: &CoordinateSystem) -> Self::X {
-        DrawGroup::new(coord_system,&ShapeCategory::Other)
+    fn categorise(&self, coord_system: &CoordinateSystem, depth: i8) -> Self::X {
+        DrawGroup::new(coord_system,depth,&ShapeCategory::Other)
     }
 
-    fn categorise_with_colour(&self, coord_system: &CoordinateSystem, drawn_variety: &DrawnType, colour: &Colour) -> Self::X {
+    fn categorise_with_colour(&self, coord_system: &CoordinateSystem, depth: i8, drawn_variety: &DrawnType, colour: &Colour) -> Self::X {
         let is_fill = match drawn_variety {
             DrawnType::Fill => false,
             DrawnType::Stroke(_) => true
@@ -107,7 +106,7 @@ impl ShapeDemerge for GLCategoriser {
         } else {
             ShapeCategory::SolidColour
         };
-        DrawGroup::new(&coord_system,&category)        
+        DrawGroup::new(&coord_system,depth,&category)        
     }
 }
 
@@ -137,7 +136,7 @@ pub(crate) fn prepare_shape_in_layer(tools: &mut DrawingToolsBuilder, shape: Dra
                 out.append(&mut split_spacebaserect(tools,&shape,&draw_group)?);
             },
             Shape::Polygon(shape) => {
-                
+                out.append(&mut split_polygon(&shape,&draw_group)?);
             }
         }
     }

@@ -7,8 +7,8 @@ pub struct PolygonShape<A> {
     position: SpaceBase<f64,A>,
     patina: Patina,
     radius: EachOrEvery<f64>,
-    //points: usize,
-    //angle: f32,
+    points: usize,
+    angle: f32,
     wobble: Option<SpaceBase<Observable<'static,f64>,()>>
 }
 
@@ -16,6 +16,8 @@ impl<A> PolygonShape<A> {
     pub(super) fn map_new_allotment<F,B>(&self, cb: F) -> PolygonShape<B> where F: FnMut(&A) -> B {
         PolygonShape {
             position: self.position.map_allotments(cb),
+            points: self.points.clone(),
+            angle: self.angle.clone(),
             patina: self.patina.clone(),
             radius: self.radius.clone(),
             wobble: self.wobble.clone()
@@ -27,12 +29,14 @@ impl<A> PolygonShape<A> {
     pub fn position(&self) -> &SpaceBase<f64,A> { &self.position }
     pub fn patina(&self) -> &Patina { &self.patina }
     pub fn radius(&self) -> &EachOrEvery<f64> { &self.radius }
+    pub fn points(&self) -> usize { self.points }
+    pub fn angle(&self) -> f32 { self.angle }
     pub fn wobble(&self) -> &Option<SpaceBase<Observable<'static,f64>,()>> { &self.wobble }
     
-    fn new_details(position: SpaceBase<f64,A>, radius: EachOrEvery<f64>, patina: Patina, wobble: Option<SpaceBase<Observable<'static,f64>,()>>) -> Result<PolygonShape<A>,DataMessage> {
+    fn new_details(position: SpaceBase<f64,A>, radius: EachOrEvery<f64>, points: usize, angle: f32, patina: Patina, wobble: Option<SpaceBase<Observable<'static,f64>,()>>) -> Result<PolygonShape<A>,DataMessage> {
         if !patina.compatible(position.len()) { return Err(DataMessage::LengthMismatch(format!("image patina"))); }
         Ok(PolygonShape {
-            position, patina, radius, wobble
+            position, patina, radius, wobble, points, angle
         })
     }
 
@@ -41,20 +45,29 @@ impl<A> PolygonShape<A> {
             position: self.position.filter(filter),
             radius: self.radius.filter(&filter),
             patina: self.patina.filter(&filter),
-            wobble: self.wobble.as_ref().map(|w| w.filter(filter))
+            wobble: self.wobble.as_ref().map(|w| w.filter(filter)),
+            points: self.points,
+            angle: self.angle
         }
     }
 }
 
 impl<A> Clone for PolygonShape<A> where A: Clone {
     fn clone(&self) -> Self {
-        Self { position: self.position.clone(), patina: self.patina.clone(), radius: self.radius.clone(), wobble: self.wobble.clone() }
+        Self { 
+            position: self.position.clone(),
+            patina: self.patina.clone(),
+            radius: self.radius.clone(),
+            wobble: self.wobble.clone(),
+            points: self.points.clone(),
+            angle: self.angle.clone()
+        }
     }
 }
 
 impl PolygonShape<LeafRequest> {
-    pub fn new(position: SpaceBase<f64,LeafRequest>, radius: EachOrEvery<f64>, patina: Patina, wobble: Option<SpaceBase<Observable<'static,f64>,()>>) -> Result<Shape<LeafRequest>,DataMessage> {
-        let details = PolygonShape::new_details(position,radius,patina,wobble)?;
+    pub fn new(position: SpaceBase<f64,LeafRequest>, radius: EachOrEvery<f64>, points: usize, angle: f32, patina: Patina, wobble: Option<SpaceBase<Observable<'static,f64>,()>>) -> Result<Shape<LeafRequest>,DataMessage> {
+        let details = PolygonShape::new_details(position,radius,points,angle,patina,wobble)?;
         Ok(Shape::Polygon(details))
     }
 
@@ -96,7 +109,9 @@ impl PolygonShape<AnchoredLeaf> {
                 position: self.position.spacebase_transform(&coord_system),
                 patina: self.patina.clone(),
                 radius: self.radius.clone(),
-                wobble: self.wobble.clone()
+                wobble: self.wobble.clone(),
+                points: self.points.clone(),
+                angle: self.angle.clone()
             });
         }
         out
@@ -106,7 +121,7 @@ impl PolygonShape<AnchoredLeaf> {
 impl PolygonShape<LeafStyle> {
     pub(crate) fn demerge<T: Hash + Clone + Eq,D>(self, cat: &D) -> Vec<(T,PolygonShape<LeafStyle>)> where D: ShapeDemerge<X=T> {
         let demerge = self.position.allotments().demerge(self.position.len(),|x| {
-            cat.categorise(&x.coord_system)
+            cat.categorise(&x.coord_system,x.depth)
         });
         let mut out = vec![];
         for (draw_group,filter) in demerge {

@@ -1,8 +1,7 @@
 use std::{sync::{Arc, Mutex}, f64::consts::PI};
-
 use peregrine_data::{SpaceBase, LeafStyle, reactive::{Observer, Observable}, SpaceBasePoint};
-use peregrine_toolkit::{eachorevery::EachOrEvery, error::Error, lock};
-use crate::{webgl::{ProcessStanzaElements, ProcessBuilder, global::WebGlGlobal}, shape::{layers::drawing::DynamicShape, util::arrayutil::rectangle4}};
+use peregrine_toolkit::{eachorevery::EachOrEvery, error::{Error, err_web_drop}, lock};
+use crate::{webgl::{ProcessStanzaElements, ProcessBuilder, global::WebGlGlobal}, shape::{layers::{drawing::DynamicShape, geometry::{GeometryProcessName, GeometryFactory}}}};
 use super::{triangleadder::TriangleAdder, drawgroup::DrawGroup, rectangles::fix_normal_unpacked};
 
 /* Vertex 0 sits in the middle, the others round the edge. We draw triangles
@@ -28,10 +27,10 @@ fn apply_any_wobble<A: Clone>(spacebase: &SpaceBase<f64,A>, wobble: &Option<Spac
 }
 
 fn calc_points(points: usize, angle: f32) -> Vec<(f64,f64)> {
-    let mut out = vec![(0.,0.)];
+    let mut out = vec![];
     let mut theta = (angle as f64) * PI / 180.;
     let delta_theta = 2. * PI / (points as f64);
-    for i in 0..points {
+    for _ in 0..points {
         let (y,x) = theta.sin_cos();
         out.push((y,x));
         theta += delta_theta;
@@ -45,29 +44,29 @@ pub(crate) struct SolidPolygonData {
     wobbled: Arc<Mutex<SpaceBase<f64,LeafStyle>>>,
     centre: SpaceBase<f64,LeafStyle>,
     points: Vec<(f64,f64)>,
-    depth: f32,
+    depth: i8,
     radius: EachOrEvery<f64>,
     adder: TriangleAdder,
     left: f64,
     group: DrawGroup
 }
 
+/* eg a pentagon is (0,1,2) (0,2,3) (0,2,4) */
+
 impl SolidPolygonData {
     fn new(builder: &mut ProcessBuilder, 
                 centre: &SpaceBase<f64,LeafStyle>, radius: &EachOrEvery<f64>,
-                points: usize, angle: f32, depth: f32,
+                points: usize, angle: f32, depth: i8,
                 left: f64, group: &DrawGroup,
                 wobble: Option<SpaceBase<Observable<'static,f64>,()>>
             )-> Result<SolidPolygonData,Error> {
         let adder = TriangleAdder::new(builder)?;
         let mut indexes = vec![];
-        for i in 0..(points as u16)+1 {
+        for i in 0..(points as u16)-2 {
             indexes.push(0);
             indexes.push(i+1);
             indexes.push(i+2);
         }
-        indexes.pop();
-        indexes.push(1);
         let elements = builder.get_stanza_builder().make_elements(centre.len(),&indexes)?;
         Ok(SolidPolygonData {
             elements,
@@ -83,6 +82,7 @@ impl SolidPolygonData {
 
     fn wobble(&mut self) -> Option<Box<dyn FnMut() + 'static>> {
         self.wobble.as_ref().map(|wobble| {
+            *lock!(self.wobbled) = apply_any_wobble(&self.centre,&Some(wobble.clone()));
             let wobble = wobble.clone();
             let centre = self.centre.clone();
             let wobbled = self.wobbled.clone();
@@ -181,7 +181,7 @@ impl SolidPolygon {
         if let Some(wobble) = &mut out.wobble {
             lock!(out.data).watch(wobble);
         }
-        out.recompute(gl);
+        err_web_drop(out.recompute(gl));
         out
     }
 }
@@ -193,5 +193,30 @@ impl DynamicShape for SolidPolygon {
 
     fn recompute(&mut self, gl: &WebGlGlobal) -> Result<(),Error> {
         lock!(self.data).recompute(gl)
+    }
+}
+
+
+pub(crate) struct SolidPolygonDataFactory {
+    draw_group: DrawGroup
+}
+
+impl SolidPolygonDataFactory {
+    pub(crate) fn new(draw_group: &DrawGroup) -> SolidPolygonDataFactory {
+        SolidPolygonDataFactory {
+            draw_group: draw_group.clone()
+        }
+    }
+    pub(crate) fn make(&self, builder: &mut ProcessBuilder, centre: &SpaceBase<f64,LeafStyle>, radius: &EachOrEvery<f64>,
+        points: usize, angle: f32, depth: i8,
+        left: f64, group: &DrawGroup,
+        wobble: Option<SpaceBase<Observable<'static,f64>,()>>)-> Result<SolidPolygonData,Error> {
+        SolidPolygonData::new(builder,centre,radius,points,angle,depth,left,&self.draw_group,wobble)
+    }
+}
+
+impl GeometryFactory for SolidPolygonDataFactory {
+    fn geometry_name(&self) -> GeometryProcessName {
+        GeometryProcessName::Triangles(self.draw_group.geometry())
     }
 }

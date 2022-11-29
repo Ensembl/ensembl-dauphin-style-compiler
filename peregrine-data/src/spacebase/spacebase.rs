@@ -89,7 +89,7 @@ pub struct PartialSpaceBase<X,Y>(SpaceBase<X,Y>);
 
 impl<X: Clone, Y: Clone> PartialSpaceBase<X,Y> {
     pub fn new(base: &EachOrEvery<X>, normal: &EachOrEvery<X>, tangent: &EachOrEvery<X>, allotment: &EachOrEvery<Y>) -> PartialSpaceBase<X,Y> {
-        PartialSpaceBase(SpaceBase::new_unszied(base,normal,tangent,allotment))
+        PartialSpaceBase(SpaceBase::new_unsized(base,normal,tangent,allotment))
     }
 
     pub fn from_spacebase(spacebase: SpaceBase<X,Y>) -> PartialSpaceBase<X,Y> {
@@ -166,7 +166,7 @@ impl<X: Clone, Y: Clone> SpaceBase<X,Y> {
         compat.add(&self.allotment);
     }
 
-    fn new_unszied(base: &EachOrEvery<X>, normal: &EachOrEvery<X>, tangent: &EachOrEvery<X>, allotment: &EachOrEvery<Y>) -> SpaceBase<X,Y> {
+    fn new_unsized(base: &EachOrEvery<X>, normal: &EachOrEvery<X>, tangent: &EachOrEvery<X>, allotment: &EachOrEvery<Y>) -> SpaceBase<X,Y> {
         SpaceBase {
             base: base.clone(),
             normal: normal.clone(),
@@ -177,7 +177,7 @@ impl<X: Clone, Y: Clone> SpaceBase<X,Y> {
     }
 
     pub fn new(base: &EachOrEvery<X>, normal: &EachOrEvery<X>, tangent: &EachOrEvery<X>, allotment: &EachOrEvery<Y>) -> Option<SpaceBase<X,Y>> {
-        let mut out = Self::new_unszied(base,normal,tangent,allotment);
+        let mut out = Self::new_unsized(base,normal,tangent,allotment);
         let mut compat = EachOrEveryGroupCompatible::new(None);
         out.compat(&mut compat);
         out.len = if let Some(len) = compat.len() { len } else { return None; };
@@ -189,7 +189,14 @@ impl<X: Clone, Y: Clone> SpaceBase<X,Y> {
         let normal = self.normal.zip(&other.normal,cbs.normal);
         let tangent =self.tangent.zip(&other.tangent,cbs.tangent);
         let allotment = self.allotment.zip(&other.allotment,cbs.allotment);
-        SpaceBase::new_unszied(&base,&normal,&tangent,&allotment)
+        SpaceBase::new(&base,&normal,&tangent,&allotment).unwrap()
+    }
+
+    pub fn merge_eoe<A,P: Clone>(&self, other: EachOrEvery<A>, cbs: SpaceBasePoint<&dyn (Fn(&X,&A) -> P),()>) -> SpaceBase<P,Y> {
+        let base = self.base.zip(&other,cbs.base);
+        let normal = self.normal.zip(&other,cbs.normal);
+        let tangent =self.tangent.zip(&other,cbs.tangent);
+        SpaceBase::new(&base,&normal,&tangent,&self.allotment).unwrap()
     }
 
     pub fn replace_normal(&self, other: &SpaceBase<X,Y>) -> Option<SpaceBase<X,Y>> {

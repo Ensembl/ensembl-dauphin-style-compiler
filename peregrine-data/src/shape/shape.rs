@@ -20,10 +20,10 @@ use crate::allotment::util::rangeused::RangeUsed;
 pub trait ShapeDemerge {
     type X: Hash + PartialEq + Eq;
 
-    fn categorise(&self, coord_system: &CoordinateSystem) -> Self::X;
+    fn categorise(&self, coord_system: &CoordinateSystem, depth: i8) -> Self::X;
     
-    fn categorise_with_colour(&self, coord_system: &CoordinateSystem, _variety: &DrawnType, _colour: &Colour) -> Self::X {
-        self.categorise(coord_system)
+    fn categorise_with_colour(&self, coord_system: &CoordinateSystem, depth: i8, _variety: &DrawnType, _colour: &Colour) -> Self::X {
+        self.categorise(coord_system,depth)
     }
 }
 

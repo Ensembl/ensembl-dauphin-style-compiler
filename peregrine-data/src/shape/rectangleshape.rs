@@ -64,11 +64,11 @@ impl RectangleShape<LeafStyle> {
             Patina::Drawn(drawn_type,colours) => {
                 let allotments_and_colours = self.area.top_left().allotments().zip(&colours,|x,y| (x.clone(),y.clone()));
                 allotments_and_colours.demerge(self.area.len(),|(a,c)| 
-                    cat.categorise_with_colour(&a.coord_system,drawn_type,c)
+                    cat.categorise_with_colour(&a.coord_system,a.depth,drawn_type,c)
                 )
             },
             _ => {
-                self.area.top_left().allotments().demerge(self.area.len(),|a| cat.categorise(&a.coord_system))
+                self.area.top_left().allotments().demerge(self.area.len(),|a| cat.categorise(&a.coord_system,a.depth))
             }
         };
         let mut out = vec![];

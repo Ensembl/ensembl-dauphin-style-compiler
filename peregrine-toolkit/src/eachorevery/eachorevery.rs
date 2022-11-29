@@ -145,7 +145,7 @@ impl<X> EachOrEvery<X> {
         })
     }
 
-    pub fn inner_zip<W,F,Y>(&self, other: &EachOrEvery<Y>, cb: F) -> EachOrEvery<W> where F: Fn(&X,&Y) -> W {
+    fn inner_zip<W,F,Y>(&self, other: &EachOrEvery<Y>, cb: F) -> EachOrEvery<W> where F: Fn(&X,&Y) -> W {
         match (&self.index,&other.index) {
             (x,EachOrEveryIndex::Every) => {
                 EachOrEvery {

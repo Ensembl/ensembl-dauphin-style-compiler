@@ -43,7 +43,7 @@ impl<A> Clone for EmptyShape<A> where A: Clone {
 
 impl EmptyShape<LeafStyle> {
     pub fn demerge<T: Hash + Clone + Eq,D>(self, cat: &D) -> Vec<(T,EmptyShape<LeafStyle>)> where D: ShapeDemerge<X=T> {
-        let demerge = self.0.top_left().allotments().demerge(self.0.len(),|a| cat.categorise(&a.coord_system));
+        let demerge = self.0.top_left().allotments().demerge(self.0.len(),|a| cat.categorise(&a.coord_system,a.depth));
         let mut out = vec![];
         for (draw_group,filter) in demerge {
             out.push((draw_group,self.filter(&filter)));

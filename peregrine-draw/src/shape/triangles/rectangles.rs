@@ -1,4 +1,3 @@
-use core::num;
 use std::sync::{Arc, Mutex};
 use crate::shape::core::drawshape::GLAttachmentPoint;
 use crate::shape::layers::drawing::DynamicShape;
@@ -10,7 +9,7 @@ use crate::webgl::{ ProcessStanzaElements, ProcessBuilder };
 use peregrine_data::reactive::{Observable, Observer};
 use peregrine_data::{ SpaceBaseArea, SpaceBase, PartialSpaceBase, HollowEdge2, SpaceBasePoint, LeafStyle };
 use peregrine_toolkit::eachorevery::EachOrEvery;
-use peregrine_toolkit::error::Error;
+use peregrine_toolkit::error::{Error, err_web_drop};
 use peregrine_toolkit::{lock};
 use super::arearectangles::RectanglesLocationArea;
 use super::drawgroup::DrawGroup;
@@ -140,7 +139,7 @@ impl Rectangles {
         if let Some(wobble) = &mut out.wobble {
             lock!(out.data).location.watch(wobble);
         }
-        out.recompute(gl);
+        err_web_drop(out.recompute(gl));
         out
     }
 }

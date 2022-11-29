@@ -80,8 +80,8 @@ impl Maypole {
         ).unwrap();
         let patina = Patina::Drawn(
             DrawnType::Fill,
-            EachOrEvery::every(Colour::Direct(DirectColour(255,255,255,0))));
-        shapes.add_circle(centre,EachOrEvery::every(16.),patina,Some(obs)).map_err(|x| Message::DataError(x))?;
+            EachOrEvery::every(Colour::Direct(DirectColour(255,0,0,255))));
+        shapes.add_polygon(centre,EachOrEvery::every(7.),11,0.,patina,Some(obs)).map_err(|x| Message::DataError(x))?;
         Ok(())
     }
 }
@@ -90,7 +90,7 @@ impl Spectre for Maypole {
     fn draw(&self, shapes: &mut ProgramShapesBuilder) -> Result<(),Message> {
         let leaf = shapes.use_allotment("window/origin/maypole").clone();
         let mut props = HashMap::new();
-        props.insert("depth".to_string(),"121".to_string());
+        props.insert("depth".to_string(),"126".to_string());
         props.insert("system".to_string(), "window".to_string());
         shapes.add_style("window/origin/maypole",props);
         self.pole(shapes,&leaf)?;

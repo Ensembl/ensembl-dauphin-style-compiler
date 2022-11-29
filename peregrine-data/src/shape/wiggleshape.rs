@@ -128,7 +128,7 @@ impl<A: Clone> WiggleShape<A> {
 
 impl WiggleShape<LeafStyle> {
     pub fn demerge<T: Hash + Clone + Eq,D>(self, cat: &D) -> Vec<(T,WiggleShape<LeafStyle>)> where D: ShapeDemerge<X=T> {
-        let demerge = self.allotments.demerge(1,|a| cat.categorise(&a.coord_system));
+        let demerge = self.allotments.demerge(1,|a| cat.categorise(&a.coord_system,a.depth));
         let mut out = vec![];
         for (draw_group,mut filter) in demerge {
             out.push((draw_group,self.filter(&mut filter)));

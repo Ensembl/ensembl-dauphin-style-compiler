@@ -1,10 +1,9 @@
 use std::sync::Arc;
 
 use peregrine_data::reactive::Observable;
-use peregrine_data::{ Colour, DirectColour, DrawnType, Patina, Plotter, SpaceBaseArea, HollowEdge2, SpaceBase, LeafStyle, HotspotPatina, AttachmentPoint, PartialSpaceBase };
+use peregrine_data::{ Colour, DirectColour, DrawnType, Patina, Plotter, SpaceBaseArea, HollowEdge2, SpaceBase, LeafStyle, HotspotPatina, AttachmentPoint, PartialSpaceBase, SpaceBasePoint };
 use peregrine_toolkit::eachorevery::{EachOrEvery, EachOrEveryFilterBuilder};
 use peregrine_toolkit::error::Error;
-use peregrine_toolkit::log;
 use super::directcolourdraw::{DirectColourDraw, ColourFragment};
 use super::super::layers::layer::{ Layer };
 use super::texture::{TextureDrawFactory};
@@ -14,12 +13,13 @@ use crate::shape::canvasitem::text::draw_text;
 use crate::shape::layers::drawing::DynamicShape;
 use crate::shape::layers::drawingtools::{DrawingToolsBuilder, CanvasType};
 use crate::shape::layers::patina::Freedom;
+use crate::shape::triangles::polygon::{SolidPolygonDataFactory, SolidPolygon};
 use crate::shape::triangles::rectangles::{Rectangles, RectanglesDataFactory };
 use crate::shape::triangles::drawgroup::DrawGroup;
 use crate::shape::util::eoethrow::{eoe_throw2};
 use crate::webgl::canvas::composition::canvasitem::{CanvasItemAreaSource, CanvasItemArea};
 use crate::webgl::canvas::htmlcanvas::canvasinuse::CanvasInUse;
-use crate::webgl::{ ProcessStanzaAddable };
+use crate::webgl::{ ProcessStanzaElements };
 use crate::webgl::global::WebGlGlobal;
 
 #[cfg_attr(debug_assertions,derive(Debug))]
@@ -97,19 +97,16 @@ pub(crate) enum GLShape {
     Heraldry(SpaceBaseArea<f64,LeafStyle>,EachOrEvery<HeraldryHandle>,EachOrEvery<i8>,DrawGroup,HeraldryCanvas,HeraldryScale,Option<HollowEdge2<f64>>,Option<SpaceBaseArea<Observable<'static,f64>,()>>),
     Wiggle((f64,f64),Arc<Vec<Option<f64>>>,Plotter,i8),
     SpaceBaseRect(SpaceBaseArea<f64,LeafStyle>,SimpleShapePatina,EachOrEvery<i8>,DrawGroup,Option<SpaceBaseArea<Observable<'static,f64>,()>>),
-  //  Polygon(SpaceBase<f64,LeafStyle>,EachOrEvery<f64>,usize,f32)
+    Polygon(SpaceBase<f64,LeafStyle>,EachOrEvery<f64>,i8,usize,f32,SimpleShapePatina,DrawGroup,Option<SpaceBase<Observable<'static,f64>,()>>)
 }
 
-fn add_colour(addable: &mut dyn ProcessStanzaAddable, patina: &SimpleShapePatina, draw: &DirectColourDraw, count: usize) -> Result<(),Error> {
-    let vertexes = match patina {
-        SimpleShapePatina::Solid(_) => 4,
-        SimpleShapePatina::Hollow(_) => 8,
-        _ => 0
-    };
+fn add_colour(addable: &mut ProcessStanzaElements, patina: &SimpleShapePatina, draw: &DirectColourDraw) -> Result<(),Error> {
+    let points_per_shape = addable.points_per_shape();
+    let number_of_shapes = addable.number_of_shapes();
     match patina {
         SimpleShapePatina::Solid(colours) |
         SimpleShapePatina::Hollow(colours) => {
-            draw.direct(addable,&colours,vertexes,count)?;
+            draw.direct(addable,&colours,points_per_shape,number_of_shapes)?;
         },
         _ => {}
     }
@@ -218,11 +215,48 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, left: f64, gl: &mut WebGlGlo
                     let mut rectangles = vertex_factory.make_area(builder,&area,&depth,left,hollow,&None,wobble)?;
                     let draw = fragment_factory.make(builder)?;
                     let campaign = rectangles.elements_mut();
-                    add_colour(campaign,&simple_shape_patina,&draw,area.len())?;
+                    add_colour(campaign,&simple_shape_patina,&draw)?;
                     campaign.close()?;
                     Ok(ShapeToAdd::Dynamic(Box::new(Rectangles::new(rectangles,&gl))))
                 },
                 SimpleShapePatina::Hotspot(hotspot) => {
+                    Ok(ShapeToAdd::Hotspot(area,hotspot))
+                },
+                _ => {
+                    Ok(ShapeToAdd::None)
+                }
+            }
+        },
+        GLShape::Polygon(centre,radius,depth,points,angle,patina,group,wobble) => {
+            match patina {
+                SimpleShapePatina::Solid(_) => {
+                    let vertex_factory = SolidPolygonDataFactory::new(&group);
+                    let fragment_factory = ColourFragment::new();
+                    let builder = layer.get_process_builder(&vertex_factory,&fragment_factory)?;
+                    let mut polygons = vertex_factory.make(builder,&centre,&radius,points,angle,depth,left,&group,wobble)?;
+                    let draw = fragment_factory.make(builder)?;
+                    let campaign = polygons.elements_mut();
+                    add_colour(campaign,&patina,&draw)?;
+                    campaign.close()?;
+                    Ok(ShapeToAdd::Dynamic(Box::new(SolidPolygon::new(polygons,&gl))))
+                },
+                SimpleShapePatina::Hollow(_) => {
+                    todo!()
+                }
+                SimpleShapePatina::Hotspot(hotspot) => {
+                    let top_left = centre.merge_eoe(radius.clone(),SpaceBasePoint {
+                        base: &|c,_r| *c,
+                        normal: &|c,r| *c-*r,
+                        tangent: &|c,r| *c-*r,
+                        allotment: ()
+                    });
+                    let borrom_right = centre.merge_eoe(radius,SpaceBasePoint {
+                        base: &|c,_r| *c,
+                        normal: &|c,r| *c+*r,
+                        tangent: &|c,r| *c+*r,
+                        allotment: ()
+                    });
+                    let area = SpaceBaseArea::new(PartialSpaceBase::from_spacebase(top_left),PartialSpaceBase::from_spacebase(borrom_right)).expect("polygon hotspot");
                     Ok(ShapeToAdd::Hotspot(area,hotspot))
                 },
                 _ => {

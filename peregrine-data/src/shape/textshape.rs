@@ -115,7 +115,7 @@ impl TextShape<LeafRequest> {
 
 impl TextShape<LeafStyle> {
     pub fn demerge<T: Hash + Clone + Eq,D>(self,  cat: &D) -> Vec<(T,TextShape<LeafStyle>)> where D: ShapeDemerge<X=T> {
-        let demerge = self.position.allotments().demerge(self.position.len(),|a| cat.categorise(&a.coord_system));
+        let demerge = self.position.allotments().demerge(self.position.len(),|a| cat.categorise(&a.coord_system,a.depth));
         let mut out = vec![];
         for (draw_group,mut filter) in demerge {
             out.push((draw_group,self.filter(&mut filter)));

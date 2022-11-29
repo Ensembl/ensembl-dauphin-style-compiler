@@ -13,16 +13,20 @@ pub(crate) enum ShapeCategory {
 #[derive(Clone,PartialEq,Eq,Hash)]
 pub struct DrawGroup {
     coordsystem: CoordinateSystem,
+    depth: i8,
     shape_category: ShapeCategory
 }
 
 impl DrawGroup {
-    pub(crate) fn new(coord_system: &CoordinateSystem, shape_category: &ShapeCategory) -> DrawGroup {
+    pub(crate) fn new(coord_system: &CoordinateSystem,depth: i8, shape_category: &ShapeCategory) -> DrawGroup {
         DrawGroup {
             coordsystem: coord_system.clone(),
+            depth,
             shape_category: shape_category.clone()
         }
     }
+
+    pub(crate) fn depth(&self) -> i8 { self.depth }
 
     pub(crate) fn packed_format(&self) -> bool {
         match self.geometry() {
