@@ -116,6 +116,7 @@ mod shape {
         pub(crate) mod rectangles;
         pub(crate) mod sizedrectangles;
         pub(crate) mod arearectangles;
+        pub(crate) mod polygon;
     }
 
     pub(crate) mod canvasitem {

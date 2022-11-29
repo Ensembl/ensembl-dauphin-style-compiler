@@ -1,78 +1,54 @@
 use std::ops::{Add, Sub};
 
-pub fn plain_rectangle4<T>(data: &mut Vec<T>, b_left: T, b_top: T, b_right: T, b_bottom: T,
-                            d_left: T, d_top: T, d_right: T, d_bottom: T) where T: Copy {
-    data.push(b_left);
-    data.push(b_top);
-    data.push(d_left);
-    data.push(d_top);
+const PLAIN4 : &[usize] = &[
+    0, 1, 4, 5,
+    0, 3, 4, 7,
+    2, 1, 6, 5,
+    2, 3, 6, 7 
+];
 
-    data.push(b_left);
-    data.push(b_bottom);
-    data.push(d_left);
-    data.push(d_bottom);
+const HOLLOW4 : &[usize] = &[
+     8, 9, 4, 5,
+     0, 1, 4, 5,
+     8,11, 4, 7,
+     0, 3, 4, 7,
+    10,11, 6, 7,
+     2, 3, 6, 7,
+    10, 9, 6, 5,
+     2, 1, 6, 5
+];
 
-    data.push(b_right);
-    data.push(b_top);
-    data.push(d_right);
-    data.push(d_top);
 
-    data.push(b_right);
-    data.push(b_bottom);
-    data.push(d_right);
-    data.push(d_bottom);
+fn broadcast(data: &mut Vec<f32>, indexes: &[usize], values: &[f64]) {
+    for i in indexes {
+        data.push(values[*i] as f32);
+    }
 }
 
-fn hollow_rectangle4<T>(data: &mut Vec<T>, b_left: T, b_top: T, b_right: T, b_bottom: T, d_left: T, d_top: T, d_right: T, d_bottom: T, w: T) where T: Sub<Output=T> + Add<Output=T> + Copy {
-    data.push(b_left+w);
-    data.push(b_top+w);
-    data.push(d_left);
-    data.push(d_top);
+pub fn plain_rectangle4(data: &mut Vec<f32>, b_left: f64, b_top: f64, b_right: f64, b_bottom: f64,
+                            d_left: f64, d_top: f64, d_right: f64, d_bottom: f64) {
+    broadcast(data,PLAIN4,&[
+        b_left,b_top,b_right,b_bottom,
+        d_left,d_top,d_right,d_bottom
+    ]);
+}
 
-    data.push(b_left);
-    data.push(b_top);
-    data.push(d_left);
-    data.push(d_top);
-
-    data.push(b_left+w);
-    data.push(b_bottom+w);
-    data.push(d_left);
-    data.push(d_bottom);
-
-    data.push(b_left);
-    data.push(b_bottom);
-    data.push(d_left);
-    data.push(d_bottom);
-
-    data.push(b_right+w);
-    data.push(b_bottom+w);
-    data.push(d_right);
-    data.push(d_bottom);
-
-    data.push(b_right);
-    data.push(b_bottom);    
-    data.push(d_right);
-    data.push(d_bottom);    
-
-    data.push(b_right+w);
-    data.push(b_top+w);
-    data.push(d_right);
-    data.push(d_top);
-
-    data.push(b_right);
-    data.push(b_top);
-    data.push(d_right);
-    data.push(d_top);
+pub fn hollow_rectangle4(data: &mut Vec<f32>, b_left: f64, b_top: f64, b_right: f64, b_bottom: f64, d_left: f64, d_top: f64, d_right: f64, d_bottom: f64, w: f64) {
+    broadcast(data,HOLLOW4,&[
+        b_left,b_top,b_right,b_bottom,
+        d_left,d_top,d_right,d_bottom,
+        b_left+w,b_top+w,b_right+w,b_bottom+w
+    ]);
 }
 
 pub fn rectangle4(data: &mut Vec<f32>, b_left: f64, b_top: f64, b_right: f64, b_bottom: f64, 
                                        d_left: f64, d_top: f64, d_right: f64, d_bottom: f64,
                     w: Option<f64>) {
     match w {
-        Some(w) => hollow_rectangle4(data,b_left as f32,b_top as f32,b_right as f32,b_bottom as f32,
-                                            d_left as f32,d_top as f32,d_right as f32,d_bottom as f32,w as f32),
-        None => plain_rectangle4(data,b_left as f32,b_top as f32,b_right as f32,b_bottom as f32,
-                                            d_left as f32,d_top as f32,d_right as f32,d_bottom as f32)
+        Some(w) => hollow_rectangle4(data,b_left,b_top,b_right,b_bottom,
+                                            d_left,d_top,d_right,d_bottom,w),
+        None => plain_rectangle4(data,b_left,b_top,b_right,b_bottom,
+                                            d_left,d_top,d_right,d_bottom)
     }                    
 }
 

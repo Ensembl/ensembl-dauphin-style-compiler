@@ -30,7 +30,7 @@ impl TriangleAdder {
         })
     }
 
-    pub(crate) fn add_data4(&self, elements: &mut ProcessStanzaElements, data: Vec<f32>, depths: Vec<f32>) -> Result<(),Error> {
+    pub(crate) fn add_data(&self, elements: &mut ProcessStanzaElements, data: Vec<f32>, depths: Vec<f32>) -> Result<(),Error> {
         if let Some(depth) = &self.depth {
             elements.add(depth, depths, 1)?;
         }
@@ -38,23 +38,16 @@ impl TriangleAdder {
         Ok(())
     }
 
-    pub(crate) fn add_origin_data4(&self, elements: &mut ProcessStanzaElements, data: Vec<f32>) -> Result<(),Error> {
+    pub(crate) fn add_origin_data(&self, elements: &mut ProcessStanzaElements, data: Vec<f32>) -> Result<(),Error> {
         if let Some(origin_delta_handle) = &self.origin_coords {
             elements.add(origin_delta_handle,data,4)?;
         }
         Ok(())
     }
 
-    pub(crate) fn add_run_data4(&self, elements: &mut ProcessStanzaElements, data: Vec<f32>) -> Result<(),Error> {
+    pub(crate) fn add_run_data(&self, elements: &mut ProcessStanzaElements, data: Vec<f32>) -> Result<(),Error> {
         if let Some(run_delta_handle) = &self.run_coords {
             elements.add(run_delta_handle,data,4)?;
-        }
-        Ok(())
-    }
-
-    pub(crate) fn set_use_vertical(&self, builder: &mut ProcessBuilder, value: f32) -> Result<(),Error> {
-        if let Some(use_vertical) = &self.use_vertical {
-            builder.set_uniform(use_vertical,vec![value])?;
         }
         Ok(())
     }

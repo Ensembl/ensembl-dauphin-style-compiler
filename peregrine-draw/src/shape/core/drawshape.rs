@@ -97,7 +97,7 @@ pub(crate) enum GLShape {
     Heraldry(SpaceBaseArea<f64,LeafStyle>,EachOrEvery<HeraldryHandle>,EachOrEvery<i8>,DrawGroup,HeraldryCanvas,HeraldryScale,Option<HollowEdge2<f64>>,Option<SpaceBaseArea<Observable<'static,f64>,()>>),
     Wiggle((f64,f64),Arc<Vec<Option<f64>>>,Plotter,i8),
     SpaceBaseRect(SpaceBaseArea<f64,LeafStyle>,SimpleShapePatina,EachOrEvery<i8>,DrawGroup,Option<SpaceBaseArea<Observable<'static,f64>,()>>),
-    Circle(SpaceBase<f64,LeafStyle>,EachOrEvery<f64>,SimpleShapePatina,EachOrEvery<i8>,DrawGroup,Option<SpaceBase<Observable<'static,f64>,()>>)
+  //  Polygon(SpaceBase<f64,LeafStyle>,EachOrEvery<f64>,usize,f32)
 }
 
 fn add_colour(addable: &mut dyn ProcessStanzaAddable, patina: &SimpleShapePatina, draw: &DirectColourDraw, count: usize) -> Result<(),Error> {
@@ -185,11 +185,6 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, left: f64, gl: &mut WebGlGlo
             let (mut array,count) = adder.add_wiggle(process,start,end,&yy,left,depth)?;
             draw.direct(&mut array,&EachOrEvery::every(colour),1,count)?;
             array.close()?;
-            Ok(ShapeToAdd::None)
-        },
-        GLShape::Circle(position,radius,patina,depth,draw_group,wobble) => {
-            log!("circle {:?}",position);
-            //make_circle(layer,&GeometryProcessName::Triangles(draw_group.geometry().clone()),&mut patina_yielder,position,radius,depth,left,&draw_group)?;
             Ok(ShapeToAdd::None)
         },
         GLShape::Text(points,run,handles,depth,draw_group,attachment) => {

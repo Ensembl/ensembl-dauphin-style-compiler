@@ -3,16 +3,18 @@ use crate::{DataMessage, ShapeDemerge, Shape, SpaceBase, allotment::{style::{sty
 use std::{hash::Hash,};
 
 #[cfg_attr(debug_assertions,derive(Debug))]
-pub struct CircleShape<A> {
+pub struct PolygonShape<A> {
     position: SpaceBase<f64,A>,
     patina: Patina,
     radius: EachOrEvery<f64>,
+    //points: usize,
+    //angle: f32,
     wobble: Option<SpaceBase<Observable<'static,f64>,()>>
 }
 
-impl<A> CircleShape<A> {
-    pub(super) fn map_new_allotment<F,B>(&self, cb: F) -> CircleShape<B> where F: FnMut(&A) -> B {
-        CircleShape {
+impl<A> PolygonShape<A> {
+    pub(super) fn map_new_allotment<F,B>(&self, cb: F) -> PolygonShape<B> where F: FnMut(&A) -> B {
+        PolygonShape {
             position: self.position.map_allotments(cb),
             patina: self.patina.clone(),
             radius: self.radius.clone(),
@@ -27,15 +29,15 @@ impl<A> CircleShape<A> {
     pub fn radius(&self) -> &EachOrEvery<f64> { &self.radius }
     pub fn wobble(&self) -> &Option<SpaceBase<Observable<'static,f64>,()>> { &self.wobble }
     
-    fn new_details(position: SpaceBase<f64,A>, radius: EachOrEvery<f64>, patina: Patina, wobble: Option<SpaceBase<Observable<'static,f64>,()>>) -> Result<CircleShape<A>,DataMessage> {
+    fn new_details(position: SpaceBase<f64,A>, radius: EachOrEvery<f64>, patina: Patina, wobble: Option<SpaceBase<Observable<'static,f64>,()>>) -> Result<PolygonShape<A>,DataMessage> {
         if !patina.compatible(position.len()) { return Err(DataMessage::LengthMismatch(format!("image patina"))); }
-        Ok(CircleShape {
+        Ok(PolygonShape {
             position, patina, radius, wobble
         })
     }
 
-    fn filter(&self, filter: &EachOrEveryFilter) -> CircleShape<A> {
-        CircleShape {
+    fn filter(&self, filter: &EachOrEveryFilter) -> PolygonShape<A> {
+        PolygonShape {
             position: self.position.filter(filter),
             radius: self.radius.filter(&filter),
             patina: self.patina.filter(&filter),
@@ -44,19 +46,19 @@ impl<A> CircleShape<A> {
     }
 }
 
-impl<A> Clone for CircleShape<A> where A: Clone {
+impl<A> Clone for PolygonShape<A> where A: Clone {
     fn clone(&self) -> Self {
         Self { position: self.position.clone(), patina: self.patina.clone(), radius: self.radius.clone(), wobble: self.wobble.clone() }
     }
 }
 
-impl CircleShape<LeafRequest> {
+impl PolygonShape<LeafRequest> {
     pub fn new(position: SpaceBase<f64,LeafRequest>, radius: EachOrEvery<f64>, patina: Patina, wobble: Option<SpaceBase<Observable<'static,f64>,()>>) -> Result<Shape<LeafRequest>,DataMessage> {
-        let details = CircleShape::new_details(position,radius,patina,wobble)?;
-        Ok(Shape::Circle(details))
+        let details = PolygonShape::new_details(position,radius,patina,wobble)?;
+        Ok(Shape::Polygon(details))
     }
 
-    pub(super) fn base_filter(&self, min: f64, max: f64) -> CircleShape<LeafRequest> {
+    pub(super) fn base_filter(&self, min: f64, max: f64) -> PolygonShape<LeafRequest> {
         let non_tracking = self.position.allotments().make_filter(self.position.len(),|a| !a.leaf_style().coord_system.is_tracking());
         let filter = self.position.make_base_filter(min,max);
         self.filter(&filter.or(&non_tracking))
@@ -75,8 +77,8 @@ impl CircleShape<LeafRequest> {
     }
 }
 
-impl CircleShape<AnchoredLeaf> {
-    fn demerge_by_variety(&self) -> Vec<(CoordinateSystem,CircleShape<AnchoredLeaf>)> {
+impl PolygonShape<AnchoredLeaf> {
+    fn demerge_by_variety(&self) -> Vec<(CoordinateSystem,PolygonShape<AnchoredLeaf>)> {
         let demerge = self.position.allotments().demerge(self.position.len(),|x| {
             x.coordinate_system().clone()
         });
@@ -87,10 +89,10 @@ impl CircleShape<AnchoredLeaf> {
         out
     }
 
-    pub fn make(&self) -> Vec<CircleShape<LeafStyle>> {
+    pub fn make(&self) -> Vec<PolygonShape<LeafStyle>> {
         let mut out = vec![];
         for (coord_system,circles) in self.demerge_by_variety() {
-            out.push(CircleShape {
+            out.push(PolygonShape {
                 position: self.position.spacebase_transform(&coord_system),
                 patina: self.patina.clone(),
                 radius: self.radius.clone(),
@@ -101,8 +103,8 @@ impl CircleShape<AnchoredLeaf> {
     }
 }
 
-impl CircleShape<LeafStyle> {
-    pub(crate) fn demerge<T: Hash + Clone + Eq,D>(self, cat: &D) -> Vec<(T,CircleShape<LeafStyle>)> where D: ShapeDemerge<X=T> {
+impl PolygonShape<LeafStyle> {
+    pub(crate) fn demerge<T: Hash + Clone + Eq,D>(self, cat: &D) -> Vec<(T,PolygonShape<LeafStyle>)> where D: ShapeDemerge<X=T> {
         let demerge = self.position.allotments().demerge(self.position.len(),|x| {
             cat.categorise(&x.coord_system)
         });
