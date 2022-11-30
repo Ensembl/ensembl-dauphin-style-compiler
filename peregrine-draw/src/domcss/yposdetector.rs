@@ -1,10 +1,9 @@
 use std::sync::{Arc, Mutex};
 use peregrine_toolkit::{lock};
 use peregrine_toolkit_async::sync::needed::Needed;
-use wasm_bindgen::{JsValue};
-use web_sys::{HtmlElement};
+use web_sys::{HtmlElement, Event};
 
-use crate::{input::low::event::EventSystem, Message, stage::{stage::Stage, axis::ReadStageAxis}};
+use crate::{Message, stage::{stage::Stage, axis::ReadStageAxis}, input::low::event::EventHandle};
 
 /* Intersection observer is just used to keep the animation loop alive when the user is fiddling
  * with the scrollbar and doing nothing else. The actual detection and change is all done in
@@ -16,15 +15,17 @@ pub(crate) struct YPosDetector {
     old_top: Arc<Mutex<Option<i32>>>,
     el: HtmlElement,
     #[allow(unused)] // keeps event alive
-    events: Arc<EventSystem<Needed>>,
+    events: Arc<Vec<EventHandle>>,
 }
 
 impl YPosDetector {
     pub(crate) fn new(el: &HtmlElement, redraw_needed: &Needed) -> Result<YPosDetector,Message> {
-        let mut events = EventSystem::new(redraw_needed.clone());
-        events.add(el,"scroll",|needed,_ : &JsValue| {
-            needed.set();
-        })?;
+        let redraw_needed = redraw_needed.clone();
+        let events = vec![
+            EventHandle::new(el,"scroll",move |_: &Event| {
+                redraw_needed.set();
+            })?
+        ];
         Ok(YPosDetector {
             old_top: Arc::new(Mutex::new(None)),
             events: Arc::new(events),

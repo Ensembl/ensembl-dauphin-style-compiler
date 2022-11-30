@@ -8,11 +8,12 @@ use crate::stage::stage::ReadStage;
 use crate::webgl::global::WebGlGlobal;
 use crate::{PgCommanderWeb, run::PgPeregrineConfig};
 use crate::util::Message;
+use super::event::EventHandle;
 use super::gesture::core::cursor::{CursorHandle, Cursor};
 use super::modifiers::Modifiers;
-use super::{event::EventSystem, keyboardinput::{KeyboardEventHandler, keyboard_events}, mouseinput::mouse_events};
+use super::{keyboardinput::{ keyboard_events}};
 use super::mapping::{ InputMapBuilder };
-use super::mouseinput::{ MouseEventHandler };
+use super::mouseinput::{ mouse_events };
 use crate::input::{ InputEvent };
 use super::mapping::InputMap;
 use js_sys::Date;
@@ -118,9 +119,9 @@ impl LowLevelState {
 #[derive(Clone)]
 pub struct LowLevelInput {
     #[allow(unused)]
-    keyboard: EventSystem<KeyboardEventHandler>,
+    keyboard: Vec<EventHandle>,
     #[allow(unused)]
-    mouse: EventSystem<MouseEventHandler>,
+    mouse: Vec<EventHandle>,
     distributor: Distributor<InputEvent>,
     state: LowLevelState,
     mouse_moved: Needed,
