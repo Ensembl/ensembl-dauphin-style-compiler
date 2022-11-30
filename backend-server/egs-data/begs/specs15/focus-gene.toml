@@ -1,0 +1,163 @@
+set = "ensembl-webteam/core"
+name = "focus-gene"
+version = 1
+description = """
+
+Show the focus gene as a mere block when rather zoomed out. (Still with zmenus, labels etc).
+
+Uses data sequences from gene endpoint:
+- gene_id
+- gene_id_version
+- gene_names
+- gene_descs
+- starts
+- lengths
+- gene_designation_keys
+- gene_designation_values
+- gene_biotypes_keys
+- gene_biotypes_values
+- strands
+- designated_transcript_id
+- designated_transcript_id_version
+- thicks_starts
+- thicks_lengths
+- designated_transcript_biotypes_keys
+- designated_transcript_biotypes_values
+- designated_transcript_designations_keys
+- designated_transcript_designations_values
+
+"""
+
+# [setting.focus-gene]
+# description = """
+
+# Which gene is currently the focus gene (if any)? Object with keys "genome_id" and "item_id"
+# identifying current focus gene, if any.
+
+# """
+
+# [setting.pc-fwd-several]
+# default = false
+# description = """
+
+# boolean: if true show 5 per the mini-toggle setting on the pc-fwd track.
+
+# """
+
+# [setting.pc-rev-several]
+# default = false
+# description = """
+
+# boolean: if true show 5 per the mini-toggle setting on the pc-rev track.
+
+# """
+
+# [setting.other-fwd-several]
+# default = false
+# description = """
+
+# boolean: if true show 5 per the mini-toggle setting on the other-fwd track.
+
+# """
+
+# [setting.other-rev-several]
+# default = false
+# description = """
+
+# boolean: if true show 5 per the mini-toggle setting on the other-rev track.
+
+# """
+
+# [setting.pc-fwd-label]
+# default = false
+# description = """
+
+# boolean: if true show gene label on the pc-fwd track.
+
+# """
+
+# [setting.pc-rev-label]
+# default = false
+# description = """
+
+# boolean: if true show gene label on the pc-rev track.
+
+# """
+
+# [setting.other-fwd-label]
+# default = false
+# description = """
+
+# boolean: if true show gene label on the other-fwd track.
+
+# """
+
+# [setting.other-rev-label]
+# default = false
+# description = """
+
+# boolean: if true show gene label on the other-rev track.
+
+# """
+
+
+# [setting.pc-fwd]
+# description = """
+
+# boolean: if true show the pc-fwd track.
+
+# """
+
+# [setting.pc-rev]
+# description = """
+
+# boolean: if true show the pc-rev track.
+
+# """
+
+# [setting.other-fwd]
+# description = """
+
+# boolean: if true show the other-fwd track.
+
+# """
+
+# [setting.other-rev]
+# description = """
+
+# boolean: if true show the other-rev track.
+
+# """
+
+
+# [setting.pc-fwd-name]
+# default = false
+# description = """
+
+# boolean: if true show gene track label on the pc-fwd track.
+
+# """
+
+# [setting.pc-rev-name]
+# default = false
+# description = """
+
+# boolean: if true show gene track label on the pc-rev track.
+
+# """
+
+# [setting.other-fwd-name]
+# default = false
+# description = """
+
+# boolean: if true show gene track label on the other-fwd track.
+
+# """
+
+# [setting.other-rev-name]
+# default = false
+# description = """
+
+# boolean: if true show gene track label on the other-rev track.
+
+# """

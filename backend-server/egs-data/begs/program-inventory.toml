@@ -16,7 +16,8 @@ programs = [
     "ruler",
     "framing",
     "focus-zoomed-transcript",
-    "focus-transcript"
+    "focus-transcript",
+    "focus-gene"
 ]
 
 [file.test.general]

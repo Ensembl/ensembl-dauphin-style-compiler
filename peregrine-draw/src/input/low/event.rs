@@ -49,7 +49,6 @@ impl EventHandle {
                 confused_browser(element.remove_event_listener_with_callback(&name,this.closure.as_ref().unchecked_ref()))
             }))
         }))))
-                
     }
 
     pub(crate) fn new_window<F,T>(name: &str, cb: F) -> Result<EventHandle,Message>

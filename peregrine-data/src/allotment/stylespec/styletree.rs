@@ -4,19 +4,21 @@ use crate::allotment::{style::{style::{ContainerAllotmentStyle}}, core::allotmen
 
 use super::{styletreebuilder::StyleTreeBuilder, specifiedstyle::SpecifiedStyle};
 
-/* These trees go leaf-to-root!, to make ** possible. It's best to think of these trees as enumerating all paths which
- * have distinct answers to questions of style, as far as they need to go to distinguish between them. Also, think of
- * the builder trees as largely the writable parallels of these rad-only trees.
+/* These trees go leaf-to-root!, to make ** possible. It's best to think of these trees as 
+ * enumerating all paths which have distinct answers to questions of style, as far as they need
+ * to go to distinguish between them. Also, think of the builder trees as largely the writable
+ * parallels of these read-only trees.
  * 
- * In this context implementing "** / X" means finding X and then 1. adding this style wherever a search might terminate
- * successfully and 2. stop things failing, but replace them with this. The only place a search can terminate is at a
- * completely matching node or at a node with no "None" child. So to add any's we first traverse through X and then flood
- * visit the rest of the extant tree.  Each node gets the relevant properties. Nodes without a None child (any) also get
+ * In this context implementing "** / X" means finding X and then 1. adding this style wherever
+ * a search might terminate successfully and 2. stop things failing, but replace them with this. 
+ * The only place a search can terminate is at a completely matching node or at a node with no
+ * "None" child. So to add any's we first traverse through X and then flood visit the rest of the
+ * extant tree.  Each node gets the relevant properties. Nodes without a None child (any) also get
  * one, with the all flag set to true so that all children get the indicated properties.
  */
 
-/* NB: In StyleTreeNodes, None means "other", ie all * properties which are not overridden are also propagated to extant
- * not-None leaves.
+/* NB: In StyleTreeNodes, None means "other", ie all * properties which are not overridden are also
+ * propagated to extant not-None leaves.
  */
 
 #[cfg_attr(debug_assertions,derive(Debug))]
