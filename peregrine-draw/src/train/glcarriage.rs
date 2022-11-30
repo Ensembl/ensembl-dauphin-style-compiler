@@ -1,4 +1,4 @@
-use peregrine_data::{Assets, DrawingCarriage, CarriageExtent, PeregrineApiQueue, DataMessage, SingleHotspotEntry};
+use peregrine_data::{Assets, DrawingCarriage, CarriageExtent, PeregrineApiQueue, DataMessage, SingleHotspotEntry, SpecialClick};
 use peregrine_toolkit::{lock, warn, error };
 use peregrine_toolkit_async::sync::asynconce::AsyncOnce;
 use peregrine_toolkit_async::sync::needed::Needed;
@@ -126,7 +126,7 @@ impl GLCarriage {
             .unwrap_or(false))
     }
 
-    pub(crate) fn special_hotspots(&self, stage: &ReadStage, position: (f64,f64)) -> Result<Vec<String>,Message> {
+    pub(crate) fn special_hotspots(&self, stage: &ReadStage, position: (f64,f64)) -> Result<Vec<SpecialClick>,Message> {
         Ok(get_drawing(&*lock!(self.0))?
             .map(|d| d.special_hotspots(stage,position)).transpose()?
             .unwrap_or(vec![]))

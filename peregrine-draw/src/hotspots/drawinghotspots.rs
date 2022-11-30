@@ -1,5 +1,5 @@
 use std::{sync::{Arc}};
-use peregrine_data::{ Scale, HotspotGroupEntry, SingleHotspotEntry };
+use peregrine_data::{ Scale, HotspotGroupEntry, SingleHotspotEntry, SpecialClick };
 use peregrine_toolkit::error::Error;
 use crate::stage::{stage::{ ReadStage }, axis::UnitConverter};
 use crate::util::message::Message;
@@ -115,7 +115,7 @@ impl DrawingHotspots {
         Ok(self.get_hotspot(stage,position_px)?.len() > 0)
     }
 
-    pub(crate) fn special_hotspots(&self, stage: &ReadStage, position_px: (f64,f64)) -> Result<Vec<String>,Message> {
+    pub(crate) fn special_hotspots(&self, stage: &ReadStage, position_px: (f64,f64)) -> Result<Vec<SpecialClick>,Message> {
         Ok(self.get_hotspot(stage,position_px)?.iter().filter_map(|x| x.value().get_special()).collect())
     }
 }

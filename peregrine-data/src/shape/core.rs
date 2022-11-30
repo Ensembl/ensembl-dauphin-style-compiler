@@ -1,6 +1,6 @@
 use std::{collections::{hash_map::DefaultHasher}, hash::{Hash, Hasher}, sync::Arc, rc::Rc};
 use peregrine_toolkit::eachorevery::{EachOrEveryFilter, EachOrEvery, eoestruct::{StructTemplate}};
-use crate::{hotspots::zmenupatina::ZMenu, HotspotResult, zmenu_generator};
+use crate::{hotspots::{zmenupatina::ZMenu, hotspots::SpecialClick}, HotspotResult, zmenu_generator, LeafStyle, SpaceBasePoint};
 use super::{settingmode::SettingMode};
 
 #[derive(Clone,Debug,PartialEq,Eq,Hash)]
@@ -119,18 +119,21 @@ pub enum HotspotPatina {
     Special(EachOrEvery<String>)
 }
 
-fn setting_generator(values: &EachOrEvery<(Vec<String>,SettingMode)>) -> Arc<dyn Fn(usize) -> HotspotResult> {
+fn setting_generator(values: &EachOrEvery<(Vec<String>,SettingMode)>) -> Arc<dyn Fn(usize,Option<(SpaceBasePoint<f64,LeafStyle>,SpaceBasePoint<f64,LeafStyle>)>) -> HotspotResult> {
     let values = Rc::new(values.clone());
-    Arc::new(move |index| {
+    Arc::new(move |index,_| {
         let (path,mode) = values.get(index).unwrap().clone();
         HotspotResult::Setting(path,mode)
     })
 }
 
-fn special_generator(values: &EachOrEvery<String>) -> Arc<dyn Fn(usize) -> HotspotResult> {
+fn special_generator(values: &EachOrEvery<String>) -> Arc<dyn Fn(usize,Option<(SpaceBasePoint<f64,LeafStyle>,SpaceBasePoint<f64,LeafStyle>)>) -> HotspotResult> {
     let values = Rc::new(values.clone());
-    Arc::new(move |index| {
-        HotspotResult::Special(values.get(index).unwrap().to_string())
+    Arc::new(move |index,area| {
+        HotspotResult::Special(SpecialClick {
+            name: values.get(index).unwrap().to_string(),
+            area
+        })
     })
 }
 
@@ -166,7 +169,7 @@ impl HotspotPatina {
         }
     }
 
-    pub fn generator(&self) -> Arc<dyn Fn(usize) -> HotspotResult> {
+    pub fn generator(&self) -> Arc<dyn Fn(usize,Option<(SpaceBasePoint<f64,LeafStyle>,SpaceBasePoint<f64,LeafStyle>)>) -> HotspotResult> {
         match self {
             HotspotPatina::ZMenu(zmenu,values) => {
                 zmenu_generator(&zmenu,values)

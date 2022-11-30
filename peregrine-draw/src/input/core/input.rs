@@ -1,5 +1,5 @@
 use std::sync::{ Arc, Mutex };
-use peregrine_data::{PeregrineCore};
+use peregrine_data::{PeregrineCore, SpecialClick};
 use peregrine_toolkit_async::sync::blocker::{Blocker, Lockout};
 
 use crate::PeregrineInnerAPI;
@@ -106,7 +106,7 @@ impl Input {
         }
     }
 
-    pub fn set_hotspot(&self, yn: bool, special: &[String]) {
+    pub fn set_hotspot(&self, yn: bool, special: &[SpecialClick]) {
         self.state(|state| state.low_level.set_hotspot(yn,special));
     }
 

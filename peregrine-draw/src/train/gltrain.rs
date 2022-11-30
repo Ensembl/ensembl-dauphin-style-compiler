@@ -1,4 +1,4 @@
-use peregrine_data::{ Scale, SingleHotspotEntry };
+use peregrine_data::{ Scale, SingleHotspotEntry, SpecialClick };
 use peregrine_toolkit::{lock};
 use peregrine_toolkit_async::sync::needed::Needed;
 use std::sync::{Arc, Mutex};
@@ -72,7 +72,7 @@ impl GLTrain {
         Ok(false)
     }
 
-    pub(crate) fn special_hotspots(&self, stage: &ReadStage, position: (f64,f64)) -> Result<Vec<String>,Message> {
+    pub(crate) fn special_hotspots(&self, stage: &ReadStage, position: (f64,f64)) -> Result<Vec<SpecialClick>,Message> {
         let mut out = vec![];
         for carriage in lock!(self.0).carriages.iter() {
             out.append(&mut carriage.special_hotspots(stage,position)?);

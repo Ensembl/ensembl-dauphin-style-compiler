@@ -19,8 +19,13 @@ impl Unknown {
 
 impl GestureNodeImpl for Unknown {
     fn init(&mut self, transition: &mut GestureNodeTransition, state: &mut GestureNodeState, fingers: &mut OneOrTwoFingers) -> Result<(),Message> {
-        if state.lowlevel.special_status(|s| s.contains(&"maypole".to_string())) {
-            transition.new_mode(GestureNode::new(MaypoleNode::new(&mut state.lowlevel,&fingers)?));
+        let maypole = state.lowlevel.special_status(|s| {
+            s.iter().filter(|x| {
+                x.name == "maypole"
+            }).cloned().next()
+        });
+        if let Some(maypole) = maypole {
+            transition.new_mode(GestureNode::new(MaypoleNode::new(&mut state.lowlevel,&fingers,&maypole)?));
             return Ok(());
         }
         self.hold_timer = Some(transition.add_timer(state.config.hold_delay));

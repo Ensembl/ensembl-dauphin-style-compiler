@@ -1,6 +1,6 @@
 use commander::CommanderStream;
 use peregrine_data::HotspotResult;
-use peregrine_toolkit::{debug_log, lock, log};
+use peregrine_toolkit::{debug_log, lock};
 use crate::{Message, PeregrineInnerAPI, PgCommanderWeb, input::{InputEvent, InputEventKind, low::lowlevel::LowLevelInput}, run::inner::LockedPeregrineInnerAPI};
 
 fn process_hotspot_event(api: &LockedPeregrineInnerAPI, x: f64, doc_y: f64) -> Result<(),Message> {
@@ -16,9 +16,7 @@ fn process_hotspot_event(api: &LockedPeregrineInnerAPI, x: f64, doc_y: f64) -> R
                 let path = path.iter().map(|x| x.as_str()).collect::<Vec<_>>();
                 api.data_api.update_switch(&path,value);
             },
-            HotspotResult::Special(value) => {
-                log!("special zone {}",value);
-            }
+            HotspotResult::Special(value) => {}
         }
     }
     if zmenus.len() > 0 {

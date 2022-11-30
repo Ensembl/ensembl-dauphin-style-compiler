@@ -16,7 +16,7 @@ use super::mouseinput::{ MouseEventHandler };
 use crate::input::{ InputEvent };
 use super::mapping::InputMap;
 use js_sys::Date;
-use peregrine_data::{Commander };
+use peregrine_data::{Commander, SpecialClick };
 use peregrine_toolkit::lock;
 use peregrine_toolkit::plumbing::distributor::Distributor;
 use peregrine_toolkit_async::sync::needed::Needed;
@@ -34,7 +34,7 @@ pub(crate) struct LowLevelState {
     spectres: SpectreManager,
     pointer_last_seen: Arc<Mutex<Option<(f64,f64)>>>,
     target_reporter: TargetReporter,
-    special: Arc<Mutex<Vec<String>>>
+    special: Arc<Mutex<Vec<SpecialClick>>>
 }
 
 impl LowLevelState {
@@ -103,7 +103,7 @@ impl LowLevelState {
         self.cursor.set(circ)
     }
 
-    pub(crate) fn special_status<F,X>(&self, cb: F) -> X where F: FnOnce(&[String]) -> X { 
+    pub(crate) fn special_status<F,X>(&self, cb: F) -> X where F: FnOnce(&[SpecialClick]) -> X { 
         cb(&lock!(self.special))
     }
     
@@ -142,7 +142,7 @@ impl LowLevelInput {
     pub fn pointer_last_seen(&self) -> Option<(f64,f64)> { self.state.pointer_last_seen() }
     pub fn get_mouse_move_waiter(&self) -> Needed { self.mouse_moved.clone() }
 
-    pub fn set_hotspot(&mut self, yn: bool, special: &[String]) {
+    pub fn set_hotspot(&mut self, yn: bool, special: &[SpecialClick]) {
         if yn {
             self.hotspot_cursor_handle = Some(Arc::new(self.state.set_cursor(&CursorCircumstance::Hotspot)));
         } else {

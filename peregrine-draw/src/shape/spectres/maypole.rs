@@ -1,5 +1,5 @@
 use std::{collections::HashMap, sync::{Arc, Mutex}};
-use peregrine_data::{Colour, DirectColour, DrawnType, Patina, SpaceBase, SpaceBaseArea, PartialSpaceBase, reactive::{Observable}, ProgramShapesBuilder, LeafRequest};
+use peregrine_data::{Colour, DirectColour, DrawnType, Patina, SpaceBase, SpaceBaseArea, PartialSpaceBase, reactive::{Observable}, ProgramShapesBuilder, LeafRequest, SpecialClick};
 use peregrine_toolkit::{eachorevery::EachOrEvery, lock};
 use crate::{Message, run::{PgConfigKey, PgPeregrineConfig}, shape::{util::eoethrow::eoe_throw}};
 use super::{spectre::{AreaVariables, Spectre}, spectremanager::{SpectreConfigKey, SpectreManager}};
@@ -9,24 +9,29 @@ pub(crate) struct Maypole {
     width: f64,
     colour: DirectColour,
     length: u32,
-    prop: f64
+    prop: f64,
+    y_pos: f64
 }
 
 impl Maypole {
-    pub(crate) fn new(config: &PgPeregrineConfig, manager: &SpectreManager) -> Result<Arc<Maypole>,Message> {
+    pub(crate) fn new(config: &PgPeregrineConfig, manager: &SpectreManager, special: &SpecialClick) -> Result<Arc<Maypole>,Message> {
+        let y_pos = special.area.as_ref().map(|(top_left,bottom_right)| {
+            (top_left.normal + bottom_right.normal) / 2.
+        }).unwrap_or(8.);
         let maypole = Arc::new(Maypole {
             area: Mutex::new(AreaVariables::new(manager.reactive())),
             width: config.get_f64(&PgConfigKey::Spectre(SpectreConfigKey::MarchingAntsWidth))?,
             colour: config.get_colour(&PgConfigKey::Spectre(SpectreConfigKey::MarchingAntsColour))?,
             length: config.get_f64(&PgConfigKey::Spectre(SpectreConfigKey::MarchingAntsLength))? as u32,
-            prop: config.get_f64(&PgConfigKey::Spectre(SpectreConfigKey::MarchingAntsProp))?
+            prop: config.get_f64(&PgConfigKey::Spectre(SpectreConfigKey::MarchingAntsProp))?,
+            y_pos
         });
         manager.add(&maypole);
         Ok(maypole)
     }
 
-    pub(crate) fn set_position(&self, pos: f64) {
-        lock!(self.area).update((0.,pos,0.,0.));
+    pub(crate) fn set_position(&self, pos: (f64,f64)) {
+        lock!(self.area).update((0.,pos.0,0.,0.));
     }
 
     fn pole(&self, shapes: &mut ProgramShapesBuilder, leaf: &LeafRequest) -> Result<(),Message> {
@@ -68,13 +73,13 @@ impl Maypole {
         let pos2 = lock!(self.area).tlbr().clone();
         let centre =  SpaceBase::new(
             &EachOrEvery::each(vec![0.]),
-            &EachOrEvery::each(vec![8.]),
+            &EachOrEvery::each(vec![self.y_pos]),
             &EachOrEvery::each(vec![0.]),
             &EachOrEvery::each(vec![leaf.clone()])
         ).unwrap();
         let obs = SpaceBase::new(
             &EachOrEvery::each(vec![Observable::constant(0.)]),
-            &EachOrEvery::each(vec![Observable::constant(0.)]),
+            &EachOrEvery::every(Observable::constant(0.)),
             &EachOrEvery::every(pos2.1.observable()),
             &EachOrEvery::every(())
         ).unwrap();

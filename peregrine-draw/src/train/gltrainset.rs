@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash};
 use std::sync::{ Arc, Mutex };
-use peregrine_data::{Assets, CarriageSpeed, PeregrineCore, Scale, DrawingCarriage, TrainIdentity, PeregrineApiQueue, SingleHotspotEntry};
+use peregrine_data::{Assets, CarriageSpeed, PeregrineCore, Scale, DrawingCarriage, TrainIdentity, PeregrineApiQueue, SingleHotspotEntry, SpecialClick};
 use peregrine_toolkit::error::Error;
 use peregrine_toolkit::{lock};
 use peregrine_toolkit_async::sync::needed::{Needed, NeededLock};
@@ -258,7 +258,7 @@ impl GlRailwayData {
         }).unwrap_or(Ok(false))
     }
 
-    fn special_hotspots(&mut self, stage: &ReadStage, position: (f64,f64)) -> Result<Vec<String>,Message> {
+    fn special_hotspots(&mut self, stage: &ReadStage, position: (f64,f64)) -> Result<Vec<SpecialClick>,Message> {
         self.train_for_hotspots().map(|t| {
             t.special_hotspots(stage,position)
         }).unwrap_or(Ok(vec![]))
@@ -322,7 +322,7 @@ impl GlRailway {
         lock!(self.data).any_hotspot(stage,position)
     }
 
-    pub(crate) fn special_hotspots(&self,stage: &ReadStage, position: (f64,f64)) -> Result<Vec<String>,Message> {
+    pub(crate) fn special_hotspots(&self,stage: &ReadStage, position: (f64,f64)) -> Result<Vec<SpecialClick>,Message> {
         lock!(self.data).special_hotspots(stage,position)
     }
 

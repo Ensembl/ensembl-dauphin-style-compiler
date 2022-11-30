@@ -1,17 +1,23 @@
 use std::{sync::Arc };
 use peregrine_toolkit::{ identitynumber, orderable, hashable };
-use crate::{ZMenuFixed, SettingMode, SpaceBaseArea, LeafStyle, HotspotPatina, SpaceBasePointRef};
+use crate::{ZMenuFixed, SettingMode, SpaceBaseArea, LeafStyle, HotspotPatina, SpaceBasePointRef, SpaceBasePoint};
+
+#[derive(Clone)]
+pub struct SpecialClick {
+    pub name: String,
+    pub area: Option<(SpaceBasePoint<f64,LeafStyle>,SpaceBasePoint<f64,LeafStyle>)>
+}
 
 pub enum HotspotResult {
     ZMenu(ZMenuFixed),
     Setting(Vec<String>,SettingMode),
-    Special(String)
+    Special(SpecialClick)
 }
 
 impl HotspotResult {
-    pub fn get_special(&self) -> Option<String> {
+    pub fn get_special(&self) -> Option<SpecialClick> {
         match self {
-            HotspotResult::Special(x) => Some(x.to_string()),
+            HotspotResult::Special(c) => Some(c.clone()),
             _ => None
         }
     }
@@ -21,7 +27,7 @@ identitynumber!(IDS);
 
 #[derive(Clone)]
 pub struct HotspotGroupEntry {
-    generator: Arc<dyn Fn(usize) -> HotspotResult>,
+    generator: Arc<dyn Fn(usize,Option<(SpaceBasePoint<f64,LeafStyle>,SpaceBasePoint<f64,LeafStyle>)>) -> HotspotResult>,
     area: SpaceBaseArea<f64,LeafStyle>,
     id: u64
 }
@@ -39,7 +45,12 @@ impl HotspotGroupEntry {
     }
 
     pub fn area(&self) -> &SpaceBaseArea<f64,LeafStyle> { &self.area }
-    pub fn value(&self, index: usize) -> HotspotResult { (self.generator)(index) }
+    pub fn value(&self, index: usize) -> HotspotResult { 
+        let top_left = self.area.top_left().get(index).map(|x| x.make());
+        let bottom_right = self.area.bottom_right().get(index).map(|x| x.make());
+        let position = top_left.zip(bottom_right);
+        (self.generator)(index,position)
+    }
 }
 
 #[derive(Clone)]

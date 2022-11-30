@@ -1,6 +1,6 @@
 use std::sync::{ Arc, Mutex, Weak };
 use keyed::{ keyed_handle };
-use peregrine_data::{Assets, reactive::Reactive};
+use peregrine_data::{Assets, reactive::Reactive, SpecialClick};
 use peregrine_toolkit_async::{sync::needed::{Needed, NeededLock, NeededOnDrop}};
 use peregrine_toolkit::{lock};
 use crate::{Message, run::PgPeregrineConfig, stage::stage::ReadStage, webgl::{DrawingSession, global::WebGlGlobal}, PgCommanderWeb, shape::spectres::{ants::{MarchingAnts}, stain::Stain}};
@@ -94,8 +94,8 @@ impl SpectreManager {
         Stain::new(&self.config,&self,flip)
     }
 
-    pub(crate) fn maypole(&mut self) -> Result<Arc<Maypole>,Message> {
-        Maypole::new(&self.config,&self)
+    pub(crate) fn maypole(&mut self, special: &SpecialClick) -> Result<Arc<Maypole>,Message> {
+        Maypole::new(&self.config,&self, special)
     }
 
     pub(crate) fn add<X>(&self, spectre: &Arc<X>) where X: Spectre + 'static {

@@ -2,12 +2,24 @@ use std::ops::{Add, Div};
 use std::hash::Hash;
 
 use peregrine_toolkit::eachorevery::{EachOrEvery, EachOrEveryFilter, EachOrEveryGroupCompatible};
+use peregrine_toolkit::ubail;
 
 pub struct SpaceBasePoint<X,Y> {
     pub base: X,
     pub normal: X,
     pub tangent: X,
     pub allotment: Y
+}
+
+impl<X: Clone, Y: Clone> Clone for SpaceBasePoint<X,Y> {
+    fn clone(&self) -> Self {
+        Self {
+            base: self.base.clone(),
+            normal: self.normal.clone(),
+            tangent: self.tangent.clone(),
+            allotment: self.allotment.clone()
+        }
+    }
 }
 
 impl<X,Y> SpaceBasePoint<X,Y> {
@@ -120,6 +132,15 @@ impl<X,Y> SpaceBase<X,Y> {
             allotment: self.allotment.map(cb),
             len: self.len
         }
+    }
+
+    pub fn get(&self, pos: usize) -> Option<SpaceBasePointRef<X,Y>> {
+        Some(SpaceBasePointRef {
+            base: ubail!(self.base.get(pos),None),
+            normal: ubail!(self.normal.get(pos),None),
+            tangent: ubail!(self.tangent.get(pos),None),
+            allotment: ubail!(self.allotment.get(pos),None)
+        })
     }
 
     pub fn into_new_allotment<F,A>(self, cb: F) -> SpaceBase<X,A> where F: Fn(&Y) -> A {

@@ -348,5 +348,5 @@ pub use self::request::minirequests::programres::{ ProgramRes };
 pub use self::hotspots::zmenupatina::{ ZMenu, zmenu_generator };
 pub use self::hotspots::zmenuitem::{ ZMenuFixed, zmenu_item_list_to_json, zmenu_to_json };
 pub use self::hotspots::hotspots::{ 
-    HotspotResult, HotspotGroupEntry, SingleHotspotEntry
+    HotspotResult, HotspotGroupEntry, SingleHotspotEntry, SpecialClick
 };
