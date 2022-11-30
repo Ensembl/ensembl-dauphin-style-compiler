@@ -4,7 +4,7 @@ use crate::{run::PgPeregrineConfig };
 use peregrine_toolkit::lock;
 use peregrine_toolkit::plumbing::oneshot::OneShot;
 use peregrine_toolkit_async::sync::needed::Needed;
-use web_sys::{Event, MouseEvent, PointerEvent, WheelEvent};
+use web_sys::{Event, MouseEvent, PointerEvent, WheelEvent, HtmlCanvasElement};
 use crate::util::{ Message };
 use crate::util::error::confused_browser;
 use super::event::EventHandle;
@@ -164,16 +164,36 @@ impl MouseEventHandler {
     }
 }
 
+fn add_window_handles(handler: &MouseEventHandler, canvas: &HtmlCanvasElement, mouse_moved: &Needed) -> Result<(),Message> {
+    let window_handles = Arc::new(Mutex::new(vec![]));
+    let mut handler2 = handler.clone();
+    let mouse_moved2 = mouse_moved.clone();
+    let window_handles2 = window_handles.clone();
+    let mut handles = lock!(window_handles);
+    handles.push(EventHandle::new_window("pointerup", move |event: &PointerEvent| {
+        *lock!(window_handles2) = vec![];
+        handler2.mouse_event(&PointerEventKind::Up,event,&mouse_moved2)
+    })?);
+    let mut handler2 = handler.clone();
+    let mouse_moved2 = mouse_moved.clone();
+    handles.push(EventHandle::new_window("pointermove", move |event: &PointerEvent| {
+        handler2.mouse_event(&PointerEventKind::Move,event,&mouse_moved2)
+    })?);
+    Ok(())
+}
+
 pub(super) fn mouse_events(config: &PgPeregrineConfig, state: &LowLevelState, gl: &Arc<Mutex<WebGlGlobal>>, mouse_moved: &Needed) -> Result<Vec<EventHandle>,Message> {
     let mouse_config = Arc::new(PointerConfig::new(config)?);
     let dom = state.dom();
     let canvas = dom.canvas();
     let mut handles = vec![];
-    let mut handler = MouseEventHandler::new(mouse_config,state,gl,dom.shutdown());
+    let handler = MouseEventHandler::new(mouse_config,state,gl,dom.shutdown());
     confused_browser(canvas.style().set_property("touch-action","none"))?;
     let mut handler2 = handler.clone();
     let mouse_moved2 = mouse_moved.clone();
+    let canvas2 = canvas.clone();
     handles.push(EventHandle::new(canvas,"pointerdown", move |event: &PointerEvent| {
+        add_window_handles(&handler2,&canvas2,&mouse_moved2);
         handler2.mouse_event(&PointerEventKind::Down,event,&mouse_moved2)
     })?);
     let mut handler2 = handler.clone();
@@ -189,10 +209,6 @@ pub(super) fn mouse_events(config: &PgPeregrineConfig, state: &LowLevelState, gl
     let mut handler2 = handler.clone();
     handles.push(EventHandle::new(canvas,"wheel", move |event: &WheelEvent| {
         handler2.wheel_event(event)
-    })?);
-    let mut handler2 = handler.clone();
-    handles.push(EventHandle::new(canvas,"pointerleave", move |event: &PointerEvent| {
-        handler2.abandon(&event)
     })?);
     handles.push(EventHandle::new(canvas,"scroll", |_: &Event| {})?);
     handles.push(EventHandle::new(canvas,"contextmenu", |_: &Event| {})?);

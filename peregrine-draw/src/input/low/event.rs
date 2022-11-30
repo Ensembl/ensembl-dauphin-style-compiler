@@ -37,7 +37,7 @@ impl Drop for CallbackStore {
 pub(crate) struct EventHandle(Arc<Mutex<CallbackStore>>);
 
 impl EventHandle {
-    pub(crate) fn new<F,T>(element: &HtmlElement, name: &str, mut cb: F) -> Result<EventHandle,Message>
+    pub(crate) fn new<F,T>(element: &HtmlElement, name: &str, cb: F) -> Result<EventHandle,Message>
             where F: FnMut(&T) + 'static, T: TryFrom<JsValue> + 'static {
         let closure = make_closure2(cb);
         let element = element.clone();
@@ -52,7 +52,7 @@ impl EventHandle {
                 
     }
 
-    pub(crate) fn new_window<F,T>(name: &str, mut cb: F) -> Result<EventHandle,Message>
+    pub(crate) fn new_window<F,T>(name: &str, cb: F) -> Result<EventHandle,Message>
             where F: FnMut(&T) + 'static, T: TryFrom<JsValue> + 'static {
         let closure = make_closure2(cb);
         let name = name.to_string();
