@@ -1,18 +1,16 @@
 use std::{sync::{Arc}};
-
 use crate::{allotment::{style::{style::{ContainerAllotmentStyle}}, core::allotmentname::AllotmentNamePart}, LeafStyle, LeafRequest};
-
 use super::{styletree::StyleTree, specifiedstyle::{InheritableStyle, SpecifiedStyle}};
 
 #[cfg_attr(debug_assertions,derive(Debug))]
 #[derive(Clone)]
-pub struct AllotmentStyleGroup {
+pub struct AllStylesForProgram {
     tree: Arc<StyleTree>
 }
 
-impl AllotmentStyleGroup {
-    pub fn new(tree: StyleTree) -> AllotmentStyleGroup {
-        AllotmentStyleGroup {
+impl AllStylesForProgram {
+    pub fn new(tree: StyleTree) -> AllStylesForProgram {
+        AllStylesForProgram {
             tree: Arc::new(tree)
         }
     }

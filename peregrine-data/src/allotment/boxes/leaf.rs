@@ -1,20 +1,18 @@
 use std::{sync::{Arc}};
 use peregrine_toolkit::{puzzle::{DelayedSetter, constant, derived, StaticValue, StaticAnswer, promise_delayed, cache_constant_clonable, delayed }};
-use crate::{allotment::{core::{allotmentname::{AllotmentName, AllotmentNamePart}, boxtraits::{Stackable, BuildSize }, boxpositioncontext::BoxPositionContext, drawinginfo::DrawingInfo}, style::{style::{LeafStyle, Indent}}, util::{rangeused::RangeUsed, bppxconverter::BpPxConverter}, globals::playingfield::PlayingFieldEdge}, CoordinateSystem};
+use crate::{allotment::{core::{allotmentname::{AllotmentName, AllotmentNamePart}, boxtraits::{ContainerOrLeaf, BuildSize }, boxpositioncontext::BoxPositionContext, drawinginfo::DrawingInfo}, style::{style::{LeafStyle, Indent}}, util::{rangeused::RangeUsed, bppxconverter::BpPxConverter}, globals::playingfield::PlayingFieldEdge, stylespec::stylegroup::AllStylesForProgram}, CoordinateSystem, LeafRequest};
 
 // TODO ranged bppxconverter
-fn full_range_piece(coord_system: &CoordinateSystem, base_range: &RangeUsed<f64>, pixel_range: &RangeUsed<f64>, bp_px_converter: &StaticValue<Arc<BpPxConverter>>) -> StaticValue<RangeUsed<f64>> {
+fn full_range_piece(coord_system: &CoordinateSystem, base_range: &RangeUsed<f64>, pixel_range: &RangeUsed<f64>, bp_px_converter: &Arc<BpPxConverter>) -> RangeUsed<f64> {
     let base_range = base_range.clone();
     let pixel_range = pixel_range.clone();
     let bp_px_converter = bp_px_converter.clone();
     let coord_system = coord_system.clone();
-    cache_constant_clonable(derived(bp_px_converter,move |bp_px_converter| {
-        if coord_system.is_tracking() {
-            bp_px_converter.full_carriage_range(&base_range,&pixel_range)
-        } else {
-            pixel_range.clone()
-        }
-    }))
+    if coord_system.is_tracking() {
+        bp_px_converter.full_carriage_range(&base_range,&pixel_range)
+    } else {
+        pixel_range.clone()
+    }
 }
 
 #[derive(Clone)]
@@ -25,14 +23,13 @@ pub struct FloatingLeaf {
     indent: StaticValue<Option<f64>>,
     indent_setter: DelayedSetter<'static,'static,f64>,
     max_y_piece_setter: DelayedSetter<'static,'static,f64>,
-    converter: StaticValue<Arc<BpPxConverter>>,
     top_setter: Option<DelayedSetter<'static,'static,f64>>,
     top: StaticValue<f64>,
     drawing_info: Arc<DrawingInfo>
 }
 
 impl FloatingLeaf {
-    pub fn new(name: &AllotmentNamePart, converter: &Arc<BpPxConverter>, statics: &LeafStyle, drawing_info: &DrawingInfo) -> FloatingLeaf {
+    pub fn new(name: &AllotmentNamePart, statics: &LeafStyle, drawing_info: &DrawingInfo) -> FloatingLeaf {
         let drawing_info = Arc::new(drawing_info.clone());
         let (max_y_piece_setter,max_y_piece) = promise_delayed();
         if statics.coord_system.is_dustbin() {
@@ -48,7 +45,6 @@ impl FloatingLeaf {
         FloatingLeaf {
             name: AllotmentName::from_part(name),
             statics: Arc::new(statics.clone()),
-            converter: constant(converter.clone()), // kept in puzzle because SHOULD be variable
             max_y_piece, max_y_piece_setter,
             top_setter, top,
             indent,
@@ -57,36 +53,37 @@ impl FloatingLeaf {
         }
     }
 
-    fn full_range(&self, base_range: &RangeUsed<f64>, pixel_range: &RangeUsed<f64>, bp_px_converter: &StaticValue<Arc<BpPxConverter>>) -> StaticValue<RangeUsed<f64>> { 
+    fn full_range(&self, base_range: &RangeUsed<f64>, pixel_range: &RangeUsed<f64>, bp_px_converter: &Arc<BpPxConverter>) -> RangeUsed<f64> { 
         let full_range_piece = full_range_piece(
             &self.statics.coord_system,&base_range,&pixel_range,bp_px_converter);
         if self.statics.coord_system.is_tracking() && !self.statics.bump_invisible {
             full_range_piece.clone()
         } else {
-            constant(RangeUsed::None)
+            RangeUsed::None
         }
-    }
-
-    pub(crate) fn name(&self) -> &AllotmentName { &self.name }
-
-    pub(crate) fn make(&self, answer_index: &StaticAnswer) -> AnchoredLeaf {
-        AnchoredLeaf::new(answer_index,self)
     }
 }
 
-impl Stackable for FloatingLeaf {
-    fn add_child(&self, child: &dyn Stackable) { panic!("adding child to leaf"); }
+impl ContainerOrLeaf for FloatingLeaf {
+    fn anchor_leaf(&self, answer_index: &StaticAnswer) -> Option<AnchoredLeaf> {
+        Some(AnchoredLeaf::new(answer_index,self))
+    }
+
+    fn get_leaf(&mut self, pending: &LeafRequest, cursor: usize, styles: &Arc<AllStylesForProgram>) -> FloatingLeaf {
+        panic!("get_leaf called on leaf!");
+    }
+    
     fn coordinate_system(&self) -> &CoordinateSystem { &self.statics.coord_system }
     fn priority(&self) -> i64 { self.statics.priority }
-    fn cloned(&self) -> Box<dyn Stackable> { Box::new(self.clone()) }
+    fn cloned(&self) -> Box<dyn ContainerOrLeaf> { Box::new(self.clone()) }
     fn name(&self) -> &AllotmentName { &self.name }
 
-    fn build(&self, _prep: &mut BoxPositionContext) -> BuildSize {
+    fn build(&self, prep: &mut BoxPositionContext) -> BuildSize {
         self.max_y_piece_setter.set(constant(self.drawing_info.max_y()));
         BuildSize {
             name: self.name.clone(),
             height: self.max_y_piece.clone(),
-            range: self.full_range(self.drawing_info.base_range(),self.drawing_info.pixel_range(),&self.converter)
+            range: self.full_range(self.drawing_info.base_range(),self.drawing_info.pixel_range(),&prep.bp_px_converter)
         }
     }
 

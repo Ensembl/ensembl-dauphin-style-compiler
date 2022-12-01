@@ -1,6 +1,6 @@
 use std::{sync::{Arc, Mutex}};
-use peregrine_toolkit::{puzzle::{StaticAnswer}, lock, timer_start, timer_end, error::Error };
-use crate::{ShapeRequestGroup, CarriageExtent, shape::{shape::{DrawingShape, UnplacedShape, FloatingShape}, metadata::AbstractMetadataBuilder}, allotment::{core::allotmentname::allotmentname_hashmap, boxes::leaf::AnchoredLeaf} };
+use peregrine_toolkit::{puzzle::{StaticAnswer}, lock, timer_start, timer_end, error::Error, log };
+use crate::{ShapeRequestGroup, CarriageExtent, shape::{shape::{DrawingShape, UnplacedShape, FloatingShape}, metadata::AbstractMetadataBuilder}, allotment::{core::{allotmentname::allotmentname_hashmap, boxtraits::ContainerOrLeaf}, boxes::leaf::AnchoredLeaf} };
 use super::{leaflist::LeafList, trainstate::{CarriageTrainStateSpec}};
 
 struct AbstractCarriageBuilder {
@@ -13,6 +13,7 @@ impl AbstractCarriageBuilder {
     fn build(&mut self) -> Result<AbstractCarriageState,Error> {
         /* Extract metadata */
         let mut metadata = AbstractMetadataBuilder::new();
+        log!("Add shapes");
         metadata.add_shapes(&self.shapes);
         let metadata = metadata.build();
         let (spec,plm) = self.builder.position_boxes(self.shape_request_group.as_ref(),&metadata)?;
@@ -91,10 +92,10 @@ impl AbstractCarriage {
             timer_start!("make_drawing_shapes");
             let z = input.map_new_allotment(|x| {
                 transformer_cache.entry(x.name().clone()).or_insert_with(|| {
-                    x.make(answer) // Transformable (FloatingLeaf) -> Transformer (AnchoredLeaf)
+                    x.anchor_leaf(answer).unwrap() // FloatingLeaf -> AnchoredLeaf
                 }).clone()
             });
-            out.append(&mut z.make()); // Transformer (AnchoredLeaf) -> LeafStyle
+            out.append(&mut z.make()); //  AnchoredLeaf -> LeafStyle
             timer_end!("make_drawing_shapes");
         }
         Ok(out)

@@ -1,7 +1,7 @@
-use std::rc::Rc;
-use peregrine_toolkit::{puzzle::{derived, DelayedSetter, compose, StaticValue, promise_delayed, cache_constant_rc, short_memoized_rc, compose_slice_vec }};
-use crate::{allotment::{core::{allotmentname::{AllotmentNamePart, AllotmentName}, boxtraits::{Stackable, BuildSize, ContainerSpecifics }, boxpositioncontext::BoxPositionContext}, style::{style::{ContainerAllotmentStyle}}, collision::{collisionalgorithm::{BumpRequestSet, BumpRequest, BumpResponses}}}, CoordinateSystem};
-use super::{container::{Container}};
+use std::{rc::Rc, sync::Arc};
+use peregrine_toolkit::{puzzle::{derived, DelayedSetter, compose, StaticValue, promise_delayed, cache_constant_rc, short_memoized_rc, compose_slice_vec, StaticAnswer }};
+use crate::{allotment::{core::{allotmentname::{AllotmentNamePart, AllotmentName}, boxtraits::{ContainerOrLeaf, BuildSize, ContainerSpecifics }, boxpositioncontext::BoxPositionContext}, style::{style::{ContainerAllotmentStyle}}, collision::{collisionalgorithm::{BumpRequestSet, BumpRequest, BumpResponses}}, stylespec::stylegroup::AllStylesForProgram}, CoordinateSystem, LeafRequest};
+use super::{container::{Container}, leaf::{AnchoredLeaf, FloatingLeaf}};
 
 #[derive(Clone)]
 pub struct Bumper(Container);
@@ -12,14 +12,18 @@ impl Bumper {
     }
 }
 
-impl Stackable for Bumper {
+impl ContainerOrLeaf for Bumper {
+    fn get_leaf(&mut self, pending: &LeafRequest, cursor: usize, styles: &Arc<AllStylesForProgram>) -> FloatingLeaf {
+        self.0.get_leaf(pending,cursor,styles)
+    }
+
+    fn anchor_leaf(&self, answer_index: &StaticAnswer) -> Option<AnchoredLeaf> { None }
     fn coordinate_system(&self) -> &CoordinateSystem { self.0.coordinate_system() }
-    fn cloned(&self) -> Box<dyn Stackable> { Box::new(self.clone()) }
+    fn cloned(&self) -> Box<dyn ContainerOrLeaf> { Box::new(self.clone()) }
     fn locate(&self, prep: &mut BoxPositionContext, top: &StaticValue<f64>) { self.0.locate(prep,top); }
     fn name(&self) -> &AllotmentName { self.0.name( )}
     fn priority(&self) -> i64 { self.0.priority() }
     fn build(&self, prep: &mut BoxPositionContext) -> BuildSize { self.0.build(prep) }
-    fn add_child(&self, child: &dyn Stackable) { self.0.add_child(child) }
 }
 
 #[derive(Clone)]
@@ -42,7 +46,7 @@ impl UnpaddedBumper {
 impl ContainerSpecifics for UnpaddedBumper {
     fn cloned(&self) -> Box<dyn ContainerSpecifics> { Box::new(self.clone()) }
 
-    fn build_reduce(&self, prep: &mut BoxPositionContext, children: &[(&Box<dyn Stackable>,BuildSize)]) -> StaticValue<f64> {
+    fn build_reduce(&self, prep: &mut BoxPositionContext, children: &[(&Box<dyn ContainerOrLeaf>,BuildSize)]) -> StaticValue<f64> {
         /* build all_items, a solution-invariant structure of everything we need to bump each time */
         let mut items = vec![];
         for (_,size) in children {
@@ -64,7 +68,7 @@ impl ContainerSpecifics for UnpaddedBumper {
         derived(self.results.clone(),|c| c.height() as f64)
     }
 
-    fn set_locate(&self, prep: &mut BoxPositionContext, top: &StaticValue<f64>, children: &mut [&mut Box<dyn Stackable>]) {
+    fn set_locate(&self, prep: &mut BoxPositionContext, top: &StaticValue<f64>, children: &mut [&mut Box<dyn ContainerOrLeaf>]) {
         for child in children.iter_mut() {
             /* Retrieve algorithm offset from bumper top */
             let name = child.name().clone();

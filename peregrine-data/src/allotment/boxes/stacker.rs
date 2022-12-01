@@ -1,7 +1,7 @@
 use std::{sync::Arc, rc::Rc};
-use peregrine_toolkit::{puzzle::{ derived, DelayedSetter, delayed, compose, StaticValue, commute_clonable, cache_constant_clonable, compose_slice_vec, short_memoized, cache_constant_rc }};
-use crate::{allotment::{style::{style::{ContainerAllotmentStyle}}, core::{allotmentname::{AllotmentNamePart, AllotmentName}, boxtraits::{Stackable, BuildSize, ContainerSpecifics}, boxpositioncontext::BoxPositionContext}}, CoordinateSystem};
-use super::{container::{Container}};
+use peregrine_toolkit::{puzzle::{ derived, DelayedSetter, delayed, compose, StaticValue, commute_clonable, cache_constant_clonable, compose_slice_vec, short_memoized, cache_constant_rc, StaticAnswer }};
+use crate::{allotment::{style::{style::{ContainerAllotmentStyle}}, core::{allotmentname::{AllotmentNamePart, AllotmentName}, boxtraits::{ContainerOrLeaf, BuildSize, ContainerSpecifics}, boxpositioncontext::BoxPositionContext}, stylespec::stylegroup::AllStylesForProgram}, CoordinateSystem, LeafRequest};
+use super::{container::{Container}, leaf::{AnchoredLeaf, FloatingLeaf}};
 
 #[derive(Clone)]
 pub struct Stacker(Container);
@@ -59,10 +59,13 @@ impl UnpaddedStacker {
     }
 }
 
-impl Stackable for Stacker {
-    fn add_child(&self, child: &dyn Stackable) { self.0.add_child(child) }
+impl ContainerOrLeaf for Stacker {
+    fn get_leaf(&mut self, pending: &LeafRequest, cursor: usize, styles: &Arc<AllStylesForProgram>) -> FloatingLeaf {
+        self.0.get_leaf(pending,cursor,styles)
+    }
+    fn anchor_leaf(&self, answer_index: &StaticAnswer) -> Option<AnchoredLeaf> { None }
     fn coordinate_system(&self) -> &CoordinateSystem { self.0.coordinate_system() }
-    fn cloned(&self) -> Box<dyn Stackable> { Box::new(self.clone()) }
+    fn cloned(&self) -> Box<dyn ContainerOrLeaf> { Box::new(self.clone()) }
     fn name(&self) -> &AllotmentName { self.0.name( )}
     fn locate(&self, prep: &mut BoxPositionContext, top: &StaticValue<f64>) { self.0.locate(prep,top); }
     fn priority(&self) -> i64 { self.0.priority() }
@@ -72,7 +75,7 @@ impl Stackable for Stacker {
 impl ContainerSpecifics for UnpaddedStacker {
     fn cloned(&self) -> Box<dyn ContainerSpecifics> { Box::new(self.clone()) }
 
-    fn build_reduce(&self, _prep: &mut BoxPositionContext, children: &[(&Box<dyn Stackable>,BuildSize)]) -> StaticValue<f64> {
+    fn build_reduce(&self, _prep: &mut BoxPositionContext, children: &[(&Box<dyn ContainerOrLeaf>,BuildSize)]) -> StaticValue<f64> {
         let mut added = vec![];
         for (child,size) in children {
             added.push(AddedChild {
@@ -85,7 +88,7 @@ impl ContainerSpecifics for UnpaddedStacker {
         self_height
     }
 
-    fn set_locate(&self, prep: &mut BoxPositionContext, top: &StaticValue<f64>, children: &mut [&mut Box<dyn Stackable>]) {
+    fn set_locate(&self, prep: &mut BoxPositionContext, top: &StaticValue<f64>, children: &mut [&mut Box<dyn ContainerOrLeaf>]) {
         for (i,child) in children.iter_mut().enumerate() {
             let relative_top = derived(self.relative_tops.clone(),move |tops|
                 tops.unwrap()[i]

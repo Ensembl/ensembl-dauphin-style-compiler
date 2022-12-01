@@ -36,7 +36,7 @@ impl Ord for AllotmentName {
 }
 
 impl AllotmentName {
-    fn do_new(name: Vec<String>, container: bool) -> AllotmentName {
+    pub(crate) fn do_new(name: Vec<String>, container: bool) -> AllotmentName {
         let mut hasher = DefaultHasher::new();
         name.hash(&mut hasher);
         container.hash(&mut hasher);
@@ -151,6 +151,12 @@ impl AllotmentNamePart {
     pub(crate) fn full(&self) -> &AllotmentName { &self.name }
     pub(crate) fn empty(&self) -> bool { self.end == self.start }
     pub(crate) fn sequence(&self) -> &[String] { &self.name.name[self.start..self.end] }
+    pub(crate) fn removed_head(&self) -> AllotmentNamePart {
+        let mut out = self.clone();
+        out.start = 0;
+        out.end = self.start;
+        out
+    }
 
     pub(crate) fn shift(&self) -> Option<(String,AllotmentNamePart)> {
         if !self.empty() {

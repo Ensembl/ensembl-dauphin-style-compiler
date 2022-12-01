@@ -1,6 +1,8 @@
-use peregrine_toolkit::{puzzle::{StaticValue, commute_clonable}};
-use crate::{allotment::{core::{ allotmentname::{AllotmentNamePart, AllotmentName}, boxtraits::{ContainerSpecifics, BuildSize, Stackable}, boxpositioncontext::BoxPositionContext}, style::{style::{ContainerAllotmentStyle}}}, CoordinateSystem};
-use super::{container::{Container}};
+use std::sync::Arc;
+
+use peregrine_toolkit::{puzzle::{StaticValue, commute_clonable, StaticAnswer}};
+use crate::{allotment::{core::{ allotmentname::{AllotmentNamePart, AllotmentName}, boxtraits::{ContainerSpecifics, BuildSize, ContainerOrLeaf}, boxpositioncontext::BoxPositionContext}, style::{style::{ContainerAllotmentStyle}}, stylespec::stylegroup::AllStylesForProgram}, CoordinateSystem, LeafRequest};
+use super::{container::{Container}, leaf::{AnchoredLeaf, FloatingLeaf}};
 
 #[derive(Clone)]
 pub struct Overlay(Container);
@@ -21,10 +23,13 @@ impl UnpaddedOverlay {
     }
 }
 
-impl Stackable for Overlay {
-    fn add_child(&self, child: &dyn Stackable) { self.0.add_child(child) }
+impl ContainerOrLeaf for Overlay {
+    fn get_leaf(&mut self, pending: &LeafRequest, cursor: usize, styles: &Arc<AllStylesForProgram>) -> FloatingLeaf {
+        self.0.get_leaf(pending,cursor,styles)
+    }
+    fn anchor_leaf(&self, answer_index: &StaticAnswer) -> Option<AnchoredLeaf> { None }
     fn coordinate_system(&self) -> &CoordinateSystem { self.0.coordinate_system() }
-    fn cloned(&self) -> Box<dyn Stackable> { Box::new(self.clone()) }
+    fn cloned(&self) -> Box<dyn ContainerOrLeaf> { Box::new(self.clone()) }
     fn locate(&self, prep: &mut BoxPositionContext, top: &StaticValue<f64>) { self.0.locate(prep,top); }
     fn name(&self) -> &AllotmentName { self.0.name( )}
     fn priority(&self) -> i64 { self.0.priority() }
@@ -34,12 +39,12 @@ impl Stackable for Overlay {
 impl ContainerSpecifics for UnpaddedOverlay {
     fn cloned(&self) -> Box<dyn ContainerSpecifics> { Box::new(self.clone()) }
 
-    fn build_reduce(&self, _prep: &mut BoxPositionContext, children: &[(&Box<dyn Stackable>,BuildSize)]) -> StaticValue<f64> {
+    fn build_reduce(&self, _prep: &mut BoxPositionContext, children: &[(&Box<dyn ContainerOrLeaf>,BuildSize)]) -> StaticValue<f64> {
         let heights = children.iter().map(|x| x.1.height.clone()).collect::<Vec<_>>();
         commute_clonable(&heights,0.,|a,b| f64::max(*a,*b))
     }
 
-    fn set_locate(&self, prep: &mut BoxPositionContext, top: &StaticValue<f64>, children: &mut [&mut Box<dyn Stackable>]) {
+    fn set_locate(&self, prep: &mut BoxPositionContext, top: &StaticValue<f64>, children: &mut [&mut Box<dyn ContainerOrLeaf>]) {
         for child in children {
             child.locate(prep,&top);
         }

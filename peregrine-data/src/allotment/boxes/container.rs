@@ -1,6 +1,8 @@
-use std::{sync::{Arc, Mutex}, rc::Rc};
-use peregrine_toolkit::{lock, puzzle::{DelayedSetter, derived, cache_constant, commute_rc, constant, StaticValue, promise_delayed, short_memoized_clonable, cache_constant_clonable }, eachorevery::eoestruct::StructTemplate};
-use crate::{allotment::{core::{allotmentname::{AllotmentName, AllotmentNamePart}, boxtraits::{ContainerSpecifics, BuildSize, Stackable}, boxpositioncontext::BoxPositionContext}, style::{style::{ContainerAllotmentStyle}}, util::rangeused::RangeUsed, globals::allotmentmetadata::LocalAllotmentMetadataBuilder}, shape::metadata::MetadataStyle, CoordinateSystem};
+use std::{sync::{Arc, Mutex}, rc::Rc, collections::HashMap};
+use peregrine_toolkit::{lock, puzzle::{DelayedSetter, derived, cache_constant, commute_rc, constant, StaticValue, promise_delayed, short_memoized_clonable, cache_constant_clonable, StaticAnswer }, eachorevery::eoestruct::StructTemplate, error::Error, log};
+use crate::{allotment::{core::{allotmentname::{AllotmentName, AllotmentNamePart}, boxtraits::{ContainerSpecifics, BuildSize, ContainerOrLeaf}, boxpositioncontext::BoxPositionContext}, style::{style::{ContainerAllotmentStyle, ContainerAllotmentType}}, util::rangeused::RangeUsed, globals::allotmentmetadata::LocalAllotmentMetadataBuilder, stylespec::stylegroup::AllStylesForProgram}, shape::metadata::MetadataStyle, CoordinateSystem, LeafRequest};
+
+use super::{leaf::{AnchoredLeaf, FloatingLeaf}, stacker::Stacker, overlay::Overlay, bumper::Bumper};
 
 fn internal_height(child_height: &StaticValue<f64>, min_height: f64, padding_top: f64, padding_bottom: f64) -> StaticValue<f64> {
     cache_constant(derived(child_height.clone(),move |child_height| {
@@ -9,10 +11,76 @@ fn internal_height(child_height: &StaticValue<f64>, min_height: f64, padding_top
     })).derc()
 }
 
+#[derive(PartialEq,Eq,Hash,Clone)]
+pub(super) enum ChildKeys {
+    Container(String),
+    Leaf(String)
+}
+
+fn new_container(name: &AllotmentNamePart, styles: &AllStylesForProgram) -> Box<dyn ContainerOrLeaf> {
+    let style = styles.get_container(name);
+    match &style.allot_type {
+        ContainerAllotmentType::Stack => Box::new(Stacker::new(name,&style)),
+        ContainerAllotmentType::Overlay => Box::new(Overlay::new(name,&style)),
+        ContainerAllotmentType::Bumper => Box::new(Bumper::new(name,&style))
+    }
+}
+
+fn new_leaf(pending: &LeafRequest, name: &AllotmentNamePart) -> FloatingLeaf {
+    let drawing_info = pending.drawing_info(|di| di.clone());
+    let child = FloatingLeaf::new(name,&pending.leaf_style(),&drawing_info);
+    child
+}
+
+#[derive(Clone)]
+pub(super) struct HasKids {
+    pub(super) children: Arc<Mutex<HashMap<ChildKeys,Box<dyn ContainerOrLeaf>>>>,
+    child_leafs: Arc<Mutex<HashMap<String,FloatingLeaf>>>,
+}
+
+impl HasKids {
+    pub(super) fn new() -> HasKids {
+        HasKids {
+            children: Arc::new(Mutex::new(HashMap::new())),
+            child_leafs: Arc::new(Mutex::new(HashMap::new())),   
+        }
+    }
+
+    pub(super) fn get_leaf(&mut self, pending: &LeafRequest, cursor: usize, styles: &Arc<AllStylesForProgram>) -> FloatingLeaf {
+        let name = pending.name().sequence();
+        let step = &name[cursor];
+        let mut kids = lock!(self.children);
+        if cursor == name.len() - 1 {
+            let mut kid_leafs = lock!(self.child_leafs);
+            /* leaf */
+            if !kid_leafs.contains_key(step) {
+                /* create leaf */
+                let name = name[0..(cursor+1)].iter().map(|x| x.to_string()).collect::<Vec<_>>();
+                let name = AllotmentNamePart::new(AllotmentName::do_new(name,true));
+                let leaf = new_leaf(pending,&name);
+                kid_leafs.insert(step.to_string(),leaf.clone());
+                kids.insert(ChildKeys::Leaf(step.to_string()),Box::new(leaf.clone()));
+            }
+            kid_leafs.get(step).unwrap().clone()
+        } else {
+            /* container */
+            let key = ChildKeys::Container(step.to_string());
+            if !kids.contains_key(&key) {
+                /* create container */
+                let name = name[0..(cursor+1)].iter().map(|x| x.to_string()).collect::<Vec<_>>();
+                let name = AllotmentNamePart::new(AllotmentName::do_new(name,true));
+                let container = new_container(&name,styles);
+                kids.insert(key.clone(),container);
+            }
+            kids.get_mut(&key).unwrap().get_leaf(pending,cursor+1,styles).clone()
+        }
+    }
+}
+
 pub struct Container {
     specifics: Box<dyn ContainerSpecifics>,
-    children: Arc<Mutex<Vec<Box<dyn Stackable>>>>,
     coord_system: CoordinateSystem,
+    kids: HasKids,
     priority: i64,
     /* incoming variables */
     top: StaticValue<f64>,
@@ -26,7 +94,7 @@ impl Clone for Container {
     fn clone(&self) -> Self {
         Self {
             specifics: self.specifics.cloned(),
-            children: self.children.clone(),
+            kids: self.kids.clone(),
             coord_system: self.coord_system.clone(),
             priority: self.priority.clone(),
             top: self.top.clone(),
@@ -53,7 +121,7 @@ impl Container {
         Container {
             name: AllotmentName::from_part(name),
             specifics: Box::new(specifics),
-            children: Arc::new(Mutex::new(vec![])),
+            kids: HasKids::new(),
             coord_system: style.coord_system.clone(),
             priority: style.priority,
             top_setter, top,
@@ -62,16 +130,18 @@ impl Container {
     }
 }
 
-impl Stackable for Container {
-    fn add_child(&self, child: &dyn Stackable) {
-        lock!(self.children).push(child.cloned());
+impl ContainerOrLeaf for Container {
+    fn anchor_leaf(&self, answer_index: &StaticAnswer) -> Option<AnchoredLeaf> { None }
+    
+    fn get_leaf(&mut self, pending: &LeafRequest, cursor: usize, styles: &Arc<AllStylesForProgram>) -> FloatingLeaf {
+        self.kids.get_leaf(pending,cursor,styles)
     }
 
     fn coordinate_system(&self) -> &CoordinateSystem { &self.coord_system }
     fn locate(&self, prep: &mut BoxPositionContext, value: &StaticValue<f64>) {
         let value = cache_constant_clonable(short_memoized_clonable(value.clone()));
-        let mut children = lock!(self.children);
-        let mut kids = children.iter_mut().collect::<Vec<_>>();
+        let mut children = lock!(self.kids.children);
+        let mut kids = children.values_mut().collect::<Vec<_>>();
         let padding_top = self.style.padding.padding_top;
         let draw_top = cache_constant(derived(value.clone(),move |top| top+padding_top)).derc();
         self.top_setter.set(value.clone());
@@ -85,12 +155,11 @@ impl Stackable for Container {
 
     fn build(&self, prep: &mut BoxPositionContext) -> BuildSize {
         let mut ranges = vec![];
-        let mut children = lock!(self.children);
+        let mut children = lock!(self.kids.children);
         let mut input = vec![];
-        for child in &mut *children {
+        for (_,child) in &mut *children {
             let size = child.build(prep);
-            let range = derived(size.range.clone(),|x| Rc::new(x));
-            ranges.push(range);
+            ranges.push(size.range.clone());
             input.push((&*child,size));
         }
         let kids = self.specifics.build_reduce(prep,&input);
@@ -103,10 +172,11 @@ impl Stackable for Container {
             internal_height
         };
         if let Some(report) = &self.style.padding.report {
+            log!("report {:?}",report);
             let arc_height = derived(height.clone(),|x| Arc::new(x));
             add_report(prep.state_request.metadata_mut(),&self.name,report,&self.top,&arc_height);
         }
-        let range = commute_rc(&ranges,Rc::new(RangeUsed::None), Rc::new(|x,y| (*x).merge(&*y))).derc();
+        let range = ranges.iter().fold(RangeUsed::None,|a,b| { a.merge(b) });
         BuildSize {
             name: self.name.clone(),
             height,
@@ -116,5 +186,5 @@ impl Stackable for Container {
 
     fn priority(&self) -> i64 { self.priority }
 
-    fn cloned(&self) -> Box<dyn Stackable> { Box::new(self.clone()) }
+    fn cloned(&self) -> Box<dyn ContainerOrLeaf> { Box::new(self.clone()) }
 }

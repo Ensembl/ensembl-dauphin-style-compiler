@@ -1,34 +1,38 @@
-use peregrine_toolkit::{puzzle::{StaticValue, compose}};
-use crate::{allotment::{util::rangeused::RangeUsed, core::{allotmentname::AllotmentName}}, CoordinateSystem};
-use super::boxpositioncontext::BoxPositionContext;
+use std::sync::Arc;
+
+use peregrine_toolkit::{puzzle::{StaticValue, compose, derived, StaticAnswer}, identitynumber};
+use crate::{allotment::{util::rangeused::RangeUsed, core::{allotmentname::AllotmentName}, boxes::leaf::{AnchoredLeaf, FloatingLeaf}, stylespec::stylegroup::AllStylesForProgram}, CoordinateSystem, LeafRequest};
+use super::{boxpositioncontext::BoxPositionContext, allotmentname::AllotmentNamePart};
 
 pub(crate) trait ContainerSpecifics {
     fn cloned(&self) -> Box<dyn ContainerSpecifics>;
-    fn build_reduce(&self, prep: &mut BoxPositionContext, children: &[(&Box<dyn Stackable>,BuildSize)]) -> StaticValue<f64>;
-    fn set_locate(&self, prep: &mut BoxPositionContext, top: &StaticValue<f64>, children: &mut [&mut Box<dyn Stackable>]);
+    fn build_reduce(&self, prep: &mut BoxPositionContext, children: &[(&Box<dyn ContainerOrLeaf>,BuildSize)]) -> StaticValue<f64>;
+    fn set_locate(&self, prep: &mut BoxPositionContext, top: &StaticValue<f64>, children: &mut [&mut Box<dyn ContainerOrLeaf>]);
 }
 
 pub(crate) struct BuildSize {
     pub name: AllotmentName,
     pub height: StaticValue<f64>,
-    pub range: StaticValue<RangeUsed<f64>>
+    pub range: RangeUsed<f64>
 }
 
 impl BuildSize {
     pub(crate) fn to_value(&self) -> StaticValue<(AllotmentName,f64,RangeUsed<f64>)> {
         let name = self.name.clone();
-        compose(self.height.clone(),self.range.clone(),move |h,r| {
-            (name.clone(),h,r)
+        let range = self.range.clone();
+        derived(self.height.clone(),move |h| {
+            (name.clone(),h,range.clone())
         })
     }
 }
 
-pub(crate) trait Stackable {
+pub(crate) trait ContainerOrLeaf {
     fn coordinate_system(&self) -> &CoordinateSystem;
     fn build(&self, prep: &mut BoxPositionContext) -> BuildSize;
     fn locate(&self, prep: &mut BoxPositionContext, top: &StaticValue<f64>);
     fn name(&self) -> &AllotmentName;
     fn priority(&self) -> i64;
-    fn cloned(&self) -> Box<dyn Stackable>;
-    fn add_child(&self, child: &dyn Stackable);
+    fn cloned(&self) -> Box<dyn ContainerOrLeaf>;
+    fn anchor_leaf(&self, answer_index: &StaticAnswer) -> Option<AnchoredLeaf>;
+    fn get_leaf(&mut self, pending: &LeafRequest, cursor: usize, styles: &Arc<AllStylesForProgram>) -> FloatingLeaf;
 }

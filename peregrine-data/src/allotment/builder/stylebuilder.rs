@@ -1,83 +1,35 @@
 use std::{collections::HashMap, sync::Arc};
 use peregrine_toolkit::error::Error;
-use crate::{allotment::{core::{trainstate::CarriageTrainStateSpec, allotmentname::{AllotmentNamePart, AllotmentName}, boxpositioncontext::BoxPositionContext, drawinginfo::DrawingInfo, leafrequest::LeafTransformableMap, boxtraits::Stackable}, boxes::{ stacker::Stacker, overlay::Overlay, bumper::Bumper }, boxes::{leaf::{FloatingLeaf}}, stylespec::stylegroup::AllotmentStyleGroup, style::style::ContainerAllotmentType}, LeafRequest, LeafStyle};
-//use super::holder::{ContainerHolder};
+use crate::{allotment::{core::{trainstate::CarriageTrainStateSpec, allotmentname::{AllotmentNamePart, AllotmentName}, boxpositioncontext::BoxPositionContext, drawinginfo::DrawingInfo, leafrequest::LeafTransformableMap, boxtraits::ContainerOrLeaf}, boxes::{ stacker::Stacker, overlay::Overlay, bumper::Bumper }, boxes::{leaf::{FloatingLeaf}, container, root::Root}, stylespec::stylegroup::AllStylesForProgram, style::style::ContainerAllotmentType, util::bppxconverter::BpPxConverter}, LeafRequest, LeafStyle};
 
-struct StyleBuilder<'a> {
-    root: Arc<dyn Stackable>,
+struct StyleBuilder {
+    root: Box<dyn ContainerOrLeaf>,
     leafs_made: HashMap<Vec<String>,FloatingLeaf>,
-    containers_made: HashMap<Vec<String>,Arc<dyn Stackable>>,
-    prep: &'a mut BoxPositionContext,
     dustbin: FloatingLeaf
 }
 
-impl<'a> StyleBuilder<'a> {
-    fn new(prep: &'a mut BoxPositionContext) -> StyleBuilder<'a> {
+impl StyleBuilder {
+    fn new(prep: &mut BoxPositionContext) -> StyleBuilder {
         let dustbin_name = AllotmentNamePart::new(AllotmentName::new(""));
         StyleBuilder {
-            root: Arc::new(prep.root.clone()),
+            root: Box::new(prep.root.clone()),
             leafs_made: HashMap::new(),
-            containers_made: HashMap::new(),
-            dustbin: FloatingLeaf::new(&dustbin_name,&prep.bp_px_converter,&LeafStyle::dustbin(),&DrawingInfo::new()),
-            prep
+            dustbin: FloatingLeaf::new(&dustbin_name,&LeafStyle::dustbin(),&DrawingInfo::new())
         }
-    }
-
-    fn new_container(&mut self, name: &AllotmentNamePart, styles: &AllotmentStyleGroup) -> Result<Arc<dyn Stackable>,Error> {
-        let style = styles.get_container(name);
-        Ok(match &style.allot_type {
-            ContainerAllotmentType::Stack => Arc::new(Stacker::new(name,&style)),
-            ContainerAllotmentType::Overlay => Arc::new(Overlay::new(name,&style)),
-            ContainerAllotmentType::Bumper => Arc::new(Bumper::new(name,&style))
-        })
-    }
-
-    fn try_new_container(&mut self, name: &AllotmentNamePart, styles: &AllotmentStyleGroup) -> Result<Arc<dyn Stackable>,Error> {
-        let sequence = name.sequence().to_vec();
-        if let Some(container) = self.containers_made.get(&sequence) {
-            Ok(container.clone())
-        } else {
-            let parent_container = if let Some((_,parent)) = name.pop() {
-                if parent.empty() {
-                    self.root.clone()
-                } else {
-                    self.try_new_container(&parent,styles)?
-                }
-            } else {
-                self.root.clone()
-            };
-            let new_container = self.new_container(name,styles)?;
-            parent_container.add_child(new_container.as_ref());
-            self.containers_made.insert(sequence,new_container.clone());
-            Ok(new_container)
-        }
-    }
-
-    fn new_floating_leaf(&self, pending: &LeafRequest, name: &AllotmentNamePart, container: &Arc<dyn Stackable>) -> Result<FloatingLeaf,Error> {
-        let drawing_info = pending.drawing_info(|di| di.clone());
-        let child = FloatingLeaf::new(name,&self.prep.bp_px_converter,&pending.leaf_style(),&drawing_info);
-        container.add_child(&child);
-        Ok(child)
-    }
-
-    fn new_leaf(&mut self, pending: &LeafRequest, name: &AllotmentNamePart) -> Result<FloatingLeaf,Error> {
-        Ok(if let Some((_,rest)) = name.pop() {
-            let mut container = self.try_new_container(&rest,&pending.style())?;
-            self.new_floating_leaf(pending,name,&container)?
-        } else {
-            self.dustbin.clone()
-        })
     }
 
     fn try_new_leaf(&mut self, pending: &LeafRequest) -> Result<FloatingLeaf,Error> {
         let name = AllotmentNamePart::new(pending.name().clone());
+        if name.empty() {
+            return Ok(self.dustbin.clone());
+        }
         let sequence = name.sequence().to_vec();
         Ok(if let Some(leaf) = self.leafs_made.get(&sequence) {
             leaf.clone()
         } else {
-            let out = self.new_leaf(pending,&name)?;
+            let out = self.root.get_leaf(pending,0,&pending.program_styles());
             self.leafs_made.insert(sequence,out.clone());
-            out
+            out.clone()
         })
     }
 }
@@ -99,10 +51,10 @@ pub(crate) fn make_transformable(prep: &mut BoxPositionContext, pendings: &mut d
 mod test {
     use std::{sync::{Arc, Mutex}, collections::{HashMap}};
     use peregrine_toolkit::{puzzle::{AnswerAllocator}};
-    use crate::{allotment::{core::{allotmentname::AllotmentName, boxpositioncontext::BoxPositionContext, trainstate::CarriageTrainStateSpec}, stylespec::{stylegroup::AllotmentStyleGroup, styletreebuilder::StyleTreeBuilder, styletree::StyleTree}, util::{bppxconverter::BpPxConverter, rangeused::RangeUsed}, globals::{allotmentmetadata::{LocalAllotmentMetadata, GlobalAllotmentMetadataBuilder, GlobalAllotmentMetadata}, bumping::{GlobalBumpBuilder, GlobalBump}, trainpersistent::TrainPersistent}, builder::stylebuilder::make_transformable}, LeafRequest, shape::metadata::{AbstractMetadataBuilder}};
+    use crate::{allotment::{core::{allotmentname::AllotmentName, boxpositioncontext::BoxPositionContext, trainstate::CarriageTrainStateSpec, boxtraits::ContainerOrLeaf}, stylespec::{stylegroup::AllStylesForProgram, styletreebuilder::StyleTreeBuilder, styletree::StyleTree}, util::{bppxconverter::BpPxConverter, rangeused::RangeUsed}, globals::{allotmentmetadata::{LocalAllotmentMetadata, GlobalAllotmentMetadataBuilder, GlobalAllotmentMetadata}, bumping::{GlobalBumpBuilder, GlobalBump}, trainpersistent::TrainPersistent}, builder::stylebuilder::make_transformable}, LeafRequest, shape::metadata::{AbstractMetadataBuilder}};
     use serde_json::{Value as JsonValue };
 
-    fn make_pendings(names: &[&str], heights: &[f64], pixel_range: &[RangeUsed<f64>], style: &AllotmentStyleGroup) -> Vec<LeafRequest> {
+    fn make_pendings(names: &[&str], heights: &[f64], pixel_range: &[RangeUsed<f64>], style: &AllStylesForProgram) -> Vec<LeafRequest> {
         let heights = if heights.len() > 0 {
             heights.iter().cycle()
         } else {
@@ -116,7 +68,7 @@ mod test {
         let mut out = vec![];
         for (name,height) in names.iter().zip(heights) {
             let leaf = LeafRequest::new(&AllotmentName::new(name));
-            leaf.set_style(style);
+            leaf.set_program_styles(style);
             leaf.drawing_info(|info| {
                 info.merge_max_y(*height);
                 if let Some(ref mut pixel_range) = pixel_range_iter {
@@ -144,13 +96,13 @@ mod test {
         let mut tree = StyleTreeBuilder::new();
         add_style(&mut tree, "z/a/", &[("padding-top","10"),("padding-bottom","5")]);
         add_style(&mut tree, "z/a/1", &[("depth","10"),("coordinate-system","window")]);
-        let style_group = AllotmentStyleGroup::new(StyleTree::new(tree));
+        let style_group = AllStylesForProgram::new(StyleTree::new(tree));
         let pending = make_pendings(&["z/a/1","z/a/2","z/a/3","z/b/1","z/b/2","z/b/3"],&[1.,2.,3.],&[],&style_group);
         let mut prep = BoxPositionContext::new(None,&AbstractMetadataBuilder::new().build());
         let (spec,plm) = make_transformable(&mut prep,&mut pending.iter()).ok().expect("A");
         let mut aia = AnswerAllocator::new();
         let answer_index = aia.get();
-        let transformers = pending.iter().map(|x| plm.transformable(x.name()).make(&answer_index)).collect::<Vec<_>>();
+        let transformers = pending.iter().map(|x| plm.transformable(x.name()).anchor_leaf(&answer_index).unwrap()).collect::<Vec<_>>();
         let descs = transformers.iter().map(|x| x.describe()).collect::<Vec<_>>();
         println!("{:?}",descs);
         assert_eq!(6,descs.len());
@@ -174,13 +126,13 @@ mod test {
         let mut tree = StyleTreeBuilder::new();
         add_style(&mut tree, "z/a/", &[("padding-top","10"),("padding-bottom","5"),("type","overlay")]);        
         add_style(&mut tree, "z/a/1", &[("depth","10"),("coordinate-system","window")]);
-        let style_group = AllotmentStyleGroup::new(StyleTree::new(tree));
+        let style_group = AllStylesForProgram::new(StyleTree::new(tree));
         let pending = make_pendings(&["z/a/1","z/a/2","z/a/3","z/b/1","z/b/2","z/b/3"],&[1.,2.,3.],&[],&style_group);
         let mut prep = BoxPositionContext::new(None,&AbstractMetadataBuilder::new().build());
         let (spec,plm) = make_transformable(&mut prep,&mut pending.iter()).ok().expect("A");
         let mut aia = AnswerAllocator::new();
         let answer_index = aia.get();
-        let transformers = pending.iter().map(|x| plm.transformable(x.name()).make(&answer_index)).collect::<Vec<_>>();
+        let transformers = pending.iter().map(|x| plm.transformable(x.name()).anchor_leaf(&answer_index).unwrap()).collect::<Vec<_>>();
         let descs = transformers.iter().map(|x| x.describe()).collect::<Vec<_>>();
         assert_eq!(6,descs.len());
         assert!(descs[0].contains("coord_system: CoordinateSystem(Window, false)"));
@@ -220,7 +172,7 @@ mod test {
         add_style(&mut tree, "z/b/", &[("type","bumper"),("report","track")]);
         add_style(&mut tree, "z/a/1", &[("depth","10"),("system","tracking")]);
         add_style(&mut tree, "**", &[("system","tracking")]);
-        let style_group = AllotmentStyleGroup::new(StyleTree::new(tree));
+        let style_group = AllStylesForProgram::new(StyleTree::new(tree));
         let pending = make_pendings(&["z/a/1","z/a/2","z/a/3","z/b/1","z/b/2","z/b/3"],&[1.,2.,3.],&ranges,&style_group);
         let mut prep = BoxPositionContext::new(None,&AbstractMetadataBuilder::new().build());
         prep.bp_px_converter = Arc::new(BpPxConverter::new_test());
@@ -233,7 +185,7 @@ mod test {
         let mut builder = GlobalBumpBuilder::new();
         ctss.bump().add(&mut builder);
         GlobalBump::new(builder,&mut answer_index,&tp);
-        let transformers = pending.iter().map(|x| plm.transformable(x.name()).make(&answer_index)).collect::<Vec<_>>();
+        let transformers = pending.iter().map(|x| plm.transformable(x.name()).anchor_leaf(&answer_index).unwrap()).collect::<Vec<_>>();
         let descs = transformers.iter().map(|x| x.describe()).collect::<Vec<_>>();
         assert_eq!(6,descs.len());
         println!("{:?}",descs);
