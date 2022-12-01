@@ -65,51 +65,51 @@ expanded = ["buttons"]
 # Genes/Transcripts
 #
 
-[track.gene-overview]
-scales = [23,100,6]
-include=["gene","general"]
+# [track.gene-overview]
+# scales = [23,100,6]
+# include=["gene","general"]
 
-[track.gene]
-scales = [19,22,4]
-include=["gene","general"]
+# [track.gene]
+# scales = [19,22,4]
+# include=["gene","general"]
 
-[track.transcript]
-scales = [9,18,6]
-include=["transcript","gene","general"]
+# [track.transcript]
+# scales = [9,18,6]
+# include=["transcript","gene","general"]
 
-[track.zoomed-transcript-no-letters.general]
-program_name = "zoomed-transcript"
-scales = [7,8,2]
-include=["transcript","gene","general"]
+# [track.zoomed-transcript-no-letters.general]
+# program_name = "zoomed-transcript"
+# scales = [7,8,2]
+# include=["transcript","gene","general"]
 
-[track.zoomed-transcript-no-letters.values]
-scale-no-letters = true
+# [track.zoomed-transcript-no-letters.values]
+# scale-no-letters = true
 
-[track.zoomed-transcript-letters]
-program_name = "zoomed-transcript"
-scales = [0,6,7]
-include=["transcript","gene","general"]
+# [track.zoomed-transcript-letters]
+# program_name = "zoomed-transcript"
+# scales = [0,6,7]
+# include=["transcript","gene","general"]
 
 [track.focus-gene]
 scales = [19,66,4]
 include=["focus-gene","general"]
 
-[track.focus-transcript]
-scales = [9,18,6]
-include=["focus-gene","general"]
+# [track.focus-transcript]
+# scales = [9,18,6]
+# include=["focus-gene","general"]
 
-[track.focus-zoomed-transcript-letters]
-program_name = "focus-zoomed-transcript"
-scales = [0,7,8]
-include=["focus-gene","general"]
+# [track.focus-zoomed-transcript-letters]
+# program_name = "focus-zoomed-transcript"
+# scales = [0,7,8]
+# include=["focus-gene","general"]
 
-[track.focus-zoomed-transcript-no-letters.general]
-program_name = "focus-zoomed-transcript"
-scales = [8,8,1]
-include=["focus-gene","general"]
+# [track.focus-zoomed-transcript-no-letters.general]
+# program_name = "focus-zoomed-transcript"
+# scales = [8,8,1]
+# include=["focus-gene","general"]
 
-[track.focus-zoomed-transcript-no-letters.values]
-scale-no-letters = true
+# [track.focus-zoomed-transcript-no-letters.values]
+# scale-no-letters = true
 
 #
 # Frame
@@ -124,90 +124,90 @@ scales = [1,100,1]
 # Ruler
 #
 
-[track.ruler.general]
-include = ["general"]
-scales = [0,100,1]
-triggers = [["ruler"]]
+# [track.ruler.general]
+# include = ["general"]
+# scales = [0,100,1]
+# triggers = [["ruler"]]
 
-[track.ruler.settings]
-one_based = ["ruler","one_based"]
+# [track.ruler.settings]
+# one_based = ["ruler","one_based"]
 
-#
-# %GC
-#
+# #
+# # %GC
+# #
 
-[track.gc.general]
-include = ["general"]
-scales = [0,100,3]
-triggers = [["track","gc"]]
+# [track.gc.general]
+# include = ["general"]
+# scales = [0,100,3]
+# triggers = [["track","gc"]]
 
-[track.gc.settings]
-name = ["track","gc","name"]
+# [track.gc.settings]
+# name = ["track","gc","name"]
 
-#
-# Variants
-#
+# #
+# # Variants
+# #
 
-[track.variant.general]
-include = ["general"]
-scales = [1,100,4]
-triggers = [["track","variant"]]
-tags= "#has-variants"
+# [track.variant.general]
+# include = ["general"]
+# scales = [1,100,4]
+# triggers = [["track","variant"]]
+# tags= "#has-variants"
 
-[track.variant.settings]
-name = ["track","variant","name"]
+# [track.variant.settings]
+# name = ["track","variant","name"]
 
-#
-# Contigs and Sequences
-#
+# #
+# # Contigs and Sequences
+# #
 
-[track.contig-shimmer.general]
-include = ["general"]
-program_name = "contig"
-scales = [26,100,3]
-triggers = [["track","contig"]]
+# [track.contig-shimmer.general]
+# include = ["general"]
+# program_name = "contig"
+# scales = [26,100,3]
+# triggers = [["track","contig"]]
 
-[track.contig-shimmer.values]
-shimmer = true
+# [track.contig-shimmer.values]
+# shimmer = true
 
-[track.contig.general]
-include = ["general"]
-scales = [9,25,3]
-triggers = [["track","contig"]]
+# [track.contig.general]
+# include = ["general"]
+# scales = [9,25,3]
+# triggers = [["track","contig"]]
 
-[track.contig.settings]
-name = ["track","contig","name"]
+# [track.contig.settings]
+# name = ["track","contig","name"]
 
-[track.sequence-no-letters.general]
-include = ["general"]
-program_name = "zoomed-seq"
-scales = [7,8,2]
-triggers = [["track","contig"]]
+# [track.sequence-no-letters.general]
+# include = ["general"]
+# program_name = "zoomed-seq"
+# scales = [7,8,2]
+# triggers = [["track","contig"]]
 
-[track.sequence-no-letters.settings]
-name = ["track","contig","name"]
+# [track.sequence-no-letters.settings]
+# name = ["track","contig","name"]
 
-[track.sequence-no-letters.values]
-scale-no-letters = true
+# [track.sequence-no-letters.values]
+# scale-no-letters = true
 
-[track.sequence.general]
-include = ["general"]
-program_name = "zoomed-seq"
-scales = [0,6,3]
-triggers = [["track","contig"]]
+# [track.sequence.general]
+# include = ["general"]
+# program_name = "zoomed-seq"
+# scales = [0,6,3]
+# triggers = [["track","contig"]]
 
-[track.sequence.settings]
-name = ["track","contig","name"]
+# [track.sequence.settings]
+# name = ["track","contig","name"]
 
 
-#
-# Expansions
-#
+# #
+# # Expansions
+# #
 
-[expansion.test]
-channel = ["ensembl","main"]
-name = "test"
-triggers = [
-    ["track","expand"]
-]
-run = "test"
+# [expansion.test]
+# channel = ["ensembl","main"]
+# name = "test"
+# triggers = [
+#     ["track","expand"]
+# ]
+# run = "test"

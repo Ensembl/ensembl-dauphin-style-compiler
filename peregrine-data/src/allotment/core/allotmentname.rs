@@ -61,6 +61,8 @@ impl AllotmentName {
         Self::do_new(part.sequence().to_vec(),part.name.container)
     }
 
+    pub fn name(&self) -> &[String] { &self.name }
+
     pub fn hash_value(&self) -> u64 { *self.hash }
     pub fn sequence(&self) -> &[String] { &self.name }
     pub(crate) fn is_container(&self) -> bool { self.container }
