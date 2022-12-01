@@ -3,7 +3,6 @@ use peregrine_toolkit::{puzzle::{derived, DelayedSetter, compose, StaticValue, p
 use crate::{allotment::{core::{allotmentname::{AllotmentNamePart, AllotmentName}, boxtraits::{ContainerOrLeaf, BuildSize, ContainerSpecifics }, boxpositioncontext::BoxPositionContext}, style::{style::{ContainerAllotmentStyle}}, collision::{collisionalgorithm::{BumpRequestSet, BumpRequest, BumpResponses}}, stylespec::stylegroup::AllStylesForProgram}, CoordinateSystem, LeafRequest};
 use super::{container::{Container}, leaf::{AnchoredLeaf, FloatingLeaf}};
 
-#[derive(Clone)]
 pub struct Bumper(Container);
 
 impl Bumper {
@@ -17,9 +16,8 @@ impl ContainerOrLeaf for Bumper {
         self.0.get_leaf(pending,cursor,styles)
     }
 
-    fn anchor_leaf(&self, answer_index: &StaticAnswer) -> Option<AnchoredLeaf> { None }
+    fn anchor_leaf(&self, _answer_index: &StaticAnswer) -> Option<AnchoredLeaf> { None }
     fn coordinate_system(&self) -> &CoordinateSystem { self.0.coordinate_system() }
-    fn cloned(&self) -> Box<dyn ContainerOrLeaf> { Box::new(self.clone()) }
     fn locate(&self, prep: &mut BoxPositionContext, top: &StaticValue<f64>) { self.0.locate(prep,top); }
     fn name(&self) -> &AllotmentName { self.0.name( )}
     fn priority(&self) -> i64 { self.0.priority() }

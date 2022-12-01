@@ -4,7 +4,7 @@ use super::{leafrequest::LeafTransformableMap, trainstate::CarriageTrainStateReq
 
 pub(crate) struct BoxPositionContext {
     pub bp_px_converter: Arc<BpPxConverter>,
-    pub root: Root,
+ //   pub root: Root,
     pub state_request: CarriageTrainStateRequest,
     pub bumper_factory: BumpRequestSetFactory
 }
@@ -15,7 +15,7 @@ impl BoxPositionContext {
         let bumper_factory = BumpRequestSetFactory::new(index as usize);
         BoxPositionContext {
             bp_px_converter: Arc::new(BpPxConverter::new(extent)),
-            root: Root::new(),
+//            root: Root::new(),
             state_request: CarriageTrainStateRequest::new(metadata),
             bumper_factory
         }

@@ -4,7 +4,6 @@ use peregrine_toolkit::{puzzle::{StaticValue, commute_clonable, StaticAnswer}};
 use crate::{allotment::{core::{ allotmentname::{AllotmentNamePart, AllotmentName}, boxtraits::{ContainerSpecifics, BuildSize, ContainerOrLeaf}, boxpositioncontext::BoxPositionContext}, style::{style::{ContainerAllotmentStyle}}, stylespec::stylegroup::AllStylesForProgram}, CoordinateSystem, LeafRequest};
 use super::{container::{Container}, leaf::{AnchoredLeaf, FloatingLeaf}};
 
-#[derive(Clone)]
 pub struct Overlay(Container);
 
 impl Overlay {
@@ -29,7 +28,6 @@ impl ContainerOrLeaf for Overlay {
     }
     fn anchor_leaf(&self, answer_index: &StaticAnswer) -> Option<AnchoredLeaf> { None }
     fn coordinate_system(&self) -> &CoordinateSystem { self.0.coordinate_system() }
-    fn cloned(&self) -> Box<dyn ContainerOrLeaf> { Box::new(self.clone()) }
     fn locate(&self, prep: &mut BoxPositionContext, top: &StaticValue<f64>) { self.0.locate(prep,top); }
     fn name(&self) -> &AllotmentName { self.0.name( )}
     fn priority(&self) -> i64 { self.0.priority() }

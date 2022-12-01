@@ -13,7 +13,6 @@ impl AbstractCarriageBuilder {
     fn build(&mut self) -> Result<AbstractCarriageState,Error> {
         /* Extract metadata */
         let mut metadata = AbstractMetadataBuilder::new();
-        log!("Add shapes");
         metadata.add_shapes(&self.shapes);
         let metadata = metadata.build();
         let (spec,plm) = self.builder.position_boxes(self.shape_request_group.as_ref(),&metadata)?;

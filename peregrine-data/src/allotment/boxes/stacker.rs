@@ -3,7 +3,6 @@ use peregrine_toolkit::{puzzle::{ derived, DelayedSetter, delayed, compose, Stat
 use crate::{allotment::{style::{style::{ContainerAllotmentStyle}}, core::{allotmentname::{AllotmentNamePart, AllotmentName}, boxtraits::{ContainerOrLeaf, BuildSize, ContainerSpecifics}, boxpositioncontext::BoxPositionContext}, stylespec::stylegroup::AllStylesForProgram}, CoordinateSystem, LeafRequest};
 use super::{container::{Container}, leaf::{AnchoredLeaf, FloatingLeaf}};
 
-#[derive(Clone)]
 pub struct Stacker(Container);
 
 impl Stacker {
@@ -65,7 +64,6 @@ impl ContainerOrLeaf for Stacker {
     }
     fn anchor_leaf(&self, answer_index: &StaticAnswer) -> Option<AnchoredLeaf> { None }
     fn coordinate_system(&self) -> &CoordinateSystem { self.0.coordinate_system() }
-    fn cloned(&self) -> Box<dyn ContainerOrLeaf> { Box::new(self.clone()) }
     fn name(&self) -> &AllotmentName { self.0.name( )}
     fn locate(&self, prep: &mut BoxPositionContext, top: &StaticValue<f64>) { self.0.locate(prep,top); }
     fn priority(&self) -> i64 { self.0.priority() }

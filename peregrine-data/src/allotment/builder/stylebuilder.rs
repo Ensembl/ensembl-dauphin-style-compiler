@@ -1,18 +1,18 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap};
 use peregrine_toolkit::error::Error;
-use crate::{allotment::{core::{trainstate::CarriageTrainStateSpec, allotmentname::{AllotmentNamePart, AllotmentName}, boxpositioncontext::BoxPositionContext, drawinginfo::DrawingInfo, leafrequest::LeafTransformableMap, boxtraits::ContainerOrLeaf}, boxes::{ stacker::Stacker, overlay::Overlay, bumper::Bumper }, boxes::{leaf::{FloatingLeaf}, container, root::Root}, stylespec::stylegroup::AllStylesForProgram, style::style::ContainerAllotmentType, util::bppxconverter::BpPxConverter}, LeafRequest, LeafStyle};
+use crate::{allotment::{core::{trainstate::CarriageTrainStateSpec, allotmentname::{AllotmentNamePart, AllotmentName}, boxpositioncontext::BoxPositionContext, drawinginfo::DrawingInfo, leafrequest::LeafTransformableMap, boxtraits::ContainerOrLeaf}, boxes::{ stacker::Stacker, overlay::Overlay, bumper::Bumper }, boxes::{leaf::{FloatingLeaf}, container, root::Root}, stylespec::stylegroup::AllStylesForProgram,}, LeafRequest, LeafStyle};
 
-struct StyleBuilder {
-    root: Box<dyn ContainerOrLeaf>,
+struct StyleBuilder<'a> {
+    root: &'a mut dyn ContainerOrLeaf,
     leafs_made: HashMap<Vec<String>,FloatingLeaf>,
     dustbin: FloatingLeaf
 }
 
-impl StyleBuilder {
-    fn new(prep: &mut BoxPositionContext) -> StyleBuilder {
+impl<'a> StyleBuilder<'a> {
+    fn new(root: &'a mut Root) -> StyleBuilder<'a> {
         let dustbin_name = AllotmentNamePart::new(AllotmentName::new(""));
         StyleBuilder {
-            root: Box::new(prep.root.clone()),
+            root,
             leafs_made: HashMap::new(),
             dustbin: FloatingLeaf::new(&dustbin_name,&LeafStyle::dustbin(),&DrawingInfo::new())
         }
@@ -35,15 +35,17 @@ impl StyleBuilder {
 }
 
 pub(crate) fn make_transformable(prep: &mut BoxPositionContext, pendings: &mut dyn Iterator<Item=&LeafRequest>) -> Result<(CarriageTrainStateSpec,LeafTransformableMap),Error> {
+    let mut root = Root::new();
     /* Build box tree */
     let mut plm = LeafTransformableMap::new();
-    let mut styler = StyleBuilder::new(prep);
+    let mut styler = StyleBuilder::new(&mut root);
     for pending in pendings {
         let xformable = styler.try_new_leaf(&pending)?;
         plm.set_transformable(&pending.name(),&xformable);
     }
+    drop(styler);
     /* Wire box tree */
-    let state_spec = prep.root.clone().full_build(prep);
+    let state_spec = root.full_build(prep);
     Ok((state_spec,plm))
 }
 

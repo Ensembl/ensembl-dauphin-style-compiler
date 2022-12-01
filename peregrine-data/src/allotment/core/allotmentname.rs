@@ -58,7 +58,7 @@ impl AllotmentName {
     }
 
     pub(crate) fn from_part(part: &AllotmentNamePart) -> AllotmentName {
-        Self::do_new(part.sequence().to_vec(),part.name.container)
+        Self::do_new(part.sequence().to_vec(),true)
     }
 
     pub fn name(&self) -> &[String] { &self.name }

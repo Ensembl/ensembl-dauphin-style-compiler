@@ -69,13 +69,12 @@ impl ContainerOrLeaf for FloatingLeaf {
         Some(AnchoredLeaf::new(answer_index,self))
     }
 
-    fn get_leaf(&mut self, pending: &LeafRequest, cursor: usize, styles: &Arc<AllStylesForProgram>) -> FloatingLeaf {
+    fn get_leaf(&mut self, _pending: &LeafRequest, cursor: usize, styles: &Arc<AllStylesForProgram>) -> FloatingLeaf {
         panic!("get_leaf called on leaf!");
     }
     
     fn coordinate_system(&self) -> &CoordinateSystem { &self.statics.coord_system }
     fn priority(&self) -> i64 { self.statics.priority }
-    fn cloned(&self) -> Box<dyn ContainerOrLeaf> { Box::new(self.clone()) }
     fn name(&self) -> &AllotmentName { &self.name }
 
     fn build(&self, prep: &mut BoxPositionContext) -> BuildSize {

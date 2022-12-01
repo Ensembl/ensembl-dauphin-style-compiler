@@ -31,8 +31,6 @@ fn new_leaf(pending: &LeafRequest, name: &AllotmentNamePart) -> FloatingLeaf {
     let child = FloatingLeaf::new(name,&pending.leaf_style(),&drawing_info);
     child
 }
-
-#[derive(Clone)]
 pub(super) struct HasKids {
     pub(super) children: Arc<Mutex<HashMap<ChildKeys,Box<dyn ContainerOrLeaf>>>>,
     child_leafs: Arc<Mutex<HashMap<String,FloatingLeaf>>>,
@@ -88,21 +86,6 @@ pub struct Container {
     /* outgoing variables */
     name: AllotmentName,
     style: Arc<ContainerAllotmentStyle>,
-}
-
-impl Clone for Container {
-    fn clone(&self) -> Self {
-        Self {
-            specifics: self.specifics.cloned(),
-            kids: self.kids.clone(),
-            coord_system: self.coord_system.clone(),
-            priority: self.priority.clone(),
-            top: self.top.clone(),
-            top_setter: self.top_setter.clone(),
-            name: self.name.clone(),
-            style: self.style.clone()
-        }
-    }
 }
 
 fn add_report(metadata: &mut LocalAllotmentMetadataBuilder, name: &AllotmentName, in_values: &MetadataStyle, top: &StaticValue<f64>, height: &StaticValue<Arc<f64>>) {
@@ -172,7 +155,6 @@ impl ContainerOrLeaf for Container {
             internal_height
         };
         if let Some(report) = &self.style.padding.report {
-            log!("report {:?}",report);
             let arc_height = derived(height.clone(),|x| Arc::new(x));
             add_report(prep.state_request.metadata_mut(),&self.name,report,&self.top,&arc_height);
         }
@@ -185,6 +167,4 @@ impl ContainerOrLeaf for Container {
     }
 
     fn priority(&self) -> i64 { self.priority }
-
-    fn cloned(&self) -> Box<dyn ContainerOrLeaf> { Box::new(self.clone()) }
 }
