@@ -1,6 +1,6 @@
 use std::{sync::{Arc}};
 use peregrine_toolkit::{puzzle::{DelayedSetter, constant, derived, StaticValue, StaticAnswer, promise_delayed, cache_constant_clonable, delayed }};
-use crate::{allotment::{core::{allotmentname::{AllotmentName, AllotmentNamePart}, boxtraits::{Stackable, BuildSize, Coordinated}, boxpositioncontext::BoxPositionContext, drawinginfo::DrawingInfo}, style::{style::{LeafStyle, Indent}}, util::{rangeused::RangeUsed, bppxconverter::BpPxConverter}, globals::playingfield::PlayingFieldEdge}, CoordinateSystem};
+use crate::{allotment::{core::{allotmentname::{AllotmentName, AllotmentNamePart}, boxtraits::{Stackable, BuildSize }, boxpositioncontext::BoxPositionContext, drawinginfo::DrawingInfo}, style::{style::{LeafStyle, Indent}}, util::{rangeused::RangeUsed, bppxconverter::BpPxConverter}, globals::playingfield::PlayingFieldEdge}, CoordinateSystem};
 
 // TODO ranged bppxconverter
 fn full_range_piece(coord_system: &CoordinateSystem, base_range: &RangeUsed<f64>, pixel_range: &RangeUsed<f64>, bp_px_converter: &StaticValue<Arc<BpPxConverter>>) -> StaticValue<RangeUsed<f64>> {
@@ -75,11 +75,13 @@ impl FloatingLeaf {
 }
 
 impl Stackable for FloatingLeaf {
+    fn add_child(&self, child: &dyn Stackable) { panic!("adding child to leaf"); }
+    fn coordinate_system(&self) -> &CoordinateSystem { &self.statics.coord_system }
     fn priority(&self) -> i64 { self.statics.priority }
     fn cloned(&self) -> Box<dyn Stackable> { Box::new(self.clone()) }
     fn name(&self) -> &AllotmentName { &self.name }
 
-    fn build(&mut self, _prep: &mut BoxPositionContext) -> BuildSize {
+    fn build(&self, _prep: &mut BoxPositionContext) -> BuildSize {
         self.max_y_piece_setter.set(constant(self.drawing_info.max_y()));
         BuildSize {
             name: self.name.clone(),
@@ -88,7 +90,7 @@ impl Stackable for FloatingLeaf {
         }
     }
 
-    fn locate(&mut self, prep: &mut BoxPositionContext, value: &StaticValue<f64>) {
+    fn locate(&self, prep: &mut BoxPositionContext, value: &StaticValue<f64>) {
         let sr = &mut prep.state_request;
         let indent = match &self.statics.indent {
             Indent::None => None,
@@ -106,10 +108,6 @@ impl Stackable for FloatingLeaf {
             top_setter.set(value.clone());
         }
     }
-}
-
-impl Coordinated for FloatingLeaf {
-    fn coordinate_system(&self) -> &CoordinateSystem { &self.statics.coord_system }
 }
 
 #[cfg_attr(any(test,debug_assertions),derive(Debug))]

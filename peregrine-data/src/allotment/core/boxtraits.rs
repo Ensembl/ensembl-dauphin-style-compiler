@@ -2,14 +2,10 @@ use peregrine_toolkit::{puzzle::{StaticValue, compose}};
 use crate::{allotment::{util::rangeused::RangeUsed, core::{allotmentname::AllotmentName}}, CoordinateSystem};
 use super::boxpositioncontext::BoxPositionContext;
 
-pub trait Coordinated {
-    fn coordinate_system(&self) -> &CoordinateSystem;
-}
-
 pub(crate) trait ContainerSpecifics {
     fn cloned(&self) -> Box<dyn ContainerSpecifics>;
-    fn build_reduce(&mut self, prep: &mut BoxPositionContext, children: &[(&Box<dyn Stackable>,BuildSize)]) -> StaticValue<f64>;
-    fn set_locate(&mut self, prep: &mut BoxPositionContext, top: &StaticValue<f64>, children: &mut [&mut Box<dyn Stackable>]);
+    fn build_reduce(&self, prep: &mut BoxPositionContext, children: &[(&Box<dyn Stackable>,BuildSize)]) -> StaticValue<f64>;
+    fn set_locate(&self, prep: &mut BoxPositionContext, top: &StaticValue<f64>, children: &mut [&mut Box<dyn Stackable>]);
 }
 
 pub(crate) struct BuildSize {
@@ -27,10 +23,12 @@ impl BuildSize {
     }
 }
 
-pub(crate) trait Stackable : Coordinated {
-    fn build(&mut self, prep: &mut BoxPositionContext) -> BuildSize;
-    fn locate(&mut self, prep: &mut BoxPositionContext, top: &StaticValue<f64>);
+pub(crate) trait Stackable {
+    fn coordinate_system(&self) -> &CoordinateSystem;
+    fn build(&self, prep: &mut BoxPositionContext) -> BuildSize;
+    fn locate(&self, prep: &mut BoxPositionContext, top: &StaticValue<f64>);
     fn name(&self) -> &AllotmentName;
     fn priority(&self) -> i64;
     fn cloned(&self) -> Box<dyn Stackable>;
+    fn add_child(&self, child: &dyn Stackable);
 }

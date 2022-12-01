@@ -1,6 +1,6 @@
 use std::{sync::Arc, rc::Rc};
 use peregrine_toolkit::{puzzle::{ derived, DelayedSetter, delayed, compose, StaticValue, commute_clonable, cache_constant_clonable, compose_slice_vec, short_memoized, cache_constant_rc }};
-use crate::{allotment::{style::{style::{ContainerAllotmentStyle}}, core::{allotmentname::{AllotmentNamePart, AllotmentName}, boxtraits::{Stackable, BuildSize, ContainerSpecifics, Coordinated}, boxpositioncontext::BoxPositionContext}}, CoordinateSystem};
+use crate::{allotment::{style::{style::{ContainerAllotmentStyle}}, core::{allotmentname::{AllotmentNamePart, AllotmentName}, boxtraits::{Stackable, BuildSize, ContainerSpecifics}, boxpositioncontext::BoxPositionContext}}, CoordinateSystem};
 use super::{container::{Container}};
 
 #[derive(Clone)]
@@ -9,10 +9,6 @@ pub struct Stacker(Container);
 impl Stacker {
     pub(crate) fn new(name: &AllotmentNamePart, style: &ContainerAllotmentStyle) -> Stacker {
         Stacker(Container::new(name,style,UnpaddedStacker::new()))
-    }
-
-    pub(crate) fn add_child(&mut self, child: &dyn Stackable) {
-        self.0.add_child(child)
     }
 }
 
@@ -64,21 +60,19 @@ impl UnpaddedStacker {
 }
 
 impl Stackable for Stacker {
+    fn add_child(&self, child: &dyn Stackable) { self.0.add_child(child) }
+    fn coordinate_system(&self) -> &CoordinateSystem { self.0.coordinate_system() }
     fn cloned(&self) -> Box<dyn Stackable> { Box::new(self.clone()) }
     fn name(&self) -> &AllotmentName { self.0.name( )}
-    fn locate(&mut self, prep: &mut BoxPositionContext, top: &StaticValue<f64>) { self.0.locate(prep,top); }
+    fn locate(&self, prep: &mut BoxPositionContext, top: &StaticValue<f64>) { self.0.locate(prep,top); }
     fn priority(&self) -> i64 { self.0.priority() }
-    fn build(&mut self, prep: &mut BoxPositionContext) -> BuildSize { self.0.build(prep) }
-}
-
-impl Coordinated for Stacker {
-    fn coordinate_system(&self) -> &CoordinateSystem { self.0.coordinate_system() }
+    fn build(&self, prep: &mut BoxPositionContext) -> BuildSize { self.0.build(prep) }
 }
 
 impl ContainerSpecifics for UnpaddedStacker {
     fn cloned(&self) -> Box<dyn ContainerSpecifics> { Box::new(self.clone()) }
 
-    fn build_reduce(&mut self, _prep: &mut BoxPositionContext, children: &[(&Box<dyn Stackable>,BuildSize)]) -> StaticValue<f64> {
+    fn build_reduce(&self, _prep: &mut BoxPositionContext, children: &[(&Box<dyn Stackable>,BuildSize)]) -> StaticValue<f64> {
         let mut added = vec![];
         for (child,size) in children {
             added.push(AddedChild {
@@ -91,7 +85,7 @@ impl ContainerSpecifics for UnpaddedStacker {
         self_height
     }
 
-    fn set_locate(&mut self, prep: &mut BoxPositionContext, top: &StaticValue<f64>, children: &mut [&mut Box<dyn Stackable>]) {
+    fn set_locate(&self, prep: &mut BoxPositionContext, top: &StaticValue<f64>, children: &mut [&mut Box<dyn Stackable>]) {
         for (i,child) in children.iter_mut().enumerate() {
             let relative_top = derived(self.relative_tops.clone(),move |tops|
                 tops.unwrap()[i]

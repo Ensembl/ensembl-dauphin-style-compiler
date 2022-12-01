@@ -1,6 +1,6 @@
 use std::{sync::{Arc, Mutex}, rc::Rc};
 use peregrine_toolkit::{lock, puzzle::{DelayedSetter, derived, cache_constant, commute_rc, constant, StaticValue, promise_delayed, short_memoized_clonable, cache_constant_clonable }, eachorevery::eoestruct::StructTemplate};
-use crate::{allotment::{core::{allotmentname::{AllotmentName, AllotmentNamePart}, boxtraits::{ContainerSpecifics, Coordinated, BuildSize, Stackable}, boxpositioncontext::BoxPositionContext}, style::{style::{ContainerAllotmentStyle}}, util::rangeused::RangeUsed, globals::allotmentmetadata::LocalAllotmentMetadataBuilder}, shape::metadata::MetadataStyle, CoordinateSystem};
+use crate::{allotment::{core::{allotmentname::{AllotmentName, AllotmentNamePart}, boxtraits::{ContainerSpecifics, BuildSize, Stackable}, boxpositioncontext::BoxPositionContext}, style::{style::{ContainerAllotmentStyle}}, util::rangeused::RangeUsed, globals::allotmentmetadata::LocalAllotmentMetadataBuilder}, shape::metadata::MetadataStyle, CoordinateSystem};
 
 fn internal_height(child_height: &StaticValue<f64>, min_height: f64, padding_top: f64, padding_bottom: f64) -> StaticValue<f64> {
     cache_constant(derived(child_height.clone(),move |child_height| {
@@ -60,18 +60,15 @@ impl Container {
             style: Arc::new(style.clone())
         }
     }
-
-    pub(crate) fn add_child(&mut self, child: &dyn Stackable) {
-        lock!(self.children).push(child.cloned());
-    }
-}
-
-impl Coordinated for Container {
-    fn coordinate_system(&self) -> &CoordinateSystem { &self.coord_system }
 }
 
 impl Stackable for Container {
-    fn locate(&mut self, prep: &mut BoxPositionContext, value: &StaticValue<f64>) {
+    fn add_child(&self, child: &dyn Stackable) {
+        lock!(self.children).push(child.cloned());
+    }
+
+    fn coordinate_system(&self) -> &CoordinateSystem { &self.coord_system }
+    fn locate(&self, prep: &mut BoxPositionContext, value: &StaticValue<f64>) {
         let value = cache_constant_clonable(short_memoized_clonable(value.clone()));
         let mut children = lock!(self.children);
         let mut kids = children.iter_mut().collect::<Vec<_>>();
@@ -86,7 +83,7 @@ impl Stackable for Container {
 
     fn name(&self) -> &AllotmentName { &self.name }
 
-    fn build(&mut self, prep: &mut BoxPositionContext) -> BuildSize {
+    fn build(&self, prep: &mut BoxPositionContext) -> BuildSize {
         let mut ranges = vec![];
         let mut children = lock!(self.children);
         let mut input = vec![];

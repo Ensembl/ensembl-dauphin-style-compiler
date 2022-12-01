@@ -9,7 +9,6 @@ mod allotment {
     }
 
     pub(crate) mod builder {
-        mod holder;
         pub(crate) mod stylebuilder;
     }
     

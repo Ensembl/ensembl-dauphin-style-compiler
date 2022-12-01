@@ -15,10 +15,10 @@ impl AbstractCarriageBuilder {
         let mut metadata = AbstractMetadataBuilder::new();
         metadata.add_shapes(&self.shapes);
         let metadata = metadata.build();
-        let (prep,spec) = self.builder.position_boxes(self.shape_request_group.as_ref(),&metadata)?;
+        let (spec,plm) = self.builder.position_boxes(self.shape_request_group.as_ref(),&metadata)?;
         /* update leafs to reflect container position */
         let shapes = self.shapes.iter().map(|x| 
-                x.map_new_allotment(|r| prep.plm.transformable(r.name()).clone())
+                x.map_new_allotment(|r| plm.transformable(r.name()).clone())
             ).collect::<Vec<_>>();
         Ok(AbstractCarriageState { shapes, spec })
     }

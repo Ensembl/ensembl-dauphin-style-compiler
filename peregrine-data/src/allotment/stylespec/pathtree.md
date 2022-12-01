@@ -1,3 +1,0 @@
-In this document, as well asplaces in the code, * is represented as & to avoid syntax issues. Please read as *.
-
-We need some way of specifying box paths which is a compromise between expressive and efficient. To allow styles rooted at different points in the tree, we need to allow arbitrary prefixes of any length but probably not to allow arbitrary sections between specified. ie we need to support &&/a/b/c but not necessarily a/&&/b because generally 

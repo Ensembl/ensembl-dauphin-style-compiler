@@ -3,7 +3,7 @@ use std::sync::Arc;
 use peregrine_toolkit::error::Error;
 
 use crate::{LeafRequest, ShapeRequestGroup, allotment::builder::stylebuilder::make_transformable, shape::metadata::AbstractMetadata};
-use super::{trainstate::CarriageTrainStateSpec, allotmentname::{allotmentname_hashmap, AllotmentName, AllotmentNameHashMap}, boxpositioncontext::BoxPositionContext};
+use super::{trainstate::CarriageTrainStateSpec, allotmentname::{allotmentname_hashmap, AllotmentName, AllotmentNameHashMap}, boxpositioncontext::BoxPositionContext, leafrequest::LeafTransformableMap};
 
 
 pub struct LeafList {
@@ -35,9 +35,9 @@ impl LeafList {
         self.leafs.get_mut(&name).unwrap()
     }
 
-    pub(super) fn position_boxes(&self, extent: Option<&ShapeRequestGroup>, metadata: &AbstractMetadata) -> Result<(BoxPositionContext,CarriageTrainStateSpec),Error> {
+    pub(super) fn position_boxes(&self, extent: Option<&ShapeRequestGroup>, metadata: &AbstractMetadata) -> Result<(CarriageTrainStateSpec,LeafTransformableMap),Error> {
         let mut prep = BoxPositionContext::new(extent,metadata);
-        let spec = make_transformable(&mut prep,&mut self.leafs.values())?;
-        Ok((prep,spec))
+        let (spec,plm) = make_transformable(&mut prep,&mut self.leafs.values())?;
+        Ok((spec,plm))
     }
 }
