@@ -98,10 +98,8 @@ impl StyleTree {
         if !state.leaf_cache.contains_key(allotment) {
             let mut inherit = InheritableStyle::empty();
             let name = allotment.name();
-            // TODO cache inheritables
             for index in 0..name.len() {
                 let prefix = &name[0..index];
-
                 if !state.container_cache.contains_key(prefix) {
                     let container = state.internal.lookup_container(prefix);
                     state.container_cache.insert(prefix.to_vec(),ContainerAllotmentStyle::build(&container));
