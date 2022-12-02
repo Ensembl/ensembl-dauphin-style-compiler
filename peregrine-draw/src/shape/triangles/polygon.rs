@@ -1,5 +1,5 @@
 use std::{sync::{Arc, Mutex}, f64::consts::PI};
-use peregrine_data::{SpaceBase, LeafStyle, reactive::{Observer, Observable}, SpaceBasePoint};
+use peregrine_data::{SpaceBase, AuxLeaf, reactive::{Observer, Observable}, SpaceBasePoint};
 use peregrine_toolkit::{eachorevery::EachOrEvery, error::{Error, err_web_drop}, lock};
 use crate::{webgl::{ProcessStanzaElements, ProcessBuilder, global::WebGlGlobal}, shape::{layers::{drawing::DynamicShape, geometry::{GeometryProcessName, GeometryFactory}}}};
 use super::{triangleadder::TriangleAdder, drawgroup::DrawGroup, rectangles::fix_normal_unpacked};
@@ -41,8 +41,8 @@ fn calc_points(points: usize, angle: f32) -> Vec<(f64,f64)> {
 pub(crate) struct SolidPolygonData {
     elements: ProcessStanzaElements,
     wobble: Option<SpaceBase<Observable<'static,f64>,()>>,
-    wobbled: Arc<Mutex<SpaceBase<f64,LeafStyle>>>,
-    centre: SpaceBase<f64,LeafStyle>,
+    wobbled: Arc<Mutex<SpaceBase<f64,AuxLeaf>>>,
+    centre: SpaceBase<f64,AuxLeaf>,
     points: Vec<(f64,f64)>,
     depth: i8,
     radius: EachOrEvery<f64>,
@@ -55,7 +55,7 @@ pub(crate) struct SolidPolygonData {
 
 impl SolidPolygonData {
     fn new(builder: &mut ProcessBuilder, 
-                centre: &SpaceBase<f64,LeafStyle>, radius: &EachOrEvery<f64>,
+                centre: &SpaceBase<f64,AuxLeaf>, radius: &EachOrEvery<f64>,
                 points: usize, angle: f32, depth: i8,
                 left: f64, group: &DrawGroup,
                 wobble: Option<SpaceBase<Observable<'static,f64>,()>>
@@ -105,7 +105,7 @@ impl SolidPolygonData {
 
     pub(crate) fn elements_mut(&mut self) -> &mut ProcessStanzaElements { &mut self.elements }
 
-    fn add_points(&self, centre: &SpaceBase<f64,LeafStyle>, points: &Vec<(f64,f64)>) -> (Vec<f32>,Vec<f32>) {
+    fn add_points(&self, centre: &SpaceBase<f64,AuxLeaf>, points: &Vec<(f64,f64)>) -> (Vec<f32>,Vec<f32>) {
         let mut data = vec![];
         let mut depths = vec![];
         let gl_depth = 1.0 - (self.depth as f32+128.) / 255.;
@@ -207,7 +207,7 @@ impl SolidPolygonDataFactory {
             draw_group: draw_group.clone()
         }
     }
-    pub(crate) fn make(&self, builder: &mut ProcessBuilder, centre: &SpaceBase<f64,LeafStyle>, radius: &EachOrEvery<f64>,
+    pub(crate) fn make(&self, builder: &mut ProcessBuilder, centre: &SpaceBase<f64,AuxLeaf>, radius: &EachOrEvery<f64>,
         points: usize, angle: f32, depth: i8,
         left: f64, group: &DrawGroup,
         wobble: Option<SpaceBase<Observable<'static,f64>,()>>)-> Result<SolidPolygonData,Error> {

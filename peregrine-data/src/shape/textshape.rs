@@ -1,5 +1,5 @@
 use peregrine_toolkit::{eachorevery::{EachOrEveryFilter, EachOrEvery}};
-use crate::{DataMessage, Pen, ShapeDemerge, Shape, SpaceBase, allotment::{util::rangeused::RangeUsed, core::allotmentname::AllotmentName, boxes::leaf::AnchoredLeaf}, LeafRequest, SpaceBaseArea, PartialSpaceBase, CoordinateSystem, LeafStyle};
+use crate::{DataMessage, Pen, ShapeDemerge, Shape, SpaceBase, allotment::{util::rangeused::RangeUsed, core::allotmentname::AllotmentName, boxes::leaf::{AnchoredLeaf, AuxLeaf}}, LeafRequest, SpaceBaseArea, PartialSpaceBase, CoordinateSystem };
 use std::{hash::Hash};
 
 #[cfg_attr(debug_assertions,derive(Debug))]
@@ -107,14 +107,14 @@ impl TextShape<LeafRequest> {
     }
 
     pub fn base_filter(&self, min: f64, max: f64) -> TextShape<LeafRequest> {
-        let non_tracking = self.position.allotments().make_filter(self.position.len(),|a| !a.leaf_style().coord_system.is_tracking());
+        let non_tracking = self.position.allotments().make_filter(self.position.len(),|a| !a.leaf_style().aux.coord_system.is_tracking());
         let filter = self.make_base_filter(min,max);
         self.filter(&filter.or(&non_tracking))
     }
 }
 
-impl TextShape<LeafStyle> {
-    pub fn demerge<T: Hash + Clone + Eq,D>(self,  cat: &D) -> Vec<(T,TextShape<LeafStyle>)> where D: ShapeDemerge<X=T> {
+impl TextShape<AuxLeaf> {
+    pub fn demerge<T: Hash + Clone + Eq,D>(self,  cat: &D) -> Vec<(T,TextShape<AuxLeaf>)> where D: ShapeDemerge<X=T> {
         let demerge = self.position.allotments().demerge(self.position.len(),|a| cat.categorise(&a.coord_system,a.depth));
         let mut out = vec![];
         for (draw_group,mut filter) in demerge {
@@ -136,7 +136,7 @@ impl TextShape<AnchoredLeaf> {
         out
     }
 
-    pub fn make(&self) -> Vec<TextShape<LeafStyle>> {
+    pub fn make(&self) -> Vec<TextShape<AuxLeaf>> {
         let mut out = vec![];
         for (coord_system,texts) in self.demerge_by_variety() {
             out.push(TextShape {

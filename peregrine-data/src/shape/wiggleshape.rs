@@ -1,5 +1,5 @@
 use peregrine_toolkit::eachorevery::{EachOrEveryFilter, EachOrEvery};
-use crate::{DataMessage, Plotter, ShapeDemerge, Shape, allotment::{boxes::leaf::AnchoredLeaf, core::transformers::yy_transform}, LeafRequest, LeafStyle};
+use crate::{DataMessage, Plotter, ShapeDemerge, Shape, allotment::{boxes::leaf::{AnchoredLeaf, AuxLeaf}, core::transformers::yy_transform}, LeafRequest};
 use std::{cmp::{max, min}, hash::Hash, sync::Arc};
 
 const SCALE : i64 = 200; // XXX configurable
@@ -99,8 +99,8 @@ impl WiggleShape<LeafRequest> {
     }
 }
 
-impl WiggleShape<LeafStyle> {
-    pub fn get_style(&self) -> &LeafStyle { &self.allotments.get(0).unwrap() }
+impl WiggleShape<AuxLeaf> {
+    pub fn get_style(&self) -> &AuxLeaf { &self.allotments.get(0).unwrap() }
 }
 
 impl<A: Clone> WiggleShape<A> {
@@ -126,8 +126,8 @@ impl<A: Clone> WiggleShape<A> {
     }
 }
 
-impl WiggleShape<LeafStyle> {
-    pub fn demerge<T: Hash + Clone + Eq,D>(self, cat: &D) -> Vec<(T,WiggleShape<LeafStyle>)> where D: ShapeDemerge<X=T> {
+impl WiggleShape<AuxLeaf> {
+    pub fn demerge<T: Hash + Clone + Eq,D>(self, cat: &D) -> Vec<(T,WiggleShape<AuxLeaf>)> where D: ShapeDemerge<X=T> {
         let demerge = self.allotments.demerge(1,|a| cat.categorise(&a.coord_system,a.depth));
         let mut out = vec![];
         for (draw_group,mut filter) in demerge {
@@ -138,14 +138,14 @@ impl WiggleShape<LeafStyle> {
 }
 
 impl WiggleShape<AnchoredLeaf> {
-    pub fn make(&self) -> Vec<WiggleShape<LeafStyle>> {
+    pub fn make(&self) -> Vec<WiggleShape<AuxLeaf>> {
         let allotment = self.allotments.get(0).unwrap();
         let coord_system = allotment.coordinate_system();
         vec![WiggleShape {
             x_limits: self.x_limits.clone(),
             values: Arc::new(yy_transform(&coord_system,allotment,&self.values)),
             plotter: self.plotter.clone(),
-            allotments: EachOrEvery::each(vec![allotment.get_style().clone()])
+            allotments: EachOrEvery::each(vec![allotment.get_style().aux.clone()])
         }]
     }
 }

@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::{Arc, Mutex}};
 use peregrine_toolkit::{lock, log};
-use crate::{allotment::{style::{containerstyle::ContainerStyle, leafstyle::{InheritableLeafStyle, UninheritableLeafStyle}}, core::allotmentname::{AllotmentName, AllotmentNameHashMap, allotmentname_hashmap}}, LeafStyle};
+use crate::{allotment::{style::{containerstyle::ContainerStyle, leafstyle::{InheritableLeafStyle, UninheritableLeafStyle, LeafStyle}}, core::allotmentname::{AllotmentName, AllotmentNameHashMap, allotmentname_hashmap}}};
 use super::{pathtree::{PathTree, PathKey}};
 
 struct StyleTreeInternal {

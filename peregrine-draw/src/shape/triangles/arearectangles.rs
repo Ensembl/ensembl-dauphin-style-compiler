@@ -1,9 +1,9 @@
 use std::sync::{Arc, Mutex};
-use peregrine_data::{LeafStyle, SpaceBaseArea, SpaceBase, HollowEdge2, reactive::{Observable, Observer}, PartialSpaceBase};
+use peregrine_data::{AuxLeaf, SpaceBaseArea, SpaceBase, HollowEdge2, reactive::{Observable, Observer}, PartialSpaceBase};
 use peregrine_toolkit::{eachorevery::EachOrEvery, lock, error::Error};
 use super::rectangles::{RectanglesImpl, apply_wobble};
 
-fn apply_hollow(area: &SpaceBaseArea<f64,LeafStyle>, edge: &Option<HollowEdge2<f64>>) -> SpaceBaseArea<f64,LeafStyle> {
+fn apply_hollow(area: &SpaceBaseArea<f64,AuxLeaf>, edge: &Option<HollowEdge2<f64>>) -> SpaceBaseArea<f64,AuxLeaf> {
     if let Some(edge) = edge {
         area.hollow_edge(&edge)
     } else {
@@ -11,7 +11,7 @@ fn apply_hollow(area: &SpaceBaseArea<f64,LeafStyle>, edge: &Option<HollowEdge2<f
     }
 }
 
-fn area_to_rectangle(area: &SpaceBaseArea<f64,LeafStyle>,  wobble: &Option<SpaceBaseArea<Observable<'static,f64>,()>>, edge: &Option<HollowEdge2<f64>>) -> Result<SpaceBaseArea<f64,LeafStyle>,Error> {
+fn area_to_rectangle(area: &SpaceBaseArea<f64,AuxLeaf>,  wobble: &Option<SpaceBaseArea<Observable<'static,f64>,()>>, edge: &Option<HollowEdge2<f64>>) -> Result<SpaceBaseArea<f64,AuxLeaf>,Error> {
     if let Some(wobble) = wobble {
         let top_left = apply_wobble(area.top_left(),wobble.top_left());
         let bottom_right = apply_wobble(area.bottom_right(),wobble.bottom_right());
@@ -26,15 +26,15 @@ fn area_to_rectangle(area: &SpaceBaseArea<f64,LeafStyle>,  wobble: &Option<Space
 
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub(super) struct RectanglesLocationArea {
-    spacebase: SpaceBaseArea<f64,LeafStyle>,
+    spacebase: SpaceBaseArea<f64,AuxLeaf>,
     wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>,
-    wobbled_spacebase: Arc<Mutex<SpaceBaseArea<f64,LeafStyle>>>,
+    wobbled_spacebase: Arc<Mutex<SpaceBaseArea<f64,AuxLeaf>>>,
     depth: EachOrEvery<i8>,
     edge: Option<HollowEdge2<f64>>
 }
 
 impl RectanglesLocationArea {
-    pub(super) fn new(spacebase: &SpaceBaseArea<f64,LeafStyle>, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>, depth: EachOrEvery<i8>, edge: Option<HollowEdge2<f64>>) -> Result<RectanglesLocationArea,Error> {
+    pub(super) fn new(spacebase: &SpaceBaseArea<f64,AuxLeaf>, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>, depth: EachOrEvery<i8>, edge: Option<HollowEdge2<f64>>) -> Result<RectanglesLocationArea,Error> {
         Ok(RectanglesLocationArea {
             wobbled_spacebase: Arc::new(Mutex::new(area_to_rectangle(spacebase,&wobble,&edge)?)),
             spacebase: spacebase.clone(),
@@ -48,7 +48,7 @@ impl RectanglesImpl for RectanglesLocationArea {
     fn any_dynamic(&self) -> bool { self.wobble.is_some() }
     fn len(&self) -> usize { self.spacebase.len() }
 
-    fn wobbled_location(&self) -> (SpaceBaseArea<f64,LeafStyle>,Option<SpaceBase<f64,()>>) {
+    fn wobbled_location(&self) -> (SpaceBaseArea<f64,AuxLeaf>,Option<SpaceBase<f64,()>>) {
         (lock!(self.wobbled_spacebase).clone(),None)
     }
 

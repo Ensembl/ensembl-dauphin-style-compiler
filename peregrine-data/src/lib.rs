@@ -289,7 +289,7 @@ pub(crate) mod hotspots {
 }
 
 pub use self::allotment::core::floatingleafsource::LeafRequest;
-pub use self::allotment::style::leafstyle::LeafStyle;
+pub use self::allotment::boxes::leaf::AuxLeaf;
 pub use self::allotment::globals::{ allotmentmetadata::GlobalAllotmentMetadata, playingfield::PlayingField };
 pub use self::api::{ PeregrineCore, PeregrineCoreBase, PeregrineIntegration, PeregrineApiQueue, TrainIdentity, CarriageSpeed, AgentStore, InstanceInformation };
 pub use self::core::{ Asset, Assets, PgdPeregrineConfig, ConfigKey, Stick, StickId, StickTopology, Scale, Viewport, ProgramModel, ProgramSetting };

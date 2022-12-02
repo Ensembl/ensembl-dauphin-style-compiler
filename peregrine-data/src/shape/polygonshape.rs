@@ -1,5 +1,5 @@
 use peregrine_toolkit::eachorevery::{EachOrEveryFilter, EachOrEvery};
-use crate::{DataMessage, ShapeDemerge, Shape, SpaceBase, allotment::{boxes::leaf::AnchoredLeaf, util::rangeused::RangeUsed}, LeafRequest, BackendNamespace, CoordinateSystem, Patina, reactive::Observable, LeafStyle};
+use crate::{DataMessage, ShapeDemerge, Shape, SpaceBase, allotment::{boxes::leaf::{AnchoredLeaf, AuxLeaf}, util::rangeused::RangeUsed}, LeafRequest, CoordinateSystem, Patina, reactive::Observable};
 use std::{hash::Hash,};
 
 #[cfg_attr(debug_assertions,derive(Debug))]
@@ -72,7 +72,7 @@ impl PolygonShape<LeafRequest> {
     }
 
     pub(super) fn base_filter(&self, min: f64, max: f64) -> PolygonShape<LeafRequest> {
-        let non_tracking = self.position.allotments().make_filter(self.position.len(),|a| !a.leaf_style().coord_system.is_tracking());
+        let non_tracking = self.position.allotments().make_filter(self.position.len(),|a| !a.leaf_style().aux.coord_system.is_tracking());
         let filter = self.position.make_base_filter(min,max);
         self.filter(&filter.or(&non_tracking))
     }
@@ -102,7 +102,7 @@ impl PolygonShape<AnchoredLeaf> {
         out
     }
 
-    pub fn make(&self) -> Vec<PolygonShape<LeafStyle>> {
+    pub fn make(&self) -> Vec<PolygonShape<AuxLeaf>> {
         let mut out = vec![];
         for (coord_system,circles) in self.demerge_by_variety() {
             out.push(PolygonShape {
@@ -118,8 +118,8 @@ impl PolygonShape<AnchoredLeaf> {
     }
 }
 
-impl PolygonShape<LeafStyle> {
-    pub(crate) fn demerge<T: Hash + Clone + Eq,D>(self, cat: &D) -> Vec<(T,PolygonShape<LeafStyle>)> where D: ShapeDemerge<X=T> {
+impl PolygonShape<AuxLeaf> {
+    pub(crate) fn demerge<T: Hash + Clone + Eq,D>(self, cat: &D) -> Vec<(T,PolygonShape<AuxLeaf>)> where D: ShapeDemerge<X=T> {
         let demerge = self.position.allotments().demerge(self.position.len(),|x| {
             cat.categorise(&x.coord_system,x.depth)
         });

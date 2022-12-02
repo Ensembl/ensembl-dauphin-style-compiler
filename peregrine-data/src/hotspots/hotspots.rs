@@ -1,11 +1,11 @@
 use std::{sync::Arc };
 use peregrine_toolkit::{ identitynumber, orderable, hashable };
-use crate::{ZMenuFixed, SettingMode, SpaceBaseArea, LeafStyle, HotspotPatina, SpaceBasePointRef, SpaceBasePoint};
+use crate::{ZMenuFixed, SettingMode, SpaceBaseArea, HotspotPatina, SpaceBasePointRef, SpaceBasePoint, allotment::boxes::leaf::AuxLeaf};
 
 #[derive(Clone)]
 pub struct SpecialClick {
     pub name: String,
-    pub area: Option<(SpaceBasePoint<f64,LeafStyle>,SpaceBasePoint<f64,LeafStyle>)>
+    pub area: Option<(SpaceBasePoint<f64,AuxLeaf>,SpaceBasePoint<f64,AuxLeaf>)>
 }
 
 pub enum HotspotResult {
@@ -27,8 +27,8 @@ identitynumber!(IDS);
 
 #[derive(Clone)]
 pub struct HotspotGroupEntry {
-    generator: Arc<dyn Fn(usize,Option<(SpaceBasePoint<f64,LeafStyle>,SpaceBasePoint<f64,LeafStyle>)>) -> HotspotResult>,
-    area: SpaceBaseArea<f64,LeafStyle>,
+    generator: Arc<dyn Fn(usize,Option<(SpaceBasePoint<f64,AuxLeaf>,SpaceBasePoint<f64,AuxLeaf>)>) -> HotspotResult>,
+    area: SpaceBaseArea<f64,AuxLeaf>,
     id: u64
 }
 
@@ -36,7 +36,7 @@ hashable!(HotspotGroupEntry,id);
 orderable!(HotspotGroupEntry,id);
 
 impl HotspotGroupEntry {
-    pub fn new(area: SpaceBaseArea<f64,LeafStyle>, hotspot: &HotspotPatina) -> HotspotGroupEntry {
+    pub fn new(area: SpaceBaseArea<f64,AuxLeaf>, hotspot: &HotspotPatina) -> HotspotGroupEntry {
         HotspotGroupEntry {
             generator: hotspot.generator(),
             area,
@@ -44,7 +44,7 @@ impl HotspotGroupEntry {
         }
     }
 
-    pub fn area(&self) -> &SpaceBaseArea<f64,LeafStyle> { &self.area }
+    pub fn area(&self) -> &SpaceBaseArea<f64,AuxLeaf> { &self.area }
     pub fn value(&self, index: usize) -> HotspotResult { 
         let top_left = self.area.top_left().get(index).map(|x| x.make());
         let bottom_right = self.area.bottom_right().get(index).map(|x| x.make());
@@ -69,7 +69,7 @@ impl SingleHotspotEntry {
         }
     }
 
-    pub fn coordinates(&self) -> Option<(SpaceBasePointRef<f64,LeafStyle>,SpaceBasePointRef<f64,LeafStyle>)> {
+    pub fn coordinates(&self) -> Option<(SpaceBasePointRef<f64,AuxLeaf>,SpaceBasePointRef<f64,AuxLeaf>)> {
         self.unscaled.area().iter().nth(self.index)
     }
 

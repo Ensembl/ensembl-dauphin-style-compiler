@@ -47,7 +47,8 @@ use std::collections::{ HashSet, HashMap };
 use std::iter::Peekable;
 use std::str::Chars;
 use std::sync::Arc;
-use crate::{HotspotResult, SpaceBasePoint, LeafStyle};
+use crate::allotment::boxes::leaf::AuxLeaf;
+use crate::{HotspotResult, SpaceBasePoint};
 use super::zmenuitem::ZMenuBuild;
 
 #[derive(Clone)]
@@ -215,7 +216,7 @@ impl ZMenu {
     }
 }
 
-pub fn zmenu_generator(zmenu: &ZMenu, values: &Vec<(String,EachOrEvery<String>)>) -> Arc<dyn Fn(usize,Option<(SpaceBasePoint<f64,LeafStyle>,SpaceBasePoint<f64,LeafStyle>)>) -> HotspotResult> {
+pub fn zmenu_generator(zmenu: &ZMenu, values: &Vec<(String,EachOrEvery<String>)>) -> Arc<dyn Fn(usize,Option<(SpaceBasePoint<f64,AuxLeaf>,SpaceBasePoint<f64,AuxLeaf>)>) -> HotspotResult> {
     let mut map_values = HashMap::new();
     for (k,v) in values.iter() {
         map_values.insert(k.to_string(),v.clone());

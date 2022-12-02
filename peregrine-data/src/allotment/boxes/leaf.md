@@ -44,7 +44,7 @@ Jumping to the other end of the pipeline for a moment, ultimately, these leafs w
 +---------------------+
 ```
 
-Finally these offsets will affect the co-ordinates of the shape in a shape-specific way, offsetting values. The only things remaining in the leaf will be those few auxialliary values. This is called the `LeafStyle` stage.
+Finally these offsets will affect the co-ordinates of the shape in a shape-specific way, offsetting values. The only things remaining in the leaf will be those few auxialliary values. This is called the `AuxLeaf` stage.
 
 ```
 +---------------------+
@@ -55,7 +55,7 @@ Finally these offsets will affect the co-ordinates of the shape in a shape-speci
 | colour: ...         |
 | leaf:               |
 |  +----------------+ |
-|  | depth: 42      |<+--- the embedded LeafStyle
+|  | depth: 42      |<+--- the embedded AuxLeaf
 |  +----------------+ |
 +---------------------+
 ```
@@ -63,7 +63,7 @@ Finally these offsets will affect the co-ordinates of the shape in a shape-speci
 In all these stages, shapes with their leaves are just unordered collections of things with no relation to each other. But what of the leap between amere string specifier and the AnchoredLeaf? How are the boxes laid out? How can independently-computed panels bump andoffset in a coherent way without tearing? This is the purpose of this document.
 
 ```
-LeafRequest ---> ??? ---> AnchoredLeaf ---> LeafStyle
+LeafRequest ---> ??? ---> AnchoredLeaf ---> AuxLeaf
 ```
 
 Don't confuse the style tree and the layout tree!
@@ -140,10 +140,10 @@ Step Four: the tree is used to create `AnchoredLeaf`s for each shape:
 So we can fill in our picture
 
 ```
-LeafRequest ---> FloatingLeaf ---> AnchoredLeaf ---> LeafStyle
+LeafRequest ---> FloatingLeaf ---> AnchoredLeaf ---> AuxLeaf
 ```
 
-Note that FloatingLeaf and AnchoredLeaf actually contain the ultimate LeafStyle inside of them! It is generated during this process. It is simply that once a leaf has been anchored and the transforms applied, the rest of their contents is sloughed, leaving the LeafStyle visible.
+Note that FloatingLeaf and AnchoredLeaf actually contain the ultimate AuxLeaf inside of them! It is generated during this process. It is simply that once a leaf has been anchored and the transforms applied, the rest of their contents is sloughed, leaving the AuxLeaf visible.
 
 ## The Up And Down Algorithm
 

@@ -1,4 +1,4 @@
-use peregrine_data::{ DirectColour, PenGeometry, Background, LeafStyle, TextShape, SpaceBase };
+use peregrine_data::{ DirectColour, PenGeometry, Background, AuxLeaf, TextShape, SpaceBase };
 use peregrine_toolkit::eachorevery::EachOrEvery;
 use peregrine_toolkit::error::Error;
 use crate::shape::core::drawshape::{GLShape, ShapeToAdd, draw_points_from_canvas2, dims_to_sizes, GLAttachmentPoint};
@@ -80,7 +80,7 @@ impl DrawingText {
     }
 }
 
-pub(crate) fn prepare_text(out: &mut Vec<GLShape>, tools: &mut DrawingToolsBuilder, shape: &TextShape<LeafStyle>, draw_group: &DrawGroup) -> Result<(),Error> {
+pub(crate) fn prepare_text(out: &mut Vec<GLShape>, tools: &mut DrawingToolsBuilder, shape: &TextShape<AuxLeaf>, draw_group: &DrawGroup) -> Result<(),Error> {
     let depth = shape.position().allotments().map(|x| x.depth);
     let drawing_text = tools.text();
     let background = shape.pen().background();
@@ -100,7 +100,7 @@ pub(crate) fn prepare_text(out: &mut Vec<GLShape>, tools: &mut DrawingToolsBuild
 }
 
 pub(crate) fn draw_text(layer: &mut Layer, left: f64, gl: &mut WebGlGlobal, tools: &mut DrawingToolsBuilder,
-                    points: SpaceBase<f64,LeafStyle>,
+                    points: SpaceBase<f64,AuxLeaf>,
                     run: Option<SpaceBase<f64,()>>,
                     handles: &[CanvasItemAreaSource], depth: EachOrEvery<i8>, draw_group: &DrawGroup,
                     attachment: GLAttachmentPoint,

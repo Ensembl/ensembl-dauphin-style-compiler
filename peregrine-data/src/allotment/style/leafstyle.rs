@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use crate::{CoordinateSystem};
+use crate::{CoordinateSystem, allotment::boxes::leaf::AuxLeaf};
 
 fn remove_bracketed(input: &str, prefix: &str, suffix: &str) -> Option<String> {
     if input.starts_with(prefix) && input.ends_with(suffix) {
@@ -87,8 +87,10 @@ impl InheritableLeafStyle {
     pub(crate) fn make(&self, uninh: &UninheritableLeafStyle) -> LeafStyle {
         let coord_system = self.coord_system.as_ref().unwrap_or(&CoordinateSystem::Window).clone();
         LeafStyle {
-            depth: self.depth.unwrap_or(0),
-            coord_system,
+            aux: AuxLeaf {
+                depth: self.depth.unwrap_or(0),
+                coord_system,
+            },
             priority: uninh.priority,
             indent: self.indent.as_ref().unwrap_or(&Indent::None).clone(),
             bump_invisible: self.bump_invisible.unwrap_or(false)
@@ -113,8 +115,7 @@ impl UninheritableLeafStyle {
 #[cfg_attr(any(test,debug_assertions),derive(Debug))]
 #[derive(Clone)]
 pub struct LeafStyle {
-    pub coord_system: CoordinateSystem,
-    pub depth: i8,
+    pub(crate) aux: AuxLeaf,
     pub(crate) priority: i64,
     pub(crate) indent: Indent,
     pub(crate) bump_invisible: bool
@@ -123,8 +124,10 @@ pub struct LeafStyle {
 impl LeafStyle {
     pub(crate) fn dustbin() -> LeafStyle {
         LeafStyle {
-            coord_system: CoordinateSystem::Dustbin,
-            depth: 0,
+            aux: AuxLeaf {
+                coord_system: CoordinateSystem::Dustbin,
+                depth: 0,
+            },
             priority: 0,
             indent: Indent::None,
             bump_invisible: false

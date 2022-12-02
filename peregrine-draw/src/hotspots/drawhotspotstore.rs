@@ -1,8 +1,8 @@
-use peregrine_data::{LeafStyle, SingleHotspotEntry, HotspotGroupEntry, SpaceBasePoint};
+use peregrine_data::{SingleHotspotEntry, HotspotGroupEntry, SpaceBasePoint, AuxLeaf};
 use peregrine_toolkit::{hotspots::hotspotstore::{HotspotStore, HotspotStoreProfile}, error::Error};
 use crate::{Message};
 
-pub(super) type PointPair = (SpaceBasePoint<f64,LeafStyle>,SpaceBasePoint<f64,LeafStyle>);
+pub(super) type PointPair = (SpaceBasePoint<f64,AuxLeaf>,SpaceBasePoint<f64,AuxLeaf>);
 
 pub(super) struct DrawHotspotStore<X> {
     store: HotspotStore<(f64,f64),PointPair,X,SingleHotspotEntry>

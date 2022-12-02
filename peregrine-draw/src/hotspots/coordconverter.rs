@@ -1,4 +1,4 @@
-use peregrine_data::{LeafStyle, SpaceBasePointRef};
+use peregrine_data::{SpaceBasePointRef, AuxLeaf};
 
 use crate::stage::axis::UnitConverter;
 
@@ -22,7 +22,7 @@ impl CoordToPxConverter {
         })
     }
 
-    pub(super) fn tracking_coord_to_px(&self, c: &SpaceBasePointRef<f64,LeafStyle>) -> f64 {
+    pub(super) fn tracking_coord_to_px(&self, c: &SpaceBasePointRef<f64,AuxLeaf>) -> f64 {
         (c.base - self.left) / self.bp_per_px + self.car_px_left + c.tangent
     }
 

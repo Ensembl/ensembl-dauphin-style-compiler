@@ -1,4 +1,4 @@
-use peregrine_data::{ Colour, DrawnType, Patina, RectangleShape, Shape, ShapeDemerge, HollowEdge2, LeafStyle, DrawingShape, CoordinateSystem, PolygonShape };
+use peregrine_data::{ Colour, DrawnType, Patina, RectangleShape, Shape, ShapeDemerge, HollowEdge2, AuxLeaf, DrawingShape, CoordinateSystem, PolygonShape };
 use peregrine_toolkit::eachorevery::EachOrEvery;
 use peregrine_toolkit::error::Error;
 use crate::shape::canvasitem::heraldry::{HeraldryCanvasesUsed, Heraldry};
@@ -8,7 +8,7 @@ use crate::shape::layers::drawingtools::{DrawingToolsBuilder, CanvasType};
 use crate::shape::triangles::drawgroup::{DrawGroup, ShapeCategory};
 use super::drawshape::{ GLShape };
 
-fn split_spacebaserect(tools: &mut DrawingToolsBuilder, shape: &RectangleShape<LeafStyle>, draw_group: &DrawGroup) -> Result<Vec<GLShape>,Error> {
+fn split_spacebaserect(tools: &mut DrawingToolsBuilder, shape: &RectangleShape<AuxLeaf>, draw_group: &DrawGroup) -> Result<Vec<GLShape>,Error> {
     let mut out = vec![];
     let depth = shape.area().top_left().allotments().map(|x| x.depth);
     let wobble = shape.wobble().clone();
@@ -48,7 +48,7 @@ fn split_spacebaserect(tools: &mut DrawingToolsBuilder, shape: &RectangleShape<L
     Ok(out)
 }
 
-fn split_polygon(shape: &PolygonShape<LeafStyle>, draw_group: &DrawGroup) -> Result<Vec<GLShape>,Error> {
+fn split_polygon(shape: &PolygonShape<AuxLeaf>, draw_group: &DrawGroup) -> Result<Vec<GLShape>,Error> {
     let mut out = vec![];
     let wobble = shape.wobble().clone();
     match shape.patina() {

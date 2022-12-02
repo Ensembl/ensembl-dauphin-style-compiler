@@ -1,6 +1,6 @@
 use std::{collections::{hash_map::DefaultHasher}, hash::{Hash, Hasher}, sync::Arc, rc::Rc};
 use peregrine_toolkit::eachorevery::{EachOrEveryFilter, EachOrEvery, eoestruct::{StructTemplate}};
-use crate::{hotspots::{zmenupatina::ZMenu, hotspots::SpecialClick}, HotspotResult, zmenu_generator, LeafStyle, SpaceBasePoint};
+use crate::{hotspots::{zmenupatina::ZMenu, hotspots::SpecialClick}, HotspotResult, zmenu_generator, SpaceBasePoint, allotment::boxes::leaf::AuxLeaf};
 use super::{settingmode::SettingMode};
 
 #[derive(Clone,Debug,PartialEq,Eq,Hash)]
@@ -119,7 +119,7 @@ pub enum HotspotPatina {
     Special(EachOrEvery<String>)
 }
 
-fn setting_generator(values: &EachOrEvery<(Vec<String>,SettingMode)>) -> Arc<dyn Fn(usize,Option<(SpaceBasePoint<f64,LeafStyle>,SpaceBasePoint<f64,LeafStyle>)>) -> HotspotResult> {
+fn setting_generator(values: &EachOrEvery<(Vec<String>,SettingMode)>) -> Arc<dyn Fn(usize,Option<(SpaceBasePoint<f64,AuxLeaf>,SpaceBasePoint<f64,AuxLeaf>)>) -> HotspotResult> {
     let values = Rc::new(values.clone());
     Arc::new(move |index,_| {
         let (path,mode) = values.get(index).unwrap().clone();
@@ -127,7 +127,7 @@ fn setting_generator(values: &EachOrEvery<(Vec<String>,SettingMode)>) -> Arc<dyn
     })
 }
 
-fn special_generator(values: &EachOrEvery<String>) -> Arc<dyn Fn(usize,Option<(SpaceBasePoint<f64,LeafStyle>,SpaceBasePoint<f64,LeafStyle>)>) -> HotspotResult> {
+fn special_generator(values: &EachOrEvery<String>) -> Arc<dyn Fn(usize,Option<(SpaceBasePoint<f64,AuxLeaf>,SpaceBasePoint<f64,AuxLeaf>)>) -> HotspotResult> {
     let values = Rc::new(values.clone());
     Arc::new(move |index,area| {
         HotspotResult::Special(SpecialClick {
@@ -169,7 +169,7 @@ impl HotspotPatina {
         }
     }
 
-    pub fn generator(&self) -> Arc<dyn Fn(usize,Option<(SpaceBasePoint<f64,LeafStyle>,SpaceBasePoint<f64,LeafStyle>)>) -> HotspotResult> {
+    pub fn generator(&self) -> Arc<dyn Fn(usize,Option<(SpaceBasePoint<f64,AuxLeaf>,SpaceBasePoint<f64,AuxLeaf>)>) -> HotspotResult> {
         match self {
             HotspotPatina::ZMenu(zmenu,values) => {
                 zmenu_generator(&zmenu,values)

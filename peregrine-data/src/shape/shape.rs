@@ -13,6 +13,7 @@ use crate::DrawnType;
 use crate::LeafRequest;
 use crate::SpaceBaseArea;
 use crate::allotment::boxes::leaf::AnchoredLeaf;
+use crate::allotment::boxes::leaf::AuxLeaf;
 use crate::allotment::boxes::leaf::FloatingLeaf;
 use crate::allotment::style::leafstyle::LeafStyle;
 use crate::allotment::util::rangeused::RangeUsed;
@@ -44,7 +45,7 @@ pub(crate) type UnplacedShape = Shape<LeafRequest>;
 pub(crate) type FloatingShape = Shape<FloatingLeaf>;
 
 /* -> A completely placed shape, ready to draw */
-pub type DrawingShape = Shape<LeafStyle>;
+pub type DrawingShape = Shape<AuxLeaf>;
 
 impl<A> Clone for Shape<A> where A: Clone {
     fn clone(&self) -> Self {
@@ -96,8 +97,8 @@ impl Shape<LeafRequest> {
     }
 }
 
-impl Shape<LeafStyle> {
-    pub fn demerge<T: Hash + Clone + Eq,D>(self, cat: &D) -> Vec<(T,Shape<LeafStyle>)> where D: ShapeDemerge<X=T> {
+impl Shape<AuxLeaf> {
+    pub fn demerge<T: Hash + Clone + Eq,D>(self, cat: &D) -> Vec<(T,Shape<AuxLeaf>)> where D: ShapeDemerge<X=T> {
         match self {
             Shape::Wiggle(shape) => {
                 return shape.demerge(cat).drain(..).map(|(x,details)| 
@@ -134,7 +135,7 @@ impl Shape<LeafStyle> {
 }
 
 impl Shape<AnchoredLeaf> {
-    pub fn make(&self) -> Vec<Shape<LeafStyle>> {
+    pub fn make(&self) -> Vec<Shape<AuxLeaf>> {
         match self {
             Shape::Polygon(shape) => shape.make().drain(..).map(|x| Shape::Polygon(x)).collect(),
             Shape::SpaceBaseRect(shape) => shape.make().drain(..).map(|x| Shape::SpaceBaseRect(x)).collect(),

@@ -1,5 +1,5 @@
 use std::{ops::Range};
-use peregrine_data::{LeafStyle, SingleHotspotEntry, Scale, HotspotGroupEntry, SpaceBasePoint };
+use peregrine_data::{SingleHotspotEntry, Scale, HotspotGroupEntry, SpaceBasePoint, AuxLeaf };
 use peregrine_toolkit::{hotspots::hotspotstore::{HotspotStoreProfile}, ubail, error::Error};
 use crate::{Message, stage::{stage::ReadStage, axis::UnitConverter}};
 use super::{drawhotspotstore::{PointPair, DrawHotspotStore}, coordconverter::CoordToPxConverter};
@@ -26,7 +26,7 @@ impl DrawingHotspotProfile {
         (bp - self.left) / self.bp_per_carriage
     }
 
-    fn max_bp_pos(&self, c: &SpaceBasePoint<f64,LeafStyle>, neg_bias: bool) -> f64 {
+    fn max_bp_pos(&self, c: &SpaceBasePoint<f64,AuxLeaf>, neg_bias: bool) -> f64 {
         let px = c.tangent * self.max_bp_per_px;
         let px_extra = if neg_bias { px.min(0.) } else { px.max(0.) };
         c.base + px_extra

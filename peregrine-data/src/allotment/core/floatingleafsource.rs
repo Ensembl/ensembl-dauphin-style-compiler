@@ -1,6 +1,6 @@
 use std::{sync::{Arc, Mutex}, borrow::BorrowMut };
 use peregrine_toolkit::lock;
-use crate::{allotment::{styletree::{styletree::StyleTree}, boxes::leaf::FloatingLeaf}, LeafStyle};
+use crate::{allotment::{styletree::{styletree::StyleTree}, boxes::leaf::FloatingLeaf, style::leafstyle::LeafStyle}};
 use super::{allotmentname::{allotmentname_hashmap, AllotmentName, AllotmentNameHashMap}, drawinginfo::DrawingInfo};
 
 pub struct FloatingLeafSource {

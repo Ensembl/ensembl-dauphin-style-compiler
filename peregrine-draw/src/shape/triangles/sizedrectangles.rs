@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use peregrine_data::{SpaceBase, SpaceBaseArea, reactive::{Observable, Observer}, LeafStyle};
+use peregrine_data::{SpaceBase, SpaceBaseArea, reactive::{Observable, Observer}, AuxLeaf};
 use peregrine_toolkit::{eachorevery::EachOrEvery, error::Error, lock};
 
 use crate::shape::core::drawshape::GLAttachmentPoint;
@@ -18,17 +18,17 @@ fn apply_any_wobble<A: Clone>(spacebase: &SpaceBase<f64,A>, wobble: &Option<Spac
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub(super) struct RectanglesLocationSized {
     attachment: GLAttachmentPoint,
-    spacebase: SpaceBase<f64,LeafStyle>,
+    spacebase: SpaceBase<f64,AuxLeaf>,
     run: Option<SpaceBase<f64,()>>,
     wobble: Option<SpaceBase<Observable<'static,f64>,()>>,
-    wobbled: Arc<Mutex<(SpaceBaseArea<f64,LeafStyle>,Option<SpaceBase<f64,()>>)>>,
+    wobbled: Arc<Mutex<(SpaceBaseArea<f64,AuxLeaf>,Option<SpaceBase<f64,()>>)>>,
     depth: EachOrEvery<i8>,
     size_x: Vec<f64>,
     size_y: Vec<f64>
 }
 
 impl RectanglesLocationSized {
-    pub(super) fn new(spacebase: &SpaceBase<f64,LeafStyle>, run: &Option<SpaceBase<f64,()>>, wobble: Option<SpaceBase<Observable<'static,f64>,()>>, depth: EachOrEvery<i8>, size_x: Vec<f64>, size_y: Vec<f64>, attachment: GLAttachmentPoint) -> Result<RectanglesLocationSized,Error> {
+    pub(super) fn new(spacebase: &SpaceBase<f64,AuxLeaf>, run: &Option<SpaceBase<f64,()>>, wobble: Option<SpaceBase<Observable<'static,f64>,()>>, depth: EachOrEvery<i8>, size_x: Vec<f64>, size_y: Vec<f64>, attachment: GLAttachmentPoint) -> Result<RectanglesLocationSized,Error> {
         let wobbled = (
             attachment.sized_to_rectangle(&apply_any_wobble(&spacebase,&wobble),&size_x,&size_y)?,
             run.as_ref().map(|x| apply_any_wobble(x,&wobble))
@@ -47,7 +47,7 @@ impl RectanglesImpl for RectanglesLocationSized {
     fn depths(&self) -> &EachOrEvery<i8> { &self.depth }
     fn any_dynamic(&self) -> bool { self.wobble.is_some() }
 
-    fn wobbled_location(&self) -> (SpaceBaseArea<f64,LeafStyle>,Option<SpaceBase<f64,()>>) {
+    fn wobbled_location(&self) -> (SpaceBaseArea<f64,AuxLeaf>,Option<SpaceBase<f64,()>>) {
         lock!(self.wobbled).clone()
     }
 

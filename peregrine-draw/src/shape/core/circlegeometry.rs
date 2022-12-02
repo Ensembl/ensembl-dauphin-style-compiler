@@ -1,5 +1,5 @@
 use std::f64::consts::PI;
-use peregrine_data::{SpaceBase, LeafStyle };
+use peregrine_data::{SpaceBase };
 use peregrine_toolkit::eachorevery::EachOrEvery;
 use peregrine_toolkit::error::Error;
 use peregrine_toolkit::log;

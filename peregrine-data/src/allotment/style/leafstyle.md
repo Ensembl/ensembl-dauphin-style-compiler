@@ -12,4 +12,4 @@ These are mainly a wide range of style objects used during the styletree buildin
 
 `ContainerStyle` -- the set of properties which configure containers themselves.
 
-`LeafStyle` -- this is the ultimate style of a shape, so it may be a surprise to see it here, early in the building process, before Floating and Anchoring. The secret is thatthe LeafStyle is generated at this stage and hidden inside those objects until the rest of their contents are not needed and the LeafStyle is revealed!
+`LeafStyle` -- this is the style of a leaf, combining InheritableStyle and Uninheritable style.

@@ -1,5 +1,5 @@
 use peregrine_toolkit::eachorevery::{EachOrEveryFilter, EachOrEvery};
-use crate::{DataMessage, ShapeDemerge, Shape, SpaceBase, allotment::{boxes::leaf::AnchoredLeaf}, LeafRequest, BackendNamespace, CoordinateSystem, LeafStyle};
+use crate::{DataMessage, ShapeDemerge, Shape, SpaceBase, allotment::{boxes::leaf::{AnchoredLeaf, AuxLeaf}}, LeafRequest, BackendNamespace, CoordinateSystem};
 use std::{hash::Hash,};
 
 #[cfg_attr(debug_assertions,derive(Debug))]
@@ -56,7 +56,7 @@ impl ImageShape<LeafRequest> {
     }
 
     pub(super) fn base_filter(&self, min: f64, max: f64) -> ImageShape<LeafRequest> {
-        let non_tracking = self.position.allotments().make_filter(self.position.len(),|a| !a.leaf_style().coord_system.is_tracking());
+        let non_tracking = self.position.allotments().make_filter(self.position.len(),|a| !a.leaf_style().aux.coord_system.is_tracking());
         let filter = self.position.make_base_filter(min,max);
         self.filter(&filter.or(&non_tracking))
     }
@@ -74,7 +74,7 @@ impl ImageShape<AnchoredLeaf> {
         out
     }
 
-    pub fn make(&self) -> Vec<ImageShape<LeafStyle>> {
+    pub fn make(&self) -> Vec<ImageShape<AuxLeaf>> {
         let mut out = vec![];
         for (coord_system,images) in self.demerge_by_variety() {
             out.push(ImageShape {
@@ -87,8 +87,8 @@ impl ImageShape<AnchoredLeaf> {
     }
 }
 
-impl ImageShape<LeafStyle> {
-    pub(crate) fn demerge<T: Hash + Clone + Eq,D>(self, cat: &D) -> Vec<(T,ImageShape<LeafStyle>)> where D: ShapeDemerge<X=T> {
+impl ImageShape<AuxLeaf> {
+    pub(crate) fn demerge<T: Hash + Clone + Eq,D>(self, cat: &D) -> Vec<(T,ImageShape<AuxLeaf>)> where D: ShapeDemerge<X=T> {
         let demerge = self.position.allotments().demerge(self.position.len(),|x| {
             cat.categorise(&x.coord_system,x.depth)
         });

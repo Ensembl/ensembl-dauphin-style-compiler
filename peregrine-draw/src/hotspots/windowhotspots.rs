@@ -1,4 +1,4 @@
-use peregrine_data::{SingleHotspotEntry, CoordinateSystem, SpaceBasePointRef, LeafStyle};
+use peregrine_data::{SingleHotspotEntry, CoordinateSystem, SpaceBasePointRef, AuxLeaf};
 use peregrine_toolkit::{hotspots::hotspotstore::HotspotStoreProfile, ubail};
 use crate::stage::axis::UnitConverter;
 
@@ -22,7 +22,7 @@ fn y_intersect(y: f64, height: f64, mut y1: f64, mut y2: f64) -> bool {
     y >= y1.min(y2) && y < y1.max(y2)
 }
 
-fn x_intersect(coord_to_px: &CoordToPxConverter, x: f64, width: f64, c1: &SpaceBasePointRef<f64,LeafStyle>, c2: &SpaceBasePointRef<f64,LeafStyle>) -> bool {
+fn x_intersect(coord_to_px: &CoordToPxConverter, x: f64, width: f64, c1: &SpaceBasePointRef<f64,AuxLeaf>, c2: &SpaceBasePointRef<f64,AuxLeaf>) -> bool {
     let (px1,px2) = match c1.allotment.coord_system {
         CoordinateSystem::TrackingWindow => {
             (

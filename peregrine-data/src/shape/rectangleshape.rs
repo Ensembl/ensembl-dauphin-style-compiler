@@ -1,5 +1,5 @@
 use peregrine_toolkit::eachorevery::EachOrEveryFilter;
-use crate::{DataMessage, Patina, ShapeDemerge, Shape, SpaceBaseArea, reactive::Observable, allotment::{boxes::leaf::AnchoredLeaf}, LeafRequest, CoordinateSystem, LeafStyle};
+use crate::{DataMessage, Patina, ShapeDemerge, Shape, SpaceBaseArea, reactive::Observable, allotment::{boxes::leaf::{AnchoredLeaf, AuxLeaf}}, LeafRequest, CoordinateSystem};
 use std::{hash::Hash};
 
 #[cfg_attr(debug_assertions,derive(Debug))]
@@ -46,7 +46,7 @@ impl RectangleShape<LeafRequest> {
     }
 
     pub fn base_filter(&self, min_value: f64, max_value: f64) -> RectangleShape<LeafRequest> {
-        let non_tracking = self.area.top_left().allotments().make_filter(self.area.len(),|a| !a.leaf_style().coord_system.is_tracking());
+        let non_tracking = self.area.top_left().allotments().make_filter(self.area.len(),|a| !a.leaf_style().aux.coord_system.is_tracking());
         let filter = self.area.make_base_filter(min_value,max_value);
         self.filter(&filter.or(&non_tracking))
     }
@@ -58,8 +58,8 @@ impl<A> Clone for RectangleShape<A> where A: Clone {
     }
 }
 
-impl RectangleShape<LeafStyle> {
-    pub fn demerge<T: Hash + Clone + Eq,D>(self, cat: &D) -> Vec<(T,RectangleShape<LeafStyle>)> where D: ShapeDemerge<X=T> {
+impl RectangleShape<AuxLeaf> {
+    pub fn demerge<T: Hash + Clone + Eq,D>(self, cat: &D) -> Vec<(T,RectangleShape<AuxLeaf>)> where D: ShapeDemerge<X=T> {
         let demerge = match &self.patina {
             Patina::Drawn(drawn_type,colours) => {
                 let allotments_and_colours = self.area.top_left().allotments().zip(&colours,|x,y| (x.clone(),y.clone()));
@@ -93,7 +93,7 @@ impl RectangleShape<AnchoredLeaf> {
         out
     }
 
-    pub fn make(&self) -> Vec<RectangleShape<LeafStyle>> {
+    pub fn make(&self) -> Vec<RectangleShape<AuxLeaf>> {
         let mut out = vec![];
         for (coord_system,rectangles) in self.demerge_by_variety() {
             out.push(RectangleShape {

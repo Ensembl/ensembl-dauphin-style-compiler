@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use peregrine_data::reactive::Observable;
-use peregrine_data::{ Colour, DirectColour, DrawnType, Patina, Plotter, SpaceBaseArea, HollowEdge2, SpaceBase, LeafStyle, HotspotPatina, AttachmentPoint, PartialSpaceBase, SpaceBasePoint };
+use peregrine_data::{ Colour, DirectColour, DrawnType, Patina, Plotter, SpaceBaseArea, HollowEdge2, SpaceBase, AuxLeaf, HotspotPatina, AttachmentPoint, PartialSpaceBase, SpaceBasePoint };
 use peregrine_toolkit::eachorevery::{EachOrEvery, EachOrEveryFilterBuilder};
 use peregrine_toolkit::error::Error;
 use super::directcolourdraw::{DirectColourDraw, ColourFragment};
@@ -39,7 +39,7 @@ impl GLAttachmentPoint {
 }
 
 impl GLAttachmentPoint {
-    pub(crate) fn sized_to_rectangle(&self,spacebase: &SpaceBase<f64,LeafStyle>, size_x: &[f64], size_y: &[f64]) -> Result<SpaceBaseArea<f64,LeafStyle>,Error> {
+    pub(crate) fn sized_to_rectangle(&self,spacebase: &SpaceBase<f64,AuxLeaf>, size_x: &[f64], size_y: &[f64]) -> Result<SpaceBaseArea<f64,AuxLeaf>,Error> {
         let mut near = spacebase.clone();
         let mut far = spacebase.clone();
         match self {
@@ -92,12 +92,12 @@ impl SimpleShapePatina {
 }
 
 pub(crate) enum GLShape {
-    Text(SpaceBase<f64,LeafStyle>,Option<SpaceBase<f64,()>>,Vec<CanvasItemAreaSource>,EachOrEvery<i8>,DrawGroup,GLAttachmentPoint),
-    Image(SpaceBase<f64,LeafStyle>,Vec<CanvasItemAreaSource>,EachOrEvery<i8>,DrawGroup),
-    Heraldry(SpaceBaseArea<f64,LeafStyle>,EachOrEvery<HeraldryHandle>,EachOrEvery<i8>,DrawGroup,HeraldryCanvas,HeraldryScale,Option<HollowEdge2<f64>>,Option<SpaceBaseArea<Observable<'static,f64>,()>>),
+    Text(SpaceBase<f64,AuxLeaf>,Option<SpaceBase<f64,()>>,Vec<CanvasItemAreaSource>,EachOrEvery<i8>,DrawGroup,GLAttachmentPoint),
+    Image(SpaceBase<f64,AuxLeaf>,Vec<CanvasItemAreaSource>,EachOrEvery<i8>,DrawGroup),
+    Heraldry(SpaceBaseArea<f64,AuxLeaf>,EachOrEvery<HeraldryHandle>,EachOrEvery<i8>,DrawGroup,HeraldryCanvas,HeraldryScale,Option<HollowEdge2<f64>>,Option<SpaceBaseArea<Observable<'static,f64>,()>>),
     Wiggle((f64,f64),Arc<Vec<Option<f64>>>,Plotter,i8),
-    SpaceBaseRect(SpaceBaseArea<f64,LeafStyle>,SimpleShapePatina,EachOrEvery<i8>,DrawGroup,Option<SpaceBaseArea<Observable<'static,f64>,()>>),
-    Polygon(SpaceBase<f64,LeafStyle>,EachOrEvery<f64>,i8,usize,f32,SimpleShapePatina,DrawGroup,Option<SpaceBase<Observable<'static,f64>,()>>)
+    SpaceBaseRect(SpaceBaseArea<f64,AuxLeaf>,SimpleShapePatina,EachOrEvery<i8>,DrawGroup,Option<SpaceBaseArea<Observable<'static,f64>,()>>),
+    Polygon(SpaceBase<f64,AuxLeaf>,EachOrEvery<f64>,i8,usize,f32,SimpleShapePatina,DrawGroup,Option<SpaceBase<Observable<'static,f64>,()>>)
 }
 
 fn add_colour(addable: &mut ProcessStanzaElements, patina: &SimpleShapePatina, draw: &DirectColourDraw) -> Result<(),Error> {
@@ -124,7 +124,7 @@ pub(crate) fn dims_to_sizes(areas: &[CanvasItemArea], factor: f64) -> (Vec<f64>,
     (x_sizes,y_sizes)
 }
 
-fn draw_area_from_canvas(layer: &mut Layer, left: f64, gl: &mut WebGlGlobal, draw_group: &DrawGroup, area: &SpaceBaseArea<f64,LeafStyle>, depth: &EachOrEvery<i8>, canvas: &CanvasInUse, dims: &[CanvasItemArea], edge: &Option<HollowEdge2<f64>>, freedom: &Freedom, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>) -> Result<Box<dyn DynamicShape>,Error> {
+fn draw_area_from_canvas(layer: &mut Layer, left: f64, gl: &mut WebGlGlobal, draw_group: &DrawGroup, area: &SpaceBaseArea<f64,AuxLeaf>, depth: &EachOrEvery<i8>, canvas: &CanvasInUse, dims: &[CanvasItemArea], edge: &Option<HollowEdge2<f64>>, freedom: &Freedom, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>) -> Result<Box<dyn DynamicShape>,Error> {
     let rectangle_factory = RectanglesDataFactory::new(&draw_group);
     let draw_factory = TextureDrawFactory::new(canvas,freedom);
     let builder = layer.get_process_builder(&rectangle_factory,&draw_factory)?;
@@ -136,7 +136,7 @@ fn draw_area_from_canvas(layer: &mut Layer, left: f64, gl: &mut WebGlGlobal, dra
     Ok(Box::new(Rectangles::new(rectangles,gl)))
 }
 
-pub(crate) fn draw_points_from_canvas2(layer: &mut Layer, left: f64, gl: &mut WebGlGlobal, draw_group: &DrawGroup, points: &SpaceBase<f64,LeafStyle>, run: &Option<SpaceBase<f64,()>>, x_sizes: Vec<f64>, y_sizes:Vec<f64>, depth: &EachOrEvery<i8>, canvas: &CanvasInUse, dims: &[CanvasItemArea], freedom: &Freedom, attachment: GLAttachmentPoint, wobble: Option<SpaceBase<Observable<'static,f64>,()>>) -> Result<Box<dyn DynamicShape>,Error> {
+pub(crate) fn draw_points_from_canvas2(layer: &mut Layer, left: f64, gl: &mut WebGlGlobal, draw_group: &DrawGroup, points: &SpaceBase<f64,AuxLeaf>, run: &Option<SpaceBase<f64,()>>, x_sizes: Vec<f64>, y_sizes:Vec<f64>, depth: &EachOrEvery<i8>, canvas: &CanvasInUse, dims: &[CanvasItemArea], freedom: &Freedom, attachment: GLAttachmentPoint, wobble: Option<SpaceBase<Observable<'static,f64>,()>>) -> Result<Box<dyn DynamicShape>,Error> {
     let rectangle_factory = RectanglesDataFactory::new(&draw_group);
     let draw_factory = TextureDrawFactory::new(canvas,freedom);
     let builder = layer.get_process_builder(&rectangle_factory,&draw_factory)?;
@@ -148,7 +148,7 @@ pub(crate) fn draw_points_from_canvas2(layer: &mut Layer, left: f64, gl: &mut We
     Ok(Box::new(Rectangles::new(rectangles,gl)))
 }
 
-fn draw_heraldry_canvas(layer: &mut Layer, left: f64, gl: &mut WebGlGlobal, tools: &mut DrawingToolsBuilder, kind: &DrawGroup, area_a: &SpaceBaseArea<f64,LeafStyle>, handles: &EachOrEvery<HeraldryHandle>, depth: &EachOrEvery<i8>, heraldry_canvas: &HeraldryCanvas, scale: &HeraldryScale, edge: &Option<HollowEdge2<f64>>, count: usize, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>) -> Result<Option<Box<dyn DynamicShape>>,Error> {
+fn draw_heraldry_canvas(layer: &mut Layer, left: f64, gl: &mut WebGlGlobal, tools: &mut DrawingToolsBuilder, kind: &DrawGroup, area_a: &SpaceBaseArea<f64,AuxLeaf>, handles: &EachOrEvery<HeraldryHandle>, depth: &EachOrEvery<i8>, heraldry_canvas: &HeraldryCanvas, scale: &HeraldryScale, edge: &Option<HollowEdge2<f64>>, count: usize, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>) -> Result<Option<Box<dyn DynamicShape>>,Error> {
     let mut dims = vec![];
     let mut filter_builder = EachOrEveryFilterBuilder::new();
     for (i,handle) in eoe_throw2("heraldry",handles.iter(count))?.enumerate() {
@@ -166,7 +166,7 @@ fn draw_heraldry_canvas(layer: &mut Layer, left: f64, gl: &mut WebGlGlobal, tool
 
 pub(crate) enum ShapeToAdd {
     Dynamic(Box<dyn DynamicShape>),
-    Hotspot(SpaceBaseArea<f64,LeafStyle>,HotspotPatina),
+    Hotspot(SpaceBaseArea<f64,AuxLeaf>,HotspotPatina),
     None
 }
 
