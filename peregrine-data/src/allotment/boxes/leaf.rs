@@ -1,5 +1,5 @@
 use std::{sync::{Arc}};
-use peregrine_toolkit::{puzzle::{DelayedSetter, constant, derived, StaticValue, StaticAnswer, promise_delayed, cache_constant_clonable, delayed }};
+use peregrine_toolkit::{puzzle::{DelayedSetter, constant, StaticValue, StaticAnswer, promise_delayed, delayed }};
 use crate::{allotment::{core::{allotmentname::{AllotmentName, AllotmentNamePart}, boxtraits::{ContainerOrLeaf, BuildSize }, boxpositioncontext::BoxPositionContext, drawinginfo::DrawingInfo}, style::{style::{LeafStyle, Indent}}, util::{rangeused::RangeUsed, bppxconverter::BpPxConverter}, globals::playingfield::PlayingFieldEdge, stylespec::stylegroup::AllStylesForProgram}, CoordinateSystem, LeafRequest};
 
 // TODO ranged bppxconverter
@@ -69,7 +69,7 @@ impl ContainerOrLeaf for FloatingLeaf {
         Some(AnchoredLeaf::new(answer_index,self))
     }
 
-    fn get_leaf(&mut self, _pending: &LeafRequest, cursor: usize, styles: &Arc<AllStylesForProgram>) -> FloatingLeaf {
+    fn get_leaf(&mut self, _pending: &LeafRequest, _cursor: usize, _styles: &Arc<AllStylesForProgram>) -> FloatingLeaf {
         panic!("get_leaf called on leaf!");
     }
     
@@ -77,7 +77,7 @@ impl ContainerOrLeaf for FloatingLeaf {
     fn priority(&self) -> i64 { self.statics.priority }
     fn name(&self) -> &AllotmentName { &self.name }
 
-    fn build(&self, prep: &mut BoxPositionContext) -> BuildSize {
+    fn build(&mut self, prep: &mut BoxPositionContext) -> BuildSize {
         self.max_y_piece_setter.set(constant(self.drawing_info.max_y()));
         BuildSize {
             name: self.name.clone(),
@@ -86,7 +86,7 @@ impl ContainerOrLeaf for FloatingLeaf {
         }
     }
 
-    fn locate(&self, prep: &mut BoxPositionContext, value: &StaticValue<f64>) {
+    fn locate(&mut self, prep: &mut BoxPositionContext, value: &StaticValue<f64>) {
         let sr = &mut prep.state_request;
         let indent = match &self.statics.indent {
             Indent::None => None,

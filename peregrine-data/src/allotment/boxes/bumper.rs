@@ -18,10 +18,10 @@ impl ContainerOrLeaf for Bumper {
 
     fn anchor_leaf(&self, _answer_index: &StaticAnswer) -> Option<AnchoredLeaf> { None }
     fn coordinate_system(&self) -> &CoordinateSystem { self.0.coordinate_system() }
-    fn locate(&self, prep: &mut BoxPositionContext, top: &StaticValue<f64>) { self.0.locate(prep,top); }
+    fn locate(&mut self, prep: &mut BoxPositionContext, top: &StaticValue<f64>) { self.0.locate(prep,top); }
     fn name(&self) -> &AllotmentName { self.0.name( )}
     fn priority(&self) -> i64 { self.0.priority() }
-    fn build(&self, prep: &mut BoxPositionContext) -> BuildSize { self.0.build(prep) }
+    fn build(&mut self, prep: &mut BoxPositionContext) -> BuildSize { self.0.build(prep) }
 }
 
 #[derive(Clone)]

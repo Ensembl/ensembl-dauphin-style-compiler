@@ -1,7 +1,6 @@
-use std::{sync::{Arc, Mutex}, rc::Rc, collections::HashMap};
-use peregrine_toolkit::{lock, puzzle::{DelayedSetter, derived, cache_constant, commute_rc, constant, StaticValue, promise_delayed, short_memoized_clonable, cache_constant_clonable, StaticAnswer }, eachorevery::eoestruct::StructTemplate, error::Error, log};
+use std::{sync::{Arc}, collections::HashMap};
+use peregrine_toolkit::{puzzle::{DelayedSetter, derived, cache_constant, constant, StaticValue, promise_delayed, short_memoized_clonable, cache_constant_clonable, StaticAnswer }, eachorevery::eoestruct::StructTemplate};
 use crate::{allotment::{core::{allotmentname::{AllotmentName, AllotmentNamePart}, boxtraits::{ContainerSpecifics, BuildSize, ContainerOrLeaf}, boxpositioncontext::BoxPositionContext}, style::{style::{ContainerAllotmentStyle, ContainerAllotmentType}}, util::rangeused::RangeUsed, globals::allotmentmetadata::LocalAllotmentMetadataBuilder, stylespec::stylegroup::AllStylesForProgram}, shape::metadata::MetadataStyle, CoordinateSystem, LeafRequest};
-
 use super::{leaf::{AnchoredLeaf, FloatingLeaf}, stacker::Stacker, overlay::Overlay, bumper::Bumper};
 
 fn internal_height(child_height: &StaticValue<f64>, min_height: f64, padding_top: f64, padding_bottom: f64) -> StaticValue<f64> {
@@ -32,45 +31,43 @@ fn new_leaf(pending: &LeafRequest, name: &AllotmentNamePart) -> FloatingLeaf {
     child
 }
 pub(super) struct HasKids {
-    pub(super) children: Arc<Mutex<HashMap<ChildKeys,Box<dyn ContainerOrLeaf>>>>,
-    child_leafs: Arc<Mutex<HashMap<String,FloatingLeaf>>>,
+    pub(super) children: HashMap<ChildKeys,Box<dyn ContainerOrLeaf>>,
+    child_leafs: HashMap<String,FloatingLeaf>,
 }
 
 impl HasKids {
     pub(super) fn new() -> HasKids {
         HasKids {
-            children: Arc::new(Mutex::new(HashMap::new())),
-            child_leafs: Arc::new(Mutex::new(HashMap::new())),   
+            children: HashMap::new(),
+            child_leafs: HashMap::new(),   
         }
     }
 
     pub(super) fn get_leaf(&mut self, pending: &LeafRequest, cursor: usize, styles: &Arc<AllStylesForProgram>) -> FloatingLeaf {
         let name = pending.name().sequence();
         let step = &name[cursor];
-        let mut kids = lock!(self.children);
         if cursor == name.len() - 1 {
-            let mut kid_leafs = lock!(self.child_leafs);
             /* leaf */
-            if !kid_leafs.contains_key(step) {
+            if !self.child_leafs.contains_key(step) {
                 /* create leaf */
                 let name = name[0..(cursor+1)].iter().map(|x| x.to_string()).collect::<Vec<_>>();
                 let name = AllotmentNamePart::new(AllotmentName::do_new(name,true));
                 let leaf = new_leaf(pending,&name);
-                kid_leafs.insert(step.to_string(),leaf.clone());
-                kids.insert(ChildKeys::Leaf(step.to_string()),Box::new(leaf.clone()));
+                self.child_leafs.insert(step.to_string(),leaf.clone());
+                self.children.insert(ChildKeys::Leaf(step.to_string()),Box::new(leaf.clone()));
             }
-            kid_leafs.get(step).unwrap().clone()
+            self.child_leafs.get(step).unwrap().clone()
         } else {
             /* container */
             let key = ChildKeys::Container(step.to_string());
-            if !kids.contains_key(&key) {
+            if !self.children.contains_key(&key) {
                 /* create container */
                 let name = name[0..(cursor+1)].iter().map(|x| x.to_string()).collect::<Vec<_>>();
                 let name = AllotmentNamePart::new(AllotmentName::do_new(name,true));
                 let container = new_container(&name,styles);
-                kids.insert(key.clone(),container);
+                self.children.insert(key.clone(),container);
             }
-            kids.get_mut(&key).unwrap().get_leaf(pending,cursor+1,styles).clone()
+            self.children.get_mut(&key).unwrap().get_leaf(pending,cursor+1,styles).clone()
         }
     }
 }
@@ -114,17 +111,16 @@ impl Container {
 }
 
 impl ContainerOrLeaf for Container {
-    fn anchor_leaf(&self, answer_index: &StaticAnswer) -> Option<AnchoredLeaf> { None }
+    fn anchor_leaf(&self, _answer_index: &StaticAnswer) -> Option<AnchoredLeaf> { None }
     
     fn get_leaf(&mut self, pending: &LeafRequest, cursor: usize, styles: &Arc<AllStylesForProgram>) -> FloatingLeaf {
         self.kids.get_leaf(pending,cursor,styles)
     }
 
     fn coordinate_system(&self) -> &CoordinateSystem { &self.coord_system }
-    fn locate(&self, prep: &mut BoxPositionContext, value: &StaticValue<f64>) {
+    fn locate(&mut self, prep: &mut BoxPositionContext, value: &StaticValue<f64>) {
         let value = cache_constant_clonable(short_memoized_clonable(value.clone()));
-        let mut children = lock!(self.kids.children);
-        let mut kids = children.values_mut().collect::<Vec<_>>();
+        let mut kids = self.kids.children.values_mut().collect::<Vec<_>>();
         let padding_top = self.style.padding.padding_top;
         let draw_top = cache_constant(derived(value.clone(),move |top| top+padding_top)).derc();
         self.top_setter.set(value.clone());
@@ -136,11 +132,10 @@ impl ContainerOrLeaf for Container {
 
     fn name(&self) -> &AllotmentName { &self.name }
 
-    fn build(&self, prep: &mut BoxPositionContext) -> BuildSize {
+    fn build(&mut self, prep: &mut BoxPositionContext) -> BuildSize {
         let mut ranges = vec![];
-        let mut children = lock!(self.kids.children);
         let mut input = vec![];
-        for (_,child) in &mut *children {
+        for child in self.kids.children.values_mut() {
             let size = child.build(prep);
             ranges.push(size.range.clone());
             input.push((&*child,size));

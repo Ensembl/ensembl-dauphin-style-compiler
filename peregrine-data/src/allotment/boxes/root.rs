@@ -1,7 +1,6 @@
 use std::{sync::{Arc}};
-use peregrine_toolkit::{lock, puzzle::{constant, StaticValue, StaticAnswer}};
+use peregrine_toolkit::{puzzle::{constant, StaticValue, StaticAnswer}};
 use crate::{ allotment::{core::{trainstate::CarriageTrainStateSpec, boxtraits::{ContainerOrLeaf, BuildSize }, boxpositioncontext::BoxPositionContext, allotmentname::AllotmentName}, util::rangeused::RangeUsed, stylespec::stylegroup::AllStylesForProgram}, CoordinateSystem, LeafRequest};
-
 use super::{leaf::{AnchoredLeaf, FloatingLeaf}, container::HasKids};
 
 pub struct Root {
@@ -18,12 +17,11 @@ impl Root {
     }
 
     pub(crate) fn full_build(&mut self, prep: &mut BoxPositionContext) -> CarriageTrainStateSpec {
-        let children = lock!(self.kids.children);
-        for child in children.values() {
+        for child in self.kids.children.values_mut() {
             let build_size = child.build(prep);
             prep.state_request.playing_field_mut().set(child.coordinate_system(),build_size.height);
         }
-        for child in children.values() {
+        for child in self.kids.children.values_mut() {
             child.locate(prep,&constant(0.));
         }
         CarriageTrainStateSpec::new(&prep.state_request)
@@ -36,7 +34,7 @@ impl ContainerOrLeaf for Root {
     fn coordinate_system(&self) -> &CoordinateSystem { &CoordinateSystem::Window }
     fn anchor_leaf(&self, _answer_index: &StaticAnswer) -> Option<AnchoredLeaf> { None }
 
-    fn build(&self, _prep: &mut BoxPositionContext) -> BuildSize {
+    fn build(&mut self, _prep: &mut BoxPositionContext) -> BuildSize {
         BuildSize {
             name: self.root_name.clone(),
             height: constant(0.),
@@ -44,9 +42,8 @@ impl ContainerOrLeaf for Root {
         } 
     }
 
-    fn locate(&self, _prep: &mut BoxPositionContext, _top: &StaticValue<f64>) {}
+    fn locate(&mut self, _prep: &mut BoxPositionContext, _top: &StaticValue<f64>) {}
     fn name(&self) -> &AllotmentName { &self.root_name }
-//    fn cloned(&self) -> Box<dyn ContainerOrLeaf> { Box::new(self.clone()) }
 
     fn get_leaf(&mut self, pending: &LeafRequest, cursor: usize, styles: &Arc<AllStylesForProgram>) -> FloatingLeaf {
         self.kids.get_leaf(pending,cursor,styles)

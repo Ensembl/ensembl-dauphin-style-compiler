@@ -28,8 +28,8 @@ impl BuildSize {
 
 pub(crate) trait ContainerOrLeaf {
     fn coordinate_system(&self) -> &CoordinateSystem;
-    fn build(&self, prep: &mut BoxPositionContext) -> BuildSize;
-    fn locate(&self, prep: &mut BoxPositionContext, top: &StaticValue<f64>);
+    fn build(&mut self, prep: &mut BoxPositionContext) -> BuildSize;
+    fn locate(&mut self, prep: &mut BoxPositionContext, top: &StaticValue<f64>);
     fn name(&self) -> &AllotmentName;
     fn priority(&self) -> i64;
     fn anchor_leaf(&self, answer_index: &StaticAnswer) -> Option<AnchoredLeaf>;
