@@ -1,42 +1,14 @@
-use std::sync::Arc;
-
-use peregrine_toolkit::{puzzle::{StaticValue, commute_clonable, StaticAnswer}};
-use crate::{allotment::{core::{ allotmentname::{AllotmentNamePart, AllotmentName}, boxtraits::{ContainerSpecifics, BuildSize, ContainerOrLeaf}, boxpositioncontext::BoxPositionContext}, style::{style::{ContainerAllotmentStyle}}, stylespec::stylegroup::AllStylesForProgram}, CoordinateSystem, LeafRequest};
-use super::{container::{Container}, leaf::{AnchoredLeaf, FloatingLeaf}};
-
-pub struct Overlay(Container);
-
-impl Overlay {
-    pub(crate) fn new(name: &AllotmentNamePart, style: &ContainerAllotmentStyle) -> Overlay {
-        Overlay(Container::new(name,style,UnpaddedOverlay::new()))
-    }
-}
+use peregrine_toolkit::{puzzle::{StaticValue, commute_clonable }};
+use crate::{allotment::{core::{ boxtraits::{ContainerSpecifics, BuildSize, ContainerOrLeaf}, boxpositioncontext::BoxPositionContext}}};
 
 #[derive(Clone)]
-struct UnpaddedOverlay {
+pub(crate) struct Overlay;
+
+impl Overlay {
+    pub(super) fn new() -> Overlay { Overlay }
 }
 
-impl UnpaddedOverlay {
-    fn new() -> UnpaddedOverlay {
-        UnpaddedOverlay {}
-    }
-}
-
-impl ContainerOrLeaf for Overlay {
-    fn get_leaf(&mut self, pending: &LeafRequest, cursor: usize, styles: &Arc<AllStylesForProgram>) -> FloatingLeaf {
-        self.0.get_leaf(pending,cursor,styles)
-    }
-    fn anchor_leaf(&self, _answer_index: &StaticAnswer) -> Option<AnchoredLeaf> { None }
-    fn coordinate_system(&self) -> &CoordinateSystem { self.0.coordinate_system() }
-    fn locate(&mut self, prep: &mut BoxPositionContext, top: &StaticValue<f64>) { self.0.locate(prep,top); }
-    fn name(&self) -> &AllotmentName { self.0.name( )}
-    fn priority(&self) -> i64 { self.0.priority() }
-    fn build(&mut self, prep: &mut BoxPositionContext) -> BuildSize { self.0.build(prep) }
-}
-
-impl ContainerSpecifics for UnpaddedOverlay {
-    fn cloned(&self) -> Box<dyn ContainerSpecifics> { Box::new(self.clone()) }
-
+impl ContainerSpecifics for Overlay {
     fn build_reduce(&self, _prep: &mut BoxPositionContext, children: &[(&Box<dyn ContainerOrLeaf>,BuildSize)]) -> StaticValue<f64> {
         let heights = children.iter().map(|x| x.1.height.clone()).collect::<Vec<_>>();
         commute_clonable(&heights,0.,|a,b| f64::max(*a,*b))

@@ -1,11 +1,10 @@
 use std::sync::Arc;
 
-use peregrine_toolkit::{puzzle::{StaticValue, derived, StaticAnswer}, identitynumber};
+use peregrine_toolkit::{puzzle::{StaticValue, derived, StaticAnswer}};
 use crate::{allotment::{util::rangeused::RangeUsed, core::{allotmentname::AllotmentName}, boxes::leaf::{AnchoredLeaf, FloatingLeaf}, stylespec::stylegroup::AllStylesForProgram}, CoordinateSystem, LeafRequest};
 use super::{boxpositioncontext::BoxPositionContext};
 
 pub(crate) trait ContainerSpecifics {
-    fn cloned(&self) -> Box<dyn ContainerSpecifics>;
     fn build_reduce(&self, prep: &mut BoxPositionContext, children: &[(&Box<dyn ContainerOrLeaf>,BuildSize)]) -> StaticValue<f64>;
     fn set_locate(&self, prep: &mut BoxPositionContext, top: &StaticValue<f64>, children: &mut [&mut Box<dyn ContainerOrLeaf>]);
 }

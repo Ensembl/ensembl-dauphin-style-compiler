@@ -1,49 +1,25 @@
-use std::{rc::Rc, sync::Arc};
-use peregrine_toolkit::{puzzle::{derived, DelayedSetter, compose, StaticValue, promise_delayed, cache_constant_rc, short_memoized_rc, compose_slice_vec, StaticAnswer }};
-use crate::{allotment::{core::{allotmentname::{AllotmentNamePart, AllotmentName}, boxtraits::{ContainerOrLeaf, BuildSize, ContainerSpecifics }, boxpositioncontext::BoxPositionContext}, style::{style::{ContainerAllotmentStyle}}, collision::{collisionalgorithm::{BumpRequestSet, BumpRequest, BumpResponses}}, stylespec::stylegroup::AllStylesForProgram}, CoordinateSystem, LeafRequest};
-use super::{container::{Container}, leaf::{AnchoredLeaf, FloatingLeaf}};
-
-pub struct Bumper(Container);
-
-impl Bumper {
-    pub(crate) fn new(name: &AllotmentNamePart, style: &ContainerAllotmentStyle) -> Bumper {
-        Bumper(Container::new(name,style,UnpaddedBumper::new(&AllotmentName::from_part(name))))
-    }
-}
-
-impl ContainerOrLeaf for Bumper {
-    fn get_leaf(&mut self, pending: &LeafRequest, cursor: usize, styles: &Arc<AllStylesForProgram>) -> FloatingLeaf {
-        self.0.get_leaf(pending,cursor,styles)
-    }
-
-    fn anchor_leaf(&self, _answer_index: &StaticAnswer) -> Option<AnchoredLeaf> { None }
-    fn coordinate_system(&self) -> &CoordinateSystem { self.0.coordinate_system() }
-    fn locate(&mut self, prep: &mut BoxPositionContext, top: &StaticValue<f64>) { self.0.locate(prep,top); }
-    fn name(&self) -> &AllotmentName { self.0.name( )}
-    fn priority(&self) -> i64 { self.0.priority() }
-    fn build(&mut self, prep: &mut BoxPositionContext) -> BuildSize { self.0.build(prep) }
-}
+use std::{rc::Rc};
+use peregrine_toolkit::{puzzle::{derived, DelayedSetter, compose, StaticValue, promise_delayed, cache_constant_rc, short_memoized_rc, compose_slice_vec }};
+use crate::{allotment::{core::{allotmentname::{AllotmentName}, boxtraits::{ContainerOrLeaf, BuildSize, ContainerSpecifics }, boxpositioncontext::BoxPositionContext}, collision::{collisionalgorithm::{BumpRequestSet, BumpRequest, BumpResponses}}}};
 
 #[derive(Clone)]
-pub struct UnpaddedBumper {
+pub struct Bumper {
     name: AllotmentName,
     results: StaticValue<BumpResponses>,
     results_setter: DelayedSetter<'static,'static,BumpResponses>
 }
 
-impl UnpaddedBumper {
-    pub fn new(name: &AllotmentName) -> UnpaddedBumper {
+impl Bumper {
+    pub fn new(name: &AllotmentName) -> Bumper {
         let (results_setter,results) = promise_delayed();
-        UnpaddedBumper {
+        Bumper {
             name: name.clone(),
             results, results_setter
         }
     }
 }
 
-impl ContainerSpecifics for UnpaddedBumper {
-    fn cloned(&self) -> Box<dyn ContainerSpecifics> { Box::new(self.clone()) }
-
+impl ContainerSpecifics for Bumper {
     fn build_reduce(&self, prep: &mut BoxPositionContext, children: &[(&Box<dyn ContainerOrLeaf>,BuildSize)]) -> StaticValue<f64> {
         /* build all_items, a solution-invariant structure of everything we need to bump each time */
         let mut items = vec![];
