@@ -1,6 +1,6 @@
 use crate::InstanceInformation;
-use crate::allotment::globals::allotmentmetadata::GlobalAllotmentMetadata;
-use crate::allotment::globals::playingfield::PlayingField;
+use crate::globals::allotmentmetadata::GlobalAllotmentMetadata;
+use crate::globals::playingfield::PlayingField;
 use crate::train::drawing::drawingcarriage::DrawingCarriage;
 use crate::DataMessage;
 use crate::core::Viewport;

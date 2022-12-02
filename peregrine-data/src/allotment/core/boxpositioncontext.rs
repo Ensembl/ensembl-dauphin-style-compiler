@@ -1,7 +1,5 @@
 use std::sync::Arc;
-use crate::{allotment::{util::bppxconverter::BpPxConverter, collision::collisionalgorithm::BumpRequestSetFactory}, ShapeRequestGroup, shape::metadata::AbstractMetadata};
-use super::{trainstate::CarriageTrainStateRequest};
-
+use crate::{allotment::{util::bppxconverter::BpPxConverter, collision::collisionalgorithm::BumpRequestSetFactory}, ShapeRequestGroup, shape::metadata::AbstractMetadata, globals::trainstate::CarriageTrainStateRequest};
 pub(crate) struct BoxPositionContext {
     pub(crate) bp_px_converter: Arc<BpPxConverter>,
     pub(crate) state_request: CarriageTrainStateRequest,

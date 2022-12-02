@@ -4,7 +4,7 @@ use peregrine_toolkit::error::Error;
 use peregrine_toolkit::lock;
 use peregrine_toolkit_async::sync::retainer::{RetainTest, Retainer, retainer};
 use crate::allotment::core::floatingcarriage::FloatingCarriage;
-use crate::allotment::core::trainstate::{TrainState3};
+use crate::globals::trainstate::TrainState;
 use crate::shape::shape::DrawingShape;
 use crate::{ TrainIdentity };
 use peregrine_toolkit::identitynumber;
@@ -32,14 +32,14 @@ pub struct DrawingCarriage {
     train_identity: TrainIdentity,
     extent: CarriageExtent,
     ready: Arc<Mutex<bool>>,
-    train_state: TrainState3,
+    train_state: TrainState,
     shapes: Arc<Vec<DrawingShape>>,
     #[allow(unused)]
     retain: Retainer
 }
 
 impl DrawingCarriage {
-    pub(crate) fn new(train_identity: &TrainIdentity, floating_carriage: &FloatingCarriage, train_state: &TrainState3) -> Result<DrawingCarriage,Error> {
+    pub(crate) fn new(train_identity: &TrainIdentity, floating_carriage: &FloatingCarriage, train_state: &TrainState) -> Result<DrawingCarriage,Error> {
         let extent = floating_carriage.extent().unwrap();
         let carriage_spec = floating_carriage.spec().ok().unwrap();
         train_state.add(extent.index(),&carriage_spec);

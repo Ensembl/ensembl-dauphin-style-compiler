@@ -1,7 +1,8 @@
 use std::{sync::{Arc, Mutex}, collections::{HashMap, hash_map::DefaultHasher }, fmt, hash::{Hash, Hasher}};
 use peregrine_toolkit::{puzzle::{StaticAnswer, AnswerAllocator}, lock };
-use crate::{allotment::{globals::{heighttracker::{LocalHeightTrackerBuilder, LocalHeightTracker, GlobalHeightTracker, GlobalHeightTrackerBuilder}, playingfield::{LocalPlayingFieldBuilder, LocalPlayingField, GlobalPlayingField, GlobalPlayingFieldBuilder}, aligner::{LocalAlignerBuilder, LocalAligner, GlobalAligner, GlobalAlignerBuilder}, allotmentmetadata::{LocalAllotmentMetadataBuilder, LocalAllotmentMetadata, GlobalAllotmentMetadata, GlobalAllotmentMetadataBuilder}, bumping::{LocalBumpBuilder, GlobalBump, GlobalBumpBuilder, LocalBump}, trainpersistent::TrainPersistent}}, shape::metadata::AbstractMetadata};
+use crate::{shape::metadata::AbstractMetadata, globals::heighttracker::{LocalHeightTrackerBuilder, LocalHeightTracker, GlobalHeightTrackerBuilder, GlobalHeightTracker}};
 use peregrine_toolkit::identitynumber;
+use crate::globals::{playingfield::{LocalPlayingFieldBuilder, LocalPlayingField, GlobalPlayingField, GlobalPlayingFieldBuilder}, aligner::{LocalAlignerBuilder, LocalAligner, GlobalAligner, GlobalAlignerBuilder}, allotmentmetadata::{LocalAllotmentMetadataBuilder, LocalAllotmentMetadata, GlobalAllotmentMetadata, GlobalAllotmentMetadataBuilder}, bumping::{LocalBumpBuilder, GlobalBump, GlobalBumpBuilder, LocalBump}, trainpersistent::TrainPersistent};
 
 #[cfg(debug_trains)]
 use peregrine_toolkit::{debug_log};
@@ -83,7 +84,7 @@ impl CarriageTrainStateSpec {
 identitynumber!(IDS);
 
 #[derive(Clone)]
-pub struct TrainState3 {
+pub struct TrainState {
     indexes: Arc<Mutex<HashMap<u64,u64>>>,
     height_tracker: Arc<GlobalHeightTracker>,
     playing_field: Arc<GlobalPlayingField>,
@@ -95,26 +96,26 @@ pub struct TrainState3 {
     serial: u64
 }
 
-impl PartialEq for TrainState3 {
+impl PartialEq for TrainState {
     fn eq(&self, other: &Self) -> bool { self.hash == other.hash }
 }
 
-impl Eq for TrainState3 {}
+impl Eq for TrainState {}
 
-impl Hash for TrainState3 {
+impl Hash for TrainState {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.hash.hash(state);
     }
 }
 
 #[cfg(debug_assertions)]
-impl fmt::Debug for TrainState3 {
+impl fmt::Debug for TrainState {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f,"state({})",self.serial)
     }
 }
 
-impl TrainState3 {
+impl TrainState {
     fn calc_heights(spec: &TrainStateSpec, answer: &mut StaticAnswer) -> GlobalHeightTracker {
         let mut builder = GlobalHeightTrackerBuilder::new();
         for carriage_spec in spec.specs.values() {
@@ -186,7 +187,7 @@ impl TrainState3 {
 
     // TODO new add method to add to existing trait by populating answers
 
-    fn new(spec: &TrainStateSpec, mut answer: StaticAnswer, persistent: &Arc<Mutex<TrainPersistent>>) -> TrainState3 {
+    fn new(spec: &TrainStateSpec, mut answer: StaticAnswer, persistent: &Arc<Mutex<TrainPersistent>>) -> TrainState {
         /* The order of these are important. Their funcs can only depend on preceding funcs.
          * eg. heights depend on bumps, so bumps must be first. Everything else depends on
          * heights, so these two must be before the others.
@@ -200,7 +201,7 @@ impl TrainState3 {
         for (index,spec) in spec.specs.iter() {
             indexes.insert(*index,spec.serial());
         }
-        let mut out = TrainState3 {
+        let mut out = TrainState {
             indexes: Arc::new(Mutex::new(indexes)),
             height_tracker, playing_field, aligner, metadata, bump,
             answer: Arc::new(Mutex::new(answer)), hash: 0,
@@ -222,9 +223,9 @@ impl TrainState3 {
 pub struct TrainStateSpec {
     answer_allocator: Arc<Mutex<AnswerAllocator>>,
     specs: HashMap<u64,CarriageTrainStateSpec>,
-    cached_train_state: Mutex<Option<TrainState3>>,
+    cached_train_state: Mutex<Option<TrainState>>,
     persistent: Arc<Mutex<TrainPersistent>>,
-    old_states: Mutex<HashMap<u64,TrainState3>>
+    old_states: Mutex<HashMap<u64,TrainState>>
 }
 
 impl TrainStateSpec {
@@ -238,11 +239,11 @@ impl TrainStateSpec {
         }
     }
 
-    pub fn spec(&self) -> TrainState3 {
+    pub fn spec(&self) -> TrainState {
         let mut state = lock!(self.cached_train_state);
         if state.is_none() {
             let answer = lock!(self.answer_allocator).get();
-            let new_state = TrainState3::new(self,answer,&self.persistent);
+            let new_state = TrainState::new(self,answer,&self.persistent);
             let mut old = lock!(self.old_states);
             if let Some(existing_state) = old.get(&new_state.hash) {
                 *state = Some(existing_state.clone());

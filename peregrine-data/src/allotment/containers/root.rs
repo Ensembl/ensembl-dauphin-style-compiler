@@ -1,6 +1,6 @@
 use std::{sync::{Arc}};
 use peregrine_toolkit::{puzzle::{constant, StaticValue, StaticAnswer}};
-use crate::{ allotment::{core::{trainstate::CarriageTrainStateSpec, boxpositioncontext::BoxPositionContext, allotmentname::AllotmentName}, util::rangeused::RangeUsed, style::styletree::StyleTree, leafs::{floating::FloatingLeaf, anchored::AnchoredLeaf}, layout::stylebuilder::{ContainerOrLeaf, BuildSize}}, CoordinateSystem, LeafRequest};
+use crate::{ allotment::{core::{boxpositioncontext::BoxPositionContext, allotmentname::AllotmentName}, util::rangeused::RangeUsed, style::styletree::StyleTree, leafs::{floating::FloatingLeaf, anchored::AnchoredLeaf}, layout::stylebuilder::{ContainerOrLeaf, BuildSize}}, CoordinateSystem, LeafRequest, globals::trainstate::CarriageTrainStateSpec};
 use super::haskids::HasKids;
 
 pub struct Root {

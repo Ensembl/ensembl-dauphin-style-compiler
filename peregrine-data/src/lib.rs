@@ -37,18 +37,7 @@ mod allotment {
         pub(crate) mod allotmentname;
         pub(crate) mod floatingcarriage;
         pub(crate) mod leafrequestsource;
-        pub(crate) mod trainstate;
         pub(crate) mod leafshapebounds;
-    }
-
-    pub(crate) mod globals {
-        pub(crate) mod globalvalue;
-        pub(crate) mod aligner;
-        pub(crate) mod allotmentmetadata;
-        pub(crate) mod heighttracker;
-        pub(crate) mod bumping;
-        pub(crate) mod trainpersistent;
-        pub mod playingfield;
     }
 
     pub(crate) mod util {
@@ -56,6 +45,17 @@ mod allotment {
         pub(crate) mod rangeused;
     }
 
+}
+
+pub(crate) mod globals {
+    pub(crate) mod globalvalue;
+    pub(crate) mod aligner;
+    pub(crate) mod allotmentmetadata;
+    pub(crate) mod heighttracker;
+    pub(crate) mod bumping;
+    pub(crate) mod trainpersistent;
+    pub mod playingfield;
+    pub(crate) mod trainstate;
 }
 
 mod api {
@@ -291,7 +291,7 @@ pub(crate) mod hotspots {
 
 pub use self::allotment::leafs::leafrequest::LeafRequest;
 pub use self::allotment::leafs::auxleaf::AuxLeaf;
-pub use self::allotment::globals::{ allotmentmetadata::GlobalAllotmentMetadata, playingfield::PlayingField };
+pub use self::globals::{ allotmentmetadata::GlobalAllotmentMetadata, playingfield::PlayingField };
 pub use self::api::{ PeregrineCore, PeregrineCoreBase, PeregrineIntegration, PeregrineApiQueue, TrainIdentity, CarriageSpeed, AgentStore, InstanceInformation };
 pub use self::core::{ Asset, Assets, PgdPeregrineConfig, ConfigKey, Stick, StickId, StickTopology, Scale, Viewport, ProgramModel, ProgramSetting };
 pub use self::core::channel::accessorresolver::{ AccessorResolver };

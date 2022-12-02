@@ -17,9 +17,9 @@ impl LeafShapeBounds {
         }
     }
 
-    pub fn base_range(&self) -> &RangeUsed<f64> { &self.base_range }
-    pub fn pixel_range(&self) -> &RangeUsed<f64> { &self.pixel_range }
-    pub fn max_y(&self) -> f64 { self.max_y }
+    pub(crate) fn base_range(&self) -> &RangeUsed<f64> { &self.base_range }
+    pub(crate) fn pixel_range(&self) -> &RangeUsed<f64> { &self.pixel_range }
+    pub(crate) fn max_y(&self) -> f64 { self.max_y }
 
     pub fn merge_max_y(&mut self, new_max: f64) { 
         self.max_y = self.max_y.max(new_max);

@@ -1,4 +1,4 @@
-use crate::{allotment::core::{trainstate::TrainState3, floatingcarriage::FloatingCarriage}, DrawingCarriage, TrainIdentity, CarriageSpeed, Stick};
+use crate::{allotment::core::{floatingcarriage::FloatingCarriage}, DrawingCarriage, TrainIdentity, CarriageSpeed, Stick, globals::trainstate::TrainState};
 use super::super::{core::party::{PartyActions, Party}, graphics::Graphics};
 #[cfg(debug_trains)]
 use peregrine_toolkit::identitynumber;
@@ -12,7 +12,7 @@ pub(crate) struct DrawingTrainState {
     ready: bool, /* We have initial loaded */
     active: bool,
     mute: bool,
-    state: TrainState3,
+    state: TrainState,
     stick: Option<Stick>,
     graphics: Graphics,
     ready_serial: u64,
@@ -24,7 +24,7 @@ pub(crate) struct DrawingTrainState {
 identitynumber!(IDS);
 
 impl DrawingTrainState {
-    fn new(train_identity: &TrainIdentity, state: &TrainState3, graphics: &Graphics) -> DrawingTrainState {
+    fn new(train_identity: &TrainIdentity, state: &TrainState, graphics: &Graphics) -> DrawingTrainState {
         DrawingTrainState {
             current: vec![],
             train_identity: train_identity.clone(),
@@ -118,17 +118,17 @@ pub(crate) struct DrawingTrain {
 }
 
 impl DrawingTrain {
-    pub fn new(train_identity: &TrainIdentity, state: &TrainState3, graphics: &Graphics) -> DrawingTrain {
+    pub fn new(train_identity: &TrainIdentity, state: &TrainState, graphics: &Graphics) -> DrawingTrain {
         DrawingTrain {
             slider: Party::new(DrawingTrainState::new(train_identity,state,graphics)),
         }
     }
 
-    pub(crate) fn state(&self) -> &TrainState3 { &self.slider.inner().state }
+    pub(crate) fn state(&self) -> &TrainState { &self.slider.inner().state }
     pub(crate) fn is_ready(&self) -> bool { self.slider.inner().is_ready() }
     pub(crate) fn central(&self) -> Option<&DrawingCarriage> { self.slider.inner().central() }
 
-    pub(crate) fn set(&mut self, state: &TrainState3, dcc: &[FloatingCarriage]) {
+    pub(crate) fn set(&mut self, state: &TrainState, dcc: &[FloatingCarriage]) {
         if state == self.state() {
             self.slider.set(&mut dcc.iter().cloned());
         }

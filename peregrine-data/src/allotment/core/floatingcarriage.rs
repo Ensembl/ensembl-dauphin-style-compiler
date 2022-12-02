@@ -1,7 +1,7 @@
 use std::{sync::{Arc, Mutex}};
 use peregrine_toolkit::{puzzle::{StaticAnswer}, lock, timer_start, timer_end, error::Error };
-use crate::{ShapeRequestGroup, CarriageExtent, shape::{shape::{FloatingShape}, metadata::AbstractMetadataBuilder}, allotment::{core::{allotmentname::allotmentname_hashmap}, leafs::anchored::AnchoredLeaf, layout::stylebuilder::ContainerOrLeaf}, Shape, LeafRequest, AuxLeaf };
-use super::{leafrequestsource::LeafRequestSource, trainstate::{CarriageTrainStateSpec}};
+use crate::{ShapeRequestGroup, CarriageExtent, shape::{shape::{FloatingShape}, metadata::AbstractMetadataBuilder}, allotment::{core::{allotmentname::allotmentname_hashmap}, leafs::anchored::AnchoredLeaf, layout::stylebuilder::ContainerOrLeaf}, Shape, LeafRequest, AuxLeaf, globals::trainstate::CarriageTrainStateSpec };
+use super::{leafrequestsource::LeafRequestSource};
 
 struct FloatingCarriageBuilder {
     builder: Arc<LeafRequestSource>,

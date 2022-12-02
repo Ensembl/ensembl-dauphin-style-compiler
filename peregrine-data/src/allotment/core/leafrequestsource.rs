@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use peregrine_toolkit::error::Error;
-use crate::{LeafRequest, ShapeRequestGroup, allotment::{layout::stylebuilder::make_transformable, leafs::floating::FloatingLeaf}, shape::{metadata::AbstractMetadata}, Shape};
-use super::{trainstate::CarriageTrainStateSpec, allotmentname::{allotmentname_hashmap, AllotmentName, AllotmentNameHashMap}, boxpositioncontext::BoxPositionContext };
+use crate::{LeafRequest, ShapeRequestGroup, allotment::{layout::stylebuilder::make_transformable, leafs::floating::FloatingLeaf}, shape::{metadata::AbstractMetadata}, Shape, globals::trainstate::CarriageTrainStateSpec};
+use super::{allotmentname::{allotmentname_hashmap, AllotmentName, AllotmentNameHashMap}, boxpositioncontext::BoxPositionContext };
 
 pub(crate) struct LeafRequestSource {
     leafs: AllotmentNameHashMap<LeafRequest>

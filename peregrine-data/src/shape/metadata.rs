@@ -1,6 +1,6 @@
 use std::{sync::Arc, collections::HashMap};
-use peregrine_toolkit::{puzzle::constant, eachorevery::{EachOrEvery, eoestruct::StructTemplate}, log};
-use crate::{allotment::{core::allotmentname::AllotmentName, globals::allotmentmetadata::LocalAllotmentMetadataBuilder}, Shape, Patina, LeafRequest};
+use peregrine_toolkit::{puzzle::constant, eachorevery::{EachOrEvery, eoestruct::StructTemplate}};
+use crate::{allotment::{core::allotmentname::AllotmentName}, Shape, Patina, LeafRequest, globals::allotmentmetadata::LocalAllotmentMetadataBuilder};
 
 struct AllotmentMetadataEntry {
     allotment: AllotmentName,

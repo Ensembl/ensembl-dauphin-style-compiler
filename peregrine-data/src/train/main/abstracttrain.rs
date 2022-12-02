@@ -1,6 +1,6 @@
 use std::{sync::{Arc, Mutex}, cmp::max};
 use peregrine_toolkit::{puzzle::AnswerAllocator };
-use crate::{shapeload::carriagebuilder::CarriageBuilder, allotment::core::{trainstate::{TrainStateSpec, TrainState3}, floatingcarriage::FloatingCarriage}, switch::trackconfiglist::TrainTrackConfigList, api::MessageSender, CarriageExtent, train::{model::trainextent::TrainExtent, graphics::Graphics, core::party::{PartyActions, Party, PartyState}}, PeregrineApiQueue};
+use crate::{shapeload::carriagebuilder::CarriageBuilder, allotment::core::{floatingcarriage::FloatingCarriage}, switch::trackconfiglist::TrainTrackConfigList, api::MessageSender, CarriageExtent, train::{model::trainextent::TrainExtent, graphics::Graphics, core::party::{PartyActions, Party, PartyState}}, PeregrineApiQueue, globals::trainstate::{TrainStateSpec, TrainState}};
 
 #[cfg(debug_trains)]
 use peregrine_toolkit::{ log, debug_log };
@@ -82,7 +82,7 @@ impl AbstractTrainActions {
         }
     }
 
-    pub(crate) fn state(&self) -> TrainState3 { self.train_state_spec.spec() }
+    pub(crate) fn state(&self) -> TrainState { self.train_state_spec.spec() }
 }
 
 impl PartyActions<u64,CarriageBuilder,FloatingCarriage> for AbstractTrainActions {
@@ -137,7 +137,7 @@ impl AbstractTrain {
         }
     }
 
-    pub(crate) fn ping(&mut self) -> Option<(TrainState3,Vec<FloatingCarriage>)> {
+    pub(crate) fn ping(&mut self) -> Option<(TrainState,Vec<FloatingCarriage>)> {
         self.party.ping();
         if self.party.is_ready() && self.party.state() != self.seen {
             /* process was updated so update drawing target */

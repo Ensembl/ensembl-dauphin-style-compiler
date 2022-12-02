@@ -1,4 +1,4 @@
-use crate::{allotment::core::{trainstate::TrainState3, floatingcarriage::FloatingCarriage}, DrawingCarriage, DataMessage, api::api::new_train_identity, Stick, train::{core::switcher::{Switcher, SwitcherManager, SwitcherExtent, SwitcherObject}, graphics::Graphics}};
+use crate::{allotment::core::{floatingcarriage::FloatingCarriage}, DrawingCarriage, DataMessage, api::api::new_train_identity, Stick, train::{core::switcher::{Switcher, SwitcherManager, SwitcherExtent, SwitcherObject}, graphics::Graphics}, globals::trainstate::TrainState};
 
 #[cfg(debug_trains)]
 use peregrine_toolkit::debug_log;
@@ -22,11 +22,11 @@ impl DrawingTrainSetActions {
 }
 
 impl SwitcherManager for DrawingTrainSetActions {
-    type Extent = TrainState3;
+    type Extent = TrainState;
     type Type = DrawingTrain;
     type Error = DataMessage;
 
-    fn create(&mut self, state: &TrainState3) -> Result<DrawingTrain,DataMessage> {
+    fn create(&mut self, state: &TrainState) -> Result<DrawingTrain,DataMessage> {
         let train_identity = new_train_identity();
         #[cfg(debug_trains)] debug_log!("DC party for {:x} {:?}",state.hash(),train_identity);
         let mut out = DrawingTrain::new(&train_identity,state,&self.graphics);
@@ -42,8 +42,8 @@ impl SwitcherManager for DrawingTrainSetActions {
     fn busy(&self, _yn: bool) {}
 }
 
-impl SwitcherExtent for TrainState3 {
-    type Extent = TrainState3;
+impl SwitcherExtent for TrainState {
+    type Extent = TrainState;
     type Type = DrawingTrain;
 
     fn to_milestone(&self) -> Self::Extent { self.clone() }
@@ -51,7 +51,7 @@ impl SwitcherExtent for TrainState3 {
 }
 
 impl SwitcherObject for DrawingTrain {
-    type Extent = TrainState3;
+    type Extent = TrainState;
     type Type = DrawingTrain;
     type Speed = ();
 
@@ -65,7 +65,7 @@ impl SwitcherObject for DrawingTrain {
 }
 
 pub(crate) struct DrawingTrainSet {
-    switcher: Switcher<DrawingTrainSetActions,TrainState3,DrawingTrain,DataMessage>,
+    switcher: Switcher<DrawingTrainSetActions,TrainState,DrawingTrain,DataMessage>,
 }
 
 impl DrawingTrainSet {
@@ -90,7 +90,7 @@ impl DrawingTrainSet {
         });
     }
 
-    pub(crate) fn set(&mut self, state: &TrainState3, carriages: &[FloatingCarriage]) {
+    pub(crate) fn set(&mut self, state: &TrainState, carriages: &[FloatingCarriage]) {
         self.switcher.set_target(state);
         self.switcher.each_mut(&|dcp| {
             dcp.set(state,carriages);

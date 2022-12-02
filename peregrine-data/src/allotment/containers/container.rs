@@ -1,6 +1,6 @@
 use std::{sync::{Arc}};
 use peregrine_toolkit::{puzzle::{DelayedSetter, derived, cache_constant, constant, StaticValue, promise_delayed, short_memoized_clonable, cache_constant_clonable, StaticAnswer }, eachorevery::eoestruct::StructTemplate};
-use crate::{allotment::{core::{allotmentname::{AllotmentName}, boxpositioncontext::BoxPositionContext}, style::{containerstyle::{ContainerStyle}}, util::rangeused::RangeUsed, globals::allotmentmetadata::LocalAllotmentMetadataBuilder, style::{styletree::StyleTree}, leafs::{floating::FloatingLeaf, anchored::AnchoredLeaf}, layout::stylebuilder::{ContainerOrLeaf, BuildSize}}, shape::metadata::MetadataStyle, CoordinateSystem, LeafRequest};
+use crate::{allotment::{core::{allotmentname::{AllotmentName}, boxpositioncontext::BoxPositionContext}, style::{containerstyle::{ContainerStyle}}, util::rangeused::RangeUsed, style::{styletree::StyleTree}, leafs::{floating::FloatingLeaf, anchored::AnchoredLeaf}, layout::stylebuilder::{ContainerOrLeaf, BuildSize}}, shape::metadata::MetadataStyle, CoordinateSystem, LeafRequest, globals::allotmentmetadata::LocalAllotmentMetadataBuilder};
 use super::{haskids::HasKids};
 
 pub(crate) trait ContainerSpecifics {

@@ -1,7 +1,8 @@
 use std::{sync::{Arc, Mutex}, collections::{HashMap, VecDeque}};
 use peregrine_toolkit::lock;
-use crate::{PeregrineIntegration, allotment::{globals::{playingfield::{GlobalPlayingField, PlayingField}, allotmentmetadata::GlobalAllotmentMetadata} }, CarriageSpeed, Viewport, api::TrainIdentity, Stick };
+use crate::{PeregrineIntegration, CarriageSpeed, Viewport, api::TrainIdentity, Stick };
 use super::drawing::drawingcarriage::DrawingCarriage;
+use crate::globals::{playingfield::{GlobalPlayingField, PlayingField}, allotmentmetadata::GlobalAllotmentMetadata};
 
 #[cfg(debug_trains)]
 use peregrine_toolkit::log;

@@ -77,9 +77,10 @@ pub(crate) fn make_transformable(pendings: &mut dyn Iterator<Item=&LeafRequest>)
 mod test {
     use std::{sync::{Arc, Mutex}, collections::{HashMap}};
     use peregrine_toolkit::{puzzle::{AnswerAllocator}};
-    use crate::allotment::{style::styletree::StyleTree, layout::stylebuilder::ContainerOrLeaf};
-    use crate::{allotment::{core::{allotmentname::AllotmentName, boxpositioncontext::BoxPositionContext, trainstate::CarriageTrainStateSpec}, util::{bppxconverter::BpPxConverter, rangeused::RangeUsed}, globals::{allotmentmetadata::{LocalAllotmentMetadata, GlobalAllotmentMetadataBuilder, GlobalAllotmentMetadata}, bumping::{GlobalBumpBuilder, GlobalBump}, trainpersistent::TrainPersistent}, layout::stylebuilder::make_transformable}, LeafRequest, shape::metadata::{AbstractMetadataBuilder}};
+    use crate::{allotment::{style::styletree::StyleTree, layout::stylebuilder::ContainerOrLeaf}, globals::{allotmentmetadata::{LocalAllotmentMetadata, GlobalAllotmentMetadataBuilder}, trainstate::CarriageTrainStateSpec}, GlobalAllotmentMetadata};
+    use crate::{allotment::{core::{allotmentname::AllotmentName, boxpositioncontext::BoxPositionContext}, util::{bppxconverter::BpPxConverter, rangeused::RangeUsed}, layout::stylebuilder::make_transformable}, LeafRequest, shape::metadata::{AbstractMetadataBuilder}};
     use serde_json::{Value as JsonValue };
+    use crate::globals::{bumping::{GlobalBumpBuilder, GlobalBump}, trainpersistent::TrainPersistent};
 
     fn make_pendings(names: &[&str], heights: &[f64], pixel_range: &[RangeUsed<f64>], style: &StyleTree) -> Vec<LeafRequest> {
         let heights = if heights.len() > 0 {
