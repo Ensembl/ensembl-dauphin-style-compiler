@@ -1,6 +1,6 @@
 use std::{sync::{Arc}, collections::HashMap};
 use peregrine_toolkit::{puzzle::{DelayedSetter, derived, cache_constant, constant, StaticValue, promise_delayed, short_memoized_clonable, cache_constant_clonable, StaticAnswer }, eachorevery::eoestruct::StructTemplate};
-use crate::{allotment::{core::{allotmentname::{AllotmentName}, boxtraits::{ContainerSpecifics, BuildSize, ContainerOrLeaf}, boxpositioncontext::BoxPositionContext}, style::{style::{ContainerAllotmentStyle, ContainerAllotmentType}}, util::rangeused::RangeUsed, globals::allotmentmetadata::LocalAllotmentMetadataBuilder, stylespec::{styletree::StyleTree}}, shape::metadata::MetadataStyle, CoordinateSystem, LeafRequest};
+use crate::{allotment::{core::{allotmentname::{AllotmentName}, boxtraits::{ContainerSpecifics, BuildSize, ContainerOrLeaf}, boxpositioncontext::BoxPositionContext}, style::{style::{ContainerAllotmentStyle, ContainerAllotmentType}}, util::rangeused::RangeUsed, globals::allotmentmetadata::LocalAllotmentMetadataBuilder, styletree::{styletree::StyleTree}}, shape::metadata::MetadataStyle, CoordinateSystem, LeafRequest};
 use super::{leaf::{AnchoredLeaf, FloatingLeaf}, stacker::{Stacker}, overlay::{Overlay}, bumper::{Bumper}};
 
 fn internal_height(child_height: &StaticValue<f64>, min_height: f64, padding_top: f64, padding_bottom: f64) -> StaticValue<f64> {

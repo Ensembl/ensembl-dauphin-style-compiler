@@ -53,7 +53,7 @@ pub(crate) fn make_transformable(prep: &mut BoxPositionContext, pendings: &mut d
 mod test {
     use std::{sync::{Arc, Mutex}, collections::{HashMap}};
     use peregrine_toolkit::{puzzle::{AnswerAllocator}};
-    use crate::allotment::stylespec::styletree::StyleTree;
+    use crate::allotment::styletree::styletree::StyleTree;
     use crate::{allotment::{core::{allotmentname::AllotmentName, boxpositioncontext::BoxPositionContext, trainstate::CarriageTrainStateSpec, boxtraits::ContainerOrLeaf}, util::{bppxconverter::BpPxConverter, rangeused::RangeUsed}, globals::{allotmentmetadata::{LocalAllotmentMetadata, GlobalAllotmentMetadataBuilder, GlobalAllotmentMetadata}, bumping::{GlobalBumpBuilder, GlobalBump}, trainpersistent::TrainPersistent}, builder::stylebuilder::make_transformable}, LeafRequest, shape::metadata::{AbstractMetadataBuilder}};
     use serde_json::{Value as JsonValue };
 

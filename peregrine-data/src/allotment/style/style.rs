@@ -1,6 +1,8 @@
 use std::{collections::HashMap};
 
-use crate::{CoordinateSystem, allotment::stylespec::specifiedstyle::InheritableStyle, shape::metadata::MetadataStyle};
+use crate::{CoordinateSystem, shape::metadata::MetadataStyle};
+
+use super::specifiedstyle::InheritableStyle;
 
 #[cfg_attr(any(test,debug_assertions),derive(Debug))]
 #[derive(Clone,PartialEq,Eq,Hash)]

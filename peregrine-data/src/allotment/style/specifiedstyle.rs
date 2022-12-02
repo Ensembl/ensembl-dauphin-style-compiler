@@ -67,14 +67,6 @@ pub struct SpecifiedStyle {
 }
 
 impl SpecifiedStyle {
-    pub(crate) fn empty() -> SpecifiedStyle {
-        SpecifiedStyle {
-            allot_type: LeafAllotmentType::Leaf,
-            leaf: InheritableStyle::empty(),
-            priority: 0
-        }
-    }
-
     pub(crate) fn build(spec: &HashMap<String,String>) -> SpecifiedStyle {
         let allot_type = LeafAllotmentType::build(spec);
         let leaf = InheritableStyle::new(spec);

@@ -1,7 +1,7 @@
 use std::{collections::{HashSet}};
 use peregrine_toolkit::{debug_log, eachorevery::EachOrEvery};
 use super::{core::{ Patina, Pen, Plotter }, imageshape::ImageShape, rectangleshape::RectangleShape, textshape::TextShape, wiggleshape::WiggleShape, emptyshape::EmptyShape, shape::UnplacedShape};
-use crate::{LeafRequest, FloatingShapesContainer, allotment::{core::leaflist::LeafList, stylespec::styletree::StyleTree}, BackendNamespace, LoadMode, PolygonShape};
+use crate::{LeafRequest, FloatingShapesContainer, allotment::{core::leaflist::LeafList, styletree::styletree::StyleTree}, BackendNamespace, LoadMode, PolygonShape};
 use crate::{Assets, DataMessage, SpaceBaseArea, reactive::Observable, SpaceBase};
 
 pub struct ProgramShapesBuilder {

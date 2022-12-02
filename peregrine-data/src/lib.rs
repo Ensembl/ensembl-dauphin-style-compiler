@@ -20,6 +20,7 @@ mod allotment {
 
     pub(crate) mod style {
         pub(crate) mod style;
+        pub(crate) mod specifiedstyle;
     }
 
     pub(crate) mod core {
@@ -45,12 +46,11 @@ mod allotment {
         pub mod playingfield;
     }
 
-    pub(crate) mod stylespec {
+    pub(crate) mod styletree {
         pub(super) mod pathtree;
-        pub(crate) mod specifiedstyle;
         pub(crate) mod styletree;
     }
-
+    
     pub(crate) mod util {
         pub(crate) mod bppxconverter;
         pub(crate) mod rangeused;

@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::{Arc, Mutex}};
 use peregrine_toolkit::{lock, log};
-use crate::{allotment::{style::style::ContainerAllotmentStyle, core::allotmentname::{AllotmentName, AllotmentNameHashMap, allotmentname_hashmap}}, LeafStyle};
-use super::{pathtree::{PathTree, PathKey}, specifiedstyle::{SpecifiedStyle, InheritableStyle}};
+use crate::{allotment::{style::{style::ContainerAllotmentStyle, specifiedstyle::{InheritableStyle, SpecifiedStyle}}, core::allotmentname::{AllotmentName, AllotmentNameHashMap, allotmentname_hashmap}}, LeafStyle};
+use super::{pathtree::{PathTree, PathKey}};
 
 struct StyleTreeInternal {
     container: PathTree<Vec<(String,String)>,String,HashMap<String,String>>,    
@@ -14,7 +14,7 @@ impl StyleTreeInternal {
             map.get_or_insert_with(|| HashMap::new()).extend(&mut values.drain(..));
         };
         let merge_lookup = |map: &mut Option<HashMap<String,String>>, values: &HashMap<String,String>| {
-            let mut map = map.get_or_insert_with(|| HashMap::new());
+            let map = map.get_or_insert_with(|| HashMap::new());
             for (k,v) in values {
                 if !map.contains_key(k) {
                     map.insert(k.to_string(),v.to_string());

@@ -1,10 +1,5 @@
-/* We choose themost flexible andsimple algorithm, hoping that thecost isn't prohibitive given
- * the limited data-set size andcomplexity.
- */
-
 use std::collections::HashMap;
 use std::hash::Hash;
-use std::fmt;
 
 #[derive(PartialEq,Eq,Hash,Clone)]
 pub(crate) enum PathKey<K> where K: PartialEq+Eq+Hash+Clone {
@@ -72,12 +67,6 @@ impl<K,V> PathTreeNode<K,V> where K: PartialEq+Eq+Hash+Clone {
         }
         if let Some(properties) = &self.prefix_properties {
             merge(output,properties);
-        }
-    }
-
-    fn lookup_suffixes<F>(&self, merge: &F, output: &mut Option<V>, input: &[K]) where F: Fn(&mut Option<V>,&V) {
-        for chop in 0..input.len() {
-            self.lookup(merge,output,&input[chop..]);
         }
     }
 }
