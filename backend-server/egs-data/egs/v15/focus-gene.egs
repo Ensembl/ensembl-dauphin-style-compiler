@@ -88,8 +88,6 @@ style("**/main/main/*/blocks/",["depth"][],["4"][]);
 style("**/main/main/*/text/",["bump-width","system"][],["none","tracking-special"][]);
 style("**/main/background/content",["depth","padding-top"][],["-10","32"][]);
 
-style("**/main/main/focus/",["type"][],["overlay"][]);
-
 // use_allotment_names(base_allotment_names,enabled_tracks,potential_tracks);
 // use_allotment_names(allotment_names_bgd,enabled_tracks,potential_tracks_bgd);
 // use_allotments(allotments_bgd,enabled_tracks,allotment_names_bgd);

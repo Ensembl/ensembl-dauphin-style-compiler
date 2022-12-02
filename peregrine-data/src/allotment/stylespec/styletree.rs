@@ -1,100 +1,120 @@
-use std::{collections::HashMap};
+use std::{collections::HashMap, sync::{Arc, Mutex}};
+use peregrine_toolkit::{lock, log};
+use crate::{allotment::{style::style::ContainerAllotmentStyle, core::allotmentname::{AllotmentName, AllotmentNameHashMap, allotmentname_hashmap}}, LeafStyle};
+use super::{pathtree::{PathTree, PathKey}, specifiedstyle::{SpecifiedStyle, InheritableStyle}};
 
-use crate::allotment::{style::{style::{ContainerAllotmentStyle}}, core::allotmentname::AllotmentNamePart};
-
-use super::{styletreebuilder::StyleTreeBuilder, specifiedstyle::SpecifiedStyle};
-
-/* These trees go leaf-to-root!, to make ** possible. It's best to think of these trees as 
- * enumerating all paths which have distinct answers to questions of style, as far as they need
- * to go to distinguish between them. Also, think of the builder trees as largely the writable
- * parallels of these read-only trees.
- * 
- * In this context implementing "** / X" means finding X and then 1. adding this style wherever
- * a search might terminate successfully and 2. stop things failing, but replace them with this. 
- * The only place a search can terminate is at a completely matching node or at a node with no
- * "None" child. So to add any's we first traverse through X and then flood visit the rest of the
- * extant tree.  Each node gets the relevant properties. Nodes without a None child (any) also get
- * one, with the all flag set to true so that all children get the indicated properties.
- */
-
-/* NB: In StyleTreeNodes, None means "other", ie all * properties which are not overridden are also
- * propagated to extant not-None leaves.
- */
-
-#[cfg_attr(debug_assertions,derive(Debug))]
-struct Styles {
-    container: ContainerAllotmentStyle,
-    leaf: SpecifiedStyle,
+struct StyleTreeInternal {
+    container: PathTree<Vec<(String,String)>,String,HashMap<String,String>>,    
+    leaf: PathTree<Vec<(String,String)>,String,HashMap<String,String>>
 }
 
-#[cfg_attr(debug_assertions,derive(Debug))]
-pub(super) struct StyleTreeNode {
-    here: Styles,
-    all: bool,
-    children: HashMap<Option<String>,StyleTreeNode>
-}
-
-impl StyleTreeNode {
-    pub(super) fn new(container: ContainerAllotmentStyle, leaf: SpecifiedStyle, all: bool) -> StyleTreeNode {
-        StyleTreeNode {
-            here: Styles { container, leaf },
-            children: HashMap::new(),
-            all
-        }
-    }
-
-    /* only used during building */
-    pub(super) fn add(&mut self, name: Option<&String>, node: StyleTreeNode) {
-        self.children.insert(name.cloned(),node);
-    }
-
-    fn get(&self, name: &AllotmentNamePart) -> Option<&StyleTreeNode> {
-        if let Some((tail,head)) = name.pop() {
-            if let Some(child) = self.children.get(&Some(tail)) {
-                child.get(&head)
-            } else if let Some(other) = self.children.get(&None) {
-                if self.all { Some(other) } else { other.get(&head) }
-            } else {
-                None
+impl StyleTreeInternal {
+    fn new()-> StyleTreeInternal {
+        let merge_add = |map: &mut Option<HashMap<String,String>>, mut values: Vec<_>| {
+            map.get_or_insert_with(|| HashMap::new()).extend(&mut values.drain(..));
+        };
+        let merge_lookup = |map: &mut Option<HashMap<String,String>>, values: &HashMap<String,String>| {
+            let mut map = map.get_or_insert_with(|| HashMap::new());
+            for (k,v) in values {
+                if !map.contains_key(k) {
+                    map.insert(k.to_string(),v.to_string());
+                }
             }
-        } else {
-            Some(self)
+        };
+        StyleTreeInternal {
+            container: PathTree::new(merge_add,merge_lookup),
+            leaf: PathTree::new(merge_add,merge_lookup)
         }
     }
 
-    fn get_container(&self, name: &AllotmentNamePart) -> Option<&ContainerAllotmentStyle> {
-        self.get(name).map(|x| &x.here.container)
+    fn add(&mut self, spec: &str, values: Vec<(String,String)>) {
+        let mut parts = spec.split("/").collect::<Vec<_>>();
+        let container = if let Some(last) = parts.last() { *last == "" } else { false };
+        if container { parts.pop(); }
+        let tree = if container { &mut self.container } else { &mut self.leaf };
+        let mut path = parts.drain(..).map(|p| 
+            match p {
+                "*" => PathKey::AnyOne,
+                "**" => PathKey::AnyMany,
+                x => PathKey::Fixed(x.to_string())
+             }
+        ).collect::<Vec<_>>();
+        path.reverse();
+        tree.add(&path,values);
     }
 
-    fn get_leaf(&self, name: &AllotmentNamePart) -> Option<&SpecifiedStyle> {
-        self.get(name).map(|x| &x.here.leaf)
+    fn lookup(&self, path: &[String], container: bool) -> HashMap<String,String> {
+        let mut path = path.to_vec();
+        path.reverse();
+        let tree = if container { &self.container } else { &self.leaf };
+        tree.lookup(&path).unwrap_or_else(|| HashMap::new())
+    }
+
+    fn lookup_container(&self, path: &[String]) -> HashMap<String,String> {
+        self.lookup(path,true)
+    }
+
+    fn lookup_leaf(&self, path: &[String]) -> HashMap<String,String> {
+        self.lookup(path,false)
     }
 }
 
-#[cfg_attr(debug_assertions,derive(Debug))]
-pub struct StyleTree {
-    root: StyleTreeNode,
-    empty_container: ContainerAllotmentStyle,
-    empty_leaf: SpecifiedStyle
+struct StyleTreeState {
+    internal: StyleTreeInternal,
+    container_cache: HashMap<Vec<String>,ContainerAllotmentStyle>,
+    leaf_cache: AllotmentNameHashMap<LeafStyle>
 }
+
+#[derive(Clone)]
+pub(crate) struct StyleTree(Arc<Mutex<StyleTreeState>>);
 
 impl StyleTree {
-    pub fn new(mut builder: StyleTreeBuilder) -> StyleTree { builder.build() }
-
-    pub fn get_container(&self, name: &AllotmentNamePart) -> &ContainerAllotmentStyle {
-        self.root.get_container(name).unwrap_or(&self.empty_container)
+    pub(crate) fn new() -> StyleTree {
+        StyleTree(Arc::new(Mutex::new(
+            StyleTreeState {
+                internal: StyleTreeInternal::new(),
+                container_cache: HashMap::new(),
+                leaf_cache: allotmentname_hashmap()
+            }
+        )))
     }
 
-    pub fn get_leaf(&self, name: &AllotmentNamePart) -> &SpecifiedStyle {
-        self.root.get_leaf(name).unwrap_or(&self.empty_leaf)
+    pub(crate) fn add(&mut self, spec: &str, values: Vec<(String,String)>) {
+        log!("add {:?} {:?}",spec,values);
+        lock!(self.0).internal.add(spec,values);
     }
 
-    /* After here, used during building. Only for the use of builder. */
-    pub(super) fn root(root: StyleTreeNode) -> StyleTree {
-        StyleTree {
-            root,
-            empty_container: ContainerAllotmentStyle::empty(),
-            empty_leaf: SpecifiedStyle::empty()
+    pub(crate) fn lookup_container(&self, allotment: &AllotmentName) -> ContainerAllotmentStyle {
+        let mut state = lock!(self.0);
+        if !state.container_cache.contains_key(allotment.name()) {
+            let container = state.internal.lookup_container(allotment.name());
+            state.container_cache.insert(allotment.name().to_vec(),ContainerAllotmentStyle::build(&container));
         }
+        state.container_cache.get(allotment.name()).unwrap().clone()
+    }
+
+    pub(crate) fn lookup_leaf(&self, allotment: &AllotmentName) -> LeafStyle {
+        let mut state = lock!(self.0);
+        if !state.leaf_cache.contains_key(allotment) {
+            let mut inherit = InheritableStyle::empty();
+            let name = allotment.name();
+            // TODO cache inheritables
+            for index in 0..name.len() {
+                let prefix = &name[0..index];
+
+                if !state.container_cache.contains_key(prefix) {
+                    let container = state.internal.lookup_container(prefix);
+                    state.container_cache.insert(prefix.to_vec(),ContainerAllotmentStyle::build(&container));
+                }
+                let style = state.container_cache.get(prefix).unwrap();
+                inherit.override_style(&style.leaf);
+            }
+            let leaf = state.internal.lookup_leaf(allotment.name());
+            let specified = SpecifiedStyle::build(&leaf);
+            inherit.override_style(&specified.leaf);
+            let style = inherit.make(&specified);
+            state.leaf_cache.insert(allotment.clone(),style);
+        }
+        state.leaf_cache.get(allotment).unwrap().clone()
     }
 }

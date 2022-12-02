@@ -50,8 +50,6 @@ mod allotment {
         pub(crate) mod specifiedstyle;
         pub(crate) mod stylegroup;
         pub(crate) mod styletree;
-        pub(crate) mod styletree2;
-        pub(crate) mod styletreebuilder;
     }
 
     pub(crate) mod util {

@@ -1,15 +1,15 @@
-use std::{collections::{HashMap, HashSet}};
+use std::{collections::{HashSet}};
 use peregrine_toolkit::{debug_log, eachorevery::EachOrEvery};
 use super::{core::{ Patina, Pen, Plotter }, imageshape::ImageShape, rectangleshape::RectangleShape, textshape::TextShape, wiggleshape::WiggleShape, emptyshape::EmptyShape, shape::UnplacedShape};
-use crate::{LeafRequest, FloatingShapesContainer, allotment::core::leaflist::LeafList, BackendNamespace, LoadMode, PolygonShape};
-use crate::{Assets, DataMessage, SpaceBaseArea, reactive::Observable, SpaceBase, allotment::{stylespec::{stylegroup::AllStylesForProgram, styletreebuilder::StyleTreeBuilder, styletree::StyleTree}}};
+use crate::{LeafRequest, FloatingShapesContainer, allotment::{core::leaflist::LeafList, stylespec::styletree::StyleTree}, BackendNamespace, LoadMode, PolygonShape};
+use crate::{Assets, DataMessage, SpaceBaseArea, reactive::Observable, SpaceBase, allotment::{stylespec::{stylegroup::AllStylesForProgram}}};
 
 pub struct ProgramShapesBuilder {
     assets: Assets,
     shapes: Vec<UnplacedShape>,
     leafs: HashSet<LeafRequest>,
     leaf_list: LeafList,
-    style: StyleTreeBuilder,
+    style: StyleTree,
     mode: LoadMode
 }
 
@@ -19,7 +19,7 @@ impl ProgramShapesBuilder {
             shapes: vec![],
             leafs: HashSet::new(),
             leaf_list: LeafList::new(),
-            style: StyleTreeBuilder::new(),
+            style: StyleTree::new(),
             assets: assets.clone(),
             mode: mode.clone()
         }
@@ -31,7 +31,7 @@ impl ProgramShapesBuilder {
         leaf
     }
 
-    pub fn add_style(&mut self, spec: &str, props: HashMap<String,String>) {
+    pub fn add_style(&mut self, spec: &str, props: Vec<(String,String)>) {
         self.style.add(spec,props);
     }
 
@@ -79,7 +79,7 @@ impl ProgramShapesBuilder {
     }
 
     pub fn to_abstract_shapes_container(self) -> FloatingShapesContainer {
-        let style = AllStylesForProgram::new(StyleTree::new(self.style));
+        let style = AllStylesForProgram::new(self.style);
         if self.leafs.len() > 1000 {
             debug_log!("many leafs! {}",self.leafs.len());
         }

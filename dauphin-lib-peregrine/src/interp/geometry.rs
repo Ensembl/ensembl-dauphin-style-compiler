@@ -449,9 +449,9 @@ impl InterpCommand for StyleInterpCommand {
         let keys = registers.get_strings(&self.1)?;
         let values = registers.get_strings(&self.2)?;
         drop(registers);
-        let mut props = HashMap::new();
+        let mut props = vec![];
         for (key,value) in keys.iter().zip(values.iter()) {
-            props.insert(key.to_string(),value.to_string());
+            props.push((key.to_string(),value.to_string()));
         }
         let zoo = get_instance::<Arc<Mutex<Option<ProgramShapesBuilder>>>>(context,"out")?;
         lock!(zoo).as_mut().unwrap().add_style(&spec,props);

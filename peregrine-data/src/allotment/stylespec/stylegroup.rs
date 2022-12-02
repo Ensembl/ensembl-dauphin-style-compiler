@@ -1,32 +1,23 @@
-use std::{sync::{Arc}};
-use crate::{allotment::{style::{style::{ContainerAllotmentStyle}}, core::allotmentname::{AllotmentNamePart, AllotmentName}}, LeafStyle, LeafRequest};
-use super::{styletree::StyleTree, specifiedstyle::{InheritableStyle}};
+use crate::{allotment::{style::{style::{ContainerAllotmentStyle}}, core::allotmentname::{AllotmentName}}, LeafStyle, LeafRequest};
+use super::{styletree::StyleTree};
 
-#[cfg_attr(debug_assertions,derive(Debug))]
 #[derive(Clone)]
 pub struct AllStylesForProgram {
-    tree: Arc<StyleTree>
+    tree: StyleTree
 }
 
 impl AllStylesForProgram {
-    pub fn new(tree: StyleTree) -> AllStylesForProgram {
+    pub(crate) fn new(tree: StyleTree) -> AllStylesForProgram {
         AllStylesForProgram {
-            tree: Arc::new(tree)
+            tree
         }
     }
 
-    pub(crate) fn get_container(&self, name: &AllotmentName) -> &ContainerAllotmentStyle {
-        let part = AllotmentNamePart::new(name.clone());
-        self.tree.get_container(&part)
+    pub(crate) fn get_container(&self, name: &AllotmentName) -> ContainerAllotmentStyle {
+        self.tree.lookup_container(name)
     }
 
     pub(crate) fn get_leaf(&self, leaf: &LeafRequest) -> LeafStyle {
-        let mut inherit = InheritableStyle::empty();
-        for name in AllotmentNamePart::new(leaf.name().clone()).iter_prefixes() {
-            inherit.override_style(&self.tree.get_container(&name).leaf);
-        }
-        let style = self.tree.get_leaf(&AllotmentNamePart::new(leaf.name().clone()));
-        inherit.override_style(&style.leaf);
-        inherit.make(&style)
+        self.tree.lookup_leaf(leaf.name())
     }
 }

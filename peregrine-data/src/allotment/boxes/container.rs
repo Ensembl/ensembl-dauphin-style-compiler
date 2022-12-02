@@ -50,7 +50,7 @@ impl HasKids {
             if !self.child_leafs.contains_key(step) {
                 /* create leaf */
                 let name = name[0..(cursor+1)].iter().map(|x| x.to_string()).collect::<Vec<_>>();
-                let name = AllotmentName::do_new(name,true);
+                let name = AllotmentName::do_new(name);
                 let leaf = new_leaf(pending,&name);
                 self.child_leafs.insert(step.to_string(),leaf.clone());
                 self.children.insert(ChildKeys::Leaf(step.to_string()),Box::new(leaf.clone()));
@@ -62,9 +62,9 @@ impl HasKids {
             if !self.children.contains_key(&key) {
                 /* create container */
                 let name = name[0..(cursor+1)].iter().map(|x| x.to_string()).collect::<Vec<_>>();
-                let name = AllotmentName::do_new(name,true);
+                let name = AllotmentName::do_new(name);
                 let style = styles.get_container(&name);
-                let container = Container::new(&name,style,new_container(&name,style));
+                let container = Container::new(&name,&style,new_container(&name,&style));
                 self.children.insert(key.clone(),Box::new(container));
             }
             self.children.get_mut(&key).unwrap().get_leaf(pending,cursor+1,styles).clone()

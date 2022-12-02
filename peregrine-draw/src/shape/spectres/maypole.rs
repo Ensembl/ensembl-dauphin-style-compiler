@@ -94,9 +94,10 @@ impl Maypole {
 impl Spectre for Maypole {
     fn draw(&self, shapes: &mut ProgramShapesBuilder) -> Result<(),Message> {
         let leaf = shapes.use_allotment("window/origin/maypole").clone();
-        let mut props = HashMap::new();
-        props.insert("depth".to_string(),"126".to_string());
-        props.insert("system".to_string(), "window".to_string());
+        let mut props = vec![
+            ("depth".to_string(),"126".to_string()),
+            ("system".to_string(), "window".to_string())
+        ];
         shapes.add_style("window/origin/maypole",props);
         self.pole(shapes,&leaf)?;
         self.bobble(shapes,&leaf)?;

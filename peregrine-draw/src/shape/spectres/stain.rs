@@ -60,9 +60,10 @@ impl Stain {
 impl Spectre for Stain {    
     fn draw(&self, shapes: &mut ProgramShapesBuilder) -> Result<(),Message> {
         let leaf = shapes.use_allotment("window/origin/stain").clone();
-        let mut props = HashMap::new();
-        props.insert("depth".to_string(),"101".to_string());
-        props.insert("system".to_string(), "window".to_string());
+        let mut props = vec![
+            ("depth".to_string(),"101".to_string()),
+            ("system".to_string(), "window".to_string())
+        ];
         shapes.add_style("window/origin/stain",props);
         let mut rectangles = vec![];
         let pos2 = lock!(self.area).tlbr().clone();

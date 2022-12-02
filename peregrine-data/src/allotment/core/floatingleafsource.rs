@@ -62,7 +62,7 @@ impl LeafRequest {
 
     pub(crate) fn set_style(&self, style: &AllStylesForProgram) {
         let leaf = style.get_leaf(&self);
-        *lock!(self.style) = Some((Arc::new(style.clone()),Arc::new(leaf)));
+        *lock!(self.style) = Some((Arc::new(style.clone()),Arc::new(leaf.clone())));
     }
 
     pub(crate) fn leaf_style(&self) -> Arc<LeafStyle> { lock!(self.style).as_ref().unwrap().1.clone() }

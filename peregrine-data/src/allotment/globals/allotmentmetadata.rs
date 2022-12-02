@@ -95,7 +95,7 @@ impl MapToReporter {
         for index in 0..name.len() {
             let part = &name[0..(name.len()-index)];
             if self.0.contains(&(part.to_vec(),key.to_string())) { // TODO inefficient
-                return Some(AllotmentName::do_new(part.to_vec(),true));
+                return Some(AllotmentName::do_new(part.to_vec()));
             }
         }
         if via_boxes {
