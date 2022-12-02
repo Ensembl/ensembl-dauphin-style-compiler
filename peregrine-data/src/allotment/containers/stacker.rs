@@ -1,6 +1,8 @@
 use std::{sync::Arc, rc::Rc};
 use peregrine_toolkit::{puzzle::{ derived, DelayedSetter, delayed, compose, StaticValue, commute_clonable, cache_constant_clonable, compose_slice_vec, short_memoized, cache_constant_rc }};
-use crate::{allotment::{core::{boxtraits::{ContainerOrLeaf, BuildSize, ContainerSpecifics}, boxpositioncontext::BoxPositionContext}}};
+use crate::{allotment::{core::{boxpositioncontext::BoxPositionContext}, layout::stylebuilder::{ContainerOrLeaf, BuildSize}}};
+
+use super::container::ContainerSpecifics;
 
 #[derive(Clone)]
 struct AddedChild {

@@ -1,6 +1,32 @@
-use std::{collections::HashMap};
-use peregrine_toolkit::error::Error;
-use crate::{allotment::{core::{trainstate::CarriageTrainStateSpec, allotmentname::{AllotmentName}, boxpositioncontext::BoxPositionContext, drawinginfo::DrawingInfo, floatingleafsource::FloatingLeafSource, boxtraits::ContainerOrLeaf}, containers::{root::Root}, style::leafstyle::LeafStyle, leafs::floating::FloatingLeaf}, LeafRequest };
+use std::{collections::HashMap, sync::Arc};
+use peregrine_toolkit::{error::Error, puzzle::{StaticValue, derived, StaticAnswer}};
+use crate::{allotment::{core::{allotmentname::{AllotmentName, allotmentname_hashmap, AllotmentNameHashMap}, boxpositioncontext::BoxPositionContext, leafshapebounds::LeafShapeBounds}, containers::{root::Root}, style::{leafstyle::LeafStyle, styletree::StyleTree}, leafs::{floating::FloatingLeaf, anchored::AnchoredLeaf}, util::rangeused::RangeUsed}, LeafRequest, CoordinateSystem };
+
+pub(crate) struct BuildSize {
+    pub name: AllotmentName,
+    pub height: StaticValue<f64>,
+    pub range: RangeUsed<f64>
+}
+
+impl BuildSize {
+    pub(crate) fn to_value(&self) -> StaticValue<(AllotmentName,f64,RangeUsed<f64>)> {
+        let name = self.name.clone();
+        let range = self.range.clone();
+        derived(self.height.clone(),move |h| {
+            (name.clone(),h,range.clone())
+        })
+    }
+}
+
+pub(crate) trait ContainerOrLeaf {
+    fn coordinate_system(&self) -> &CoordinateSystem;
+    fn build(&mut self, prep: &mut BoxPositionContext) -> BuildSize;
+    fn locate(&mut self, prep: &mut BoxPositionContext, top: &StaticValue<f64>);
+    fn name(&self) -> &AllotmentName;
+    fn priority(&self) -> i64;
+    fn anchor_leaf(&self, answer_index: &StaticAnswer) -> Option<AnchoredLeaf>;
+    fn get_leaf(&mut self, pending: &LeafRequest, cursor: usize, styles: &Arc<StyleTree>) -> FloatingLeaf;
+}
 
 struct StyleBuilder<'a> {
     root: &'a mut dyn ContainerOrLeaf,
@@ -14,7 +40,7 @@ impl<'a> StyleBuilder<'a> {
         StyleBuilder {
             root,
             leafs_made: HashMap::new(),
-            dustbin: FloatingLeaf::new(&dustbin_name,&LeafStyle::dustbin(),&DrawingInfo::new())
+            dustbin: FloatingLeaf::new(&dustbin_name,&LeafStyle::dustbin(),&LeafShapeBounds::new())
         }
     }
 
@@ -34,27 +60,25 @@ impl<'a> StyleBuilder<'a> {
     }
 }
 
-pub(crate) fn make_transformable(prep: &mut BoxPositionContext, pendings: &mut dyn Iterator<Item=&LeafRequest>) -> Result<(CarriageTrainStateSpec,FloatingLeafSource),Error> {
+pub(crate) fn make_transformable(pendings: &mut dyn Iterator<Item=&LeafRequest>) -> Result<(Root,AllotmentNameHashMap<FloatingLeaf>),Error> {
     let mut root = Root::new();
     /* Build box tree */
-    let mut plm = FloatingLeafSource::new();
+    let mut plm = allotmentname_hashmap();
     let mut styler = StyleBuilder::new(&mut root);
     for pending in pendings {
         let xformable = styler.try_new_leaf(&pending)?;
-        plm.set_floating_leaf(&pending.name(),&xformable);
+        plm.insert(pending.name().clone(),xformable);
     }
     drop(styler);
-    /* Wire box tree */
-    let state_spec = root.full_build(prep);
-    Ok((state_spec,plm))
+    Ok((root,plm))
 }
 
 #[cfg(test)]
 mod test {
     use std::{sync::{Arc, Mutex}, collections::{HashMap}};
     use peregrine_toolkit::{puzzle::{AnswerAllocator}};
-    use crate::allotment::style::styletree::StyleTree;
-    use crate::{allotment::{core::{allotmentname::AllotmentName, boxpositioncontext::BoxPositionContext, trainstate::CarriageTrainStateSpec, boxtraits::ContainerOrLeaf}, util::{bppxconverter::BpPxConverter, rangeused::RangeUsed}, globals::{allotmentmetadata::{LocalAllotmentMetadata, GlobalAllotmentMetadataBuilder, GlobalAllotmentMetadata}, bumping::{GlobalBumpBuilder, GlobalBump}, trainpersistent::TrainPersistent}, builder::stylebuilder::make_transformable}, LeafRequest, shape::metadata::{AbstractMetadataBuilder}};
+    use crate::allotment::{style::styletree::StyleTree, layout::stylebuilder::ContainerOrLeaf};
+    use crate::{allotment::{core::{allotmentname::AllotmentName, boxpositioncontext::BoxPositionContext, trainstate::CarriageTrainStateSpec}, util::{bppxconverter::BpPxConverter, rangeused::RangeUsed}, globals::{allotmentmetadata::{LocalAllotmentMetadata, GlobalAllotmentMetadataBuilder, GlobalAllotmentMetadata}, bumping::{GlobalBumpBuilder, GlobalBump}, trainpersistent::TrainPersistent}, layout::stylebuilder::make_transformable}, LeafRequest, shape::metadata::{AbstractMetadataBuilder}};
     use serde_json::{Value as JsonValue };
 
     fn make_pendings(names: &[&str], heights: &[f64], pixel_range: &[RangeUsed<f64>], style: &StyleTree) -> Vec<LeafRequest> {
@@ -101,10 +125,10 @@ mod test {
         add_style(&mut tree, "z/a/1", &[("depth","10"),("coordinate-system","window")]);
         let pending = make_pendings(&["z/a/1","z/a/2","z/a/3","z/b/1","z/b/2","z/b/3"],&[1.,2.,3.],&[],&tree);
         let mut prep = BoxPositionContext::new(None,&AbstractMetadataBuilder::new().build());
-        let (_spec,plm) = make_transformable(&mut prep,&mut pending.iter()).ok().expect("A");
+        let (_spec,plm) = make_transformable(&mut pending.iter()).ok().expect("A");
         let mut aia = AnswerAllocator::new();
         let answer_index = aia.get();
-        let transformers = pending.iter().map(|x| plm.floating_leaf(x.name()).anchor_leaf(&answer_index).unwrap()).collect::<Vec<_>>();
+        let transformers = pending.iter().map(|x| plm.get(x.name()).unwrap().anchor_leaf(&answer_index).unwrap()).collect::<Vec<_>>();
         let descs = transformers.iter().map(|x| x.describe()).collect::<Vec<_>>();
         println!("{:?}",descs);
         assert_eq!(6,descs.len());
@@ -130,10 +154,10 @@ mod test {
         add_style(&mut tree, "z/a/1", &[("depth","10"),("coordinate-system","window")]);
         let pending = make_pendings(&["z/a/1","z/a/2","z/a/3","z/b/1","z/b/2","z/b/3"],&[1.,2.,3.],&[],&tree);
         let mut prep = BoxPositionContext::new(None,&AbstractMetadataBuilder::new().build());
-        let (_spec,plm) = make_transformable(&mut prep,&mut pending.iter()).ok().expect("A");
+        let (_spec,plm) = make_transformable(&mut pending.iter()).ok().expect("A");
         let mut aia = AnswerAllocator::new();
         let answer_index = aia.get();
-        let transformers = pending.iter().map(|x| plm.floating_leaf(x.name()).anchor_leaf(&answer_index).unwrap()).collect::<Vec<_>>();
+        let transformers = pending.iter().map(|x| plm.get(x.name()).unwrap().anchor_leaf(&answer_index).unwrap()).collect::<Vec<_>>();
         let descs = transformers.iter().map(|x| x.describe()).collect::<Vec<_>>();
         assert_eq!(6,descs.len());
         assert!(descs[0].contains("coord_system: CoordinateSystem(Window, false)"));
@@ -176,7 +200,7 @@ mod test {
         let pending = make_pendings(&["z/a/1","z/a/2","z/a/3","z/b/1","z/b/2","z/b/3"],&[1.,2.,3.],&ranges,&tree);
         let mut prep = BoxPositionContext::new(None,&AbstractMetadataBuilder::new().build());
         prep.bp_px_converter = Arc::new(BpPxConverter::new_test());
-        let (_spec,plm) = make_transformable(&mut prep,&mut pending.iter()).ok().expect("A");
+        let (_spec,plm) = make_transformable(&mut pending.iter()).ok().expect("A");
         let metadata = prep.state_request.metadata();
         let mut aia = AnswerAllocator::new();
         let mut answer_index = aia.get();
@@ -185,7 +209,7 @@ mod test {
         let mut builder = GlobalBumpBuilder::new();
         ctss.bump().add(&mut builder);
         GlobalBump::new(builder,&mut answer_index,&tp);
-        let transformers = pending.iter().map(|x| plm.floating_leaf(x.name()).anchor_leaf(&answer_index).unwrap()).collect::<Vec<_>>();
+        let transformers = pending.iter().map(|x| plm.get(x.name()).unwrap().anchor_leaf(&answer_index).unwrap()).collect::<Vec<_>>();
         let descs = transformers.iter().map(|x| x.describe()).collect::<Vec<_>>();
         assert_eq!(6,descs.len());
         println!("{:?}",descs);

@@ -1,32 +1,11 @@
-use std::{sync::{Arc, Mutex}, borrow::BorrowMut };
+use std::{sync::{Arc, Mutex}, borrow::BorrowMut};
 use peregrine_toolkit::lock;
-use crate::{allotment::{style::{styletree::StyleTree}, leafs::floating::FloatingLeaf, style::leafstyle::LeafStyle}};
-use super::{allotmentname::{allotmentname_hashmap, AllotmentName, AllotmentNameHashMap}, drawinginfo::DrawingInfo};
-
-pub struct FloatingLeafSource {
-    transformables: AllotmentNameHashMap<FloatingLeaf>
-}
-
-impl FloatingLeafSource {
-    pub fn new() -> FloatingLeafSource {
-        FloatingLeafSource {
-            transformables: allotmentname_hashmap()
-        }
-    }
-
-    pub(crate) fn set_floating_leaf(&mut self, name: &AllotmentName, transformable: &FloatingLeaf) {
-        self.transformables.insert(name.clone(),transformable.clone());
-    }
-
-    pub(crate) fn floating_leaf(&self, name: &AllotmentName) -> &FloatingLeaf {
-        self.transformables.get(name).unwrap()
-    }
-}
+use crate::allotment::{core::{leafshapebounds::LeafShapeBounds, allotmentname::AllotmentName}, style::{styletree::StyleTree, leafstyle::LeafStyle}};
 
 #[derive(Clone)]
 pub struct LeafRequest {
     name: AllotmentName,
-    drawing_info: Arc<Mutex<DrawingInfo>>,
+    drawing_info: Arc<Mutex<LeafShapeBounds>>,
     style: Arc<Mutex<Option<(Arc<StyleTree>,Arc<LeafStyle>)>>>
 }
 
@@ -55,7 +34,7 @@ impl LeafRequest {
     pub fn new(name: &AllotmentName) -> LeafRequest {
         LeafRequest {
             name: name.clone(),
-            drawing_info: Arc::new(Mutex::new(DrawingInfo::new())),
+            drawing_info: Arc::new(Mutex::new(LeafShapeBounds::new())),
             style: Arc::new(Mutex::new(None))
         }
     }
@@ -69,7 +48,7 @@ impl LeafRequest {
     pub(crate) fn program_styles(&self) -> Arc<StyleTree> { lock!(self.style).as_ref().unwrap().0.clone() }
     pub fn name(&self) -> &AllotmentName { &self.name }
 
-    pub(crate) fn drawing_info<F,T>(&self, mut cb: F) -> T where F: FnMut(&mut DrawingInfo) -> T {
+    pub(crate) fn drawing_info<F,T>(&self, mut cb: F) -> T where F: FnMut(&mut LeafShapeBounds) -> T {
         cb(lock!(self.drawing_info).borrow_mut())
     }
 }

@@ -1,17 +1,16 @@
 use crate::allotment::util::rangeused::RangeUsed;
 
-
 #[cfg_attr(debug_assertions,derive(Debug))]
 #[derive(Clone)]
-pub struct DrawingInfo {
+pub struct LeafShapeBounds {
     base_range: RangeUsed<f64>,
     pixel_range: RangeUsed<f64>,
     max_y: f64,
 }
 
-impl DrawingInfo {
-    pub(crate) fn new() -> DrawingInfo {
-        DrawingInfo {
+impl LeafShapeBounds {
+    pub(crate) fn new() -> LeafShapeBounds {
+        LeafShapeBounds {
             base_range: RangeUsed::None,
             pixel_range: RangeUsed::None,
             max_y: 0.

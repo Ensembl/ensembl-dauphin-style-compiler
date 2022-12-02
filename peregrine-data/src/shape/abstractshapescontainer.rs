@@ -1,15 +1,15 @@
 use std::sync::{Arc};
-use crate::{ allotment::{core::{abstractcarriage::{AbstractCarriage}, leaflist::LeafList}}, ShapeRequestGroup, CarriageExtent, LoadMode};
-use super::{shape::UnplacedShape, originstats::OriginStats};
+use crate::{ allotment::{core::{floatingcarriage::{FloatingCarriage}, leafrequestsource::LeafRequestSource}}, ShapeRequestGroup, CarriageExtent, LoadMode, Shape, LeafRequest};
+use super::{originstats::OriginStats};
 
 pub struct FloatingShapesContainer {
-    shapes: Vec<UnplacedShape>,
-    carriage_universe: Arc<LeafList>,
+    shapes: Vec<Shape<LeafRequest>>,
+    carriage_universe: Arc<LeafRequestSource>,
     stats: OriginStats
 }
 
 impl FloatingShapesContainer {
-    pub(super) fn build(shapes: Vec<UnplacedShape>, universe: LeafList, mode: &LoadMode) -> FloatingShapesContainer {
+    pub(super) fn build(shapes: Vec<Shape<LeafRequest>>, universe: LeafRequestSource, mode: &LoadMode) -> FloatingShapesContainer {
         FloatingShapesContainer {
             shapes: shapes,
             carriage_universe: Arc::new(universe),
@@ -20,7 +20,7 @@ impl FloatingShapesContainer {
     pub(crate) fn empty(mode: &LoadMode) -> FloatingShapesContainer {
         FloatingShapesContainer {
             shapes: vec![],
-            carriage_universe: Arc::new(LeafList::new()),
+            carriage_universe: Arc::new(LeafRequestSource::new()),
             stats: OriginStats::new(mode)
         }
     }
@@ -36,7 +36,7 @@ impl FloatingShapesContainer {
         let leafs = input.iter().map(|x| x.carriage_universe.clone()).collect::<Vec<_>>();
         FloatingShapesContainer {
             shapes,
-            carriage_universe: Arc::new(LeafList::merge(leafs)),
+            carriage_universe: Arc::new(LeafRequestSource::merge(leafs)),
             stats
         }
     }
@@ -49,8 +49,8 @@ impl FloatingShapesContainer {
         }
     }
 
-    pub fn build_abstract_carriage(self, shape_request_group: Option<&ShapeRequestGroup>, extent: Option<&CarriageExtent>) -> AbstractCarriage {
-        AbstractCarriage::new(self.carriage_universe,self.shapes,shape_request_group,extent)
+    pub fn build_abstract_carriage(self, shape_request_group: Option<&ShapeRequestGroup>, extent: Option<&CarriageExtent>) -> FloatingCarriage {
+        FloatingCarriage::new(self.carriage_universe,self.shapes,shape_request_group,extent)
     }
 
     pub(crate) fn stats(&self) -> &OriginStats { &self.stats }

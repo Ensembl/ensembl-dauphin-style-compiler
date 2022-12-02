@@ -12,9 +12,10 @@ mod allotment {
         pub(crate) mod floating;
         pub(crate) mod anchored;
         pub(crate) mod auxleaf;
+        pub(crate) mod leafrequest;
     }
 
-    pub(crate) mod builder {
+    pub(crate) mod layout {
         pub(crate) mod stylebuilder;
     }
     
@@ -32,16 +33,12 @@ mod allotment {
     }
 
     pub(crate) mod core {
-        pub(crate) mod boxtraits;
         pub(crate) mod boxpositioncontext;
         pub(crate) mod allotmentname;
-        pub(crate) mod coordsystem;
-        pub(crate) mod abstractcarriage;
-        pub(crate) mod leaflist;
-        pub(crate) mod floatingleafsource;
+        pub(crate) mod floatingcarriage;
+        pub(crate) mod leafrequestsource;
         pub(crate) mod trainstate;
-        pub(crate) mod drawinginfo;
-        pub(crate) mod transformers;
+        pub(crate) mod leafshapebounds;
     }
 
     pub(crate) mod globals {
@@ -102,6 +99,7 @@ mod core {
     pub(crate) mod version;
     mod viewport;
     pub(crate) mod data;
+    pub(crate) mod coordsystem;
 
     pub use self::config::{ PgdPeregrineConfig, ConfigKey };
     pub use self::layout::Layout;
@@ -291,7 +289,7 @@ pub(crate) mod hotspots {
     pub(crate) mod zmenuitem;
 }
 
-pub use self::allotment::core::floatingleafsource::LeafRequest;
+pub use self::allotment::leafs::leafrequest::LeafRequest;
 pub use self::allotment::leafs::auxleaf::AuxLeaf;
 pub use self::allotment::globals::{ allotmentmetadata::GlobalAllotmentMetadata, playingfield::PlayingField };
 pub use self::api::{ PeregrineCore, PeregrineCoreBase, PeregrineIntegration, PeregrineApiQueue, TrainIdentity, CarriageSpeed, AgentStore, InstanceInformation };
@@ -316,7 +314,7 @@ pub use self::shape::{
     Pen, Plotter, ShapeDemerge, SettingMode,
     ProgramShapesBuilder, FloatingShapesContainer, AttachmentPoint
 };
-pub use self::allotment::core::coordsystem::{ CoordinateSystem };
+pub use self::core::coordsystem::{ CoordinateSystem };
 pub use self::switch::switches::{ Switches };
 pub use self::switch::track::Track;
 pub use self::train::{ DrawingCarriage, CarriageExtent };

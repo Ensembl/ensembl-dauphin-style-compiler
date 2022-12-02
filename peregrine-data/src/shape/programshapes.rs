@@ -1,14 +1,14 @@
 use std::{collections::{HashSet}};
 use peregrine_toolkit::{debug_log, eachorevery::EachOrEvery};
-use super::{core::{ Patina, Pen, Plotter }, imageshape::ImageShape, rectangleshape::RectangleShape, textshape::TextShape, wiggleshape::WiggleShape, emptyshape::EmptyShape, shape::UnplacedShape};
-use crate::{LeafRequest, FloatingShapesContainer, allotment::{core::leaflist::LeafList, style::styletree::StyleTree}, BackendNamespace, LoadMode, PolygonShape};
+use super::{core::{ Patina, Pen, Plotter }, imageshape::ImageShape, rectangleshape::RectangleShape, textshape::TextShape, wiggleshape::WiggleShape, emptyshape::EmptyShape};
+use crate::{LeafRequest, FloatingShapesContainer, allotment::{core::leafrequestsource::LeafRequestSource, style::styletree::StyleTree}, BackendNamespace, LoadMode, PolygonShape, Shape};
 use crate::{Assets, DataMessage, SpaceBaseArea, reactive::Observable, SpaceBase};
 
 pub struct ProgramShapesBuilder {
     assets: Assets,
-    shapes: Vec<UnplacedShape>,
+    shapes: Vec<Shape<LeafRequest>>,
     leafs: HashSet<LeafRequest>,
-    leaf_list: LeafList,
+    leaf_list: LeafRequestSource,
     style: StyleTree,
     mode: LoadMode
 }
@@ -18,7 +18,7 @@ impl ProgramShapesBuilder {
         ProgramShapesBuilder {
             shapes: vec![],
             leafs: HashSet::new(),
-            leaf_list: LeafList::new(),
+            leaf_list: LeafRequestSource::new(),
             style: StyleTree::new(),
             assets: assets.clone(),
             mode: mode.clone()
@@ -37,7 +37,7 @@ impl ProgramShapesBuilder {
 
     pub fn len(&self) -> usize { self.shapes.len() }
 
-    fn push_shape(&mut self, shape: UnplacedShape) {
+    fn push_shape(&mut self, shape: Shape<LeafRequest>) {
         shape.register_space(&self.assets);
         self.shapes.push(shape);
     }

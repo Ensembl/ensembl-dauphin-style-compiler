@@ -1,5 +1,7 @@
 use peregrine_toolkit::{puzzle::{StaticValue, commute_clonable }};
-use crate::{allotment::{core::{ boxtraits::{ContainerSpecifics, BuildSize, ContainerOrLeaf}, boxpositioncontext::BoxPositionContext}}};
+use crate::{allotment::{core::{ boxpositioncontext::BoxPositionContext}, layout::stylebuilder::{ContainerOrLeaf, BuildSize}}};
+
+use super::container::ContainerSpecifics;
 
 #[derive(Clone)]
 pub(crate) struct Overlay;

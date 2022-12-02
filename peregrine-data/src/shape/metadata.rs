@@ -1,8 +1,6 @@
 use std::{sync::Arc, collections::HashMap};
 use peregrine_toolkit::{puzzle::constant, eachorevery::{EachOrEvery, eoestruct::StructTemplate}, log};
-
 use crate::{allotment::{core::allotmentname::AllotmentName, globals::allotmentmetadata::LocalAllotmentMetadataBuilder}, Shape, Patina, LeafRequest};
-use super::shape::UnplacedShape;
 
 struct AllotmentMetadataEntry {
     allotment: AllotmentName,
@@ -50,7 +48,7 @@ impl AbstractMetadataBuilder {
         }
     }
 
-    pub(crate) fn add_shapes(&mut self, shapes: &[UnplacedShape]) {
+    pub(crate) fn add_shapes(&mut self, shapes: &[Shape<LeafRequest>]) {
         for shape in shapes {
             match shape {
                 Shape::SpaceBaseRect(shape) => {

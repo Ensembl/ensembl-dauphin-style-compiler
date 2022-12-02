@@ -1,6 +1,7 @@
 use std::{rc::Rc};
 use peregrine_toolkit::{puzzle::{derived, DelayedSetter, compose, StaticValue, promise_delayed, cache_constant_rc, short_memoized_rc, compose_slice_vec }};
-use crate::{allotment::{core::{allotmentname::{AllotmentName}, boxtraits::{ContainerOrLeaf, BuildSize, ContainerSpecifics }, boxpositioncontext::BoxPositionContext}, collision::{collisionalgorithm::{BumpRequestSet, BumpRequest, BumpResponses}}}};
+use crate::{allotment::{core::{allotmentname::{AllotmentName}, boxpositioncontext::BoxPositionContext}, collision::{collisionalgorithm::{BumpRequestSet, BumpRequest, BumpResponses}}, layout::stylebuilder::{ContainerOrLeaf, BuildSize}}};
+use super::container::ContainerSpecifics;
 
 #[derive(Clone)]
 pub struct Bumper {

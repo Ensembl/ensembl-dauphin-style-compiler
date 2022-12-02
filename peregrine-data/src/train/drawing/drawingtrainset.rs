@@ -1,4 +1,4 @@
-use crate::{allotment::core::{trainstate::TrainState3, abstractcarriage::AbstractCarriage}, DrawingCarriage, DataMessage, api::api::new_train_identity, Stick, train::{core::switcher::{Switcher, SwitcherManager, SwitcherExtent, SwitcherObject}, graphics::Graphics}};
+use crate::{allotment::core::{trainstate::TrainState3, floatingcarriage::FloatingCarriage}, DrawingCarriage, DataMessage, api::api::new_train_identity, Stick, train::{core::switcher::{Switcher, SwitcherManager, SwitcherExtent, SwitcherObject}, graphics::Graphics}};
 
 #[cfg(debug_trains)]
 use peregrine_toolkit::debug_log;
@@ -90,7 +90,7 @@ impl DrawingTrainSet {
         });
     }
 
-    pub(crate) fn set(&mut self, state: &TrainState3, carriages: &[AbstractCarriage]) {
+    pub(crate) fn set(&mut self, state: &TrainState3, carriages: &[FloatingCarriage]) {
         self.switcher.set_target(state);
         self.switcher.each_mut(&|dcp| {
             dcp.set(state,carriages);

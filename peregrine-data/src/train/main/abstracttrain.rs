@@ -1,6 +1,6 @@
 use std::{sync::{Arc, Mutex}, cmp::max};
 use peregrine_toolkit::{puzzle::AnswerAllocator };
-use crate::{shapeload::carriagebuilder::CarriageBuilder, allotment::core::{trainstate::{TrainStateSpec, TrainState3}, abstractcarriage::AbstractCarriage}, switch::trackconfiglist::TrainTrackConfigList, api::MessageSender, CarriageExtent, train::{model::trainextent::TrainExtent, graphics::Graphics, core::party::{PartyActions, Party, PartyState}}, PeregrineApiQueue};
+use crate::{shapeload::carriagebuilder::CarriageBuilder, allotment::core::{trainstate::{TrainStateSpec, TrainState3}, floatingcarriage::FloatingCarriage}, switch::trackconfiglist::TrainTrackConfigList, api::MessageSender, CarriageExtent, train::{model::trainextent::TrainExtent, graphics::Graphics, core::party::{PartyActions, Party, PartyState}}, PeregrineApiQueue};
 
 #[cfg(debug_trains)]
 use peregrine_toolkit::{ log, debug_log };
@@ -14,16 +14,16 @@ const FLANK : u64 = 1;
 const CARRIAGE_FLANK : u64 = FLANK;
 const MILESTONE_CARRIAGE_FLANK : u64 = FLANK;
 
-pub(crate) struct AbstractCarriageFactory {
+pub(crate) struct FloatingCarriageFactory {
     api_queue: PeregrineApiQueue,
     extent: TrainExtent,
     configs: TrainTrackConfigList,
     messages: MessageSender
 }
 
-impl AbstractCarriageFactory {
-    pub(crate) fn new(api_queue: &PeregrineApiQueue, extent: &TrainExtent, configs: &TrainTrackConfigList, messages: &MessageSender) -> AbstractCarriageFactory {
-        AbstractCarriageFactory {
+impl FloatingCarriageFactory {
+    pub(crate) fn new(api_queue: &PeregrineApiQueue, extent: &TrainExtent, configs: &TrainTrackConfigList, messages: &MessageSender) -> FloatingCarriageFactory {
+        FloatingCarriageFactory {
             api_queue: api_queue.clone(),
             extent: extent.clone(),
             configs: configs.clone(),
@@ -41,13 +41,13 @@ pub(crate) struct AbstractTrainActions {
     ready: bool,
     mute: bool,
     active: bool,
-    carriage_factory: AbstractCarriageFactory,
+    carriage_factory: FloatingCarriageFactory,
     train_state_spec: TrainStateSpec,
     graphics: Graphics
 }
 
 impl AbstractTrainActions {
-    pub(crate) fn new(data_api: &PeregrineApiQueue, carriage_factory: AbstractCarriageFactory, 
+    pub(crate) fn new(data_api: &PeregrineApiQueue, carriage_factory: FloatingCarriageFactory, 
             answer_allocator: &Arc<Mutex<AnswerAllocator>>,
             graphics: &Graphics) -> AbstractTrainActions {
         AbstractTrainActions {
@@ -85,7 +85,7 @@ impl AbstractTrainActions {
     pub(crate) fn state(&self) -> TrainState3 { self.train_state_spec.spec() }
 }
 
-impl PartyActions<u64,CarriageBuilder,AbstractCarriage> for AbstractTrainActions {
+impl PartyActions<u64,CarriageBuilder,FloatingCarriage> for AbstractTrainActions {
     fn ctor(&mut self, index: &u64) -> CarriageBuilder {
         let new_carriage = self.carriage_factory.new_unloaded_carriage(*index);
         #[cfg(debug_trains)] log!("CP ctor ({})",new_carriage.extent().compact());
@@ -99,13 +99,13 @@ impl PartyActions<u64,CarriageBuilder,AbstractCarriage> for AbstractTrainActions
         self.state_updated();
     }
 
-    fn dtor(&mut self, index: &u64, _carriage: AbstractCarriage) {
+    fn dtor(&mut self, index: &u64, _carriage: FloatingCarriage) {
         #[cfg(debug_trains)] log!("CP dtor ({:?})",_carriage.extent().map(|x| x.compact()));
         self.train_state_spec.remove(*index);
         self.state_updated();
     }
 
-    fn init(&mut self, index: &u64, carriage: &mut CarriageBuilder) -> Option<AbstractCarriage> {
+    fn init(&mut self, index: &u64, carriage: &mut CarriageBuilder) -> Option<FloatingCarriage> {
         carriage.get_carriage_output().map(|shapes| {
             #[cfg(debug_trains)] log!("CP init ({:?})",carriage.extent().compact());
             self.train_state_spec.add(*index,&shapes.spec().ok().unwrap()); // XXX errors
@@ -114,13 +114,13 @@ impl PartyActions<u64,CarriageBuilder,AbstractCarriage> for AbstractTrainActions
         })
     }
 
-    fn quiet(&mut self, _items: &mut dyn Iterator<Item=(&u64,&AbstractCarriage)>) {
+    fn quiet(&mut self, _items: &mut dyn Iterator<Item=(&u64,&FloatingCarriage)>) {
         self.ready = true;
     }
 }
 
 pub struct AbstractTrain {
-    party: Party<u64,CarriageBuilder,AbstractCarriage,AbstractTrainActions>,
+    party: Party<u64,CarriageBuilder,FloatingCarriage,AbstractTrainActions>,
     flank: u64,
     seen: PartyState
 }
@@ -128,7 +128,7 @@ pub struct AbstractTrain {
 impl AbstractTrain {
     pub(crate) fn new(data_api: &PeregrineApiQueue, train_extent: &TrainExtent, answer_allocator: &Arc<Mutex<AnswerAllocator>>, configs: &TrainTrackConfigList, graphics: &Graphics, messages: &MessageSender) -> AbstractTrain {
         let is_milestone = train_extent.scale().is_milestone();
-        let carriage_factory = AbstractCarriageFactory::new(data_api,train_extent,configs,messages);
+        let carriage_factory = FloatingCarriageFactory::new(data_api,train_extent,configs,messages);
         let carriage_actions = AbstractTrainActions::new(data_api,carriage_factory,answer_allocator,graphics);
         AbstractTrain {
             party: Party::new(carriage_actions),
@@ -137,7 +137,7 @@ impl AbstractTrain {
         }
     }
 
-    pub(crate) fn ping(&mut self) -> Option<(TrainState3,Vec<AbstractCarriage>)> {
+    pub(crate) fn ping(&mut self) -> Option<(TrainState3,Vec<FloatingCarriage>)> {
         self.party.ping();
         if self.party.is_ready() && self.party.state() != self.seen {
             /* process was updated so update drawing target */

@@ -10,7 +10,7 @@ use peregrine_toolkit::{debug_log};
  * requirements which a Carriage has of the train. 
  */
 
-pub struct CarriageTrainStateRequest {
+pub(crate) struct CarriageTrainStateRequest {
     height_tracker: LocalHeightTrackerBuilder,
     playing_field: LocalPlayingFieldBuilder,
     aligner: LocalAlignerBuilder,
@@ -29,20 +29,20 @@ impl CarriageTrainStateRequest {
         }
     }
 
-    pub fn playing_field(&self) -> &LocalPlayingFieldBuilder { &self.playing_field }
-    pub fn playing_field_mut(&mut self) -> &mut LocalPlayingFieldBuilder { &mut self.playing_field }
+    pub(crate) fn playing_field(&self) -> &LocalPlayingFieldBuilder { &self.playing_field }
+    pub(crate) fn playing_field_mut(&mut self) -> &mut LocalPlayingFieldBuilder { &mut self.playing_field }
 
-    pub fn height_tracker(&self) -> &LocalHeightTrackerBuilder { &self.height_tracker }
-    pub fn height_tracker_mut(&mut self) -> &mut LocalHeightTrackerBuilder { &mut self.height_tracker }
+    pub(crate) fn height_tracker(&self) -> &LocalHeightTrackerBuilder { &self.height_tracker }
+    pub(crate) fn height_tracker_mut(&mut self) -> &mut LocalHeightTrackerBuilder { &mut self.height_tracker }
 
-    pub fn aligner(&self) -> &LocalAlignerBuilder { &self.aligner }
-    pub fn aligner_mut(&mut self) -> &mut LocalAlignerBuilder { &mut self.aligner }
+    pub(crate) fn aligner(&self) -> &LocalAlignerBuilder { &self.aligner }
+    pub(crate) fn aligner_mut(&mut self) -> &mut LocalAlignerBuilder { &mut self.aligner }
 
-    pub fn metadata(&self) -> &LocalAllotmentMetadataBuilder { &self.metadata }
-    pub fn metadata_mut(&mut self) -> &mut LocalAllotmentMetadataBuilder { &mut self.metadata }
+    pub(crate) fn metadata(&self) -> &LocalAllotmentMetadataBuilder { &self.metadata }
+    pub(crate) fn metadata_mut(&mut self) -> &mut LocalAllotmentMetadataBuilder { &mut self.metadata }
 
-    pub fn bump(&self) -> &LocalBumpBuilder { &self.bumper }
-    pub fn bump_mut(&mut self) -> &mut LocalBumpBuilder { &mut self.bumper }
+    pub(crate) fn bump(&self) -> &LocalBumpBuilder { &self.bumper }
+    pub(crate) fn bump_mut(&mut self) -> &mut LocalBumpBuilder { &mut self.bumper }
 }
 
 identitynumber!(SERIALS);
@@ -58,7 +58,7 @@ pub struct CarriageTrainStateSpec {
 }
 
 impl CarriageTrainStateSpec {
-    pub fn new(request: &CarriageTrainStateRequest) -> CarriageTrainStateSpec {
+    pub(crate) fn new(request: &CarriageTrainStateRequest) -> CarriageTrainStateSpec {
         let height_tracker = LocalHeightTracker::new(request.height_tracker());
         let playing_field = LocalPlayingField::new(request.playing_field());
         let aligner = LocalAligner::new(request.aligner());

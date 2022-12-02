@@ -1,6 +1,6 @@
 use std::sync::Arc;
 use peregrine_toolkit::puzzle::{StaticValue, DelayedSetter, promise_delayed, constant, delayed, StaticAnswer};
-use crate::{allotment::{core::{allotmentname::AllotmentName, drawinginfo::DrawingInfo, boxtraits::{ContainerOrLeaf, BuildSize}, boxpositioncontext::BoxPositionContext}, style::{leafstyle::{LeafStyle, Indent}, styletree::StyleTree}, util::{rangeused::RangeUsed, bppxconverter::BpPxConverter}, globals::playingfield::PlayingFieldEdge}, LeafRequest, CoordinateSystem};
+use crate::{allotment::{core::{allotmentname::AllotmentName, leafshapebounds::LeafShapeBounds, boxpositioncontext::BoxPositionContext}, style::{leafstyle::{LeafStyle, Indent}, styletree::StyleTree}, util::{rangeused::RangeUsed, bppxconverter::BpPxConverter}, globals::playingfield::PlayingFieldEdge, layout::stylebuilder::{ContainerOrLeaf, BuildSize}}, LeafRequest, CoordinateSystem};
 use super::anchored::AnchoredLeaf;
 
 // TODO ranged bppxconverter
@@ -26,11 +26,11 @@ pub struct FloatingLeaf {
     max_y_piece_setter: DelayedSetter<'static,'static,f64>,
     top_setter: Option<DelayedSetter<'static,'static,f64>>,
     pub(super) top: StaticValue<f64>,
-    drawing_info: Arc<DrawingInfo>
+    drawing_info: Arc<LeafShapeBounds>
 }
 
 impl FloatingLeaf {
-    pub fn new(name: &AllotmentName, statics: &LeafStyle, drawing_info: &DrawingInfo) -> FloatingLeaf {
+    pub fn new(name: &AllotmentName, statics: &LeafStyle, drawing_info: &LeafShapeBounds) -> FloatingLeaf {
         let drawing_info = Arc::new(drawing_info.clone());
         let (max_y_piece_setter,max_y_piece) = promise_delayed();
         if statics.aux.coord_system.is_dustbin() {

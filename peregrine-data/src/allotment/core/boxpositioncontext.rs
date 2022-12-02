@@ -1,12 +1,11 @@
 use std::sync::Arc;
-use crate::{allotment::{util::bppxconverter::BpPxConverter, containers::root::Root, collision::collisionalgorithm::BumpRequestSetFactory}, ShapeRequestGroup, shape::metadata::AbstractMetadata};
-use super::{floatingleafsource::FloatingLeafSource, trainstate::CarriageTrainStateRequest};
+use crate::{allotment::{util::bppxconverter::BpPxConverter, collision::collisionalgorithm::BumpRequestSetFactory}, ShapeRequestGroup, shape::metadata::AbstractMetadata};
+use super::{trainstate::CarriageTrainStateRequest};
 
 pub(crate) struct BoxPositionContext {
-    pub bp_px_converter: Arc<BpPxConverter>,
- //   pub root: Root,
-    pub state_request: CarriageTrainStateRequest,
-    pub bumper_factory: BumpRequestSetFactory
+    pub(crate) bp_px_converter: Arc<BpPxConverter>,
+    pub(crate) state_request: CarriageTrainStateRequest,
+    pub(crate) bumper_factory: BumpRequestSetFactory
 }
 
 impl BoxPositionContext {
@@ -15,7 +14,6 @@ impl BoxPositionContext {
         let bumper_factory = BumpRequestSetFactory::new(index as usize);
         BoxPositionContext {
             bp_px_converter: Arc::new(BpPxConverter::new(extent)),
-//            root: Root::new(),
             state_request: CarriageTrainStateRequest::new(metadata),
             bumper_factory
         }

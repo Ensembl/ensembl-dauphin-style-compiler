@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
-use crate::{allotment::{core::{allotmentname::AllotmentName, boxtraits::{ContainerOrLeaf, ContainerSpecifics}}, leafs::floating::FloatingLeaf, style::{styletree::StyleTree, containerstyle::{ContainerAllotmentType, ContainerStyle}}}, LeafRequest};
-use super::{container::{Container, ChildKeys}, bumper::Bumper, stacker::Stacker, overlay::Overlay};
+use crate::{allotment::{core::{allotmentname::AllotmentName}, leafs::floating::FloatingLeaf, style::{styletree::StyleTree, containerstyle::{ContainerAllotmentType, ContainerStyle}}, layout::stylebuilder::ContainerOrLeaf}, LeafRequest};
+use super::{container::{Container, ChildKeys, ContainerSpecifics}, bumper::Bumper, stacker::Stacker, overlay::Overlay};
 
 fn new_container(name: &AllotmentName, style: &ContainerStyle) -> Box<dyn ContainerSpecifics + 'static> {
     match &style.allot_type {

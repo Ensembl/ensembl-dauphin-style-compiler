@@ -3,7 +3,7 @@ use std::sync::{ Arc, Mutex };
 use peregrine_toolkit::error::Error;
 use peregrine_toolkit::lock;
 use peregrine_toolkit_async::sync::retainer::{RetainTest, Retainer, retainer};
-use crate::allotment::core::abstractcarriage::AbstractCarriage;
+use crate::allotment::core::floatingcarriage::FloatingCarriage;
 use crate::allotment::core::trainstate::{TrainState3};
 use crate::shape::shape::DrawingShape;
 use crate::{ TrainIdentity };
@@ -39,11 +39,11 @@ pub struct DrawingCarriage {
 }
 
 impl DrawingCarriage {
-    pub(crate) fn new(train_identity: &TrainIdentity, abstract_carriage: &AbstractCarriage, train_state: &TrainState3) -> Result<DrawingCarriage,Error> {
-        let extent = abstract_carriage.extent().unwrap();
-        let carriage_spec = abstract_carriage.spec().ok().unwrap();
+    pub(crate) fn new(train_identity: &TrainIdentity, floating_carriage: &FloatingCarriage, train_state: &TrainState3) -> Result<DrawingCarriage,Error> {
+        let extent = floating_carriage.extent().unwrap();
+        let carriage_spec = floating_carriage.spec().ok().unwrap();
         train_state.add(extent.index(),&carriage_spec);
-        let shapes = abstract_carriage.make_drawing_shapes(&mut *lock!(train_state.answer()))?;
+        let shapes = floating_carriage.unfloat_shapes(&mut *lock!(train_state.answer()))?;
         Ok(DrawingCarriage {
             id: IDS.next(),
             extent: extent.clone(),

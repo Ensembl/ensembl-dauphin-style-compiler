@@ -38,9 +38,6 @@ pub enum Shape<A> {
     Empty(EmptyShape<A>)
 }
 
-/* A shape without reference to its surroundings re placement -> */
-pub(crate) type UnplacedShape = Shape<LeafRequest>;
-
 /* -> A shape with reference only to the surroundings of its own carriage -> */
 pub(crate) type FloatingShape = Shape<FloatingLeaf>;
 

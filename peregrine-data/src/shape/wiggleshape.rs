@@ -1,5 +1,5 @@
 use peregrine_toolkit::eachorevery::{EachOrEveryFilter, EachOrEvery};
-use crate::{DataMessage, Plotter, ShapeDemerge, Shape, allotment::{core::transformers::yy_transform, leafs::anchored::AnchoredLeaf}, LeafRequest, AuxLeaf};
+use crate::{DataMessage, Plotter, ShapeDemerge, Shape, allotment::{leafs::anchored::{AnchoredLeaf, yy_transform}}, LeafRequest, AuxLeaf};
 use std::{cmp::{max, min}, hash::Hash, sync::Arc};
 
 const SCALE : i64 = 200; // XXX configurable

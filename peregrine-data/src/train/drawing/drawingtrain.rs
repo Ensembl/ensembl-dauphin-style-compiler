@@ -1,4 +1,4 @@
-use crate::{allotment::core::{trainstate::TrainState3, abstractcarriage::AbstractCarriage}, DrawingCarriage, TrainIdentity, CarriageSpeed, Stick};
+use crate::{allotment::core::{trainstate::TrainState3, floatingcarriage::FloatingCarriage}, DrawingCarriage, TrainIdentity, CarriageSpeed, Stick};
 use super::super::{core::party::{PartyActions, Party}, graphics::Graphics};
 #[cfg(debug_trains)]
 use peregrine_toolkit::identitynumber;
@@ -69,8 +69,8 @@ impl DrawingTrainState {
     }
 }
 
-impl PartyActions<AbstractCarriage,DrawingCarriage,DrawingCarriage> for DrawingTrainState {
-    fn ctor(&mut self, creator: &AbstractCarriage) -> DrawingCarriage {
+impl PartyActions<FloatingCarriage,DrawingCarriage,DrawingCarriage> for DrawingTrainState {
+    fn ctor(&mut self, creator: &FloatingCarriage) -> DrawingCarriage {
         #[cfg(debug_trains)] log!("DC({:x}) ctor/1 {:?}",self.index,creator.extent().map(|x| x.compact()));
         let carriage = DrawingCarriage::new(&self.train_identity,creator,&self.state).ok().unwrap(); // XXX
         #[cfg(debug_trains)] log!("DC({:x}) ctor/2 {:?}",self.index,creator.extent().map(|x| x.compact()));
@@ -80,23 +80,23 @@ impl PartyActions<AbstractCarriage,DrawingCarriage,DrawingCarriage> for DrawingT
         carriage
     }
 
-    fn dtor_pending(&mut self, index: &AbstractCarriage, item: DrawingCarriage) {
+    fn dtor_pending(&mut self, index: &FloatingCarriage, item: DrawingCarriage) {
         self.dtor(index,item);
     }
 
-    fn dtor(&mut self, _index: &AbstractCarriage, mut dc: DrawingCarriage) {
+    fn dtor(&mut self, _index: &FloatingCarriage, mut dc: DrawingCarriage) {
         dc.destroy();
         #[cfg(debug_trains)] log!("DC({:x}) dtor {}",self.index,dc.extent().compact());
         self.graphics.drop_carriage(&dc);
     }
 
-    fn init(&mut self, _index: &AbstractCarriage, carriage: &mut DrawingCarriage) -> Option<DrawingCarriage> {
+    fn init(&mut self, _index: &FloatingCarriage, carriage: &mut DrawingCarriage) -> Option<DrawingCarriage> {
         if !carriage.is_ready() { return None; }
         #[cfg(debug_trains)] log!("DC({:x}) init {}",self.index,carriage.extent().compact());
         Some(carriage.clone())
     }
 
-    fn ready_changed(&mut self, items: &mut dyn Iterator<Item=(&AbstractCarriage,&DrawingCarriage)>) {
+    fn ready_changed(&mut self, items: &mut dyn Iterator<Item=(&FloatingCarriage,&DrawingCarriage)>) {
         self.ready_serial += 1;
         if !self.mute {
             self.current = items.map(|(_,y)| y.clone()).collect();
@@ -107,14 +107,14 @@ impl PartyActions<AbstractCarriage,DrawingCarriage,DrawingCarriage> for DrawingT
         self.try_send();
     }
 
-    fn quiet(&mut self, _items: &mut dyn Iterator<Item=(&AbstractCarriage,&DrawingCarriage)>) { 
+    fn quiet(&mut self, _items: &mut dyn Iterator<Item=(&FloatingCarriage,&DrawingCarriage)>) { 
         self.ready = true;
         self.try_send();
     }
 }
 
 pub(crate) struct DrawingTrain {
-    slider: Party<AbstractCarriage,DrawingCarriage,DrawingCarriage,DrawingTrainState>
+    slider: Party<FloatingCarriage,DrawingCarriage,DrawingCarriage,DrawingTrainState>
 }
 
 impl DrawingTrain {
@@ -128,7 +128,7 @@ impl DrawingTrain {
     pub(crate) fn is_ready(&self) -> bool { self.slider.inner().is_ready() }
     pub(crate) fn central(&self) -> Option<&DrawingCarriage> { self.slider.inner().central() }
 
-    pub(crate) fn set(&mut self, state: &TrainState3, dcc: &[AbstractCarriage]) {
+    pub(crate) fn set(&mut self, state: &TrainState3, dcc: &[FloatingCarriage]) {
         if state == self.state() {
             self.slider.set(&mut dcc.iter().cloned());
         }

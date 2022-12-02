@@ -1,5 +1,5 @@
 use peregrine_toolkit::{eachorevery::{EachOrEveryFilter, EachOrEvery}};
-use crate::{DataMessage, Pen, ShapeDemerge, Shape, SpaceBase, allotment::{util::rangeused::RangeUsed, core::allotmentname::AllotmentName, leafs::anchored::AnchoredLeaf}, LeafRequest, SpaceBaseArea, PartialSpaceBase, CoordinateSystem, AuxLeaf };
+use crate::{DataMessage, Pen, ShapeDemerge, Shape, SpaceBase, allotment::{util::rangeused::RangeUsed, leafs::anchored::AnchoredLeaf}, LeafRequest, SpaceBaseArea, PartialSpaceBase, CoordinateSystem, AuxLeaf };
 use std::{hash::Hash};
 
 #[cfg_attr(debug_assertions,derive(Debug))]
@@ -97,8 +97,7 @@ impl<A> Clone for TextShape<A> where A: Clone {
 impl TextShape<LeafRequest> {
     fn make_base_filter(&self, min: f64,max: f64) -> EachOrEveryFilter {
         if let Some(run) = &self.run {
-            let anon = LeafRequest::new(&AllotmentName::new(""));
-            let run = run.map_allotments(|_| anon.clone());
+            let run = run.replace_allotments(self.position().allotments().clone());
             let area = SpaceBaseArea::new(PartialSpaceBase::from_spacebase(self.position.clone()),PartialSpaceBase::from_spacebase(run)).unwrap();
             area.make_base_filter(min,max)
         } else {
