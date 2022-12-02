@@ -84,7 +84,7 @@ impl ProgramShapesBuilder {
             debug_log!("many leafs! {}",self.leafs.len());
         }
         for leaf in self.leafs {
-            leaf.set_program_styles(&style);
+            leaf.set_style(&style);
         }
         FloatingShapesContainer::build(self.shapes,self.leaf_list,&self.mode)
     }

@@ -29,7 +29,7 @@ mod allotment {
         pub(crate) mod coordsystem;
         pub(crate) mod abstractcarriage;
         pub(crate) mod leaflist;
-        pub(crate) mod leafrequest;
+        pub(crate) mod floatingleafsource;
         pub(crate) mod trainstate;
         pub(crate) mod drawinginfo;
         pub(crate) mod transformers;
@@ -291,7 +291,7 @@ pub(crate) mod hotspots {
     pub(crate) mod zmenuitem;
 }
 
-pub use self::allotment::core::leafrequest::LeafRequest;
+pub use self::allotment::core::floatingleafsource::LeafRequest;
 pub use self::allotment::style::style::LeafStyle;
 pub use self::allotment::globals::{ allotmentmetadata::GlobalAllotmentMetadata, playingfield::PlayingField };
 pub use self::api::{ PeregrineCore, PeregrineCoreBase, PeregrineIntegration, PeregrineApiQueue, TrainIdentity, CarriageSpeed, AgentStore, InstanceInformation };

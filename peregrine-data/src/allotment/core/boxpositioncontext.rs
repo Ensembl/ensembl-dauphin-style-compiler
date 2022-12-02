@@ -1,6 +1,6 @@
 use std::sync::Arc;
 use crate::{allotment::{util::bppxconverter::BpPxConverter, boxes::root::Root, collision::collisionalgorithm::BumpRequestSetFactory}, ShapeRequestGroup, shape::metadata::AbstractMetadata};
-use super::{leafrequest::LeafTransformableMap, trainstate::CarriageTrainStateRequest};
+use super::{floatingleafsource::FloatingLeafSource, trainstate::CarriageTrainStateRequest};
 
 pub(crate) struct BoxPositionContext {
     pub bp_px_converter: Arc<BpPxConverter>,

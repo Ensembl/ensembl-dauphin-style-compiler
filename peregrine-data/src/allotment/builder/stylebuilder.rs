@@ -1,6 +1,6 @@
 use std::{collections::HashMap};
 use peregrine_toolkit::error::Error;
-use crate::{allotment::{core::{trainstate::CarriageTrainStateSpec, allotmentname::{AllotmentNamePart, AllotmentName}, boxpositioncontext::BoxPositionContext, drawinginfo::DrawingInfo, leafrequest::LeafTransformableMap, boxtraits::ContainerOrLeaf}, boxes::{leaf::{FloatingLeaf}, root::Root}}, LeafRequest, LeafStyle};
+use crate::{allotment::{core::{trainstate::CarriageTrainStateSpec, allotmentname::{AllotmentNamePart, AllotmentName}, boxpositioncontext::BoxPositionContext, drawinginfo::DrawingInfo, floatingleafsource::FloatingLeafSource, boxtraits::ContainerOrLeaf}, boxes::{leaf::{FloatingLeaf}, root::Root}}, LeafRequest, LeafStyle};
 
 struct StyleBuilder<'a> {
     root: &'a mut dyn ContainerOrLeaf,
@@ -34,14 +34,14 @@ impl<'a> StyleBuilder<'a> {
     }
 }
 
-pub(crate) fn make_transformable(prep: &mut BoxPositionContext, pendings: &mut dyn Iterator<Item=&LeafRequest>) -> Result<(CarriageTrainStateSpec,LeafTransformableMap),Error> {
+pub(crate) fn make_transformable(prep: &mut BoxPositionContext, pendings: &mut dyn Iterator<Item=&LeafRequest>) -> Result<(CarriageTrainStateSpec,FloatingLeafSource),Error> {
     let mut root = Root::new();
     /* Build box tree */
-    let mut plm = LeafTransformableMap::new();
+    let mut plm = FloatingLeafSource::new();
     let mut styler = StyleBuilder::new(&mut root);
     for pending in pendings {
         let xformable = styler.try_new_leaf(&pending)?;
-        plm.set_transformable(&pending.name(),&xformable);
+        plm.set_floating_leaf(&pending.name(),&xformable);
     }
     drop(styler);
     /* Wire box tree */
@@ -70,7 +70,7 @@ mod test {
         let mut out = vec![];
         for (name,height) in names.iter().zip(heights) {
             let leaf = LeafRequest::new(&AllotmentName::new(name));
-            leaf.set_program_styles(style);
+            leaf.set_style(style);
             leaf.drawing_info(|info| {
                 info.merge_max_y(*height);
                 if let Some(ref mut pixel_range) = pixel_range_iter {
@@ -104,7 +104,7 @@ mod test {
         let (spec,plm) = make_transformable(&mut prep,&mut pending.iter()).ok().expect("A");
         let mut aia = AnswerAllocator::new();
         let answer_index = aia.get();
-        let transformers = pending.iter().map(|x| plm.transformable(x.name()).anchor_leaf(&answer_index).unwrap()).collect::<Vec<_>>();
+        let transformers = pending.iter().map(|x| plm.floating_leaf(x.name()).anchor_leaf(&answer_index).unwrap()).collect::<Vec<_>>();
         let descs = transformers.iter().map(|x| x.describe()).collect::<Vec<_>>();
         println!("{:?}",descs);
         assert_eq!(6,descs.len());
@@ -134,7 +134,7 @@ mod test {
         let (spec,plm) = make_transformable(&mut prep,&mut pending.iter()).ok().expect("A");
         let mut aia = AnswerAllocator::new();
         let answer_index = aia.get();
-        let transformers = pending.iter().map(|x| plm.transformable(x.name()).anchor_leaf(&answer_index).unwrap()).collect::<Vec<_>>();
+        let transformers = pending.iter().map(|x| plm.floating_leaf(x.name()).anchor_leaf(&answer_index).unwrap()).collect::<Vec<_>>();
         let descs = transformers.iter().map(|x| x.describe()).collect::<Vec<_>>();
         assert_eq!(6,descs.len());
         assert!(descs[0].contains("coord_system: CoordinateSystem(Window, false)"));
@@ -187,7 +187,7 @@ mod test {
         let mut builder = GlobalBumpBuilder::new();
         ctss.bump().add(&mut builder);
         GlobalBump::new(builder,&mut answer_index,&tp);
-        let transformers = pending.iter().map(|x| plm.transformable(x.name()).anchor_leaf(&answer_index).unwrap()).collect::<Vec<_>>();
+        let transformers = pending.iter().map(|x| plm.floating_leaf(x.name()).anchor_leaf(&answer_index).unwrap()).collect::<Vec<_>>();
         let descs = transformers.iter().map(|x| x.describe()).collect::<Vec<_>>();
         assert_eq!(6,descs.len());
         println!("{:?}",descs);

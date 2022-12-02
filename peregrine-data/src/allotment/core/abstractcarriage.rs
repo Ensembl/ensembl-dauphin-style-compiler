@@ -18,7 +18,7 @@ impl AbstractCarriageBuilder {
         let (spec,plm) = self.builder.position_boxes(self.shape_request_group.as_ref(),&metadata)?;
         /* update leafs to reflect container position */
         let shapes = self.shapes.iter().map(|x| 
-                x.map_new_allotment(|r| plm.transformable(r.name()).clone())
+                x.map_new_allotment(|r| plm.floating_leaf(r.name()).clone())
             ).collect::<Vec<_>>();
         Ok(AbstractCarriageState { shapes, spec })
     }

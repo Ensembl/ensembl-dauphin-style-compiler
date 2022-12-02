@@ -3,22 +3,22 @@ use peregrine_toolkit::lock;
 use crate::{allotment::{stylespec::stylegroup::AllStylesForProgram, boxes::leaf::FloatingLeaf}, LeafStyle};
 use super::{allotmentname::{allotmentname_hashmap, AllotmentName, AllotmentNameHashMap}, drawinginfo::DrawingInfo};
 
-pub struct LeafTransformableMap {
+pub struct FloatingLeafSource {
     transformables: AllotmentNameHashMap<FloatingLeaf>
 }
 
-impl LeafTransformableMap {
-    pub fn new() -> LeafTransformableMap {
-        LeafTransformableMap {
+impl FloatingLeafSource {
+    pub fn new() -> FloatingLeafSource {
+        FloatingLeafSource {
             transformables: allotmentname_hashmap()
         }
     }
 
-    pub(crate) fn set_transformable(&mut self, name: &AllotmentName, transformable: &FloatingLeaf) {
+    pub(crate) fn set_floating_leaf(&mut self, name: &AllotmentName, transformable: &FloatingLeaf) {
         self.transformables.insert(name.clone(),transformable.clone());
     }
 
-    pub(crate) fn transformable(&self, name: &AllotmentName) -> &FloatingLeaf {
+    pub(crate) fn floating_leaf(&self, name: &AllotmentName) -> &FloatingLeaf {
         self.transformables.get(name).unwrap()
     }
 }
@@ -60,8 +60,8 @@ impl LeafRequest {
         }
     }
 
-    pub(crate) fn set_program_styles(&self, style: &AllStylesForProgram) {
-        let leaf = style.get_common_leaf(&self);
+    pub(crate) fn set_style(&self, style: &AllStylesForProgram) {
+        let leaf = style.get_leaf(&self);
         *lock!(self.style) = Some((Arc::new(style.clone()),Arc::new(leaf)));
     }
 
