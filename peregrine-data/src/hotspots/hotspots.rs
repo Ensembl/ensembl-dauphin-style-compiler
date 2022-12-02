@@ -1,6 +1,6 @@
 use std::{sync::Arc };
 use peregrine_toolkit::{ identitynumber, orderable, hashable };
-use crate::{ZMenuFixed, SettingMode, SpaceBaseArea, HotspotPatina, SpaceBasePointRef, SpaceBasePoint, allotment::boxes::leaf::AuxLeaf};
+use crate::{ZMenuFixed, SettingMode, SpaceBaseArea, HotspotPatina, SpaceBasePointRef, SpaceBasePoint, allotment::leafs::auxleaf::AuxLeaf};
 
 #[derive(Clone)]
 pub struct SpecialClick {

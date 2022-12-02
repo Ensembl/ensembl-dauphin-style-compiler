@@ -47,7 +47,7 @@ use std::collections::{ HashSet, HashMap };
 use std::iter::Peekable;
 use std::str::Chars;
 use std::sync::Arc;
-use crate::allotment::boxes::leaf::AuxLeaf;
+use crate::allotment::leafs::auxleaf::AuxLeaf;
 use crate::{HotspotResult, SpaceBasePoint};
 use super::zmenuitem::ZMenuBuild;
 

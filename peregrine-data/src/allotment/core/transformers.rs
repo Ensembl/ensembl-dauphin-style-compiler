@@ -1,4 +1,4 @@
-use crate::{SpaceBase, allotment::{style::leafstyle::{LeafStyle}, boxes::leaf::{AnchoredLeaf, AuxLeaf}}, CoordinateSystem, SpaceBaseArea, PartialSpaceBase};
+use crate::{SpaceBase, allotment::{style::leafstyle::{LeafStyle}, leafs::anchored::AnchoredLeaf}, CoordinateSystem, SpaceBaseArea, PartialSpaceBase, AuxLeaf};
 
 pub(crate) trait SimpleTransformer {
     fn top(&self) -> f64;

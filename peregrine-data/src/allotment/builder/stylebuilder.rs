@@ -1,6 +1,6 @@
 use std::{collections::HashMap};
 use peregrine_toolkit::error::Error;
-use crate::{allotment::{core::{trainstate::CarriageTrainStateSpec, allotmentname::{AllotmentName}, boxpositioncontext::BoxPositionContext, drawinginfo::DrawingInfo, floatingleafsource::FloatingLeafSource, boxtraits::ContainerOrLeaf}, boxes::{leaf::{FloatingLeaf}, root::Root}, style::leafstyle::LeafStyle}, LeafRequest };
+use crate::{allotment::{core::{trainstate::CarriageTrainStateSpec, allotmentname::{AllotmentName}, boxpositioncontext::BoxPositionContext, drawinginfo::DrawingInfo, floatingleafsource::FloatingLeafSource, boxtraits::ContainerOrLeaf}, containers::{root::Root}, style::leafstyle::LeafStyle, leafs::floating::FloatingLeaf}, LeafRequest };
 
 struct StyleBuilder<'a> {
     root: &'a mut dyn ContainerOrLeaf,
@@ -53,7 +53,7 @@ pub(crate) fn make_transformable(prep: &mut BoxPositionContext, pendings: &mut d
 mod test {
     use std::{sync::{Arc, Mutex}, collections::{HashMap}};
     use peregrine_toolkit::{puzzle::{AnswerAllocator}};
-    use crate::allotment::styletree::styletree::StyleTree;
+    use crate::allotment::style::styletree::StyleTree;
     use crate::{allotment::{core::{allotmentname::AllotmentName, boxpositioncontext::BoxPositionContext, trainstate::CarriageTrainStateSpec, boxtraits::ContainerOrLeaf}, util::{bppxconverter::BpPxConverter, rangeused::RangeUsed}, globals::{allotmentmetadata::{LocalAllotmentMetadata, GlobalAllotmentMetadataBuilder, GlobalAllotmentMetadata}, bumping::{GlobalBumpBuilder, GlobalBump}, trainpersistent::TrainPersistent}, builder::stylebuilder::make_transformable}, LeafRequest, shape::metadata::{AbstractMetadataBuilder}};
     use serde_json::{Value as JsonValue };
 

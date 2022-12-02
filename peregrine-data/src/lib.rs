@@ -1,11 +1,17 @@
 mod allotment {
-    pub(crate) mod boxes {
-        pub(crate) mod leaf;
+    pub(crate) mod containers {
         pub(crate) mod overlay;
         pub(crate) mod stacker;
         pub(crate) mod bumper;
         pub(crate) mod container;
+        pub(crate) mod haskids;
         pub(crate) mod root;
+    }
+
+    pub(crate) mod leafs {
+        pub(crate) mod floating;
+        pub(crate) mod anchored;
+        pub(crate) mod auxleaf;
     }
 
     pub(crate) mod builder {
@@ -21,6 +27,8 @@ mod allotment {
     pub(crate) mod style {
         pub(crate) mod containerstyle;
         pub(crate) mod leafstyle;
+        pub(super) mod pathtree;
+        pub(crate) mod styletree;
     }
 
     pub(crate) mod core {
@@ -44,11 +52,6 @@ mod allotment {
         pub(crate) mod bumping;
         pub(crate) mod trainpersistent;
         pub mod playingfield;
-    }
-
-    pub(crate) mod styletree {
-        pub(super) mod pathtree;
-        pub(crate) mod styletree;
     }
 
     pub(crate) mod util {
@@ -289,7 +292,7 @@ pub(crate) mod hotspots {
 }
 
 pub use self::allotment::core::floatingleafsource::LeafRequest;
-pub use self::allotment::boxes::leaf::AuxLeaf;
+pub use self::allotment::leafs::auxleaf::AuxLeaf;
 pub use self::allotment::globals::{ allotmentmetadata::GlobalAllotmentMetadata, playingfield::PlayingField };
 pub use self::api::{ PeregrineCore, PeregrineCoreBase, PeregrineIntegration, PeregrineApiQueue, TrainIdentity, CarriageSpeed, AgentStore, InstanceInformation };
 pub use self::core::{ Asset, Assets, PgdPeregrineConfig, ConfigKey, Stick, StickId, StickTopology, Scale, Viewport, ProgramModel, ProgramSetting };

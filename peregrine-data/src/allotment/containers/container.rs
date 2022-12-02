@@ -1,7 +1,7 @@
-use std::{sync::{Arc}, collections::HashMap};
+use std::{sync::{Arc}};
 use peregrine_toolkit::{puzzle::{DelayedSetter, derived, cache_constant, constant, StaticValue, promise_delayed, short_memoized_clonable, cache_constant_clonable, StaticAnswer }, eachorevery::eoestruct::StructTemplate};
-use crate::{allotment::{core::{allotmentname::{AllotmentName}, boxtraits::{ContainerSpecifics, BuildSize, ContainerOrLeaf}, boxpositioncontext::BoxPositionContext}, style::{containerstyle::{ContainerStyle, ContainerAllotmentType}}, util::rangeused::RangeUsed, globals::allotmentmetadata::LocalAllotmentMetadataBuilder, styletree::{styletree::StyleTree}}, shape::metadata::MetadataStyle, CoordinateSystem, LeafRequest};
-use super::{leaf::{AnchoredLeaf, FloatingLeaf}, stacker::{Stacker}, overlay::{Overlay}, bumper::{Bumper}};
+use crate::{allotment::{core::{allotmentname::{AllotmentName}, boxtraits::{ContainerSpecifics, BuildSize, ContainerOrLeaf}, boxpositioncontext::BoxPositionContext}, style::{containerstyle::{ContainerStyle, ContainerAllotmentType}}, util::rangeused::RangeUsed, globals::allotmentmetadata::LocalAllotmentMetadataBuilder, style::{styletree::StyleTree}, leafs::{floating::FloatingLeaf, anchored::AnchoredLeaf}}, shape::metadata::MetadataStyle, CoordinateSystem, LeafRequest};
+use super::{haskids::HasKids};
 
 fn internal_height(child_height: &StaticValue<f64>, min_height: f64, padding_top: f64, padding_bottom: f64) -> StaticValue<f64> {
     cache_constant(derived(child_height.clone(),move |child_height| {
@@ -14,62 +14,6 @@ fn internal_height(child_height: &StaticValue<f64>, min_height: f64, padding_top
 pub(super) enum ChildKeys {
     Container(String),
     Leaf(String)
-}
-
-fn new_container(name: &AllotmentName, style: &ContainerStyle) -> Box<dyn ContainerSpecifics + 'static> {
-    match &style.allot_type {
-        ContainerAllotmentType::Stack => Box::new(Stacker::new()),
-        ContainerAllotmentType::Overlay => Box::new(Overlay::new()),
-        ContainerAllotmentType::Bumper => Box::new(Bumper::new(name))
-    }
-}
-
-fn new_leaf(pending: &LeafRequest, name: &AllotmentName) -> FloatingLeaf {
-    let drawing_info = pending.drawing_info(|di| di.clone());
-    let child = FloatingLeaf::new(name,&pending.leaf_style(),&drawing_info);
-    child
-}
-pub(super) struct HasKids {
-    pub(super) children: HashMap<ChildKeys,Box<dyn ContainerOrLeaf>>,
-    child_leafs: HashMap<String,FloatingLeaf>,
-}
-
-impl HasKids {
-    pub(super) fn new() -> HasKids {
-        HasKids {
-            children: HashMap::new(),
-            child_leafs: HashMap::new(),   
-        }
-    }
-
-    pub(super) fn get_leaf(&mut self, pending: &LeafRequest, cursor: usize, styles: &Arc<StyleTree>) -> FloatingLeaf {
-        let name = pending.name().sequence();
-        let step = &name[cursor];
-        if cursor == name.len() - 1 {
-            /* leaf */
-            if !self.child_leafs.contains_key(step) {
-                /* create leaf */
-                let name = name[0..(cursor+1)].iter().map(|x| x.to_string()).collect::<Vec<_>>();
-                let name = AllotmentName::do_new(name);
-                let leaf = new_leaf(pending,&name);
-                self.child_leafs.insert(step.to_string(),leaf.clone());
-                self.children.insert(ChildKeys::Leaf(step.to_string()),Box::new(leaf.clone()));
-            }
-            self.child_leafs.get(step).unwrap().clone()
-        } else {
-            /* container */
-            let key = ChildKeys::Container(step.to_string());
-            if !self.children.contains_key(&key) {
-                /* create container */
-                let name = name[0..(cursor+1)].iter().map(|x| x.to_string()).collect::<Vec<_>>();
-                let name = AllotmentName::do_new(name);
-                let style = styles.lookup_container(&name);
-                let container = Container::new(&name,&style,new_container(&name,&style));
-                self.children.insert(key.clone(),Box::new(container));
-            }
-            self.children.get_mut(&key).unwrap().get_leaf(pending,cursor+1,styles).clone()
-        }
-    }
 }
 
 pub struct Container {

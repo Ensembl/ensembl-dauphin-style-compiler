@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use crate::{CoordinateSystem, allotment::boxes::leaf::AuxLeaf};
+use crate::{CoordinateSystem, allotment::leafs::auxleaf::AuxLeaf};
 
 fn remove_bracketed(input: &str, prefix: &str, suffix: &str) -> Option<String> {
     if input.starts_with(prefix) && input.ends_with(suffix) {

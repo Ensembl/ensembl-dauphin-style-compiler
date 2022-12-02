@@ -1,7 +1,7 @@
 use std::{sync::{Arc}};
 use peregrine_toolkit::{puzzle::{constant, StaticValue, StaticAnswer}};
-use crate::{ allotment::{core::{trainstate::CarriageTrainStateSpec, boxtraits::{ContainerOrLeaf, BuildSize }, boxpositioncontext::BoxPositionContext, allotmentname::AllotmentName}, util::rangeused::RangeUsed, styletree::styletree::StyleTree}, CoordinateSystem, LeafRequest};
-use super::{leaf::{AnchoredLeaf, FloatingLeaf}, container::HasKids};
+use crate::{ allotment::{core::{trainstate::CarriageTrainStateSpec, boxtraits::{ContainerOrLeaf, BuildSize }, boxpositioncontext::BoxPositionContext, allotmentname::AllotmentName}, util::rangeused::RangeUsed, style::styletree::StyleTree, leafs::{floating::FloatingLeaf, anchored::AnchoredLeaf}}, CoordinateSystem, LeafRequest};
+use super::haskids::HasKids;
 
 pub struct Root {
     root_name: AllotmentName,

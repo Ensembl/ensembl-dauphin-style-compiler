@@ -1,5 +1,5 @@
 use std::{collections::HashMap, sync::{Arc, Mutex}};
-use peregrine_toolkit::{lock, log};
+use peregrine_toolkit::{lock};
 use crate::{allotment::{style::{containerstyle::ContainerStyle, leafstyle::{InheritableLeafStyle, UninheritableLeafStyle, LeafStyle}}, core::allotmentname::{AllotmentName, AllotmentNameHashMap, allotmentname_hashmap}}};
 use super::{pathtree::{PathTree, PathKey}};
 
@@ -80,7 +80,6 @@ impl StyleTree {
     }
 
     pub(crate) fn add(&mut self, spec: &str, values: Vec<(String,String)>) {
-        log!("add {:?} {:?}",spec,values);
         lock!(self.0).internal.add(spec,values);
     }
 

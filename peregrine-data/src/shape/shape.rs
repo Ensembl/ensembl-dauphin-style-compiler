@@ -6,15 +6,15 @@ use super::rectangleshape::RectangleShape;
 use super::textshape::TextShape;
 use super::wiggleshape::WiggleShape;
 use crate::Assets;
+use crate::AuxLeaf;
 use crate::Colour;
 use crate::CoordinateSystem;
 use crate::DataMessage;
 use crate::DrawnType;
 use crate::LeafRequest;
 use crate::SpaceBaseArea;
-use crate::allotment::boxes::leaf::AnchoredLeaf;
-use crate::allotment::boxes::leaf::AuxLeaf;
-use crate::allotment::boxes::leaf::FloatingLeaf;
+use crate::allotment::leafs::anchored::AnchoredLeaf;
+use crate::allotment::leafs::floating::FloatingLeaf;
 use crate::allotment::style::leafstyle::LeafStyle;
 use crate::allotment::util::rangeused::RangeUsed;
 

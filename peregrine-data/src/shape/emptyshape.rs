@@ -1,6 +1,6 @@
 use std::hash::Hash;
 use peregrine_toolkit::eachorevery::EachOrEveryFilter;
-use crate::{SpaceBaseArea, DataMessage, LeafRequest, Shape, allotment::{boxes::leaf::{AnchoredLeaf, AuxLeaf}}, ShapeDemerge, CoordinateSystem};
+use crate::{SpaceBaseArea, DataMessage, LeafRequest, Shape, allotment::{leafs::anchored::AnchoredLeaf}, ShapeDemerge, CoordinateSystem, AuxLeaf};
 
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub struct EmptyShape<A>(SpaceBaseArea<f64,A>);
