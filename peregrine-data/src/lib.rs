@@ -48,7 +48,6 @@ mod allotment {
     pub(crate) mod stylespec {
         pub(super) mod pathtree;
         pub(crate) mod specifiedstyle;
-        pub(crate) mod stylegroup;
         pub(crate) mod styletree;
     }
 

@@ -54,10 +54,10 @@ mod test {
     use std::{sync::{Arc, Mutex}, collections::{HashMap}};
     use peregrine_toolkit::{puzzle::{AnswerAllocator}};
     use crate::allotment::stylespec::styletree::StyleTree;
-    use crate::{allotment::{core::{allotmentname::AllotmentName, boxpositioncontext::BoxPositionContext, trainstate::CarriageTrainStateSpec, boxtraits::ContainerOrLeaf}, stylespec::{stylegroup::AllStylesForProgram }, util::{bppxconverter::BpPxConverter, rangeused::RangeUsed}, globals::{allotmentmetadata::{LocalAllotmentMetadata, GlobalAllotmentMetadataBuilder, GlobalAllotmentMetadata}, bumping::{GlobalBumpBuilder, GlobalBump}, trainpersistent::TrainPersistent}, builder::stylebuilder::make_transformable}, LeafRequest, shape::metadata::{AbstractMetadataBuilder}};
+    use crate::{allotment::{core::{allotmentname::AllotmentName, boxpositioncontext::BoxPositionContext, trainstate::CarriageTrainStateSpec, boxtraits::ContainerOrLeaf}, util::{bppxconverter::BpPxConverter, rangeused::RangeUsed}, globals::{allotmentmetadata::{LocalAllotmentMetadata, GlobalAllotmentMetadataBuilder, GlobalAllotmentMetadata}, bumping::{GlobalBumpBuilder, GlobalBump}, trainpersistent::TrainPersistent}, builder::stylebuilder::make_transformable}, LeafRequest, shape::metadata::{AbstractMetadataBuilder}};
     use serde_json::{Value as JsonValue };
 
-    fn make_pendings(names: &[&str], heights: &[f64], pixel_range: &[RangeUsed<f64>], style: &AllStylesForProgram) -> Vec<LeafRequest> {
+    fn make_pendings(names: &[&str], heights: &[f64], pixel_range: &[RangeUsed<f64>], style: &StyleTree) -> Vec<LeafRequest> {
         let heights = if heights.len() > 0 {
             heights.iter().cycle()
         } else {
@@ -99,8 +99,7 @@ mod test {
         let mut tree = StyleTree::new();
         add_style(&mut tree, "z/a/", &[("padding-top","10"),("padding-bottom","5")]);
         add_style(&mut tree, "z/a/1", &[("depth","10"),("coordinate-system","window")]);
-        let style_group = AllStylesForProgram::new(tree);
-        let pending = make_pendings(&["z/a/1","z/a/2","z/a/3","z/b/1","z/b/2","z/b/3"],&[1.,2.,3.],&[],&style_group);
+        let pending = make_pendings(&["z/a/1","z/a/2","z/a/3","z/b/1","z/b/2","z/b/3"],&[1.,2.,3.],&[],&tree);
         let mut prep = BoxPositionContext::new(None,&AbstractMetadataBuilder::new().build());
         let (_spec,plm) = make_transformable(&mut prep,&mut pending.iter()).ok().expect("A");
         let mut aia = AnswerAllocator::new();
@@ -129,8 +128,7 @@ mod test {
         let mut tree = StyleTree::new();
         add_style(&mut tree, "z/a/", &[("padding-top","10"),("padding-bottom","5"),("type","overlay")]);        
         add_style(&mut tree, "z/a/1", &[("depth","10"),("coordinate-system","window")]);
-        let style_group = AllStylesForProgram::new(tree);
-        let pending = make_pendings(&["z/a/1","z/a/2","z/a/3","z/b/1","z/b/2","z/b/3"],&[1.,2.,3.],&[],&style_group);
+        let pending = make_pendings(&["z/a/1","z/a/2","z/a/3","z/b/1","z/b/2","z/b/3"],&[1.,2.,3.],&[],&tree);
         let mut prep = BoxPositionContext::new(None,&AbstractMetadataBuilder::new().build());
         let (_spec,plm) = make_transformable(&mut prep,&mut pending.iter()).ok().expect("A");
         let mut aia = AnswerAllocator::new();
@@ -175,8 +173,7 @@ mod test {
         add_style(&mut tree, "z/b/", &[("type","bumper"),("report","track")]);
         add_style(&mut tree, "z/a/1", &[("depth","10"),("system","tracking")]);
         add_style(&mut tree, "**", &[("system","tracking")]);
-        let style_group = AllStylesForProgram::new(tree);
-        let pending = make_pendings(&["z/a/1","z/a/2","z/a/3","z/b/1","z/b/2","z/b/3"],&[1.,2.,3.],&ranges,&style_group);
+        let pending = make_pendings(&["z/a/1","z/a/2","z/a/3","z/b/1","z/b/2","z/b/3"],&[1.,2.,3.],&ranges,&tree);
         let mut prep = BoxPositionContext::new(None,&AbstractMetadataBuilder::new().build());
         prep.bp_px_converter = Arc::new(BpPxConverter::new_test());
         let (_spec,plm) = make_transformable(&mut prep,&mut pending.iter()).ok().expect("A");

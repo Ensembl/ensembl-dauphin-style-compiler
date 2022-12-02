@@ -1,6 +1,6 @@
 use std::{sync::{Arc}};
 use peregrine_toolkit::{puzzle::{constant, StaticValue, StaticAnswer}};
-use crate::{ allotment::{core::{trainstate::CarriageTrainStateSpec, boxtraits::{ContainerOrLeaf, BuildSize }, boxpositioncontext::BoxPositionContext, allotmentname::AllotmentName}, util::rangeused::RangeUsed, stylespec::stylegroup::AllStylesForProgram}, CoordinateSystem, LeafRequest};
+use crate::{ allotment::{core::{trainstate::CarriageTrainStateSpec, boxtraits::{ContainerOrLeaf, BuildSize }, boxpositioncontext::BoxPositionContext, allotmentname::AllotmentName}, util::rangeused::RangeUsed, stylespec::styletree::StyleTree}, CoordinateSystem, LeafRequest};
 use super::{leaf::{AnchoredLeaf, FloatingLeaf}, container::HasKids};
 
 pub struct Root {
@@ -45,7 +45,7 @@ impl ContainerOrLeaf for Root {
     fn locate(&mut self, _prep: &mut BoxPositionContext, _top: &StaticValue<f64>) {}
     fn name(&self) -> &AllotmentName { &self.root_name }
 
-    fn get_leaf(&mut self, pending: &LeafRequest, cursor: usize, styles: &Arc<AllStylesForProgram>) -> FloatingLeaf {
+    fn get_leaf(&mut self, pending: &LeafRequest, cursor: usize, styles: &Arc<StyleTree>) -> FloatingLeaf {
         self.kids.get_leaf(pending,cursor,styles)
     }
 }

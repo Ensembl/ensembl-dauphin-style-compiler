@@ -1,6 +1,6 @@
 use std::{sync::{Arc}, collections::HashMap};
 use peregrine_toolkit::{puzzle::{DelayedSetter, derived, cache_constant, constant, StaticValue, promise_delayed, short_memoized_clonable, cache_constant_clonable, StaticAnswer }, eachorevery::eoestruct::StructTemplate};
-use crate::{allotment::{core::{allotmentname::{AllotmentName}, boxtraits::{ContainerSpecifics, BuildSize, ContainerOrLeaf}, boxpositioncontext::BoxPositionContext}, style::{style::{ContainerAllotmentStyle, ContainerAllotmentType}}, util::rangeused::RangeUsed, globals::allotmentmetadata::LocalAllotmentMetadataBuilder, stylespec::stylegroup::AllStylesForProgram}, shape::metadata::MetadataStyle, CoordinateSystem, LeafRequest};
+use crate::{allotment::{core::{allotmentname::{AllotmentName}, boxtraits::{ContainerSpecifics, BuildSize, ContainerOrLeaf}, boxpositioncontext::BoxPositionContext}, style::{style::{ContainerAllotmentStyle, ContainerAllotmentType}}, util::rangeused::RangeUsed, globals::allotmentmetadata::LocalAllotmentMetadataBuilder, stylespec::{styletree::StyleTree}}, shape::metadata::MetadataStyle, CoordinateSystem, LeafRequest};
 use super::{leaf::{AnchoredLeaf, FloatingLeaf}, stacker::{Stacker}, overlay::{Overlay}, bumper::{Bumper}};
 
 fn internal_height(child_height: &StaticValue<f64>, min_height: f64, padding_top: f64, padding_bottom: f64) -> StaticValue<f64> {
@@ -42,7 +42,7 @@ impl HasKids {
         }
     }
 
-    pub(super) fn get_leaf(&mut self, pending: &LeafRequest, cursor: usize, styles: &Arc<AllStylesForProgram>) -> FloatingLeaf {
+    pub(super) fn get_leaf(&mut self, pending: &LeafRequest, cursor: usize, styles: &Arc<StyleTree>) -> FloatingLeaf {
         let name = pending.name().sequence();
         let step = &name[cursor];
         if cursor == name.len() - 1 {
@@ -63,7 +63,7 @@ impl HasKids {
                 /* create container */
                 let name = name[0..(cursor+1)].iter().map(|x| x.to_string()).collect::<Vec<_>>();
                 let name = AllotmentName::do_new(name);
-                let style = styles.get_container(&name);
+                let style = styles.lookup_container(&name);
                 let container = Container::new(&name,&style,new_container(&name,&style));
                 self.children.insert(key.clone(),Box::new(container));
             }
@@ -113,7 +113,7 @@ impl Container {
 impl ContainerOrLeaf for Container {
     fn anchor_leaf(&self, _answer_index: &StaticAnswer) -> Option<AnchoredLeaf> { None }
     
-    fn get_leaf(&mut self, pending: &LeafRequest, cursor: usize, styles: &Arc<AllStylesForProgram>) -> FloatingLeaf {
+    fn get_leaf(&mut self, pending: &LeafRequest, cursor: usize, styles: &Arc<StyleTree>) -> FloatingLeaf {
         self.kids.get_leaf(pending,cursor,styles)
     }
 

@@ -1,6 +1,6 @@
 use std::{sync::{Arc}};
 use peregrine_toolkit::{puzzle::{DelayedSetter, constant, StaticValue, StaticAnswer, promise_delayed, delayed }};
-use crate::{allotment::{core::{allotmentname::{AllotmentName}, boxtraits::{ContainerOrLeaf, BuildSize }, boxpositioncontext::BoxPositionContext, drawinginfo::DrawingInfo}, style::{style::{LeafStyle, Indent}}, util::{rangeused::RangeUsed, bppxconverter::BpPxConverter}, globals::playingfield::PlayingFieldEdge, stylespec::stylegroup::AllStylesForProgram}, CoordinateSystem, LeafRequest};
+use crate::{allotment::{core::{allotmentname::{AllotmentName}, boxtraits::{ContainerOrLeaf, BuildSize }, boxpositioncontext::BoxPositionContext, drawinginfo::DrawingInfo}, style::{style::{LeafStyle, Indent}}, util::{rangeused::RangeUsed, bppxconverter::BpPxConverter}, globals::playingfield::PlayingFieldEdge, stylespec::{styletree::StyleTree}}, CoordinateSystem, LeafRequest};
 
 // TODO ranged bppxconverter
 fn full_range_piece(coord_system: &CoordinateSystem, base_range: &RangeUsed<f64>, pixel_range: &RangeUsed<f64>, bp_px_converter: &Arc<BpPxConverter>) -> RangeUsed<f64> {
@@ -69,7 +69,7 @@ impl ContainerOrLeaf for FloatingLeaf {
         Some(AnchoredLeaf::new(answer_index,self))
     }
 
-    fn get_leaf(&mut self, _pending: &LeafRequest, _cursor: usize, _styles: &Arc<AllStylesForProgram>) -> FloatingLeaf {
+    fn get_leaf(&mut self, _pending: &LeafRequest, _cursor: usize, _styles: &Arc<StyleTree>) -> FloatingLeaf {
         panic!("get_leaf called on leaf!");
     }
     

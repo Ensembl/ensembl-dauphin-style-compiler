@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use peregrine_toolkit::{puzzle::{StaticValue, derived, StaticAnswer}};
-use crate::{allotment::{util::rangeused::RangeUsed, core::{allotmentname::AllotmentName}, boxes::leaf::{AnchoredLeaf, FloatingLeaf}, stylespec::stylegroup::AllStylesForProgram}, CoordinateSystem, LeafRequest};
+use crate::{allotment::{util::rangeused::RangeUsed, core::{allotmentname::AllotmentName}, boxes::leaf::{AnchoredLeaf, FloatingLeaf}, stylespec::{styletree::StyleTree}}, CoordinateSystem, LeafRequest};
 use super::{boxpositioncontext::BoxPositionContext};
 
 pub(crate) trait ContainerSpecifics {
@@ -32,5 +32,5 @@ pub(crate) trait ContainerOrLeaf {
     fn name(&self) -> &AllotmentName;
     fn priority(&self) -> i64;
     fn anchor_leaf(&self, answer_index: &StaticAnswer) -> Option<AnchoredLeaf>;
-    fn get_leaf(&mut self, pending: &LeafRequest, cursor: usize, styles: &Arc<AllStylesForProgram>) -> FloatingLeaf;
+    fn get_leaf(&mut self, pending: &LeafRequest, cursor: usize, styles: &Arc<StyleTree>) -> FloatingLeaf;
 }

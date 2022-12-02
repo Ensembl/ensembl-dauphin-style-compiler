@@ -1,6 +1,6 @@
 use std::{sync::{Arc, Mutex}, borrow::BorrowMut };
 use peregrine_toolkit::lock;
-use crate::{allotment::{stylespec::stylegroup::AllStylesForProgram, boxes::leaf::FloatingLeaf}, LeafStyle};
+use crate::{allotment::{stylespec::{styletree::StyleTree}, boxes::leaf::FloatingLeaf}, LeafStyle};
 use super::{allotmentname::{allotmentname_hashmap, AllotmentName, AllotmentNameHashMap}, drawinginfo::DrawingInfo};
 
 pub struct FloatingLeafSource {
@@ -27,7 +27,7 @@ impl FloatingLeafSource {
 pub struct LeafRequest {
     name: AllotmentName,
     drawing_info: Arc<Mutex<DrawingInfo>>,
-    style: Arc<Mutex<Option<(Arc<AllStylesForProgram>,Arc<LeafStyle>)>>>
+    style: Arc<Mutex<Option<(Arc<StyleTree>,Arc<LeafStyle>)>>>
 }
 
 #[cfg(debug_assertions)]
@@ -60,13 +60,13 @@ impl LeafRequest {
         }
     }
 
-    pub(crate) fn set_style(&self, style: &AllStylesForProgram) {
-        let leaf = style.get_leaf(&self);
+    pub(crate) fn set_style(&self, style: &StyleTree) {
+        let leaf = style.lookup_leaf(&self.name);
         *lock!(self.style) = Some((Arc::new(style.clone()),Arc::new(leaf.clone())));
     }
 
     pub(crate) fn leaf_style(&self) -> Arc<LeafStyle> { lock!(self.style).as_ref().unwrap().1.clone() }
-    pub(crate) fn program_styles(&self) -> Arc<AllStylesForProgram> { lock!(self.style).as_ref().unwrap().0.clone() }
+    pub(crate) fn program_styles(&self) -> Arc<StyleTree> { lock!(self.style).as_ref().unwrap().0.clone() }
     pub fn name(&self) -> &AllotmentName { &self.name }
 
     pub(crate) fn drawing_info<F,T>(&self, mut cb: F) -> T where F: FnMut(&mut DrawingInfo) -> T {
