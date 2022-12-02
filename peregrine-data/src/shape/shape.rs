@@ -14,7 +14,7 @@ use crate::LeafRequest;
 use crate::SpaceBaseArea;
 use crate::allotment::boxes::leaf::AnchoredLeaf;
 use crate::allotment::boxes::leaf::FloatingLeaf;
-use crate::allotment::style::style::LeafStyle;
+use crate::allotment::style::leafstyle::LeafStyle;
 use crate::allotment::util::rangeused::RangeUsed;
 
 pub trait ShapeDemerge {

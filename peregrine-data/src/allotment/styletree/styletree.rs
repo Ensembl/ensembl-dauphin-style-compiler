@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::{Arc, Mutex}};
 use peregrine_toolkit::{lock, log};
-use crate::{allotment::{style::{style::ContainerAllotmentStyle, specifiedstyle::{InheritableStyle, SpecifiedStyle}}, core::allotmentname::{AllotmentName, AllotmentNameHashMap, allotmentname_hashmap}}, LeafStyle};
+use crate::{allotment::{style::{containerstyle::ContainerStyle, leafstyle::{InheritableLeafStyle, UninheritableLeafStyle}}, core::allotmentname::{AllotmentName, AllotmentNameHashMap, allotmentname_hashmap}}, LeafStyle};
 use super::{pathtree::{PathTree, PathKey}};
 
 struct StyleTreeInternal {
@@ -61,7 +61,7 @@ impl StyleTreeInternal {
 
 struct StyleTreeState {
     internal: StyleTreeInternal,
-    container_cache: HashMap<Vec<String>,ContainerAllotmentStyle>,
+    container_cache: HashMap<Vec<String>,ContainerStyle>,
     leaf_cache: AllotmentNameHashMap<LeafStyle>
 }
 
@@ -84,11 +84,11 @@ impl StyleTree {
         lock!(self.0).internal.add(spec,values);
     }
 
-    pub(crate) fn lookup_container(&self, allotment: &AllotmentName) -> ContainerAllotmentStyle {
+    pub(crate) fn lookup_container(&self, allotment: &AllotmentName) -> ContainerStyle {
         let mut state = lock!(self.0);
         if !state.container_cache.contains_key(allotment.name()) {
             let container = state.internal.lookup_container(allotment.name());
-            state.container_cache.insert(allotment.name().to_vec(),ContainerAllotmentStyle::build(&container));
+            state.container_cache.insert(allotment.name().to_vec(),ContainerStyle::build(&container));
         }
         state.container_cache.get(allotment.name()).unwrap().clone()
     }
@@ -96,20 +96,20 @@ impl StyleTree {
     pub(crate) fn lookup_leaf(&self, allotment: &AllotmentName) -> LeafStyle {
         let mut state = lock!(self.0);
         if !state.leaf_cache.contains_key(allotment) {
-            let mut inherit = InheritableStyle::empty();
+            let mut inherit = InheritableLeafStyle::empty();
             let name = allotment.name();
             for index in 0..name.len() {
                 let prefix = &name[0..index];
                 if !state.container_cache.contains_key(prefix) {
                     let container = state.internal.lookup_container(prefix);
-                    state.container_cache.insert(prefix.to_vec(),ContainerAllotmentStyle::build(&container));
+                    state.container_cache.insert(prefix.to_vec(),ContainerStyle::build(&container));
                 }
                 let style = state.container_cache.get(prefix).unwrap();
                 inherit.override_style(&style.leaf);
             }
             let leaf = state.internal.lookup_leaf(allotment.name());
-            let specified = SpecifiedStyle::build(&leaf);
-            inherit.override_style(&specified.leaf);
+            let specified = UninheritableLeafStyle::build(&leaf);
+            inherit.override_style(&InheritableLeafStyle::new(&leaf));
             let style = inherit.make(&specified);
             state.leaf_cache.insert(allotment.clone(),style);
         }

@@ -1,6 +1,6 @@
 use std::{sync::{Arc}, collections::HashMap};
 use peregrine_toolkit::{puzzle::{DelayedSetter, derived, cache_constant, constant, StaticValue, promise_delayed, short_memoized_clonable, cache_constant_clonable, StaticAnswer }, eachorevery::eoestruct::StructTemplate};
-use crate::{allotment::{core::{allotmentname::{AllotmentName}, boxtraits::{ContainerSpecifics, BuildSize, ContainerOrLeaf}, boxpositioncontext::BoxPositionContext}, style::{style::{ContainerAllotmentStyle, ContainerAllotmentType}}, util::rangeused::RangeUsed, globals::allotmentmetadata::LocalAllotmentMetadataBuilder, styletree::{styletree::StyleTree}}, shape::metadata::MetadataStyle, CoordinateSystem, LeafRequest};
+use crate::{allotment::{core::{allotmentname::{AllotmentName}, boxtraits::{ContainerSpecifics, BuildSize, ContainerOrLeaf}, boxpositioncontext::BoxPositionContext}, style::{containerstyle::{ContainerStyle, ContainerAllotmentType}}, util::rangeused::RangeUsed, globals::allotmentmetadata::LocalAllotmentMetadataBuilder, styletree::{styletree::StyleTree}}, shape::metadata::MetadataStyle, CoordinateSystem, LeafRequest};
 use super::{leaf::{AnchoredLeaf, FloatingLeaf}, stacker::{Stacker}, overlay::{Overlay}, bumper::{Bumper}};
 
 fn internal_height(child_height: &StaticValue<f64>, min_height: f64, padding_top: f64, padding_bottom: f64) -> StaticValue<f64> {
@@ -16,7 +16,7 @@ pub(super) enum ChildKeys {
     Leaf(String)
 }
 
-fn new_container(name: &AllotmentName, style: &ContainerAllotmentStyle) -> Box<dyn ContainerSpecifics + 'static> {
+fn new_container(name: &AllotmentName, style: &ContainerStyle) -> Box<dyn ContainerSpecifics + 'static> {
     match &style.allot_type {
         ContainerAllotmentType::Stack => Box::new(Stacker::new()),
         ContainerAllotmentType::Overlay => Box::new(Overlay::new()),
@@ -82,7 +82,7 @@ pub struct Container {
     top_setter: DelayedSetter<'static,'static,f64>,
     /* outgoing variables */
     name: AllotmentName,
-    style: Arc<ContainerAllotmentStyle>,
+    style: Arc<ContainerStyle>,
 }
 
 fn add_report(metadata: &mut LocalAllotmentMetadataBuilder, name: &AllotmentName, in_values: &MetadataStyle, top: &StaticValue<f64>, height: &StaticValue<Arc<f64>>) {
@@ -96,7 +96,7 @@ fn add_report(metadata: &mut LocalAllotmentMetadataBuilder, name: &AllotmentName
 }
 
 impl Container {
-    pub(crate) fn new(name: &AllotmentName, style: &ContainerAllotmentStyle, specifics: Box<dyn ContainerSpecifics + 'static>) -> Container {
+    pub(crate) fn new(name: &AllotmentName, style: &ContainerStyle, specifics: Box<dyn ContainerSpecifics + 'static>) -> Container {
         let (top_setter,top) = promise_delayed();
         Container {
             name: name.clone(),

@@ -19,8 +19,8 @@ mod allotment {
     }
 
     pub(crate) mod style {
-        pub(crate) mod style;
-        pub(crate) mod specifiedstyle;
+        pub(crate) mod containerstyle;
+        pub(crate) mod leafstyle;
     }
 
     pub(crate) mod core {
@@ -50,7 +50,7 @@ mod allotment {
         pub(super) mod pathtree;
         pub(crate) mod styletree;
     }
-    
+
     pub(crate) mod util {
         pub(crate) mod bppxconverter;
         pub(crate) mod rangeused;
@@ -289,7 +289,7 @@ pub(crate) mod hotspots {
 }
 
 pub use self::allotment::core::floatingleafsource::LeafRequest;
-pub use self::allotment::style::style::LeafStyle;
+pub use self::allotment::style::leafstyle::LeafStyle;
 pub use self::allotment::globals::{ allotmentmetadata::GlobalAllotmentMetadata, playingfield::PlayingField };
 pub use self::api::{ PeregrineCore, PeregrineCoreBase, PeregrineIntegration, PeregrineApiQueue, TrainIdentity, CarriageSpeed, AgentStore, InstanceInformation };
 pub use self::core::{ Asset, Assets, PgdPeregrineConfig, ConfigKey, Stick, StickId, StickTopology, Scale, Viewport, ProgramModel, ProgramSetting };

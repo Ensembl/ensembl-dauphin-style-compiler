@@ -66,9 +66,11 @@ In all these stages, shapes with their leaves are just unordered collections of 
 LeafRequest ---> ??? ---> AnchoredLeaf ---> LeafStyle
 ```
 
-## Building the leaf tree
+Don't confuse the style tree and the layout tree!
 
-There are a number of stages to going from a mere LeafRequest to apositioned AnchoreLeaf. They are:
+## Building the layout tree
+
+There are a number of stages to going from a mere LeafRequest to apositioned AnchoredLeaf. They are:
 
 1. Collate together all the style-declarations and their patterns for a given program into some data-structure which can be queried easily;
 
@@ -134,6 +136,14 @@ Step Four: the tree is used to create `AnchoredLeaf`s for each shape:
 [rectangle ....m/n]   -> [rectanggle .. (12,2)]
 ...
 ```
+
+So we can fill in our picture
+
+```
+LeafRequest ---> FloatingLeaf ---> AnchoredLeaf ---> LeafStyle
+```
+
+Note that FloatingLeaf and AnchoredLeaf actually contain the ultimate LeafStyle inside of them! It is generated during this process. It is simply that once a leaf has been anchored and the transforms applied, the rest of their contents is sloughed, leaving the LeafStyle visible.
 
 ## The Up And Down Algorithm
 

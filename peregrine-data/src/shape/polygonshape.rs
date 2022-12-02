@@ -1,5 +1,5 @@
 use peregrine_toolkit::eachorevery::{EachOrEveryFilter, EachOrEvery};
-use crate::{DataMessage, ShapeDemerge, Shape, SpaceBase, allotment::{style::{style::LeafStyle}, boxes::leaf::AnchoredLeaf, util::rangeused::RangeUsed}, LeafRequest, BackendNamespace, CoordinateSystem, Patina, reactive::Observable};
+use crate::{DataMessage, ShapeDemerge, Shape, SpaceBase, allotment::{boxes::leaf::AnchoredLeaf, util::rangeused::RangeUsed}, LeafRequest, BackendNamespace, CoordinateSystem, Patina, reactive::Observable, LeafStyle};
 use std::{hash::Hash,};
 
 #[cfg_attr(debug_assertions,derive(Debug))]
