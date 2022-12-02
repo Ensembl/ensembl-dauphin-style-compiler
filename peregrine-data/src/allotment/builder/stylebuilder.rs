@@ -1,6 +1,6 @@
 use std::{collections::HashMap};
 use peregrine_toolkit::error::Error;
-use crate::{allotment::{core::{trainstate::CarriageTrainStateSpec, allotmentname::{AllotmentNamePart, AllotmentName}, boxpositioncontext::BoxPositionContext, drawinginfo::DrawingInfo, floatingleafsource::FloatingLeafSource, boxtraits::ContainerOrLeaf}, boxes::{leaf::{FloatingLeaf}, root::Root}}, LeafRequest, LeafStyle};
+use crate::{allotment::{core::{trainstate::CarriageTrainStateSpec, allotmentname::{AllotmentName}, boxpositioncontext::BoxPositionContext, drawinginfo::DrawingInfo, floatingleafsource::FloatingLeafSource, boxtraits::ContainerOrLeaf}, boxes::{leaf::{FloatingLeaf}, root::Root}}, LeafRequest, LeafStyle};
 
 struct StyleBuilder<'a> {
     root: &'a mut dyn ContainerOrLeaf,
@@ -10,7 +10,7 @@ struct StyleBuilder<'a> {
 
 impl<'a> StyleBuilder<'a> {
     fn new(root: &'a mut Root) -> StyleBuilder<'a> {
-        let dustbin_name = AllotmentNamePart::new(AllotmentName::new(""));
+        let dustbin_name = AllotmentName::new("");
         StyleBuilder {
             root,
             leafs_made: HashMap::new(),
@@ -19,8 +19,8 @@ impl<'a> StyleBuilder<'a> {
     }
 
     fn try_new_leaf(&mut self, pending: &LeafRequest) -> Result<FloatingLeaf,Error> {
-        let name = AllotmentNamePart::new(pending.name().clone());
-        if name.empty() {
+        let name = pending.name().clone();
+        if name.is_dustbin() {
             return Ok(self.dustbin.clone());
         }
         let sequence = name.sequence().to_vec();

@@ -1,7 +1,7 @@
 use std::{collections::{HashMap, hash_map::DefaultHasher }, sync::Arc, hash::{Hash, Hasher}, iter::FromIterator};
 use hashbrown::HashSet;
 use peregrine_toolkit::{puzzle::{ StaticValue, StaticAnswer, derived }, eachorevery::eoestruct::{StructTemplate, struct_to_json}};
-use crate::{allotment::core::allotmentname::{AllotmentName, AllotmentNamePart}, shape::metadata::AbstractMetadata};
+use crate::{allotment::core::allotmentname::{AllotmentName}, shape::metadata::AbstractMetadata};
 use serde_json::{ Value as JsonValue, Map as JsonMap };
 
 struct AllotmentData {
@@ -80,24 +80,22 @@ impl Hash for GlobalAllotmentMetadata {
     fn hash<H: Hasher>(&self, state: &mut H) { self.0.hash(state); }
 }
 
-struct MapToReporter(HashSet<(AllotmentName,String)>);
+struct MapToReporter(HashSet<(Vec<String>,String)>);
 
 impl MapToReporter {
     fn new(reports: &[(AllotmentName,String)]) -> MapToReporter {
-        MapToReporter(HashSet::from_iter(reports.iter().cloned()))
+        let reports = reports.iter().map(|(name,key)| {
+            (name.sequence().to_vec(),key.to_string())
+        });
+        MapToReporter(HashSet::from_iter(reports))
     }
 
     fn reporting_allotment(&self, input: &AllotmentName, key: &str, via_boxes: bool) -> Option<AllotmentName> {
-        let mut part = AllotmentNamePart::new(input.clone());
-        loop {
-            let key = key.to_string();
-            if self.0.contains(&(AllotmentName::from_part(&part),key)) { // TODO inefficient
-                return Some(AllotmentName::from_part(&part));
-            }
-            if let Some((_,new)) = part.pop() {
-                part = new;
-            } else {
-                break;
+        let name = input.name();
+        for index in 0..name.len() {
+            let part = &name[0..(name.len()-index)];
+            if self.0.contains(&(part.to_vec(),key.to_string())) { // TODO inefficient
+                return Some(AllotmentName::do_new(part.to_vec(),true));
             }
         }
         if via_boxes {

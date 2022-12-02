@@ -1,6 +1,6 @@
 use std::{sync::{Arc}, collections::HashMap};
 use peregrine_toolkit::{puzzle::{DelayedSetter, derived, cache_constant, constant, StaticValue, promise_delayed, short_memoized_clonable, cache_constant_clonable, StaticAnswer }, eachorevery::eoestruct::StructTemplate};
-use crate::{allotment::{core::{allotmentname::{AllotmentName, AllotmentNamePart}, boxtraits::{ContainerSpecifics, BuildSize, ContainerOrLeaf}, boxpositioncontext::BoxPositionContext}, style::{style::{ContainerAllotmentStyle, ContainerAllotmentType}}, util::rangeused::RangeUsed, globals::allotmentmetadata::LocalAllotmentMetadataBuilder, stylespec::stylegroup::AllStylesForProgram}, shape::metadata::MetadataStyle, CoordinateSystem, LeafRequest};
+use crate::{allotment::{core::{allotmentname::{AllotmentName}, boxtraits::{ContainerSpecifics, BuildSize, ContainerOrLeaf}, boxpositioncontext::BoxPositionContext}, style::{style::{ContainerAllotmentStyle, ContainerAllotmentType}}, util::rangeused::RangeUsed, globals::allotmentmetadata::LocalAllotmentMetadataBuilder, stylespec::stylegroup::AllStylesForProgram}, shape::metadata::MetadataStyle, CoordinateSystem, LeafRequest};
 use super::{leaf::{AnchoredLeaf, FloatingLeaf}, stacker::{Stacker}, overlay::{Overlay}, bumper::{Bumper}};
 
 fn internal_height(child_height: &StaticValue<f64>, min_height: f64, padding_top: f64, padding_bottom: f64) -> StaticValue<f64> {
@@ -16,15 +16,15 @@ pub(super) enum ChildKeys {
     Leaf(String)
 }
 
-fn new_container2(name: &AllotmentNamePart, style: &ContainerAllotmentStyle) -> Box<dyn ContainerSpecifics + 'static> {
+fn new_container(name: &AllotmentName, style: &ContainerAllotmentStyle) -> Box<dyn ContainerSpecifics + 'static> {
     match &style.allot_type {
         ContainerAllotmentType::Stack => Box::new(Stacker::new()),
         ContainerAllotmentType::Overlay => Box::new(Overlay::new()),
-        ContainerAllotmentType::Bumper => Box::new(Bumper::new(&AllotmentName::from_part(name)))
+        ContainerAllotmentType::Bumper => Box::new(Bumper::new(name))
     }
 }
 
-fn new_leaf(pending: &LeafRequest, name: &AllotmentNamePart) -> FloatingLeaf {
+fn new_leaf(pending: &LeafRequest, name: &AllotmentName) -> FloatingLeaf {
     let drawing_info = pending.drawing_info(|di| di.clone());
     let child = FloatingLeaf::new(name,&pending.leaf_style(),&drawing_info);
     child
@@ -50,7 +50,7 @@ impl HasKids {
             if !self.child_leafs.contains_key(step) {
                 /* create leaf */
                 let name = name[0..(cursor+1)].iter().map(|x| x.to_string()).collect::<Vec<_>>();
-                let name = AllotmentNamePart::new(AllotmentName::do_new(name,true));
+                let name = AllotmentName::do_new(name,true);
                 let leaf = new_leaf(pending,&name);
                 self.child_leafs.insert(step.to_string(),leaf.clone());
                 self.children.insert(ChildKeys::Leaf(step.to_string()),Box::new(leaf.clone()));
@@ -62,9 +62,9 @@ impl HasKids {
             if !self.children.contains_key(&key) {
                 /* create container */
                 let name = name[0..(cursor+1)].iter().map(|x| x.to_string()).collect::<Vec<_>>();
-                let name = AllotmentNamePart::new(AllotmentName::do_new(name,true));
+                let name = AllotmentName::do_new(name,true);
                 let style = styles.get_container(&name);
-                let container = Container::new(&name,style,new_container2(&name,style));
+                let container = Container::new(&name,style,new_container(&name,style));
                 self.children.insert(key.clone(),Box::new(container));
             }
             self.children.get_mut(&key).unwrap().get_leaf(pending,cursor+1,styles).clone()
@@ -96,10 +96,10 @@ fn add_report(metadata: &mut LocalAllotmentMetadataBuilder, name: &AllotmentName
 }
 
 impl Container {
-    pub(crate) fn new(name: &AllotmentNamePart, style: &ContainerAllotmentStyle, specifics: Box<dyn ContainerSpecifics + 'static>) -> Container {
+    pub(crate) fn new(name: &AllotmentName, style: &ContainerAllotmentStyle, specifics: Box<dyn ContainerSpecifics + 'static>) -> Container {
         let (top_setter,top) = promise_delayed();
         Container {
-            name: AllotmentName::from_part(name),
+            name: name.clone(),
             specifics,
             kids: HasKids::new(),
             coord_system: style.coord_system.clone(),
