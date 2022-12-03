@@ -12,11 +12,11 @@ use peregrine_toolkit::{debug_log};
  */
 
 pub(crate) struct CarriageTrainStateRequest {
-    height_tracker: LocalHeightTrackerBuilder,
-    playing_field: LocalPlayingFieldBuilder,
-    aligner: LocalAlignerBuilder,
+    height_tracker: LocalHeightTrackerBuilder, // y
+    playing_field: LocalPlayingFieldBuilder, // y
+    aligner: LocalAlignerBuilder, // y
     metadata: LocalAllotmentMetadataBuilder,
-    bumper: LocalBumpBuilder
+    bumper: LocalBumpBuilder // y
 }
 
 impl CarriageTrainStateRequest {

@@ -1,6 +1,6 @@
 use std::{collections::HashMap};
-use crate::{CoordinateSystem, shape::metadata::MetadataStyle};
-use super::leafstyle::InheritableLeafStyle;
+use crate::{CoordinateSystem};
+use super::{leafstyle::InheritableLeafStyle, metadataproperty::MetadataStyle};
 
 #[cfg_attr(debug_assertions,derive(Debug))]
 #[derive(Clone)]

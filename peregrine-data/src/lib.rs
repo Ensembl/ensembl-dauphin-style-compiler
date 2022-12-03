@@ -28,6 +28,7 @@ mod allotment {
     pub(crate) mod style {
         pub(crate) mod containerstyle;
         pub(crate) mod leafstyle;
+        pub(crate) mod metadataproperty;
         pub(super) mod pathtree;
         pub(crate) mod styletree;
     }
@@ -48,6 +49,7 @@ mod allotment {
 }
 
 pub(crate) mod globals {
+    pub(crate) mod correlate;
     pub(crate) mod globalvalue;
     pub(crate) mod aligner;
     pub(crate) mod allotmentmetadata;

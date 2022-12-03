@@ -5,7 +5,7 @@ use crate::{CoordinateSystem};
 use super::globalvalue::{LocalValueBuilder, LocalValueSpec, GlobalValueBuilder, GlobalValueSpec};
 
 #[cfg_attr(debug_assertions,derive(Debug))]
-#[derive(Clone,Hash,PartialEq,Eq)]
+#[derive(Clone,Hash,PartialEq,Eq,PartialOrd,Ord)]
 pub enum PlayingFieldEdge { Top, Bottom, Left, Right }
 
 pub struct LocalPlayingFieldBuilder(LocalValueBuilder<PlayingFieldEdge,f64,f64>);
