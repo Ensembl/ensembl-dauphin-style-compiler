@@ -1,9 +1,7 @@
 use std::{collections::{HashMap, BTreeMap, hash_map::DefaultHasher}, hash::{Hash, Hasher}, rc::Rc, sync::{Arc, Mutex}};
 use peregrine_toolkit::{puzzle::{UnknownSetter, StaticValue, short_unknown_function_promise, commute, StaticAnswer, constant, derived}, lock};
-
 use crate::{allotment::{core::allotmentname::AllotmentName, collision::collisionalgorithm::{BumpRequestSet, BumpResponses}}, request};
-
-use super::{playingfield::PlayingFieldEdge, trainpersistent::TrainPersistent};
+use super::{playingfield::PlayingFieldEdge, trainpersistent::TrainPersistent, allotmentmetadata::LocalAllotmentMetadataBuilder};
 
 struct CorrelateBuildEntry<T:'static, V:'static> {
     global_setter: UnknownSetter<'static,StaticValue<V>>,
@@ -114,7 +112,8 @@ struct CarriageCorrelateBuilder {
     align: HashMap<String,CorrelateBuildEntry<f64,f64>>,
     playing_field: HashMap<PlayingFieldEdge,CorrelateBuildEntry<f64,f64>>,
     height_tracker: HashMap<AllotmentName,CorrelateBuildEntry<f64,f64>>,
-    bumper: HashMap<AllotmentName,CorrelateBuildEntry<(AllotmentName,Rc<BumpRequestSet>),BumpResponses>>
+    bumper: HashMap<AllotmentName,CorrelateBuildEntry<(AllotmentName,Rc<BumpRequestSet>),BumpResponses>>,
+    //reporting: LocalAllotmentMetadataBuilder
 }
 
 impl CarriageCorrelateBuilder {

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 use peregrine_toolkit::error::Error;
-use crate::{LeafRequest, ShapeRequestGroup, allotment::{layout::stylebuilder::make_transformable, leafs::floating::FloatingLeaf}, shape::{metadata::AbstractMetadata}, Shape, globals::trainstate::CarriageTrainStateSpec};
+use crate::{LeafRequest, ShapeRequestGroup, allotment::{layout::stylebuilder::make_transformable, leafs::floating::FloatingLeaf}, Shape, globals::trainstate::CarriageTrainStateSpec};
 use super::{allotmentname::{allotmentname_hashmap, AllotmentName, AllotmentNameHashMap}, boxpositioncontext::BoxPositionContext };
 
 pub(crate) struct LeafRequestSource {
@@ -32,11 +32,11 @@ impl LeafRequestSource {
         self.leafs.get_mut(&name).unwrap()
     }
 
-    pub(super) fn to_floating_shapes(&self, shapes: &[Shape<LeafRequest>], extent: Option<&ShapeRequestGroup>, metadata: &AbstractMetadata) -> Result<(CarriageTrainStateSpec,Vec<Shape<FloatingLeaf>>),Error> {
+    pub(super) fn to_floating_shapes(&self, shapes: &[Shape<LeafRequest>], extent: Option<&ShapeRequestGroup>/*, metadata: &AbstractMetadata*/) -> Result<(CarriageTrainStateSpec,Vec<Shape<FloatingLeaf>>),Error> {
         /* makes the layout tree */
         let (mut root,plm) = make_transformable(&mut self.leafs.values())?;
         /* runs the up-and-down algorithm to place tree boxes */
-        let mut prep = BoxPositionContext::new(extent,metadata);
+        let mut prep = BoxPositionContext::new(extent);
         let spec = root.full_build(&mut prep);
         /* Maps shapes to new FloatingLeafs */
         let shapes = shapes.iter().map(|x| 

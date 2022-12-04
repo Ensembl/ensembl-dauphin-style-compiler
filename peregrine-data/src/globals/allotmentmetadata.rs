@@ -1,7 +1,7 @@
 use std::{collections::{HashMap, hash_map::DefaultHasher }, sync::Arc, hash::{Hash, Hasher}, iter::FromIterator};
 use hashbrown::HashSet;
 use peregrine_toolkit::{puzzle::{ StaticValue, StaticAnswer, derived }, eachorevery::eoestruct::{StructTemplate, struct_to_json}};
-use crate::{allotment::core::allotmentname::{AllotmentName}, shape::metadata::AbstractMetadata};
+use crate::{allotment::core::allotmentname::{AllotmentName}};
 use serde_json::{ Value as JsonValue, Map as JsonMap };
 
 struct AllotmentData {
@@ -18,10 +18,8 @@ impl AllotmentData {
 pub struct LocalAllotmentMetadataBuilder(AllotmentData);
 
 impl LocalAllotmentMetadataBuilder {
-    pub(crate) fn new(metadata: &AbstractMetadata) -> LocalAllotmentMetadataBuilder {
-        let mut out = LocalAllotmentMetadataBuilder(AllotmentData::new());
-        metadata.populate_state(&mut out);
-        out
+    pub(crate) fn new() -> LocalAllotmentMetadataBuilder {
+        LocalAllotmentMetadataBuilder(AllotmentData::new())
     }
 
     pub(crate) fn set(&mut self, allotment: &AllotmentName, key: &str, value: StaticValue<StructTemplate>, via_boxes: Option<String>) {

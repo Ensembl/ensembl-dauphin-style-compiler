@@ -11,7 +11,7 @@ fn new_container(name: &AllotmentName, style: &ContainerStyle) -> Box<dyn Contai
 }
 
 fn new_leaf(pending: &LeafRequest, name: &AllotmentName) -> FloatingLeaf {
-    let drawing_info = pending.drawing_info(|di| di.clone());
+    let drawing_info = pending.shape_bounds(|di| di.clone());
     let child = FloatingLeaf::new(name,&pending.leaf_style(),&drawing_info);
     child
 }

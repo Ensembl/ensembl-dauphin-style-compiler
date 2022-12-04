@@ -64,7 +64,7 @@ impl TextShape<LeafRequest> {
         if let Some(minor) = minor {
             /* Running */
             for ((top_left,bottom_right),text) in major.zip(minor).zip(self.iter_texts()) {
-                top_left.allotment.drawing_info(|allotment| {
+                top_left.allotment.shape_bounds(|allotment| {
                     allotment.merge_base_range(&RangeUsed::Part(*top_left.base,*bottom_right.base+1.));
                     allotment.merge_pixel_range(&RangeUsed::Part(*top_left.tangent,(top_left.tangent+size*text.len() as f64).max(*bottom_right.tangent))); // Not ideal: assume square
                     allotment.merge_max_y((*top_left.normal + size).ceil());
@@ -73,7 +73,7 @@ impl TextShape<LeafRequest> {
         } else {
             /* Normal */
             for (position,text) in major.zip(self.iter_texts()) {
-                position.allotment.drawing_info(|allotment| {
+                position.allotment.shape_bounds(|allotment| {
                     allotment.merge_base_range(&RangeUsed::Part(*position.base,*position.base+1.));
                     allotment.merge_pixel_range(&RangeUsed::Part(*position.tangent,position.tangent+size*text.len() as f64)); // Not ideal: assume square
                     allotment.merge_max_y((*position.normal + size).ceil());

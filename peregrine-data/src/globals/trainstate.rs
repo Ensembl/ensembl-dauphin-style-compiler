@@ -1,6 +1,6 @@
 use std::{sync::{Arc, Mutex}, collections::{HashMap, hash_map::DefaultHasher }, fmt, hash::{Hash, Hasher}};
 use peregrine_toolkit::{puzzle::{StaticAnswer, AnswerAllocator}, lock };
-use crate::{shape::metadata::AbstractMetadata, globals::heighttracker::{LocalHeightTrackerBuilder, LocalHeightTracker, GlobalHeightTrackerBuilder, GlobalHeightTracker}};
+use crate::{globals::heighttracker::{LocalHeightTrackerBuilder, LocalHeightTracker, GlobalHeightTrackerBuilder, GlobalHeightTracker}};
 use peregrine_toolkit::identitynumber;
 use crate::globals::{playingfield::{LocalPlayingFieldBuilder, LocalPlayingField, GlobalPlayingField, GlobalPlayingFieldBuilder}, aligner::{LocalAlignerBuilder, LocalAligner, GlobalAligner, GlobalAlignerBuilder}, allotmentmetadata::{LocalAllotmentMetadataBuilder, LocalAllotmentMetadata, GlobalAllotmentMetadata, GlobalAllotmentMetadataBuilder}, bumping::{LocalBumpBuilder, GlobalBump, GlobalBumpBuilder, LocalBump}, trainpersistent::TrainPersistent};
 
@@ -20,12 +20,12 @@ pub(crate) struct CarriageTrainStateRequest {
 }
 
 impl CarriageTrainStateRequest {
-    pub(crate) fn new(metadata: &AbstractMetadata) -> CarriageTrainStateRequest {
+    pub(crate) fn new() -> CarriageTrainStateRequest {
         CarriageTrainStateRequest {
             height_tracker: LocalHeightTrackerBuilder::new(),
             playing_field: LocalPlayingFieldBuilder::new(),
             aligner: LocalAlignerBuilder::new(),
-            metadata: LocalAllotmentMetadataBuilder::new(metadata),
+            metadata: LocalAllotmentMetadataBuilder::new(),
             bumper: LocalBumpBuilder::new()
         }
     }

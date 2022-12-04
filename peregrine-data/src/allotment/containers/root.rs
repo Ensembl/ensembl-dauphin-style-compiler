@@ -20,6 +20,9 @@ impl Root {
         for child in self.kids.children.values_mut() {
             let build_size = child.build(prep);
             prep.state_request.playing_field_mut().set(child.coordinate_system(),build_size.height);
+            for entry in &build_size.metadata {
+                entry.add(prep.state_request.metadata_mut());
+            }
         }
         for child in self.kids.children.values_mut() {
             child.locate(prep,&constant(0.));
@@ -33,12 +36,12 @@ impl ContainerOrLeaf for Root {
     fn priority(&self) -> i64 { 0 }
     fn coordinate_system(&self) -> &CoordinateSystem { &CoordinateSystem::Window }
     fn anchor_leaf(&self, _answer_index: &StaticAnswer) -> Option<AnchoredLeaf> { None }
-
     fn build(&mut self, _prep: &mut BoxPositionContext) -> BuildSize {
         BuildSize {
             name: self.root_name.clone(),
             height: constant(0.),
-            range: RangeUsed::All
+            range: RangeUsed::All,
+            metadata: vec![]
         } 
     }
 

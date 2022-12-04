@@ -1,6 +1,6 @@
 use std::{sync::{Arc, Mutex}};
 use peregrine_toolkit::{puzzle::{StaticAnswer}, lock, timer_start, timer_end, error::Error };
-use crate::{ShapeRequestGroup, CarriageExtent, shape::{shape::{FloatingShape}, metadata::AbstractMetadataBuilder}, allotment::{core::{allotmentname::allotmentname_hashmap}, leafs::anchored::AnchoredLeaf, layout::stylebuilder::ContainerOrLeaf}, Shape, LeafRequest, AuxLeaf, globals::trainstate::CarriageTrainStateSpec };
+use crate::{ShapeRequestGroup, CarriageExtent, shape::{shape::{FloatingShape}}, allotment::{core::{allotmentname::allotmentname_hashmap}, leafs::anchored::AnchoredLeaf, layout::stylebuilder::ContainerOrLeaf}, Shape, LeafRequest, AuxLeaf, globals::trainstate::CarriageTrainStateSpec };
 use super::{leafrequestsource::LeafRequestSource};
 
 struct FloatingCarriageBuilder {
@@ -12,10 +12,10 @@ struct FloatingCarriageBuilder {
 impl FloatingCarriageBuilder {
     fn build(&mut self) -> Result<FloatingCarriageState,Error> {
         /* Extract metadata */
-        let mut metadata = AbstractMetadataBuilder::new();
-        metadata.add_shapes(&self.shapes);
-        let metadata = metadata.build();
-        let (spec,shapes) = self.builder.to_floating_shapes(&self.shapes,self.shape_request_group.as_ref(),&metadata)?;
+//        let mut metadata = AbstractMetadataBuilder::new();
+  //      metadata.add_shapes(&self.shapes);
+    //    let metadata = metadata.build();
+        let (spec,shapes) = self.builder.to_floating_shapes(&self.shapes,self.shape_request_group.as_ref()/*,&metadata*/)?;
         Ok(FloatingCarriageState { shapes, spec })
     }
 }

@@ -26,12 +26,12 @@ pub struct FloatingLeaf {
     max_y_piece_setter: DelayedSetter<'static,'static,f64>,
     top_setter: Option<DelayedSetter<'static,'static,f64>>,
     pub(super) top: StaticValue<f64>,
-    drawing_info: Arc<LeafShapeBounds>
+    shape_bounds: Arc<LeafShapeBounds>
 }
 
 impl FloatingLeaf {
-    pub fn new(name: &AllotmentName, statics: &LeafStyle, drawing_info: &LeafShapeBounds) -> FloatingLeaf {
-        let drawing_info = Arc::new(drawing_info.clone());
+    pub fn new(name: &AllotmentName, statics: &LeafStyle, shape_bounds: &LeafShapeBounds) -> FloatingLeaf {
+        let shape_bounds = Arc::new(shape_bounds.clone());
         let (max_y_piece_setter,max_y_piece) = promise_delayed();
         if statics.aux.coord_system.is_dustbin() {
             max_y_piece_setter.set(constant(0.));
@@ -50,7 +50,7 @@ impl FloatingLeaf {
             top_setter, top,
             indent,
             indent_setter,
-            drawing_info
+            shape_bounds
         }
     }
 
@@ -79,11 +79,12 @@ impl ContainerOrLeaf for FloatingLeaf {
     fn name(&self) -> &AllotmentName { &self.name }
 
     fn build(&mut self, prep: &mut BoxPositionContext) -> BuildSize {
-        self.max_y_piece_setter.set(constant(self.drawing_info.max_y()));
+        self.max_y_piece_setter.set(constant(self.shape_bounds.max_y()));
         BuildSize {
             name: self.name.clone(),
             height: self.max_y_piece.clone(),
-            range: self.full_range(self.drawing_info.base_range(),self.drawing_info.pixel_range(),&prep.bp_px_converter)
+            range: self.full_range(self.shape_bounds.base_range(),self.shape_bounds.pixel_range(),&prep.bp_px_converter),
+            metadata: self.shape_bounds.metadata().to_vec()
         }
     }
     

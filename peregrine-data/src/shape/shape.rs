@@ -1,4 +1,7 @@
 use std::hash::Hash;
+use peregrine_toolkit::eachorevery::EachOrEvery;
+
+use super::metadata::AllotmentMetadataEntry;
 use super::polygonshape::PolygonShape;
 use super::emptyshape::EmptyShape;
 use super::imageshape::ImageShape;
@@ -12,6 +15,7 @@ use crate::CoordinateSystem;
 use crate::DataMessage;
 use crate::DrawnType;
 use crate::LeafRequest;
+use crate::Patina;
 use crate::SpaceBaseArea;
 use crate::allotment::leafs::anchored::AnchoredLeaf;
 use crate::allotment::leafs::floating::FloatingLeaf;
@@ -144,9 +148,9 @@ impl Shape<AnchoredLeaf> {
     }
 }
 
-fn register_space_area(area: &SpaceBaseArea<f64,LeafRequest>) {
-    for (top_left,bottom_right) in area.iter() {
-        top_left.allotment.drawing_info(|allotment| {
+fn register_space_area(shape: &SpaceBaseArea<f64,LeafRequest>) {
+    for (top_left,bottom_right) in shape.iter() {
+        top_left.allotment.shape_bounds(|allotment| {
             allotment.merge_base_range(&RangeUsed::Part(*top_left.base,*bottom_right.base));
             allotment.merge_pixel_range(&RangeUsed::Part(*top_left.tangent,*bottom_right.tangent));
             allotment.merge_max_y(top_left.normal.ceil());
@@ -155,11 +159,25 @@ fn register_space_area(area: &SpaceBaseArea<f64,LeafRequest>) {
     }
 }
 
+fn register_patina(shape: &RectangleShape<LeafRequest>) {
+    let allotments = shape.area().top_left().allotments();
+    if let Patina::Metadata(key,values) = shape.patina() {
+        for (allotment,entry) in allotments.zip(values,|leaf,(id,value)| {
+            (leaf.clone(),AllotmentMetadataEntry::new(leaf.name(),key,id,value))
+        }).iter(shape.len()).unwrap() {
+            allotment.shape_bounds(|bounds| {
+                bounds.merge_metadata(entry.clone());
+            });
+        }
+    }
+}
+
 impl Shape<LeafRequest> {
     pub fn register_space(&self, assets: &Assets) -> Result<(),DataMessage> {
         match &self {
             Shape::SpaceBaseRect(shape) => {
                 register_space_area(shape.area());
+                register_patina(shape);
             },
             Shape::Empty(area) => {
                 register_space_area(area.area());
@@ -172,7 +190,7 @@ impl Shape<LeafRequest> {
             },
             Shape::Image(shape) => {
                 for (position,asset_name) in shape.position().iter().zip(shape.iter_names()) {
-                    position.allotment.drawing_info(|allotment| {
+                    position.allotment.shape_bounds(|allotment| {
                         allotment.merge_base_range(&RangeUsed::Part(*position.base,*position.base+1.));
                         if let Some(asset) = assets.get(Some(&shape.channel()),asset_name) {
                             if let Some(height) = asset.metadata_u32("height") {
@@ -187,7 +205,7 @@ impl Shape<LeafRequest> {
             },
             Shape::Wiggle(shape) => {
                 for allotment in shape.iter_allotments(1) {
-                    allotment.drawing_info(|allotment| {
+                    allotment.shape_bounds(|allotment| {
                         allotment.merge_base_range(&RangeUsed::All);
                         allotment.merge_max_y(shape.plotter().0);
                     });

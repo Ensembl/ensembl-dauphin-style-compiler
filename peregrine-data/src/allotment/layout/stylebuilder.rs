@@ -1,11 +1,12 @@
 use std::{collections::HashMap, sync::Arc};
 use peregrine_toolkit::{error::Error, puzzle::{StaticValue, derived, StaticAnswer}};
-use crate::{allotment::{core::{allotmentname::{AllotmentName, allotmentname_hashmap, AllotmentNameHashMap}, boxpositioncontext::BoxPositionContext, leafshapebounds::LeafShapeBounds}, containers::{root::Root}, style::{leafstyle::LeafStyle, styletree::StyleTree}, leafs::{floating::FloatingLeaf, anchored::AnchoredLeaf}, util::rangeused::RangeUsed}, LeafRequest, CoordinateSystem };
+use crate::{allotment::{core::{allotmentname::{AllotmentName, allotmentname_hashmap, AllotmentNameHashMap}, boxpositioncontext::BoxPositionContext, leafshapebounds::LeafShapeBounds}, containers::{root::Root}, style::{leafstyle::LeafStyle, styletree::StyleTree}, leafs::{floating::FloatingLeaf, anchored::AnchoredLeaf}, util::rangeused::RangeUsed}, LeafRequest, CoordinateSystem, shape::metadata::AllotmentMetadataEntry };
 
 pub(crate) struct BuildSize {
     pub name: AllotmentName,
     pub height: StaticValue<f64>,
-    pub range: RangeUsed<f64>
+    pub range: RangeUsed<f64>,
+    pub metadata: Vec<AllotmentMetadataEntry>
 }
 
 impl BuildSize {
@@ -44,7 +45,7 @@ impl<'a> StyleBuilder<'a> {
         }
     }
 
-    fn try_new_leaf(&mut self, pending: &LeafRequest) -> Result<FloatingLeaf,Error> {
+    fn add(&mut self, pending: &LeafRequest) -> Result<FloatingLeaf,Error> {
         let name = pending.name().clone();
         if name.is_dustbin() {
             return Ok(self.dustbin.clone());
@@ -62,15 +63,12 @@ impl<'a> StyleBuilder<'a> {
 
 pub(crate) fn make_transformable(pendings: &mut dyn Iterator<Item=&LeafRequest>) -> Result<(Root,AllotmentNameHashMap<FloatingLeaf>),Error> {
     let mut root = Root::new();
-    /* Build box tree */
-    let mut plm = allotmentname_hashmap();
     let mut styler = StyleBuilder::new(&mut root);
+    let mut leaf_map = allotmentname_hashmap();
     for pending in pendings {
-        let xformable = styler.try_new_leaf(&pending)?;
-        plm.insert(pending.name().clone(),xformable);
+        leaf_map.insert(pending.name().clone(),styler.add(&pending)?);
     }
-    drop(styler);
-    Ok((root,plm))
+    Ok((root,leaf_map))
 }
 
 #[cfg(test)]
@@ -78,7 +76,7 @@ mod test {
     use std::{sync::{Arc, Mutex}, collections::{HashMap}};
     use peregrine_toolkit::{puzzle::{AnswerAllocator}};
     use crate::{allotment::{style::styletree::StyleTree, layout::stylebuilder::ContainerOrLeaf}, globals::{allotmentmetadata::{LocalAllotmentMetadata, GlobalAllotmentMetadataBuilder}, trainstate::CarriageTrainStateSpec}, GlobalAllotmentMetadata};
-    use crate::{allotment::{core::{allotmentname::AllotmentName, boxpositioncontext::BoxPositionContext}, util::{bppxconverter::BpPxConverter, rangeused::RangeUsed}, layout::stylebuilder::make_transformable}, LeafRequest, shape::metadata::{AbstractMetadataBuilder}};
+    use crate::{allotment::{core::{allotmentname::AllotmentName, boxpositioncontext::BoxPositionContext}, util::{bppxconverter::BpPxConverter, rangeused::RangeUsed}, layout::stylebuilder::make_transformable}, LeafRequest };
     use serde_json::{Value as JsonValue };
     use crate::globals::{bumping::{GlobalBumpBuilder, GlobalBump}, trainpersistent::TrainPersistent};
 
@@ -97,7 +95,7 @@ mod test {
         for (name,height) in names.iter().zip(heights) {
             let leaf = LeafRequest::new(&AllotmentName::new(name));
             leaf.set_style(style);
-            leaf.drawing_info(|info| {
+            leaf.shape_bounds(|info| {
                 info.merge_max_y(*height);
                 if let Some(ref mut pixel_range) = pixel_range_iter {
                     info.merge_pixel_range(pixel_range.next().unwrap());
@@ -125,7 +123,7 @@ mod test {
         add_style(&mut tree, "z/a/", &[("padding-top","10"),("padding-bottom","5")]);
         add_style(&mut tree, "z/a/1", &[("depth","10"),("coordinate-system","window")]);
         let pending = make_pendings(&["z/a/1","z/a/2","z/a/3","z/b/1","z/b/2","z/b/3"],&[1.,2.,3.],&[],&tree);
-        let mut prep = BoxPositionContext::new(None,&AbstractMetadataBuilder::new().build());
+        let mut prep = BoxPositionContext::new(None);
         let (_spec,plm) = make_transformable(&mut pending.iter()).ok().expect("A");
         let mut aia = AnswerAllocator::new();
         let answer_index = aia.get();
@@ -154,7 +152,7 @@ mod test {
         add_style(&mut tree, "z/a/", &[("padding-top","10"),("padding-bottom","5"),("type","overlay")]);        
         add_style(&mut tree, "z/a/1", &[("depth","10"),("coordinate-system","window")]);
         let pending = make_pendings(&["z/a/1","z/a/2","z/a/3","z/b/1","z/b/2","z/b/3"],&[1.,2.,3.],&[],&tree);
-        let mut prep = BoxPositionContext::new(None,&AbstractMetadataBuilder::new().build());
+        let mut prep = BoxPositionContext::new(None);
         let (_spec,plm) = make_transformable(&mut pending.iter()).ok().expect("A");
         let mut aia = AnswerAllocator::new();
         let answer_index = aia.get();
@@ -199,7 +197,7 @@ mod test {
         add_style(&mut tree, "z/a/1", &[("depth","10"),("system","tracking")]);
         add_style(&mut tree, "**", &[("system","tracking")]);
         let pending = make_pendings(&["z/a/1","z/a/2","z/a/3","z/b/1","z/b/2","z/b/3"],&[1.,2.,3.],&ranges,&tree);
-        let mut prep = BoxPositionContext::new(None,&AbstractMetadataBuilder::new().build());
+        let mut prep = BoxPositionContext::new(None);
         prep.bp_px_converter = Arc::new(BpPxConverter::new_test());
         let (_spec,plm) = make_transformable(&mut pending.iter()).ok().expect("A");
         let metadata = prep.state_request.metadata();

@@ -84,8 +84,10 @@ impl ContainerOrLeaf for Container {
     fn build(&mut self, prep: &mut BoxPositionContext) -> BuildSize {
         let mut ranges = vec![];
         let mut input = vec![];
+        let mut metadata = vec![];
         for child in self.kids.children.values_mut() {
-            let size = child.build(prep);
+            let  mut size = child.build(prep);
+            metadata.append(&mut size.metadata);
             ranges.push(size.range.clone());
             input.push((&*child,size));
         }
@@ -106,7 +108,8 @@ impl ContainerOrLeaf for Container {
         BuildSize {
             name: self.name.clone(),
             height,
-            range
+            range,
+            metadata
         }
     }
 
