@@ -1,6 +1,6 @@
 use std::{rc::Rc};
 use peregrine_toolkit::{puzzle::{derived, DelayedSetter, compose, StaticValue, promise_delayed, cache_constant_rc, short_memoized_rc, compose_slice_vec }};
-use crate::{allotment::{core::{allotmentname::{AllotmentName}, boxpositioncontext::BoxPositionContext}, collision::{collisionalgorithm::{BumpRequestSet, BumpRequest, BumpResponses}}, layout::stylebuilder::{ContainerOrLeaf, BuildSize}}};
+use crate::{allotment::{core::{allotmentname::{AllotmentName}, boxpositioncontext::BoxPositionContext}, collision::{collisionalgorithm::{BumpRequestSet, BumpRequest, BumpResponses, BumpRequestSetBuilder}}, layout::stylebuilder::{ContainerOrLeaf, BuildSize}}};
 use super::container::ContainerSpecifics;
 
 #[derive(Clone)]
@@ -29,9 +29,9 @@ impl ContainerSpecifics for Bumper {
         }
         let items = compose_slice_vec(&items);
         /* build the ConcreteRequests for this container */
-        let factory = prep.bumper_factory.clone();
+        let carriage_index = prep.extent.as_ref().map(|x| x.region().index()).unwrap_or(0);
         let concrete_req = derived(items,move |items| {
-            let mut builder = factory.builder();
+            let mut builder = BumpRequestSetBuilder::new(carriage_index as usize);
             for (name,height,range) in &items {
                 builder.add(BumpRequest::new(name,range,*height));
             }

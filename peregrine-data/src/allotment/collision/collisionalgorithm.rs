@@ -50,28 +50,13 @@ identitynumber!(IDS);
 hashable!(BumpRequestSet,identity);
 orderable!(BumpRequestSet,identity);
 
-#[derive(Clone)]
-pub struct BumpRequestSetFactory {
-    index: usize
-}
-
-impl BumpRequestSetFactory {
-    pub(crate) fn new(index: usize) -> BumpRequestSetFactory {
-        BumpRequestSetFactory { index }
-    }
-
-    pub(crate) fn builder(&self) -> BumpRequestSetBuilder {
-        BumpRequestSetBuilder::new(self.index)
-    }
-}
-
 pub struct BumpRequestSetBuilder {
     members: Vec<BumpRequest>,
     index: usize
 }
 
 impl BumpRequestSetBuilder {
-    fn new(index: usize) -> BumpRequestSetBuilder {
+    pub(crate) fn new(index: usize) -> BumpRequestSetBuilder {
         BumpRequestSetBuilder { members: vec![], index }
     }
 

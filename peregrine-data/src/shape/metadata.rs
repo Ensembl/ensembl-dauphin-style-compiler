@@ -1,5 +1,5 @@
-use peregrine_toolkit::{puzzle::constant, eachorevery::{EachOrEvery, eoestruct::StructTemplate}};
-use crate::{allotment::{core::allotmentname::AllotmentName}, Shape, Patina, LeafRequest, globals::allotmentmetadata::LocalAllotmentMetadataBuilder};
+use peregrine_toolkit::{puzzle::constant, eachorevery::{eoestruct::StructTemplate}};
+use crate::{allotment::{core::allotmentname::AllotmentName}, globals::allotmentmetadata::LocalAllotmentMetadataBuilder};
 
 #[cfg_attr(debug_assertions,derive(Debug))]
 #[derive(Clone)]

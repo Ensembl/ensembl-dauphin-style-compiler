@@ -1,14 +1,14 @@
 use std::sync::Arc;
 use peregrine_toolkit::puzzle::{StaticValue, DelayedSetter, promise_delayed, constant, delayed, StaticAnswer};
-use crate::{allotment::{core::{allotmentname::AllotmentName, leafshapebounds::LeafShapeBounds, boxpositioncontext::BoxPositionContext}, style::{leafstyle::{LeafStyle, Indent}, styletree::StyleTree}, util::{rangeused::RangeUsed, bppxconverter::BpPxConverter}, layout::stylebuilder::{ContainerOrLeaf, BuildSize}}, LeafRequest, CoordinateSystem, globals::playingfield::PlayingFieldEdge};
+use crate::{allotment::{core::{allotmentname::AllotmentName, leafshapebounds::LeafShapeBounds, boxpositioncontext::BoxPositionContext}, style::{leafstyle::{LeafStyle, Indent}, styletree::StyleTree}, util::{rangeused::RangeUsed, bppxconverter::BpPxConverter}, layout::stylebuilder::{ContainerOrLeaf, BuildSize}}, LeafRequest, CoordinateSystem, globals::playingfield::PlayingFieldEdge, ShapeRequestGroup};
 use super::anchored::AnchoredLeaf;
 
 // TODO ranged bppxconverter
-fn full_range_piece(coord_system: &CoordinateSystem, base_range: &RangeUsed<f64>, pixel_range: &RangeUsed<f64>, bp_px_converter: &Arc<BpPxConverter>) -> RangeUsed<f64> {
-    let base_range = base_range.clone();
-    let pixel_range = pixel_range.clone();
-    let bp_px_converter = bp_px_converter.clone();
-    let coord_system = coord_system.clone();
+fn full_range_piece(coord_system: &CoordinateSystem, base_range: &RangeUsed<f64>, pixel_range: &RangeUsed<f64>, bp_px_converter: &BpPxConverter) -> RangeUsed<f64> {
+    //let base_range = base_range.clone();
+    //let pixel_range = pixel_range.clone();
+    //let bp_px_converter = bp_px_converter.clone();
+    //let coord_system = coord_system.clone();
     if coord_system.is_tracking() {
         bp_px_converter.full_carriage_range(&base_range,&pixel_range)
     } else {
@@ -54,9 +54,10 @@ impl FloatingLeaf {
         }
     }
 
-    fn full_range(&self, base_range: &RangeUsed<f64>, pixel_range: &RangeUsed<f64>, bp_px_converter: &Arc<BpPxConverter>) -> RangeUsed<f64> { 
+    fn full_range(&self, base_range: &RangeUsed<f64>, pixel_range: &RangeUsed<f64>, extent: Option<&ShapeRequestGroup>) -> RangeUsed<f64> { 
+        let bp_px_converter = BpPxConverter::new(extent);
         let full_range_piece = full_range_piece(
-            &self.statics.aux.coord_system,&base_range,&pixel_range,bp_px_converter);
+            &self.statics.aux.coord_system,&base_range,&pixel_range,&bp_px_converter);
         if self.statics.aux.coord_system.is_tracking() && !self.statics.bump_invisible {
             full_range_piece.clone()
         } else {
@@ -83,7 +84,7 @@ impl ContainerOrLeaf for FloatingLeaf {
         BuildSize {
             name: self.name.clone(),
             height: self.max_y_piece.clone(),
-            range: self.full_range(self.shape_bounds.base_range(),self.shape_bounds.pixel_range(),&prep.bp_px_converter),
+            range: self.full_range(self.shape_bounds.base_range(),self.shape_bounds.pixel_range(),prep.extent.as_ref()),
             metadata: self.shape_bounds.metadata().to_vec()
         }
     }

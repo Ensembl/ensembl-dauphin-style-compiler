@@ -3,10 +3,10 @@ use peregrine_toolkit::{error::Error, puzzle::{StaticValue, derived, StaticAnswe
 use crate::{allotment::{core::{allotmentname::{AllotmentName, allotmentname_hashmap, AllotmentNameHashMap}, boxpositioncontext::BoxPositionContext, leafshapebounds::LeafShapeBounds}, containers::{root::Root}, style::{leafstyle::LeafStyle, styletree::StyleTree}, leafs::{floating::FloatingLeaf, anchored::AnchoredLeaf}, util::rangeused::RangeUsed}, LeafRequest, CoordinateSystem, shape::metadata::AllotmentMetadataEntry };
 
 pub(crate) struct BuildSize {
-    pub name: AllotmentName,
-    pub height: StaticValue<f64>,
-    pub range: RangeUsed<f64>,
-    pub metadata: Vec<AllotmentMetadataEntry>
+    pub(crate) name: AllotmentName,
+    pub(crate) height: StaticValue<f64>,
+    pub(crate) range: RangeUsed<f64>,
+    pub(crate) metadata: Vec<AllotmentMetadataEntry>
 }
 
 impl BuildSize {
@@ -123,7 +123,6 @@ mod test {
         add_style(&mut tree, "z/a/", &[("padding-top","10"),("padding-bottom","5")]);
         add_style(&mut tree, "z/a/1", &[("depth","10"),("coordinate-system","window")]);
         let pending = make_pendings(&["z/a/1","z/a/2","z/a/3","z/b/1","z/b/2","z/b/3"],&[1.,2.,3.],&[],&tree);
-        let mut prep = BoxPositionContext::new(None);
         let (_spec,plm) = make_transformable(&mut pending.iter()).ok().expect("A");
         let mut aia = AnswerAllocator::new();
         let answer_index = aia.get();
@@ -152,7 +151,6 @@ mod test {
         add_style(&mut tree, "z/a/", &[("padding-top","10"),("padding-bottom","5"),("type","overlay")]);        
         add_style(&mut tree, "z/a/1", &[("depth","10"),("coordinate-system","window")]);
         let pending = make_pendings(&["z/a/1","z/a/2","z/a/3","z/b/1","z/b/2","z/b/3"],&[1.,2.,3.],&[],&tree);
-        let mut prep = BoxPositionContext::new(None);
         let (_spec,plm) = make_transformable(&mut pending.iter()).ok().expect("A");
         let mut aia = AnswerAllocator::new();
         let answer_index = aia.get();
@@ -197,8 +195,7 @@ mod test {
         add_style(&mut tree, "z/a/1", &[("depth","10"),("system","tracking")]);
         add_style(&mut tree, "**", &[("system","tracking")]);
         let pending = make_pendings(&["z/a/1","z/a/2","z/a/3","z/b/1","z/b/2","z/b/3"],&[1.,2.,3.],&ranges,&tree);
-        let mut prep = BoxPositionContext::new(None);
-        prep.bp_px_converter = Arc::new(BpPxConverter::new_test());
+        let prep = BoxPositionContext::new(None);
         let (_spec,plm) = make_transformable(&mut pending.iter()).ok().expect("A");
         let metadata = prep.state_request.metadata();
         let mut aia = AnswerAllocator::new();

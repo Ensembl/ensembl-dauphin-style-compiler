@@ -1,6 +1,4 @@
 use std::hash::Hash;
-use peregrine_toolkit::eachorevery::EachOrEvery;
-
 use super::metadata::AllotmentMetadataEntry;
 use super::polygonshape::PolygonShape;
 use super::emptyshape::EmptyShape;
@@ -19,7 +17,6 @@ use crate::Patina;
 use crate::SpaceBaseArea;
 use crate::allotment::leafs::anchored::AnchoredLeaf;
 use crate::allotment::leafs::floating::FloatingLeaf;
-use crate::allotment::style::leafstyle::LeafStyle;
 use crate::allotment::util::rangeused::RangeUsed;
 
 pub trait ShapeDemerge {
