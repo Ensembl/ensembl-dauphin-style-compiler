@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 use peregrine_toolkit::{error::Error, puzzle::{StaticValue, StaticAnswer}};
-use crate::{allotment::{core::{allotmentname::{AllotmentName, allotmentname_hashmap, AllotmentNameHashMap}, leafshapebounds::LeafShapeBounds}, containers::{root::Root}, style::{leafstyle::LeafStyle, styletree::StyleTree}, leafs::{floating::FloatingLeaf, anchored::AnchoredLeaf}}, LeafRequest, CoordinateSystem };
+use crate::{allotment::{core::{allotmentname::{AllotmentName, allotmentname_hashmap, AllotmentNameHashMap}}, containers::{root::Root}, style::{leafstyle::LeafStyle, styletree::StyleTree}, leafs::{floating::FloatingLeaf, anchored::AnchoredLeaf, leafrequestbounds::LeafRequestBounds}}, LeafRequest, CoordinateSystem };
 use super::{layoutcontext::LayoutContext, contentsize::ContentSize};
 
 pub(crate) trait ContainerOrLeaf {
@@ -25,7 +25,7 @@ impl<'a> StyleBuilder<'a> {
         StyleBuilder {
             root,
             leafs_made: HashMap::new(),
-            dustbin: FloatingLeaf::new(&dustbin_name,&LeafStyle::dustbin(),&LeafShapeBounds::new())
+            dustbin: FloatingLeaf::new(&dustbin_name,&LeafStyle::dustbin(),&LeafRequestBounds::new())
         }
     }
 
@@ -59,8 +59,8 @@ pub(crate) fn make_transformable(pendings: &mut dyn Iterator<Item=&LeafRequest>)
 mod test {
     use std::{sync::{Arc, Mutex}, collections::{HashMap}};
     use peregrine_toolkit::{puzzle::{AnswerAllocator}};
-    use crate::{allotment::{style::styletree::StyleTree, layout::{stylebuilder::ContainerOrLeaf, layoutcontext::LayoutContext}}, globals::{allotmentmetadata::{LocalAllotmentMetadata, GlobalAllotmentMetadataBuilder}, trainstate::CarriageTrainStateSpec}, GlobalAllotmentMetadata};
-    use crate::{allotment::{core::{allotmentname::AllotmentName}, util::{rangeused::RangeUsed}, layout::stylebuilder::make_transformable}, LeafRequest };
+    use crate::{allotment::{style::styletree::StyleTree, layout::{stylebuilder::ContainerOrLeaf, layoutcontext::LayoutContext}, core::rangeused::RangeUsed}, globals::{allotmentmetadata::{LocalAllotmentMetadata, GlobalAllotmentMetadataBuilder}, trainstate::CarriageTrainStateSpec}, GlobalAllotmentMetadata};
+    use crate::{allotment::{core::{allotmentname::AllotmentName}, layout::stylebuilder::make_transformable}, LeafRequest };
     use serde_json::{Value as JsonValue };
     use crate::globals::{bumping::{GlobalBumpBuilder, GlobalBump}, trainpersistent::TrainPersistent};
 
@@ -80,7 +80,7 @@ mod test {
             let leaf = LeafRequest::new(&AllotmentName::new(name));
             leaf.set_style(style);
             leaf.shape_bounds(|info| {
-                info.merge_max_y(*height);
+                info.merge_height(*height);
                 if let Some(ref mut pixel_range) = pixel_range_iter {
                     info.merge_pixel_range(pixel_range.next().unwrap());
                 }    

@@ -1,6 +1,7 @@
 use peregrine_toolkit::error::Error;
+use crate::{ ShapeStore, PeregrineCoreBase, PgCommanderTaskSpec, add_task, api::MessageSender,  shape::{FloatingShapesContainer}, allotment::core::floatingcarriage::FloatingCarriage, CarriageExtent };
 
-use crate::{ ShapeStore, PeregrineCoreBase, PgCommanderTaskSpec, add_task, api::MessageSender,  shape::{FloatingShapesContainer}, ShapeRequestGroup, allotment::core::floatingcarriage::FloatingCarriage, CarriageExtent };
+use super::shaperequestgroup::ShapeRequestGroup;
 
 #[derive(Clone)]
 pub enum LoadMode {

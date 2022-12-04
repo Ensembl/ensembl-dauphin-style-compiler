@@ -1,6 +1,6 @@
 use std::{sync::{Arc}};
 use peregrine_toolkit::{puzzle::{constant, StaticValue, StaticAnswer}};
-use crate::{ allotment::{core::{allotmentname::AllotmentName}, util::rangeused::RangeUsed, style::styletree::StyleTree, leafs::{floating::FloatingLeaf, anchored::AnchoredLeaf}, layout::{stylebuilder::{ContainerOrLeaf}, layoutcontext::LayoutContext, contentsize::ContentSize}}, CoordinateSystem, LeafRequest, globals::trainstate::CarriageTrainStateSpec};
+use crate::{ allotment::{core::{allotmentname::AllotmentName, rangeused::RangeUsed}, style::styletree::StyleTree, leafs::{floating::FloatingLeaf, anchored::AnchoredLeaf}, layout::{stylebuilder::{ContainerOrLeaf}, layoutcontext::LayoutContext, contentsize::ContentSize}}, CoordinateSystem, LeafRequest, globals::trainstate::CarriageTrainStateSpec};
 use super::haskids::HasKids;
 
 pub struct Root {
@@ -38,7 +38,6 @@ impl ContainerOrLeaf for Root {
     fn anchor_leaf(&self, _answer_index: &StaticAnswer) -> Option<AnchoredLeaf> { None }
     fn build(&mut self, _prep: &mut LayoutContext) -> ContentSize {
         ContentSize {
-            name: self.root_name.clone(),
             height: constant(0.),
             range: RangeUsed::All,
             metadata: vec![]

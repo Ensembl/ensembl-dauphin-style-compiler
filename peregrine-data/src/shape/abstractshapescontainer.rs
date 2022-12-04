@@ -1,5 +1,5 @@
 use std::sync::{Arc};
-use crate::{ allotment::{core::{floatingcarriage::{FloatingCarriage}, leafrequestsource::LeafRequestSource}}, ShapeRequestGroup, CarriageExtent, LoadMode, Shape, LeafRequest};
+use crate::{ allotment::{core::{floatingcarriage::{FloatingCarriage}, leafrequestsource::LeafRequestSource}}, CarriageExtent, LoadMode, Shape, LeafRequest, shapeload::shaperequestgroup::ShapeRequestGroup};
 use super::{originstats::OriginStats};
 
 pub struct FloatingShapesContainer {

@@ -1,31 +1,31 @@
-use crate::{allotment::util::rangeused::RangeUsed, shape::metadata::AllotmentMetadataEntry};
+use crate::{shape::metadata::AllotmentMetadataEntry, allotment::core::rangeused::RangeUsed};
 
 #[cfg_attr(debug_assertions,derive(Debug))]
 #[derive(Clone)]
-pub struct LeafShapeBounds {
+pub struct LeafRequestBounds {
     base_range: RangeUsed<f64>,
     pixel_range: RangeUsed<f64>,
-    max_y: f64,
+    height: f64,
     metadata: Vec<AllotmentMetadataEntry>
 }
 
-impl LeafShapeBounds {
-    pub(crate) fn new() -> LeafShapeBounds {
-        LeafShapeBounds {
+impl LeafRequestBounds {
+    pub(crate) fn new() -> LeafRequestBounds {
+        LeafRequestBounds {
             base_range: RangeUsed::None,
             pixel_range: RangeUsed::None,
-            max_y: 0.,
+            height: 0.,
             metadata: vec![]
         }
     }
 
     pub(crate) fn base_range(&self) -> &RangeUsed<f64> { &self.base_range }
     pub(crate) fn pixel_range(&self) -> &RangeUsed<f64> { &self.pixel_range }
-    pub(crate) fn max_y(&self) -> f64 { self.max_y }
+    pub(crate) fn height(&self) -> f64 { self.height }
     pub(crate) fn metadata(&self) -> &[AllotmentMetadataEntry] { &self.metadata }
 
-    pub fn merge_max_y(&mut self, new_max: f64) { 
-        self.max_y = self.max_y.max(new_max);
+    pub fn merge_height(&mut self, new_max: f64) { 
+        self.height = self.height.max(new_max);
     }
 
     pub fn merge_base_range(&mut self, new_range: &RangeUsed<f64>) {

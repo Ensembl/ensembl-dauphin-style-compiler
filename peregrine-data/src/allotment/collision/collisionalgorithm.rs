@@ -1,7 +1,7 @@
 use std::{sync::{Arc, Mutex}, collections::{HashMap, HashSet}, ops::Range, mem};
 use peregrine_toolkit::{lock};
 use peregrine_toolkit::skyline::Skyline;
-use crate::allotment::{util::rangeused::RangeUsed, core::allotmentname::AllotmentName};
+use crate::allotment::{core::{allotmentname::AllotmentName, rangeused::RangeUsed}};
 use super::bumppart::Part;
 use peregrine_toolkit::{identitynumber, hashable, orderable};
 

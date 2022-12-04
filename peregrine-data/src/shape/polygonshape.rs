@@ -1,5 +1,5 @@
 use peregrine_toolkit::eachorevery::{EachOrEveryFilter, EachOrEvery};
-use crate::{DataMessage, ShapeDemerge, Shape, SpaceBase, allotment::{util::rangeused::RangeUsed, leafs::anchored::AnchoredLeaf}, LeafRequest, CoordinateSystem, Patina, reactive::Observable, AuxLeaf};
+use crate::{DataMessage, ShapeDemerge, Shape, SpaceBase, allotment::{leafs::anchored::AnchoredLeaf, core::rangeused::RangeUsed}, LeafRequest, CoordinateSystem, Patina, reactive::Observable, AuxLeaf};
 use std::{hash::Hash,};
 
 #[cfg_attr(debug_assertions,derive(Debug))]
@@ -84,7 +84,7 @@ impl PolygonShape<LeafRequest> {
             position.allotment.shape_bounds(|allotment| {
                 allotment.merge_base_range(&RangeUsed::Part(*position.base,*position.base));
                 allotment.merge_pixel_range(&RangeUsed::Part(*position.tangent-*radius,*position.tangent+*radius));
-                allotment.merge_max_y((position.normal+*radius).ceil());
+                allotment.merge_height((position.normal+*radius).ceil());
             });
         }    
     }

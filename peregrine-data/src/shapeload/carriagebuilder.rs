@@ -1,8 +1,8 @@
 use std::sync::{Mutex, Arc};
 use peregrine_toolkit::{lock, error::Error};
-use crate::{switch::trackconfiglist::TrainTrackConfigList, api::MessageSender, ShapeRequestGroup, PeregrineCoreBase, ShapeStore, allotment::core::{floatingcarriage::FloatingCarriage}, PeregrineApiQueue};
+use crate::{switch::trackconfiglist::TrainTrackConfigList, api::MessageSender, PeregrineCoreBase, ShapeStore, allotment::core::{floatingcarriage::FloatingCarriage}, PeregrineApiQueue};
 use crate::train::model::carriageextent::CarriageExtent;
-use super::loadshapes::{LoadMode, load_carriage_shape_list};
+use super::{loadshapes::{LoadMode, load_carriage_shape_list}, shaperequestgroup::ShapeRequestGroup};
 
 #[derive(Clone)]
 pub(crate) struct CarriageBuilder {

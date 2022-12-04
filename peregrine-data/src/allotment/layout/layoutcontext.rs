@@ -1,4 +1,4 @@
-use crate::{ShapeRequestGroup, globals::trainstate::CarriageTrainStateRequest};
+use crate::{globals::trainstate::CarriageTrainStateRequest, shapeload::shaperequestgroup::ShapeRequestGroup};
 
 pub(crate) struct LayoutContext {
     pub(crate) extent: Option<ShapeRequestGroup>,

@@ -24,8 +24,8 @@ impl ContainerSpecifics for Bumper {
     fn build_reduce(&self, prep: &mut LayoutContext, children: &[(&Box<dyn ContainerOrLeaf>,ContentSize)]) -> StaticValue<f64> {
         /* build all_items, a solution-invariant structure of everything we need to bump each time */
         let mut items = vec![];
-        for (_,size) in children {
-            items.push(size.to_value());
+        for (kid,size) in children {
+            items.push(size.to_value(kid.name()));
         }
         let items = compose_slice_vec(&items);
         /* build the ConcreteRequests for this container */

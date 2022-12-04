@@ -15,9 +15,9 @@ use crate::DrawnType;
 use crate::LeafRequest;
 use crate::Patina;
 use crate::SpaceBaseArea;
+use crate::allotment::core::rangeused::RangeUsed;
 use crate::allotment::leafs::anchored::AnchoredLeaf;
 use crate::allotment::leafs::floating::FloatingLeaf;
-use crate::allotment::util::rangeused::RangeUsed;
 
 pub trait ShapeDemerge {
     type X: Hash + PartialEq + Eq;
@@ -150,8 +150,8 @@ fn register_space_area(shape: &SpaceBaseArea<f64,LeafRequest>) {
         top_left.allotment.shape_bounds(|allotment| {
             allotment.merge_base_range(&RangeUsed::Part(*top_left.base,*bottom_right.base));
             allotment.merge_pixel_range(&RangeUsed::Part(*top_left.tangent,*bottom_right.tangent));
-            allotment.merge_max_y(top_left.normal.ceil());
-            allotment.merge_max_y(bottom_right.normal.ceil());
+            allotment.merge_height(top_left.normal.ceil());
+            allotment.merge_height(bottom_right.normal.ceil());
         });
     }
 }
@@ -191,7 +191,7 @@ impl Shape<LeafRequest> {
                         allotment.merge_base_range(&RangeUsed::Part(*position.base,*position.base+1.));
                         if let Some(asset) = assets.get(Some(&shape.channel()),asset_name) {
                             if let Some(height) = asset.metadata_u32("height") {
-                                allotment.merge_max_y((position.normal + (height as f64)).ceil());
+                                allotment.merge_height((position.normal + (height as f64)).ceil());
                             }
                             if let Some(width) = asset.metadata_u32("width") {
                                 allotment.merge_pixel_range(&RangeUsed::Part(0.,(position.normal + (width as f64)).ceil()));
@@ -204,7 +204,7 @@ impl Shape<LeafRequest> {
                 for allotment in shape.iter_allotments(1) {
                     allotment.shape_bounds(|allotment| {
                         allotment.merge_base_range(&RangeUsed::All);
-                        allotment.merge_max_y(shape.plotter().0);
+                        allotment.merge_height(shape.plotter().0);
                     });
                 }
             }

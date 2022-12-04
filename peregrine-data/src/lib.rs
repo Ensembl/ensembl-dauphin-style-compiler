@@ -13,6 +13,7 @@ mod allotment {
         pub(crate) mod anchored;
         pub(crate) mod auxleaf;
         pub(crate) mod leafrequest;
+        pub(crate) mod leafrequestbounds;
     }
 
     pub(crate) mod layout {
@@ -39,14 +40,8 @@ mod allotment {
         pub(crate) mod allotmentname;
         pub(crate) mod floatingcarriage;
         pub(crate) mod leafrequestsource;
-        pub(crate) mod leafshapebounds;
-    }
-
-    pub(crate) mod util {
-        pub(crate) mod bppxconverter;
         pub(crate) mod rangeused;
     }
-
 }
 
 pub(crate) mod globals {
@@ -125,12 +120,13 @@ mod shapeload {
     mod datastore;
     mod objectbuilder;
     mod shaperequest;
+    pub(crate) mod shaperequestgroup;
     pub(crate) mod loadshapes;
     mod resultstore;
     pub(crate) mod programname;
 
     pub use self::datastore::{ DataStore };
-    pub use self::shaperequest::{ Region, ShapeRequest, ShapeRequestGroup };
+    pub use self::shaperequest::{ Region, ShapeRequest };
     pub use self::loadshapes::LoadMode;
     pub use self::resultstore::{ ShapeStore, RunReport };
     pub use self::objectbuilder::ObjectBuilder;
@@ -303,7 +299,7 @@ pub use self::core::dataalgorithm::DataAlgorithm;
 pub use self::core::channel::channelintegration::{ ChannelIntegration, ChannelSender, ChannelResponse, TrivialChannelResponse, ChannelMessageDecoder, null_payload };
 pub use self::index::{ StickStore };
 pub use self::core::program::programbundle::{ SuppliedBundle, UnpackedSuppliedBundle };
-pub use self::shapeload::{ Region, ShapeStore, DataStore, ShapeRequest, ShapeRequestGroup, LoadMode, ObjectBuilder, RunReport };
+pub use self::shapeload::{ Region, ShapeStore, DataStore, ShapeRequest, LoadMode, ObjectBuilder, RunReport };
 pub use self::run::{ PgCommander, PgCommanderTaskSpec, PgDauphin, Commander, InstancePayload, add_task, complete_task, async_complete_task };
 pub use self::request::core::maxirequest::{ MaxiRequest };
 pub use self::request::core::maxiresponse::{ MaxiResponse, MaxiResponseDeserialize };
