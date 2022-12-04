@@ -16,7 +16,9 @@ mod allotment {
     }
 
     pub(crate) mod layout {
+        pub(crate) mod contentsize;
         pub(crate) mod stylebuilder;
+        pub(crate) mod layoutcontext;
     }
     
     pub(crate) mod collision {
@@ -34,7 +36,6 @@ mod allotment {
     }
 
     pub(crate) mod core {
-        pub(crate) mod boxpositioncontext;
         pub(crate) mod allotmentname;
         pub(crate) mod floatingcarriage;
         pub(crate) mod leafrequestsource;

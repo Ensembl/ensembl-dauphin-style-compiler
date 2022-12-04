@@ -1,6 +1,6 @@
 use std::{rc::Rc};
 use peregrine_toolkit::{puzzle::{derived, DelayedSetter, compose, StaticValue, promise_delayed, cache_constant_rc, short_memoized_rc, compose_slice_vec }};
-use crate::{allotment::{core::{allotmentname::{AllotmentName}, boxpositioncontext::BoxPositionContext}, collision::{collisionalgorithm::{BumpRequestSet, BumpRequest, BumpResponses, BumpRequestSetBuilder}}, layout::stylebuilder::{ContainerOrLeaf, BuildSize}}};
+use crate::{allotment::{core::{allotmentname::{AllotmentName}}, collision::{collisionalgorithm::{BumpRequestSet, BumpRequest, BumpResponses, BumpRequestSetBuilder}}, layout::{stylebuilder::{ContainerOrLeaf}, layoutcontext::LayoutContext, contentsize::ContentSize}}};
 use super::container::ContainerSpecifics;
 
 #[derive(Clone)]
@@ -21,7 +21,7 @@ impl Bumper {
 }
 
 impl ContainerSpecifics for Bumper {
-    fn build_reduce(&self, prep: &mut BoxPositionContext, children: &[(&Box<dyn ContainerOrLeaf>,BuildSize)]) -> StaticValue<f64> {
+    fn build_reduce(&self, prep: &mut LayoutContext, children: &[(&Box<dyn ContainerOrLeaf>,ContentSize)]) -> StaticValue<f64> {
         /* build all_items, a solution-invariant structure of everything we need to bump each time */
         let mut items = vec![];
         for (_,size) in children {
@@ -43,7 +43,7 @@ impl ContainerSpecifics for Bumper {
         derived(self.results.clone(),|c| c.height() as f64)
     }
 
-    fn set_locate(&self, prep: &mut BoxPositionContext, top: &StaticValue<f64>, children: &mut [&mut Box<dyn ContainerOrLeaf>]) {
+    fn set_locate(&self, prep: &mut LayoutContext, top: &StaticValue<f64>, children: &mut [&mut Box<dyn ContainerOrLeaf>]) {
         for child in children.iter_mut() {
             /* Retrieve algorithm offset from bumper top */
             let name = child.name().clone();

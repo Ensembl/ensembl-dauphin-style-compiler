@@ -1,13 +1,13 @@
 use crate::{ShapeRequestGroup, globals::trainstate::CarriageTrainStateRequest};
 
-pub(crate) struct BoxPositionContext {
+pub(crate) struct LayoutContext {
     pub(crate) extent: Option<ShapeRequestGroup>,
     pub(crate) state_request: CarriageTrainStateRequest,
 }
 
-impl BoxPositionContext {
-    pub(crate) fn new(extent: Option<&ShapeRequestGroup>) -> BoxPositionContext {
-        BoxPositionContext {
+impl LayoutContext {
+    pub(crate) fn new(extent: Option<&ShapeRequestGroup>) -> LayoutContext {
+        LayoutContext {
             extent: extent.cloned(),
             state_request: CarriageTrainStateRequest::new(),
         }

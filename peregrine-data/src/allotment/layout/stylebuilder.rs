@@ -1,28 +1,12 @@
 use std::{collections::HashMap, sync::Arc};
-use peregrine_toolkit::{error::Error, puzzle::{StaticValue, derived, StaticAnswer}};
-use crate::{allotment::{core::{allotmentname::{AllotmentName, allotmentname_hashmap, AllotmentNameHashMap}, boxpositioncontext::BoxPositionContext, leafshapebounds::LeafShapeBounds}, containers::{root::Root}, style::{leafstyle::LeafStyle, styletree::StyleTree}, leafs::{floating::FloatingLeaf, anchored::AnchoredLeaf}, util::rangeused::RangeUsed}, LeafRequest, CoordinateSystem, shape::metadata::AllotmentMetadataEntry };
-
-pub(crate) struct BuildSize {
-    pub(crate) name: AllotmentName,
-    pub(crate) height: StaticValue<f64>,
-    pub(crate) range: RangeUsed<f64>,
-    pub(crate) metadata: Vec<AllotmentMetadataEntry>
-}
-
-impl BuildSize {
-    pub(crate) fn to_value(&self) -> StaticValue<(AllotmentName,f64,RangeUsed<f64>)> {
-        let name = self.name.clone();
-        let range = self.range.clone();
-        derived(self.height.clone(),move |h| {
-            (name.clone(),h,range.clone())
-        })
-    }
-}
+use peregrine_toolkit::{error::Error, puzzle::{StaticValue, StaticAnswer}};
+use crate::{allotment::{core::{allotmentname::{AllotmentName, allotmentname_hashmap, AllotmentNameHashMap}, leafshapebounds::LeafShapeBounds}, containers::{root::Root}, style::{leafstyle::LeafStyle, styletree::StyleTree}, leafs::{floating::FloatingLeaf, anchored::AnchoredLeaf}}, LeafRequest, CoordinateSystem };
+use super::{layoutcontext::LayoutContext, contentsize::ContentSize};
 
 pub(crate) trait ContainerOrLeaf {
     fn coordinate_system(&self) -> &CoordinateSystem;
-    fn build(&mut self, prep: &mut BoxPositionContext) -> BuildSize;
-    fn locate(&mut self, prep: &mut BoxPositionContext, top: &StaticValue<f64>);
+    fn build(&mut self, prep: &mut LayoutContext) -> ContentSize;
+    fn locate(&mut self, prep: &mut LayoutContext, top: &StaticValue<f64>);
     fn name(&self) -> &AllotmentName;
     fn priority(&self) -> i64;
     fn anchor_leaf(&self, answer_index: &StaticAnswer) -> Option<AnchoredLeaf>;
@@ -75,8 +59,8 @@ pub(crate) fn make_transformable(pendings: &mut dyn Iterator<Item=&LeafRequest>)
 mod test {
     use std::{sync::{Arc, Mutex}, collections::{HashMap}};
     use peregrine_toolkit::{puzzle::{AnswerAllocator}};
-    use crate::{allotment::{style::styletree::StyleTree, layout::stylebuilder::ContainerOrLeaf}, globals::{allotmentmetadata::{LocalAllotmentMetadata, GlobalAllotmentMetadataBuilder}, trainstate::CarriageTrainStateSpec}, GlobalAllotmentMetadata};
-    use crate::{allotment::{core::{allotmentname::AllotmentName, boxpositioncontext::BoxPositionContext}, util::{bppxconverter::BpPxConverter, rangeused::RangeUsed}, layout::stylebuilder::make_transformable}, LeafRequest };
+    use crate::{allotment::{style::styletree::StyleTree, layout::{stylebuilder::ContainerOrLeaf, layoutcontext::LayoutContext}}, globals::{allotmentmetadata::{LocalAllotmentMetadata, GlobalAllotmentMetadataBuilder}, trainstate::CarriageTrainStateSpec}, GlobalAllotmentMetadata};
+    use crate::{allotment::{core::{allotmentname::AllotmentName}, util::{rangeused::RangeUsed}, layout::stylebuilder::make_transformable}, LeafRequest };
     use serde_json::{Value as JsonValue };
     use crate::globals::{bumping::{GlobalBumpBuilder, GlobalBump}, trainpersistent::TrainPersistent};
 
@@ -195,7 +179,7 @@ mod test {
         add_style(&mut tree, "z/a/1", &[("depth","10"),("system","tracking")]);
         add_style(&mut tree, "**", &[("system","tracking")]);
         let pending = make_pendings(&["z/a/1","z/a/2","z/a/3","z/b/1","z/b/2","z/b/3"],&[1.,2.,3.],&ranges,&tree);
-        let prep = BoxPositionContext::new(None);
+        let prep = LayoutContext::new(None);
         let (_spec,plm) = make_transformable(&mut pending.iter()).ok().expect("A");
         let metadata = prep.state_request.metadata();
         let mut aia = AnswerAllocator::new();

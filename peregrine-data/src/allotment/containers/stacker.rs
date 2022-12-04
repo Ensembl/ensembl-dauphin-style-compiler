@@ -1,6 +1,6 @@
 use std::{sync::Arc, rc::Rc};
 use peregrine_toolkit::{puzzle::{ derived, DelayedSetter, delayed, compose, StaticValue, commute_clonable, cache_constant_clonable, compose_slice_vec, short_memoized, cache_constant_rc }};
-use crate::{allotment::{core::{boxpositioncontext::BoxPositionContext}, layout::stylebuilder::{ContainerOrLeaf, BuildSize}}};
+use crate::{allotment::{layout::{stylebuilder::{ContainerOrLeaf}, layoutcontext::LayoutContext, contentsize::ContentSize}}};
 
 use super::container::ContainerSpecifics;
 
@@ -52,7 +52,7 @@ impl Stacker {
 }
 
 impl ContainerSpecifics for Stacker {
-    fn build_reduce(&self, _prep: &mut BoxPositionContext, children: &[(&Box<dyn ContainerOrLeaf>,BuildSize)]) -> StaticValue<f64> {
+    fn build_reduce(&self, _prep: &mut LayoutContext, children: &[(&Box<dyn ContainerOrLeaf>,ContentSize)]) -> StaticValue<f64> {
         let mut added = vec![];
         for (child,size) in children {
             added.push(AddedChild {
@@ -65,7 +65,7 @@ impl ContainerSpecifics for Stacker {
         self_height
     }
 
-    fn set_locate(&self, prep: &mut BoxPositionContext, top: &StaticValue<f64>, children: &mut [&mut Box<dyn ContainerOrLeaf>]) {
+    fn set_locate(&self, prep: &mut LayoutContext, top: &StaticValue<f64>, children: &mut [&mut Box<dyn ContainerOrLeaf>]) {
         for (i,child) in children.iter_mut().enumerate() {
             let relative_top = derived(self.relative_tops.clone(),move |tops|
                 tops.unwrap()[i]

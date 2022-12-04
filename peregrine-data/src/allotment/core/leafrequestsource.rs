@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use peregrine_toolkit::error::Error;
-use crate::{LeafRequest, ShapeRequestGroup, allotment::{layout::stylebuilder::make_transformable, leafs::floating::FloatingLeaf}, Shape, globals::trainstate::CarriageTrainStateSpec};
-use super::{allotmentname::{allotmentname_hashmap, AllotmentName, AllotmentNameHashMap}, boxpositioncontext::BoxPositionContext };
+use crate::{LeafRequest, ShapeRequestGroup, allotment::{layout::{stylebuilder::make_transformable, layoutcontext::LayoutContext}, leafs::floating::FloatingLeaf}, Shape, globals::trainstate::CarriageTrainStateSpec};
+use super::{allotmentname::{allotmentname_hashmap, AllotmentName, AllotmentNameHashMap}};
 
 pub(crate) struct LeafRequestSource {
     leafs: AllotmentNameHashMap<LeafRequest>
@@ -36,7 +36,7 @@ impl LeafRequestSource {
         /* makes the layout tree */
         let (mut root,plm) = make_transformable(&mut self.leafs.values())?;
         /* runs the up-and-down algorithm to place tree boxes */
-        let mut prep = BoxPositionContext::new(extent);
+        let mut prep = LayoutContext::new(extent);
         let spec = root.full_build(&mut prep);
         /* Maps shapes to new FloatingLeafs */
         let shapes = shapes.iter().map(|x| 

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 use peregrine_toolkit::puzzle::{StaticValue, DelayedSetter, promise_delayed, constant, delayed, StaticAnswer};
-use crate::{allotment::{core::{allotmentname::AllotmentName, leafshapebounds::LeafShapeBounds, boxpositioncontext::BoxPositionContext}, style::{leafstyle::{LeafStyle, Indent}, styletree::StyleTree}, util::{rangeused::RangeUsed, bppxconverter::BpPxConverter}, layout::stylebuilder::{ContainerOrLeaf, BuildSize}}, LeafRequest, CoordinateSystem, globals::playingfield::PlayingFieldEdge, ShapeRequestGroup};
+use crate::{allotment::{core::{allotmentname::AllotmentName, leafshapebounds::LeafShapeBounds}, style::{leafstyle::{LeafStyle, Indent}, styletree::StyleTree}, util::{rangeused::RangeUsed, bppxconverter::BpPxConverter}, layout::{stylebuilder::{ContainerOrLeaf}, layoutcontext::LayoutContext, contentsize::ContentSize}}, LeafRequest, CoordinateSystem, globals::playingfield::PlayingFieldEdge, ShapeRequestGroup};
 use super::anchored::AnchoredLeaf;
 
 // TODO ranged bppxconverter
@@ -79,9 +79,9 @@ impl ContainerOrLeaf for FloatingLeaf {
     fn priority(&self) -> i64 { self.statics.priority }
     fn name(&self) -> &AllotmentName { &self.name }
 
-    fn build(&mut self, prep: &mut BoxPositionContext) -> BuildSize {
+    fn build(&mut self, prep: &mut LayoutContext) -> ContentSize {
         self.max_y_piece_setter.set(constant(self.shape_bounds.max_y()));
-        BuildSize {
+        ContentSize {
             name: self.name.clone(),
             height: self.max_y_piece.clone(),
             range: self.full_range(self.shape_bounds.base_range(),self.shape_bounds.pixel_range(),prep.extent.as_ref()),
@@ -89,7 +89,7 @@ impl ContainerOrLeaf for FloatingLeaf {
         }
     }
     
-    fn locate(&mut self, prep: &mut BoxPositionContext, value: &StaticValue<f64>) {
+    fn locate(&mut self, prep: &mut LayoutContext, value: &StaticValue<f64>) {
         let sr = &mut prep.state_request;
         let indent = match &self.statics.indent {
             Indent::None => None,

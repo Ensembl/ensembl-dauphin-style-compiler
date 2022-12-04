@@ -1,11 +1,11 @@
 use std::{sync::{Arc}};
 use peregrine_toolkit::{puzzle::{DelayedSetter, derived, cache_constant, constant, StaticValue, promise_delayed, short_memoized_clonable, cache_constant_clonable, StaticAnswer }, eachorevery::eoestruct::StructTemplate};
-use crate::{allotment::{core::{allotmentname::{AllotmentName}, boxpositioncontext::BoxPositionContext}, style::{containerstyle::{ContainerStyle}, metadataproperty::MetadataStyle}, util::rangeused::RangeUsed, style::{styletree::StyleTree}, leafs::{floating::FloatingLeaf, anchored::AnchoredLeaf}, layout::stylebuilder::{ContainerOrLeaf, BuildSize}}, CoordinateSystem, LeafRequest, globals::allotmentmetadata::LocalAllotmentMetadataBuilder};
+use crate::{allotment::{core::{allotmentname::{AllotmentName}}, style::{containerstyle::{ContainerStyle}, metadataproperty::MetadataStyle}, util::rangeused::RangeUsed, style::{styletree::StyleTree}, leafs::{floating::FloatingLeaf, anchored::AnchoredLeaf}, layout::{stylebuilder::{ContainerOrLeaf}, layoutcontext::LayoutContext, contentsize::ContentSize}}, CoordinateSystem, LeafRequest, globals::allotmentmetadata::LocalAllotmentMetadataBuilder};
 use super::{haskids::HasKids};
 
 pub(crate) trait ContainerSpecifics {
-    fn build_reduce(&self, prep: &mut BoxPositionContext, children: &[(&Box<dyn ContainerOrLeaf>,BuildSize)]) -> StaticValue<f64>;
-    fn set_locate(&self, prep: &mut BoxPositionContext, top: &StaticValue<f64>, children: &mut [&mut Box<dyn ContainerOrLeaf>]);
+    fn build_reduce(&self, prep: &mut LayoutContext, children: &[(&Box<dyn ContainerOrLeaf>,ContentSize)]) -> StaticValue<f64>;
+    fn set_locate(&self, prep: &mut LayoutContext, top: &StaticValue<f64>, children: &mut [&mut Box<dyn ContainerOrLeaf>]);
 }
 
 fn internal_height(child_height: &StaticValue<f64>, min_height: f64, padding_top: f64, padding_bottom: f64) -> StaticValue<f64> {
@@ -67,7 +67,7 @@ impl ContainerOrLeaf for Container {
     }
 
     fn coordinate_system(&self) -> &CoordinateSystem { &self.coord_system }
-    fn locate(&mut self, prep: &mut BoxPositionContext, value: &StaticValue<f64>) {
+    fn locate(&mut self, prep: &mut LayoutContext, value: &StaticValue<f64>) {
         let value = cache_constant_clonable(short_memoized_clonable(value.clone()));
         let mut kids = self.kids.children.values_mut().collect::<Vec<_>>();
         let padding_top = self.style.padding.padding_top;
@@ -81,7 +81,7 @@ impl ContainerOrLeaf for Container {
 
     fn name(&self) -> &AllotmentName { &self.name }
 
-    fn build(&mut self, prep: &mut BoxPositionContext) -> BuildSize {
+    fn build(&mut self, prep: &mut LayoutContext) -> ContentSize {
         let mut ranges = vec![];
         let mut input = vec![];
         let mut metadata = vec![];
@@ -105,7 +105,7 @@ impl ContainerOrLeaf for Container {
             add_report(prep.state_request.metadata_mut(),&self.name,report,&self.top,&arc_height);
         }
         let range = ranges.iter().fold(RangeUsed::None,|a,b| { a.merge(b) });
-        BuildSize {
+        ContentSize {
             name: self.name.clone(),
             height,
             range,

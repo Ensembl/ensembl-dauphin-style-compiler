@@ -12,9 +12,6 @@ struct FloatingCarriageBuilder {
 impl FloatingCarriageBuilder {
     fn build(&mut self) -> Result<FloatingCarriageState,Error> {
         /* Extract metadata */
-//        let mut metadata = AbstractMetadataBuilder::new();
-  //      metadata.add_shapes(&self.shapes);
-    //    let metadata = metadata.build();
         let (spec,shapes) = self.builder.to_floating_shapes(&self.shapes,self.shape_request_group.as_ref()/*,&metadata*/)?;
         Ok(FloatingCarriageState { shapes, spec })
     }
