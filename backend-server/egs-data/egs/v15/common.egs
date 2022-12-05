@@ -164,7 +164,7 @@ stmt report_all(rs_transcript_id,rs_focus_id,rs_focus_gene,rs_gn_tr,rs_al_focus_
     rectangle(spacebase(len([all_ids]) (*) 0,0,0),spacebase(len([all_ids]) (*) 1,0,0),trans_patina2,rs_al_focus_bgd);
 }
 
-stmt calc_focus_transcripts_shown(s_bool_show_tr,s_id_gn,s_id_tr,s_which_gn_by_tr,s_focus_id,s_focus_gene,s_idx_tr_in_gn) {
+stmt calc_focus_transcripts_shown(do_ghost,s_bool_report_show_tr,s_bool_show_tr,s_id_gn,s_id_tr,s_which_gn_by_tr,s_focus_id,s_focus_gene,s_idx_tr_in_gn) {
     /* Transcripts to be shown is determined by enabled-transcripts list if not null.
      * If it is null, it's determined by the "several" setting.
      * For simplicity we just calculate both and choose.
@@ -190,11 +190,19 @@ stmt calc_focus_transcripts_shown(s_bool_show_tr,s_id_gn,s_id_tr,s_which_gn_by_t
 
     /* Choose */
     enabled_is_null := setting_isnull("enabled-transcripts");
-    s_bool_show_tr := et_bool_show_tr;
-    s_bool_show_tr#[enabled_is_null] := sv_bool_show_tr;
+    s_bool_report_show_tr := et_bool_show_tr;
+    s_bool_report_show_tr#[enabled_is_null] := sv_bool_show_tr;
+
+    /* reenable ghost */
+    // TODO implement and; horribly inefficient!
+    s_bool_show_tr := s_bool_report_show_tr;
+    do_ghost := len([enabled_transcripts])==0;
+    ghost := [true,len([s_bool_show_tr])-1 (*) false][];
+    ghost#[do_ghost==false] := false;
+    s_bool_show_tr#[ghost] := true;
 }
 
-stmt draw_labels(s_idx_drawn_tr_gn,s_which_gn_by_tr,s_start_gn,s_end_gn,s_gene_name,s_id_tr,s_textpen_blue,s_al_trtext_by_tr, s_num_drawn_tr_gn, s_textpen, s_bool_show_tr, s_enabled_gene_labels, s_enabled_transcripts) {
+stmt draw_labels(is_ghosted,s_idx_drawn_tr_gn,s_which_gn_by_tr,s_start_gn,s_end_gn,s_gene_name,s_id_tr,s_textpen_blue,s_al_trtext_by_tr, s_num_drawn_tr_gn, s_textpen, s_bool_show_tr, s_enabled_gene_labels, s_enabled_transcripts) {
     al_label_by_tr := index(which_gn_by_tr,[al_label_by_gn]);
     al_label_by_tr#[s_bool_show_tr==false] := "";
 
@@ -216,7 +224,9 @@ stmt draw_labels(s_idx_drawn_tr_gn,s_which_gn_by_tr,s_start_gn,s_end_gn,s_gene_n
     last_tr#[enabled_gene_labels_by_tr==false] := false;
     label_id_tr#[last_tr] := concat(len([label_id_tr#[last_tr]]) (*) " \0c-",label_id_tr#[last_tr]);
     genelabel_by_tr := index(s_which_gn_by_tr,[s_gene_name]);
-    genelabel_by_tr := concat(len([genelabel_by_tr]) (*) "\0c6F8190",genelabel_by_tr);
+    gene_colour := "\0c6F8190";
+    gene_colour#[is_ghosted] := "\0cc1c8ce";
+    genelabel_by_tr := concat(len([genelabel_by_tr]) (*) gene_colour,genelabel_by_tr);
     label_id_tr#[last_tr] := concat(genelabel_by_tr#[last_tr],label_id_tr#[last_tr]);
     running_text(tr_label_start,tr_label_end,s_textpen_blue,label_id_tr,al_label_by_tr);
 }

@@ -430,6 +430,7 @@ rectangle(w,e,pt_zmenu_tr,al_under_by_tr);
 
 /* gene & transcript labels */
 draw_labels(
+    false,
     idx_drawn_tr_gn, which_gn_by_tr,
     start_gn, end_gn,
     gene_name,id_tr_vr, textpen_blue,

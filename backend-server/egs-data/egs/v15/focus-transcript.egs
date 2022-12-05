@@ -158,7 +158,7 @@ style("**/main/background/content",["depth","padding-top"][],["-10","32"][]);
 enabled_gene_labels := setting_yn("focus-gene-label");
 enabled_transcript_labels := setting_yn("focus-transcript-label");
 
-calc_focus_transcripts_shown(bool_show_tr,id_gn_vr,id_tr_vr,which_gn_by_tr,id_gn_uv,focus_gene_id,idx_tr_in_gn);
+calc_focus_transcripts_shown(is_ghosted,bool_report_show_tr,bool_show_tr,id_gn_vr,id_tr_vr,which_gn_by_tr,id_gn_uv,focus_gene_id,idx_tr_in_gn);
 
 /* index the rest (by gene) */
 drawn_tr_gn := which_gn_by_tr;
@@ -236,6 +236,9 @@ end_focus := end_gn#[id_gn_uv==focus_gene_id];
  */
 
 base_focus_colour := direct_colour(39,154,252,255);
+ghost_focus_colour := direct_colour(200,228,252,255);
+base_focus_colour#[is_ghosted] := ghost_focus_colour;
+
 
 dotted_focus_colour := barred(direct_colour(255,255,255,255),base_focus_colour,4,0,0.5);
 focus_colour := simple_colour(base_focus_colour);
@@ -245,8 +248,10 @@ pt_hollow_by_ex := patina_hollow(focus_colour,1);
 pt_white := patina_filled(simple_colour(direct_colour(255,255,255,255)));
 pt_thick_by_thex := patina_filled(focus_colour);
 text_colour := direct_colour(111,129,144,255);
+
 white_text_colour := direct_colour(255,255,255,255);
 blue_text_colour := direct_colour(111,129,255,255);
+blue_text_colour#[is_ghosted] := direct_colour(255,255,144,255);
 text_size := 10;
 
 textpen := pen("'IBM Plex Mono', sans-serif",text_size,text_colour,[][]);
@@ -334,6 +339,7 @@ rectangle(w,e,pt_zmenu_tr,al_under_by_tr);
 
 /* gene & transcript labels */
 draw_labels(
+    is_ghosted,
     idx_drawn_tr_gn, which_gn_by_tr,
     start_gn, end_gn,
     gene_name, id_tr_vr, textpen_blue, al_trtext_by_tr,   
@@ -373,7 +379,7 @@ red_dotted(start_focus,end_focus,use_allotment("dots/content"),comma_format(star
 
 /* report transcripts shown */
 report_allotment := use_allotment("tracks/track/focus/main/background/content");
-report_shown(bool_show_tr,id_tr_vr,report_allotment);
+report_shown(bool_report_show_tr,id_tr_vr,report_allotment);
 report_id(focus_gene_id,report_allotment);
 report_all(id_tr_vr,id_gn_uv,focus_gene_id,which_gn_by_tr,report_allotment);
 report_suppressed(false,report_allotment);
