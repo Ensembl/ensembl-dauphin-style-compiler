@@ -46,28 +46,28 @@ first = "gene_id"
 [tangle.designated_transcript_biotypes]
 classify = "transcript_biotype"
 first = "gene_id"
-condition = "block"
+#condition = "block"
 
 [tangle.designated_transcript_ids]
 string = "transcript_id"
 first = "gene_id"
-condition = "block"
+#condition = "block"
 
 [tangle.designated_transcript_id]
 string = "unversioned_transcript_id"
 first = "gene_id"
-condition = "block"
+#condition = "block"
 
 [tangle.designated_transcript_id_version]
 string = "transcript_id"
 without_prefix_source = "unversioned_transcript_id"
 first = "gene_id"
-condition = "block"
+#condition = "block"
 
 [tangle.designated_transcript_designations]
 classify = "transcript_designation"
 first = "gene_id"
-condition = "block"
+#condition = "block"
 
 #
 # Transcript level

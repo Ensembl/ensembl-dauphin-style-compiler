@@ -16,6 +16,7 @@ html, body {
 .other {
     min-width: 300px;
     grid-row: 1/3;
+    overflow-y: scroll;
 }
 
 .other2 {

@@ -10,7 +10,7 @@ get_focus_gene(focus_genome_id,focus_gene_id);
 
 /* Get the data */
 
-req := make_request("self()","gene",get_region());
+req := make_request("self()","transcript",get_region());
 req := request_scope(req,"id",focus_gene_id);
 req := request_scope(req,"genome",focus_genome_id);
 data := get_data(req);
@@ -37,6 +37,13 @@ designated_transcript_biotype := data_string(data,"designated_transcript_biotype
 designated_transcript_designation := data_string(data,"designated_transcript_designations");
 strand_string := len([strand]) (*) "reverse strand";
 strand_string#[strand>0] := "forward strand";
+id_tr_uv := data_string(data,"transcript_id");
+id_tr_vo := data_string(data,"transcript_id_version");
+id_tr_vr := concat(id_tr_uv,id_tr_vo);
+idx_tr_in_gn := run(data_number(data,"transcript_counts"));
+
+num_tr_by_gn := data_number(data,"transcript_counts");
+which_gn_by_tr := derun(num_tr_by_gn);
 
 /*
 
@@ -160,3 +167,10 @@ draw_track_category("G",[allotment_letter]);
 start_focus := start#[id_gn_uv==focus_gene_id];
 end_focus := end#[id_gn_uv==focus_gene_id];
 red_dotted(start_focus,end_focus,use_allotment("dots/content"),comma_format(start_focus),comma_format(end_focus));
+
+/* report transcripts (not!) shown */
+
+calc_focus_transcripts_shown(bool_show_tr,id_gn_vr,id_tr_vr,which_gn_by_tr,id_gn_uv,focus_gene_id,idx_tr_in_gn);
+report_shown(bool_show_tr,id_tr_vr,use_allotment("tracks/track/focus/main/background/content"));
+report_id(focus_gene_id,use_allotment("tracks/track/focus/main/background/content"));
+report_all(id_tr_vr,id_gn_uv,focus_gene_id,which_gn_by_tr,use_allotment("tracks/track/focus/main/background/content"));

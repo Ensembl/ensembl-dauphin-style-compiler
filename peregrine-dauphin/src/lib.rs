@@ -31,7 +31,7 @@ impl Process {
 
     pub async fn run(mut self) -> Result<(),Error> {
         loop {
-            let out = self.instance.more().await.map_err(|e| Error::operr(&format!("XXXTMp wrap {:?}",e)))?;
+            let out = self.instance.more().await.map_err(|e| Error::operr(&format!("XXXTmp wrap {:?}",e)))?;
             if !out { break; }
             cdr_tick(0).await;
         }
