@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use peregrine_toolkit::puzzle::{StaticValue, DelayedSetter, promise_delayed, constant, delayed, StaticAnswer};
-use crate::{allotment::{core::{allotmentname::AllotmentName, rangeused::RangeUsed}, style::{leafstyle::{LeafStyle, Indent}, styletree::StyleTree}, layout::{stylebuilder::{ContainerOrLeaf}, layoutcontext::LayoutContext, contentsize::ContentSize}}, LeafRequest, CoordinateSystem, globals::playingfield::PlayingFieldEdge, shapeload::shaperequestgroup::ShapeRequestGroup};
-use super::{anchored::AnchoredLeaf, leafrequestbounds::LeafRequestBounds};
+use crate::{allotment::{core::{allotmentname::AllotmentName, rangeused::RangeUsed}, style::{leafstyle::{LeafStyle, Indent}, styletree::StyleTree}, layout::{layouttree::{ContainerOrLeaf}, layoutcontext::LayoutContext, contentsize::ContentSize, leafrequestsize::LeafRequestSize}}, LeafRequest, CoordinateSystem, globals::playingfield::PlayingFieldEdge, shapeload::shaperequestgroup::ShapeRequestGroup};
+use super::{anchored::AnchoredLeaf};
 
 fn full_range_piece(coord_system: &CoordinateSystem, base_range: &RangeUsed<f64>, pixel_range: &RangeUsed<f64>, group: Option<&ShapeRequestGroup>) -> RangeUsed<f64> {
     if coord_system.is_tracking() {
@@ -21,11 +21,11 @@ pub struct FloatingLeaf {
     max_y_piece_setter: DelayedSetter<'static,'static,f64>,
     top_setter: Option<DelayedSetter<'static,'static,f64>>,
     pub(super) top: StaticValue<f64>,
-    shape_bounds: Arc<LeafRequestBounds>
+    shape_bounds: Arc<LeafRequestSize>
 }
 
 impl FloatingLeaf {
-    pub fn new(name: &AllotmentName, statics: &LeafStyle, shape_bounds: &LeafRequestBounds) -> FloatingLeaf {
+    pub fn new(name: &AllotmentName, statics: &LeafStyle, shape_bounds: &LeafRequestSize) -> FloatingLeaf {
         let shape_bounds = Arc::new(shape_bounds.clone());
         let (max_y_piece_setter,max_y_piece) = promise_delayed();
         if statics.aux.coord_system.is_dustbin() {

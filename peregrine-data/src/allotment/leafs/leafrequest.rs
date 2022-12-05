@@ -1,12 +1,11 @@
-use std::{sync::{Arc, Mutex}, borrow::BorrowMut};
+use std::{sync::{Arc, Mutex}};
 use peregrine_toolkit::lock;
-use crate::allotment::{core::{allotmentname::AllotmentName}, style::{styletree::StyleTree, leafstyle::LeafStyle}};
-use super::leafrequestbounds::LeafRequestBounds;
+use crate::allotment::{core::{allotmentname::AllotmentName}, style::{styletree::StyleTree, leafstyle::LeafStyle}, layout::leafrequestsize::LeafRequestSize};
 
 #[derive(Clone)]
 pub struct LeafRequest {
     name: AllotmentName,
-    shape_bounds: Arc<Mutex<LeafRequestBounds>>,
+    shape_bounds: Arc<Mutex<LeafRequestSize>>,
     style: Arc<Mutex<Option<(Arc<StyleTree>,Arc<LeafStyle>)>>>
 }
 
@@ -35,7 +34,7 @@ impl LeafRequest {
     pub fn new(name: &AllotmentName) -> LeafRequest {
         LeafRequest {
             name: name.clone(),
-            shape_bounds: Arc::new(Mutex::new(LeafRequestBounds::new())),
+            shape_bounds: Arc::new(Mutex::new(LeafRequestSize::new())),
             style: Arc::new(Mutex::new(None))
         }
     }
@@ -49,7 +48,7 @@ impl LeafRequest {
     pub(crate) fn program_styles(&self) -> Arc<StyleTree> { lock!(self.style).as_ref().unwrap().0.clone() }
     pub fn name(&self) -> &AllotmentName { &self.name }
 
-    pub(crate) fn shape_bounds<F,T>(&self, mut cb: F) -> T where F: FnMut(&mut LeafRequestBounds) -> T {
-        cb(lock!(self.shape_bounds).borrow_mut())
+    pub(crate) fn shape_bounds<F,T>(&self, mut cb: F) -> T where F: FnMut(&mut LeafRequestSize) -> T {
+        cb(&mut *lock!(self.shape_bounds))
     }
 }

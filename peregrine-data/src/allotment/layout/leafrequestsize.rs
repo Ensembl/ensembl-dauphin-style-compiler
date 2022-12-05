@@ -2,16 +2,16 @@ use crate::{shape::metadata::AllotmentMetadataEntry, allotment::core::rangeused:
 
 #[cfg_attr(debug_assertions,derive(Debug))]
 #[derive(Clone)]
-pub struct LeafRequestBounds {
+pub struct LeafRequestSize {
     base_range: RangeUsed<f64>,
     pixel_range: RangeUsed<f64>,
     height: f64,
     metadata: Vec<AllotmentMetadataEntry>
 }
 
-impl LeafRequestBounds {
-    pub(crate) fn new() -> LeafRequestBounds {
-        LeafRequestBounds {
+impl LeafRequestSize {
+    pub(crate) fn new() -> LeafRequestSize {
+        LeafRequestSize {
             base_range: RangeUsed::None,
             pixel_range: RangeUsed::None,
             height: 0.,
@@ -28,8 +28,8 @@ impl LeafRequestBounds {
         self.height = self.height.max(new_max);
     }
 
-    pub fn merge_base_range(&mut self, new_range: &RangeUsed<f64>) {
-        self.base_range = self.base_range.merge(new_range);
+    pub fn merge_base_range(&mut self, base_range: &RangeUsed<f64>) {
+        self.base_range = self.base_range.merge(base_range);
     }
 
     pub fn merge_pixel_range(&mut self, new_range: &RangeUsed<f64>) {

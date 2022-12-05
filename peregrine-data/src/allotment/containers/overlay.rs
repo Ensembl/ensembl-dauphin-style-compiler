@@ -1,5 +1,5 @@
 use peregrine_toolkit::{puzzle::{StaticValue, commute_clonable }};
-use crate::{allotment::{ layout::{stylebuilder::{ContainerOrLeaf}, layoutcontext::LayoutContext, contentsize::ContentSize}}};
+use crate::{allotment::{ layout::{layouttree::{ContainerOrLeaf}, layoutcontext::LayoutContext, contentsize::ContentSize}}};
 
 use super::container::ContainerSpecifics;
 

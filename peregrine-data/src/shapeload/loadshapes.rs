@@ -1,5 +1,5 @@
 use peregrine_toolkit::error::Error;
-use crate::{ ShapeStore, PeregrineCoreBase, PgCommanderTaskSpec, add_task, api::MessageSender,  shape::{FloatingShapesContainer}, allotment::core::floatingcarriage::FloatingCarriage, CarriageExtent };
+use crate::{ ShapeStore, PeregrineCoreBase, PgCommanderTaskSpec, add_task, api::MessageSender,  shape::{RequestedShapesContainer}, allotment::core::floatingcarriage::FloatingCarriage, CarriageExtent };
 
 use super::shaperequestgroup::ShapeRequestGroup;
 
@@ -60,6 +60,6 @@ pub(crate) async fn load_carriage_shape_list(base: &PeregrineCoreBase, result_st
             }
         }
     }
-    let new_shapes = FloatingShapesContainer::merge(new_shapes);
+    let new_shapes = RequestedShapesContainer::merge(new_shapes);
     Ok(new_shapes.build_abstract_carriage(Some(&shape_requests),extent))
 }

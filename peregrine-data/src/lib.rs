@@ -13,16 +13,17 @@ mod allotment {
         pub(crate) mod anchored;
         pub(crate) mod auxleaf;
         pub(crate) mod leafrequest;
-        pub(crate) mod leafrequestbounds;
     }
 
     pub(crate) mod layout {
         pub(crate) mod contentsize;
-        pub(crate) mod stylebuilder;
+        pub(crate) mod layouttree;
         pub(crate) mod layoutcontext;
+        pub(crate) mod leafrequestsize;
     }
     
     pub(crate) mod collision {
+        pub(crate) mod bumprequest;
         mod bumppart;
         pub(crate) mod bumpprocess;
         pub(crate) mod collisionalgorithm;
@@ -197,7 +198,7 @@ mod run {
 }
 
 mod shape {
-    pub(crate) mod abstractshapescontainer;
+    pub(crate) mod requestedshapescontainer;
     pub(crate) mod originstats;
     mod core;
     pub mod emptyshape;
@@ -217,7 +218,7 @@ mod shape {
     };
     pub use self::settingmode::SettingMode;
     pub use self::shape::{ ShapeDemerge, Shape };
-    pub use self::abstractshapescontainer::FloatingShapesContainer;
+    pub use self::requestedshapescontainer::RequestedShapesContainer;
     pub use self::programshapes::ProgramShapesBuilder;
 }
 
@@ -311,7 +312,7 @@ pub use self::shape::shape::DrawingShape;
 pub use self::shape::{ 
     Patina, Colour, DirectColour, DrawnType, Shape, HotspotPatina, PenGeometry, Background,
     Pen, Plotter, ShapeDemerge, SettingMode,
-    ProgramShapesBuilder, FloatingShapesContainer, AttachmentPoint
+    ProgramShapesBuilder, RequestedShapesContainer, AttachmentPoint
 };
 pub use self::core::coordsystem::{ CoordinateSystem };
 pub use self::switch::switches::{ Switches };

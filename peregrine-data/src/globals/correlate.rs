@@ -1,7 +1,7 @@
 use std::{collections::{HashMap, BTreeMap, hash_map::DefaultHasher}, hash::{Hash, Hasher}, rc::Rc, sync::{Arc, Mutex}};
 use peregrine_toolkit::{puzzle::{UnknownSetter, StaticValue, short_unknown_function_promise, commute, StaticAnswer, constant, derived}, lock};
-use crate::{allotment::{core::allotmentname::AllotmentName, collision::collisionalgorithm::{BumpRequestSet, BumpResponses}}, request};
-use super::{playingfield::PlayingFieldEdge, trainpersistent::TrainPersistent, allotmentmetadata::LocalAllotmentMetadataBuilder};
+use crate::{allotment::{core::allotmentname::AllotmentName, collision::{collisionalgorithm::{BumpResponses}, bumprequest::BumpRequestSet}}, request};
+use super::{playingfield::PlayingFieldEdge, trainpersistent::TrainPersistent};
 
 struct CorrelateBuildEntry<T:'static, V:'static> {
     global_setter: UnknownSetter<'static,StaticValue<V>>,

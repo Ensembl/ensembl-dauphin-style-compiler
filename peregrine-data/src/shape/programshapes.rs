@@ -1,7 +1,7 @@
 use std::{collections::{HashSet}};
 use peregrine_toolkit::{debug_log, eachorevery::EachOrEvery};
 use super::{core::{ Patina, Pen, Plotter }, imageshape::ImageShape, rectangleshape::RectangleShape, textshape::TextShape, wiggleshape::WiggleShape, emptyshape::EmptyShape};
-use crate::{LeafRequest, FloatingShapesContainer, allotment::{core::leafrequestsource::LeafRequestSource, style::styletree::StyleTree}, BackendNamespace, LoadMode, PolygonShape, Shape};
+use crate::{LeafRequest, RequestedShapesContainer, allotment::{core::leafrequestsource::LeafRequestSource, style::styletree::StyleTree}, BackendNamespace, LoadMode, PolygonShape, Shape};
 use crate::{Assets, DataMessage, SpaceBaseArea, reactive::Observable, SpaceBase};
 
 pub struct ProgramShapesBuilder {
@@ -78,13 +78,13 @@ impl ProgramShapesBuilder {
         Ok(())
     }
 
-    pub fn to_abstract_shapes_container(self) -> FloatingShapesContainer {
+    pub fn to_abstract_shapes_container(self) -> RequestedShapesContainer {
         if self.leafs.len() > 1000 {
             debug_log!("many leafs! {}",self.leafs.len());
         }
         for leaf in self.leafs {
             leaf.set_style(&self.style);
         }
-        FloatingShapesContainer::build(self.shapes,self.leaf_list,&self.mode)
+        RequestedShapesContainer::build(self.shapes,self.leaf_list,&self.mode)
     }
 }

@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 use peregrine_toolkit::{error::Error, puzzle::{StaticValue, StaticAnswer}};
-use crate::{allotment::{core::{allotmentname::{AllotmentName, allotmentname_hashmap, AllotmentNameHashMap}}, containers::{root::Root}, style::{leafstyle::LeafStyle, styletree::StyleTree}, leafs::{floating::FloatingLeaf, anchored::AnchoredLeaf, leafrequestbounds::LeafRequestBounds}}, LeafRequest, CoordinateSystem };
-use super::{layoutcontext::LayoutContext, contentsize::ContentSize};
+use crate::{allotment::{core::{allotmentname::{AllotmentName, allotmentname_hashmap, AllotmentNameHashMap}}, containers::{root::Root}, style::{leafstyle::LeafStyle, styletree::StyleTree}, leafs::{floating::FloatingLeaf, anchored::AnchoredLeaf}}, LeafRequest, CoordinateSystem };
+use super::{layoutcontext::LayoutContext, contentsize::ContentSize, leafrequestsize::LeafRequestSize};
 
 pub(crate) trait ContainerOrLeaf {
     fn coordinate_system(&self) -> &CoordinateSystem;
@@ -25,7 +25,7 @@ impl<'a> StyleBuilder<'a> {
         StyleBuilder {
             root,
             leafs_made: HashMap::new(),
-            dustbin: FloatingLeaf::new(&dustbin_name,&LeafStyle::dustbin(),&LeafRequestBounds::new())
+            dustbin: FloatingLeaf::new(&dustbin_name,&LeafStyle::dustbin(),&LeafRequestSize::new())
         }
     }
 
@@ -45,7 +45,7 @@ impl<'a> StyleBuilder<'a> {
     }
 }
 
-pub(crate) fn make_transformable(pendings: &mut dyn Iterator<Item=&LeafRequest>) -> Result<(Root,AllotmentNameHashMap<FloatingLeaf>),Error> {
+pub(crate) fn build_layout_tree(pendings: &mut dyn Iterator<Item=&LeafRequest>) -> Result<(Root,AllotmentNameHashMap<FloatingLeaf>),Error> {
     let mut root = Root::new();
     let mut styler = StyleBuilder::new(&mut root);
     let mut leaf_map = allotmentname_hashmap();
@@ -59,8 +59,8 @@ pub(crate) fn make_transformable(pendings: &mut dyn Iterator<Item=&LeafRequest>)
 mod test {
     use std::{sync::{Arc, Mutex}, collections::{HashMap}};
     use peregrine_toolkit::{puzzle::{AnswerAllocator}};
-    use crate::{allotment::{style::styletree::StyleTree, layout::{stylebuilder::ContainerOrLeaf, layoutcontext::LayoutContext}, core::rangeused::RangeUsed}, globals::{allotmentmetadata::{LocalAllotmentMetadata, GlobalAllotmentMetadataBuilder}, trainstate::CarriageTrainStateSpec}, GlobalAllotmentMetadata};
-    use crate::{allotment::{core::{allotmentname::AllotmentName}, layout::stylebuilder::make_transformable}, LeafRequest };
+    use crate::{allotment::{style::styletree::StyleTree, layout::{layouttree::ContainerOrLeaf, layoutcontext::LayoutContext}, core::rangeused::RangeUsed}, globals::{allotmentmetadata::{LocalAllotmentMetadata, GlobalAllotmentMetadataBuilder}, trainstate::CarriageTrainStateSpec}, GlobalAllotmentMetadata};
+    use crate::{allotment::{core::{allotmentname::AllotmentName}, layout::layouttree::build_layout_tree}, LeafRequest };
     use serde_json::{Value as JsonValue };
     use crate::globals::{bumping::{GlobalBumpBuilder, GlobalBump}, trainpersistent::TrainPersistent};
 
@@ -107,7 +107,7 @@ mod test {
         add_style(&mut tree, "z/a/", &[("padding-top","10"),("padding-bottom","5")]);
         add_style(&mut tree, "z/a/1", &[("depth","10"),("coordinate-system","window")]);
         let pending = make_pendings(&["z/a/1","z/a/2","z/a/3","z/b/1","z/b/2","z/b/3"],&[1.,2.,3.],&[],&tree);
-        let (_spec,plm) = make_transformable(&mut pending.iter()).ok().expect("A");
+        let (_spec,plm) = build_layout_tree(&mut pending.iter()).ok().expect("A");
         let mut aia = AnswerAllocator::new();
         let answer_index = aia.get();
         let transformers = pending.iter().map(|x| plm.get(x.name()).unwrap().anchor_leaf(&answer_index).unwrap()).collect::<Vec<_>>();
@@ -135,7 +135,7 @@ mod test {
         add_style(&mut tree, "z/a/", &[("padding-top","10"),("padding-bottom","5"),("type","overlay")]);        
         add_style(&mut tree, "z/a/1", &[("depth","10"),("coordinate-system","window")]);
         let pending = make_pendings(&["z/a/1","z/a/2","z/a/3","z/b/1","z/b/2","z/b/3"],&[1.,2.,3.],&[],&tree);
-        let (_spec,plm) = make_transformable(&mut pending.iter()).ok().expect("A");
+        let (_spec,plm) = build_layout_tree(&mut pending.iter()).ok().expect("A");
         let mut aia = AnswerAllocator::new();
         let answer_index = aia.get();
         let transformers = pending.iter().map(|x| plm.get(x.name()).unwrap().anchor_leaf(&answer_index).unwrap()).collect::<Vec<_>>();
@@ -180,7 +180,7 @@ mod test {
         add_style(&mut tree, "**", &[("system","tracking")]);
         let pending = make_pendings(&["z/a/1","z/a/2","z/a/3","z/b/1","z/b/2","z/b/3"],&[1.,2.,3.],&ranges,&tree);
         let prep = LayoutContext::new(None);
-        let (_spec,plm) = make_transformable(&mut pending.iter()).ok().expect("A");
+        let (_spec,plm) = build_layout_tree(&mut pending.iter()).ok().expect("A");
         let metadata = prep.state_request.metadata();
         let mut aia = AnswerAllocator::new();
         let mut answer_index = aia.get();

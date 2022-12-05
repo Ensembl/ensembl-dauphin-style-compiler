@@ -82,7 +82,7 @@ impl PolygonShape<LeafRequest> {
         let radius = self.radius().iter(self.position.len()).unwrap();     
         for (position,radius) in position.zip(radius) {
             position.allotment.shape_bounds(|allotment| {
-                allotment.merge_base_range(&RangeUsed::Part(*position.base,*position.base));
+                allotment.merge_base_range(&RangeUsed::Part(*position.base,*position.base+1.));
                 allotment.merge_pixel_range(&RangeUsed::Part(*position.tangent-*radius,*position.tangent+*radius));
                 allotment.merge_height((position.normal+*radius).ceil());
             });
