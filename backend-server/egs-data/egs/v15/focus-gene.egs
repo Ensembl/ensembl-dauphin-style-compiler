@@ -16,10 +16,10 @@ req := request_scope(req,"genome",focus_genome_id);
 data := get_data(req);
 halt(only_warm(),[data]);
 
-// /*
-//  * undo the compression applied by the server basically by applying
-//  * the transforms applied there in reverse order.
-//  */
+/*
+ * undo the compression applied by the server basically by applying
+ * the transforms applied there in reverse order.
+ */
 
 id_gn_uv := data_string(data,"gene_id");
 id_gn_vo := data_string(data,"gene_id_version");
@@ -28,7 +28,6 @@ gene_name := data_string(data,"gene_names");
 gene_desc := data_string(data,"gene_descs");
 start := data_number(data,"starts");
 end := start + data_number(data,"lengths");
-// gene_designation := data_string(data,"gene_designation");
 gene_biotype := data_string(data,"gene_biotypes");
 strand := data_number(data,"strands");
 id_dtr_uv := data_string(data,"designated_transcript_id");
@@ -39,44 +38,18 @@ designated_transcript_designation := data_string(data,"designated_transcript_des
 strand_string := len([strand]) (*) "reverse strand";
 strand_string#[strand>0] := "forward strand";
 
-// /* 
-//  * What are the current track settings?
-//  */
+/*
 
-// gene_tracks_enabled(enabled_tracks);
+/ <- stack
+title/ <- track title
+main/ <- overlay
+main/background/ <- chevrons (WINDOW)
+main/main/ <- bumper
+main/main/<id>/ <- stacker
+main/main/<id>/blocks/ <- blocks
+main/main/<id>/text/ <- label
 
-// potential_track_ids := [
-//     "gene-other-rev", "gene-pc-rev", "gene-other-fwd", "gene-pc-fwd", "focus"
-// ];
-
-// potential_tracks := [
-//     "tracks/track/gene-other-rev/main/main",
-//     "tracks/track/gene-pc-rev/main/main",
-//     "tracks/track/gene-other-fwd/main/main",
-//     "tracks/track/gene-pc-fwd/main/main",
-//     ""
-// ];
-
-// potential_tracks_bgd := [
-//     "tracks/track/gene-other-rev/main/background/content",
-//     "tracks/track/gene-pc-rev/main/background/content",
-//     "tracks/track/gene-other-fwd/main/background/content",
-//     "tracks/track/gene-pc-fwd/main/background/content",
-//     ""
-// ];
-
-// /*
-
-// / <- stack
-// title/ <- track title
-// main/ <- overlay
-// main/background/ <- chevrons (WINDOW)
-// main/main/ <- bumper
-// main/main/<id>/ <- stacker
-// main/main/<id>/blocks/ <- blocks
-// main/main/<id>/text/ <- label
-
-// */
+*/
 
 gene_track_styles();
 
@@ -88,64 +61,27 @@ style("**/main/main/*/blocks/",["depth"][],["4"][]);
 style("**/main/main/*/text/",["bump-width","system"][],["none","tracking-special"][]);
 style("**/main/background/content",["depth","padding-top"][],["-10","32"][]);
 
-// use_allotment_names(base_allotment_names,enabled_tracks,potential_tracks);
-// use_allotment_names(allotment_names_bgd,enabled_tracks,potential_tracks_bgd);
-// use_allotments(allotments_bgd,enabled_tracks,allotment_names_bgd);
-
 allotment_label := use_allotment("tracks/track/focus/title/content");
 allotment_letter := use_allotment("tracks/track/focus/main/letter/content");
 allotment_wallpaper := use_allotment("tracks/track/focus/main/background/content");
 allotment := use_allotment("tracks/track/focus/main/main/focus/blocks/content");
 text_allotment := use_allotment("tracks/track/focus/main/main/focus/text/content");
 
+allotment_label#[setting_yn("name")==false] := use_allotment("");
 
-// /*
-//  * Which allotment and track does data go into?
-//  *
-//  * There are separate allotments for protein_coding and non-protein_coding
-//  * and also for forward and reverse strand. As usual there is a fifth 
-//  * allotment for a focus-feature.
-//  *
-//  * For the data on each allotment there are currently two tracks: the
-//  * main data and the labels.
-//  */
+/*
+ * Filter labels by which tracks are configured to have labels
+ */
 
-// allotment_idx := len([id_gn_vr]) (*) 0;
+enabled_gene_labels := setting_yn("focus-gene-label");
+text_allotment#[enabled_gene_labels==false] := use_allotment("");
 
-// allotment_idx#[strand > 0] (+=) 2;
-// allotment_idx#[in(gene_biotype,["protein_coding"])] (+=) 1;
+/*
+ * What colour? What font? etc
+ *
+ * (driven by allotment for gene)
+ */
 
-// get_focus_gene(focus_genome_id,focus_gene_id);
-
-// allotment_idx#[id_gn_uv==focus_gene_id] := 4;
-
-// base_allotment_names := [append_group(index(allotment_idx,base_allotment_names),id_gn_vr)];
-// allotment_names := [append_group(base_allotment_names[],["blocks"][])];
-// allotment := use_allotment(append_group(allotment_names[],["content"][]));
-
-// text_allotment_names :=  [append_group(base_allotment_names[],["text"][])];
-// text_allotment := use_allotment(append_group(text_allotment_names[],["content"][]));
-
-// track_name := index(allotment_idx,potential_track_ids);
-
-// /*
-//  * Filter labels by which tracks are configured to have labels
-//  */
-
-// gene_tracks_enabled_label(enabled_labels);
-
-// enabled_gene_labels := index(allotment_idx,[enabled_labels]);
-
-// text_allotment#[enabled_gene_labels==false] := use_allotment("");
-
-// /*
-//  * What colour? What font? etc
-//  *
-//  * (driven by allotment for gene)
-//  */
-
-// non_pc_colour := simple_colour(direct_colour(200,200,200,255));
-// pc_colour := simple_colour(direct_colour(128,128,128,255));
 focus_colour := simple_colour(direct_colour(39,154,252,255));
 patina := patina_filled(focus_colour);
 
@@ -217,5 +153,10 @@ focus_label := [concat(concat(gene_name#[focus_gene_id==id_gn_uv]," "),focus_gen
 focus_label := focus_label[@==0];
 draw_track_name(focus_label,"name",allotment_label);
 
-// /* track category */
+/* track category */
 draw_track_category("G",[allotment_letter]);
+
+/* red-dotted lines */
+start_focus := start#[id_gn_uv==focus_gene_id];
+end_focus := end#[id_gn_uv==focus_gene_id];
+red_dotted(start_focus,end_focus,use_allotment("dots/content"),comma_format(start_focus),comma_format(end_focus));
