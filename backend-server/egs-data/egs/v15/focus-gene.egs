@@ -26,6 +26,7 @@ id_gn_vo := data_string(data,"gene_id_version");
 id_gn_vr := concat(id_gn_uv,id_gn_vo);
 gene_name := data_string(data,"gene_names");
 gene_desc := data_string(data,"gene_descs");
+stick := data_string(data,"stick");
 start := data_number(data,"starts");
 end := start + data_number(data,"lengths");
 gene_biotype := data_string(data,"gene_biotypes");
@@ -44,6 +45,10 @@ idx_tr_in_gn := run(data_number(data,"transcript_counts"));
 
 num_tr_by_gn := data_number(data,"transcript_counts");
 which_gn_by_tr := derun(num_tr_by_gn);
+
+/* check if on current stick */
+this_stick := get_region().stick;
+on_another_stick := (stick == this_stick) == false;
 
 /*
 
@@ -73,8 +78,19 @@ allotment_letter := use_allotment("tracks/track/focus/main/letter/content");
 allotment_wallpaper := use_allotment("tracks/track/focus/main/background/content");
 allotment := use_allotment("tracks/track/focus/main/main/focus/blocks/content");
 text_allotment := use_allotment("tracks/track/focus/main/main/focus/text/content");
+dotted_allotment := use_allotment("dots/content");
+dotted_text_allotment := use_allotment("tracks/flagtop/main");
 
 allotment_label#[setting_yn("name")==false] := use_allotment("");
+
+/* Draw nothing if wrong chromosome!
+ */
+
+allotment_wallpaper#[on_another_stick] := use_allotment("");
+allotment#[on_another_stick] := use_allotment("");
+text_allotment#[on_another_stick] := use_allotment("");
+dotted_allotment#[on_another_stick] := use_allotment("");
+dotted_text_allotment#[on_another_stick] := use_allotment("");
 
 /*
  * Filter labels by which tracks are configured to have labels
@@ -134,6 +150,8 @@ rectangle_on_genome(start,end,8,pt_zmenu_tr,allotment);
 rectangle_on_genome(start,end,8,pt_zmenu_gn,allotment);
 running_text(spacebase(start,8,0),spacebase(end,8,0),textpen,gene_name,text_allotment);
 
+/* focus swatch */
+draw_focus_swatch(allotment_letter);
 
 /* main track chevrons */
 
@@ -166,7 +184,7 @@ draw_track_category("G",[allotment_letter]);
 /* red-dotted lines */
 start_focus := start#[id_gn_uv==focus_gene_id];
 end_focus := end#[id_gn_uv==focus_gene_id];
-red_dotted(start_focus,end_focus,use_allotment("dots/content"),comma_format(start_focus),comma_format(end_focus));
+red_dotted(start_focus,end_focus,dotted_allotment,dotted_text_allotment,comma_format(start_focus),comma_format(end_focus));
 
 /* report transcripts (not!) shown */
 

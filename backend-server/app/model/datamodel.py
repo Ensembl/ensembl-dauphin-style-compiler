@@ -42,10 +42,17 @@ class DataModel(object):
         return None
 
     def canonical_genome_id(self, alias):
-        for (prefix, _) in split_all(":", alias):
+        for (prefix, chr) in split_all(":", alias):
             species_name = self._species_aliases.get(prefix)
             if species_name is not None:
                 return species_name
+        return None
+
+    def best_stick_id(self, alias):
+        for (prefix, chr) in split_all(":", alias):
+            species_name = self._species_aliases.get(prefix)
+            if species_name is not None:
+                return self._species[species_name].best_name+chr
         return None
 
     def _load_species(self):

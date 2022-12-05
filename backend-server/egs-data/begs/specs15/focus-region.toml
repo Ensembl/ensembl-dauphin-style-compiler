@@ -1,0 +1,20 @@
+set = "ensembl-webteam/core"
+name = "focus-region"
+version = 1
+description = """
+
+Draws the dotted red lines at the focus region endpoint. Doesn't call any backend. Uses settings
+to draw dotted red lines at the appropriate point.
+
+"""
+
+[setting.region]
+description = """
+
+Where to draw the dotted red lines.
+
+genome_id: stick for region (string)
+start: start coordinate (number)
+end: end coordinate (number)
+
+"""

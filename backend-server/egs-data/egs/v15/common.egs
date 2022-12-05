@@ -101,16 +101,15 @@ stmt draw_focus_swatch(allotment_value) {
     rectangle(spacebase(0,-14,0),spacebase(0,25,5),swatch_patina,allotment_value);
 }
 
-stmt red_dotted(pstart,pend,pallotment,left,right) {
-    al_flagtop := use_allotment("tracks/flagtop/main");
-    textpen_flagtop_left := pen("'Lato', sans-serif",-12,direct_colour(0,0,0,255),[][]);
-    textpen_flagtop_right := pen("'Lato', sans-serif",12,direct_colour(0,0,0,255),[][]);
-    text2(spacebase(pstart,8,-8),textpen_flagtop_left,left,al_flagtop);
-    text2(spacebase(pend,8,8),textpen_flagtop_right,right,al_flagtop);
+stmt red_dotted(pstart,pend,pallotment,tallotment,left,right) {
+    textpen_flagtop_left := pen("'Lato', sans-serif",12,direct_colour(0,0,0,255),[][]);
+    textpen_flagtop_right := pen("'Lato', sans-serif",-12,direct_colour(0,0,0,255),[][]);
+    text2(spacebase(pstart,8,8),textpen_flagtop_left,left,tallotment);
+    text2(spacebase(pend,8,-8),textpen_flagtop_right,right,tallotment);
 
     dots_patina := patina_hollow(barred(direct_colour(255,255,255,255),direct_colour(255,0,0,255),2,4,0.5),1);
-    rectangle(spacebase(pstart,-1,0),spacebase(pstart,0,0),dots_patina,pallotment);
-    rectangle(spacebase(pend,-1,0),spacebase(pend,0,0),dots_patina,pallotment);
+    rectangle(spacebase(pstart,-1,1),spacebase(pstart,0,1),dots_patina,pallotment);
+    rectangle(spacebase(pend,-1,-1),spacebase(pend,0,-1),dots_patina,pallotment);
 }
 
 style("dots/",["system","depth","depth"][],["tracking-window","56","-10"][]);
@@ -202,11 +201,9 @@ stmt calc_focus_transcripts_shown(do_ghost,s_bool_report_show_tr,s_bool_show_tr,
     s_bool_show_tr#[ghost] := true;
 }
 
-stmt draw_labels(is_ghosted,s_idx_drawn_tr_gn,s_which_gn_by_tr,s_start_gn,s_end_gn,s_gene_name,s_id_tr,s_textpen_blue,s_al_trtext_by_tr, s_num_drawn_tr_gn, s_textpen, s_bool_show_tr, s_enabled_gene_labels, s_enabled_transcripts) {
-    al_label_by_tr := index(which_gn_by_tr,[al_label_by_gn]);
-    al_label_by_tr#[s_bool_show_tr==false] := "";
-
-    al_label_by_tr := use_allotment(al_label_by_tr);
+stmt draw_labels(is_ghosted,s_idx_drawn_tr_gn,s_which_gn_by_tr,s_start_gn,s_end_gn,s_gene_name,s_id_tr,s_textpen_blue,s_al_trtext_by_tr, s_num_drawn_tr_gn, s_textpen, s_bool_show_tr, s_enabled_gene_labels, s_enabled_transcripts,s_al_label_by_gn) {
+    al_label_by_tr := index(which_gn_by_tr,[s_al_label_by_gn]);
+    al_label_by_tr#[s_bool_show_tr==false] := use_allotment("");
 
     /* transcript labels */
     c := s_idx_drawn_tr_gn * 20;

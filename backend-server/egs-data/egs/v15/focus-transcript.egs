@@ -67,6 +67,7 @@ id_gn_vo := data_string(data,"gene_id_version");
 id_gn_vr := concat(id_gn_uv,id_gn_vo);
 gene_name := data_string(data,"gene_names");
 gene_desc := data_string(data,"gene_descs");
+stick := data_string(data,"stick");
 start_gn := data_number(data,"starts");
 end_gn := start_gn + data_number(data,"lengths");
 start_tr := data_number(data,"transcripts_starts");
@@ -126,8 +127,12 @@ end_thex := end_thex#[thick_exons];
  * What are the current track settings?
  */
 
-/*
 
+/* check if on current stick */
+this_stick := get_region().stick;
+on_another_stick := (stick == this_stick) == false;
+
+/*
 / <- stack
 title/ <- track title
 main/ <- overlay
@@ -173,6 +178,8 @@ idx_tr_in_gn_by_thex := idx_tr_in_gn_by_ex#[thick_exons];
 allotment_label := use_allotment("tracks/track/focus/title/content");
 allotment_letter := use_allotment("tracks/track/focus/main/letter/content");
 allotment_wallpaper := use_allotment("tracks/track/focus/main/background/content");
+allotment_dotted := use_allotment("dots/content");
+allotment_dotted_text := use_allotment("tracks/flagtop/main");
 
 base_allotment := append_group("tracks/track/focus/main/main",focus_gene_id);
 
@@ -200,14 +207,14 @@ al_text_by_gn#[id_gn_uv==focus_gene_id] := append_group(base_allotment,"text");
 
 al_label_by_gn := len([id_gn_vr]) (*) "";
 al_label_by_gn#[id_gn_uv==focus_gene_id] := append_group(base_allotment,"text");
+al_label_by_gn := use_allotment(al_label_by_gn);
 
-al_trtext_by_gn := al_text_by_gn;
-al_trtext_by_tr := index(which_gn_by_tr,[al_text_by_gn]);
+al_trtext_by_tr := use_allotment(index(which_gn_by_tr,[al_text_by_gn]));
 
-al_trtext_by_tr#[bool_show_tr==false] := "";
+al_trtext_by_tr#[bool_show_tr==false] := use_allotment("");
 
 al_text_by_gn#[enabled_gene_labels==false] := "";
-al_trtext_by_tr#[enabled_transcript_labels==false] := "";
+al_trtext_by_tr#[enabled_transcript_labels==false] := use_allotment("");
 
 al_button := len([id_gn_vr]) (*) "";
 al_button#[id_gn_uv==focus_gene_id] := append_group(base_allotment,"button");
@@ -292,6 +299,19 @@ pt_zmenu_gn := patina_zmenu(zmenu_tmpl,
     [[gene_name_by_tr],[id_gn_uv_by_tr],[id_gn_vr_by_tr],["focus"],["gene"],
      [gene_desc_by_tr],[gene_biotype_by_tr],[transcript_strand_string]][]);
 
+allotment_wallpaper#[on_another_stick] := use_allotment("");
+allotment_dotted#[on_another_stick] := use_allotment("");
+allotment_dotted_text#[on_another_stick] := use_allotment("");
+al_under_by_tr#[on_another_stick] := use_allotment("");
+al_under_by_gn#[on_another_stick] := use_allotment("");
+al_over_by_tr#[on_another_stick] := use_allotment("");
+al_over_by_ex#[on_another_stick] := use_allotment("");
+al_blanking_by_ex#[on_another_stick] := use_allotment("");
+al_farover_by_thex#[on_another_stick] := use_allotment("");
+al_button#[on_another_stick] := use_allotment("");
+al_trtext_by_tr#[on_another_stick] := use_allotment("");
+al_label_by_gn#[on_another_stick] := use_allotment("");
+
 /*
  * draw everything!
  */
@@ -344,7 +364,8 @@ draw_labels(
     start_gn, end_gn,
     gene_name, id_tr_vr, textpen_blue, al_trtext_by_tr,   
     num_drawn_tr_gn, textpen, bool_show_tr, 
-    enabled_gene_labels, enabled_transcript_labels
+    enabled_gene_labels, enabled_transcript_labels,
+    al_label_by_gn
 );
 
 chevron_spacing := [
@@ -372,7 +393,7 @@ draw_track_category("G",[allotment_letter]);
 draw_focus_swatch(allotment_letter);
 
 /* red-dotted lines */
-red_dotted(start_focus,end_focus,use_allotment("dots/content"),comma_format(start_focus),comma_format(end_focus));
+red_dotted(start_focus,end_focus,allotment_dotted,allotment_dotted_text,comma_format(start_focus),comma_format(end_focus));
 
 /* blue button */
 //draw_lozenges(start_gn,num_drawn_tr_gn,id_gn_uv,expanded_genes,al_button);

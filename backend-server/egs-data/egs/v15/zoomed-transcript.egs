@@ -268,6 +268,8 @@ al_far_under_by_tr := use_allotment(append_group(transcript_allotment_names[],["
 al_text_by_gn := use_allotment(append_group(aln_base[],["text"][]));
 al_label_by_gn := append_group(aln_base[],["text"][]);
 
+al_label_by_gn := use_allotment(al_label_by_gn);
+
 /*
  * What colour? What font? etc
  *
@@ -572,7 +574,8 @@ draw_labels(
     start_gn, end_gn,
     gene_name,id_tr_vr, textpen_blue, al_trtext_by_tr,
     num_drawn_tr_gn, textpen, bool_show_tr,
-    enabled_gene_labels, enabled_tr_labels
+    enabled_gene_labels, enabled_tr_labels,
+    al_label_by_gn
 );
 
 /* zmenu areas */
