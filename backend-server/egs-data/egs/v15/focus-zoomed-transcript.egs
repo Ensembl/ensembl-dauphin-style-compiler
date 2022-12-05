@@ -509,6 +509,7 @@ red_dotted(focus_start,focus_end,use_allotment("dots/content"),comma_format(focu
 report_shown(bool_show_tr,id_tr_vr,use_allotment("tracks/track/focus"));
 report_id(focus_gene_id,use_allotment("tracks/track/focus"));
 report_all(id_tr_vr,id_gn_uv,focus_gene_id,which_gn_by_tr,use_allotment("tracks/track/focus"));
+report_suppressed(false,use_allotment("tracks/track/focus"));
 
 /* track name */
 

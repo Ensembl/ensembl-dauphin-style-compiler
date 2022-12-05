@@ -372,9 +372,11 @@ red_dotted(start_focus,end_focus,use_allotment("dots/content"),comma_format(star
 //draw_lozenges(start_gn,num_drawn_tr_gn,id_gn_uv,expanded_genes,al_button);
 
 /* report transcripts shown */
-report_shown(bool_show_tr,id_tr_vr,use_allotment("tracks/track/focus/main/background/content"));
-report_id(focus_gene_id,use_allotment("tracks/track/focus/main/background/content"));
-report_all(id_tr_vr,id_gn_uv,focus_gene_id,which_gn_by_tr,use_allotment("tracks/track/focus/main/background/content"));
+report_allotment := use_allotment("tracks/track/focus/main/background/content");
+report_shown(bool_show_tr,id_tr_vr,report_allotment);
+report_id(focus_gene_id,report_allotment);
+report_all(id_tr_vr,id_gn_uv,focus_gene_id,which_gn_by_tr,report_allotment);
+report_suppressed(false,report_allotment);
 
 /* track name */
 focus_label := [concat(concat(gene_name#[focus_gene_id==id_gn_uv]," "),focus_gene_id),""];

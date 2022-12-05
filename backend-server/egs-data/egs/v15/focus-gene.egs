@@ -170,7 +170,9 @@ red_dotted(start_focus,end_focus,use_allotment("dots/content"),comma_format(star
 
 /* report transcripts (not!) shown */
 
+report_allotment := use_allotment("tracks/track/focus/main/background/content");
 calc_focus_transcripts_shown(bool_show_tr,id_gn_vr,id_tr_vr,which_gn_by_tr,id_gn_uv,focus_gene_id,idx_tr_in_gn);
-report_shown(bool_show_tr,id_tr_vr,use_allotment("tracks/track/focus/main/background/content"));
-report_id(focus_gene_id,use_allotment("tracks/track/focus/main/background/content"));
-report_all(id_tr_vr,id_gn_uv,focus_gene_id,which_gn_by_tr,use_allotment("tracks/track/focus/main/background/content"));
+report_shown(bool_show_tr,id_tr_vr,report_allotment);
+report_id(focus_gene_id,report_allotment);
+report_all(id_tr_vr,id_gn_uv,focus_gene_id,which_gn_by_tr,report_allotment);
+report_suppressed(true,report_allotment);

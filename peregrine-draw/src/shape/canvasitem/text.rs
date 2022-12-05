@@ -39,7 +39,7 @@ impl CanvasItem for Text {
     fn calc_size(&self, gl: &mut WebGlGlobal) -> Result<CanvasItemSize,Error> {
         let gl_ref = gl.refs();
         let mut canvas = gl_ref.scratch_canvases.scratch(&CanvasWeave::Crisp,(100,100))?;
-        Ok(CanvasItemSize::new( self.text.measure(canvas.get_mut())?,(PAD,PAD)))
+        Ok(CanvasItemSize::new(self.text.measure(canvas.get_mut())?,(PAD*2,PAD*2)))
     }
 
     fn compute_hash(&self) -> Option<u64> {

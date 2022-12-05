@@ -12,7 +12,7 @@ use crate::{Assets, PgCommanderTaskSpec, DrawingCarriage, BackendNamespace, Sett
 use commander::{CommanderStream, PromiseFuture};
 use peregrine_toolkit::eachorevery::eoestruct::{StructValue};
 use peregrine_toolkit::error::{err_web_drop, Error};
-use peregrine_toolkit::{log_extra, lock};
+use peregrine_toolkit::{log_extra, lock, timer_start, timer_end, log};
 use peregrine_toolkit_async::sync::blocker::{Blocker, Lockout};
 use super::pgcore::PeregrineCore;
 
@@ -95,6 +95,7 @@ impl ApiQueueCampaign {
     }
 
     async fn run_message(&mut self, data: &mut PeregrineCore, message: ApiMessage) {
+        timer_start!(&format("api message {:?}",message));
         match message {
             ApiMessage::WaitForApplicationReady => {
                 data.base.channel_registry.booted().await;
@@ -176,6 +177,7 @@ impl ApiQueueCampaign {
                 data.shutdown().run();
             }
         }
+        timer_end!(&format("api message {:?}",message));
     }
 
     fn viewport(&self) -> &Viewport { &self.viewport }
@@ -216,14 +218,22 @@ impl PeregrineApiQueue {
             task: Box::pin(async move {
                 loop {
                     let mut messages = self2.queue.get_multi(None).await;
+                    timer_start!("api message start");
                     let mut campaign = ApiQueueCampaign::new(&data2.viewport);
                     let mut lockouts = vec![];
+                    timer_end!("api message start");
+                    timer_start!("api message set");
                     for (message,lockout) in messages.drain(..) {
                         campaign.run_message(&mut data2,message).await;
                         lockouts.push(lockout);
                     }
+                    timer_end!("api message set");
+                    timer_start!("update_viewport");
                     self2.update_viewport(&mut data2,campaign.viewport().clone());
+                    timer_end!("update_viewport");
+                    timer_start!("train ping");
                     data2.train_set.ping();
+                    timer_end!("train ping");
                     drop(lockouts);
                     if data2.base.shutdown.poll() { break; }
                 }
