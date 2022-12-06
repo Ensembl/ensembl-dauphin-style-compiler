@@ -33,6 +33,7 @@
         <button id="tr-all-off">all tr off</button>
         <button id="tr-all-on">all tr on</button>
         <button id="focus-region">focus region</button>
+        <button id="focus-region2">focus region2</button>
         <button id="expand1">expand1</button>
         <button id="expand2">expand2</button>
         <br/>
@@ -500,6 +501,16 @@
           tr_all(true);
         };
         document.getElementById("focus-region").onclick = function() {
+          genome_browser.switch(["track","focus","item","location"],{
+            "genome_id": "a7335667-93e7-11ec-a39d-005056b38ce3",
+            "region_name": "4",
+            "start": 32300000,
+            "end": 32420000
+          });
+          genome_browser.set_stick("a7335667-93e7-11ec-a39d-005056b38ce3:4");
+          genome_browser.goto(32300000,32420000);
+        };
+        document.getElementById("focus-region2").onclick = function() {
           genome_browser.switch(["track","focus","item","location"],{
             "genome_id": "a7335667-93e7-11ec-a39d-005056b38ce3",
             "region_name": "4",

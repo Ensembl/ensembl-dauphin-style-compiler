@@ -137,7 +137,7 @@ one_based = ["ruler","one_based"]
 #
 
 [track.focus-region.general]
-scales = [0,99,99]
+scales = [0,99,1]
 include = ["general"]
 triggers = [
     ["track","focus","item","location"]

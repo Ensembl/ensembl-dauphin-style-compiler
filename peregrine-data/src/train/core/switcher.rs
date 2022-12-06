@@ -7,7 +7,7 @@
  * work currently in progess on Tk is abandoned and the new Tm is prepared. In addition,
  * even when an object is ready to be current, the transition itself may not be
  * instantaneous, however at this point it must be carried on to completion before the
- * new current is esrablished. It could also be that this process overwhelms execution
+ * new current is established. It could also be that this process overwhelms execution
  * with rapidly changing requests, which needs to be guarded against. These tasks are the
  * job of Switcher. Siwtcher only performs operations on a regular clock-tick to ping().
  * This helps keep the many concurrent processes under some control.
@@ -131,14 +131,14 @@ impl<M:SwitcherManager<Extent=X,Type=T,Error=E>,
     }
 
     /* Call given callback on all objects currently displayed or being prepared. */
-    pub(crate) fn each_mut<F>(&mut self, cb: &F) where F: Fn(&mut T) {
+    pub(crate) fn each_mut<F>(&mut self, cb: &mut F) where F: FnMut(&mut T) {
         if let Some(wanted) = &mut self.wanted { cb(wanted); }
         if let Some(future) = &mut self.future { cb(future); }
         if let Some(current) = &mut self.current { cb(current); }
     }
 
     /* Call given callback on all objects currently displayed. */
-    pub(crate) fn each_displayed_mut<F>(&mut self, cb: &F) where F: Fn(&mut T) {
+    pub(crate) fn each_displayed_mut<F>(&mut self, cb: &mut F) where F: FnMut(&mut T) {
         if let Some(future) = &mut self.future { cb(future); }
         if let Some(current) = &mut self.current { cb(current); }
     }

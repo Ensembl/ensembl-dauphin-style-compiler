@@ -1,6 +1,6 @@
 use std::{sync::{Arc, Mutex}};
 use commander::{CommanderStream, cdr_timer};
-use peregrine_toolkit::{log_extra, error::Error};
+use peregrine_toolkit::{log_extra, error::Error, debug_log};
 use crate::{DataMessage, ShapeStore, PeregrineCoreBase, PgCommanderTaskSpec, Scale, add_task, core::{Layout, pixelsize::PixelSize}, shapeload::loadshapes::LoadMode, switch::trackconfiglist::TrainTrackConfigList, CarriageExtent, train::model::trainextent::TrainExtent, PeregrineApiQueue };
 use crate::shapeload::carriagebuilder::CarriageBuilder;
 
@@ -157,6 +157,7 @@ impl Anticipate {
             for (depth,width,net_only) in schedule {
                 self.build_tasks(extent,*depth,*width,*net_only)?;
             }
+            debug_log!("anticipate conplete");
         }
         *self.extent.lock().unwrap() = Some(extent.clone());
         Ok(())

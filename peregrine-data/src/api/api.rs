@@ -27,6 +27,8 @@ pub trait PeregrineIntegration {
     fn report_instance_information(&self, info: &InstanceInformation);
     fn set_assets(&mut self, assets: &Assets);
 
+    fn set_pause(&mut self, yn: bool);
+
     fn create_train(&mut self, train: &TrainIdentity);
     fn drop_train(&mut self, train: &TrainIdentity);
 

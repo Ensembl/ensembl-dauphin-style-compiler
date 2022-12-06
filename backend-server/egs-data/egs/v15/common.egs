@@ -102,10 +102,20 @@ stmt draw_focus_swatch(allotment_value) {
 }
 
 stmt red_dotted(pstart,pend,pallotment,tallotment,left,right) {
-    textpen_flagtop_left := pen("'Lato', sans-serif",12,direct_colour(0,0,0,255),[][]);
-    textpen_flagtop_right := pen("'Lato', sans-serif",-12,direct_colour(0,0,0,255),[][]);
-    text2(spacebase(pstart,8,8),textpen_flagtop_left,left,tallotment);
-    text2(spacebase(pend,8,-8),textpen_flagtop_right,right,tallotment);
+    bp := [bp_range()];
+    distance_in_carriage := bp[@==1] - bp[@==0];
+    right_to_left := pend-pstart;
+    notice(format([distance_in_carriage,right_to_left]));
+
+    colour := direct_colour(0,0,0,255);
+
+    inside := 1;
+    inside#[right_to_left*4<distance_in_carriage] := -1;
+
+    textpen_flagtop_left := pen("'Lato', sans-serif",inside*12,colour,[][]);
+    textpen_flagtop_right := pen("'Lato', sans-serif",inside*-12,colour,[][]);
+    text2(spacebase(pstart,8,inside*8),textpen_flagtop_left,left,tallotment);
+    text2(spacebase(pend,8,inside*-8),textpen_flagtop_right,right,tallotment);
 
     dots_patina := patina_hollow(barred(direct_colour(255,255,255,255),direct_colour(255,0,0,255),2,4,0.5),1);
     rectangle(spacebase(pstart,-1,1),spacebase(pstart,0,1),dots_patina,pallotment);

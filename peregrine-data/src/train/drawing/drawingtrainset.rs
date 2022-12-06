@@ -76,7 +76,7 @@ impl DrawingTrainSet {
     }
 
     pub(crate) fn set_mute(&mut self) {
-        self.switcher.each_mut(&|dcp| {
+        self.switcher.each_mut(&mut |dcp| {
             dcp.set_mute();
         });
         self.switcher.manager_mut().muted = true;
@@ -84,15 +84,15 @@ impl DrawingTrainSet {
 
     pub(crate) fn set_active(&mut self, stick: &Stick) {
         self.switcher.manager_mut().stick = Some(stick.clone());
-        self.switcher.each_mut(&|dcp| dcp.set_stick(stick));
-        self.switcher.each_displayed_mut(&|dcp| {
+        self.switcher.each_mut(&mut |dcp| dcp.set_stick(stick));
+        self.switcher.each_displayed_mut(&mut |dcp| {
             dcp.set_active();
         });
     }
 
     pub(crate) fn set(&mut self, state: &TrainState, carriages: &[FloatingCarriage]) {
         self.switcher.set_target(state);
-        self.switcher.each_mut(&|dcp| {
+        self.switcher.each_mut(&mut |dcp| {
             dcp.set(state,carriages);
         });
     }
@@ -106,7 +106,7 @@ impl DrawingTrainSet {
     }
 
     pub(crate) fn ping(&mut self) {
-        self.switcher.each_mut(&|dcp| {
+        self.switcher.each_mut(&mut |dcp| {
             dcp.ping();
         });
         self.switcher.ping();

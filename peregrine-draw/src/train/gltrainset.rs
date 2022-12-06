@@ -157,7 +157,7 @@ impl GlRailwayData {
             (true,true) => { 1.-prop },           /* fade-out then fade-in ; fade-out opacity */
             (true,false) => { prop-factor },      /* fade-out then fade-in ; fade-in  opacity */
             (false,true) => { 1.-(prop+factor) }, /* fade-in  then fade-out; fade-out opacity */
-            (false,false) => { prop }             /* fase-in  then fade-out; fade-in  opacity */
+            (false,false) => { prop }             /* fade-in  then fade-out; fade-in  opacity */
         }.min(1.).max(0.);
         val
     }
@@ -222,7 +222,8 @@ impl GlRailwayData {
                     } else {
                         /* zooming out, give priority to more detailed source */
                         out.push(self.get_our_train(&from,10).clone());
-                        out.push(self.get_our_train(&to,11).clone());                    }
+                        out.push(self.get_our_train(&to,11).clone());
+                    }
                 } else {
                     out.push(self.get_our_train(&to,12).clone());
                 }

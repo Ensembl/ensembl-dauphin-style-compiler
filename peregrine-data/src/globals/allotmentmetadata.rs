@@ -1,6 +1,6 @@
 use std::{collections::{HashMap, hash_map::DefaultHasher }, sync::Arc, hash::{Hash, Hasher}, iter::FromIterator};
 use hashbrown::HashSet;
-use peregrine_toolkit::{puzzle::{ StaticValue, StaticAnswer, derived }, eachorevery::eoestruct::{StructTemplate, struct_to_json}};
+use peregrine_toolkit::{puzzle::{ StaticValue, StaticAnswer, derived }, eachorevery::eoestruct::{StructTemplate, struct_to_json}, timer_end, timer_start};
 use crate::{allotment::core::allotmentname::{AllotmentName}};
 use serde_json::{ Value as JsonValue, Map as JsonMap };
 
@@ -130,6 +130,7 @@ fn merge(input: &[(StructTemplate,Option<String>)]) -> Option<(JsonValue,bool)> 
 
 impl GlobalAllotmentMetadata {
     pub(crate) fn new(builder: GlobalAllotmentMetadataBuilder, answer: &mut StaticAnswer) -> GlobalAllotmentMetadata {
+        timer_start!("GlobalAllotmentMetadata new");
         let mapper = MapToReporter::new(&builder.0.reports);
         let mut values = HashMap::new();
         for ((allotment,key),value) in &builder.0.values {
@@ -154,6 +155,7 @@ impl GlobalAllotmentMetadata {
             key.hash(&mut hash);
             values.get(&key).as_ref().unwrap().hash(&mut hash);
         }
+        timer_end!("GlobalAllotmentMetadata new");
         GlobalAllotmentMetadata(hash.finish(),Arc::new(values))
     }
 

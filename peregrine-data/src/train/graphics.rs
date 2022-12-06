@@ -55,7 +55,8 @@ struct GraphicsState {
     trains: HashMap<TrainIdentity,i32>, // create&destroy trains as needed
     transition: DisplayedTrains,
     playing_field: Option<GlobalPlayingField>, // don't repeat ourselves
-    metadata: Option<GlobalAllotmentMetadata>, // don't repeat ourselves, ;-)
+    metadata: Option<GlobalAllotmentMetadata>, // don't repeat ourselves
+    paused: bool // don't repeat ourselves :-)
 }
 
 #[derive(Clone)]
@@ -75,7 +76,8 @@ impl Graphics {
             trains: HashMap::new(),
             playing_field: None,
             transition: DisplayedTrains::new(),
-            metadata: None    
+            metadata: None ,
+            paused: true
         }));
         Graphics {
             dropper: Arc::new(GraphicsDropper{ state: state.clone(), integration: integration.clone() }),
@@ -84,7 +86,7 @@ impl Graphics {
         }
     }
 
-    fn upate_train(&mut self, train_identity: &TrainIdentity, delta: i32) {
+    fn update_train(&mut self, train_identity: &TrainIdentity, delta: i32) {
         let mut state = lock!(self.state);
         let value = state.trains.entry(train_identity.clone()).or_insert(0);
         if *value == 0 {
@@ -96,14 +98,21 @@ impl Graphics {
         }
     }
 
+    pub(super) fn set_pause(&self, yn: bool) {
+        let mut state = lock!(self.state);
+        if state.paused == yn { return; }
+        lock!(self.integration).set_pause(yn);
+        state.paused = yn;
+    }
+
     pub(super) fn create_carriage(&mut self, dc: &DrawingCarriage) {
-        self.upate_train(dc.train_identity(),1);
+        self.update_train(dc.train_identity(),1);
         lock!(self.integration).create_carriage(dc);
     }
 
     pub(super) fn drop_carriage(&mut self, dc: &DrawingCarriage) {
         lock!(self.integration).drop_carriage(dc);
-        self.upate_train(dc.train_identity(),-1);
+        self.update_train(dc.train_identity(),-1);
     }
 
     pub(super) fn set_carriages(&self, train_identity: &TrainIdentity, carriages: &[DrawingCarriage]) {
@@ -115,7 +124,7 @@ impl Graphics {
     }
 
     pub(super) fn start_transition(&mut self, train: &TrainIdentity, stick: &Stick, speed: CarriageSpeed) {
-        self.upate_train(train,1);
+        self.update_train(train,1);
         let mut state = lock!(self.state);
         let transition = TransitionSpec::new(train,stick.size(),&speed);
         if !state.transition.running {
@@ -131,7 +140,7 @@ impl Graphics {
             state.transition.future = Some(transition);
             drop(state);
             if let Some(old_target) = old_target {
-                self.upate_train(&old_target.train,-1);
+                self.update_train(&old_target.train,-1);
             }
         }
     }
@@ -152,7 +161,7 @@ impl Graphics {
         if let Some(train) = done_train {
             #[cfg(debug_trains)]
             log!("end transition to train {:?}",train);    
-            self.upate_train(&train,-1);
+            self.update_train(&train,-1);
         }
         if let Some(train) = next_train {
             #[cfg(debug_trains)]
