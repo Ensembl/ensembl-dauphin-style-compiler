@@ -268,8 +268,6 @@ al_far_under_by_tr := use_allotment(append_group(transcript_allotment_names[],["
 al_text_by_gn := use_allotment(append_group(aln_base[],["text"][]));
 al_label_by_gn := append_group(aln_base[],["text"][]);
 
-al_label_by_gn := use_allotment(al_label_by_gn);
-
 /*
  * What colour? What font? etc
  *
@@ -569,13 +567,11 @@ text2(spacebase(start_gn,num_drawn_tr_gn*20-12,0),textpen,gene_name,al_text_by_g
 blue_text_colour := direct_colour(111,129,255,255);
 textpen_blue := pen("'IBM Plex Mono', sans-serif",text_size,blue_text_colour,[][]);
 draw_labels(
-    false, // TODO ghosting
     idx_drawn_tr_gn, which_gn_by_tr,
     start_gn, end_gn,
     gene_name,id_tr_vr, textpen_blue, al_trtext_by_tr,
     num_drawn_tr_gn, textpen, bool_show_tr,
-    enabled_gene_labels, enabled_tr_labels,
-    al_label_by_gn
+    enabled_gene_labels, enabled_tr_labels
 );
 
 /* zmenu areas */

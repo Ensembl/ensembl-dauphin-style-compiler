@@ -67,7 +67,6 @@ id_gn_vo := data_string(data,"gene_id_version");
 id_gn_vr := concat(id_gn_uv,id_gn_vo);
 gene_name := data_string(data,"gene_names");
 gene_desc := data_string(data,"gene_descs");
-stick := data_string(data,"stick");
 start_gn := data_number(data,"starts");
 end_gn := start_gn + data_number(data,"lengths");
 start_tr := data_number(data,"transcripts_starts");
@@ -127,12 +126,8 @@ end_thex := end_thex#[thick_exons];
  * What are the current track settings?
  */
 
-
-/* check if on current stick */
-this_stick := get_region().stick;
-on_another_stick := (stick == this_stick) == false;
-
 /*
+
 / <- stack
 title/ <- track title
 main/ <- overlay
@@ -163,7 +158,7 @@ style("**/main/background/content",["depth","padding-top"][],["-10","32"][]);
 enabled_gene_labels := setting_yn("focus-gene-label");
 enabled_transcript_labels := setting_yn("focus-transcript-label");
 
-calc_focus_transcripts_shown(is_ghosted,bool_report_show_tr,bool_show_tr,id_gn_vr,id_tr_vr,which_gn_by_tr,id_gn_uv,focus_gene_id,idx_tr_in_gn);
+calc_focus_transcripts_shown(bool_show_tr,id_gn_vr,id_tr_vr,which_gn_by_tr,id_gn_uv,focus_gene_id,idx_tr_in_gn);
 
 /* index the rest (by gene) */
 drawn_tr_gn := which_gn_by_tr;
@@ -178,8 +173,6 @@ idx_tr_in_gn_by_thex := idx_tr_in_gn_by_ex#[thick_exons];
 allotment_label := use_allotment("tracks/track/focus/title/content");
 allotment_letter := use_allotment("tracks/track/focus/main/letter/content");
 allotment_wallpaper := use_allotment("tracks/track/focus/main/background/content");
-allotment_dotted := use_allotment("dots/content");
-allotment_dotted_text := use_allotment("tracks/flagtop/main");
 
 base_allotment := append_group("tracks/track/focus/main/main",focus_gene_id);
 
@@ -207,14 +200,14 @@ al_text_by_gn#[id_gn_uv==focus_gene_id] := append_group(base_allotment,"text");
 
 al_label_by_gn := len([id_gn_vr]) (*) "";
 al_label_by_gn#[id_gn_uv==focus_gene_id] := append_group(base_allotment,"text");
-al_label_by_gn := use_allotment(al_label_by_gn);
 
-al_trtext_by_tr := use_allotment(index(which_gn_by_tr,[al_text_by_gn]));
+al_trtext_by_gn := al_text_by_gn;
+al_trtext_by_tr := index(which_gn_by_tr,[al_text_by_gn]);
 
-al_trtext_by_tr#[bool_show_tr==false] := use_allotment("");
+al_trtext_by_tr#[bool_show_tr==false] := "";
 
 al_text_by_gn#[enabled_gene_labels==false] := "";
-al_trtext_by_tr#[enabled_transcript_labels==false] := use_allotment("");
+al_trtext_by_tr#[enabled_transcript_labels==false] := "";
 
 al_button := len([id_gn_vr]) (*) "";
 al_button#[id_gn_uv==focus_gene_id] := append_group(base_allotment,"button");
@@ -243,9 +236,6 @@ end_focus := end_gn#[id_gn_uv==focus_gene_id];
  */
 
 base_focus_colour := direct_colour(39,154,252,255);
-ghost_focus_colour := direct_colour(200,228,252,255);
-base_focus_colour#[is_ghosted] := ghost_focus_colour;
-
 
 dotted_focus_colour := barred(direct_colour(255,255,255,255),base_focus_colour,4,0,0.5);
 focus_colour := simple_colour(base_focus_colour);
@@ -255,10 +245,8 @@ pt_hollow_by_ex := patina_hollow(focus_colour,1);
 pt_white := patina_filled(simple_colour(direct_colour(255,255,255,255)));
 pt_thick_by_thex := patina_filled(focus_colour);
 text_colour := direct_colour(111,129,144,255);
-
 white_text_colour := direct_colour(255,255,255,255);
 blue_text_colour := direct_colour(111,129,255,255);
-blue_text_colour#[is_ghosted] := direct_colour(255,255,144,255);
 text_size := 10;
 
 textpen := pen("'IBM Plex Mono', sans-serif",text_size,text_colour,[][]);
@@ -298,19 +286,6 @@ pt_zmenu_gn := patina_zmenu(zmenu_tmpl,
      "name","gene_biotype","strand"],
     [[gene_name_by_tr],[id_gn_uv_by_tr],[id_gn_vr_by_tr],["focus"],["gene"],
      [gene_desc_by_tr],[gene_biotype_by_tr],[transcript_strand_string]][]);
-
-allotment_wallpaper#[on_another_stick] := use_allotment("");
-allotment_dotted#[on_another_stick] := use_allotment("");
-allotment_dotted_text#[on_another_stick] := use_allotment("");
-al_under_by_tr#[on_another_stick] := use_allotment("");
-al_under_by_gn#[on_another_stick] := use_allotment("");
-al_over_by_tr#[on_another_stick] := use_allotment("");
-al_over_by_ex#[on_another_stick] := use_allotment("");
-al_blanking_by_ex#[on_another_stick] := use_allotment("");
-al_farover_by_thex#[on_another_stick] := use_allotment("");
-al_button#[on_another_stick] := use_allotment("");
-al_trtext_by_tr#[on_another_stick] := use_allotment("");
-al_label_by_gn#[on_another_stick] := use_allotment("");
 
 /*
  * draw everything!
@@ -359,13 +334,11 @@ rectangle(w,e,pt_zmenu_tr,al_under_by_tr);
 
 /* gene & transcript labels */
 draw_labels(
-    is_ghosted,
     idx_drawn_tr_gn, which_gn_by_tr,
     start_gn, end_gn,
     gene_name, id_tr_vr, textpen_blue, al_trtext_by_tr,   
     num_drawn_tr_gn, textpen, bool_show_tr, 
-    enabled_gene_labels, enabled_transcript_labels,
-    al_label_by_gn
+    enabled_gene_labels, enabled_transcript_labels
 );
 
 chevron_spacing := [
@@ -393,17 +366,15 @@ draw_track_category("G",[allotment_letter]);
 draw_focus_swatch(allotment_letter);
 
 /* red-dotted lines */
-//red_dotted(start_focus,end_focus,allotment_dotted,allotment_dotted_text,comma_format(start_focus),comma_format(end_focus));
+red_dotted(start_focus,end_focus,use_allotment("dots/content"),comma_format(start_focus),comma_format(end_focus));
 
 /* blue button */
 //draw_lozenges(start_gn,num_drawn_tr_gn,id_gn_uv,expanded_genes,al_button);
 
 /* report transcripts shown */
-report_allotment := use_allotment("tracks/track/focus/main/background/content");
-report_shown(bool_report_show_tr,id_tr_vr,report_allotment);
-report_id(focus_gene_id,report_allotment);
-report_all(id_tr_vr,id_gn_uv,focus_gene_id,which_gn_by_tr,report_allotment);
-report_suppressed(false,report_allotment);
+report_shown(bool_show_tr,id_tr_vr,use_allotment("tracks/track/focus/main/background/content"));
+report_id(focus_gene_id,use_allotment("tracks/track/focus/main/background/content"));
+report_all(id_tr_vr,id_gn_uv,focus_gene_id,which_gn_by_tr,use_allotment("tracks/track/focus/main/background/content"));
 
 /* track name */
 focus_label := [concat(concat(gene_name#[focus_gene_id==id_gn_uv]," "),focus_gene_id),""];

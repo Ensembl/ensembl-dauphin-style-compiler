@@ -284,8 +284,6 @@ al_blanking_by_ex := use_allotment(append_group(exon_allotment_names[],["blankin
 al_over_by_ex := use_allotment(append_group(exon_allotment_names[],["far-over"][]));
 al_far_over_by_thex := use_allotment(append_group(thick_exon_allotment_names[],["far-over"][]));
 
-al_label_by_gn := use_allotment(al_label_by_gn);
-
 alienate(allotment);
 
 /*
@@ -432,14 +430,12 @@ rectangle(w,e,pt_zmenu_tr,al_under_by_tr);
 
 /* gene & transcript labels */
 draw_labels(
-    false,
     idx_drawn_tr_gn, which_gn_by_tr,
     start_gn, end_gn,
     gene_name,id_tr_vr, textpen_blue,
     al_trtext_by_tr,
     num_drawn_tr_gn, textpen, bool_show_tr,
-    enabled_gene_labels,  enabled_tr_labels,
-    al_label_by_gn
+    enabled_gene_labels,  enabled_tr_labels
 );
 
 chevron_spacing := [

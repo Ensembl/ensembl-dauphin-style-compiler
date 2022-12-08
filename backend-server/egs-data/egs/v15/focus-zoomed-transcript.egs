@@ -65,7 +65,6 @@ id_gn_vo := data_string(data,"gene_id_version");
 id_gn_vr := concat(id_gn_uv,id_gn_vo);
 gene_name := data_string(data,"gene_names");
 gene_desc := data_string(data,"gene_descs");
-stick := data_string(data,"stick");
 start_gn := data_number(data,"starts");
 end_gn := start_gn + data_number(data,"lengths");
 start_tr := data_number(data,"transcripts_starts");
@@ -107,10 +106,6 @@ exon_strand := index(which_gn_by_ex,[strand]);
 sequence := [data_string(seq_data,"sequence")];
 sequence_rev := [base_flip(sequence[])];
 sequence_start := [data_number(seq_data,"sequence_start")][@==0];
-
-/* check if on current stick */
-this_stick := get_region().stick;
-on_another_stick := (stick == this_stick) == false;
 
 /*
 
@@ -174,14 +169,12 @@ which_tr_by_thex := which_tr_by_ex#[thick_exons];
 focus_start := start_gn#[id_gn_uv==focus_gene_id];
 focus_end := end_gn#[id_gn_uv==focus_gene_id];
 
-calc_focus_transcripts_shown(is_ghosted,bool_report_show_tr,bool_show_tr,id_gn_vr,id_tr_vr,which_gn_by_tr,id_gn_uv,focus_gene_id,idx_tr_in_gn);
+calc_focus_transcripts_shown(bool_show_tr,id_gn_vr,id_tr_vr,which_gn_by_tr,id_gn_uv,focus_gene_id,idx_tr_in_gn);
 
 base_allotment := append_group("tracks/track/focus/main/main",focus_gene_id);
 
 allotment_label := use_allotment("tracks/track/focus/title/content");
 allotment_letter := use_allotment("tracks/track/focus/main/letter/content");
-allotment_dotted := use_allotment("dots/content");
-allotment_dotted_text := use_allotment("tracks/flagtop/main");
 
 al_over_by_tr := len([id_tr_vr]) (*) "";
 al_over_by_tr#[bool_show_tr] := append_group(base_allotment,"diagram/over");
@@ -206,7 +199,6 @@ al_text_by_gn#[id_gn_uv==focus_gene_id] := append_group(base_allotment,"text");
 
 al_label_by_gn := len([id_gn_vr]) (*) "";
 al_label_by_gn#[id_gn_uv==focus_gene_id] := append_group(base_allotment,"text");
-al_label_by_gn := use_allotment(al_label_by_gn);
 
 al_trtext_by_gn := al_text_by_gn;
 al_trtext_by_tr := index(which_gn_by_tr,[al_text_by_gn]);
@@ -225,23 +217,11 @@ al_trtext_by_tr := use_allotment(al_trtext_by_tr);
 al_farunder_by_gn := use_allotment(al_farunder_by_gn);
 al_farunder_by_tr := use_allotment(al_farunder_by_tr);
 
-/* index the rest (by gene) */
+// /* index the rest (by gene) */
 drawn_tr_gn := which_gn_by_tr;
 drawn_tr_gn#[bool_show_tr==false] := -1;
 idx_drawn_tr_gn := nth(drawn_tr_gn);
 num_drawn_tr_gn := count(drawn_tr_gn,len([id_gn_vr]));
-
-allotment_dotted#[on_another_stick] := use_allotment("");
-allotment_dotted_text#[on_another_stick] := use_allotment("");
-al_label_by_gn#[on_another_stick] := use_allotment("");
-al_under_by_gn#[on_another_stick] := use_allotment("");
-al_under_by_tr#[on_another_stick] := use_allotment("");
-al_over_by_tr#[on_another_stick] := use_allotment("");
-al_farover_by_tr#[on_another_stick] := use_allotment("");
-al_text_by_gn#[on_another_stick] := use_allotment("");
-al_trtext_by_tr#[on_another_stick] := use_allotment("");
-al_farunder_by_gn#[on_another_stick] := use_allotment("");
-al_farunder_by_tr#[on_another_stick] := use_allotment("");
 
 /*
  * What colour? What font? etc
@@ -501,13 +481,11 @@ textpen := pen("'IBM Plex Mono', sans-serif",text_size,normal_text_colour,[][]);
 blue_text_colour := direct_colour(111,129,255,255);
 textpen_blue := pen("'IBM Plex Mono', sans-serif",text_size,blue_text_colour,[][]);
 draw_labels(
-     false,
      idx_drawn_tr_gn, which_gn_by_tr,
      start_gn, end_gn,
      gene_name,id_tr_vr, textpen_blue, al_trtext_by_tr,
      num_drawn_tr_gn, textpen, bool_show_tr, 
-     enabled_gene_labels, enabled_transcript_labels,
-     al_label_by_gn
+     enabled_gene_labels, enabled_transcript_labels
 );
 
 /* zmenu areas */
@@ -525,13 +503,12 @@ draw_track_category("G",[allotment_letter]);
 draw_focus_swatch(allotment_letter);
 
 /* red-dotted lines */
-//red_dotted(focus_start,focus_end,allotment_dotted,allotment_dotted_text,comma_format(focus_start),comma_format(focus_end));
+red_dotted(focus_start,focus_end,use_allotment("dots/content"),comma_format(focus_start),comma_format(focus_end));
 
 /* report transcripts shown */
-report_shown(bool_report_show_tr,id_tr_vr,use_allotment("tracks/track/focus"));
+report_shown(bool_show_tr,id_tr_vr,use_allotment("tracks/track/focus"));
 report_id(focus_gene_id,use_allotment("tracks/track/focus"));
 report_all(id_tr_vr,id_gn_uv,focus_gene_id,which_gn_by_tr,use_allotment("tracks/track/focus"));
-report_suppressed(false,use_allotment("tracks/track/focus"));
 
 /* track name */
 

@@ -101,25 +101,16 @@ stmt draw_focus_swatch(allotment_value) {
     rectangle(spacebase(0,-14,0),spacebase(0,25,5),swatch_patina,allotment_value);
 }
 
-stmt red_dotted(pstart,pend,pallotment,tallotment,left,right) {
-    bp := [bp_range()];
-    distance_in_carriage := bp[@==1] - bp[@==0];
-    right_to_left := pend-pstart;
-    notice(format([distance_in_carriage,right_to_left]));
-
-    colour := direct_colour(0,0,0,255);
-
-    inside := 1;
-    inside#[right_to_left*4<distance_in_carriage] := -1;
-
-    textpen_flagtop_left := pen("'Lato', sans-serif",inside*12,colour,[][]);
-    textpen_flagtop_right := pen("'Lato', sans-serif",inside*-12,colour,[][]);
-    text2(spacebase(pstart,8,inside*8),textpen_flagtop_left,left,tallotment);
-    text2(spacebase(pend,8,inside*-8),textpen_flagtop_right,right,tallotment);
+stmt red_dotted(pstart,pend,pallotment,left,right) {
+    al_flagtop := use_allotment("tracks/flagtop/main");
+    textpen_flagtop_left := pen("'Lato', sans-serif",-12,direct_colour(0,0,0,255),[][]);
+    textpen_flagtop_right := pen("'Lato', sans-serif",12,direct_colour(0,0,0,255),[][]);
+    text2(spacebase(pstart,8,-8),textpen_flagtop_left,left,al_flagtop);
+    text2(spacebase(pend,8,8),textpen_flagtop_right,right,al_flagtop);
 
     dots_patina := patina_hollow(barred(direct_colour(255,255,255,255),direct_colour(255,0,0,255),2,4,0.5),1);
-    rectangle(spacebase(pstart,-1,1),spacebase(pstart,0,1),dots_patina,pallotment);
-    rectangle(spacebase(pend,-1,-1),spacebase(pend,0,-1),dots_patina,pallotment);
+    rectangle(spacebase(pstart,-1,0),spacebase(pstart,0,0),dots_patina,pallotment);
+    rectangle(spacebase(pend,-1,0),spacebase(pend,0,0),dots_patina,pallotment);
 }
 
 style("dots/",["system","depth","depth"][],["tracking-window","56","-10"][]);
@@ -142,12 +133,7 @@ stmt gene_track_styles() {
     style("tracks/track/gene-pc-rev/",["priority","report","min-height"][],["100","track;switch-id=gene-pc-rev;has-labels=true","92"][]);
     style("tracks/track/gene-other-fwd/",["priority","report","min-height"][],["-100","track;switch-id=gene-other-fwd;has-labels=true","92"][]);
     style("tracks/track/gene-pc-fwd/",["priority","report","min-height"][],["-110","track;switch-id=gene-pc-fwd;has-labels=true","92"][]);
-    style("tracks/track/focus/",["priority","report","min-height"][],["-900","track;switch-id=focus;has-labels=true;!transcripts-shown;!transcripts-suppressed;!all-transcripts;!id","100"][]);
-}
-
-stmt report_suppressed(value,report_allotment) {
-    suppressed_patina := patina_metadata("transcripts-suppressed","",eoes_boolean(value));
-    rectangle(spacebase(0,0,0),spacebase(1,0,0),suppressed_patina,report_allotment); 
+    style("tracks/track/focus/",["priority","report","min-height"][],["-900","track;switch-id=focus;has-labels=true;!transcripts-shown;!all-transcripts;!id","100"][]);
 }
 
 stmt report_id(id,rs_al_focus_bgd) {
@@ -173,7 +159,7 @@ stmt report_all(rs_transcript_id,rs_focus_id,rs_focus_gene,rs_gn_tr,rs_al_focus_
     rectangle(spacebase(len([all_ids]) (*) 0,0,0),spacebase(len([all_ids]) (*) 1,0,0),trans_patina2,rs_al_focus_bgd);
 }
 
-stmt calc_focus_transcripts_shown(do_ghost,s_bool_report_show_tr,s_bool_show_tr,s_id_gn,s_id_tr,s_which_gn_by_tr,s_focus_id,s_focus_gene,s_idx_tr_in_gn) {
+stmt calc_focus_transcripts_shown(s_bool_show_tr,s_id_gn,s_id_tr,s_which_gn_by_tr,s_focus_id,s_focus_gene,s_idx_tr_in_gn) {
     /* Transcripts to be shown is determined by enabled-transcripts list if not null.
      * If it is null, it's determined by the "several" setting.
      * For simplicity we just calculate both and choose.
@@ -199,21 +185,15 @@ stmt calc_focus_transcripts_shown(do_ghost,s_bool_report_show_tr,s_bool_show_tr,
 
     /* Choose */
     enabled_is_null := setting_isnull("enabled-transcripts");
-    s_bool_report_show_tr := et_bool_show_tr;
-    s_bool_report_show_tr#[enabled_is_null] := sv_bool_show_tr;
-
-    /* reenable ghost */
-    // TODO implement and; horribly inefficient!
-    s_bool_show_tr := s_bool_report_show_tr;
-    do_ghost := len([enabled_transcripts])==0;
-    ghost := [true,len([s_bool_show_tr])-1 (*) false][];
-    ghost#[do_ghost==false] := false;
-    s_bool_show_tr#[ghost] := true;
+    s_bool_show_tr := et_bool_show_tr;
+    s_bool_show_tr#[enabled_is_null] := sv_bool_show_tr;
 }
 
-stmt draw_labels(is_ghosted,s_idx_drawn_tr_gn,s_which_gn_by_tr,s_start_gn,s_end_gn,s_gene_name,s_id_tr,s_textpen_blue,s_al_trtext_by_tr, s_num_drawn_tr_gn, s_textpen, s_bool_show_tr, s_enabled_gene_labels, s_enabled_transcripts,s_al_label_by_gn) {
-    al_label_by_tr := index(which_gn_by_tr,[s_al_label_by_gn]);
-    al_label_by_tr#[s_bool_show_tr==false] := use_allotment("");
+stmt draw_labels(s_idx_drawn_tr_gn,s_which_gn_by_tr,s_start_gn,s_end_gn,s_gene_name,s_id_tr,s_textpen_blue,s_al_trtext_by_tr, s_num_drawn_tr_gn, s_textpen, s_bool_show_tr, s_enabled_gene_labels, s_enabled_transcripts) {
+    al_label_by_tr := index(which_gn_by_tr,[al_label_by_gn]);
+    al_label_by_tr#[s_bool_show_tr==false] := "";
+
+    al_label_by_tr := use_allotment(al_label_by_tr);
 
     /* transcript labels */
     c := s_idx_drawn_tr_gn * 20;
@@ -231,9 +211,7 @@ stmt draw_labels(is_ghosted,s_idx_drawn_tr_gn,s_which_gn_by_tr,s_start_gn,s_end_
     last_tr#[enabled_gene_labels_by_tr==false] := false;
     label_id_tr#[last_tr] := concat(len([label_id_tr#[last_tr]]) (*) " \0c-",label_id_tr#[last_tr]);
     genelabel_by_tr := index(s_which_gn_by_tr,[s_gene_name]);
-    gene_colour := "\0c6F8190";
-    gene_colour#[is_ghosted] := "\0cc1c8ce";
-    genelabel_by_tr := concat(len([genelabel_by_tr]) (*) gene_colour,genelabel_by_tr);
+    genelabel_by_tr := concat(len([genelabel_by_tr]) (*) "\0c6F8190",genelabel_by_tr);
     label_id_tr#[last_tr] := concat(genelabel_by_tr#[last_tr],label_id_tr#[last_tr]);
     running_text(tr_label_start,tr_label_end,s_textpen_blue,label_id_tr,al_label_by_tr);
 }
