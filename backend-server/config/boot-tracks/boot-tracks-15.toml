@@ -90,16 +90,8 @@ program_name = "zoomed-transcript"
 scales = [0,6,7]
 include=["transcript","gene","general"]
 
-[track.focus-gene-dots]
-scales = [1,66,1]
-include=["focus-gene","general"]
-
-[track.focus-gene]
-scales = [19,66,4]
-include=["focus-gene","general"]
-
 [track.focus-transcript]
-scales = [9,18,6]
+scales = [9,60,60]
 include=["focus-gene","general"]
 
 [track.focus-zoomed-transcript-letters]
@@ -135,20 +127,6 @@ triggers = [["ruler"]]
 
 [track.ruler.settings]
 one_based = ["ruler","one_based"]
-
-#
-# Focus locations
-#
-
-[track.focus-region.general]
-scales = [0,99,1]
-include = ["general"]
-triggers = [
-    ["track","focus","item","location"]
-]
-
-[track.focus-region.settings]
-region = ["track","focus","item","location"]
 
 #
 # %GC

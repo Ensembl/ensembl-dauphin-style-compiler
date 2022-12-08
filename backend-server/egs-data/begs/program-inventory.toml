@@ -16,10 +16,7 @@ programs = [
     "ruler",
     "framing",
     "focus-zoomed-transcript",
-    "focus-transcript",
-    "focus-gene",
-    "focus-region",
-    "focus-gene-dots"
+    "focus-transcript"
 ]
 
 [file.v16.general]
