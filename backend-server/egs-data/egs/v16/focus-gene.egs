@@ -1,0 +1,196 @@
+import "lib:std"; use "std";
+import "lib:peregrine"; use "peregrine";
+import "file:common.egs"; use "common";
+
+/* 
+ * actually get the data from the server
+ */
+
+get_focus_gene(focus_genome_id,focus_gene_id);
+
+/* Get the data */
+
+req := make_request("self()","transcript",get_region());
+req := request_scope(req,"id",focus_gene_id);
+req := request_scope(req,"genome",focus_genome_id);
+data := get_data(req);
+halt(only_warm(),[data]);
+
+/*
+ * undo the compression applied by the server basically by applying
+ * the transforms applied there in reverse order.
+ */
+
+id_gn_uv := data_string(data,"gene_id");
+id_gn_vo := data_string(data,"gene_id_version");
+id_gn_vr := concat(id_gn_uv,id_gn_vo);
+gene_name := data_string(data,"gene_names");
+gene_desc := data_string(data,"gene_descs");
+stick := data_string(data,"stick");
+start := data_number(data,"starts");
+end := start + data_number(data,"lengths");
+gene_biotype := data_string(data,"gene_biotypes");
+strand := data_number(data,"strands");
+id_dtr_uv := data_string(data,"designated_transcript_id");
+id_dtr_vo := data_string(data,"designated_transcript_id_version");
+id_dtr_vr := concat(id_dtr_uv,id_dtr_vo);
+designated_transcript_biotype := data_string(data,"designated_transcript_biotypes");
+designated_transcript_designation := data_string(data,"designated_transcript_designations");
+strand_string := len([strand]) (*) "reverse strand";
+strand_string#[strand>0] := "forward strand";
+id_tr_uv := data_string(data,"transcript_id");
+id_tr_vo := data_string(data,"transcript_id_version");
+id_tr_vr := concat(id_tr_uv,id_tr_vo);
+idx_tr_in_gn := run(data_number(data,"transcript_counts"));
+
+num_tr_by_gn := data_number(data,"transcript_counts");
+which_gn_by_tr := derun(num_tr_by_gn);
+
+/* check if on current stick */
+this_stick := get_region().stick;
+on_another_stick := (stick == this_stick) == false;
+
+/*
+
+/ <- stack
+title/ <- track title
+main/ <- overlay
+main/background/ <- chevrons (WINDOW)
+main/main/ <- bumper
+main/main/<id>/ <- stacker
+main/main/<id>/blocks/ <- blocks
+main/main/<id>/text/ <- label
+
+*/
+
+gene_track_styles();
+
+/* If we have labels then we bump */
+
+style("**/main/main/",["type"][],["bumper"][]);
+style("**/main/main/*/",["type"][],["overlay"][]);
+style("**/main/main/*/blocks/",["depth"][],["4"][]);
+style("**/main/main/*/text/",["bump-width","system"][],["none","tracking-special"][]);
+style("**/main/background/content",["depth","padding-top"][],["-10","32"][]);
+
+allotment_label := use_allotment("tracks/track/focus/title/content");
+allotment_letter := use_allotment("tracks/track/focus/main/letter/content");
+allotment_wallpaper := use_allotment("tracks/track/focus/main/background/content");
+allotment := use_allotment("tracks/track/focus/main/main/focus/blocks/content");
+text_allotment := use_allotment("tracks/track/focus/main/main/focus/text/content");
+dotted_allotment := use_allotment("dots/content");
+dotted_text_allotment := use_allotment("tracks/flagtop/main");
+
+allotment_label#[setting_yn("name")==false] := use_allotment("");
+
+/* Draw nothing if wrong chromosome!
+ */
+
+allotment_wallpaper#[on_another_stick] := use_allotment("");
+allotment#[on_another_stick] := use_allotment("");
+text_allotment#[on_another_stick] := use_allotment("");
+dotted_allotment#[on_another_stick] := use_allotment("");
+dotted_text_allotment#[on_another_stick] := use_allotment("");
+
+/*
+ * Filter labels by which tracks are configured to have labels
+ */
+
+enabled_gene_labels := setting_yn("focus-gene-label");
+text_allotment#[enabled_gene_labels==false] := use_allotment("");
+
+/*
+ * What colour? What font? etc
+ *
+ * (driven by allotment for gene)
+ */
+
+focus_colour := simple_colour(direct_colour(39,154,252,255));
+patina := patina_filled(focus_colour);
+
+text_colour := direct_colour(111,129,144,255);
+text_size := 10;
+
+textpen := pen("'IBM Plex Mono', sans-serif",text_size,text_colour,[][]);
+
+/*
+ * prepare the zmenus
+ */
+
+/* metadata */
+zmenu_patina := patina_zmenu(zmenu(""),["type"],[["gene-and-one-transcript"]][]);
+
+/* transcript part */
+zmenu_tmpl := zmenu("[<light>Transcript</light> <strong>{versioned_id}</strong>] [<light>{designation}</light>] / [<light>{transcript_biotype}</light>] [<light>{strand}</light>]");
+designated_transcript_designation#[designated_transcript_designation=="normal"] := "";
+pt_zmenu_tr := patina_zmenu(zmenu_tmpl,
+    ["gene_id","unversioned_id","versioned_id","transcript_biotype","strand",
+     "designation","track","type"],
+    [[id_gn_vr],[id_dtr_uv],[id_dtr_vr],[designated_transcript_biotype],[strand_string],
+     [designated_transcript_designation],["focus"],[len([id_gn_vr]) (*) "transcript"]][]);
+
+/* gene part */
+zmenu_tmpl := zmenu(
+    "[<light>Gene</light> {symbol}] / [<strong><focus>{versioned_id}</focus></strong>] [{name}] / [<light>{gene_biotype}</light>] [<light>{strand}</light>]");
+pt_zmenu_gn := patina_zmenu(zmenu_tmpl,
+    ["symbol","unversioned_id","versioned_id","track","type",
+     "name","gene_biotype","strand"],
+    [[gene_name],[id_gn_uv],[id_gn_vr],["focus"],["gene"],
+     [gene_desc],[gene_biotype],[strand_string]][]);
+
+/*
+ * DRAW!
+ */
+
+/* main contents */
+
+rectangle(spacebase(start,0,-0.5),spacebase(end,5,0.5),patina,allotment);
+rectangle_on_genome(start,end,8,zmenu_patina,allotment);
+rectangle_on_genome(start,end,8,pt_zmenu_tr,allotment);
+rectangle_on_genome(start,end,8,pt_zmenu_gn,allotment);
+running_text(spacebase(start,8,0),spacebase(end,8,0),textpen,gene_name,text_allotment);
+
+/* focus swatch */
+draw_focus_swatch(allotment_letter);
+
+/* main track chevrons */
+
+chevron_spacing := [
+    0.00,0.025,0.05,0.075,
+    0.10,0.125,0.15,0.175,
+    0.20,0.225,0.25,0.275,
+    0.30,0.325,0.35,0.375,
+    0.40,0.425,0.45,0.475,
+
+    0.50,0.525,0.55,0.575,
+    0.60,0.625,0.65,0.675,
+    0.70,0.725,0.75,0.775,
+    0.80,0.825,0.85,0.875,
+    0.90,0.925,0.95,0.975,
+][];
+
+focus_strand := strand#[id_gn_uv==focus_gene_id];
+image_underneath(chevron_spacing,0,["chevron-left","chevron-right"][@==focus_strand],allotment_wallpaper);
+draw_image(spacebase(0,0,24),["chevron-dark-left","chevron-dark-right"][@==focus_strand],allotment_letter);
+
+/* track names */
+focus_label := [concat(concat(gene_name#[focus_gene_id==id_gn_uv]," "),focus_gene_id),""];
+focus_label := focus_label[@==0];
+draw_track_name(focus_label,"name",allotment_label);
+
+/* track category */
+draw_track_category("G",[allotment_letter]);
+
+/* red-dotted lines */
+start_focus := start#[id_gn_uv==focus_gene_id];
+end_focus := end#[id_gn_uv==focus_gene_id];
+//red_dotted(start_focus,end_focus,dotted_allotment,dotted_text_allotment,comma_format(start_focus),comma_format(end_focus));
+
+/* report transcripts (not!) shown */
+
+report_allotment := use_allotment("tracks/track/focus/main/background/content");
+calc_focus_transcripts_shown(do_ghost,bool_report_show_tr,bool_show_tr,id_gn_vr,id_tr_vr,which_gn_by_tr,id_gn_uv,focus_gene_id,idx_tr_in_gn);
+report_shown(bool_report_show_tr,id_tr_vr,report_allotment);
+report_id(focus_gene_id,report_allotment);
+report_all(id_tr_vr,id_gn_uv,focus_gene_id,which_gn_by_tr,report_allotment);
+report_suppressed(true,report_allotment);

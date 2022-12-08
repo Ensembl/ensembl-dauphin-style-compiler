@@ -7,5 +7,5 @@ export PATH="$PATH:$DIR/../dauphin/target/release"
 SRC="$DIR/egs-data/egs"
 DST="$DIR/egs-data/begs"
 
-dauphin -c $SRC/v15/focus-gene-dots.egs -c $SRC/v15/focus-region.egs -c $SRC/v15/focus-gene.egs -c $SRC/v15/zoomed-seq.egs -c $SRC/v15/gene-overview.egs -c $SRC/v15/gene.egs -c $SRC/v15/transcript.egs -c $SRC/v15/zoomed-transcript.egs -c $SRC/v15/gc.egs -c $SRC/v15/variant.egs -c $SRC/v15/contig.egs -c $SRC/v15/ruler.egs -c $SRC/v15/framing.egs -c $SRC/v15/focus-transcript.egs -c $SRC/v15/focus-zoomed-transcript.egs -o $DST/render15.begs -L peregrine -O2 
-dauphin -c $SRC/v15/test.egs -c $SRC/v15/test-with-data.egs -o $DST/test15.begs -L peregrine -O2 
+dauphin -c $SRC/v16/focus-gene-dots.egs -c $SRC/v16/focus-region.egs -c $SRC/v16/focus-gene.egs -c $SRC/v16/zoomed-seq.egs -c $SRC/v16/gene-overview.egs -c $SRC/v16/gene.egs -c $SRC/v16/transcript.egs -c $SRC/v16/zoomed-transcript.egs -c $SRC/v16/gc.egs -c $SRC/v16/variant.egs -c $SRC/v16/contig.egs -c $SRC/v16/ruler.egs -c $SRC/v16/framing.egs -c $SRC/v16/focus-transcript.egs -c $SRC/v16/focus-zoomed-transcript.egs -o $DST/render16.begs -L peregrine -O2 
+dauphin -c $SRC/v16/test.egs -c $SRC/v16/test-with-data.egs -o $DST/test16.begs -L peregrine -O2 

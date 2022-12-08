@@ -1,0 +1,13 @@
+import "lib:std"; use "std";
+import "lib:peregrine"; use "peregrine";
+
+style("tracks/track/special/",["min-height","priority","report"][],["32","2","track;switch-id=special"][]);
+
+red := setting_number("red",[][]);
+green := setting_number("green",[][]);
+blue := setting_number("blue",[][]);
+
+colour := patina_filled(simple_colour(direct_colour(red,green,blue,255)));
+
+allotment := use_allotment("tracks/track/special/content");
+rectangle(spacebase(0,0,0),spacebase(1,16,0),colour,allotment);

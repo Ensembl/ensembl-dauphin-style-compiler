@@ -1,6 +1,6 @@
 use serde::{Serialize, ser::SerializeMap};
 
-const BE_VERSION: u32 = 15;
+const BE_VERSION: u32 = 16;
 
 #[derive(Clone)]
 pub struct VersionMetadata {

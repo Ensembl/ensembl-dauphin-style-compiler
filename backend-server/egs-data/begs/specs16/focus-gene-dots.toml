@@ -1,0 +1,9 @@
+set = "ensembl-webteam/core"
+name = "focus-gene-dots"
+version = 1
+description = """
+
+Draws the dotted red lines for focus genes. A spearate program from other parts of the track to
+allow it to run at every scale for label flipping. Takes no settings.
+
+"""
