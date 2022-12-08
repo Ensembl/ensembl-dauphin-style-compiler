@@ -31,4 +31,4 @@ end_focus := end_gn#[id_gn_uv==focus_gene_id];
 allotment_dotted := use_allotment("dots/content");
 allotment_dotted_text := use_allotment("tracks/flagtop/main");
 
-red_dotted(start_focus,end_focus,allotment_dotted,allotment_dotted_text,comma_format(start_focus),comma_format(end_focus));
+red_dotted(start_focus,end_focus,allotment_dotted,allotment_dotted_text,comma_format(start_focus+1),comma_format(end_focus));
