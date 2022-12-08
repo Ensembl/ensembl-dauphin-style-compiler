@@ -96,6 +96,10 @@ def extract_gene_data(data_accessor: DataAccessor, panel: Panel, include_exons: 
     data = get_bigbed(data_accessor,item,panel.start,panel.end)
     lines = extract_data_for_lines(data,for_id)
     out = tangle.run2({},{ "tr_bigbed": lines },**accept_to_tangling_config(accept))
+    # Needed for focus which may be returning data about another stick (which is needed because
+    # of transcript reporting to UI)
+    stick = data_accessor.data_model.best_stick_id(panel.stick)
+    out["stick"] = ("SZ",[stick])
     # flag as invariant if by id
     out = { k: data_algorithm(v[0],v[1]) for (k,v) in out.items() }
     if for_id is not None:

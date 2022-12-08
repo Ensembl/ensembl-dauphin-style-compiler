@@ -114,33 +114,3 @@ impl ShapeRequest {
         }
     }
 }
-
-#[derive(Clone)]
-pub struct ShapeRequestGroup {
-    region: Region,
-    tracks: Vec<TrackConfig>,
-    pixel_size: PixelSize,
-    warm: bool
-}
-
-impl ShapeRequestGroup {
-    pub fn new(region: &Region, tracks: &[TrackConfig], pixel_size: &PixelSize, warm: bool) -> ShapeRequestGroup {
-        ShapeRequestGroup {
-            region: region.clone(),
-            tracks: tracks.to_vec(),
-            pixel_size: pixel_size.clone(),
-            warm
-        }
-    }
-
-    pub fn region(&self) -> &Region { &self.region }
-    pub fn pixel_size(&self) -> &PixelSize { &self.pixel_size }
-    pub fn warm(&self) -> bool { self.warm }
-
-    pub fn iter(&self) -> impl Iterator<Item=ShapeRequest> + '_ {
-        let self2 = self.clone();
-        self.tracks.iter().map(move |track| {
-            ShapeRequest::new(&self2.region,track,&self2.pixel_size,self2.warm)
-        })
-    }
-}

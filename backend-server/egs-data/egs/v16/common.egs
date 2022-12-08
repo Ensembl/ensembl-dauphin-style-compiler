@@ -1,0 +1,262 @@
+use "std";
+use "peregrine";
+
+module "common";
+
+expr setting_yn(path) ((push([setting_boolean(path,[][])],false))[@==0]);
+expr setting_isnull(path) (setting_null(path,[][]));
+
+stmt get_focus_gene(focus_genome_id,focus_gene_id) {
+    focus_genome_id := setting_string("focus-gene",["genome_id"][]);
+    focus_gene_id := setting_string("focus-gene",["item_id"][]);
+}
+
+stmt use_allotments(our_allotments,enabled_tracks,potential_tracks) {
+    tracks_used := ["","","","",""];
+    tracks_used[enabled_tracks] := potential_tracks[enabled_tracks];
+    our_allotments := [use_allotment(tracks_used[])];
+}
+
+stmt use_allotment_names(our_allotments,enabled_tracks,potential_tracks) {
+    tracks_used := ["","","","","",""];
+    tracks_used[enabled_tracks] := potential_tracks[enabled_tracks];
+    our_allotments := [tracks_used[]];
+}
+
+gene_name_switches := [
+    ["track","gene-other-rev","name"],
+    ["track","gene-pc-rev","name"],
+    ["track","gene-other-fwd","name"],
+    ["track","gene-pc-fwd","name"],
+    ["track","focus","name"],
+];
+
+stmt draw_track_name(track_name,setting_name,allotment) {
+    name_text_size := 12;
+    name_text_colour := direct_colour(111,129,144,255);
+
+    switch := setting_yn(setting_name);
+    label_allotment := allotment;
+    label_allotment#[switch==false] := use_allotment("");
+    label_track_name := track_name;
+    label_track_name#[switch==false] := "";
+
+    textpen_trackname := pen("'IBM Plex Mono', sans-serif",name_text_size,name_text_colour,[][]);
+    text2(spacebase(0,0,8),textpen_trackname,label_track_name,label_allotment);
+}
+
+stmt gene_tracks_enabled(enabled_tracks) {
+    enabled_tracks := [false,false,false,false,false];
+    enabled_tracks[@==0] := setting_yn("other-rev");
+    enabled_tracks[@==1] := setting_yn("pc-rev");
+    enabled_tracks[@==2] := setting_yn("other-fwd");
+    enabled_tracks[@==3] := setting_yn("pc-fwd");
+    enabled_tracks := enabled_tracks[];
+}
+
+stmt gene_tracks_enabled_label(out) {
+    out := [false,false,false,false,false];
+    out[@==0] := setting_yn("other-rev-label");
+    out[@==1] := setting_yn("pc-rev-label");
+    out[@==2] := setting_yn("other-fwd-label");
+    out[@==3] := setting_yn("pc-fwd-label");
+    out := out[];
+}
+
+stmt gene_tracks_enabled_transcript_label(out) {
+    out := [false,false,false,false,false];
+    out[@==0] := setting_yn("other-rev-transcript-label");
+    out[@==1] := setting_yn("pc-rev-transcript-label");
+    out[@==2] := setting_yn("other-fwd-transcript-label");
+    out[@==3] := setting_yn("pc-fwd-transcript-label");
+    out := out[];
+}
+
+stmt gene_tracks_enabled_several(out) {
+    out := [false,false,false,false,false];
+    out[@==0] := setting_yn("other-rev-several");
+    out[@==1] := setting_yn("pc-rev-several");
+    out[@==2] := setting_yn("other-fwd-several");
+    out[@==3] := setting_yn("pc-fwd-several");
+    out := out[];
+}
+
+stmt draw_gene_track_names(allotments_trackname) {
+    draw_track_name("Other genes Reverse strand","other-rev-name",allotments_trackname[@==0]);
+    draw_track_name("Protein coding genes Reverse strand","pc-rev-name",allotments_trackname[@==1]);
+    draw_track_name("Other genes Forward strand","other-fwd-name",allotments_trackname[@==2]);
+    draw_track_name("Protein coding genes Forward strand","pc-fwd-name",allotments_trackname[@==3]);
+}
+
+stmt draw_track_category(category,allotments) {
+    cat_text_size := 12;
+    cat_text_colour := direct_colour(0,0,0,255);
+
+    textpen_cat := pen("'Lato', sans-serif",cat_text_size,cat_text_colour,[][]);
+    text2(spacebase(len(allotments) (*) 0,5,16),textpen_cat,category,allotments[]);
+}
+
+stmt draw_focus_swatch(allotment_value) {
+    swatch_patina := patina_filled(simple_colour(direct_colour(88,168,249,255)));
+    rectangle(spacebase(0,-14,0),spacebase(0,25,5),swatch_patina,allotment_value);
+}
+
+stmt red_dotted(pstart,pend,pallotment,tallotment,left,right) {
+    bp := [bp_range()];
+    distance_in_carriage := bp[@==1] - bp[@==0];
+    right_to_left := pend-pstart;
+
+    colour := direct_colour(0,0,0,255);
+
+    inside := 1;
+    inside#[right_to_left*4<distance_in_carriage] := -1;
+
+    textpen_flagtop_left := pen("'Lato', sans-serif",inside*12,colour,[][]);
+    textpen_flagtop_right := pen("'Lato', sans-serif",inside*-12,colour,[][]);
+    text2(spacebase(pstart,8,inside*8),textpen_flagtop_left,left,tallotment);
+    text2(spacebase(pend,8,inside*-8),textpen_flagtop_right,right,tallotment);
+
+    dots_patina := patina_hollow(barred(direct_colour(255,255,255,255),direct_colour(255,0,0,255),2,4,0.5),1);
+    rectangle(spacebase(pstart,-1,1),spacebase(pstart,0,1),dots_patina,pallotment);
+    rectangle(spacebase(pend,-1,-1),spacebase(pend,0,-1),dots_patina,pallotment);
+}
+
+style("dots/",["system","depth","depth"][],["tracking-window","56","-10"][]);
+style("tracks/",["padding-top","priority","depth"][],["16","1","0"][]);
+style("tracks/flagtop/",["min-height","priority","system"][],["32","0","tracking"][]);
+style("tracks/track/",["min-height","priority"][],["100","1"][]);
+style("tracks/track/*/",["padding-top","padding-bottom","height-adjust"][],["4","12","tracking"][]);
+style("tracks/track/*/title/",["system","type","indent","padding-top","padding-bottom","priority"][],["content","overlay","left","2","10","-1000"][]);
+style("tracks/track/*/main/",["type","priority"][],["overlay","0"][]);
+style("tracks/track/*/main/letter/",["system","indent","depth"][],["content","datum(pad-left)","60"][]);
+style("tracks/track/*/title/letter/",["system","indent","depth"][],["content","datum(pad-left)","60"][]);
+style("tracks/track/*/main/main/",["system","priority"][],["tracking","1000"][]);
+style("tracks/track/*/main/background/",["system"][],["content"][]);
+style("tracks/earth/",["min-height","priority","system"][],["90","10000000","content"][]);
+
+empty(spacebase(0,0,0),spacebase(0,1,90),use_allotment("tracks/earth/main"));
+
+stmt gene_track_styles() {
+    style("tracks/track/gene-other-rev/",["priority","report","min-height"][],["110","track;switch-id=gene-other-rev;has-labels=true","92"][]);
+    style("tracks/track/gene-pc-rev/",["priority","report","min-height"][],["100","track;switch-id=gene-pc-rev;has-labels=true","92"][]);
+    style("tracks/track/gene-other-fwd/",["priority","report","min-height"][],["-100","track;switch-id=gene-other-fwd;has-labels=true","92"][]);
+    style("tracks/track/gene-pc-fwd/",["priority","report","min-height"][],["-110","track;switch-id=gene-pc-fwd;has-labels=true","92"][]);
+    style("tracks/track/focus/",["priority","report","min-height"][],["-900","track;switch-id=focus;has-labels=true;!transcripts-shown;!transcripts-suppressed;!all-transcripts;!id","100"][]);
+}
+
+stmt report_suppressed(value,report_allotment) {
+    suppressed_patina := patina_metadata("transcripts-suppressed","",eoes_boolean(value));
+    rectangle(spacebase(0,0,0),spacebase(1,0,0),suppressed_patina,report_allotment); 
+}
+
+stmt report_id(id,rs_al_focus_bgd) {
+    id_patina := patina_metadata("id","",eoes_string(id)); // XXX replace with [][] when FE on 12
+    rectangle(spacebase(0,0,0),spacebase(1,0,0),id_patina,rs_al_focus_bgd); 
+}
+
+stmt report_shown(rs_bool_show_tr,rs_transcript_id,rs_al_focus_bgd) {
+    /* build list of shown focus tr from list of shown tr then turning off non-focus */
+    values := rs_transcript_id#[rs_bool_show_tr];
+    /* build payload */
+    trans_patina2 := patina_metadata("transcripts-shown",values,eoes_string(values));
+    rectangle(spacebase(len([values]) (*) 0,0,0),spacebase(len([values]) (*) 1,0,0),trans_patina2,rs_al_focus_bgd);
+}
+
+stmt report_all(rs_transcript_id,rs_focus_id,rs_focus_gene,rs_gn_tr,rs_al_focus_bgd) {
+    bool_focus_in_gn := rs_focus_id==rs_focus_gene;
+    bool_focus_in_tr := index(rs_gn_tr,[bool_focus_in_gn]);
+
+    /* HACK: send list of all focus tr (not currently used by chrome, but used in standalone) */
+    all_ids := rs_transcript_id#[bool_focus_in_tr];
+    trans_patina2 := patina_metadata("all-transcripts",all_ids,eoes_string(all_ids));
+    rectangle(spacebase(len([all_ids]) (*) 0,0,0),spacebase(len([all_ids]) (*) 1,0,0),trans_patina2,rs_al_focus_bgd);
+}
+
+stmt calc_focus_transcripts_shown(do_ghost,s_bool_report_show_tr,s_bool_show_tr,s_id_gn,s_id_tr,s_which_gn_by_tr,s_focus_id,s_focus_gene,s_idx_tr_in_gn) {
+    /* Transcripts to be shown is determined by enabled-transcripts list if not null.
+     * If it is null, it's determined by the "several" setting.
+     * For simplicity we just calculate both and choose.
+     * This code is unlikely to be a performance bottleneck.
+     */
+
+    /* Calc based on several setting */
+    SEVERAL := 5;
+    several_setting := setting_yn("several");
+    limit := 1;
+    limit#[several_setting] := SEVERAL;
+
+    limit_gn := len([s_id_gn]) (*) 0;
+    limit_gn#[s_focus_id==s_focus_gene] := limit;
+    limit_gn_by_tr := index(s_which_gn_by_tr,[limit_gn]);
+
+    sv_bool_show_tr := len([s_id_tr]) (*) false;
+    sv_bool_show_tr#[s_idx_tr_in_gn<limit_gn_by_tr] := true;
+
+    /* Enabled based on enabled setting */
+    enabled_transcripts := setting_string("enabled-transcripts",[][]);
+    et_bool_show_tr := in(s_id_tr,[enabled_transcripts]);
+
+    /* Choose */
+    enabled_is_null := setting_isnull("enabled-transcripts");
+    s_bool_report_show_tr := et_bool_show_tr;
+    s_bool_report_show_tr#[enabled_is_null] := sv_bool_show_tr;
+
+    /* reenable ghost */
+    // TODO implement and; horribly inefficient!
+    s_bool_show_tr := s_bool_report_show_tr;
+    do_ghost := len([enabled_transcripts])==0;
+    ghost := [true,len([s_bool_show_tr])-1 (*) false][];
+    ghost#[do_ghost==false] := false;
+    s_bool_show_tr#[ghost] := true;
+}
+
+stmt draw_labels(is_ghosted,s_idx_drawn_tr_gn,s_which_gn_by_tr,s_start_gn,s_end_gn,s_gene_name,s_id_tr,s_textpen_blue,s_al_trtext_by_tr, s_num_drawn_tr_gn, s_textpen, s_bool_show_tr, s_enabled_gene_labels, s_enabled_transcripts,s_al_label_by_gn) {
+    al_label_by_tr := index(which_gn_by_tr,[s_al_label_by_gn]);
+    al_label_by_tr#[s_bool_show_tr==false] := use_allotment("");
+
+    /* transcript labels */
+    c := s_idx_drawn_tr_gn * 20;
+    start_gn_by_tr := index(s_which_gn_by_tr,[s_start_gn]);
+    end_gn_by_tr := index(s_which_gn_by_tr,[s_end_gn]);
+    tr_label_start := spacebase(start_gn_by_tr,c+10,0);
+    tr_label_end := spacebase(end_gn_by_tr,c+10,0);
+    label_id_tr := s_id_tr;
+    label_id_tr#[s_enabled_transcripts==false] := "";
+
+    /* find last trs of each gene so that we can offset them */
+    num_drawn_tr_gn_by_tr := index(which_gn_by_tr,[num_drawn_tr_gn]);
+    last_tr := s_idx_drawn_tr_gn == num_drawn_tr_gn_by_tr-1;
+    enabled_gene_labels_by_tr := index(s_which_gn_by_tr,[s_enabled_gene_labels]);
+    last_tr#[enabled_gene_labels_by_tr==false] := false;
+    label_id_tr#[last_tr] := concat(len([label_id_tr#[last_tr]]) (*) " \0c-",label_id_tr#[last_tr]);
+    genelabel_by_tr := index(s_which_gn_by_tr,[s_gene_name]);
+    gene_colour := "\0c6F8190";
+    gene_colour#[is_ghosted] := "\0cc1c8ce";
+    genelabel_by_tr := concat(len([genelabel_by_tr]) (*) gene_colour,genelabel_by_tr);
+    label_id_tr#[last_tr] := concat(genelabel_by_tr#[last_tr],label_id_tr#[last_tr]);
+    running_text(tr_label_start,tr_label_end,s_textpen_blue,label_id_tr,al_label_by_tr);
+}
+
+stmt draw_lozenges(starts,y_offsets,ids,expanded_ids,allt) {
+    blue_top_left := spacebase(starts,y_offsets*20+6,0);
+    blue_bottom_right := spacebase(starts,y_offsets*20+32,32);
+
+    blue_colour := simple_colour(direct_colour(239,154,52,255));
+    white_text_colour := direct_colour(255,255,255,255);
+    blue_text_bgd := background(blue_text_colour,false);
+
+    button_text := len([starts]) (*) " + ";
+    button_text#[in(ids,[expanded_ids])] := " – ";
+
+    textpen_lozenge := pen("'IBM Plex Mono', sans-serif",12,white_text_colour,blue_text_bgd);
+    text2(blue_top_left,textpen_lozenge,button_text,allt);
+
+    expanded_ids := setting_string("expanded",[][]);
+
+    sense := len([ids]) (*) true;
+    sense#[in(ids,[expanded_ids])] := false;
+
+    blue_hotspot_patina := patina_setting_member("expanded",ids,sense);
+
+    rectangle(blue_top_left,blue_bottom_right,blue_hotspot_patina,allt);
+}

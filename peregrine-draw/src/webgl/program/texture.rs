@@ -1,16 +1,16 @@
 use std::collections::HashSet;
 
 use crate::shape::layers::consts::PR_LOW;
-use crate::webgl::{FlatId, FlatStore, GLArity};
+use crate::webgl::canvas::htmlcanvas::canvasinuse::CanvasInUse;
+use crate::webgl::{GLArity};
 use crate::webgl::global::{WebGlGlobalRefs};
-use crate::util::message::Message;
 use keyed::keyed_handle;
 use peregrine_toolkit::error::Error;
 use web_sys::{ WebGlUniformLocation, WebGlRenderingContext, WebGlProgram };
 use super::source::{ Source };
 use super::super::{ GPUSpec, Phase };
 use super::program::{ ProgramBuilder };
-use crate::webgl::util::{handle_context_errors, handle_context_errors2};
+use crate::webgl::util::{handle_context_errors2};
 
 // XXX some merging into uniform?
 
@@ -46,7 +46,7 @@ impl Source for TextureProto {
             self.name)
     }
 
-    fn register(&self, builder: &mut ProgramBuilder, _flags: &HashSet<String>) -> Result<(),Message> {
+    fn register(&self, builder: &mut ProgramBuilder, _flags: &HashSet<String>) -> Result<(),Error> {
         builder.add_texture(&self)
     }
 }
@@ -59,18 +59,18 @@ pub(crate) struct Texture {
 }
 
 impl Texture {
-    pub(super) fn new(proto: &TextureProto, context: &WebGlRenderingContext, program: &WebGlProgram) -> Result<Texture,Message> {
+    pub(super) fn new(proto: &TextureProto, context: &WebGlRenderingContext, program: &WebGlProgram) -> Result<Texture,Error> {
         let location = context.get_uniform_location(program,&proto.name);
         let location_size = context.get_uniform_location(program,&proto.size_name);
         let location_scale = context.get_uniform_location(program,&proto.scale_name);
-        handle_context_errors(context)?;
+        handle_context_errors2(context)?;
         Ok(Texture { location, location_size, location_scale })
     }
 }
 
 pub(crate) struct TextureValues {
     texture: Texture,
-    flat_id: Option<FlatId>,
+    flat_id: Option<CanvasInUse>,
     flat_size: Option<(u32,u32)>,
     bound: bool
 }
@@ -80,16 +80,16 @@ impl TextureValues {
         TextureValues { texture: texture, flat_id: None, flat_size: None, bound: false }
     }
 
-    pub fn set_value(&mut self, flat_store: &FlatStore, flat_id: &FlatId) -> Result<(),Error> {
+    pub fn set_value(&mut self, flat_id: &CanvasInUse) -> Result<(),Error> {
         self.flat_id = Some(flat_id.clone());
-        let flat = flat_store.get(flat_id)?;
-        self.flat_size = Some(flat.size().clone());
+        let size = flat_id.retrieve(|flat| { flat.size().clone() });
+        self.flat_size = Some(size);
         Ok(())
     }
 
     pub(super) fn apply(&mut self, gl: &mut WebGlGlobalRefs) -> Result<(),Error> {
         if let (Some(flat_id),Some(location)) = (&self.flat_id,&self.texture.location) {
-            let index = gl.bindery.allocate(flat_id,gl.flat_store,gl.context)?;
+            let index = flat_id.modify(|c| c.activate(gl.textures,gl.context))?;
             self.bound = true;
             gl.context.uniform1i(Some(location),index as i32);
             handle_context_errors2(gl.context)?;
@@ -99,17 +99,8 @@ impl TextureValues {
             handle_context_errors2(gl.context)?;
         }
         if let Some(flat_scale) = &self.texture.location_scale {
-            let bitmap_multiplier = gl.flat_store.bitmap_multiplier();
+            let bitmap_multiplier = gl.canvas_source.bitmap_multiplier();
             gl.context.uniform2f(Some(flat_scale),bitmap_multiplier, bitmap_multiplier);
-        }
-        Ok(())
-    }
-
-    pub fn discard(&mut self, gl: &mut WebGlGlobalRefs) -> Result<(),Error> {
-        if self.bound {
-            if let Some(flat) = &self.flat_id {
-                gl.bindery.free(flat,gl.flat_store)?;
-            }
         }
         Ok(())
     }

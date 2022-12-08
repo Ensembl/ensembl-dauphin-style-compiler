@@ -1,4 +1,5 @@
-use peregrine_data::{StickId, Viewport, PlayingField};
+use peregrine_data::{StickId, Viewport, PlayingField, DataMessage};
+use peregrine_toolkit::error::Error;
 use peregrine_toolkit_async::sync::needed::Needed;
 
 use crate::{ webgl::{ SourceInstrs, UniformProto, GLArity, UniformHandle, ProgramBuilder, Process }};
@@ -19,7 +20,7 @@ pub(crate) struct ProgramStage {
 }
 
 impl ProgramStage {
-    pub fn new(builder: &ProgramBuilder) -> Result<ProgramStage,Message> {
+    pub fn new(builder: &ProgramBuilder) -> Result<ProgramStage,Error> {
         Ok(ProgramStage {
             hpos: builder.get_uniform_handle("uStageHpos")?,
             vpos: builder.get_uniform_handle("uStageVpos")?,
@@ -53,17 +54,17 @@ impl ProgramStage {
         bp_per_screen /= 1.0-invisible_prop;
         position += (squeeze.1-squeeze.0) as f64/2.0/x_size*bp_per_screen;
         /**/
-        process.set_uniform(&self.hpos,&[(position-left) as f32])?;
-        process.set_uniform(&self.vpos,&[stage.y.position()? as f32])?;
-        process.set_uniform(&self.bp_per_screen,&[2./bp_per_screen as f32])?;
+        process.set_uniform(&self.hpos,&[(position-left) as f32]).map_err(|e| Message::DataError(DataMessage::XXXTransitional(e) ))?;
+        process.set_uniform(&self.vpos,&[stage.y.position()? as f32]).map_err(|e| Message::DataError(DataMessage::XXXTransitional(e) ))?;
+        process.set_uniform(&self.bp_per_screen,&[2./bp_per_screen as f32]).map_err(|e| Message::DataError(DataMessage::XXXTransitional(e) ))?;
         /* uSize gets drawable_size because it's later scaled by size/drawable_size */
         let size = (stage.x.drawable_size()?,stage.y.drawable_size()?);
         let full_size = (stage.x.container_size()?,stage.y.container_size()?);
-        process.set_uniform(&self.size,&[(size.0/2.) as f32,(size.1/2.) as f32])?;
-        process.set_uniform(&self.full_size,&[(full_size.0*dpr/2.) as f32,(full_size.1*dpr/2.) as f32])?;
-        process.set_uniform(&self.opacity,&[opacity as f32])?;
-        process.set_uniform(&self.model, &self.model_matrix(stage)?)?;
-        process.set_uniform(&self.left_rail,&[(stage.x.squeeze()?.0/(full_size.0/2.) as f32)-1.])?;
+        process.set_uniform(&self.size,&[(size.0/2.) as f32,(size.1/2.) as f32]).map_err(|e| Message::DataError(DataMessage::XXXTransitional(e) ))?;
+        process.set_uniform(&self.full_size,&[(full_size.0*dpr/2.) as f32,(full_size.1*dpr/2.) as f32]).map_err(|e| Message::DataError(DataMessage::XXXTransitional(e) ))?;
+        process.set_uniform(&self.opacity,&[opacity as f32]).map_err(|e| Message::DataError(DataMessage::XXXTransitional(e) ))?;
+        process.set_uniform(&self.model, &self.model_matrix(stage)?).map_err(|e| Message::DataError(DataMessage::XXXTransitional(e) ))?;
+        process.set_uniform(&self.left_rail,&[(stage.x.squeeze()?.0/(full_size.0/2.) as f32)-1.]).map_err(|e| Message::DataError(DataMessage::XXXTransitional(e) ))?;
         Ok(())
     }
 }
@@ -129,12 +130,13 @@ impl Stage {
     pub fn x_mut(&mut self) -> &mut StageAxis { &mut self.x }
     pub fn y_mut(&mut self) -> &mut StageAxis { &mut self.y }
 
-    pub fn notify_playingfield(&mut self, playing_field: &PlayingField) {
+    pub(crate) fn notify_playingfield(&mut self, playing_field: &PlayingField) {
         let squeeze = playing_field.squeeze;
         self.x.set_squeeze((squeeze.0 as f32, squeeze.1 as f32));
+        self.y.set_max_bottom(playing_field.height);
     }
 
-    pub fn notify_current(&mut self, viewport: &Viewport) {
+    pub(crate) fn notify_current(&mut self, viewport: &Viewport) {
         let position = viewport.position().unwrap();
         let bp_per_pixel = viewport.bp_per_screen().unwrap();        
         if let Ok(layout) = viewport.layout() {

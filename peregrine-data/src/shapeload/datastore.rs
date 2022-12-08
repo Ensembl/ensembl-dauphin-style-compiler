@@ -30,7 +30,7 @@ async fn run(base: PeregrineCoreBase, request: DataRequest, priority: PacketPrio
 
 fn make_data_cache(cache_size: usize, base: &PeregrineCoreBase, prio: PacketPriority) -> Memoized<DataRequest,Result<DataResponse,Error>> {
     let base = base.clone();
-     Memoized::new(MemoizedType::Cache(cache_size),move |_,k: &DataRequest|{
+    Memoized::new(MemoizedType::Cache(cache_size),move |_,k: &DataRequest|{
         let base = base.clone();
         let prio = prio.clone();
         let k = k.clone();
@@ -38,11 +38,45 @@ fn make_data_cache(cache_size: usize, base: &PeregrineCoreBase, prio: PacketPrio
     })
 }
 
+const STAT_WINDOW_SIZE : usize = 20;
+
+#[cfg(debug_canvasstore)]
+struct Stats {
+    source: Vec<bool>,
+}
+
+#[cfg(debug_canvasstore)]
+impl Stats {
+    fn new() -> Stats { Stats { source: vec![] } }
+
+
+    fn add(&mut self, priority: &PacketPriority) { 
+        use peregrine_toolkit::log;
+
+        self.source.push(priority.is_high());
+        if self.source.len() >= STAT_WINDOW_SIZE {
+            let perc = self.source.drain(..).filter(|x| *x).count() * 100 / STAT_WINDOW_SIZE;
+            log!("{}% of requests originally from lo preloading",perc);
+        }
+    }
+}
+
+#[cfg(not(debug_canvasstore))]
+struct Stats;
+
+#[cfg(not(debug_canvasstore))]
+impl Stats {
+    fn new() -> Stats { Stats }
+    fn add(&mut self, _priority: &PacketPriority) {}
+}
+
+
 #[derive(Clone)]
 pub struct DataStore {
     invariant_cache: Arc<Mutex<Cache<DataRequest,Result<DataResponse,Error>>>>,
     cache: Memoized<DataRequest,Result<DataResponse,Error>>,
-    batch_cache: Memoized<DataRequest,Result<DataResponse,Error>>
+    batch_cache: Memoized<DataRequest,Result<DataResponse,Error>>,
+    stats: Arc<Mutex<Stats>>
 }
 
 impl DataStore {
@@ -50,7 +84,8 @@ impl DataStore {
         DataStore { 
             invariant_cache: Arc::new(Mutex::new(Cache::new(cache_size))),
             cache: make_data_cache(cache_size,base,PacketPriority::RealTime),
-            batch_cache: make_data_cache(cache_size,base,PacketPriority::Batch)
+            batch_cache: make_data_cache(cache_size,base,PacketPriority::Batch),
+            stats: Arc::new(Mutex::new(Stats::new()))
         }
     }
 
@@ -80,6 +115,9 @@ impl DataStore {
         if let Ok(response) = &response{
             if response.is_invariant() {
                 lock!(self.invariant_cache).put(&request.to_invariant(),Ok(response.clone()));
+            }
+            if priority.is_high() {
+                lock!(self.stats).add(&response.original_priority());
             }
         }
         let took_ms = cdr_current_time() - start;

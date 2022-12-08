@@ -1,7 +1,5 @@
 use std::{ops::Range};
-
 use peregrine_toolkit::skyline::Skyline;
-
 use crate::allotment::core::allotmentname::AllotmentName;
 
 pub(super) struct Part {

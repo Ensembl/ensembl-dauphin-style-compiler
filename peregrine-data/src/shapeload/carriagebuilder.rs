@@ -1,8 +1,8 @@
 use std::sync::{Mutex, Arc};
 use peregrine_toolkit::{lock, error::Error};
-use crate::{switch::trackconfiglist::TrainTrackConfigList, api::MessageSender, ShapeRequestGroup, PeregrineCoreBase, ShapeStore, allotment::core::{abstractcarriage::AbstractCarriage}, PeregrineApiQueue};
+use crate::{switch::trackconfiglist::TrainTrackConfigList, api::MessageSender, PeregrineCoreBase, ShapeStore, allotment::core::{floatingcarriage::FloatingCarriage}, PeregrineApiQueue};
 use crate::train::model::carriageextent::CarriageExtent;
-use super::loadshapes::{LoadMode, load_carriage_shape_list};
+use super::{loadshapes::{LoadMode, load_carriage_shape_list}, shaperequestgroup::ShapeRequestGroup};
 
 #[derive(Clone)]
 pub(crate) struct CarriageBuilder {
@@ -10,7 +10,7 @@ pub(crate) struct CarriageBuilder {
     extent: CarriageExtent,
     config: TrainTrackConfigList,
     messages: Option<MessageSender>,
-    output: Arc<Mutex<Option<AbstractCarriage>>>,
+    output: Arc<Mutex<Option<FloatingCarriage>>>,
     warm: bool
 }
 
@@ -29,7 +29,7 @@ impl CarriageBuilder {
     #[cfg(debug_trains)]
     pub fn extent(&self) -> &CarriageExtent { &self.extent }
     
-    pub fn get_carriage_output(&self) -> Option<AbstractCarriage> {
+    pub fn get_carriage_output(&self) -> Option<FloatingCarriage> {
         lock!(self.output).as_ref().map(|x| x.clone())
     }
 

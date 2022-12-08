@@ -236,11 +236,26 @@ impl InputTranslator {
         Ok(())
     }
 
+    fn incoming_vertical_event(&self, inner: &mut PeregrineInnerAPI, event: &InputEvent) -> Result<(),Message> {
+        let distance = *event.amount.get(1).unwrap_or(&0.);
+        match event.details {
+            InputEventKind::PixelsUp => {
+                inner.delta_y(-distance);
+            },
+            InputEventKind::PixelsDown => {
+                inner.delta_y(distance);
+            },
+            _ =>{}
+        }
+        Ok(())
+    }
+
     fn incoming_event(&self, inner: &mut PeregrineInnerAPI, event: &InputEvent) -> Result<(),Message> {
         self.incoming_pull_event(event)?;
         self.incoming_jump_request(event)?;
         self.incoming_set_position(event)?;
         self.incoming_animate_event(inner,event)?;
+        self.incoming_vertical_event(inner,event)?;
         Ok(())
     }
 

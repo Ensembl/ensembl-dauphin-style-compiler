@@ -1,6 +1,7 @@
 use peregrine_toolkit::error::Error;
+use crate::{ ShapeStore, PeregrineCoreBase, PgCommanderTaskSpec, add_task, api::MessageSender,  shape::{RequestedShapesContainer}, allotment::core::floatingcarriage::FloatingCarriage, CarriageExtent };
 
-use crate::{ ShapeStore, PeregrineCoreBase, PgCommanderTaskSpec, add_task, api::MessageSender,  shape::{AbstractShapesContainer}, ShapeRequestGroup, allotment::core::abstractcarriage::AbstractCarriage, CarriageExtent };
+use super::shaperequestgroup::ShapeRequestGroup;
 
 #[derive(Clone)]
 pub enum LoadMode {
@@ -25,7 +26,7 @@ impl LoadMode {
     }
 }
 
-pub(crate) async fn load_carriage_shape_list(base: &PeregrineCoreBase, result_store: &ShapeStore, messages: Option<&MessageSender>, shape_requests: ShapeRequestGroup, extent: Option<&CarriageExtent>, mode: &LoadMode) -> Result<AbstractCarriage,Vec<Error>> {
+pub(crate) async fn load_carriage_shape_list(base: &PeregrineCoreBase, result_store: &ShapeStore, messages: Option<&MessageSender>, shape_requests: ShapeRequestGroup, extent: Option<&CarriageExtent>, mode: &LoadMode) -> Result<FloatingCarriage,Vec<Error>> {
     let mut errors = vec![];
     let lane_store = result_store.clone();
     let tracks : Vec<_> = shape_requests.iter().map(|request|{
@@ -59,6 +60,6 @@ pub(crate) async fn load_carriage_shape_list(base: &PeregrineCoreBase, result_st
             }
         }
     }
-    let new_shapes = AbstractShapesContainer::merge(new_shapes);
+    let new_shapes = RequestedShapesContainer::merge(new_shapes);
     Ok(new_shapes.build_abstract_carriage(Some(&shape_requests),extent))
 }

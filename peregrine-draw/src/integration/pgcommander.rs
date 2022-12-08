@@ -10,14 +10,15 @@ use super::bell::{ BellReceiver, make_bell, BellSender };
 use peregrine_data::{ Commander, DataMessage };
 use crate::util::message::{ message, Message };
 
-/* The entity relationship here is crazy complex. This is all to allow non-Send methods in Executor. The BellReceiver
- * needs to be able to call schedule and so needs a reference to both the sleep state (to check it) and the executor
- * (to build a callback). So, to avoid reference loops we need the Executor and the sleep state to be inside an inner
- * object (CommanderState) and the BellReciever outside it, in the Commander. We need the Executor to be inside an
- * Arc because it isn't Clone but CommanderState (which it is within) must be Clone. We can't put the whole of
- * CommanderState inside an Arc because we need easy access to executor from Commander to the outside world, ie not
- * protedcted by nested Arcs. Anyway, CommanderSleepState (the other entry in CommanderState) needs to be in its own
- * Arc anyway as it's shared with the CommanderIntegration.
+/* The entity relationship here is crazy complex. This is all to allow non-Send methods in Executor.
+ * The BellReceiver needs to be able to call schedule and so needs a reference to both the sleep
+ * state (to check it) and the executor (to build a callback). So, to avoid reference loops we need
+ * the Executor and the sleep state to be inside an inner object (CommanderState) and the
+ * BellReciever outside it, in the Commander. We need the Executor to be inside an Arc because it
+ * isn't Clone but CommanderState (which it is within) must be Clone. We can't put the whole of
+ * CommanderState inside an Arc because we need easy access to executor from Commander to the
+ * outside world, ie not protedcted by nested Arcs. Anyway, CommanderSleepState (the other entry in
+ * CommanderState) needs to be in its own Arc anyway as it's shared with the CommanderIntegration.
  *
  * So the dependency graph is:
  *

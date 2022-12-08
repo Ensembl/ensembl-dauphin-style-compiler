@@ -1,21 +1,31 @@
 use std::sync::{Arc, Mutex};
+use crate::shape::core::drawshape::GLAttachmentPoint;
 use crate::shape::layers::drawing::DynamicShape;
-use crate::shape::layers::geometry::{GeometryYielder, GeometryAdder };
-use crate::shape::layers::layer::Layer;
-use crate::shape::layers::patina::PatinaYielder;
-use crate::shape::util::arrayutil::{rectangle4};
-use crate::shape::util::eoethrow::eoe_throw;
+use crate::shape::layers::geometry::{GeometryFactory, GeometryProcessName};
+use crate::shape::util::arrayutil::rectangle4;
+use crate::shape::util::eoethrow::{eoe_throw2};
 use crate::webgl::global::WebGlGlobal;
-use crate::webgl::{ ProcessStanzaElements };
+use crate::webgl::{ ProcessStanzaElements, ProcessBuilder };
 use peregrine_data::reactive::{Observable, Observer};
-use peregrine_data::{ SpaceBaseArea, SpaceBase, PartialSpaceBase, HollowEdge2, SpaceBasePoint, LeafStyle, AttachmentPoint };
+use peregrine_data::{ SpaceBaseArea, SpaceBase, PartialSpaceBase, HollowEdge2, SpaceBasePoint, AuxLeaf };
 use peregrine_toolkit::eachorevery::EachOrEvery;
-use peregrine_toolkit::{lock, log};
+use peregrine_toolkit::error::{Error, err_web_drop};
+use peregrine_toolkit::{lock};
+use super::arearectangles::RectanglesLocationArea;
 use super::drawgroup::DrawGroup;
+use super::sizedrectangles::RectanglesLocationSized;
 use super::triangleadder::TriangleAdder;
-use crate::util::message::Message;
 
-fn apply_wobble<A: Clone>(pos: &SpaceBase<f64,A>, wobble: &SpaceBase<Observable<'static,f64>,()>) -> SpaceBase<f64,A> {
+pub(super) trait RectanglesImpl {
+    fn depths(&self) -> &EachOrEvery<i8>;
+    fn any_dynamic(&self) -> bool;
+    fn wobble(&mut self) -> Option<Box<dyn FnMut() + 'static>>;
+    fn watch(&self, observer: &mut Observer<'static>);
+    fn len(&self) -> usize;
+    fn wobbled_location(&self) -> (SpaceBaseArea<f64,AuxLeaf>,Option<SpaceBase<f64,()>>);
+}
+
+pub(super) fn apply_wobble<A: Clone>(pos: &SpaceBase<f64,A>, wobble: &SpaceBase<Observable<'static,f64>,()>) -> SpaceBase<f64,A> {
     let wobble = wobble.map_all(|obs| obs.get());
     pos.merge(wobble,SpaceBasePoint {
         base: &|a,b| { *a+*b },
@@ -25,273 +35,37 @@ fn apply_wobble<A: Clone>(pos: &SpaceBase<f64,A>, wobble: &SpaceBase<Observable<
     })
 }
 
-#[cfg_attr(debug_assertions,derive(Debug))]
-struct RectanglesLocationArea {
-    spacebase: SpaceBaseArea<f64,LeafStyle>,
-    wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>,
-    wobbled_spacebase: Arc<Mutex<SpaceBaseArea<f64,LeafStyle>>>,
-    depth: EachOrEvery<i8>,
-    edge: Option<HollowEdge2<f64>>
-}
-
-impl RectanglesLocationArea {
-    fn new(spacebase: &SpaceBaseArea<f64,LeafStyle>, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>, depth: EachOrEvery<i8>, edge: Option<HollowEdge2<f64>>) -> Result<RectanglesLocationArea,Message> {
-        Ok(RectanglesLocationArea {
-            wobbled_spacebase: Arc::new(Mutex::new(area_to_rectangle(spacebase,&wobble,&edge)?)),
-            spacebase: spacebase.clone(),
-            wobble, depth, edge,
-        })
-    }
-
-    fn depths(&self) -> &EachOrEvery<i8> { &self.depth }
-    fn len(&self) -> usize { self.spacebase.len() }
-    fn any_dynamic(&self) -> bool { self.wobble.is_some() }
-    fn wobbled_location(&self) -> SpaceBaseArea<f64,LeafStyle> { lock!(self.wobbled_spacebase).clone() }
-
-    fn wobble(&mut self) -> Option<Box<dyn FnMut() + 'static>> {
-        self.wobble.as_ref().map(|wobble| {
-            let wobble = wobble.clone();
-            let area = self.spacebase.clone();
-            let wobbled = self.wobbled_spacebase.clone();
-            let edge = self.edge.clone();
-            Box::new(move || {
-                if let Ok(area) = area_to_rectangle(&area,&Some(wobble.clone()),&edge) {
-                    *lock!(wobbled) = area;
-                }
-            }) as Box<dyn FnMut() + 'static>
-        })
-    }
-
-    fn watch(&self, observer: &mut Observer<'static>) {
-        if let Some(wobble) = &self.wobble {
-            for obs in wobble.top_left().iter() {
-                observer.observe(obs.base);
-                observer.observe(obs.normal);
-                observer.observe(obs.tangent);
-            }
-            for obs in wobble.bottom_right().iter() {
-                observer.observe(obs.base);
-                observer.observe(obs.normal);
-                observer.observe(obs.tangent);
-            }
-        }
-    }
-}
-
-#[cfg_attr(debug_assertions,derive(Debug))]
-#[derive(Clone)]
-pub(crate) enum GLAttachmentPoint {
-    Left,
-    Right
-}
-
-impl GLAttachmentPoint {
-    pub(crate) fn new(input: &AttachmentPoint) -> GLAttachmentPoint {
-        match input {
-            AttachmentPoint::Left => GLAttachmentPoint::Left,
-            AttachmentPoint::Right => GLAttachmentPoint::Right
-        }
-    }
-}
-
-impl GLAttachmentPoint {
-    fn sized_to_rectangle(&self,spacebase: &SpaceBase<f64,LeafStyle>, size_x: &[f64], size_y: &[f64]) -> Result<SpaceBaseArea<f64,LeafStyle>,Message> {
-        let mut near = spacebase.clone();
-        let mut far = spacebase.clone();
-        match self {
-            GLAttachmentPoint::Left => {
-                far.fold_tangent(size_x,|v,z| { *v + z });
-                far.fold_normal(size_y,|v,z| { *v + z });        
-            }
-            GLAttachmentPoint::Right => {
-                near.fold_tangent(size_x,|v,z| { *v - z });
-                far.fold_normal(size_y,|v,z| { *v + z });        
-            }
-        }
-        let area = eoe_throw("rl1",SpaceBaseArea::new(
-            PartialSpaceBase::from_spacebase(near),
-            PartialSpaceBase::from_spacebase(far)))?;
-        Ok(area)
-    }
-}
-
-#[cfg_attr(debug_assertions,derive(Debug))]
-struct RectanglesLocationSized {
-    attachment: GLAttachmentPoint,
-    spacebase: SpaceBase<f64,LeafStyle>,
-    run: Option<SpaceBase<f64,()>>,
-    wobble: Option<SpaceBase<Observable<'static,f64>,()>>,
-    wobbled: Arc<Mutex<(SpaceBaseArea<f64,LeafStyle>,Option<SpaceBase<f64,()>>)>>,
-    depth: EachOrEvery<i8>,
-    size_x: Vec<f64>,
-    size_y: Vec<f64>
-}
-
-fn apply_any_wobble<A: Clone>(spacebase: &SpaceBase<f64,A>, wobble: &Option<SpaceBase<Observable<'static,f64>,()>>) -> SpaceBase<f64,A> {
-    if let Some(wobble) = wobble {
-        apply_wobble(spacebase,&wobble)
-    } else {
-        spacebase.clone()
-    }
-}
-
-fn apply_hollow(area: &SpaceBaseArea<f64,LeafStyle>, edge: &Option<HollowEdge2<f64>>) -> SpaceBaseArea<f64,LeafStyle> {
-    if let Some(edge) = edge {
-        area.hollow_edge(&edge)
-    } else {
-        area.clone()
-    }
-}
-
-fn area_to_rectangle(area: &SpaceBaseArea<f64,LeafStyle>,  wobble: &Option<SpaceBaseArea<Observable<'static,f64>,()>>, edge: &Option<HollowEdge2<f64>>) -> Result<SpaceBaseArea<f64,LeafStyle>,Message> {
-    if let Some(wobble) = wobble {
-        let top_left = apply_wobble(area.top_left(),wobble.top_left());
-        let bottom_right = apply_wobble(area.bottom_right(),wobble.bottom_right());
-        let wobbled = SpaceBaseArea::new(PartialSpaceBase::from_spacebase(top_left),PartialSpaceBase::from_spacebase(bottom_right));
-        if let Some(wobbled) = wobbled {
-            return Ok(apply_hollow(&wobbled,edge));
-        }
-    }
-    Ok(apply_hollow(area,edge))
-}
-
-impl RectanglesLocationSized {
-    fn new(spacebase: &SpaceBase<f64,LeafStyle>, run: &Option<SpaceBase<f64,()>>, wobble: Option<SpaceBase<Observable<'static,f64>,()>>, depth: EachOrEvery<i8>, size_x: Vec<f64>, size_y: Vec<f64>, attachment: GLAttachmentPoint) -> Result<RectanglesLocationSized,Message> {
-        let wobbled = (
-            attachment.sized_to_rectangle(&apply_any_wobble(&spacebase,&wobble),&size_x,&size_y)?,
-            run.as_ref().map(|x| apply_any_wobble(x,&wobble))
-        );
-        Ok(RectanglesLocationSized { 
-            wobbled: Arc::new(Mutex::new(wobbled)),
-            spacebase: spacebase.clone(),
-            run: run.clone(),
-            wobble, depth, size_x, size_y,
-            attachment
-        })
-    }
-
-    fn depths(&self) -> &EachOrEvery<i8> { &self.depth }
-    fn len(&self) -> usize { self.spacebase.len() }
-    fn any_dynamic(&self) -> bool { self.wobble.is_some() }
-    fn wobbled_location(&self) -> (SpaceBaseArea<f64,LeafStyle>,Option<SpaceBase<f64,()>>) { lock!(self.wobbled).clone() }
-
-    fn wobble(&mut self) -> Option<Box<dyn FnMut() + 'static>> {
-        self.wobble.as_ref().map(|wobble| {
-            let wobble = wobble.clone();
-            let pos = self.spacebase.clone();
-            let wobbled = self.wobbled.clone();
-            let size_x = self.size_x.clone();
-            let size_y = self.size_y.clone();
-            let wobble2 = wobble.clone();
-            let spacebase = apply_any_wobble(&pos,&Some(wobble));
-            let run = self.run.as_ref().map(|x| apply_any_wobble(x,&Some(wobble2)));
-            let attachment = self.attachment.clone();
-            Box::new(move || {
-                if let Ok(sized) = attachment.sized_to_rectangle(&spacebase,&size_x,&size_y) {
-                    *lock!(wobbled) = (sized,run.clone());
-                }
-            }) as Box<dyn FnMut() + 'static>
-        })
-    }
-
-    // XXX PartialEq + Hash for collision
-    fn watch(&self, observer: &mut Observer<'static>) {
-        if let Some(wobble) = &self.wobble {
-            for obs in wobble.iter() {
-                observer.observe(obs.base);
-                observer.observe(obs.normal);
-                observer.observe(obs.tangent);
-            }
-        }
-    }    
-}
-
-#[cfg_attr(debug_assertions,derive(Debug))]
-enum RectanglesLocation {
-    Area(RectanglesLocationArea),
-    Sized(RectanglesLocationSized)
-}
-
-impl RectanglesLocation {
-    fn wobbled_location(&self) -> (SpaceBaseArea<f64,LeafStyle>,Option<SpaceBase<f64,()>>) {
-        match self {
-            RectanglesLocation::Area(area) => (area.wobbled_location(),None),
-            RectanglesLocation::Sized(sized) => sized.wobbled_location()
-        }
-    }
-
-    fn depths(&self) -> &EachOrEvery<i8> {
-        match self {
-            RectanglesLocation::Area(area) => area.depths(),
-            RectanglesLocation::Sized(sized) => sized.depths()
-        }
-    }
-
-    fn any_dynamic(&self) -> bool {
-        match self {
-            RectanglesLocation::Area(area) => area.any_dynamic(),
-            RectanglesLocation::Sized(sized) => sized.any_dynamic()
-        }
-    }
-
-    fn wobble(&mut self) -> Option<Box<dyn FnMut() + 'static>> {
-        match self {
-            RectanglesLocation::Area(area) => area.wobble(),
-            RectanglesLocation::Sized(sized) => sized.wobble()
-        }
-    }
-
-    // XXX PartialEq + Hash for collision
-    fn watch(&self, observer: &mut Observer<'static>) {
-        match self {
-            RectanglesLocation::Area(area) => area.watch(observer),
-            RectanglesLocation::Sized(sized) => sized.watch(observer)
-        }
-    } 
-
-    fn len(&self) -> usize {
-        match self {
-            RectanglesLocation::Area(area) => area.len(),
-            RectanglesLocation::Sized(sized) => sized.len()
-        }
-    }
-}
-
 pub(crate) struct RectanglesData {
     elements: ProcessStanzaElements,
     program: TriangleAdder,
-    location: RectanglesLocation,
+    location: Box<dyn RectanglesImpl>,
     left: f64,
     width: Option<f64>,
     kind: DrawGroup
 }
 
 impl RectanglesData {
-    pub(crate) fn new_area(layer: &mut Layer, geometry_yielder: &mut GeometryYielder, patina_yielder: &mut dyn PatinaYielder, area: &SpaceBaseArea<f64,LeafStyle>, depth: &EachOrEvery<i8>, left: f64, hollow: bool, kind: &DrawGroup, edge: &Option<HollowEdge2<f64>>, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>)-> Result<RectanglesData,Message> {
-        let location = RectanglesLocation::Area(RectanglesLocationArea::new(area,wobble,depth.clone(),edge.clone())?);
-        Self::real_new(layer,geometry_yielder,patina_yielder,location,left,hollow,kind)
+    fn new_area(builder: &mut ProcessBuilder, area: &SpaceBaseArea<f64,AuxLeaf>, depth: &EachOrEvery<i8>, left: f64, hollow: bool, kind: &DrawGroup, edge: &Option<HollowEdge2<f64>>, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>)-> Result<RectanglesData,Error> {
+        let location = RectanglesLocationArea::new(area,wobble,depth.clone(),edge.clone())?;
+        Self::real_new(builder,Box::new(location),left,hollow,kind)
     }
 
-    pub(crate) fn new_sized(layer: &mut Layer, geometry_yielder: &mut GeometryYielder, patina_yielder: &mut dyn PatinaYielder, points: &SpaceBase<f64,LeafStyle>, run: &Option<SpaceBase<f64,()>>, x_sizes: Vec<f64>, y_sizes: Vec<f64>, depth: &EachOrEvery<i8>, left: f64, hollow: bool, kind: &DrawGroup, attachment: GLAttachmentPoint, wobble: Option<SpaceBase<Observable<'static,f64>,()>>)-> Result<RectanglesData,Message> {
-        let location = RectanglesLocation::Sized(RectanglesLocationSized::new(points,run,wobble,depth.clone(),x_sizes,y_sizes,attachment)?);
-        Self::real_new(layer,geometry_yielder,patina_yielder,location,left,hollow,kind)
+    fn new_sized(builder: &mut ProcessBuilder, points: &SpaceBase<f64,AuxLeaf>, run: &Option<SpaceBase<f64,()>>, x_sizes: Vec<f64>, y_sizes: Vec<f64>, depth: &EachOrEvery<i8>, left: f64, hollow: bool, kind: &DrawGroup, attachment: GLAttachmentPoint, wobble: Option<SpaceBase<Observable<'static,f64>,()>>)-> Result<RectanglesData,Error> {
+        let location = RectanglesLocationSized::new(points,run,wobble,depth.clone(),x_sizes,y_sizes,attachment)?;
+        Self::real_new(builder,Box::new(location),left,hollow,kind)
     }
 
-    fn real_new(layer: &mut Layer, geometry_yielder: &mut GeometryYielder, patina_yielder: &mut dyn PatinaYielder, location: RectanglesLocation, left: f64, hollow: bool, kind: &DrawGroup)-> Result<RectanglesData,Message> {
-        let builder = layer.get_process_builder(geometry_yielder,patina_yielder)?;
+    fn real_new(builder: &mut ProcessBuilder, location: Box<dyn RectanglesImpl>, left: f64, hollow: bool, kind: &DrawGroup)-> Result<RectanglesData,Error> {
+        let adder = TriangleAdder::new(builder)?;
         let indexes = if hollow {
             vec![0,1,2, 1,2,3, 2,3,4, 3,4,5, 4,5,6, 5,6,7, 6,7,0, 7,0,1]
         } else {
-            vec![0,3,1,2,0,3]
+            vec![0,3,1, 2,0,3]
         };
         let elements = builder.get_stanza_builder().make_elements(location.len(),&indexes)?;
-        let adder = match geometry_yielder.get_adder::<GeometryAdder>()? {
-            GeometryAdder::Triangles(adder) => { adder },
-            _ => { return Err(Message::CodeInvariantFailed(format!("bad adder"))) }
-        };
         Ok(RectanglesData {
             elements, left,
-            width: if hollow { Some(0.) } else { None },
+            width: if hollow { Some(0.) } else { None }, // XXX variable width
             program: adder.clone(),
             location,
             kind: kind.clone()
@@ -304,21 +78,47 @@ impl RectanglesData {
         self.location.any_dynamic()
     }
 
-    fn recompute(&mut self, gl: &WebGlGlobal) -> Result<(),Message> {
+    fn recompute(&mut self, gl: &WebGlGlobal) -> Result<(),Error> {
         let (area,run) = self.location.wobbled_location();
         let depth_in = self.location.depths();
         let (data,depth) = add_spacebase_area4(&area,&depth_in,&self.kind,self.left,self.width,Some(gl.device_pixel_ratio()))?;
-        self.program.add_data4(&mut self.elements,data,depth)?;
+        self.program.add_data(&mut self.elements,data,depth)?;
         if self.program.origin_coords.is_some() {
             let (data,_)= add_spacebase4(&PartialSpaceBase::from_spacebase(area.top_left().clone()),&depth_in,&self.kind,self.left,self.width,None)?;
-            self.program.add_origin_data4(&mut self.elements,data)?;
+            self.program.add_origin_data(&mut self.elements,data)?;
         }
         if self.program.run_coords.is_some() {
             let run = run.unwrap_or(area.top_left().map_allotments(|_| ()));
             let (data,_)= add_spacebase4(&PartialSpaceBase::from_spacebase(run),&depth_in,&self.kind,self.left,self.width,None)?;
-            self.program.add_run_data4(&mut self.elements,data)?;
+            self.program.add_run_data(&mut self.elements,data)?;
         }
         Ok(())
+    }
+}
+
+pub(crate) struct RectanglesDataFactory {
+    draw_group: DrawGroup
+}
+
+impl RectanglesDataFactory {
+    pub(crate) fn new(draw_group: &DrawGroup) -> RectanglesDataFactory {
+        RectanglesDataFactory {
+            draw_group: draw_group.clone()
+        }
+    }
+
+    pub(crate) fn make_area(&self, builder: &mut ProcessBuilder, area: &SpaceBaseArea<f64,AuxLeaf>, depth: &EachOrEvery<i8>, left: f64, hollow: bool, edge: &Option<HollowEdge2<f64>>, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>)-> Result<RectanglesData,Error> {
+        RectanglesData::new_area(builder,area,depth,left,hollow,&self.draw_group,edge,wobble)
+    }
+
+    pub(crate) fn make_sized(&self, builder: &mut ProcessBuilder, points: &SpaceBase<f64,AuxLeaf>, run: &Option<SpaceBase<f64,()>>, x_sizes: Vec<f64>, y_sizes: Vec<f64>, depth: &EachOrEvery<i8>, left: f64, hollow: bool, attachment: GLAttachmentPoint, wobble: Option<SpaceBase<Observable<'static,f64>,()>>)-> Result<RectanglesData,Error> {
+        RectanglesData::new_sized(builder,points,run,x_sizes,y_sizes,depth,left,hollow,&self.draw_group,attachment,wobble)
+    }
+}
+
+impl GeometryFactory for RectanglesDataFactory {
+    fn geometry_name(&self) -> GeometryProcessName {
+        GeometryProcessName::Triangles(self.draw_group.geometry())
     }
 }
 
@@ -339,17 +139,52 @@ impl Rectangles {
         if let Some(wobble) = &mut out.wobble {
             lock!(out.data).location.watch(wobble);
         }
-        out.recompute(gl);
+        err_web_drop(out.recompute(gl));
         out
     }
 }
 
-fn add_spacebase4<A: Clone>(point: &PartialSpaceBase<f64,A>,depth: &EachOrEvery<i8>, group: &DrawGroup, left: f64, width: Option<f64>, dpr: Option<f32>) -> Result<(Vec<f32>,Vec<f32>),Message> {
-    let area = eoe_throw("as1",SpaceBaseArea::new(point.clone(),point.clone()))?;
+fn add_spacebase4<A: Clone>(point: &PartialSpaceBase<f64,A>,depth: &EachOrEvery<i8>, group: &DrawGroup, left: f64, width: Option<f64>, dpr: Option<f32>) -> Result<(Vec<f32>,Vec<f32>),Error> {
+    let area = eoe_throw2("as1",SpaceBaseArea::new(point.clone(),point.clone()))?;
     add_spacebase_area4(&area,depth,group,left,width,dpr)
 }
 
-fn add_spacebase_area4<A>(area: &SpaceBaseArea<f64,A>, depth: &EachOrEvery<i8>, group: &DrawGroup, left: f64, mut width: Option<f64>, dpr: Option<f32>)-> Result<(Vec<f32>,Vec<f32>),Message> {
+
+/* 
+* All coordinate systems have a principal direction. This is almost always horizontal however for things drawn
+* "sideways" (eg blanking boxes at left and right) it is vertical.
+* 
+* In the principal direction there is a "base" coordinate. For tracking co-ordinate systems this is the base-
+* pair position. For non-tracking coordinate systems, it is zero at the left and one at the right. There is
+* also a "tangent" co-ordinate in the principal direction which is measured in pixels and added on. This is to
+* allow non-scaling itmes (eg labels) and to ensure minimum sizes for things that would be very small.
+* 
+* In the non-principal direction there is the "normal" co-ordinate. Except for the compact Tracking coordinate
+* system (which is optimised for efficiency), co-ordinate systems, this value this wraps to -1 at the bottom, 
+* 2 is one pixel above that, and so on. So a line from zero to minus-one is from the top to the bottom.
+* 
+* Some non-tracking co-ordinate systems are "negative". These implicitly negate the normal co-ordinate, so that
+* top-is-bottom and bottom-is-top, for exmaple making the top and bottom ruler exact copies.
+* 
+* There are two formats for webgl, packed and unpacked. We use (x,y) and (z,a) as pairs. x,y are always
+* scaled per pixel. z is base co-oridnate or proportion-of-screen in the x direction, depending if
+* tracking or not. a is depth in the packed format, proportion of screen in the y direction if not.
+*/
+
+
+pub(super) fn fix_normal_unpacked(mut n: f64, group: &DrawGroup) -> (f64,f64) {
+    /* We're unpacked. f_0 and f_1 are "proportion of screenfuls to add", 1 for -ve, 0 for +ve */
+    let mut f = 0.;
+    /* whole coord-system is negative, flip it */
+    if group.coord_system().up_from_bottom() {
+        n = -n-1.;
+    }
+    /* negative values indicate "from end" so fix 1px difference (-1 is first rev. pixel) and set f appropriately */
+    if n < 0. { n += 1.; f = 1.; }
+    (n,f)
+}
+
+fn add_spacebase_area4<A>(area: &SpaceBaseArea<f64,A>, depth: &EachOrEvery<i8>, group: &DrawGroup, left: f64, mut width: Option<f64>, dpr: Option<f32>)-> Result<(Vec<f32>,Vec<f32>),Error> {
     let mut data = vec![];
     let mut depths = vec![];
     if let Some(dpr) = dpr {
@@ -357,34 +192,15 @@ fn add_spacebase_area4<A>(area: &SpaceBaseArea<f64,A>, depth: &EachOrEvery<i8>, 
             if width == 0. { (1./dpr) as f64 } else { width }
         });
     }
-    for ((top_left,bottom_right),depth) in area.iter().zip(eoe_throw("t",depth.iter(area.len()))?) {
-        let (t_0,t_1,mut n_0,mut n_1) = (*top_left.tangent,*bottom_right.tangent,*top_left.normal,*bottom_right.normal);
+    let mut coords = vec![];
+    for ((top_left,bottom_right),depth) in area.iter().zip(eoe_throw2("t",depth.iter(area.len()))?) {
+        let (t_0,t_1,n_0,mut n_1) = (*top_left.tangent,*bottom_right.tangent,*top_left.normal,*bottom_right.normal);
         if let Some(dpr) = dpr {
             if n_0 == n_1 && width.is_none() { /* finest lines. When hollow, fixed elsewhere */
                 n_1 += (1./dpr) as f64;
             }    
         }
         let (mut b_0,mut b_1) = (*top_left.base,*bottom_right.base);
-        /* 
-         * All coordinate systems have a principal direction. This is almost always horizontal however for things drawn
-         * "sideways" (eg blanking boxes at left and right) it is vertical.
-         * 
-         * In the principal direction there is a "base" coordinate. For tracking co-ordinate systems this is the base-
-         * pair position. For non-tracking coordinate systems, it is zero at the left and one at the right. There is
-         * also a "tangent" co-ordinate in the principal direction which is measured in pixels and added on. This is to
-         * allow non-scaling itmes (eg labels) and to ensure minimum sizes for things that would be very small.
-         * 
-         * In the non-principal direction there is the "normal" co-ordinate. Except for the compact Tracking coordinate
-         * system (which is optimised for efficiency), co-ordinate systems, this value this wraps to -1 at the bottom, 
-         * 2 is one pixel above that, and so on. So a line from zero to minus-one is from the top to the bottom.
-         * 
-         * Some non-tracking co-ordinate systems are "negative". These implicitly negate the normal co-ordinate, so that
-         * top-is-bottom and bottom-is-top, for exmaple making the top and bottom ruler exact copies.
-         * 
-         * There are two formats for webgl, packed and unpacked. We use (x,y) and (z,a) as pairs. x,y are always
-         * scaled per pixel. z is base co-oridnate or proportion-of-screen in the x direction, depending if
-         * tracking or not. a is depth in the packed format, proportion of screen in the y direction if not.
-         */
         /* Make tracking and non-tracking equivalent by subtracting bp centre. */
         if group.coord_system().is_tracking() {
             b_0 -= left;
@@ -392,34 +208,25 @@ fn add_spacebase_area4<A>(area: &SpaceBaseArea<f64,A>, depth: &EachOrEvery<i8>, 
         }
         let gl_depth = 1.0 - (*depth as f64+128.) / 255.;
         if group.packed_format() {
-            /* We're packed, so that's enough. No negaite co-ordinate nonsense allowed for us. */
-            rectangle4(&mut data, 
-                t_0,n_0, t_1,n_1,
-                b_0,gl_depth,b_1,gl_depth,
-                width);
+            /* We're packed, so that's enough. No negative co-ordinate nonsense allowed for us. */
+            coords.push(((t_0,n_0,b_0,gl_depth),(t_1,n_1,b_1,gl_depth)));
         } else {
             let num_points = if width.is_some() { 8 } else { 4 };
             for _ in 0..num_points {
                 depths.push(gl_depth as f32);
             }
-            /* We're unpacked. f_0 and f_1 are "proportion of screenfuls to add", 1 for -ve, 0 for +ve */
-            let (mut f_0,mut f_1) = (0.,0.);
-            /* whole coord-system is negative, flip it */
-            if group.coord_system().negative_pixels() {
-                let (a,b) = (n_0,n_1);
-                n_0 = -b-1.;
-                n_1 = -a-1.;
-            }
-            /* negative values indicate "from end" so fix 1px difference (-1 is first rev. pixel) and set f appropriately */
-            if n_0 < 0. { n_0 += 1.; f_0 = 1.; }
-            if n_1 < 0. { n_1 += 1.; f_1 = 1.; }
+            let (n_0,f_0) = fix_normal_unpacked(n_0,group);
+            let (n_1,f_1) = fix_normal_unpacked(n_1,group);
             /* maybe flip x&y if sideways, either way draw it. */
             if group.coord_system().flip_xy() {
-                rectangle4(&mut data, n_0,t_0, n_1,t_1,f_0,b_0,f_1,b_1,width);
+                coords.push(((n_0,t_0,f_0,b_0),(n_1,t_1,f_1,b_1)));
             } else {
-                rectangle4(&mut data, t_0,n_0, t_1,n_1,b_0,f_0,b_1,f_1,width);
+                coords.push(((t_0,n_0,b_0,f_0),(t_1,n_1,b_1,f_1)));
             }
         }
+    }
+    for ((t_0,n_0,b_0,f_0),(t_1,n_1,b_1,f_1)) in coords {
+        rectangle4(&mut data, t_0,n_0, t_1,n_1,b_0,f_0,b_1,f_1,width);
     }
     Ok((data,depths))
 }
@@ -429,7 +236,7 @@ impl DynamicShape for Rectangles {
         lock!(self.data).any_dynamic()
     }
 
-    fn recompute(&mut self, gl: &WebGlGlobal) -> Result<(),Message> {
+    fn recompute(&mut self, gl: &WebGlGlobal) -> Result<(),Error> {
         lock!(self.data).recompute(gl)
     }
 }

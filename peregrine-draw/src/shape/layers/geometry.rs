@@ -1,53 +1,17 @@
-use std::any::Any;
-
-use super::super::core::wigglegeometry::WiggleAdder;
 use crate::shape::layers::consts::{ PR_DEF, PR_LOW };
-use crate::shape::triangles::triangleadder::TriangleAdder;
-use crate::webgl::{AttributeProto, Conditional, Declaration, GLArity, Header, ProgramBuilder, SourceInstrs, Statement, Varying, UniformProto};
+use crate::webgl::{AttributeProto, Conditional, Declaration, GLArity, Header, ProgramBuilder, SourceInstrs, Statement, Varying, UniformProto, ProcessBuilder};
 use web_sys::{ WebGlRenderingContext };
-use crate::util::message::Message;
 use enum_iterator::Sequence;
-
-#[derive(Clone)]
-pub(crate) enum GeometryAdder {
-    Wiggle(WiggleAdder),
-    Triangles(TriangleAdder),
-}
-
-impl GeometryAdder {
-    fn to_any(&self) -> Box<dyn Any> { Box::new(self.clone()) }
-}
-
-pub struct GeometryYielder {
-    name: GeometryProcessName,
-    link: Option<Box<dyn Any>>
-}
-
-impl GeometryYielder {
-    pub(crate) fn new(name: GeometryProcessName) -> GeometryYielder {
-        GeometryYielder {
-            name,
-            link: None
-        }
-    }
-
-    pub fn get_adder<T: 'static>(&self) -> Result<&T,Message> {
-        let x  = self.link.as_ref().map(|x| x.downcast_ref()).flatten();
-        x.ok_or_else(|| Message::CodeInvariantFailed(format!("incorrect adder type")))
-    }
-
-    pub(crate) fn name(&self) -> &GeometryProcessName { &self.name }
-    pub(crate) fn set(&mut self, program: &GeometryAdder) -> Result<(),Message> {
-        self.link = Some(program.to_any());
-        Ok(())
-    }
-}
 
 #[derive(Clone,Hash,PartialEq,Eq,Debug,Sequence)]
 pub enum TrianglesGeometry {
     Tracking,
     TrackingSpecial(bool),
     Window(bool)
+}
+
+pub(crate) trait GeometryFactory {
+    fn geometry_name(&self) -> GeometryProcessName;
 }
 
 #[derive(Clone,Hash,PartialEq,Eq,Debug,Sequence)]
@@ -57,17 +21,15 @@ pub(crate) enum GeometryProgramName {
 }
 
 impl GeometryProgramName {
-    pub(crate) fn make_geometry_program(&self, builder: &ProgramBuilder) -> Result<GeometryAdder,Message> {
-        Ok(match self {
-            GeometryProgramName::Wiggle => GeometryAdder::Wiggle(WiggleAdder::new(builder)?),
-            GeometryProgramName::Triangles(_) => GeometryAdder::Triangles(TriangleAdder::new(builder)?),
-        })
-    }
-
     pub(crate) fn get_source(&self) -> SourceInstrs {
         /* Most actual data, tracks etc. Follows movements around the region. Optimised for minimal GPU work.
          * Cannot do anything relative to the screen bottom to minimise the number of buffers required:
          * rulers etc need to use TrackingSpecial.
+         * 
+         * x = x, px
+         * y = y, px
+         * z = x, bp
+         * a = depth
          */
         SourceInstrs::new(match self {
             GeometryProgramName::Triangles(TrianglesGeometry::Tracking) => vec![
@@ -196,6 +158,14 @@ impl GeometryProcessName {
         match self {
             GeometryProcessName::Triangles(g) => GeometryProgramName::Triangles(g.clone()),
             GeometryProcessName::Wiggle => GeometryProgramName::Wiggle
+        }
+    }
+
+    pub(crate) fn is_vertical(&self) -> bool {
+        match self {
+            GeometryProcessName::Triangles(TrianglesGeometry::TrackingSpecial(use_vertical)) |
+            GeometryProcessName::Triangles(TrianglesGeometry::Window(use_vertical)) => *use_vertical,
+            _ => false
         }
     }
 }

@@ -60,7 +60,7 @@ class BootstrapHandler(Handler):
             return Response(1,"Backend out of date: Doesn't support egs version {}".format(e))
         for b in bundles:
             r.add_bundle(b)
-        r.add_tracks(data_accessor.boot_tracks)
+        r.add_tracks(data_accessor.boot_tracks[version.get_egs()])
         return r
 
     def remote_prefix(self, payload: Any) -> Optional[List[str]]:
@@ -118,8 +118,8 @@ class ExpansionHandler(Handler):
         self._expansions_obj = expansions
         self._expansions = None
 
-    def _get(self, data_accessor: DataAccessor, channel, name):
-        expansion = data_accessor.boot_tracks.get_expansion(name)
+    def _get(self, data_accessor: DataAccessor, channel, name, version):
+        expansion = data_accessor.boot_tracks[version.get_egs()].get_expansion(name)
         if expansion is not None:
             return getattr(self._expansions_obj,expansion.callback())
         else:
@@ -129,7 +129,7 @@ class ExpansionHandler(Handler):
         try:
             r = Response(7,[])
             (name,step) = payload
-            callable = self._get(data_accessor,channel,name)
+            callable = self._get(data_accessor,channel,name,version)
             if callable is not None:
                 tracks = callable(step)
             if tracks is not None:

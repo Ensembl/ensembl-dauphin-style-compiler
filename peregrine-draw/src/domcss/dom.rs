@@ -1,7 +1,7 @@
 use peregrine_toolkit::{plumbing::oneshot::OneShot, js::dommanip::{to_html, create_element, set_css, html_document, html_body, to_canvas, prepend_element}, map};
 use peregrine_toolkit_async::sync::needed::Needed;
 use web_sys::{Document, Element, HtmlCanvasElement, HtmlElement };
-use crate::{util::message::Message, PgCommanderWeb, stage::stage::Stage};
+use crate::{util::message::Message, PgCommanderWeb};
 use super::{shutdown::detect_shutdown, yposdetector::YPosDetector};
 
 include!(concat!(env!("OUT_DIR"), "/env.rs"));
@@ -69,10 +69,7 @@ impl PeregrineDom {
     pub(crate) fn document(&self) -> &Document { &self.document }
     pub(crate) fn body(&self) -> &HtmlElement { &self.body }
     pub(crate) fn device_pixel_ratio(&self) -> f32 { self.device_pixel_ratio }
-
-    pub(crate) fn update_ypos(&self, stage: &mut Stage) {
-        self.ypos_detector.update(stage);
-    }
+    pub(crate) fn ypos_detector(&self) -> &YPosDetector { &self.ypos_detector }
 
     pub(crate) fn set_content_height(&self, height: u32) -> Result<(),Message> {
         confused(|| {

@@ -1,22 +1,22 @@
 use commander::CommanderStream;
+use peregrine_data::HotspotResult;
 use peregrine_toolkit::{debug_log, lock};
-
-use crate::{Message, PeregrineInnerAPI, PgCommanderWeb, input::{InputEvent, InputEventKind, low::lowlevel::LowLevelInput}, run::inner::LockedPeregrineInnerAPI, shape::layers::drawingzmenus::HotspotEntryDetails};
+use crate::{Message, PeregrineInnerAPI, PgCommanderWeb, input::{InputEvent, InputEventKind, low::lowlevel::LowLevelInput}, run::inner::LockedPeregrineInnerAPI};
 
 fn process_hotspot_event(api: &LockedPeregrineInnerAPI, x: f64, doc_y: f64) -> Result<(),Message> {
     let events = api.trainset.get_hotspot(&api.stage.lock().unwrap().read_stage(), (x,doc_y))?;
     let mut zmenus = vec![];
     for event in &events {
-        match event {
-            HotspotEntryDetails::ZMenu(z) => {
-                zmenus.push(z.value());
+        match event.value() {
+            HotspotResult::ZMenu(z) => {
+                zmenus.push(z);
             },
-            HotspotEntryDetails::Setting(value) => {
-                let (path,value) = value.value();
+            HotspotResult::Setting(path,value) => {
                 debug_log!("setting {:?} gets {:?}",path,value);
                 let path = path.iter().map(|x| x.as_str()).collect::<Vec<_>>();
                 api.data_api.update_switch(&path,value);
-            }
+            },
+            HotspotResult::Special(value) => {}
         }
     }
     if zmenus.len() > 0 {

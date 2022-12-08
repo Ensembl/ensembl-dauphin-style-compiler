@@ -1,8 +1,7 @@
-use peregrine_data::{Assets, DrawingCarriage, CarriageExtent, PeregrineApiQueue, DataMessage};
+use peregrine_data::{Assets, DrawingCarriage, CarriageExtent, PeregrineApiQueue, DataMessage, SingleHotspotEntry, SpecialClick};
 use peregrine_toolkit::{lock, warn, error };
 use peregrine_toolkit_async::sync::asynconce::AsyncOnce;
 use peregrine_toolkit_async::sync::needed::Needed;
-use crate::shape::layers::drawingzmenus::HotspotEntryDetails;
 use crate::{PgCommanderWeb};
 use crate::shape::layers::drawing::{ Drawing };
 use crate::webgl::DrawingSession;
@@ -17,8 +16,7 @@ struct GLCarriageData {
     extent: CarriageExtent,
     opacity: Mutex<f64>,
     drawing: AsyncOnce<Result<Option<Drawing>,Message>>,
-    preflight_done: bool,
-    discarded: bool
+    preflight_done: bool
 }
 
 fn get_drawing(data: &GLCarriageData) -> Result<Option<Drawing>,Message> {
@@ -54,14 +52,13 @@ impl GLCarriage {
             extent: carriage.extent().clone(),
             opacity: Mutex::new(1.),
             preflight_done: false,
-            discarded: false,
             drawing: AsyncOnce::new(async move {
                 let carriage = carriage2;
                 let scale = carriage.extent().scale();
                 let shapes = carriage.shapes().clone();
                 let drawing = Drawing::new(Some(scale),shapes,&gl,carriage.extent().left_right().0,&assets,&carriage.relevancy()).await;
                 redraw_needed.set();
-                drawing
+                drawing.map_err(|e| Message::DataError(DataMessage::XXXTransitional(e) ))
             })
         })));
         our_carriage.preflight_freewheel(carriage);
@@ -103,21 +100,18 @@ impl GLCarriage {
         if !state.preflight_done {
             warn!("draw without preflight");
         }
-        if state.discarded {
-            panic!("draw on discarded glcarriage");
-        }
         let opacity = state.opacity.lock().unwrap().clone();
         let in_view =  state.in_view(stage)?;
         if let Some(mut drawing) = get_drawing(&state)? {
-            drawing.set_zmenu_px_per_screen(stage.x().drawable_size()?);
+            drawing.set_hotspot_px_per_screen((stage.x().drawable_size()?,stage.y().drawable_size()?));
             if in_view {
-                drawing.draw(gl,stage,session,opacity)?;
+                drawing.draw(gl,stage,session,opacity).map_err(|e| Message::DataError(DataMessage::XXXTransitional(e) ))?;
             }
         }
         Ok(())
     }
 
-    pub(crate) fn get_hotspot(&self, stage: &ReadStage, position: (f64,f64)) -> Result<Vec<HotspotEntryDetails>,Message> {
+    pub(crate) fn get_hotspot(&self, stage: &ReadStage, position: (f64,f64)) -> Result<Vec<SingleHotspotEntry>,Message> {
         let state = lock!(self.0);
         if let Some(drawing) = get_drawing(&state)? {
             drawing.get_hotspot(stage,position)
@@ -126,12 +120,15 @@ impl GLCarriage {
         }
     }
 
-    pub fn discard(&mut self, gl: &mut WebGlGlobal) -> Result<(),Message> {
-        let mut state = lock!(self.0);
-        state.discarded = true;
-        if let Some(mut drawing) = get_drawing(&state)? {
-            drawing.discard(gl).map_err(|e| Message::DataError(DataMessage::XXXTransitional(e)))?;
-        }
-        Ok(())
+    pub(crate) fn any_hotspot(&self, stage: &ReadStage, position: (f64,f64)) -> Result<bool,Message> {
+        Ok(get_drawing(&*lock!(self.0))?
+            .map(|d| d.any_hotspot(stage,position)).transpose()?
+            .unwrap_or(false))
+    }
+
+    pub(crate) fn special_hotspots(&self, stage: &ReadStage, position: (f64,f64)) -> Result<Vec<SpecialClick>,Message> {
+        Ok(get_drawing(&*lock!(self.0))?
+            .map(|d| d.special_hotspots(stage,position)).transpose()?
+            .unwrap_or(vec![]))
     }
 }

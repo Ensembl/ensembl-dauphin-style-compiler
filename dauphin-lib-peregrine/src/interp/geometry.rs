@@ -2,7 +2,7 @@ use anyhow::{anyhow as err, bail};
 use peregrine_toolkit::eachorevery::{EachOrEvery, EachOrEveryGroupCompatible};
 use peregrine_toolkit::{lock};
 use crate::simple_interp_command;
-use peregrine_data::{Colour, DirectColour, DrawnType, Patina, Pen, Plotter, ShapeRequest, ZMenu, SpaceBase, ProgramShapesBuilder, Hotspot, Background, AttachmentPoint, ObjectBuilder, SettingMode, TrackMapping};
+use peregrine_data::{Colour, DirectColour, DrawnType, Patina, Pen, Plotter, ShapeRequest, SpaceBase, ProgramShapesBuilder, Background, AttachmentPoint, ObjectBuilder, SettingMode, TrackMapping, ZMenu, HotspotPatina};
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
 use serde_cbor::Value as CborValue;
@@ -25,13 +25,13 @@ simple_interp_command!(SimpleColourInterpCommand,SimpleColourDeserializer,35,2,(
 simple_interp_command!(StripedInterpCommand,StripedDeserializer,36,6,(0,1,2,3,4,5));
 simple_interp_command!(BarredInterpCommand,BarredDeserializer,37,6,(0,1,2,3,4,5));
 simple_interp_command!(BpRangeInterpCommand,BpRangeDeserializer,45,1,(0));
-simple_interp_command!(SpotColourInterpCommand,SpotColourDeserializer,46,2,(0,1));
 simple_interp_command!(PpcInterpCommand,PpcDeserializer,49,1,(0));
 simple_interp_command!(StyleInterpCommand,StyleDeserializer,50,3,(0,1,2));
 simple_interp_command!(PatinaMetadataInterpCommand,PatinaMetadataDeserializer,54,4,(0,1,2,3));
 simple_interp_command!(BackgroundInterpCommand,BackgroundDeserializer,70,3,(0,1,2));
 simple_interp_command!(PatinaSettingSetInterpCommand,PatinaSettingSetDeserializer,4,3,(0,1,2));
 simple_interp_command!(PatinaSettingMemberInterpCommand,PatinaSettingMemberDeserializer,5,4,(0,1,2,3));
+simple_interp_command!(PatinaSpecialZoneInterpCommand,PatinaSpecialZoneDeserializer,23,2,(0,1));
 
 impl InterpCommand for BpRangeInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
@@ -129,25 +129,6 @@ impl InterpCommand for SimpleColourInterpCommand {
             DirectColour(255,255,255,0)
         };
         let colour_id = geometry_builder.add_colour(Colour::Direct(direct_colour));
-        let registers = context.registers_mut();
-        registers.write(&self.0,InterpValue::Indexes(vec![colour_id as usize]));
-        Ok(CommandResult::SyncResult())
-    }
-}
-
-impl InterpCommand for SpotColourInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
-        let registers = context.registers_mut();
-        let direct_ids = registers.get_indexes(&self.1)?.to_vec();
-        drop(registers);
-        let geometry_builder = get_instance::<ObjectBuilder>(context,"builder")?;
-        let direct_colour = if let Some(direct_id) = direct_ids.get(0) {
-            let dc = geometry_builder.direct_colour(*direct_id as u32)?;
-            dc.as_ref().clone()
-        } else {
-            DirectColour(255,255,255,0)
-        };
-        let colour_id = geometry_builder.add_colour(Colour::Spot(direct_colour));
         let registers = context.registers_mut();
         registers.write(&self.0,InterpValue::Indexes(vec![colour_id as usize]));
         Ok(CommandResult::SyncResult())
@@ -302,7 +283,7 @@ impl InterpCommand for PatinaZMenuInterpCommand {
         for (zmenu,(key_start,key_length)) in each {
             let keys = &key_d[*key_start..(*key_start+*key_length)];
             let values = make_values(keys,&value_d,&value_a,&value_b)?;
-            let patina = Patina::Hotspot(Hotspot::ZMenu(zmenu.as_ref().clone(),values));
+            let patina = Patina::Hotspot(HotspotPatina::ZMenu(zmenu.as_ref().clone(),values));
             payload.push(geometry_builder.add_patina(patina) as usize);
         }
         let registers = context.registers_mut();
@@ -346,7 +327,23 @@ impl InterpCommand for PatinaSettingSetInterpCommand {
             });
         }
         let geometry_builder = get_instance::<ObjectBuilder>(context,"builder")?;
-        let patina = Patina::Hotspot(Hotspot::Setting(EachOrEvery::each(settings)));
+        let patina = Patina::Hotspot(HotspotPatina::Setting(EachOrEvery::each(settings)));
+        let patina_id = geometry_builder.add_patina(patina) as usize;
+        let registers = context.registers_mut();
+        registers.write(&self.0,InterpValue::Indexes(vec![
+            patina_id
+        ]));
+        Ok(CommandResult::SyncResult())
+    }
+}
+
+impl InterpCommand for PatinaSpecialZoneInterpCommand {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+        let registers = context.registers_mut();
+        let special = vec_to_eoe(registers.get_strings(&self.1)?.to_vec());
+        drop(registers);
+        let geometry_builder = get_instance::<ObjectBuilder>(context,"builder")?;
+        let patina = Patina::Hotspot(HotspotPatina::Special(special));
         let patina_id = geometry_builder.add_patina(patina) as usize;
         let registers = context.registers_mut();
         registers.write(&self.0,InterpValue::Indexes(vec![
@@ -394,7 +391,7 @@ impl InterpCommand for PatinaSettingMemberInterpCommand {
                 (vec![],SettingMode::None)
             });
         }
-        let patina = Patina::Hotspot(Hotspot::Setting(EachOrEvery::each(settings)));
+        let patina = Patina::Hotspot(HotspotPatina::Setting(EachOrEvery::each(settings)));
         let patina_id = geometry_builder.add_patina(patina) as usize;
         let registers = context.registers_mut();
         registers.write(&self.0,InterpValue::Indexes(vec![
@@ -452,9 +449,9 @@ impl InterpCommand for StyleInterpCommand {
         let keys = registers.get_strings(&self.1)?;
         let values = registers.get_strings(&self.2)?;
         drop(registers);
-        let mut props = HashMap::new();
+        let mut props = vec![];
         for (key,value) in keys.iter().zip(values.iter()) {
-            props.insert(key.to_string(),value.to_string());
+            props.push((key.to_string(),value.to_string()));
         }
         let zoo = get_instance::<Arc<Mutex<Option<ProgramShapesBuilder>>>>(context,"out")?;
         lock!(zoo).as_mut().unwrap().add_style(&spec,props);

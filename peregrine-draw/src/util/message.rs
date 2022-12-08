@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use std::sync::{ Arc, Mutex };
 use commander::cdr_identity;
 use lazy_static::lazy_static;
-use peregrine_data::{DataMessage, ZMenuFixed, zmenu_fixed_vec_to_json, GlobalAllotmentMetadata };
+use peregrine_data::{DataMessage, ZMenuFixed, zmenu_item_list_to_json, GlobalAllotmentMetadata };
 use peregrine_message::{MessageKind, PeregrineMessage};
 
 fn calculate_hash<T: Hash>(t: &T) -> u64 {
@@ -102,7 +102,7 @@ impl PeregrineMessage for Message {
             Message::TargetLocation(stick,left,right) => format!("target location: {}:{}-{}",stick,left,right),
             Message::Ready => format!("ready"),
             Message::AllotmentMetadataReport(metadata) => format!("allotment metadata: {:?}",metadata.summarize_json()),
-            Message::ZMenuEvent(x,y,zmenu) => format!("zmenu event: {} at ({},{})",zmenu_fixed_vec_to_json(zmenu),x,y),
+            Message::ZMenuEvent(x,y,zmenu) => format!("zmenu event: {} at ({},{})",zmenu_item_list_to_json(zmenu),x,y),
             Message::HitEndstop(x) => format!("hit endstop: {:?}",x.iter().map(|y| format!("{:?}",y)).collect::<Vec<_>>().join(", ")),
         }
     }

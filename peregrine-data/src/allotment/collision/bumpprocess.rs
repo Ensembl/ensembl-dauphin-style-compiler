@@ -1,6 +1,5 @@
 use std::{collections::HashSet, mem, rc::Rc};
-
-use super::{collisionalgorithm::{BumpRequestSet, BumpResponses, AlgorithmBuilder, Algorithm}};
+use super::{collisionalgorithm::{BumpResponses, AlgorithmBuilder, Algorithm}, bumprequest::BumpRequestSet};
 
 pub(crate) struct BumpPersistent {
     wanted: HashSet<usize>,
@@ -43,8 +42,6 @@ impl BumpPersistent {
             }
         }
         /* Rebuild completely */
-        //log!("remake!");
-        self.bumper_number += 1;
         let inputs = input.iter().map(|x| x.as_ref()).collect::<Vec<_>>();
         let mut builder = AlgorithmBuilder::new();
         for set in &inputs {

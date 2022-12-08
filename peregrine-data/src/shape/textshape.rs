@@ -1,7 +1,6 @@
 use peregrine_toolkit::{eachorevery::{EachOrEveryFilter, EachOrEvery}};
-
-use crate::{DataMessage, Pen, ShapeDemerge, Shape, SpaceBase, allotment::{transformers::{transformers::{Transformer, TransformerVariety}}, style::{style::LeafStyle}, util::rangeused::RangeUsed, core::allotmentname::AllotmentName}, CoordinateSystem, LeafRequest, SpaceBaseArea, PartialSpaceBase};
-use std::{hash::Hash, sync::Arc};
+use crate::{DataMessage, Pen, ShapeDemerge, Shape, SpaceBase, allotment::{leafs::anchored::AnchoredLeaf, core::rangeused::RangeUsed}, LeafRequest, SpaceBaseArea, PartialSpaceBase, CoordinateSystem, AuxLeaf };
+use std::{hash::Hash};
 
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub struct TextShape<A> {
@@ -65,19 +64,19 @@ impl TextShape<LeafRequest> {
         if let Some(minor) = minor {
             /* Running */
             for ((top_left,bottom_right),text) in major.zip(minor).zip(self.iter_texts()) {
-                top_left.allotment.update_drawing_info(|allotment| {
+                top_left.allotment.shape_bounds(|allotment| {
                     allotment.merge_base_range(&RangeUsed::Part(*top_left.base,*bottom_right.base+1.));
                     allotment.merge_pixel_range(&RangeUsed::Part(*top_left.tangent,(top_left.tangent+size*text.len() as f64).max(*bottom_right.tangent))); // Not ideal: assume square
-                    allotment.merge_max_y((*top_left.normal + size).ceil());
+                    allotment.merge_height((*top_left.normal + size).ceil());
                 });
             }    
         } else {
             /* Normal */
             for (position,text) in major.zip(self.iter_texts()) {
-                position.allotment.update_drawing_info(|allotment| {
+                position.allotment.shape_bounds(|allotment| {
                     allotment.merge_base_range(&RangeUsed::Part(*position.base,*position.base+1.));
                     allotment.merge_pixel_range(&RangeUsed::Part(*position.tangent,position.tangent+size*text.len() as f64)); // Not ideal: assume square
-                    allotment.merge_max_y((*position.normal + size).ceil());
+                    allotment.merge_height((*position.normal + size).ceil());
                 });
             }    
         }
@@ -98,8 +97,7 @@ impl<A> Clone for TextShape<A> where A: Clone {
 impl TextShape<LeafRequest> {
     fn make_base_filter(&self, min: f64,max: f64) -> EachOrEveryFilter {
         if let Some(run) = &self.run {
-            let anon = LeafRequest::new(&AllotmentName::new(""));
-            let run = run.map_allotments(|_| anon.clone());
+            let run = run.replace_allotments(self.position().allotments().clone());
             let area = SpaceBaseArea::new(PartialSpaceBase::from_spacebase(self.position.clone()),PartialSpaceBase::from_spacebase(run)).unwrap();
             area.make_base_filter(min,max)
         } else {
@@ -108,15 +106,15 @@ impl TextShape<LeafRequest> {
     }
 
     pub fn base_filter(&self, min: f64, max: f64) -> TextShape<LeafRequest> {
-        let non_tracking = self.position.allotments().make_filter(self.position.len(),|a| !a.leaf_style().coord_system.is_tracking());
+        let non_tracking = self.position.allotments().make_filter(self.position.len(),|a| !a.leaf_style().aux.coord_system.is_tracking());
         let filter = self.make_base_filter(min,max);
         self.filter(&filter.or(&non_tracking))
     }
 }
 
-impl TextShape<LeafStyle> {
-    pub fn demerge<T: Hash + Clone + Eq,D>(self,  cat: &D) -> Vec<(T,TextShape<LeafStyle>)> where D: ShapeDemerge<X=T> {
-        let demerge = self.position.allotments().demerge(self.position.len(),|a| cat.categorise(&a.coord_system));
+impl TextShape<AuxLeaf> {
+    pub fn demerge<T: Hash + Clone + Eq,D>(self,  cat: &D) -> Vec<(T,TextShape<AuxLeaf>)> where D: ShapeDemerge<X=T> {
+        let demerge = self.position.allotments().demerge(self.position.len(),|a| cat.categorise(&a.coord_system,a.depth));
         let mut out = vec![];
         for (draw_group,mut filter) in demerge {
             out.push((draw_group,self.filter(&mut filter)));
@@ -125,23 +123,23 @@ impl TextShape<LeafStyle> {
     }
 }
 
-impl TextShape<Arc<dyn Transformer>> {
-    fn demerge_by_variety(&self) -> Vec<((TransformerVariety,CoordinateSystem),TextShape<Arc<dyn Transformer>>)> {
+impl TextShape<AnchoredLeaf> {
+    fn demerge_by_variety(&self) -> Vec<(CoordinateSystem,TextShape<AnchoredLeaf>)> {
         let demerge = self.position.allotments().demerge(self.position.len(),|x| {
-            x.choose_variety()
+            x.coordinate_system().clone()
         });
         let mut out = vec![];
-        for (variety,filter) in demerge {
-            out.push((variety,self.filter(&filter)));
+        for (coord,filter) in demerge {
+            out.push((coord,self.filter(&filter)));
         }
         out
     }
 
-    pub fn make(&self) -> Vec<TextShape<LeafStyle>> {
+    pub fn make(&self) -> Vec<TextShape<AuxLeaf>> {
         let mut out = vec![];
-        for ((variety,coord_system),texts) in self.demerge_by_variety() {
+        for (coord_system,texts) in self.demerge_by_variety() {
             out.push(TextShape {
-                position: variety.spacebase_transform(&coord_system,&texts.position),
+                position: texts.position.spacebase_transform(&coord_system),
                 run: texts.run.clone(),
                 text: texts.text.clone(),
                 pen: texts.pen.clone()

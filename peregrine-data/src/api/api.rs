@@ -1,6 +1,6 @@
 use crate::InstanceInformation;
-use crate::allotment::globals::allotmentmetadata::GlobalAllotmentMetadata;
-use crate::allotment::globals::playingfield::PlayingField;
+use crate::globals::allotmentmetadata::GlobalAllotmentMetadata;
+use crate::globals::playingfield::PlayingField;
 use crate::train::drawing::drawingcarriage::DrawingCarriage;
 use crate::DataMessage;
 use crate::core::Viewport;
@@ -26,6 +26,8 @@ pub(crate) fn new_train_identity() -> TrainIdentity {
 pub trait PeregrineIntegration {
     fn report_instance_information(&self, info: &InstanceInformation);
     fn set_assets(&mut self, assets: &Assets);
+
+    fn set_pause(&mut self, yn: bool);
 
     fn create_train(&mut self, train: &TrainIdentity);
     fn drop_train(&mut self, train: &TrainIdentity);

@@ -20,7 +20,8 @@ pub struct PgIntegration {
     stage: Arc<Mutex<Stage>>,
     report: Report,
     dom: PeregrineDom,
-    assets: Assets
+    assets: Assets,
+    paused: bool
 }
 
 impl PeregrineIntegration for PgIntegration {
@@ -28,12 +29,16 @@ impl PeregrineIntegration for PgIntegration {
         self.assets.add(&assets);
     }
 
+    fn set_pause(&mut self, yn: bool) {
+        self.paused = yn;
+    }
+
     fn create_train(&mut self, train: &TrainIdentity) {
         self.trainset.create_train(train);
     }
 
     fn drop_train(&mut self, train: &TrainIdentity) {
-        self.trainset.drop_train(train,&self.webgl);
+        self.trainset.drop_train(train);
     }
 
     fn create_carriage(&mut self, carriage: &DrawingCarriage) {
@@ -61,7 +66,9 @@ impl PeregrineIntegration for PgIntegration {
     }
 
     fn notify_viewport(&mut self, viewport: &Viewport) {
-        self.stage.lock().unwrap().notify_current(viewport);
+        if !self.paused {
+            self.stage.lock().unwrap().notify_current(viewport);
+        }
         if let Ok(layout) = viewport.layout() {
             let stick = layout.stick();
             self.report.set_stick(&stick.get_id().to_string());
@@ -91,7 +98,8 @@ impl PgIntegration {
             report: report.clone(),
             dom: dom.clone(),
             input: input.clone(),
-            assets: Assets::empty()
+            assets: Assets::empty(),
+            paused: false
         }
     }
 

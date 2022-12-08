@@ -1,6 +1,9 @@
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
+use crate::shape::layers::geometry::GeometryProcessName;
+use crate::shape::layers::patina::PatinaProcessName;
 use crate::shape::layers::layer::ProgramCharacter;
+use crate::webgl::canvas::htmlcanvas::canvasinuse::CanvasInUse;
 use crate::webgl::{ ProcessStanzaBuilder, ProcessStanza };
 use super::program::{ Program, ProgramBuilder };
 use super::session::SessionMetric;
@@ -8,39 +11,44 @@ use super::uniform::{ UniformHandle, UniformValues };
 use super::texture::{ TextureValues, TextureHandle };
 use commander::cdr_tick;
 use keyed::KeyedData;
-use peregrine_data::DataMessage;
 use peregrine_toolkit::error::Error;
 use peregrine_toolkit::lock;
-use crate::webgl::util::handle_context_errors;
+use crate::webgl::util::{handle_context_errors2};
 use crate::stage::stage::{ ReadStage, ProgramStage };
-use crate::webgl::{ FlatId };
 use crate::webgl::global::WebGlGlobal;
-use crate::util::message::Message;
 
 pub(crate) struct ProcessBuilder {
+    geometry: GeometryProcessName,
+    patina: PatinaProcessName,
     builder: Rc<ProgramBuilder>,
     stanza_builder: ProcessStanzaBuilder,
     uniforms: Vec<(UniformHandle,Vec<f32>)>,
-    textures: Vec<(String,FlatId)>
+    textures: Vec<(String,CanvasInUse)>
 }
 
 impl ProcessBuilder {
-    pub(crate) fn new(builder: Rc<ProgramBuilder>) -> ProcessBuilder {
+    pub(crate) fn new(builder: Rc<ProgramBuilder>, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> ProcessBuilder {
         let stanza_builder = builder.make_stanza_builder();
         ProcessBuilder {
             builder,
+            geometry:geometry.clone(),
+            patina: patina.clone(),
             stanza_builder,
             uniforms: vec![],
             textures: vec![]
         }
     }
 
-    pub(crate) fn set_uniform(&mut self, handle: &UniformHandle, values: Vec<f32>) -> Result<(),Message> {
+    pub(crate) fn program_builder(&self) -> &ProgramBuilder { &self.builder }
+    pub(crate) fn geometry_name(&self) -> &GeometryProcessName { &self.geometry }
+    pub(crate) fn patina_name(&self) -> &PatinaProcessName { &self.patina }
+
+    pub(crate) fn set_uniform(&mut self, handle: &UniformHandle, values: Vec<f32>) -> Result<(),Error> {
         self.uniforms.push((handle.clone(),values));
         Ok(())
     }
 
-    pub(crate) fn set_texture(&mut self, uniform_name: &str, canvas_id: &FlatId) -> Result<(),Message> {
+    pub(crate) fn set_texture(&mut self, uniform_name: &str, canvas_id: &CanvasInUse) -> Result<(),Error> {
         self.textures.push((uniform_name.to_string(),canvas_id.clone()));
         Ok(())
     }
@@ -49,7 +57,7 @@ impl ProcessBuilder {
         &mut self.stanza_builder
     }
 
-    pub(crate) async fn build(self, gl: &Arc<Mutex<WebGlGlobal>>, left: f64, character: &ProgramCharacter) -> Result<Process,Message> {
+    pub(crate) async fn build(self, gl: &Arc<Mutex<WebGlGlobal>>, left: f64, character: &ProgramCharacter) -> Result<Process,Error> {
         let mut lgl = lock!(gl);
         let gl_ref = lgl.refs();
         let program = self.builder.make(gl_ref.context,gl_ref.gpuspec)?;
@@ -63,10 +71,7 @@ impl ProcessBuilder {
         let mut textures = program.make_textures();
         for (name,value) in self.textures {
             let handle = self.builder.get_texture_handle(&name)?;
-            let mut lgl = lock!(gl);
-            let gl_ref = lgl.refs();
-            textures.get_mut(&handle).set_value(gl_ref.flat_store,&value).map_err(|e| Message::DataError(DataMessage::XXXTransitional(e)))?;
-            drop(lgl);
+            textures.get_mut(&handle).set_value(&value)?;
             cdr_tick(0).await;
         }
         Process::new(gl,program,&self.builder,self.stanza_builder,uniforms,textures,left,character).await
@@ -84,7 +89,7 @@ pub struct Process {
 }
 
 impl Process {
-    async fn new(gl: &Arc<Mutex<WebGlGlobal>>, program: Rc<Program>, builder: &Rc<ProgramBuilder>, stanza_builder: ProcessStanzaBuilder, uniforms: KeyedData<UniformHandle,UniformValues>, textures: KeyedData<TextureHandle,TextureValues>, left: f64, character: &ProgramCharacter) -> Result<Process,Message> {
+    async fn new(gl: &Arc<Mutex<WebGlGlobal>>, program: Rc<Program>, builder: &Rc<ProgramBuilder>, stanza_builder: ProcessStanzaBuilder, uniforms: KeyedData<UniformHandle,UniformValues>, textures: KeyedData<TextureHandle,TextureValues>, left: f64, character: &ProgramCharacter) -> Result<Process,Error> {
         let stanzas = program.make_stanzas(gl,&stanza_builder).await?;
         let program_stage = ProgramStage::new(&builder)?;
         Ok(Process {
@@ -102,50 +107,36 @@ impl Process {
         self.stanzas.iter().map(|x| x.number_of_buffers()).sum()
     }
 
-    pub fn update_attributes(&self) -> Result<(),Message> {
+    pub fn update_attributes(&self) -> Result<(),Error> {
         for stanza in &self.stanzas {
             stanza.update_values()?;
         }
         Ok(())
     }
 
-    pub fn set_uniform(&mut self, handle: &UniformHandle, values: &[f32]) -> Result<(),Message> {
+    pub fn set_uniform(&mut self, handle: &UniformHandle, values: &[f32]) -> Result<(),Error> {
         self.uniforms.get_mut(handle).set_value(values)
     }
 
-    pub(super) fn draw(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage, opacity: f64, dpr: f64, stats: &mut SessionMetric) -> Result<(),Message> {
+    pub(super) fn draw(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage, opacity: f64, dpr: f64, stats: &mut SessionMetric) -> Result<(),Error> {
         let mut gl = gl.refs();
-        gl.bindery.clear(gl.flat_store).map_err(|e| Message::DataError(DataMessage::XXXTransitional(e)))?;
+        gl.textures.clear(gl.context);
         let program_stage = self.program_stage.clone();
-        program_stage.apply(stage,self.left,opacity,dpr,self)?;
+        program_stage.apply(stage,self.left,opacity,dpr,self).map_err(|e| Error::fatal(&format!("XXX transition {:?}",e)))?;
         self.program.select_program(gl.context)?;
         for stanza in self.stanzas.iter() {
             stanza.activate()?;
             for entry in self.textures.values_mut() {
-                entry.apply(&mut gl).map_err(|e| Message::DataError(DataMessage::XXXTransitional(e)))?;
+                entry.apply(&mut gl)?;
             }
             for entry in self.uniforms.values() {
                 entry.activate(gl.context)?;
             }
             stanza.draw(gl.context,self.program.get_method())?;
             stanza.deactivate()?;
-            handle_context_errors(gl.context)?;
+            handle_context_errors2(gl.context)?;
         }
         stats.add_character(&self.character);
-        Ok(())
-    }
-
-    pub(crate) fn discard(&mut self,  gl: &mut WebGlGlobal) -> Result<(),Error> {
-        let mut gl = gl.refs();
-        for entry in self.uniforms.values_mut() {
-            entry.discard(gl.context)?;
-        }
-        for entry in self.textures.values_mut() {
-            entry.discard(&mut gl)?;
-        }
-        for stanza in self.stanzas.iter_mut() {
-            stanza.discard(gl.context)?;
-        }
         Ok(())
     }
 }

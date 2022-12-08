@@ -1,9 +1,8 @@
-use peregrine_data::{ Scale };
+use peregrine_data::{ Scale, SingleHotspotEntry, SpecialClick };
 use peregrine_toolkit::{lock};
 use peregrine_toolkit_async::sync::needed::Needed;
 use std::sync::{Arc, Mutex};
 use super::glcarriage::GLCarriage;
-use crate::shape::layers::drawingzmenus::HotspotEntryDetails;
 use crate::stage::stage::{ ReadStage };
 use crate::webgl::DrawingSession;
 use crate::webgl::global::WebGlGlobal;
@@ -45,13 +44,6 @@ impl GLTrain {
             carriage.set_opacity(amount);
         }
     }
-
-    pub(super) fn discard(&mut self, gl: &mut WebGlGlobal) -> Result<(),Message> {
-        for mut carriage in lock!(self.0).carriages.drain(..) {
-            carriage.discard(gl)?;
-        }
-        Ok(())
-    }
     
     pub(super) fn set_carriages(&mut self, new_carriages: Vec<GLCarriage>) -> Result<(),Message> {
         let mut state = lock!(self.0);
@@ -63,10 +55,27 @@ impl GLTrain {
         Ok(())
     }
 
-    pub(crate) fn get_hotspot(&self, stage: &ReadStage, position: (f64,f64)) -> Result<Vec<HotspotEntryDetails>,Message> {
+    pub(crate) fn get_hotspot(&self, stage: &ReadStage, position: (f64,f64)) -> Result<Vec<SingleHotspotEntry>,Message> {
         let mut out = vec![];
         for carriage in &lock!(self.0).carriages {
             out.append(&mut carriage.get_hotspot(stage,position)?);
+        }
+        Ok(out)
+    }
+
+    pub(crate) fn any_hotspot(&self, stage: &ReadStage, position: (f64,f64)) -> Result<bool,Message> {
+        for carriage in &lock!(self.0).carriages {
+           if carriage.any_hotspot(stage,position)? {
+               return Ok(true);
+           }
+        }
+        Ok(false)
+    }
+
+    pub(crate) fn special_hotspots(&self, stage: &ReadStage, position: (f64,f64)) -> Result<Vec<SpecialClick>,Message> {
+        let mut out = vec![];
+        for carriage in lock!(self.0).carriages.iter() {
+            out.append(&mut carriage.special_hotspots(stage,position)?);
         }
         Ok(out)
     }

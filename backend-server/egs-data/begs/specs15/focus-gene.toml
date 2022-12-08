@@ -1,0 +1,61 @@
+set = "ensembl-webteam/core"
+name = "focus-gene"
+version = 1
+description = """
+
+Show the focus gene as a mere block when rather zoomed out. (Still with zmenus, labels etc).
+
+Uses data sequences from gene endpoint:
+- gene_id
+- gene_id_version
+- gene_names
+- gene_descs
+- starts
+- lengths
+- gene_designation_keys
+- gene_designation_values
+- gene_biotypes_keys
+- gene_biotypes_values
+- strands
+- designated_transcript_id
+- designated_transcript_id_version
+- thicks_starts
+- thicks_lengths
+- designated_transcript_biotypes_keys
+- designated_transcript_biotypes_values
+- designated_transcript_designations_keys
+- designated_transcript_designations_values
+
+"""
+
+[setting.focus-gene]
+description = """
+
+Which gene is currently the focus gene (if any)? Object with keys "genome_id" and "item_id"
+identifying current focus gene, if any.
+
+"""
+
+[setting.several]
+default = false
+description = """
+
+boolean: if true show 5 per the mini-toggle setting on the focus track.
+
+"""
+
+[setting.focus-gene-label]
+default = false
+description = """
+
+boolean: if true show gene label on the focus track.
+
+"""
+
+[settingname]
+default = false
+description = """
+
+boolean: if true show focus track label on the focus track.
+
+"""

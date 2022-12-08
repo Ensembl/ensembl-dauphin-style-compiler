@@ -1,41 +1,43 @@
-use std::{collections::{HashMap, HashSet}};
+use std::{collections::{HashSet}};
 use peregrine_toolkit::{debug_log, eachorevery::EachOrEvery};
-use super::{core::{ Patina, Pen, Plotter }, imageshape::ImageShape, rectangleshape::RectangleShape, textshape::TextShape, wiggleshape::WiggleShape, emptyshape::EmptyShape, shape::UnplacedShape};
-use crate::{LeafRequest, AbstractShapesContainer, allotment::core::leaflist::LeafList, BackendNamespace};
-use crate::{Assets, DataMessage, SpaceBaseArea, reactive::Observable, SpaceBase, allotment::{stylespec::{stylegroup::AllotmentStyleGroup, styletreebuilder::StyleTreeBuilder, styletree::StyleTree}}};
+use super::{core::{ Patina, Pen, Plotter }, imageshape::ImageShape, rectangleshape::RectangleShape, textshape::TextShape, wiggleshape::WiggleShape, emptyshape::EmptyShape};
+use crate::{LeafRequest, RequestedShapesContainer, allotment::{core::leafrequestsource::LeafRequestSource, style::styletree::StyleTree}, BackendNamespace, LoadMode, PolygonShape, Shape};
+use crate::{Assets, DataMessage, SpaceBaseArea, reactive::Observable, SpaceBase};
 
 pub struct ProgramShapesBuilder {
     assets: Assets,
-    shapes: Vec<UnplacedShape>,
+    shapes: Vec<Shape<LeafRequest>>,
     leafs: HashSet<LeafRequest>,
-    carriage_universe: LeafList,
-    style: StyleTreeBuilder
+    leaf_list: LeafRequestSource,
+    style: StyleTree,
+    mode: LoadMode
 }
 
 impl ProgramShapesBuilder {
-    pub fn new(assets: &Assets) -> ProgramShapesBuilder {
+    pub fn new(assets: &Assets, mode: &LoadMode) -> ProgramShapesBuilder {
         ProgramShapesBuilder {
             shapes: vec![],
             leafs: HashSet::new(),
-            carriage_universe: LeafList::new(),
-            style: StyleTreeBuilder::new(),
-            assets: assets.clone()
+            leaf_list: LeafRequestSource::new(),
+            style: StyleTree::new(),
+            assets: assets.clone(),
+            mode: mode.clone()
         }
     }
 
     pub fn use_allotment(&mut self, spec: &str) -> &LeafRequest {
-        let leaf = self.carriage_universe.pending_leaf(spec);
+        let leaf = self.leaf_list.pending_leaf(spec);
         self.leafs.insert(leaf.clone());
         leaf
     }
 
-    pub fn add_style(&mut self, spec: &str, props: HashMap<String,String>) {
+    pub fn add_style(&mut self, spec: &str, props: Vec<(String,String)>) {
         self.style.add(spec,props);
     }
 
     pub fn len(&self) -> usize { self.shapes.len() }
 
-    fn push_shape(&mut self, shape: UnplacedShape) {
+    fn push_shape(&mut self, shape: Shape<LeafRequest>) {
         shape.register_space(&self.assets);
         self.shapes.push(shape);
     }
@@ -46,7 +48,12 @@ impl ProgramShapesBuilder {
     }
 
     pub fn add_rectangle(&mut self, area: SpaceBaseArea<f64,LeafRequest>, patina: Patina, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>) -> Result<(),DataMessage> {
-        self.push_shape(RectangleShape::new2(area,patina,wobble)?);
+        self.push_shape(RectangleShape::new(area,patina,wobble)?);
+        Ok(())
+    }
+
+    pub fn add_polygon(&mut self, position: SpaceBase<f64,LeafRequest>, radius: EachOrEvery<f64>, points: usize, angle: f32, patina: Patina, wobble: Option<SpaceBase<Observable<'static,f64>,()>>) -> Result<(),DataMessage> {
+        self.push_shape(PolygonShape::new(position,radius,points,angle,patina,wobble)?);
         Ok(())
     }
 
@@ -71,14 +78,13 @@ impl ProgramShapesBuilder {
         Ok(())
     }
 
-    pub fn to_abstract_shapes_container(self) -> AbstractShapesContainer {
-        let style = AllotmentStyleGroup::new(StyleTree::new(self.style));
+    pub fn to_abstract_shapes_container(self) -> RequestedShapesContainer {
         if self.leafs.len() > 1000 {
             debug_log!("many leafs! {}",self.leafs.len());
         }
         for leaf in self.leafs {
-            leaf.set_style(&style);
+            leaf.set_style(&self.style);
         }
-        AbstractShapesContainer::build(self.shapes,self.carriage_universe)
+        RequestedShapesContainer::build(self.shapes,self.leaf_list,&self.mode)
     }
 }

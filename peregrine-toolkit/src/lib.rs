@@ -35,6 +35,10 @@ pub mod eachorevery {
     pub use eoefilter::{ EachOrEveryFilter, EachOrEveryFilterBuilder };
 }
 
+pub mod hotspots {
+    pub mod hotspotstore;
+}
+
 pub mod js {
     pub mod exception;
     pub mod jstojsonvalue;
@@ -47,6 +51,7 @@ pub mod plumbing {
     pub mod distributor;
     pub mod onchange;
     pub mod oneshot;
+    pub mod lease;
 }
 
 pub mod puzzle {
@@ -92,6 +97,7 @@ pub mod itertools;
 #[macro_use]
 pub mod lang;
 pub mod lesqlite2;
+pub mod rate;
 pub mod refs;
 pub mod sample;
 pub mod time;

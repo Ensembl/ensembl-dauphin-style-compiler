@@ -1,8 +1,6 @@
 use std::hash::Hash;
-use std::sync::Arc;
 use peregrine_toolkit::eachorevery::EachOrEveryFilter;
-
-use crate::{SpaceBaseArea, DataMessage, LeafRequest, Shape, allotment::transformers::transformers::{Transformer, TransformerVariety}, CoordinateSystem, LeafStyle, ShapeDemerge};
+use crate::{SpaceBaseArea, DataMessage, LeafRequest, Shape, allotment::{leafs::anchored::AnchoredLeaf}, ShapeDemerge, CoordinateSystem, AuxLeaf};
 
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub struct EmptyShape<A>(SpaceBaseArea<f64,A>);
@@ -31,7 +29,7 @@ impl EmptyShape<LeafRequest> {
     }
 
     pub fn base_filter(&self, min_value: f64, max_value: f64) -> EmptyShape<LeafRequest> {
-        let non_tracking = self.0.top_left().allotments().make_filter(self.0.len(),|a| !a.leaf_style().coord_system.is_tracking());
+        let non_tracking = self.0.top_left().allotments().make_filter(self.0.len(),|a| !a.leaf_style().aux.coord_system.is_tracking());
         let filter = self.0.make_base_filter(min_value,max_value);
         self.filter(&filter.or(&non_tracking))
     }
@@ -43,9 +41,9 @@ impl<A> Clone for EmptyShape<A> where A: Clone {
     }
 }
 
-impl EmptyShape<LeafStyle> {
-    pub fn demerge<T: Hash + Clone + Eq,D>(self, cat: &D) -> Vec<(T,EmptyShape<LeafStyle>)> where D: ShapeDemerge<X=T> {
-        let demerge = self.0.top_left().allotments().demerge(self.0.len(),|a| cat.categorise(&a.coord_system));
+impl EmptyShape<AuxLeaf> {
+    pub fn demerge<T: Hash + Clone + Eq,D>(self, cat: &D) -> Vec<(T,EmptyShape<AuxLeaf>)> where D: ShapeDemerge<X=T> {
+        let demerge = self.0.top_left().allotments().demerge(self.0.len(),|a| cat.categorise(&a.coord_system,a.depth));
         let mut out = vec![];
         for (draw_group,filter) in demerge {
             out.push((draw_group,self.filter(&filter)));
@@ -54,24 +52,22 @@ impl EmptyShape<LeafStyle> {
     }
 }
 
-impl EmptyShape<Arc<dyn Transformer>> {
-    fn demerge_by_variety(&self) -> Vec<((TransformerVariety,CoordinateSystem),EmptyShape<Arc<dyn Transformer>>)> {
+impl EmptyShape<AnchoredLeaf> {
+    fn demerge_by_variety(&self) -> Vec<(CoordinateSystem,EmptyShape<AnchoredLeaf>)> {
         let demerge = self.0.top_left().allotments().demerge(self.0.len(),|x| {
-            x.choose_variety()
+            x.coordinate_system().clone()
         });
         let mut out = vec![];
-        for (variety,filter) in demerge {
-            out.push((variety,self.filter(&filter)));
+        for (coord,filter) in demerge {
+            out.push((coord,self.filter(&filter)));
         }
         out
     }
-}
 
-impl EmptyShape<Arc<dyn Transformer>> {
-    pub fn make(&self) -> Vec<EmptyShape<LeafStyle>> {
+    pub fn make(&self) -> Vec<EmptyShape<AuxLeaf>> {
         let mut out = vec![];
-        for ((variety,coord_system),rectangles) in self.demerge_by_variety() {
-            out.push(EmptyShape(variety.spacebasearea_transform(&coord_system,&rectangles.0)));
+        for (coord_system,rectangles) in self.demerge_by_variety() {
+            out.push(EmptyShape(rectangles.0.spacebasearea_transform(&coord_system)));
         }
         out
     }

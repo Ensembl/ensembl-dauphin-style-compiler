@@ -16,6 +16,13 @@ impl PacketPriority {
         }
     }
 
+    pub fn is_high(&self) -> bool {
+        match self {
+            PacketPriority::RealTime => true,
+            PacketPriority::Batch => false
+        }
+    }
+
     pub(crate) fn cdr_priority(&self) -> u8 {
         match self {
             PacketPriority::Batch => 5,

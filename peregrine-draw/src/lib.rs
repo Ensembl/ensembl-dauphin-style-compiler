@@ -11,13 +11,27 @@ mod input {
     }
 
     pub(crate) mod low {
-        mod pointer {
-            pub(crate) mod cursor;
-            mod drag;
-            pub(super) mod pinch;
-            pub(super) mod pointer;   
+        pub(crate) mod gesture {
+            pub(crate) mod core {
+                pub(crate) mod cursor;
+                pub(crate) mod finger;
+                pub(crate) mod gesture;
+                pub(crate) mod gesturenode;
+                pub(super) mod transition;    
+            }
+
+            pub(crate) mod node {
+                mod commontools;
+                pub(crate) mod pinch;
+                pub(crate) mod drag;
+                pub(super) mod marquee;
+                pub(super) mod maypolenode;
+                pub(crate) mod unknown;    
+                pub(super) mod vertical;
+            }
         }
 
+        pub(super) mod pointer;
         pub(crate) mod event;
         pub(crate) mod keyboardinput;
         pub(crate) mod mouseinput;
@@ -79,41 +93,49 @@ mod run {
 
 mod shape {
     pub(crate) mod core {
-        pub(crate) mod bitmap;
         pub(crate) mod prepareshape;
         pub(crate) mod drawshape;
         pub(super) mod directcolourdraw;
-        pub(super) mod spotcolourdraw;
-        pub(crate) mod flatdrawing;
+        pub(crate) mod texture;
+        pub(crate) mod wigglegeometry;
+        pub(crate) mod circlegeometry;
+    }
+
+    pub(crate) mod spectres {
+        pub(crate) mod ants;
+        pub(crate) mod maypole;
+        pub(crate) mod stain;
         pub(crate) mod spectre;
         pub(crate) mod spectraldrawing;
         pub(crate) mod spectremanager;
-        pub(crate) mod text;
-        pub(crate) mod texture;
-        pub(crate) mod wigglegeometry;
     }
 
     pub(crate) mod triangles {
         pub(crate) mod drawgroup;
         pub(crate) mod triangleadder;
         pub(crate) mod rectangles;
+        pub(crate) mod sizedrectangles;
+        pub(crate) mod arearectangles;
+        pub(crate) mod polygon;
     }
 
-    pub(crate) mod heraldry {
+    pub(crate) mod canvasitem {
         pub(super) mod bardots;
         pub(crate) mod heraldry;
+        pub(crate) mod bitmap;
+        pub(crate) mod text;
+        pub(crate) mod imagecache;
+        pub(crate) mod structuredtext;
     }
 
     pub(crate) mod layers {
         pub(crate) mod drawing;
         pub(crate) mod drawingtools;
-        pub(crate) mod drawingzmenus;
         pub(crate) mod consts;
         pub(crate) mod geometry;
         pub(crate) mod programstore;
         pub(crate) mod layer;
-        pub(crate) mod shapeprogram;
-        pub(super) mod patina;
+        pub(crate) mod patina;
     }
 
     pub(crate) mod util {
@@ -149,25 +171,25 @@ mod util {
 
 mod webgl {
     pub(crate) mod canvas {
-        pub(crate) mod bindery;
-        pub(crate) mod canvasstore;
-        pub(crate) mod drawingflats;
-        pub(crate) mod flatplotallocator;
-        pub(crate) mod pngcache;
-        pub(crate) mod flat;
-        pub(crate) mod packer;
-        pub(crate) mod flatstore;
-        pub(crate) mod weave;
-        pub(crate) mod structuredtext;
+        pub(crate) mod composition {
+            pub(crate) mod areabuilder;
+            pub(crate) mod packer;
+            pub(crate) mod compositionbuilder;
+            pub(crate) mod canvasitem;
+        }
+
+        pub(crate) mod binding {
+            pub(crate) mod binding;
+            pub(crate) mod texturebinding;
+            pub(crate) mod weave;
+        }
+
+        pub(crate) mod htmlcanvas {
+            pub(crate) mod canvassource;
+            pub(crate) mod scratchcanvases;
+            pub(crate) mod canvasinuse;
+        }
     }
-
-    pub(crate) use canvas::weave::CanvasWeave;
-    pub(crate) use canvas::flat::Flat;
-    pub(crate) use canvas::flatstore::{ FlatId, FlatStore };
-    pub(crate) use canvas::bindery::{ TextureBindery };
-    pub(crate) use canvas::drawingflats::{ DrawingAllFlats, DrawingAllFlatsBuilder };
-    pub(crate) use canvas::flatplotallocator::{ FlatPositionCampaignHandle };
-
 
     pub(super) mod gpuspec {
         pub(crate) mod glarity;
@@ -199,6 +221,7 @@ mod webgl {
         pub(crate) mod array;
         pub(crate) mod builder;
         pub(crate) mod elements;
+        pub(crate) mod elementsentry;
         pub(crate) mod stanza;
     }
 
@@ -222,6 +245,14 @@ mod webgl {
     pub(crate) mod global;
     pub(crate) mod glbufferstore;
     mod util;
+}
+
+mod hotspots {
+    mod coordconverter;
+    mod trackinghotspots;
+    mod windowhotspots;
+    mod drawhotspotstore;
+    pub(crate) mod drawinghotspots;
 }
 
 pub use crate::run::{ PeregrineInnerAPI, PeregrineAPI, PeregrineConfig };

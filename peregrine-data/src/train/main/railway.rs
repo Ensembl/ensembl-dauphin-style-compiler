@@ -1,5 +1,5 @@
 use std::sync::{Arc, Mutex};
-use peregrine_toolkit::{debug_log, lock};
+use peregrine_toolkit::{debug_log, lock, log, ubail};
 use peregrine_toolkit::puzzle::AnswerAllocator;
 use peregrine_toolkit_async::sync::blocker::{Blocker, LockoutBool};
 use peregrine_toolkit_async::sync::needed::Needed;
@@ -133,6 +133,14 @@ impl RailwayState {
         RailwayState(Switcher::new(manager))
     }
 
+    fn relevant_train(&mut self, viewport: &Viewport) -> bool {
+        let viewport_stick = ubail!(viewport.layout().ok(),false).stick();
+        let mut num = 0;
+        let mut out = false;
+        self.0.each_displayed_mut(&mut |t| { num += 1; if viewport_stick == t.extent().extent.layout().stick() { out = true; } });
+        out
+    }
+
     pub(super) fn set_position(&mut self, viewport: &Viewport) -> Result<(),DataMessage> {
         if !viewport.ready() { return Ok(()); }
         /* calculate best train */
@@ -151,7 +159,7 @@ impl RailwayState {
         }
         /* set position in all current trains (data) */
         let viewport_stick = viewport.layout()?.stick();
-        self.0.each_mut(&|train| {
+        self.0.each_mut(&mut |train| {
             if viewport_stick == train.extent().extent.layout().stick() {
                 train.set_position(viewport); // XXX error handling
             }
@@ -159,6 +167,10 @@ impl RailwayState {
         /* set position for future trains (data) */
         self.0.manager_mut().set_viewport(viewport);
         /* set position in all trains (graphics) */
+        let yn = !self.relevant_train(viewport);
+        if yn {
+            self.0.manager().graphics.set_pause(true);
+        }
         self.0.manager().graphics.notify_viewport(viewport);
         Ok(())
     }
@@ -166,11 +178,18 @@ impl RailwayState {
     pub(super) fn transition_complete(&mut self) {
         self.0.manager_mut().graphics.transition_complete();
         self.0.live_done();
+        if let Some(viewport) = &self.0.manager().viewport.clone() {
+            let yn = !self.relevant_train(viewport);
+            if !yn {
+                self.0.manager().graphics.set_pause(false);
+            }
+            self.0.manager().graphics.notify_viewport(viewport);
+        }
     }
 
     pub(super) fn ping(&mut self) {
         self.0.ping();
-        self.0.each_mut( &|c| { c.ping() });
+        self.0.each_mut( &mut |c| { c.ping() });
     }
 
     pub(super) fn set_sketchy(&mut self, yn: bool) -> Result<(),DataMessage> {

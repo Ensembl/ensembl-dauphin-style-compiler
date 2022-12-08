@@ -101,7 +101,7 @@ impl<K: KeyedHandle,T> KeyedData<K,T> {
 
     pub fn items(&self) -> impl Iterator<Item=(K,&T)> { self.values().enumerate().map(|(i,v)| (K::new(i),v)) }
 
-    pub fn take(mut self) -> Vec<(K,T)> { self.0.drain(..).enumerate().map(|(i,v)| (K::new(i),v)).collect() }
+    pub fn take(&mut self) -> Vec<(K,T)> { self.0.drain(..).enumerate().map(|(i,v)| (K::new(i),v)).collect() }
 
     pub fn map_into<F,U,E>(mut self, f: F) -> Result<KeyedData<K,U>,E> where F: Fn(K,T) -> Result<U,E> {
         Ok(KeyedData(self.0.drain(..).enumerate().map(|(i,t)| f(K::new(i),t)).collect::<Result<_,_>>()?,PhantomData))
@@ -109,28 +109,6 @@ impl<K: KeyedHandle,T> KeyedData<K,T> {
 
     pub fn map<F,U,E>(&self, mut f: F) -> Result<KeyedData<K,U>,E> where F: FnMut(K,&T) -> Result<U,E> {
         Ok(KeyedData(self.0.iter().enumerate().map(|(i,t)| f(K::new(i),t)).collect::<Result<_,_>>()?,PhantomData))
-    }
-}
-
-pub struct OptionalKeys<'k,K: KeyedHandle,T> {
-    keyed_data: &'k KeyedData<K,Option<T>>,
-    index: Option<usize>
-}
-
-impl<'k,K: KeyedHandle,T> Iterator for OptionalKeys<'k,K,T> {
-    type Item = K;
-
-    fn next(&mut self) -> Option<K> {
-        loop {
-            let index = self.index.unwrap_or(0);
-            self.index = Some(index+1);
-            if index >= self.keyed_data.0.len() {
-                return None;
-            }
-            if self.keyed_data.0[index].is_some() {
-                return Some(K::new(index));
-            }
-        }
     }
 }
 
@@ -152,80 +130,6 @@ impl<K: KeyedHandle,T> KeyedData<K,Option<T>> {
     pub fn remove(&mut self, index: &K) -> Option<T> {
         self.0[index.get()].take()
     }
-
-    pub fn keys<'k>(&'k self) -> OptionalKeys<'k,K,T> {
-        OptionalKeys {
-            keyed_data: self,
-            index: None
-        }
-    }
-}
-
-pub struct KeyedOptionalValues<K: KeyedHandle,T> {
-    available: BTreeSet<usize>,
-    entries: KeyedData<K,Option<T>>,
-    size: usize
-}
-
-impl<K: KeyedHandle,T> KeyedOptionalValues<K,T> {
-    pub fn new() -> KeyedOptionalValues<K,T> {
-        KeyedOptionalValues {
-            available: BTreeSet::new(),
-            entries: KeyedData::new(),
-            size: 0
-        }
-
-    }
-
-    pub fn add(&mut self, value: T) -> K {
-        self.size += 1;
-        if let Some(id) = self.available.range(..).next().cloned() {
-            self.available.remove(&id);
-            let id = K::new(id);
-            self.entries.insert(&id,value);
-            id
-        } else {
-            self.entries.add(Some(value))
-        }
-    }
-
-    pub fn try_get(&self, key: &K) -> Option<&T> {
-        self.entries.get(key).as_ref()
-    }
-
-    pub fn get(&self, key: &K) -> anyhow::Result<&T> {
-        let out : Option<&T> = self.entries.get(key).into();
-        out.ok_or_else(|| err!("invalid id"))
-    }
-
-    pub fn replace(&mut self, key: &K, value: T) -> anyhow::Result<Option<T>> {
-        Ok(self.entries.get_mut(key).replace(value))
-    }
-
-    pub fn get_mut(&mut self, key: &K) -> anyhow::Result<&mut T> {
-        let out : Option<&mut T> = self.entries.get_mut(key).into();
-        out.ok_or_else(|| err!("invalid id"))
-    }
-
-    pub fn values(&self) -> impl Iterator<Item=&T> {
-        self.entries.values().filter(|x| x.is_some()).map(|x| x.as_ref().unwrap())
-    }
-
-    pub fn values_mut(&mut self) -> impl Iterator<Item=&mut T> {
-        self.entries.values_mut().filter(|x| x.is_some()).map(|x| x.as_mut().unwrap())
-    }
-
-    pub fn remove(&mut self, key: &K) {
-        self.size -= 1;
-        self.entries.remove(key);
-        self.available.insert(key.get());
-    }
-
-    pub fn keys(&self) -> OptionalKeys<K,T> {
-        self.entries.keys()
-    }
-
-    pub fn size(&self) -> usize { self.size }
 }
 
 pub struct KeyedValues<K: KeyedHandle,T> {

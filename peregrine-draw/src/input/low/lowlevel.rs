@@ -3,28 +3,28 @@ use crate::domcss::dom::PeregrineDom;
 use crate::input::InputEventKind;
 use crate::input::low::modifiers::KeyboardModifiers;
 use crate::input::translate::targetreporter::TargetReporter;
-use crate::shape::core::spectre::Spectre;
-use crate::shape::core::spectremanager::{SpectreHandle, SpectreManager};
+use crate::shape::spectres::spectremanager::{SpectreManager};
 use crate::stage::stage::ReadStage;
 use crate::webgl::global::WebGlGlobal;
 use crate::{PgCommanderWeb, run::PgPeregrineConfig};
 use crate::util::Message;
+use super::event::EventHandle;
+use super::gesture::core::cursor::{CursorHandle, Cursor};
 use super::modifiers::Modifiers;
-use super::{event::EventSystem, keyboardinput::{KeyboardEventHandler, keyboard_events}, mouseinput::mouse_events};
+use super::{keyboardinput::{ keyboard_events}};
 use super::mapping::{ InputMapBuilder };
-use super::mouseinput::{ MouseEventHandler };
+use super::mouseinput::{ mouse_events };
 use crate::input::{ InputEvent };
 use super::mapping::InputMap;
 use js_sys::Date;
-use peregrine_data::{Commander };
+use peregrine_data::{Commander, SpecialClick };
+use peregrine_toolkit::lock;
 use peregrine_toolkit::plumbing::distributor::Distributor;
 use peregrine_toolkit_async::sync::needed::Needed;
-use super::pointer::cursor::{ Cursor, CursorHandle };
 use crate::run::CursorCircumstance;
 
-// XXX pub
 #[derive(Clone)]
-pub struct LowLevelState {
+pub(crate) struct LowLevelState {
     commander: PgCommanderWeb,
     distributor: Distributor<InputEvent>,
     dom: PeregrineDom,
@@ -34,7 +34,8 @@ pub struct LowLevelState {
     cursor: Cursor,
     spectres: SpectreManager,
     pointer_last_seen: Arc<Mutex<Option<(f64,f64)>>>,
-    target_reporter: TargetReporter
+    target_reporter: TargetReporter,
+    special: Arc<Mutex<Vec<SpecialClick>>>
 }
 
 impl LowLevelState {
@@ -53,7 +54,8 @@ impl LowLevelState {
             stage: Arc::new(Mutex::new(None)),
             spectres: spectres.clone(),
             pointer_last_seen: Arc::new(Mutex::new(None)),
-            target_reporter: target_reporter.clone() 
+            target_reporter: target_reporter.clone(),
+            special: Arc::new(Mutex::new(vec![])),
         },distributor))
     }
 
@@ -102,11 +104,12 @@ impl LowLevelState {
         self.cursor.set(circ)
     }
 
-    pub(crate) fn add_spectre(&self, spectre: Spectre) -> SpectreHandle {
-        self.spectres.add(spectre)
+    pub(crate) fn special_status<F,X>(&self, cb: F) -> X where F: FnOnce(&[SpecialClick]) -> X { 
+        cb(&lock!(self.special))
     }
-
+    
     pub(crate) fn spectre_manager(&self) -> &SpectreManager { &self.spectres }
+    pub(crate) fn spectre_manager_mut(&mut self) -> &mut SpectreManager { &mut self.spectres }
 
     pub fn set_artificial(&self, name: &str, start: bool) {
         self.modifiers.lock().unwrap().set_artificial(name,start);
@@ -115,8 +118,10 @@ impl LowLevelState {
 
 #[derive(Clone)]
 pub struct LowLevelInput {
-    keyboard: EventSystem<KeyboardEventHandler>,
-    mouse: EventSystem<MouseEventHandler>,
+    #[allow(unused)]
+    keyboard: Vec<EventHandle>,
+    #[allow(unused)]
+    mouse: Vec<EventHandle>,
     distributor: Distributor<InputEvent>,
     state: LowLevelState,
     mouse_moved: Needed,
@@ -133,20 +138,17 @@ impl LowLevelInput {
     }
 
     pub fn distributor_mut(&mut self) -> &mut Distributor<InputEvent> { &mut self.distributor }
-
     pub fn update_stage(&self, stage: &ReadStage) { self.state.update_stage(stage); }
-    pub(crate) fn get_spectres(&self) -> Vec<Spectre> { self.state.spectre_manager().get_spectres() }
-
     pub fn set_artificial(&self, name: &str, start: bool) { self.state.set_artificial(name,start); }
     pub fn pointer_last_seen(&self) -> Option<(f64,f64)> { self.state.pointer_last_seen() }
-
     pub fn get_mouse_move_waiter(&self) -> Needed { self.mouse_moved.clone() }
 
-    pub fn set_hotspot(&mut self, yn: bool) {
+    pub fn set_hotspot(&mut self, yn: bool, special: &[SpecialClick]) {
         if yn {
             self.hotspot_cursor_handle = Some(Arc::new(self.state.set_cursor(&CursorCircumstance::Hotspot)));
         } else {
             self.hotspot_cursor_handle = None;
         }
+        *lock!(self.state.special) = special.to_vec();
     }
 }

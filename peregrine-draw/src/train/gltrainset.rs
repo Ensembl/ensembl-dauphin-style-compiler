@@ -2,21 +2,20 @@ use std::collections::HashMap;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash};
 use std::sync::{ Arc, Mutex };
-use peregrine_data::{Assets, CarriageSpeed, PeregrineCore, Scale, DrawingCarriage, TrainIdentity, PeregrineApiQueue};
+use peregrine_data::{Assets, CarriageSpeed, PeregrineCore, Scale, DrawingCarriage, TrainIdentity, PeregrineApiQueue, SingleHotspotEntry, SpecialClick};
 use peregrine_toolkit::error::Error;
-use peregrine_toolkit::{lock, log};
+use peregrine_toolkit::{lock};
 use peregrine_toolkit_async::sync::needed::{Needed, NeededLock};
 use super::glcarriage::GLCarriage;
 use super::gltrain::GLTrain;
 use crate::{PgCommanderWeb};
-use crate::shape::layers::drawingzmenus::HotspotEntryDetails;
 use crate::{run::{ PgPeregrineConfig, PgConfigKey }, stage::stage::{ Stage, ReadStage } };
 use crate::webgl::DrawingSession;
 use crate::webgl::global::WebGlGlobal;
 use crate::util::message::Message;
 
 #[cfg(debug_trains)]
-use peregrine_toolkit::debug_log;
+use peregrine_toolkit::{log, debug_log};
 
 #[derive(Clone)]
 enum FadeState {
@@ -88,11 +87,10 @@ impl GlRailwayData {
         }
     }
 
-    fn drop_train(&mut self, extent: &TrainIdentity, gl: &Arc<Mutex<WebGlGlobal>>) {
+    fn drop_train(&mut self, extent: &TrainIdentity) {
         #[cfg(any(debug_assertions,debug_trains))] 
         self.check_train_unused(extent);
         #[cfg(debug_trains)] log!("GL drop train {:?}",extent);
-        self.get_our_train(&extent,0).discard(&mut *lock!(gl));
         self.trains.remove(extent);
     }
 
@@ -159,7 +157,7 @@ impl GlRailwayData {
             (true,true) => { 1.-prop },           /* fade-out then fade-in ; fade-out opacity */
             (true,false) => { prop-factor },      /* fade-out then fade-in ; fade-in  opacity */
             (false,true) => { 1.-(prop+factor) }, /* fade-in  then fade-out; fade-out opacity */
-            (false,false) => { prop }             /* fase-in  then fade-out; fade-in  opacity */
+            (false,false) => { prop }             /* fade-in  then fade-out; fade-in  opacity */
         }.min(1.).max(0.);
         val
     }
@@ -191,7 +189,7 @@ impl GlRailwayData {
                 let prop = self.prop(&speed,elapsed.unwrap());
                 if prop >= 1. {
                     #[cfg(debug_trains)]
-                    log!("fading done {:?}",from);
+                    debug_log!("fading done {:?}",from);
                     self.fade_state = FadeState::Constant(Some(to));
                     self.redraw_needed.set(); // probably not needed; belt-and-braces
                     complete = true;
@@ -224,7 +222,8 @@ impl GlRailwayData {
                     } else {
                         /* zooming out, give priority to more detailed source */
                         out.push(self.get_our_train(&from,10).clone());
-                        out.push(self.get_our_train(&to,11).clone());                    }
+                        out.push(self.get_our_train(&to,11).clone());
+                    }
                 } else {
                     out.push(self.get_our_train(&to,12).clone());
                 }
@@ -241,12 +240,28 @@ impl GlRailwayData {
         }
     }
 
-    fn get_hotspot(&mut self, stage: &ReadStage, position: (f64,f64)) -> Result<Vec<HotspotEntryDetails>,Message> {
+    fn train_for_hotspots(&mut self) -> Option<&mut GLTrain> {
         match &self.fade_state {
             FadeState::Constant(x) => x.as_ref(),
             FadeState::Fading(_,x,_,_,_) => Some(x)
-        }.cloned().as_ref().map(|id| {
-            self.get_our_train(id,15).get_hotspot(stage,position)
+        }.cloned().as_ref().map(move |id| self.get_our_train(&id,15))
+    }
+
+    fn get_hotspot(&mut self, stage: &ReadStage, position: (f64,f64)) -> Result<Vec<SingleHotspotEntry>,Message> {
+        self.train_for_hotspots().map(|t| {
+            t.get_hotspot(stage,position)
+        }).unwrap_or(Ok(vec![]))
+    }
+
+    fn any_hotspot(&mut self, stage: &ReadStage, position: (f64,f64)) -> Result<bool,Message> {
+        self.train_for_hotspots().map(|t| {
+            t.any_hotspot(stage,position)
+        }).unwrap_or(Ok(false))
+    }
+
+    fn special_hotspots(&mut self, stage: &ReadStage, position: (f64,f64)) -> Result<Vec<SpecialClick>,Message> {
+        self.train_for_hotspots().map(|t| {
+            t.special_hotspots(stage,position)
         }).unwrap_or(Ok(vec![]))
     }
 }
@@ -264,7 +279,7 @@ impl GlRailway {
     }
 
     pub fn create_train(&mut self, train: &TrainIdentity) { lock!(self.data).create_train(train) }
-    pub fn drop_train(&mut self, train: &TrainIdentity, gl: &Arc<Mutex<WebGlGlobal>>) { lock!(self.data).drop_train(train,gl) }
+    pub fn drop_train(&mut self, train: &TrainIdentity) { lock!(self.data).drop_train(train) }
 
     pub(crate) fn create_carriage(&mut self, carriage: &DrawingCarriage, gl: &Arc<Mutex<WebGlGlobal>>, assets: &Assets) -> Result<(),Message> {
         lock!(self.data).create_carriage(carriage,gl,assets)
@@ -300,8 +315,16 @@ impl GlRailway {
         Ok(())
     }
 
-    pub(crate) fn get_hotspot(&self,stage: &ReadStage, position: (f64,f64)) -> Result<Vec<HotspotEntryDetails>,Message> {
+    pub(crate) fn get_hotspot(&self,stage: &ReadStage, position: (f64,f64)) -> Result<Vec<SingleHotspotEntry>,Message> {
         lock!(self.data).get_hotspot(stage,position)
+    }
+
+    pub(crate) fn any_hotspot(&self,stage: &ReadStage, position: (f64,f64)) -> Result<bool,Message> {
+        lock!(self.data).any_hotspot(stage,position)
+    }
+
+    pub(crate) fn special_hotspots(&self,stage: &ReadStage, position: (f64,f64)) -> Result<Vec<SpecialClick>,Message> {
+        lock!(self.data).special_hotspots(stage,position)
     }
 
     pub fn scale(&self) -> Option<Scale> { lock!(self.data).scale() }

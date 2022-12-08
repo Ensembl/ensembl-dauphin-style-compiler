@@ -1,0 +1,20 @@
+set = "ensembl-webteam/core"
+name = "gc"
+version = 1
+description = """
+
+Show %GC track.
+
+Uses data sequences from "gc":
+- values
+- range
+
+"""
+
+[setting.name]
+default = false
+description = """
+
+boolean: if true show track label.
+
+"""

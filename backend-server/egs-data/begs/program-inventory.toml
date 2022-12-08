@@ -19,11 +19,35 @@ programs = [
     "focus-transcript"
 ]
 
-[file.test.general]
-path="test15.begs"
+[file.v16.general]
+path="render16.begs"
 program_set="ensembl-webteam/core"
 program_version=1
-specs_path="specs15"
+specs_path="specs16"
+boot_for_version=[16]
+programs = [
+    "zoomed-seq",
+    "zoomed-transcript",
+    "transcript",
+    "gene",
+    "gene-overview",
+    "gc",
+    "contig",
+    "variant",
+    "ruler",
+    "framing",
+    "focus-zoomed-transcript",
+    "focus-transcript",
+    "focus-gene",
+    "focus-region",
+    "focus-gene-dots"
+]
+
+[file.test.general]
+path="test16.begs"
+program_set="ensembl-webteam/core"
+program_version=1
+specs_path="specs16"
 programs = [ "test", "test-with-data" ]
 
 [file.test.mapping.test]

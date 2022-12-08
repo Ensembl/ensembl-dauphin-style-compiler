@@ -1,3 +1,17 @@
+# 0.5.3
+  * Features
+    * Maypole vertical-aligner
+    * Ghost transcripts
+    * Focus locations
+    * Focus transcripts collapse to gene blocks
+    * Region labels flip when too close
+  * Code improvments:
+    * Overhaul and document 2D-canvas management code
+    * Overhaul and document box model code
+    * Remove reporting-metadata code, to fit with the shape code
+    * Start overhaul of "global" code
+  * Code documentaiton
+
 # 0.5.2
   * Features:
     * New JS "in-browserbackend" support

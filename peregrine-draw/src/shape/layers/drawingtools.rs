@@ -1,83 +1,84 @@
-use std::sync::{Arc, Mutex};
-
 use peregrine_data::{Assets, Scale};
-use peregrine_toolkit::error::Error;
+use peregrine_toolkit::{error::Error};
+use crate::{webgl::{global::WebGlGlobal, canvas::{composition::compositionbuilder::CompositionBuilder, binding::weave::CanvasWeave}}, util::fonts::Fonts, hotspots::drawinghotspots::{DrawingHotspots, DrawingHotspotsBuilder}, shape::canvasitem::{text::DrawingText, bitmap::DrawingBitmap, imagecache::ImageCache}};
 
-use crate::{shape::{core::{text::DrawingText, bitmap::DrawingBitmap}, heraldry::heraldry::DrawingHeraldry}, webgl::{global::WebGlGlobal, canvas::flatplotallocator::FlatPositionManager, CanvasWeave, DrawingAllFlatsBuilder, FlatStore}, util::fonts::Fonts};
+const CANVAS_TYPE_LEN : usize = 3;
 
-use super::drawingzmenus::{DrawingHotspotsBuilder, DrawingHotspots};
-
-pub(crate) struct ToolPreparations {
-    crisp: FlatPositionManager,
-    heraldry_h: FlatPositionManager,
-    heraldry_v: FlatPositionManager
+#[derive(Debug)]
+pub(crate) enum CanvasType {
+    Crisp ,
+    HeraldryHoriz, // Horizontal lines
+    HeraldryVert // Vertical Lines
 }
 
-impl ToolPreparations {
-    fn new() -> ToolPreparations {
-        ToolPreparations {
-            crisp: FlatPositionManager::new(&CanvasWeave::Crisp,"uSampler"),
-            heraldry_h: FlatPositionManager::new(&CanvasWeave::HorizStack,"uSampler"),
-            heraldry_v: FlatPositionManager::new(&CanvasWeave::VertStack,"uSampler"),
+impl CanvasType {
+    fn from_index(index: usize) -> CanvasType {
+        match index {
+            0 => CanvasType::Crisp,
+            1 => CanvasType::HeraldryHoriz,
+            2 => CanvasType::HeraldryVert ,
+            _ => panic!("bad canvastype index")           
         }
     }
 
-    pub(crate) fn crisp_manager(&mut self) -> &mut FlatPositionManager { &mut self.crisp }
-    pub(crate) fn heraldry_h_manager(&mut self) -> &mut FlatPositionManager { &mut self.heraldry_h }
-    pub(crate) fn heraldry_v_manager(&mut self) -> &mut FlatPositionManager { &mut self.heraldry_v }
+    fn index(&self) -> usize {
+        match self {
+            CanvasType::Crisp => 0,
+            CanvasType::HeraldryHoriz => 1,
+            CanvasType::HeraldryVert => 2
+        }
+    }
 
-    pub(super) fn allocate(&mut self, gl: &mut WebGlGlobal, drawable: &mut DrawingAllFlatsBuilder) -> Result<(),Error> {
-        self.crisp.make(gl,drawable)?;
-        self.heraldry_h.make(gl,drawable)?;
-        self.heraldry_v.make(gl,drawable)?;
-        Ok(())
+    fn to_weave(&self) -> CanvasWeave {
+        match self {
+            CanvasType::Crisp => CanvasWeave::Crisp,
+            CanvasType::HeraldryHoriz => CanvasWeave::VertStack, /* gets horizontal lines */
+            CanvasType::HeraldryVert => CanvasWeave::HorizStack, /* gets vertical lines */
+        }
     }
 }
 
 pub(crate) struct DrawingTools {
-    pub zmenus: DrawingHotspots
+    pub hotspots: DrawingHotspots
 }
 
 pub(crate) struct DrawingToolsBuilder {
     text: DrawingText,
     bitmap: DrawingBitmap,
-    heraldry: DrawingHeraldry,
-    zmenus: DrawingHotspotsBuilder
+    manager: Vec<CompositionBuilder>,
+    hotspots: DrawingHotspotsBuilder
 }
 
 impl DrawingToolsBuilder {
-    pub(super) fn new(fonts: &Fonts, assets: &Assets, scale: Option<&Scale>, left: f64, bitmap_multiplier: f64) -> DrawingToolsBuilder {
+    pub(super) fn new(fonts: &Fonts, assets: &Assets, image_cache: &ImageCache, scale: Option<&Scale>, left: f64, bitmap_multiplier: f64) -> DrawingToolsBuilder {
         DrawingToolsBuilder {
+            manager: (0..CANVAS_TYPE_LEN).map(|x| CompositionBuilder::new(&CanvasType::from_index(x).to_weave())).collect(),
             text: DrawingText::new(fonts,bitmap_multiplier),
-            bitmap: DrawingBitmap::new(assets),
-            heraldry: DrawingHeraldry::new(),
-            zmenus: DrawingHotspotsBuilder::new(scale, left)
+            bitmap: DrawingBitmap::new(assets,image_cache),
+            hotspots: DrawingHotspotsBuilder::new(scale, left)
         }
     }
 
+    pub(crate) fn composition_builder(&mut self, type_: &CanvasType) -> &mut CompositionBuilder { &mut self.manager[type_.index()] }
     pub(crate) fn text(&mut self) -> &mut DrawingText { &mut self.text }
     pub(crate) fn bitmap(&mut self) -> &mut DrawingBitmap { &mut self.bitmap }
-    pub(crate) fn heraldry(&mut self) -> &mut DrawingHeraldry { &mut self.heraldry }
-    pub(crate) fn zmenus(&mut self) -> &mut DrawingHotspotsBuilder { &mut self.zmenus }
+    pub(crate) fn hotspots(&mut self) -> &mut DrawingHotspotsBuilder { &mut self.hotspots }
 
-    pub(crate) fn build(self) -> DrawingTools {
-        DrawingTools {
-            zmenus: self.zmenus.build()
+    pub(crate) fn build(self) -> Result<DrawingTools,Error> {
+        Ok(DrawingTools {
+            hotspots: self.hotspots.build()?
+        })
+    }
+
+    pub(crate) async fn preprep(&mut self) -> Result<(),Error> {
+        self.text.prepare_for_allocation().await?;
+        Ok(())
+    }
+
+    pub(crate) fn prepare(&mut self, gl: &mut WebGlGlobal) -> Result<(),Error> {
+        for i in 0..CANVAS_TYPE_LEN {
+            self.manager[i].draw_on_bitmap(gl)?;
         }
-    }
-
-    pub(crate) async fn start_preparation(&mut self, gl: &Arc<Mutex<WebGlGlobal>>) -> Result<ToolPreparations,Error> {
-        let mut preparations = ToolPreparations::new();
-        self.text.calculate_requirements(gl,&mut preparations.crisp).await?;
-        self.bitmap.calculate_requirements(gl, &mut preparations.crisp).await?;
-        self.heraldry.calculate_requirements(gl,&mut preparations).await?;
-        Ok(preparations)
-    }
-
-    pub(crate) fn finish_preparation(&mut self, canvas_store: &mut FlatStore, mut preparations: ToolPreparations) -> Result<(),Error> {
-        self.text.manager().draw_at_locations(canvas_store,&mut preparations.crisp)?;
-        self.bitmap.manager().draw_at_locations(canvas_store,&mut preparations.crisp)?;
-        self.heraldry.draw_at_locations(canvas_store,&mut preparations)?;
         Ok(())
     }
 }

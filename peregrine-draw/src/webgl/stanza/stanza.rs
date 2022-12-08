@@ -4,12 +4,11 @@ use commander::cdr_tick;
 use keyed::{ KeyedData };
 use peregrine_toolkit::error::Error;
 use peregrine_toolkit::lock;
-use web_sys::{ WebGlBuffer, WebGlRenderingContext };
+use web_sys::{ WebGlRenderingContext };
 use crate::webgl::glbufferstore::{GLIndexBuffer};
 use crate::webgl::global::WebGlGlobal;
-use crate::webgl::util::handle_context_errors;
+use crate::webgl::util::{handle_context_errors2};
 use crate::webgl::Attribute;
-use crate::util::message::Message;
 
 #[derive(Clone)]
 #[cfg_attr(debug_assertions,derive(Debug))]
@@ -27,23 +26,6 @@ impl AttribSource {
     }
 }
 
-fn create_index_buffer(context: &WebGlRenderingContext, values: &[u16]) -> Result<WebGlBuffer,Message> {
-    let buffer = context.create_buffer().ok_or(Message::WebGLFailure(format!("failed to create buffer")))?;
-    context.bind_buffer(WebGlRenderingContext::ELEMENT_ARRAY_BUFFER,Some(&buffer));
-    // After `Int16Array::view` be very careful not to do any memory allocations before it's dropped.
-    unsafe {
-        let value_array = js_sys::Uint16Array::view(values);
-        context.buffer_data_with_array_buffer_view(
-            WebGlRenderingContext::ELEMENT_ARRAY_BUFFER,
-            &value_array,
-            WebGlRenderingContext::STATIC_DRAW,
-        );
-        drop(value_array);
-    }
-    handle_context_errors(context)?;
-    Ok(buffer)
-}
-
 pub(crate) struct ProcessStanza {
     attribs: KeyedData<AttribHandle,(AttribSource,AttributeValues)>,
     buffer: Option<GLIndexBuffer>,
@@ -51,7 +33,7 @@ pub(crate) struct ProcessStanza {
 }
 
 impl ProcessStanza {
-    pub(crate) fn update_values(&self) -> Result<(),Message> {
+    pub(crate) fn update_values(&self) -> Result<(),Error> {
         for (source,attrib) in self.attribs.values() {
             attrib.replace(&source.get())?;
         }
@@ -62,7 +44,7 @@ impl ProcessStanza {
         self.attribs.len()
     }
 
-    async fn make_attribs(gl: &Arc<Mutex<WebGlGlobal>>, values: &KeyedData<AttribHandle,Attribute>, attribs: &KeyedData<AttribHandle,AttribSource>) -> Result<KeyedData<AttribHandle,(AttribSource,AttributeValues)>,Message> {
+    async fn make_attribs(gl: &Arc<Mutex<WebGlGlobal>>, values: &KeyedData<AttribHandle,Attribute>, attribs: &KeyedData<AttribHandle,AttribSource>) -> Result<KeyedData<AttribHandle,(AttribSource,AttributeValues)>,Error> {
         let mut a_values = KeyedData::new();
         for (k,v) in attribs.items() {
             let mut lgl = lock!(gl);
@@ -77,7 +59,7 @@ impl ProcessStanza {
         )
     }
 
-    pub(super) async fn new_elements(gl: &Arc<Mutex<WebGlGlobal>>, index: &[u16], values: &KeyedData<AttribHandle,Attribute>, attribs: &KeyedData<AttribHandle,AttribSource>) -> Result<Option<ProcessStanza>,Message> {
+    pub(super) async fn new_elements(gl: &Arc<Mutex<WebGlGlobal>>, index: &[u16], values: &KeyedData<AttribHandle,Attribute>, attribs: &KeyedData<AttribHandle,AttribSource>) -> Result<Option<ProcessStanza>,Error> {
         if index.len() > 0 {
             let mut lgl = lock!(gl);
             let gl_refs = lgl.refs();
@@ -96,7 +78,7 @@ impl ProcessStanza {
         }
     }
 
-    pub(super) async fn new_array(gl: &Arc<Mutex<WebGlGlobal>>, len: usize, values: &KeyedData<AttribHandle,Attribute>, attribs: &KeyedData<AttribHandle,AttribSource>) -> Result<Option<ProcessStanza>,Message> {
+    pub(super) async fn new_array(gl: &Arc<Mutex<WebGlGlobal>>, len: usize, values: &KeyedData<AttribHandle,Attribute>, attribs: &KeyedData<AttribHandle,AttribSource>) -> Result<Option<ProcessStanza>,Error> {
         if len > 0 {
             Ok(Some(ProcessStanza {
                 buffer: None,
@@ -108,7 +90,7 @@ impl ProcessStanza {
         }
     }
 
-    pub(crate) fn activate(&self) -> Result<(),Message> {
+    pub(crate) fn activate(&self) -> Result<(),Error> {
         if let Some(buffer) = &self.buffer {
             buffer.activate()?;
         }
@@ -118,7 +100,7 @@ impl ProcessStanza {
         Ok(())
     }
 
-    pub(crate) fn deactivate(&self) -> Result<(),Message> {
+    pub(crate) fn deactivate(&self) -> Result<(),Error> {
         if let Some(buffer) = &self.buffer {
             buffer.deactivate()?;
         }
@@ -128,18 +110,14 @@ impl ProcessStanza {
         Ok(())
     }
 
-    pub fn draw(&self, context: &WebGlRenderingContext, method: u32) -> Result<(),Message> {
+    pub fn draw(&self, context: &WebGlRenderingContext, method: u32) -> Result<(),Error> {
         if self.buffer.is_some() {
             context.draw_elements_with_i32(method,self.len as i32,WebGlRenderingContext::UNSIGNED_SHORT,0);
-            handle_context_errors(context)?;
+            handle_context_errors2(context)?;
         } else {
             context.draw_arrays(method,0,self.len as i32);
-            handle_context_errors(context)?;
+            handle_context_errors2(context)?;
         }
-        Ok(())
-    }
-
-    pub fn discard(&mut self, context: &WebGlRenderingContext) -> Result<(),Error> {
         Ok(())
     }
 }

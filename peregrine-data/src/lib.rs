@@ -1,67 +1,60 @@
 mod allotment {
-    pub(crate) mod boxes {
-        pub(crate) mod leaf;
+    pub(crate) mod containers {
         pub(crate) mod overlay;
         pub(crate) mod stacker;
         pub(crate) mod bumper;
         pub(crate) mod container;
+        pub(crate) mod haskids;
         pub(crate) mod root;
     }
 
-    pub(crate) mod builder {
-        mod holder;
-        pub(crate) mod stylebuilder;
+    pub(crate) mod leafs {
+        pub(crate) mod floating;
+        pub(crate) mod anchored;
+        pub(crate) mod auxleaf;
+        pub(crate) mod leafrequest;
+    }
+
+    pub(crate) mod layout {
+        pub(crate) mod contentsize;
+        pub(crate) mod layouttree;
+        pub(crate) mod layoutcontext;
+        pub(crate) mod leafrequestsize;
     }
     
     pub(crate) mod collision {
+        pub(crate) mod bumprequest;
         mod bumppart;
         pub(crate) mod bumpprocess;
         pub(crate) mod collisionalgorithm;
     }
 
     pub(crate) mod style {
-        pub(crate) mod style;
+        pub(crate) mod containerstyle;
+        pub(crate) mod leafstyle;
+        pub(crate) mod metadataproperty;
+        pub(super) mod pathtree;
+        pub(crate) mod styletree;
     }
 
     pub(crate) mod core {
-        pub(crate) mod boxtraits;
-        pub(crate) mod boxpositioncontext;
         pub(crate) mod allotmentname;
-        pub(crate) mod coordsystem;
-        pub(crate) mod abstractcarriage;
-        pub(crate) mod leaflist;
-        pub(crate) mod leafrequest;
-        pub(crate) mod trainstate;
-    }
-
-    pub(crate) mod globals {
-        pub(crate) mod globalvalue;
-        pub(crate) mod aligner;
-        pub(crate) mod allotmentmetadata;
-        pub(crate) mod heighttracker;
-        pub(crate) mod bumping;
-        pub(crate) mod trainpersistent;
-        pub mod playingfield;
-    }
-
-    pub(crate) mod stylespec {
-        pub(crate) mod specifiedstyle;
-        pub(crate) mod stylegroup;
-        pub(crate) mod styletree;
-        pub(crate) mod styletreebuilder;
-    }
-
-    pub(crate) mod transformers {
-        pub(crate) mod drawinginfo;
-        pub(crate) mod transformertraits;
-        pub(crate) mod simple;
-        pub(crate) mod transformers;
-    }
-
-    pub(crate) mod util {
-        pub(crate) mod bppxconverter;
+        pub(crate) mod floatingcarriage;
+        pub(crate) mod leafrequestsource;
         pub(crate) mod rangeused;
     }
+}
+
+pub(crate) mod globals {
+    pub(crate) mod correlate;
+    pub(crate) mod globalvalue;
+    pub(crate) mod aligner;
+    pub(crate) mod allotmentmetadata;
+    pub(crate) mod heighttracker;
+    pub(crate) mod bumping;
+    pub(crate) mod trainpersistent;
+    pub mod playingfield;
+    pub(crate) mod trainstate;
 }
 
 mod api {
@@ -105,6 +98,7 @@ mod core {
     pub(crate) mod version;
     mod viewport;
     pub(crate) mod data;
+    pub(crate) mod coordsystem;
 
     pub use self::config::{ PgdPeregrineConfig, ConfigKey };
     pub use self::layout::Layout;
@@ -127,12 +121,13 @@ mod shapeload {
     mod datastore;
     mod objectbuilder;
     mod shaperequest;
+    pub(crate) mod shaperequestgroup;
     pub(crate) mod loadshapes;
     mod resultstore;
     pub(crate) mod programname;
 
     pub use self::datastore::{ DataStore };
-    pub use self::shaperequest::{ Region, ShapeRequest, ShapeRequestGroup };
+    pub use self::shaperequest::{ Region, ShapeRequest };
     pub use self::loadshapes::LoadMode;
     pub use self::resultstore::{ ShapeStore, RunReport };
     pub use self::objectbuilder::ObjectBuilder;
@@ -203,30 +198,28 @@ mod run {
 }
 
 mod shape {
-    mod abstractshapescontainer;
+    pub(crate) mod requestedshapescontainer;
+    pub(crate) mod originstats;
     mod core;
     pub mod emptyshape;
     mod imageshape;
     pub(crate) mod metadata;
     pub mod rectangleshape;
+    pub mod polygonshape;
     pub(crate) mod textshape;
     pub(crate) mod shape;
     mod programshapes;
     mod settingmode;
-    mod zmenu;
-    mod zmenufixed;
     mod wiggleshape;
 
     pub use self::core::{ 
-        Patina, Pen, Colour, DirectColour, Plotter, DrawnType, Hotspot, PenGeometry,
-        Background, AttachmentPoint
+        Patina, Pen, Colour, DirectColour, Plotter, DrawnType, HotspotPatina, PenGeometry,
+        Background, AttachmentPoint,
     };
     pub use self::settingmode::SettingMode;
     pub use self::shape::{ ShapeDemerge, Shape };
-    pub use self::zmenu::ZMenu;
-    pub use self::abstractshapescontainer::AbstractShapesContainer;
+    pub use self::requestedshapescontainer::RequestedShapesContainer;
     pub use self::programshapes::ProgramShapesBuilder;
-    pub use self::zmenufixed::{ ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator, ZMenuProxy, zmenu_fixed_vec_to_json, zmenu_to_json };
 }
 
 pub(crate) mod spacebase {
@@ -290,9 +283,15 @@ mod util {
     pub use self::message::DataMessage;
 }
 
-pub use self::allotment::core::leafrequest::LeafRequest;
-pub use self::allotment::style::style::LeafStyle;
-pub use self::allotment::globals::{ allotmentmetadata::GlobalAllotmentMetadata, playingfield::PlayingField };
+pub(crate) mod hotspots {
+    pub(crate) mod hotspots;
+    pub(crate) mod zmenupatina;
+    pub(crate) mod zmenuitem;
+}
+
+pub use self::allotment::leafs::leafrequest::LeafRequest;
+pub use self::allotment::leafs::auxleaf::AuxLeaf;
+pub use self::globals::{ allotmentmetadata::GlobalAllotmentMetadata, playingfield::PlayingField };
 pub use self::api::{ PeregrineCore, PeregrineCoreBase, PeregrineIntegration, PeregrineApiQueue, TrainIdentity, CarriageSpeed, AgentStore, InstanceInformation };
 pub use self::core::{ Asset, Assets, PgdPeregrineConfig, ConfigKey, Stick, StickId, StickTopology, Scale, Viewport, ProgramModel, ProgramSetting };
 pub use self::core::channel::accessorresolver::{ AccessorResolver };
@@ -301,7 +300,7 @@ pub use self::core::dataalgorithm::DataAlgorithm;
 pub use self::core::channel::channelintegration::{ ChannelIntegration, ChannelSender, ChannelResponse, TrivialChannelResponse, ChannelMessageDecoder, null_payload };
 pub use self::index::{ StickStore };
 pub use self::core::program::programbundle::{ SuppliedBundle, UnpackedSuppliedBundle };
-pub use self::shapeload::{ Region, ShapeStore, DataStore, ShapeRequest, ShapeRequestGroup, LoadMode, ObjectBuilder, RunReport };
+pub use self::shapeload::{ Region, ShapeStore, DataStore, ShapeRequest, LoadMode, ObjectBuilder, RunReport };
 pub use self::run::{ PgCommander, PgCommanderTaskSpec, PgDauphin, Commander, InstancePayload, add_task, complete_task, async_complete_task };
 pub use self::request::core::maxirequest::{ MaxiRequest };
 pub use self::request::core::maxiresponse::{ MaxiResponse, MaxiResponseDeserialize };
@@ -311,12 +310,11 @@ pub use self::request::core::packetpriority::PacketPriority;
 pub use self::request::core::backend::{ AllBackends, Backend };
 pub use self::shape::shape::DrawingShape;
 pub use self::shape::{ 
-    Patina, Colour, DirectColour, DrawnType, Shape, Hotspot, PenGeometry, Background,
-    ZMenu, Pen, Plotter, ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator,
-    ZMenuProxy, zmenu_fixed_vec_to_json, ShapeDemerge, zmenu_to_json, SettingMode,
-    ProgramShapesBuilder, AbstractShapesContainer, AttachmentPoint
+    Patina, Colour, DirectColour, DrawnType, Shape, HotspotPatina, PenGeometry, Background,
+    Pen, Plotter, ShapeDemerge, SettingMode,
+    ProgramShapesBuilder, RequestedShapesContainer, AttachmentPoint
 };
-pub use self::allotment::core::coordsystem::{ CoordinateSystem, CoordinateSystemVariety };
+pub use self::core::coordsystem::{ CoordinateSystem };
 pub use self::switch::switches::{ Switches };
 pub use self::switch::track::Track;
 pub use self::train::{ DrawingCarriage, CarriageExtent };
@@ -326,6 +324,7 @@ pub use self::spacebase::{
     reactive, HollowEdge2, SpaceBase, SpaceBaseArea, PartialSpaceBase,
     SpaceBasePoint, SpaceBasePointRef
 };
+pub use self::shape::polygonshape::PolygonShape;
 pub use self::shape::rectangleshape::RectangleShape;
 pub use self::shape::textshape::TextShape;
 pub use self::core::data::ReceivedData;
@@ -345,3 +344,8 @@ pub use self::request::minirequests::expandreq::{ ExpandReq };
 pub use self::request::minirequests::expandres::{ ExpandRes };
 pub use self::request::minirequests::programreq::{ ProgramReq };
 pub use self::request::minirequests::programres::{ ProgramRes };
+pub use self::hotspots::zmenupatina::{ ZMenu, zmenu_generator };
+pub use self::hotspots::zmenuitem::{ ZMenuFixed, zmenu_item_list_to_json, zmenu_to_json };
+pub use self::hotspots::hotspots::{ 
+    HotspotResult, HotspotGroupEntry, SingleHotspotEntry, SpecialClick
+};

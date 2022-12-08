@@ -18,18 +18,33 @@ use peregrine_toolkit::lock;
  * Reactive.observable() -- create new observable
  * Reactive.run_observers() -- trigger anything updated since last run
  * 
- * Internally, Observers "hold" the callback and are in turn held by any Observables which they observe.
- * This means that when all an Observer's go out of scope, the Observable is tidied as well.
- * An Observable also holds a weak reference to ObserverRunner, the data of the Reactive object. Reactive itself holds
- * the strong reference. If all the Reactives go out of scope, we don't need to worry about updating as nothing can
- * be triggered! Otherwise a set causes the Observable to push all its Observers onto the stack. Observers have a count
- * which prevents multiple pushes. 
+ * Internally, Observers "hold" the callback and are in turn held by any Observables which they
+ * observe. This means that when all an Observer's references go out of scope, the Observable is
+ * tidied as well. An Observable also holds a weak reference to ObserverRunner, the data of the
+ * Reactive  object. Reactive itself holds the strong reference. If all the Reactives go out of
+ * scope, we don't need to worry about updating, as nothing can be triggered! Otherwise a set 
+ * causes the Observable to push all its Observers onto the stack. Observers have a count which
+ * prevents multiple pushes. 
  * 
- * The reason that Variables and Observables are separable is the potential for a reference loop. We typically want to
- * get a value in the callback. If Observable were merged into Variable, The closure would contain a reference to
- * Variable, Variable contain a reference to the Observer and the Observer a reference to the closure. Observable only
- * has a weak reference to the list of Observers, weakening that loop. The strong reference is held by Variable. If this
- * goes out of scope then it's ok to do nothing on an observe call as it can never change.
+ * The reason that Variables and Observables are separable is the potential for a reference loop.
+ * We typically want to get a value in the callback. If Observable were merged into Variable, The 
+ * closure would contain a reference to Variable, Variable contain a reference to the Observer and 
+ * the Observer a reference to the closure. Observable only has a weak reference to the list of 
+ * Observers, weakening that loop. The strong reference is held by Variable. If this goes out of
+ * scope then it's ok to do nothing on an observe call as it can never change.
+ *
+ *         Observer --strong--> ObserverData --> callback
+ *                                    ^
+ *                                    |
+ *                                   weak
+ *                                    |
+ *           +----------weak-----> TriggerList
+ *           |
+ *      Observable -----weak-----+
+ *                               v
+ *      Reactive --strong--> ObserverRunner --> [pending: callbacks]
+ *  
+ * 
  */
 
 struct TriggerList<'a> {

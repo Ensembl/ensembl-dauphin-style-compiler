@@ -1,8 +1,25 @@
 use std::{sync::{Arc, Mutex}};
 use commander::{CommanderStream, cdr_timer};
-use peregrine_toolkit::{log_extra, error::Error};
+use peregrine_toolkit::{log_extra, error::Error, debug_log};
 use crate::{DataMessage, ShapeStore, PeregrineCoreBase, PgCommanderTaskSpec, Scale, add_task, core::{Layout, pixelsize::PixelSize}, shapeload::loadshapes::LoadMode, switch::trackconfiglist::TrainTrackConfigList, CarriageExtent, train::model::trainextent::TrainExtent, PeregrineApiQueue };
 use crate::shapeload::carriagebuilder::CarriageBuilder;
+
+const LIGHTWEIGHT_SCHEDULE : &[(i64,i64,bool)] = &[
+    (2,0,true),(-2,0,true),   /* slight zoom in and out at this position, network only */
+    (2,2,false),(-2,2,false)  /* slight zoom in and out, slight flank */
+];
+const HEAVYWEIGHT_SCHEDULE : &[(i64,i64,bool)]= &[
+    (8,0,true),(-8,2,true),   /* slight zoom in and out at and near this position, network only */
+    (30,0,true),              /* all zoomed out to origin, network only (looks bad and good hit rate) */
+    (8,2,false),(-8,2,false), /* slight zoom in and out at and near this position */
+    (30,0,false),             /* all zoomed out to origin */
+    (8,2,false),(-8,6,false), /* around here with significant flank */
+    (-30,2,true),(30,2,true), /* all scales with slight flank  */
+    (-30,6,true)];            /* all scales iwith significant flank, network only  */
+
+    fn lightweight() -> bool {
+        cfg!(debug_assertions)
+    }
 
 struct AnticipateTask {
     carriages: Vec<CarriageBuilder>,
@@ -51,6 +68,7 @@ fn run_anticipator(base: &PeregrineCoreBase, result_store: &ShapeStore, stream: 
             batch: true
         });
     });
+    let pause = if lightweight() { 2000. } else { 100. };
     add_task::<()>(&base.commander,PgCommanderTaskSpec {
         name: format!("anticipator"),
         prio: 9,
@@ -60,7 +78,7 @@ fn run_anticipator(base: &PeregrineCoreBase, result_store: &ShapeStore, stream: 
         task: Box::pin(async move {
             while !base2.shutdown.poll() {
                 stream.get().await.run(&base2,&result_store).await?;
-                cdr_timer(2000.).await;
+                cdr_timer(pause).await;
             }
             log_extra!("anticipator finishing");
             Ok(())
@@ -89,10 +107,6 @@ impl Anticipate {
         !cfg!(disable_anticipate)
     }
 
-    fn lightweight(&self) -> bool {
-        cfg!(debug_assertions)
-    }
-
     fn build_carriage(&self, carriages: &mut Vec<CarriageBuilder>, layout: &Layout, scale: &Scale, pixel_size: &PixelSize, index: i64) {
         if index < 0 { return; }
         let train_track_config_list = TrainTrackConfigList::new(layout,scale); // TODO cache
@@ -106,17 +120,8 @@ impl Anticipate {
         let mut carriages = vec![];
         let base_index = extent.index();
         for offset in -amount_width..(amount_width+1) {
-            for delta in 0..amount_depth {
-                if offset.abs() < 2 {
-                    /* out */
-                    let new_scale = extent.train().scale().delta_scale(delta);
-                    if let Some(new_scale) = &new_scale {
-                        let new_base_index = new_scale.convert_index(extent.train().scale(),base_index) as i64;
-                        self.build_carriage(&mut carriages,layout,new_scale,extent.train().pixel_size(),new_base_index+offset);
-                    }
-                }
-                /* in */
-                let new_scale = extent.train().scale().delta_scale(-delta);
+            for delta in 0..amount_depth.abs() {
+                let new_scale = extent.train().scale().delta_scale(delta*amount_depth.signum());
                 if let Some(new_scale) = &new_scale {
                     let new_base_index = new_scale.convert_index(extent.train().scale(),base_index) as i64;
                     self.build_carriage(&mut carriages,layout,new_scale,extent.train().pixel_size(),new_base_index+offset);
@@ -144,17 +149,15 @@ impl Anticipate {
         }
         self.stream.clear();
         if self.enabled() {
-            if self.lightweight() {
-                self.build_tasks(extent,2,0,true)?;
-                self.build_tasks(extent,2,2,false)?;
+            let schedule = if lightweight() {
+                LIGHTWEIGHT_SCHEDULE
             } else {
-                self.build_tasks(extent,8,0,true)?;
-                self.build_tasks(extent,8,0,false)?;
-                self.build_tasks(extent,8,2,false)?;
-                self.build_tasks(extent,8,6,false)?;
-                self.build_tasks(extent,30,0,true)?;
-                self.build_tasks(extent,30,6,true)?;
+                HEAVYWEIGHT_SCHEDULE
+            };
+            for (depth,width,net_only) in schedule {
+                self.build_tasks(extent,*depth,*width,*net_only)?;
             }
+            debug_log!("anticipate conplete");
         }
         *self.extent.lock().unwrap() = Some(extent.clone());
         Ok(())

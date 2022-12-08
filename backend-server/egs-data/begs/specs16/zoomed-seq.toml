@@ -1,0 +1,20 @@
+set = "ensembl-webteam/core"
+name = "zoomed-seq"
+version = 1
+description = """
+
+Show sequence as code blocks to replace contig track.
+
+Uses data sequences from zoomed-seq endpoint:
+- sequence
+- sequence_start
+
+"""
+
+[setting.scale-no-letters]
+default = false
+description = """
+
+boolean which when true means that no individual base letters will be shown due to the scale.
+
+"""

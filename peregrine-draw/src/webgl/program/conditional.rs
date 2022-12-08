@@ -1,6 +1,5 @@
 use std::collections::HashSet;
-
-use crate::Message;
+use peregrine_toolkit::error::Error;
 use crate::webgl::{GPUSpec, ProgramBuilder, SourceInstrs};
 
 use super::source::Source;
@@ -54,7 +53,7 @@ impl Source for Conditional {
         }
     }
 
-    fn register(&self, builder: &mut ProgramBuilder, flags: &HashSet<String>) -> Result<(),Message> { 
+    fn register(&self, builder: &mut ProgramBuilder, flags: &HashSet<String>) -> Result<(),Error> { 
         if flags.contains(&self.flag) {
             self.source.register(builder,flags)?;
         }

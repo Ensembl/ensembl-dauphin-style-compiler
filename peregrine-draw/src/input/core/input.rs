@@ -1,12 +1,11 @@
 use std::sync::{ Arc, Mutex };
-use peregrine_data::{PeregrineCore};
+use peregrine_data::{PeregrineCore, SpecialClick};
 use peregrine_toolkit_async::sync::blocker::{Blocker, Lockout};
 
 use crate::PeregrineInnerAPI;
 use crate::domcss::dom::PeregrineDom;
 use crate::input::translate::targetreporter::TargetReporter;
 use crate::input::translate::translatehotspots::{translate_hotspots};
-use crate::shape::core::spectre::Spectre;
 use crate::stage::stage::ReadStage;
 use crate::webgl::global::WebGlGlobal;
 use crate::{ run::PgPeregrineConfig, PgCommanderWeb };
@@ -23,6 +22,8 @@ pub enum InputEventKind {
     PullOut,
     PixelsLeft, // [pixels]
     PixelsRight, // [pixels]
+    PixelsUp,
+    PixelsDown,
     SetPosition, // [scale, centre, y]
     AnimatePosition, // [scale, centre, y]
     PixelsIn,
@@ -38,6 +39,8 @@ impl InputEventKind {
             InputEventKind::PullRight,
             InputEventKind::PullIn,
             InputEventKind::PullOut,
+            InputEventKind::PixelsUp,
+            InputEventKind::PixelsDown,
             InputEventKind::PixelsLeft,
             InputEventKind::PixelsRight,
             InputEventKind::SetPosition,
@@ -103,8 +106,8 @@ impl Input {
         }
     }
 
-    pub fn set_hotspot(&self, yn: bool) {
-        self.state(|state| state.low_level.set_hotspot(yn));
+    pub fn set_hotspot(&self, yn: bool, special: &[SpecialClick]) {
+        self.state(|state| state.low_level.set_hotspot(yn,special));
     }
 
     pub fn update_stage(&self, stage: &ReadStage) { 
@@ -128,7 +131,6 @@ impl Input {
         waiter.wait_until_needed().await;
     }
 
-    pub(crate) fn get_spectres(&self) -> Vec<Spectre> { self.state(|state| state.low_level.get_spectres()) }
     pub fn set_artificial(&self, name: &str, start: bool) { self.state(|state| state.low_level.set_artificial(name,start)); }
 
     pub(crate) fn goto(&self, centre: f64, scale: f64, only_if_unknown: bool) -> Result<(),Message> {

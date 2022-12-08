@@ -169,6 +169,7 @@ impl GenomeBrowser {
         self.api.switch(&["ruler","one_based"],tmpl_true.clone());
         self.api.radio_switch(&["focus"],true);
         self.api.radio_switch(&["focus","gene"],true);
+        self.api.radio_switch(&["track","focus","item"],true);
 
         Ok(())
     }

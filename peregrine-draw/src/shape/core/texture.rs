@@ -1,35 +1,25 @@
-use peregrine_data::DataMessage;
-
-use crate::shape::layers::patina::{PatinaProcess, PatinaProcessName, PatinaAdder, PatinaYielder};
-use crate::webgl::{ AttribHandle, ProcessStanzaAddable, ProgramBuilder };
-use crate::webgl::{ FlatId };
-use crate::util::message::Message;
-use crate::webgl::canvas::flatstore::FlatStore;
-
-#[cfg_attr(debug_assertions,derive(Debug))]
-pub struct CanvasTextureArea {
-    texture_origin: (u32,u32),
-    size: (u32,u32)
-}
-
-impl CanvasTextureArea {
-    pub(crate) fn new(texture_origin: (u32,u32), size: (u32,u32)) -> CanvasTextureArea {
-        CanvasTextureArea { texture_origin, size }
-    }
-
-    pub(crate) fn texture_origin(&self) -> (u32,u32) { self.texture_origin }
-    pub(crate) fn size(&self) -> (u32,u32) { self.size }
-}
+use peregrine_toolkit::error::Error;
+use crate::shape::layers::patina::{ PatinaProcessName, Freedom, PatinaFactory};
+use crate::webgl::canvas::composition::canvasitem::CanvasItemArea;
+use crate::webgl::canvas::htmlcanvas::canvasinuse::CanvasInUse;
+use crate::webgl::{ AttribHandle, ProcessStanzaAddable, ProgramBuilder, UniformHandle, ProcessBuilder };
 
 #[derive(Clone)]
 pub struct TextureProgram {
-    texture: AttribHandle
+    texture: AttribHandle,
+    freedom: Option<UniformHandle>
 }
 
+/* TODO carry on dismanyling / pushing out Patina half. Make this more like TriangleAdder, its
+ * geometry counterpart, by switching from ProgramBuilder to Process builder. (Note, both will)
+ * ultimately need lookups genericised to program level to avoid too many lookups.
+ */
+
 impl TextureProgram {
-    pub(crate) fn new(builder: &ProgramBuilder) -> Result<TextureProgram,Message> {
+    pub(crate) fn new(builder: &ProgramBuilder) -> Result<TextureProgram,Error> {
         Ok(TextureProgram {
-            texture: builder.get_attrib_handle("aTextureCoord")?
+            texture: builder.get_attrib_handle("aTextureCoord")?,
+            freedom: builder.try_get_uniform_handle("uFreedom")
         })
     }
 }
@@ -46,18 +36,30 @@ fn push(data: &mut Vec<f32>,x: u32, y: u32, size: &(u32,u32)) {
 }
 
 impl TextureDraw {
-    pub(crate) fn new(variety: &TextureProgram, free: bool) -> Result<TextureDraw,Message> {
-        Ok(TextureDraw(variety.clone(),free))
+    fn new(builder: &mut ProcessBuilder, freedom: &Freedom) -> Result<TextureDraw,Error> {
+        let program = TextureProgram::new(builder.program_builder())?;
+        let process_name = builder.patina_name();
+        let canvas = process_name.canvas_name().cloned();
+        if let Some(canvas) = &canvas {
+            builder.set_texture("uSampler",canvas)?;
+        }
+        let x = freedom.as_gl();
+        if let Some(handle) = &program.freedom {
+            builder.set_uniform(handle,vec![x.0,x.1])?;
+        }        
+        Ok(TextureDraw(program.clone(),freedom.is_free()))
     }
 
-    fn add_rectangle_one(&self, addable: &mut dyn ProcessStanzaAddable, attrib: &AttribHandle, dims: &mut dyn Iterator<Item=((u32,u32),(u32,u32))>, csize: &(u32,u32)) -> Result<(),Message> {
+    fn add_rectangle_one(&self, addable: &mut dyn ProcessStanzaAddable, attrib: &AttribHandle, dims: &mut dyn Iterator<Item=((u32,u32),(u32,u32))>, csize: &(u32,u32), freedom: &Freedom) -> Result<(),Error> {
         let mut data = vec![];
         if self.1 {
+            let (fx,fy)= freedom.as_gl().into();
+            let (fx,fy) = (fx as u32, fy as u32);
             for (origin,size) in dims {
                 push(&mut data, origin.0,origin.1,&csize);
-                push(&mut data, origin.0,origin.1,&csize);
-                push(&mut data, origin.0,origin.1,&csize);
-                push(&mut data, origin.0,origin.1,&csize);
+                push(&mut data, origin.0,origin.1+size.1*fx,&csize);
+                push(&mut data, origin.0+size.0*fy,origin.1,&csize);
+                push(&mut data, origin.0+size.0*fy,origin.1+size.1*fx,&csize);
             }
         } else {
             for (origin,size) in dims {
@@ -71,47 +73,39 @@ impl TextureDraw {
         Ok(())
     }
 
-    pub(crate) fn add_rectangle(&self, addable: &mut dyn ProcessStanzaAddable, canvas: &FlatId, dims: &[CanvasTextureArea], flat_store: &FlatStore) -> Result<(),Message> {
-        let size = flat_store.get(canvas).map_err(|e| Message::DataError(DataMessage::XXXTransitional(e)))?.size();
+    pub(crate) fn add_rectangle(&self, addable: &mut dyn ProcessStanzaAddable, canvas: &CanvasInUse, dims: &[CanvasItemArea], freedom: &Freedom) -> Result<(),Error> {
+        let size = canvas.retrieve(|flat| { flat.size().clone() });
         let mut texture_data = dims.iter()
-            .map(|x| (x.texture_origin(),x.size()));
-        self.add_rectangle_one(addable,&self.0.texture,&mut texture_data,size)?;
+            .map(|x| (x.origin(),x.size()));
+        self.add_rectangle_one(addable,&self.0.texture,&mut texture_data,&size,&freedom)?;
         Ok(())
     }
 }
 
-pub(crate) struct TextureYielder {
-    patina_process_name: PatinaProcessName,
-    texture: Option<TextureDraw>
+pub(crate) struct TextureDrawFactory {
+    canvas: CanvasInUse,
+    freedom: Freedom
 }
 
-impl TextureYielder {
-    pub(crate) fn new(flat_id: &FlatId, free: bool) -> TextureYielder {
-        let patina_process_name = if free { PatinaProcessName::FreeTexture(flat_id.clone()) } else { PatinaProcessName::Texture(flat_id.clone()) };
-        TextureYielder { 
-            texture: None,
-            patina_process_name
+impl TextureDrawFactory {
+    pub(crate) fn new(canvas: &CanvasInUse, freedom: &Freedom) -> TextureDrawFactory {
+        TextureDrawFactory {
+            canvas: canvas.clone(),
+            freedom: freedom.clone()
         }
     }
 
-    pub(crate) fn draw(&self) -> Result<&TextureDraw,Message> {
-        self.texture.as_ref().ok_or_else(|| Message::CodeInvariantFailed(format!("using accessor without setting")))
+    pub(crate) fn make(&self, builder: &mut ProcessBuilder) -> Result<TextureDraw,Error> {
+        TextureDraw::new(builder,&self.freedom)
     }
 }
 
-impl PatinaYielder for TextureYielder {
-    fn name(&self) -> &PatinaProcessName { &self.patina_process_name }
-
-    fn make(&mut self, builder: &ProgramBuilder) -> Result<PatinaAdder,Message> {
-        Ok(PatinaAdder::Texture(TextureProgram::new(builder)?))
-    }
-    
-    fn set(&mut self, program: &PatinaProcess) -> Result<(),Message> {
-        self.texture = Some(match program {
-            PatinaProcess::FreeTexture(t) => t,
-            PatinaProcess::Texture(t) => t,
-            _ => { Err(Message::CodeInvariantFailed(format!("mismatched program: texture")))? }
-        }.clone());
-        Ok(())
+impl PatinaFactory for TextureDrawFactory {
+    fn patina_name(&self) -> PatinaProcessName {
+        match self.freedom {
+            Freedom::None => PatinaProcessName::Texture(self.canvas.clone()),
+            Freedom::Horizontal => PatinaProcessName::FreeTexture(self.canvas.clone(),Freedom::Horizontal),
+            Freedom::Vertical => PatinaProcessName::FreeTexture(self.canvas.clone(),Freedom::Vertical),
+        }
     }
 }

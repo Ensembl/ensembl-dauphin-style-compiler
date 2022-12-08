@@ -1,7 +1,7 @@
 use anyhow::{ anyhow as err, bail };
 use core::f64;
 use std::sync::{ Arc, Mutex };
-use crate::{Colour, DirectColour, Patina, Pen, Plotter, ZMenu, SpaceBase, LeafRequest, DataRequest, Background, DataResponse};
+use crate::{Colour, DirectColour, Patina, Pen, Plotter, SpaceBase, LeafRequest, DataRequest, Background, DataResponse, hotspots::zmenupatina::ZMenu};
 use owning_ref::ArcRef;
 use peregrine_toolkit::{lock, eachorevery::eoestruct::{StructVarGroup, StructTemplate, StructVar, StructPair}};
 
