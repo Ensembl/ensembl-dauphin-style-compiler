@@ -525,7 +525,7 @@ draw_track_category("G",[allotment_letter]);
 draw_focus_swatch(allotment_letter);
 
 /* red-dotted lines */
-red_dotted(focus_start,focus_end,allotment_dotted,allotment_dotted_text,comma_format(focus_start),comma_format(focus_end));
+//red_dotted(focus_start,focus_end,allotment_dotted,allotment_dotted_text,comma_format(focus_start),comma_format(focus_end));
 
 /* report transcripts shown */
 report_shown(bool_report_show_tr,id_tr_vr,use_allotment("tracks/track/focus"));

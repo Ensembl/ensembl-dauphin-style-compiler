@@ -90,6 +90,10 @@ program_name = "zoomed-transcript"
 scales = [0,6,7]
 include=["transcript","gene","general"]
 
+[track.focus-gene-dots]
+scales = [1,66,1]
+include=["focus-gene","general"]
+
 [track.focus-gene]
 scales = [19,66,4]
 include=["focus-gene","general"]

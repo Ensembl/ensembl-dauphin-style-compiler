@@ -18,7 +18,8 @@ programs = [
     "focus-zoomed-transcript",
     "focus-transcript",
     "focus-gene",
-    "focus-region"
+    "focus-region",
+    "focus-gene-dots"
 ]
 
 [file.test.general]

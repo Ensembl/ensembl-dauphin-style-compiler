@@ -1,0 +1,34 @@
+import "lib:std"; use "std";
+import "lib:peregrine"; use "peregrine";
+import "file:common.egs"; use "common";
+
+/* Just to draw the dots on focus genes. Separate from everything else to allow it to run
+ * at every scale to allow label flipping.
+ */
+
+get_focus_gene(focus_genome_id,focus_gene_id);
+
+/* 
+ * actually get the data from the server
+ */
+
+/* location of focus gene */
+
+req := make_request("self()","transcript",get_region());
+req := request_scope(req,"id",focus_gene_id);
+req := request_scope(req,"genome",focus_genome_id);
+focus_data := get_data(req);
+
+halt(only_warm(),[focus_data]);
+
+start_gn := data_number(focus_data,"starts");
+end_gn := start_gn + data_number(focus_data,"lengths");
+id_gn_uv := data_string(focus_data,"gene_id");
+
+start_focus := start_gn#[id_gn_uv==focus_gene_id];
+end_focus := end_gn#[id_gn_uv==focus_gene_id];
+
+allotment_dotted := use_allotment("dots/content");
+allotment_dotted_text := use_allotment("tracks/flagtop/main");
+
+red_dotted(start_focus,end_focus,allotment_dotted,allotment_dotted_text,comma_format(start_focus),comma_format(end_focus));
