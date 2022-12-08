@@ -105,7 +105,6 @@ stmt red_dotted(pstart,pend,pallotment,tallotment,left,right) {
     bp := [bp_range()];
     distance_in_carriage := bp[@==1] - bp[@==0];
     right_to_left := pend-pstart;
-    notice(format([distance_in_carriage,right_to_left]));
 
     colour := direct_colour(0,0,0,255);
 
