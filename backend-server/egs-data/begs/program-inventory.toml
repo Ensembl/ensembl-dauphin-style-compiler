@@ -43,6 +43,11 @@ programs = [
     "focus-gene-dots"
 ]
 
+[file.v16e.general]
+type="eardo"
+path="render16.eardo"
+boot_for_version=[16]
+
 [file.test.general]
 path="test16.begs"
 program_set="ensembl-webteam/core"

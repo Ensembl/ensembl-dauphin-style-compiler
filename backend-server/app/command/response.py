@@ -1,5 +1,6 @@
 from typing import Any
-from command.bundle import Bundle, BundleSet
+from command.eardo import EardoFile
+from command.bundle import Bundle, BundleSet, EardoSet
 from model.tracks import Tracks
 import cbor2
 
@@ -7,7 +8,11 @@ class Response(object):
     def __init__(self, typ: int, payload: Any):
         self.payload = payload if typ == -1 else cbor2.dumps([typ,payload])
         self.bundles = BundleSet()
+        self.eardos = EardoSet()
         self.tracks = Tracks()
+
+    def add_eardo(self, eardo: EardoFile):
+        self.eardos.add(eardo)
 
     def add_bundle(self, bundle: Bundle):
         self.bundles.add(bundle)

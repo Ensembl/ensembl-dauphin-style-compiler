@@ -1,0 +1,19 @@
+program "ensembl-webteam" "framing2" 1;
+
+print(format("hello"));
+
+/*
+import "lib:std"; use "std";
+import "lib:peregrine"; use "peregrine";
+
+pad_left := use_allotment("pad-left/content");
+pad_right := use_allotment("pad-right/content");
+
+style("pad-left/",["sys{'metadata': {'name': ['ensembl-webteam', 'framing2', 1], 'version': {'core': [0, 0], 'libcore': [0, 0]}}, 'blocks': {'main': {'constants': ['"hello"'tem","depth","set-datum"][],["left","57","pad-left"][]);
+style("pad-right/",["system","depth"][],["right","54"][]);
+
+
+white_patina := patina_filled(simple_colour(direct_colour(255,255,255,255)));
+rectangle(spacebase(0,0,0),spacebase(1,48,0),white_patina,pad_left);
+rectangle(spacebase(0,0,0),spacebase(1,48,0),white_patina,pad_right);
+*/

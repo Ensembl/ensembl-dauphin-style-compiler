@@ -1,4 +1,4 @@
-use peregrine_toolkit::{ serdetools::{st_field }, log};
+use peregrine_toolkit::{ serdetools::{st_field, ByteData }, log};
 use serde::de::{Visitor, MapAccess, DeserializeSeed, IgnoredAny};
 use serde::{Deserializer};
 use std::any::Any;
@@ -100,6 +100,11 @@ impl<'de> Visitor<'de> for MaxiResponseVisitor {
                 "tracks-packed" => { 
                     tracks = access.next_value::<Vec<PackedTrackRes>>()?.drain(..)
                         .map(|x| TrackResult::Packed(x)).collect();
+                },
+                "eardos" => {
+                    log!("received erdos");
+                    let x : Vec<(String,ByteData)> = access.next_value()?;
+                    log!("{:?}",x);
                 },
                 _ => { let _ : IgnoredAny = access.next_value()?; }
             }

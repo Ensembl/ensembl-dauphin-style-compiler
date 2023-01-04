@@ -34,8 +34,8 @@ from io import BytesIO
 router = APIRouter()
 
 # Some of our cbor is from caches and already serialised so we have to build our response ourselves
-def build_response(responses,programs,channel,tracks) -> Any:
-    num_items = 3
+def build_response(responses,programs,eardos,channel,tracks) -> Any:
+    num_items = 4
     if tracks is not None:
         num_items += 1
     with BytesIO() as fp:
@@ -52,6 +52,8 @@ def build_response(responses,programs,channel,tracks) -> Any:
         if tracks is not None:
             encoder.encode("tracks-packed")
             encoder.encode(tracks)
+        encoder.encode("eardos")
+        encoder.encode(eardos)
         encoder.encode("channel")
         encoder.encode(channel)
         return fp.getvalue()
@@ -72,6 +74,6 @@ async def data(priority: PacketPriority, request: Request):
     async for chunk in request.stream():
         body += chunk
     input_data = cbor2.loads(body)
-    (responses,programs,channel,tracks) = process_packet(input_data,priority=="hi")
-    body = build_response(responses,programs,channel,tracks)
+    (responses,programs,eardos,channel,tracks) = process_packet(input_data,priority=="hi")
+    body = build_response(responses,programs,eardos,channel,tracks)
     return Response(content=body,media_type="application/cbor")
