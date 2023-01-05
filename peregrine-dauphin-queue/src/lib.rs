@@ -1,4 +1,5 @@
 use commander::{ RunSlot, CommanderStream };
+use eard_interp::ProgramName;
 use peregrine_toolkit::error::Error;
 use std::any::Any;
 use std::collections::HashMap;
@@ -14,8 +15,19 @@ pub struct PgDauphinRunTaskSpec {
     pub payloads: HashMap<String,Box<dyn Any>>
 }
 
+pub struct PgEardoRunTaskSpec {
+    pub prio: u8,
+    pub name: ProgramName
+}
+
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub struct PgDauphinLoadTaskSpec {
+    pub data: Vec<u8>,
+    pub bundle_name: String
+}
+
+#[cfg_attr(debug_assertions,derive(Debug))]
+pub struct PgEardoLoadTaskSpec {
     pub data: Vec<u8>,
     pub bundle_name: String
 }
@@ -23,6 +35,8 @@ pub struct PgDauphinLoadTaskSpec {
 pub enum PgDauphinTaskSpec {
     Run(PgDauphinRunTaskSpec),
     Load(PgDauphinLoadTaskSpec),
+    LoadEardo(PgEardoLoadTaskSpec),
+    RunEardo(PgEardoRunTaskSpec),
     Quit
 }
 
@@ -64,6 +78,25 @@ impl PgDauphinQueue {
         let waiter = CommanderStream::new();
         self.queue.add(PgDauphinQueueEntry {
             task: PgDauphinTaskSpec::Run(task),
+            channel: waiter.clone()
+        });
+        waiter.get().await
+    }
+
+
+    pub async fn load_eardo(&self, task: PgEardoLoadTaskSpec) -> Result<(),Error> {
+        let waiter = CommanderStream::new();
+        self.queue.add(PgDauphinQueueEntry {
+            task: PgDauphinTaskSpec::LoadEardo(task),
+            channel: waiter.clone()
+        });
+        waiter.get().await
+    }
+
+    pub async fn run_eardo(&self, task: PgEardoRunTaskSpec) -> Result<(),Error> {
+        let waiter = CommanderStream::new();
+        self.queue.add(PgDauphinQueueEntry {
+            task: PgDauphinTaskSpec::RunEardo(task),
             channel: waiter.clone()
         });
         waiter.get().await

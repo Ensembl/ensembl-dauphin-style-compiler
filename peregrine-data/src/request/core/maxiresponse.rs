@@ -20,6 +20,7 @@ pub struct MaxiResponse {
     channel: BackendNamespace,
     responses: Vec<MiniResponseAttempt>,
     programs: Vec<SuppliedBundle>,
+    eardos: Vec<(String,Vec<u8>)>,
     tracks: Vec<TrackResult>
 }
 
@@ -29,6 +30,7 @@ impl MaxiResponse {
             channel: channel.clone(),
             responses: vec![],
             programs: vec![],
+            eardos: vec![],
             tracks: vec![TrackResult::None]
         }
     }
@@ -68,6 +70,7 @@ impl MaxiResponse {
 
     pub(crate) fn channel(&self) -> &BackendNamespace { &self.channel }
     pub(crate) fn programs(&self) -> &[SuppliedBundle] { &self.programs }
+    pub(crate) fn eardos(&self) -> &[(String,Vec<u8>)] { &self.eardos }
     pub(crate) fn tracks(&self) -> &[TrackResult] { &self.tracks }
     pub(crate) fn take_responses(&mut self) -> Vec<MiniResponseAttempt> {
         self.check_big_requests();
@@ -88,6 +91,7 @@ impl<'de> Visitor<'de> for MaxiResponseVisitor {
             where M: MapAccess<'de> {
         let mut responses : Option<Vec<MiniResponseAttempt>> = None;
         let mut programs = None;
+        let mut eardos : Option<Vec<(String,ByteData)>> = None;
         let mut channel = None;
         let mut tracks = vec![TrackResult::None];
         while let Some(key) = access.next_key()? {
@@ -102,9 +106,7 @@ impl<'de> Visitor<'de> for MaxiResponseVisitor {
                         .map(|x| TrackResult::Packed(x)).collect();
                 },
                 "eardos" => {
-                    log!("received erdos");
-                    let x : Vec<(String,ByteData)> = access.next_value()?;
-                    log!("{:?}",x);
+                    eardos = Some(access.next_value()?);
                 },
                 _ => { let _ : IgnoredAny = access.next_value()?; }
             }
@@ -112,11 +114,13 @@ impl<'de> Visitor<'de> for MaxiResponseVisitor {
         let responses = st_field("responses",responses)?;
         let channel = st_field("channel",channel)?;
         let mut programs = st_field("programs",programs)?;
+        let mut eardos = st_field("eardos",eardos)?;
         let programs = programs.drain(..).map(|x| x.0).collect::<Vec<_>>();
         Ok(MaxiResponse {
             channel, 
             responses, 
             programs,
+            eardos: eardos.drain(..).map(|(n,d)| (n,d.data)).collect(),
             tracks
         })
     }

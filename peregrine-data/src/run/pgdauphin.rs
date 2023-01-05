@@ -10,11 +10,18 @@ use crate::request::tracks::trackmodel::TrackMapping;
 use crate::{MaxiResponse, BackendNamespace, AccessorResolver, LoadMode, AllBackends, CountingPromise};
 use crate::api::MessageSender;
 use crate::core::program::programbundle::SuppliedBundle;
-use peregrine_dauphin_queue::{ PgDauphinQueue, PgDauphinLoadTaskSpec, PgDauphinRunTaskSpec };
+use peregrine_dauphin_queue::{ PgDauphinQueue, PgDauphinLoadTaskSpec, PgDauphinRunTaskSpec, PgEardoLoadTaskSpec, PgEardoRunTaskSpec };
 use crate::shapeload::programname::{ProgramName};
 
 pub(crate) struct PgDauphinTaskSpec {
     pub(crate) program: ProgramModel,
+    pub(crate) track_base: BackendNamespace,
+    pub(crate) mapping: TrackMapping,
+    pub(crate) payloads: Option<HashMap<String,Box<dyn Any>>>
+}
+
+pub(crate) struct PgEardoTaskSpec {
+    pub(crate) program: eard_interp::ProgramName,
     pub(crate) track_base: BackendNamespace,
     pub(crate) mapping: TrackMapping,
     pub(crate) payloads: Option<HashMap<String,Box<dyn Any>>>
@@ -79,23 +86,29 @@ impl PgDauphin {
         lock!(self.0).all_backends = Some(all_backends.clone());
     }
 
-    async fn add_binary_direct(&self, binary_name: &str, data: &[u8]) -> Result<(),Error> {
-        let obj = lock!(self.0);
-        let pdq = obj.pdq.clone();
-        drop(obj);
-        pdq.load(PgDauphinLoadTaskSpec {
-            bundle_name: binary_name.to_string(),
-            data: data.to_vec()
-        }).await
-    }
-
     fn binary_name(&self, channel: &BackendNamespace, name_of_bundle: &str) -> String {
         let channel_name = channel.to_string();
         format!("{}-{}-{}",channel_name.len(),channel_name,name_of_bundle)
     }
 
     async fn add_binary(&self, channel: &BackendNamespace, name_of_bundle: &str, cbor: &[u8]) -> Result<(),Error> {
-        self.add_binary_direct(&self.binary_name(channel,name_of_bundle),cbor).await
+        let binary_name = self.binary_name(channel,name_of_bundle);
+        let obj = lock!(self.0);
+        let pdq = obj.pdq.clone();
+        drop(obj);
+        pdq.load(PgDauphinLoadTaskSpec {
+            bundle_name: binary_name.to_string(),
+            data: cbor.to_vec()
+        }).await
+    }
+
+    async fn add_eardo(&self, name: &str, data: &[u8]) -> Result<(),Error> {
+        let obj = lock!(self.0);
+        let pdq = obj.pdq.clone();
+        pdq.load_eardo(PgEardoLoadTaskSpec {
+            bundle_name: name.to_string(),
+            data: data.to_vec()
+        }).await
     }
 
     fn register(&self, backend_namespace: &BackendNamespace, program: &ProgramModel, name_of_bundle: &str) {
@@ -147,6 +160,14 @@ impl PgDauphin {
             payloads
         }).await
     }
+
+    pub(crate) async fn run_eardo(&self, registry: &ChannelRegistry, spec: PgEardoTaskSpec, mode: &LoadMode) -> Result<(),Error> {
+        let pdq = lock!(self.0).pdq.clone();
+        pdq.run_eardo(PgEardoRunTaskSpec {
+            prio: if mode.high_priority() { 2 } else { 9 },
+            name: spec.program,
+        }).await
+    }
 }
 
 async fn add_bundle(pgd: &PgDauphin, channel: &BackendNamespace, bundle: &SuppliedBundle, messages: &MessageSender) -> Result<(),Error> {
@@ -167,9 +188,30 @@ async fn add_bundle(pgd: &PgDauphin, channel: &BackendNamespace, bundle: &Suppli
     Ok(())
 }
 
+async fn add_eardo(pgd: &PgDauphin, name: &str, data: &[u8], messages: &MessageSender) -> Result<(),Error> {
+    //let specs = bundle.specs().to_program_models()?;
+    match pgd.add_eardo(name,data).await {
+        Ok(_) => {
+         //   for spec in specs {
+         //       pgd.register(channel,&spec,bundle.bundle_name());
+         //   }
+        },
+        Err(e) => {
+            messages.send(e);
+         //   for spec in specs {
+           //     pgd.mark_missing(spec.name());
+         //   }
+        }
+    }
+    Ok(())
+}
+
 pub(crate) async fn add_programs_from_response(pgd: &PgDauphin, channel: &BackendNamespace, response: &MaxiResponse, messages: &MessageSender) -> Result<(),Error> {
     for bundle in response.programs().clone().iter() {
         add_bundle(&pgd,&channel, bundle, &messages).await?;
+    }
+    for (name,data) in response.eardos() {
+        add_eardo(&pgd,&name,data,&messages).await?;
     }
     Ok(())
 }

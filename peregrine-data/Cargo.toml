@@ -49,3 +49,7 @@ path="../peregrine-toolkit"
 [dependencies.peregrine_toolkit_async]
 version="*"
 path="../peregrine-toolkit-async"
+
+[dependencies.eard-interp]
+version="*"
+path="../../eard/eard-interp"
