@@ -250,7 +250,7 @@ class ProgramInventory:
 
     # TUE Call from program endpoint
     def find_bundle(self, program_set: str, program_name: str, program_version: int):
-        (bundle_name,_) = self._map_to_bundle.get((program_set,program_name,program_version),(None,None))
+        (bundle_name,_) = self._map_to_bundle.get((program_set,program_name,program_version),None)
         if bundle_name is None:
             return None
         b = self._bundle[bundle_name]
@@ -259,12 +259,12 @@ class ProgramInventory:
         return b
 
     def find_eardo_bundle(self, program_set: str, program_name: str, program_version: int):
-        bundle_name = self._program_to_bundle.get((program_set,program_name,program_version),(None,None))
+        bundle_name = self._program_to_bundle.get((program_set,program_name,program_version),None)
         if bundle_name is None:
             return None
         b = self._eardo[bundle_name]
-        b.reload_if_necessary()
-        return b
+        b.eardo().reload_if_necessary()
+        return b.eardo()
 
 class BegsFiles(object):
     def __init__(self):

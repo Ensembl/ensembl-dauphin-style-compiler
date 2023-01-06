@@ -35,7 +35,6 @@ programs = [
     "contig",
     "variant",
     "ruler",
-    "framing",
     "focus-zoomed-transcript",
     "focus-transcript",
     "focus-gene",

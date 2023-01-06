@@ -1,19 +1,20 @@
 program "ensembl-webteam/core" "framing" 1;
+refer "libperegrine";
 
-print(format("hello"));
+let pad_left = leaf("pad-left/content");
+let pad_right = leaf("pad-right/content");
 
-/*
-import "lib:std"; use "std";
-import "lib:peregrine"; use "peregrine";
+style("pad-left/","system","left");
+style("pad-left/","depth","57");
+style("pad-left/","set-datum","pad-left");
 
-pad_left := use_allotment("pad-left/content");
-pad_right := use_allotment("pad-right/content");
+style("pad-right/","system","right");
+style("pad-right/","depth","54");
 
-style("pad-left/",["sys{'metadata': {'name': ['ensembl-webteam', 'framing2', 1], 'version': {'core': [0, 0], 'libcore': [0, 0]}}, 'blocks': {'main': {'constants': ['"hello"'tem","depth","set-datum"][],["left","57","pad-left"][]);
-style("pad-right/",["system","depth"][],["right","54"][]);
+let paint = paint_solid(colour!("white"));
 
+let nw = coord([0],[0],[0]);
+let se = coord([1],[48],[0]);
 
-white_patina := patina_filled(simple_colour(direct_colour(255,255,255,255)));
-rectangle(spacebase(0,0,0),spacebase(1,48,0),white_patina,pad_left);
-rectangle(spacebase(0,0,0),spacebase(1,48,0),white_patina,pad_right);
-*/
+rectangle(nw,se,paint,pad_left);
+rectangle(nw,se,paint,pad_right);

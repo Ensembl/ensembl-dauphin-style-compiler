@@ -293,6 +293,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "eard-libperegrine"
+version = "0.1.0"
+dependencies = [
+ "eard-interp",
+ "peregrine_data",
+ "peregrine_toolkit",
+]
+
+[[package]]
 name = "either"
 version = "1.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -656,6 +665,7 @@ dependencies = [
  "dauphin_lib_peregrine",
  "dauphin_lib_std",
  "eard-interp",
+ "eard-libperegrine",
  "peregrine_data",
  "peregrine_dauphin_queue",
  "peregrine_toolkit",

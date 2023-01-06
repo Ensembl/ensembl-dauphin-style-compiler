@@ -3,6 +3,7 @@ use eard_interp::ProgramName;
 use peregrine_toolkit::error::Error;
 use std::any::Any;
 use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 use peregrine_toolkit::plumbing::oneshot::OneShot;
 
 #[cfg_attr(debug_assertions,derive(Debug))]
@@ -17,7 +18,8 @@ pub struct PgDauphinRunTaskSpec {
 
 pub struct PgEardoRunTaskSpec {
     pub prio: u8,
-    pub name: ProgramName
+    pub name: ProgramName,
+    pub payloads: HashMap<String,Box<dyn Any>>
 }
 
 #[cfg_attr(debug_assertions,derive(Debug))]

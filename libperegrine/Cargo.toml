@@ -1,0 +1,17 @@
+[package]
+name = "eard-libperegrine"
+version = "0.1.0"
+authors = ["Dan Sheppard <dan@ebi.ac.uk>"]
+edition = "2018"
+
+[dependencies.peregrine_data]
+version="*"
+path="../peregrine-data"
+
+[dependencies.eard-interp]
+version="*"
+path="../../eard/interp"
+
+[dependencies.peregrine_toolkit]
+version="*"
+path="../peregrine-toolkit"

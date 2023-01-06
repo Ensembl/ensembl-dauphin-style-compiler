@@ -52,4 +52,4 @@ path="../peregrine-toolkit-async"
 
 [dependencies.eard-interp]
 version="*"
-path="../../eard/eard-interp"
+path="../../eard/interp"

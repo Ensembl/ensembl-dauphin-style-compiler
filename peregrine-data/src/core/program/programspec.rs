@@ -81,6 +81,12 @@ impl ProgramModel {
         ProgramModel(Arc::new(builder))
     }
 
+    pub fn empty(name: &ProgramName) -> ProgramModel {
+        ProgramModel::new(
+            ProgramModelBuilder::new(name,"*anon*")
+        )
+    }
+
     pub fn name(&self) -> &ProgramName { &self.0.name }
 
     pub fn in_bundle_name(&self) -> &str { &self.0.in_bundle_name }

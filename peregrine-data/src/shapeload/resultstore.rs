@@ -53,21 +53,23 @@ async fn make_unfiltered_shapes(base: PeregrineCoreBase, request: ShapeRequest, 
     let mut payloads = HashMap::new();
     let run_report = Arc::new(Mutex::new(RunReport::new()));
     add_payloads(&mut payloads,&request,&mode,&run_report,&shapes);
-    base.dauphin.run_eardo(&base.channel_registry, PgEardoTaskSpec {
+    let good = base.dauphin.run_eardo(&base.channel_registry, PgEardoTaskSpec {
         program: request.track().track().program().name().to_eard().clone(),
         mapping: request.track().track().mapping().clone(),
         track_base: request.track().track().track_base().clone(),
         payloads: Some(payloads)
-    },&mode).await.map_err(|e| e.context(&format!("running eardo"))).ok(); // XXX fail
-    let mut payloads = HashMap::new();
-    let run_report = Arc::new(Mutex::new(RunReport::new()));
-    add_payloads(&mut payloads,&request,&mode,&run_report,&shapes);
-    base.dauphin.run_program(&base.channel_registry,PgDauphinTaskSpec {
-        program: request.track().track().program().clone(),
-        mapping: request.track().track().mapping().clone(),
-        track_base: request.track().track().track_base().clone(),
-        payloads: Some(payloads)
-    },&mode).await.map_err(|e| e.context(&format!("running {}",request.track().track().program().name().indicative_name())))?;
+    },&mode).await.map_err(|e| e.context(&format!("running eardo"))).is_ok(); // XXX fail
+    if !good {
+        let mut payloads = HashMap::new();
+        let run_report = Arc::new(Mutex::new(RunReport::new()));
+        add_payloads(&mut payloads,&request,&mode,&run_report,&shapes);
+        base.dauphin.run_program(&base.channel_registry,PgDauphinTaskSpec {
+            program: request.track().track().program().clone(),
+            mapping: request.track().track().mapping().clone(),
+            track_base: request.track().track().track_base().clone(),
+            payloads: Some(payloads)
+        },&mode).await.map_err(|e| e.context(&format!("running {}",request.track().track().program().name().indicative_name())))?;    
+    }
     let took_ms = cdr_current_time() - start;
     let net_time_ms = lock!(run_report).net_ms;
     if will_discard_output {
