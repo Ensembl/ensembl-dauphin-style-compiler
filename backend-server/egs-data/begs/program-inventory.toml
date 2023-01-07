@@ -31,7 +31,6 @@ programs = [
     "transcript",
     "gene",
     "gene-overview",
-    "gc",
     "contig",
     "variant",
     "ruler",

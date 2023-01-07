@@ -4,12 +4,18 @@ refer "libperegrine";
 let pad_left = leaf("pad-left/content");
 let pad_right = leaf("pad-right/content");
 
-style("pad-left/","system","left");
-style("pad-left/","depth","57");
-style("pad-left/","set-datum","pad-left");
+style!("""
+    pad-left/ {
+        system: left;
+        depth: 57;
+        set-datum: pad-left;
+    }
 
-style("pad-right/","system","right");
-style("pad-right/","depth","54");
+    pad-right/ {
+        system: right;
+        depth: 54;
+    }
+""");
 
 let paint = paint_solid(colour!("white"));
 

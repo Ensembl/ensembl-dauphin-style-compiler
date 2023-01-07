@@ -228,7 +228,7 @@ impl InterpCommand for PatinaHollowInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         let registers = context.registers_mut();
         let width = *registers.get_numbers(&self.2)?.to_vec().get(0).unwrap_or(&1.);
-        drop(registers);    
+        drop(registers);
         patina_colour(context,&self.0,&self.1, |c| Patina::Drawn(DrawnType::Stroke(width),c))?;
         Ok(CommandResult::SyncResult())
     }

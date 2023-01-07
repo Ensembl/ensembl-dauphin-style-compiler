@@ -1,0 +1,25 @@
+/* The long label of the track on the left-hand side, configuref by the "name" setting.
+ */
+export procedure draw_track_name(label,leaf) {
+    let name_text_size = 12;
+    let name_text_colour = colour!("#6f8190");
+
+    // Disable if turned off
+    let leaf = if(setting_boolean("name",[]),leaf,leaf(""));
+
+    let pen = pen("'IBM Plex Mono', sans-serif",name_text_size,name_text_colour,colour!("transparent"));
+    text(coord([0],[0],[8]),pen,[label],[leaf,...]);
+}
+
+/* Draw the G, V, etc in the left margin. Admits multiple tracks, so needs a seq in the last arg
+ */
+export procedure draw_track_category(category,leafs) {
+    let cat_text_size = 12;
+    let cat_text_colour = colour!("#000");
+
+    let count = len(leafs);
+    let enough_zeros = repeat(0,count);
+
+    let pen = pen("'Lato', sans-serif",cat_text_size,cat_text_colour,colour!("transparent"));
+    text(coord(enough_zeros,[5,...],[16,...]),pen,category,leafs);
+}

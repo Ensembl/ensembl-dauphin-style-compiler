@@ -48,7 +48,7 @@ impl Program {
 
 struct PgDauphinData {
     pdq: PgDauphinQueue,
-    programs_present: HashSet<eard_interp::ProgramName>,
+    programs_present: HashMap<eard_interp::ProgramName,BackendNamespace>,
     programs: HashMap<ProgramName,Option<Program>>,
     all_backends: Option<AllBackends>,
     channel_registry: ChannelRegistry
@@ -62,7 +62,7 @@ impl PgDauphin {
         Ok(PgDauphin(Arc::new(Mutex::new(PgDauphinData {
             pdq: pdq.clone(),
             programs: HashMap::new(),
-            programs_present: HashSet::new(),
+            programs_present: HashMap::new(),
             all_backends: None,
             channel_registry: channel_registry.clone()
         })),booted.clone()))
@@ -104,17 +104,17 @@ impl PgDauphin {
         }).await
     }
 
-    fn register_eardo(&self, data: &[u8]) -> Result<(),Error> {
+    fn register_eardo(&self, backend_namespace: &BackendNamespace, data: &[u8]) -> Result<(),Error> {
         let eardo = ObjectFile::decode(data.to_vec()).map_err(|e| 
              Error::operr(&format!("cannot read file: {}",e))
         )?;
         for name in eardo.list_programs() {
-            lock!(self.0).programs_present.insert(name);
+            lock!(self.0).programs_present.insert(name,backend_namespace.clone());
         }
         Ok(())
     }
 
-    async fn add_eardo(&self, name: &str, data: &[u8]) -> Result<(),Error> {
+    async fn add_eardo(&self, backend_namespace: &BackendNamespace, name: &str, data: &[u8]) -> Result<(),Error> {
         let obj = lock!(self.0);
         let pdq = obj.pdq.clone();
         pdq.load_eardo(PgEardoLoadTaskSpec {
@@ -122,7 +122,7 @@ impl PgDauphin {
             data: data.to_vec()
         }).await?;
         drop(obj);
-        self.register_eardo(data)?;
+        self.register_eardo(backend_namespace,data)?;
         Ok(())
     }
 
@@ -133,8 +133,7 @@ impl PgDauphin {
     }
 
     pub fn is_present(&self, program_name: &ProgramName) -> bool {
-        if lock!(self.0).programs_present.contains(program_name.to_eard()) { return true; }
-
+        if lock!(self.0).programs_present.contains_key(program_name.to_eard()) { return true; }
         lock!(self.0).programs.get(program_name).and_then(|x| x.as_ref()).is_some()
     }
 
@@ -181,7 +180,11 @@ impl PgDauphin {
     }
 
     pub(crate) async fn run_eardo(&self, registry: &ChannelRegistry, spec: PgEardoTaskSpec, mode: &LoadMode) -> Result<(),Error> {
+        let program_backend = lock!(self.0).programs_present.get(&spec.program).cloned().ok_or_else(||
+            Error::operr(&format!("cannot find program {:?}",spec.program))
+        )?;
         let mut payloads = spec.payloads.unwrap_or_else(|| HashMap::new());
+        payloads.insert("channel-resolver".to_string(),Box::new(AccessorResolver::new(registry,&program_backend,&spec.track_base)));
         let pdq = lock!(self.0).pdq.clone();
         pdq.run_eardo(PgEardoRunTaskSpec {
             prio: if mode.high_priority() { 2 } else { 9 },
@@ -209,9 +212,9 @@ async fn add_bundle(pgd: &PgDauphin, channel: &BackendNamespace, bundle: &Suppli
     Ok(())
 }
 
-async fn add_eardo(pgd: &PgDauphin, name: &str, data: &[u8], messages: &MessageSender) -> Result<(),Error> {
+async fn add_eardo(pgd: &PgDauphin, backend_namespace: &BackendNamespace, name: &str, data: &[u8], messages: &MessageSender) -> Result<(),Error> {
     //let specs = bundle.specs().to_program_models()?;
-    match pgd.add_eardo(name,data).await {
+    match pgd.add_eardo(backend_namespace,name,data).await {
         Ok(_) => {
          //   for spec in specs {
          //       pgd.register(channel,&spec,bundle.bundle_name());
@@ -232,7 +235,7 @@ pub(crate) async fn add_programs_from_response(pgd: &PgDauphin, channel: &Backen
         add_bundle(&pgd,&channel, bundle, &messages).await?;
     }
     for (name,data) in response.eardos() {
-        add_eardo(&pgd,&name,data,&messages).await?;
+        add_eardo(&pgd,channel,&name,data,&messages).await?;
     }
     Ok(())
 }

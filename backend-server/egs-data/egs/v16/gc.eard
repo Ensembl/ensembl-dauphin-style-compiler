@@ -1,0 +1,39 @@
+program "ensembl-webteam/core" "gc" 1;
+refer "libperegrine";
+include "track-common.eard";
+include "track-style.eard";
+
+/* Setup styles */
+
+track_styles();
+
+style!("""
+    tracks/track/gc/ {
+        priority: 900;
+        report: "track;switch-id=gc";
+    }
+""");
+
+/* get data */
+
+let res = get_data(request("self()","gc"));
+// halt(only_warm(),[data]);
+
+/* process data and draw wiggle */
+
+let values = data_number(res,"values") / 25;
+let x_range = data_number(res,"range");
+let graph = graph_type(32,colour!("#fbb44b"));
+let leaf = leaf("tracks/track/gc/main/main/content");
+wiggle(index(x_range,0),index(x_range,1),graph,values,[true,...],leaf);
+
+/* draw track furniture */
+
+draw_track_name("%GC",leaf("tracks/track/gc/title/content"));
+draw_track_category(["G"],[leaf("tracks/track/gc/main/letter/content")]);
+
+/* draw horiz line */
+
+let line_paint = paint_hollow(colour!("#d0d0d0"),1);
+let leaf = leaf("tracks/track/gc/main/background/content");
+rectangle(coord([0],[16],[0]),coord([1],[16],[0]),line_paint,[leaf,...]);
