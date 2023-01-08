@@ -30,7 +30,6 @@ programs = [
     "transcript",
     "gene",
     "gene-overview",
-    "ruler",
     "focus-zoomed-transcript",
     "focus-transcript",
     "focus-gene",

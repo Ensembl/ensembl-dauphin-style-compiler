@@ -1,6 +1,6 @@
 use eard_interp::{GlobalBuildContext, GlobalContext, HandleStore, Value, Return};
-use peregrine_data::{Colour, DirectColour, Patina, DrawnType, Plotter, Pen, AttachmentPoint, Background};
-use peregrine_toolkit::{eachorevery::EachOrEvery, log};
+use peregrine_data::{Colour, DirectColour, Patina, DrawnType, Plotter, Pen, AttachmentPoint, Background, HotspotPatina};
+use peregrine_toolkit::{eachorevery::EachOrEvery};
 
 fn to_u8(v: f64) -> u8 { v as u8 }
 
@@ -99,6 +99,37 @@ pub(crate) fn op_paint_hollow_s(gctx: &GlobalBuildContext) -> Result<Box<dyn Fn(
         Ok(Return::Sync)
     }))
 }
+
+pub(crate) fn op_paint_special(gctx: &GlobalBuildContext) -> Result<Box<dyn Fn(&mut GlobalContext,&[usize]) -> Result<Return,String>>,String> {
+    let colours = gctx.patterns.lookup::<HandleStore<Colour>>("colours")?;
+    let paints = gctx.patterns.lookup::<HandleStore<Patina>>("paint")?;
+    Ok(Box::new(move |ctx,regs| {
+        let special = ctx.force_string(regs[1])?;
+        let paint = Patina::Hotspot(HotspotPatina::Special(EachOrEvery::every(special.to_string())));
+        let paints = ctx.context.get_mut(&paints);
+        let h = paints.push(paint);
+        ctx.set(regs[0],Value::Number(h as f64))?;
+        Ok(Return::Sync)
+    }))
+}
+
+/*
+impl InterpCommand for PatinaSpecialZoneInterpCommand {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+        let registers = context.registers_mut();
+        let special = vec_to_eoe(registers.get_strings(&self.1)?.to_vec());
+        drop(registers);
+        let geometry_builder = get_instance::<ObjectBuilder>(context,"builder")?;
+        let patina = Patina::Hotspot(HotspotPatina::Special(special));
+        let patina_id = geometry_builder.add_patina(patina) as usize;
+        let registers = context.registers_mut();
+        registers.write(&self.0,InterpValue::Indexes(vec![
+            patina_id
+        ]));
+        Ok(CommandResult::SyncResult())
+    }
+}
+*/
 
 fn to_direct(colour: &Colour) -> Result<&DirectColour,String> {
     match colour {
