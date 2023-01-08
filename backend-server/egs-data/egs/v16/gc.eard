@@ -27,13 +27,13 @@ let graph = graph_type(32,colour!("#fbb44b"));
 let leaf = leaf("tracks/track/gc/main/main/content");
 wiggle(index(x_range,0),index(x_range,1),graph,values,[true,...],leaf);
 
-/* draw track furniture */
-
-draw_track_name("%GC",leaf("tracks/track/gc/title/content"));
-draw_track_category(["G"],[leaf("tracks/track/gc/main/letter/content")]);
-
 /* draw horiz line */
 
 let line_paint = paint_hollow(colour!("#d0d0d0"),1);
 let leaf = leaf("tracks/track/gc/main/background/content");
 rectangle(coord([0],[16],[0]),coord([1],[16],[0]),line_paint,[leaf,...]);
+
+/* draw track furniture */
+
+draw_track_name("%GC",leaf("tracks/track/gc/title/content"));
+draw_track_category(["G"],[leaf("tracks/track/gc/main/letter/content")]);

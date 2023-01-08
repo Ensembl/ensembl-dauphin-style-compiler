@@ -129,3 +129,15 @@ pub(crate) fn op_data_string(gctx: &GlobalBuildContext) -> Result<Box<dyn Fn(&mu
         Ok(Return::Sync)
     }))
 }
+
+pub(crate) fn op_bp_range(gctx: &GlobalBuildContext) -> Result<Box<dyn Fn(&mut GlobalContext,&[usize]) -> Result<Return,String>>,String> {
+    let shape_request = gctx.patterns.lookup::<ShapeRequest>("shape-request")?;
+    Ok(Box::new(move |ctx,regs| {
+        let shape_request = ctx.context.get(&shape_request);
+        let min = shape_request.region().min_value();
+        let max = shape_request.region().max_value();
+        ctx.set(regs[0],Value::Number(min as f64))?;
+        ctx.set(regs[1],Value::Number(max as f64))?;
+        Ok(Return::Sync)
+    }))
+}

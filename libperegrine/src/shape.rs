@@ -88,7 +88,6 @@ pub(crate) fn op_wiggle(gctx: &GlobalBuildContext) -> Result<Box<dyn Fn(&mut Glo
         let graph_type = graph_types.get(graph_type)?.clone();
         let shapes = ctx.context.get_mut(&shapes);
         let mut shapes = lock!(shapes);
-        log!("add_wiggle {}-{},{:?}",bp_left,bp_right,graph_type);
         shapes.as_mut().unwrap().add_wiggle(bp_left,bp_right,graph_type,full_values,leaf).map_err(|e|
             format!("Cannot add wiggle: {}",e)
         )?;

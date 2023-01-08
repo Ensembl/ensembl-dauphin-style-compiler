@@ -26,13 +26,10 @@ program_version=1
 specs_path="specs16"
 boot_for_version=[16]
 programs = [
-    "zoomed-seq",
     "zoomed-transcript",
     "transcript",
     "gene",
     "gene-overview",
-    "contig",
-    "variant",
     "ruler",
     "focus-zoomed-transcript",
     "focus-transcript",

@@ -58,7 +58,7 @@ async fn make_unfiltered_shapes(base: PeregrineCoreBase, request: ShapeRequest, 
         mapping: request.track().track().mapping().clone(),
         track_base: request.track().track().track_base().clone(),
         payloads: Some(payloads)
-    },&mode).await.map_err(|e| e.context(&format!("running eardo"))).is_ok(); // XXX fail
+    },&mode).await.map_err(|e| { log!("{:?}",e); e.context(&format!("running eardo"))}).is_ok(); // XXX fail
     if !good {
         let mut payloads = HashMap::new();
         let run_report = Arc::new(Mutex::new(RunReport::new()));

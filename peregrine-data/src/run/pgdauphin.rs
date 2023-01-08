@@ -1,6 +1,6 @@
 use anyhow::{ self };
 use peregrine_toolkit::error::Error;
-use peregrine_toolkit::{lock};
+use peregrine_toolkit::{lock, log};
 use std::any::Any;
 use std::collections::{HashMap, HashSet};
 use std::sync::{ Arc, Mutex };
@@ -109,6 +109,7 @@ impl PgDauphin {
              Error::operr(&format!("cannot read file: {}",e))
         )?;
         for name in eardo.list_programs() {
+            log!("registering {:?}",name);
             lock!(self.0).programs_present.insert(name,backend_namespace.clone());
         }
         Ok(())

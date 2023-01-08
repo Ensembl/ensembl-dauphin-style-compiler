@@ -11,7 +11,6 @@ pub(crate) fn op_colour(gctx: &GlobalBuildContext) -> Result<Box<dyn Fn(&mut Glo
         let g = to_u8(ctx.force_number(regs[2])?);
         let b = to_u8(ctx.force_number(regs[3])?);
         let a = to_u8(ctx.force_number(regs[4])?);
-        log!("colour {},{},{},{}",r,g,b,a);
         let colours = ctx.context.get_mut(&colours);
         let h = colours.push(Colour::Direct(DirectColour(r,g,b,a)));
         ctx.set(regs[0],Value::Number(h as f64))?;
