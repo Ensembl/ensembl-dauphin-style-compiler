@@ -1,11 +1,20 @@
 /* Settings */
 
-export procedure enabled_gene_tracks() {
+export function enabled_gene_tracks() {
     [
         setting_boolean("other-rev",[]),
         setting_boolean("pc-rev",[]),
         setting_boolean("other-fwd",[]),
         setting_boolean("pc-fwd",[])
+    ]
+}
+
+export function enabled_gene_labels() {
+    [
+        setting_boolean("other-rev-label",[]),
+        setting_boolean("pc-rev-label",[]),
+        setting_boolean("other-fwd-label",[]),
+        setting_boolean("pc-fwd-label",[])
     ]
 }
 
@@ -16,12 +25,31 @@ export procedure focus_gene_settings() {
     )    
 }
 
-// stmt gene_tracks_enabled(enabled_tracks) {
-//     enabled_tracks := [false,false,false,false,false];
-//     enabled_tracks[@==0] := setting_yn("other-rev");
-//     enabled_tracks[@==1] := setting_yn("pc-rev");
-//     enabled_tracks[@==2] := setting_yn("other-fwd");
-//     enabled_tracks[@==3] := setting_yn("pc-fwd");
-//     enabled_tracks := enabled_tracks[];
+export procedure get_gene_data() {
+    let data = get_data(request("self()","gene"));
+    // halt(only_warm(),[data]);
 
-// }
+    let gene.id_unversioned = data_string(data,"gene_id");
+    let gene.id_version = data_string(data,"gene_id_version");
+    let gene.id_versioned = push_str(gene.id_unversioned,gene.id_version);
+    let gene.name = data_string(data,"gene_names");
+    let gene.description = data_string(data,"gene_descs");
+    let gene.start = data_number(data,"starts");
+    let gene.end = gene.start + data_number(data,"lengths");
+    let gene.designation = data_string(data,"gene_designation");
+    let gene.biotype = data_string(data,"gene_biotypes");
+    let gene.strand = data_number(data,"strands");
+    let gene.desigtr_unversioned = data_string(data,"designated_transcript_id");
+    let gene.desigtr_version = data_string(data,"designated_transcript_id_version");
+    let gene.desigtr_versioned = push_str(gene.desigtr_unversioned,gene.desigtr_version);
+    let gene.desigtr_biotype = data_string(data,"designated_transcript_biotypes");
+    let gene.desigtr_designation = data_string(data,"designated_transcript_designations");
+    let gene.strand_string = if(gene.strand>0,["forward strand",...],["reverse strand",...]);
+    *gene
+}
+
+export procedure allocate_genes_to_leaf_index(*gene) {
+    let leaf_index_strand = set(repeat(0,len(gene.start)),gene.strand>0,[2,...]);
+    let leaf_index_biotype = set(repeat(0,len(gene.start)),gene.biotype=="protein_coding",[1,...]);
+    leaf_index_strand + leaf_index_biotype
+}

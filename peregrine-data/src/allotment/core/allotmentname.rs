@@ -22,13 +22,17 @@ impl Eq for AllotmentName {}
 
 impl PartialOrd for AllotmentName {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.hash.partial_cmp(&other.hash)
+        Some(self.cmp(other))
     }
 }
 
 impl Ord for AllotmentName {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.hash.cmp(&other.hash)
+        match self.name.len().cmp(&other.name.len()) {
+            std::cmp::Ordering::Less => std::cmp::Ordering::Less,
+            std::cmp::Ordering::Equal => self.hash.cmp(&other.hash),
+            std::cmp::Ordering::Greater => std::cmp::Ordering::Greater
+        }
     }
 }
 

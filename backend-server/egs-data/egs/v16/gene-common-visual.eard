@@ -42,6 +42,29 @@ export procedure make_gene_leafs(suffix,enabled) {
     leaf(names)
 }
 
+export procedure make_gene_leaf_base(*gene) {
+    let track_names = ["gene-other-rev/","gene-pc-rev/","gene-other-fwd/","gene-pc-fwd/"];
+    let names = push_str("tracks/track/",index(track_names,gene.leaf_index));
+    let names = push_str(names,"main/main/");
+    push_str(names,gene.id_versioned)
+}
+
+export function empty_off_gene(item,enabled,*gene) {
+    let gene_enabled = index(enabled,gene.leaf_index);
+    set(item,!gene_enabled,["",...])
+}
+
+export procedure make_gene_paint(*gene) {
+    let available_colours = [
+        colour!("#c8c8c8"), // non-pc rev
+        colour!("#808080"), // pc rev
+        colour!("#c8c8c8"), // non-pc wd
+        colour!("#808080")  // pc fwd
+    ];
+    let colours = index(available_colours,gene.leaf_index);
+    paint_solid(colours)
+}
+
 /* furniture for non-focus tracks */
 
 let num_chevrons = 40;

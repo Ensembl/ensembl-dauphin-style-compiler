@@ -23,11 +23,10 @@ style!("""
         depth: 4;
     }
 
-    **/main/background/contend {
+    **/main/background/content {
         depth: -10;
         padding-top: 32;
     }
-
 """);
 
 /* Get data */
@@ -68,21 +67,11 @@ let focus_gene.biotype = index(select(focus_gene.biotype,which_gene),0);
 
 /* Which track should these genes go into? */
 
-let leaf_index_strand = set(repeat(0,len(gene.start)),gene.strand>0,[2,...]);
-let leaf_index_biotype = set(repeat(0,len(gene.start)),gene.biotype=="protein_coding",[1,...]);
-let gene.leaf_index = leaf_index_strand + leaf_index_biotype;
+let gene.leaf_index = allocate_genes_to_leaf_index(*gene);
 
 /* What colour should these genes be? */
 
-let available_colours = [
-    colour!("#c8c8c8"), // non-pc rev
-    colour!("#808080"), // pc rev
-    colour!("#c8c8c8"), // non-pc wd
-    colour!("#808080")  // pc fwd
-];
-
-let gene.colours = index(available_colours,gene.leaf_index);
-let paint = paint_solid(gene.colours);
+let paint = make_gene_paint(*gene);
 
 /* Calculate leafs */
 

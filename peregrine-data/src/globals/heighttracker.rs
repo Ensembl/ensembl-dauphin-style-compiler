@@ -39,7 +39,7 @@ pub struct GlobalHeightTrackerBuilder(GlobalValueBuilder<AllotmentName,f64,f64>)
 
 impl GlobalHeightTrackerBuilder {
     pub(crate) fn new() -> GlobalHeightTrackerBuilder {
-        GlobalHeightTrackerBuilder(GlobalValueBuilder::new())
+        GlobalHeightTrackerBuilder(GlobalValueBuilder::new(false))
     }
 }
 

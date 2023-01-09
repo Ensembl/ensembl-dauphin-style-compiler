@@ -1,5 +1,5 @@
 use std::{rc::Rc};
-use peregrine_toolkit::{puzzle::{derived, DelayedSetter, compose, StaticValue, promise_delayed, cache_constant_rc, short_memoized_rc, compose_slice_vec }};
+use peregrine_toolkit::{puzzle::{derived, DelayedSetter, compose, StaticValue, promise_delayed, cache_constant_rc, short_memoized_rc, compose_slice_vec }, log};
 use crate::{allotment::{core::{allotmentname::{AllotmentName}}, collision::{collisionalgorithm::{BumpResponses}, bumprequest::{BumpRequestSetBuilder, BumpRequest, BumpRequestSet}}, layout::{layouttree::{ContainerOrLeaf}, layoutcontext::LayoutContext, contentsize::ContentSize}}};
 use super::container::ContainerSpecifics;
 
@@ -45,7 +45,7 @@ impl ContainerSpecifics for Bumper {
 
     fn set_locate(&self, prep: &mut LayoutContext, top: &StaticValue<f64>, children: &mut [&mut Box<dyn ContainerOrLeaf>]) {
         for child in children.iter_mut() {
-            /* Retrieve algorithm offset from bumper top */
+            /* Retrieve algorithm offset of this child from bumper top */
             let name = child.name().clone();
             let offset = derived(self.results.clone(),move |algorithm|
                 algorithm.get(&name) as f64

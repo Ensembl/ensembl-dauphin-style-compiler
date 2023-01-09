@@ -1,0 +1,130 @@
+program "ensembl-webteam/core" "gene" 1;
+refer "libperegrine";
+include "track-common.eard";
+include "track-style.eard";
+include "gene-common-data.eard";
+include "gene-common-visual.eard";
+
+/* Set styles */
+
+track_styles();
+gene_styles();
+
+style!("""
+    **/main/main/ {
+        type: bumper;
+    }
+
+    **/main/main/*/ {
+        type: overlay;
+    }
+
+    **/main/main/*/blocks/ {
+        depth: 4;
+    }
+
+    **/main/main/*/text/ {
+        bump-width: none;
+        system: tracking-special;
+    }
+
+    **/main/background/content {
+        depth: -10;
+        padding-top: 32;
+    }
+""");
+
+/* Get data */
+
+let (focus_genome_id,focus_gene_id) = focus_gene_settings();
+
+let *gene = get_gene_data();
+
+let enabled_tracks = enabled_gene_tracks();
+let enabled_labels = enabled_tracks && enabled_gene_labels();
+
+/* Calculate leafs */
+
+let gene.leaf_index = allocate_genes_to_leaf_index(*gene);
+gene.is_focus = gene.id_unversioned == focus_gene_id;
+
+let gene.leaf_base = make_gene_leaf_base(*gene);
+let gene.block_leaf = leaf(empty_off_gene(push_str(gene.leaf_base,"/blocks/content"),enabled_tracks,*gene));
+let gene.text_leaf = leaf(empty_off_gene(push_str(gene.leaf_base,"/text/content"),enabled_labels,*gene));
+let leaf.bgd = make_gene_leafs("main/background/content",enabled_tracks);
+let leaf.letter = make_gene_leafs("main/letter/content",enabled_tracks);
+let leaf.trackname = make_gene_leafs("title/content",enabled_tracks);
+
+/* Disable focus gene */
+let gene.is_focus = gene.id_unversioned == focus_gene_id;
+let gene.block_leaf = set(gene.block_leaf,gene.is_focus,[leaf(""),...]);
+let gene.text_leaf = set(gene.text_leaf,gene.is_focus,[leaf(""),...]);
+
+/* Draw gene blocks and labels */
+
+let paint = make_gene_paint(*gene);
+rectangle(coord(gene.start,[0,...],[-0.5,...]),coord(gene.end,[5,...],[0.5,...]),paint,gene.block_leaf);
+
+let pen = pen("'IBM Plex Mono', sans-serif",10,colour!("#6f8190"),colour!("transparent"));
+running_text(coord(gene.start,[8,...],[0,...]),coord(gene.end,[8,...],[0,...]),pen,gene.name,gene.text_leaf);
+
+/* Draw chevrons */
+
+draw_track_chevrons(*leaf);
+draw_sidebar_chevrons(*leaf);
+
+/* Draw track furniture */
+
+draw_gene_track_names(*leaf);
+draw_gene_track_category(*leaf);
+
+// /* 
+//  * What are the current track settings?
+//  */
+
+// gene_tracks_enabled(enabled_tracks);
+
+// potential_track_ids := [
+//     "gene-other-rev", "gene-pc-rev", "gene-other-fwd", "gene-pc-fwd", "focus"
+// ];
+
+// potential_tracks := [
+//     "tracks/track/gene-other-rev/main/main",
+//     "tracks/track/gene-pc-rev/main/main",
+//     "tracks/track/gene-other-fwd/main/main",
+//     "tracks/track/gene-pc-fwd/main/main",
+//     ""
+// ];
+
+// track_name := index(allotment_idx,potential_track_ids);
+
+// /*
+//  * prepare the zmenus
+//  */
+
+// /* metadata */
+// zmenu_patina := patina_zmenu(zmenu(""),["type"],[["gene-and-one-transcript"]][]);
+
+// /* transcript part */
+// zmenu_tmpl := zmenu("[<light>Transcript</light> <strong>{versioned_id}</strong>] [<light>{designation}</light>] / [<light>{transcript_biotype}</light>] [<light>{strand}</light>]");
+// designated_transcript_designation#[designated_transcript_designation=="normal"] := "";
+// pt_zmenu_tr := patina_zmenu(zmenu_tmpl,
+//     ["gene_id","unversioned_id","versioned_id","transcript_biotype","strand",
+//      "designation","track","type"],
+//     [[id_gn_vr],[id_dtr_uv],[id_dtr_vr],[designated_transcript_biotype],[strand_string],
+//      [designated_transcript_designation],[track_name],[len([id_gn_vr]) (*) "transcript"]][]);
+
+// /* gene part */
+// zmenu_tmpl := zmenu(
+//     "[<light>Gene</light> {symbol}] / [<strong><focus>{versioned_id}</focus></strong>] [{name}] / [<light>{gene_biotype}</light>] [<light>{strand}</light>]");
+// pt_zmenu_gn := patina_zmenu(zmenu_tmpl,
+//     ["symbol","unversioned_id","versioned_id","track","type",
+//      "name","gene_biotype","strand"],
+//     [[gene_name],[id_gn_uv],[id_gn_vr],[track_name],["gene"],
+//      [gene_desc],[gene_biotype],[strand_string]][]);
+
+// /* main contents */
+
+// rectangle_on_genome(start,end,8,zmenu_patina,allotment);
+// rectangle_on_genome(start,end,8,pt_zmenu_tr,allotment);
+// rectangle_on_genome(start,end,8,pt_zmenu_gn,allotment);

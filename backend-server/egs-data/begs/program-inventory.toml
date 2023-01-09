@@ -28,7 +28,6 @@ boot_for_version=[16]
 programs = [
     "zoomed-transcript",
     "transcript",
-    "gene",
     "focus-zoomed-transcript",
     "focus-transcript",
     "focus-gene",

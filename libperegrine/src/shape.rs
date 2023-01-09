@@ -53,7 +53,7 @@ pub(crate) fn op_rectangle(gctx: &GlobalBuildContext) -> Result<Box<dyn Fn(&mut 
         let shapes = ctx.context.get_mut(&shapes);
         let mut shapes = lock!(shapes);
         shapes.as_mut().unwrap().add_rectangle(area,paint,None).map_err(|e| {
-            format!("cannot add rectangle")
+            format!("cannot add rectangle: {}",e.to_string())
         })?;
         Ok(Return::Sync)
     }))
@@ -112,6 +112,33 @@ pub(crate) fn op_text(gctx: &GlobalBuildContext) -> Result<Box<dyn Fn(&mut Globa
         let shapes = ctx.context.get_mut(&shapes);
         let mut shapes = lock!(shapes);
         shapes.as_mut().unwrap().add_text(coords,pen,text).map_err(|e| {
+            format!("cannot add text: {}",e.to_string())
+        })?;
+        Ok(Return::Sync)
+    }))
+}
+
+pub(crate) fn op_running_text(gctx: &GlobalBuildContext) -> Result<Box<dyn Fn(&mut GlobalContext,&[usize]) -> Result<Return,String>>,String> {
+    let coords = gctx.patterns.lookup::<HandleStore<SpaceBase<f64,()>>>("coords")?;
+    let leafs = gctx.patterns.lookup::<HandleStore<LeafRequest>>("leaf")?;
+    let shapes = gctx.patterns.lookup::<Arc<Mutex<Option<ProgramShapesBuilder>>>>("shapes")?;
+    let pens = gctx.patterns.lookup::<HandleStore<Pen>>("pens")?;
+    Ok(Box::new(move |ctx,regs| {
+        let coords = ctx.context.get(&coords);
+        let leafs = ctx.context.get(&leafs);
+        let pens = ctx.context.get(&pens);
+        let nw = coords.get(ctx.force_number(regs[0])? as usize)?.clone();
+        let se = coords.get(ctx.force_number(regs[1])? as usize)?.clone();
+        let pen = pens.get(ctx.force_number(regs[2])? as usize)?.clone();
+        let text = eoe_from_string_reg(ctx,regs[3])?;
+        let leafs = eoe_from_handle(ctx,leafs,regs[4])?;
+        let area = SpaceBaseArea::new(
+            PartialSpaceBase::from_spacebase(nw),
+            PartialSpaceBase::from_spacebase(se)).ok_or_else(|| format!("lengths don't match in running text"))?;
+        let area = area.replace_allotments(leafs);
+        let shapes = ctx.context.get_mut(&shapes);
+        let mut shapes = lock!(shapes);
+        shapes.as_mut().unwrap().add_running_text(area,pen,text).map_err(|e| {
             format!("cannot add text: {}",e.to_string())
         })?;
         Ok(Return::Sync)
