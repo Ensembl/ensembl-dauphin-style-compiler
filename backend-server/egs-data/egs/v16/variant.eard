@@ -44,5 +44,5 @@ rectangle(coord(pos_start,[0,...],[-1,...]),coord(pos_end,[5,...],[1,...]),paint
 
 /* draw track furniture */
 
-draw_track_name("All short variant data",leaf("tracks/track/variant/title/content"));
+draw_track_name("All short variant data","name",leaf("tracks/track/variant/title/content"));
 draw_track_category(["V"],[leaf("tracks/track/variant/main/letter/content")]);

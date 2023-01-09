@@ -1,0 +1,27 @@
+/* Settings */
+
+export procedure enabled_gene_tracks() {
+    [
+        setting_boolean("other-rev",[]),
+        setting_boolean("pc-rev",[]),
+        setting_boolean("other-fwd",[]),
+        setting_boolean("pc-fwd",[])
+    ]
+}
+
+export procedure focus_gene_settings() {
+    (
+        setting_string("focus-gene",["genome_id"]),
+        setting_string("focus-gene",["item_id"])
+    )    
+}
+
+// stmt gene_tracks_enabled(enabled_tracks) {
+//     enabled_tracks := [false,false,false,false,false];
+//     enabled_tracks[@==0] := setting_yn("other-rev");
+//     enabled_tracks[@==1] := setting_yn("pc-rev");
+//     enabled_tracks[@==2] := setting_yn("other-fwd");
+//     enabled_tracks[@==3] := setting_yn("pc-fwd");
+//     enabled_tracks := enabled_tracks[];
+
+// }

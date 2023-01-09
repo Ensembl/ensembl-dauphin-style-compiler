@@ -71,5 +71,5 @@ one_bond(select(letter_bp,three_bonds),0.5);
 
 /* draw track furniture */
 
-draw_track_name("Reference sequence",leaf("tracks/track/gc/title/content"));
+draw_track_name("Reference sequence","name",leaf("tracks/track/gc/title/content"));
 draw_track_category(["G"],[leaf("tracks/track/gc/main/letter/content")]);

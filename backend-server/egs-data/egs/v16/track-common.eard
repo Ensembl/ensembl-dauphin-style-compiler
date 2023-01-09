@@ -1,11 +1,11 @@
 /* The long label of the track on the left-hand side, configuref by the "name" setting.
  */
-export procedure draw_track_name(label,leaf) {
+export procedure draw_track_name(label,setting,leaf) {
     let name_text_size = 12;
     let name_text_colour = colour!("#6f8190");
 
     // Disable if turned off
-    let leaf = if(setting_boolean("name",[]),leaf,leaf(""));
+    let leaf = if(setting_boolean(setting,[]),leaf,leaf(""));
 
     let pen = pen("'IBM Plex Mono', sans-serif",name_text_size,name_text_colour,colour!("transparent"));
     text(coord([0],[0],[8]),pen,[label],[leaf,...]);

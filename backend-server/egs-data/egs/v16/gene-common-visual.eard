@@ -1,0 +1,75 @@
+export procedure gene_styles() {
+    style!("""
+        tracks/track/gene-other-rev/ {
+            priority: 110;
+            report: "track;switch-id=gene-other-rev;has-labels=true";
+            min-height: 92;
+        }
+
+        tracks/track/gene-pc-rev/ {
+            priority: 100;
+            report: "track;switch-id=gene-pc-rev;has-labels=true";
+            min-height: 92;
+        }
+
+        tracks/track/gene-other-fwd/ {
+            priority: -100;
+            report: "track;switch-id=gene-other-fwd;has-labels=true";
+            min-height: 92;
+        }
+
+        tracks/track/gene-pc-fwd/ {
+            priority: -110;
+            report: "track;switch-id=gene-pc-fwd;has-labels=true";
+            min-height: 92;
+        }
+
+        tracks/track/focus/ {
+            priority: -900;
+            report: "track;switch-id=focus;has-labels=true";
+        }
+    """);
+}
+
+export procedure make_gene_leafs(suffix,enabled) {
+    let names = [
+        join("/",["tracks/track/gene-other-rev",suffix]),
+        join("/",["tracks/track/gene-pc-rev",suffix]),
+        join("/",["tracks/track/gene-other-fwd",suffix]),
+        join("/",["tracks/track/gene-pc-fwd",suffix])
+    ];
+    let names = set(names,!enabled,["",...]);
+    leaf(names)
+}
+
+/* furniture for non-focus tracks */
+
+let num_chevrons = 40;
+let chevron_spacing = enumerate([num_chevrons]) / num_chevrons;
+
+export procedure draw_track_chevrons(*leaf) {
+    capture chevron_spacing;
+
+    image(coord(chevron_spacing,[0,...],[0,...]),["chevron-left",...],[index(leaf.bgd,0),...]);
+    image(coord(chevron_spacing,[0,...],[0,...]),["chevron-left",...],[index(leaf.bgd,1),...]);
+    image(coord(chevron_spacing,[0,...],[0,...]),["chevron-right",...],[index(leaf.bgd,2),...]);
+    image(coord(chevron_spacing,[0,...],[0,...]),["chevron-right",...],[index(leaf.bgd,3),...]);
+}
+
+export procedure draw_sidebar_chevrons(*leaf) {
+    image(coord([0],[0],[24]),["chevron-dark-left",...],[index(leaf.letter,0),...]);
+    image(coord([0],[0],[24]),["chevron-dark-left",...],[index(leaf.letter,1),...]);
+    image(coord([0],[0],[24]),["chevron-dark-right",...],[index(leaf.letter,2),...]);
+    image(coord([0],[0],[24]),["chevron-dark-right",...],[index(leaf.letter,3),...]);
+}
+
+export procedure draw_gene_track_names(*leaf) {
+    draw_track_name("Other genes Reverse strand","other-rev-name",index(leaf.trackname,0));
+    draw_track_name("Protein coding genes Reverse strand","pc-rev-name",index(leaf.trackname,1));
+    draw_track_name("Other genes Forward strand","other-fwd-name",index(leaf.trackname,2));
+    draw_track_name("Protein coding genes Forward strand","pc-fwd-name",index(leaf.trackname,3));
+}
+
+export procedure draw_gene_track_category(*leaf) {
+    draw_track_category(["G","G","G","G"],leaf.letter);
+}

@@ -35,5 +35,5 @@ rectangle(coord([0],[16],[0]),coord([1],[16],[0]),line_paint,[leaf,...]);
 
 /* draw track furniture */
 
-draw_track_name("%GC",leaf("tracks/track/gc/title/content"));
+draw_track_name("%GC","name",leaf("tracks/track/gc/title/content"));
 draw_track_category(["G"],[leaf("tracks/track/gc/main/letter/content")]);

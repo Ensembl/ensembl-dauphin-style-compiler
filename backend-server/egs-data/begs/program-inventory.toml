@@ -29,7 +29,6 @@ programs = [
     "zoomed-transcript",
     "transcript",
     "gene",
-    "gene-overview",
     "focus-zoomed-transcript",
     "focus-transcript",
     "focus-gene",

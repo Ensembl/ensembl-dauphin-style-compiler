@@ -72,7 +72,7 @@ pub(crate) fn op_get_data(gctx: &GlobalBuildContext) -> Result<Box<dyn Fn(&mut G
                 report.lock().unwrap().net_ms += took_ms;
                 Ok(())
             }
-        )))            
+        )))
     }))
 }
 

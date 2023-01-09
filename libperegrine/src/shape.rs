@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
-use eard_interp::{GlobalContext, GlobalBuildContext, Return, HandleStore};
-use peregrine_data::{ProgramShapesBuilder, SpaceBaseArea, PartialSpaceBase, SpaceBase, LeafRequest, Patina, Plotter, Pen};
-use peregrine_toolkit::{lock, eachorevery::EachOrEvery, log};
+use eard_interp::{GlobalContext, GlobalBuildContext, Return, HandleStore, AsyncReturn };
+use peregrine_data::{ProgramShapesBuilder, SpaceBaseArea, PartialSpaceBase, SpaceBase, LeafRequest, Patina, Plotter, Pen, AccessorResolver, BackendNamespace};
+use peregrine_toolkit::{lock, eachorevery::EachOrEvery };
 
 fn eoe_from_string_reg(ctx: &GlobalContext, reg: usize) -> Result<EachOrEvery<String>,String> {
     Ok(if !ctx.is_finite(reg)? {
@@ -115,5 +115,36 @@ pub(crate) fn op_text(gctx: &GlobalBuildContext) -> Result<Box<dyn Fn(&mut Globa
             format!("cannot add text: {}",e.to_string())
         })?;
         Ok(Return::Sync)
+    }))
+}
+
+async fn image_channel(resolver: AccessorResolver) -> Result<BackendNamespace,String> {
+    resolver.resolve("source://").await.map_err(|e| e.message.to_string())
+}
+
+pub(crate) fn op_image(gctx: &GlobalBuildContext) -> Result<Box<dyn Fn(&mut GlobalContext,&[usize]) -> Result<Return,String>>,String> {
+    let coords = gctx.patterns.lookup::<HandleStore<SpaceBase<f64,()>>>("coords")?;
+    let leafs = gctx.patterns.lookup::<HandleStore<LeafRequest>>("leaf")?;
+    let shapes = gctx.patterns.lookup::<Arc<Mutex<Option<ProgramShapesBuilder>>>>("shapes")?;
+    let resolver = gctx.patterns.lookup::<AccessorResolver>("channel-resolver")?;
+    Ok(Box::new(move |ctx,regs| {
+        let resolver = ctx.context.get(&resolver);
+        let coords = ctx.context.get(&coords);
+        let coords = coords.get(ctx.force_number(regs[0])? as usize)?.clone();
+        let leafs = ctx.context.get(&leafs);
+        let leafs = eoe_from_handle(ctx,leafs,regs[2])?;
+        let shapes = ctx.context.get(&shapes).clone();
+        Ok(Return::Async(AsyncReturn::new(
+            Box::pin(image_channel(resolver.clone())),
+            move |ctx,regs,channel| {
+                let image = eoe_from_string_reg(ctx,regs[1])?;
+                let coords = coords.replace_allotments(leafs.clone());
+                let mut shapes = lock!(shapes);
+                shapes.as_mut().unwrap().add_image(&channel,coords,image).map_err(|e| {
+                    format!("cannot add text: {}",e.to_string())
+                })?;        
+                Ok(())
+            }
+        )))
     }))
 }
