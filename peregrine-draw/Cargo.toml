@@ -45,6 +45,10 @@ path="../peregrine-toolkit"
 version="*"
 path="../peregrine-toolkit-async"
 
+[dependencies.eachorevery]
+version="*"
+path="../../peregrine-eachorevery"
+
 [dependencies.web-sys]
 version = "*"
 features = [

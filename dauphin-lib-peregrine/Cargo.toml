@@ -28,6 +28,10 @@ dauphin_test_harness = { path = "../dauphin-test-harness" }
 version="*"
 path="../peregrine-data"
 
+[dependencies.eachorevery]
+version="*"
+path="../../peregrine-eachorevery"
+
 [dependencies.web-sys]
 version="*"
 features=["console"]

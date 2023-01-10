@@ -1,7 +1,7 @@
 use std::ops::{Add, Div};
 use std::hash::Hash;
 
-use peregrine_toolkit::eachorevery::{EachOrEvery, EachOrEveryFilter, EachOrEveryGroupCompatible};
+use eachorevery::{EachOrEvery, EachOrEveryFilter, EachOrEveryGroupCompatible};
 use peregrine_toolkit::ubail;
 
 pub struct SpaceBasePoint<X,Y> {

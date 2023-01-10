@@ -10,7 +10,7 @@ use crate::train::main::train::StickData;
 use crate::train::model::trainextent::TrainExtent;
 use crate::{Assets, PgCommanderTaskSpec, DrawingCarriage, BackendNamespace, SettingMode };
 use commander::{CommanderStream, PromiseFuture};
-use peregrine_toolkit::eachorevery::eoestruct::{StructValue};
+use eachorevery::eoestruct::StructValue;
 use peregrine_toolkit::error::{err_web_drop, Error};
 use peregrine_toolkit::{log_extra, lock, timer_start, timer_end, log};
 use peregrine_toolkit_async::sync::blocker::{Blocker, Lockout};

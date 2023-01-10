@@ -15,3 +15,7 @@ path="../../eard/interp"
 [dependencies.peregrine_toolkit]
 version="*"
 path="../peregrine-toolkit"
+
+[dependencies.eachorevery]
+version="*"
+path="../../peregrine-eachorevery"

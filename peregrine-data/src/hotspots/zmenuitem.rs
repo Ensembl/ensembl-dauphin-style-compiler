@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
+use eachorevery::EachOrEvery;
 use keyed::{ keyed_handle, KeyedValues };
-use peregrine_toolkit::eachorevery::EachOrEvery;
 use serde_json::Number;
 use serde_json::Value as JSONValue;
 use serde_json::Map as JSONMap;

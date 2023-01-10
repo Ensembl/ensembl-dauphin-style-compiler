@@ -1,4 +1,5 @@
-use peregrine_toolkit::{puzzle::constant, eachorevery::{eoestruct::StructTemplate}};
+use eachorevery::eoestruct::StructTemplate;
+use peregrine_toolkit::{puzzle::constant};
 use crate::{allotment::{core::allotmentname::AllotmentName}, globals::allotmentmetadata::LocalAllotmentMetadataBuilder};
 
 #[cfg_attr(debug_assertions,derive(Debug))]

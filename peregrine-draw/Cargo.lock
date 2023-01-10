@@ -362,6 +362,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "dauphin_interp",
+ "eachorevery",
  "inflate",
  "itertools",
  "owning_ref",
@@ -386,6 +387,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "eachorevery"
+version = "0.0.0"
+dependencies = [
+ "hashbrown",
+ "lazy_static 0.1.16",
+ "ordered-float",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "eard-interp"
 version = "0.0.0"
 dependencies = [
@@ -399,6 +411,7 @@ dependencies = [
 name = "eard-libperegrine"
 version = "0.1.0"
 dependencies = [
+ "eachorevery",
  "eard-interp",
  "peregrine_data",
  "peregrine_toolkit",
@@ -823,6 +836,7 @@ dependencies = [
  "anyhow",
  "commander",
  "dauphin_interp",
+ "eachorevery",
  "eard-interp",
  "futures",
  "hashbrown",
@@ -880,6 +894,7 @@ dependencies = [
  "console_error_panic_hook",
  "css-color-parser",
  "dauphin_interp",
+ "eachorevery",
  "enum-iterator",
  "hostname",
  "js-sys",

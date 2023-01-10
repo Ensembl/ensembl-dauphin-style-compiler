@@ -1,4 +1,5 @@
-use peregrine_toolkit::{error::Error, eachorevery::eoestruct::{StructValue}, diffset::DiffSet, lengths_match, multizip };
+use eachorevery::eoestruct::StructValue;
+use peregrine_toolkit::{error::Error, diffset::DiffSet, lengths_match, multizip };
 use crate::{BackendNamespace, shapeload::programname::ProgramName };
 use super::{ switchtree::SwitchTree, trackmodel::{TrackModel, TrackModelBuilder}, expansionmodel::{ExpansionModel, ExpansionModelBuilder} };
 

@@ -30,6 +30,10 @@ path="../commander"
 version="*"
 path="../peregrine-dauphin-queue"
 
+[dependencies.eachorevery]
+version="*"
+path="../../peregrine-eachorevery"
+
 [dependencies.peregrine_message]
 version="*"
 path="../peregrine-message"

@@ -1,5 +1,6 @@
 use std::sync::Arc;
-use peregrine_toolkit::{eachorevery::{eoestruct::{ StructConst, StructValue}}};
+
+use eachorevery::eoestruct::{StructConst, StructValue};
 
 fn const_matches(a: &StructValue, b: &StructConst) -> bool {
     if let StructValue::Const(a) = a {

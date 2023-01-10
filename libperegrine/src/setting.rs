@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
+use eachorevery::eoestruct::{StructValue, StructConst};
 use eard_interp::{GlobalContext, ContextItem, Return, GlobalBuildContext, Value};
 use peregrine_data::ShapeRequest;
-use peregrine_toolkit::eachorevery::eoestruct::{StructValue, StructConst};
 
 fn to_const(value: &StructValue) -> Option<StructConst> {
     match value {

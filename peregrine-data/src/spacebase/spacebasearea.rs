@@ -1,5 +1,5 @@
 use std::{ops::{Add, Div, Sub}};
-use peregrine_toolkit::eachorevery::{EachOrEveryFilter, EachOrEveryGroupCompatible, EachOrEvery};
+use eachorevery::{EachOrEveryFilter, EachOrEveryGroupCompatible, EachOrEvery};
 
 use super::{spacebase::{SpaceBase, SpaceBaseIterator, SpaceBasePointRef, PartialSpaceBase}};
 use std::hash::Hash;

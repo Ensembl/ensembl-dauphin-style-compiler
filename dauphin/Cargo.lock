@@ -435,6 +435,7 @@ dependencies = [
  "anyhow",
  "dauphin_compile",
  "dauphin_interp",
+ "eachorevery",
  "inflate",
  "itertools",
  "owning_ref",
@@ -518,6 +519,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1b391911b9a786312a10cb9d2b3d0735adfd5a8113eb3648de26a75e91b0826c"
 dependencies = [
  "rand",
+]
+
+[[package]]
+name = "eachorevery"
+version = "0.0.0"
+dependencies = [
+ "hashbrown 0.9.1",
+ "lazy_static",
+ "ordered-float",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -977,6 +989,7 @@ dependencies = [
  "anyhow",
  "commander",
  "dauphin_interp",
+ "eachorevery",
  "eard-interp",
  "futures",
  "hashbrown 0.11.2",

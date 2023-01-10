@@ -1,6 +1,6 @@
+use eachorevery::EachOrEvery;
 use eard_interp::{GlobalBuildContext, GlobalContext, HandleStore, Value, Return};
 use peregrine_data::{Colour, DirectColour, Patina, DrawnType, Plotter, Pen, AttachmentPoint, Background, HotspotPatina};
-use peregrine_toolkit::{eachorevery::EachOrEvery};
 
 fn to_u8(v: f64) -> u8 { v as u8 }
 

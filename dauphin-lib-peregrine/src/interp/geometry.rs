@@ -1,5 +1,5 @@
 use anyhow::{anyhow as err, bail};
-use peregrine_toolkit::eachorevery::{EachOrEvery, EachOrEveryGroupCompatible};
+use eachorevery::{EachOrEvery, EachOrEveryGroupCompatible};
 use peregrine_toolkit::{lock};
 use crate::simple_interp_command;
 use peregrine_data::{Colour, DirectColour, DrawnType, Patina, Pen, Plotter, ShapeRequest, SpaceBase, ProgramShapesBuilder, Background, AttachmentPoint, ObjectBuilder, SettingMode, TrackMapping, ZMenu, HotspotPatina};

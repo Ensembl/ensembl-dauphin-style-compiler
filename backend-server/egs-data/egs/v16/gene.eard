@@ -4,6 +4,7 @@ include "track-common.eard";
 include "track-style.eard";
 include "gene-common-data.eard";
 include "gene-common-visual.eard";
+include "gene-common-zmenu.eard";
 
 /* Set styles */
 
@@ -81,8 +82,6 @@ draw_gene_track_category(*leaf);
 // /* 
 //  * What are the current track settings?
 //  */
-
-// gene_tracks_enabled(enabled_tracks);
 
 // potential_track_ids := [
 //     "gene-other-rev", "gene-pc-rev", "gene-other-fwd", "gene-pc-fwd", "focus"

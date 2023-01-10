@@ -1,5 +1,6 @@
 use std::{sync::Arc, collections::BTreeMap, mem};
-use peregrine_toolkit::{eachorevery::eoestruct::{StructValue}, error::Error };
+use eachorevery::eoestruct::StructValue;
+use peregrine_toolkit::{ error::Error };
 use serde::{Deserialize, Deserializer, de::DeserializeSeed};
 use crate::{Track, shapeload::programname::ProgramName, PgDauphin, switch::switches::SwitchesData, BackendNamespace };
 

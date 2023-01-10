@@ -1,6 +1,7 @@
 use std::sync::{Arc, Mutex};
+use eachorevery::EachOrEvery;
 use peregrine_data::{AuxLeaf, SpaceBaseArea, SpaceBase, HollowEdge2, reactive::{Observable, Observer}, PartialSpaceBase};
-use peregrine_toolkit::{eachorevery::EachOrEvery, lock, error::Error};
+use peregrine_toolkit::{lock, error::Error};
 use super::rectangles::{RectanglesImpl, apply_wobble};
 
 fn apply_hollow(area: &SpaceBaseArea<f64,AuxLeaf>, edge: &Option<HollowEdge2<f64>>) -> SpaceBaseArea<f64,AuxLeaf> {

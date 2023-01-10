@@ -1,5 +1,6 @@
 use std::{sync::{Arc}};
-use peregrine_toolkit::{puzzle::{DelayedSetter, derived, cache_constant, constant, StaticValue, promise_delayed, short_memoized_clonable, cache_constant_clonable, StaticAnswer }, eachorevery::eoestruct::StructTemplate};
+use eachorevery::eoestruct::StructTemplate;
+use peregrine_toolkit::{puzzle::{DelayedSetter, derived, cache_constant, constant, StaticValue, promise_delayed, short_memoized_clonable, cache_constant_clonable, StaticAnswer }};
 use crate::{allotment::{core::{allotmentname::{AllotmentName}, rangeused::RangeUsed}, style::{containerstyle::{ContainerStyle}, metadataproperty::MetadataStyle}, style::{styletree::StyleTree}, leafs::{floating::FloatingLeaf, anchored::AnchoredLeaf}, layout::{layouttree::{ContainerOrLeaf}, layoutcontext::LayoutContext, contentsize::ContentSize}}, CoordinateSystem, LeafRequest, globals::allotmentmetadata::LocalAllotmentMetadataBuilder};
 use super::{haskids::HasKids};
 

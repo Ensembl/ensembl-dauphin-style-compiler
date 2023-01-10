@@ -1,7 +1,8 @@
 use std::sync::{Arc, Mutex};
+use eachorevery::EachOrEvery;
 use eard_interp::{GlobalContext, GlobalBuildContext, Return, HandleStore, AsyncReturn };
 use peregrine_data::{ProgramShapesBuilder, SpaceBaseArea, PartialSpaceBase, SpaceBase, LeafRequest, Patina, Plotter, Pen, AccessorResolver, BackendNamespace};
-use peregrine_toolkit::{lock, eachorevery::EachOrEvery };
+use peregrine_toolkit::{lock};
 
 fn eoe_from_string_reg(ctx: &GlobalContext, reg: usize) -> Result<EachOrEvery<String>,String> {
     Ok(if !ctx.is_finite(reg)? {

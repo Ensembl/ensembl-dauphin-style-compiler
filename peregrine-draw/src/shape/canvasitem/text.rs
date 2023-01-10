@@ -1,5 +1,5 @@
+use eachorevery::EachOrEvery;
 use peregrine_data::{ DirectColour, PenGeometry, Background, AuxLeaf, TextShape, SpaceBase };
-use peregrine_toolkit::eachorevery::EachOrEvery;
 use peregrine_toolkit::error::Error;
 use crate::shape::core::drawshape::{GLShape, ShapeToAdd, draw_points_from_canvas2, dims_to_sizes, GLAttachmentPoint};
 use crate::shape::layers::drawingtools::{DrawingToolsBuilder, CanvasType};

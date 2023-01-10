@@ -2,7 +2,8 @@ use std::{collections::{hash_map::DefaultHasher, BTreeMap, BTreeSet}, hash::{ Ha
 use std::fmt;
 use std::sync::{ Arc };
 use std::collections::HashMap;
-use peregrine_toolkit::{error::Error, eachorevery::eoestruct::StructValue};
+use eachorevery::eoestruct::StructValue;
+use peregrine_toolkit::{error::Error};
 use peregrine_toolkit_async::sync::{asynconce::AsyncOnce};
 use super::{track::Track, switches::{SwitchesData}};
 use super::trackconfig::{ TrackConfig, hashmap_hasher };

@@ -1,5 +1,5 @@
+use eachorevery::EachOrEvery;
 use peregrine_data::{ Colour, DrawnType, Patina, RectangleShape, Shape, ShapeDemerge, HollowEdge2, AuxLeaf, DrawingShape, CoordinateSystem, PolygonShape };
-use peregrine_toolkit::eachorevery::EachOrEvery;
 use peregrine_toolkit::error::Error;
 use crate::shape::canvasitem::heraldry::{HeraldryCanvasesUsed, Heraldry};
 use crate::shape::canvasitem::text::prepare_text;

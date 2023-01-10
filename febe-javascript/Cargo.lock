@@ -242,6 +242,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "eachorevery"
+version = "0.0.0"
+dependencies = [
+ "hashbrown",
+ "lazy_static",
+ "ordered-float",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "eard-interp"
 version = "0.0.0"
 dependencies = [
@@ -561,6 +572,7 @@ dependencies = [
  "anyhow",
  "commander",
  "dauphin_interp",
+ "eachorevery",
  "eard-interp",
  "futures",
  "hashbrown",

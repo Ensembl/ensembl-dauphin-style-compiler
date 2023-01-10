@@ -1,12 +1,13 @@
 use std::{collections::HashMap, sync::{ Arc, Mutex }};
 use std::fmt::Debug;
+use eachorevery::eoestruct::StructValue;
 use js_sys::{ Reflect, Array, JSON };
 use serde_wasm_bindgen::from_value;
 use wasm_bindgen::{prelude::*, JsCast};
 use peregrine_draw::{Endstop, Message, PeregrineAPI, PeregrineConfig, PgCommanderWeb};
 use peregrine_data::{ StickId, zmenu_to_json, DataMessage };
 use peregrine_message::{MessageKind, PeregrineMessage};
-use peregrine_toolkit::{ log, warn, error_important, eachorevery::eoestruct::{StructValue}, js::{jstojsonvalue::js_to_json, dommanip::set_css}, error::{CallToAction, Error, ErrorType, err_web_drop}, map};
+use peregrine_toolkit::{ log, warn, error_important, js::{jstojsonvalue::js_to_json, dommanip::set_css}, error::{CallToAction, Error, ErrorType, err_web_drop}, map};
 use web_sys::{ Element };
 use serde::{Serialize, Deserialize};
 use serde_json::{ Map as JsonMap, Value as JsonValue };

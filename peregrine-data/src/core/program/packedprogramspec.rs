@@ -1,4 +1,5 @@
-use peregrine_toolkit::{diffset::DiffSet, eachorevery::eoestruct::{StructValue}, error::Error, lengths_match, multizip};
+use eachorevery::eoestruct::StructValue;
+use peregrine_toolkit::{diffset::DiffSet, error::Error, lengths_match, multizip};
 use crate::{shapeload::programname::ProgramName};
 use super::programspec::{ProgramModel, ProgramSetting, ProgramModelBuilder};
 

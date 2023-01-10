@@ -1,6 +1,6 @@
 use crate::simple_interp_command;
+use eachorevery::eoestruct::{StructConst, StructValue};
 use peregrine_data::ShapeRequest;
-use peregrine_toolkit::eachorevery::eoestruct::{StructConst, StructValue};
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
 use serde_cbor::Value as CborValue;

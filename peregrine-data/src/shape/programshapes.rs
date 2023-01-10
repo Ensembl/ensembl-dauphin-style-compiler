@@ -1,5 +1,6 @@
 use std::{collections::{HashSet}};
-use peregrine_toolkit::{debug_log, eachorevery::EachOrEvery};
+use eachorevery::EachOrEvery;
+use peregrine_toolkit::{debug_log};
 use super::{core::{ Patina, Pen, Plotter }, imageshape::ImageShape, rectangleshape::RectangleShape, textshape::TextShape, wiggleshape::WiggleShape, emptyshape::EmptyShape};
 use crate::{LeafRequest, RequestedShapesContainer, allotment::{core::leafrequestsource::LeafRequestSource, style::styletree::StyleTree}, BackendNamespace, LoadMode, PolygonShape, Shape};
 use crate::{Assets, DataMessage, SpaceBaseArea, reactive::Observable, SpaceBase};

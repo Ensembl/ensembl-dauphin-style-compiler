@@ -1,7 +1,7 @@
 use anyhow::{ anyhow as err };
 use dauphin_interp::runtime::{ InterpContext };
+use eachorevery::EachOrEvery;
 use peregrine_data::{InstancePayload};
-use peregrine_toolkit::eachorevery::EachOrEvery;
 use crate::payloads::PeregrinePayload;
 
 #[macro_export]

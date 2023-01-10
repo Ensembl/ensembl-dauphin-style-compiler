@@ -4,9 +4,9 @@ use crate::simple_interp_command;
 use crate::util::{get_instance};
 use dauphin_interp::runtime::{ Register, InterpContext, InterpValue, RegisterFile };
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult };
+use eachorevery::EachOrEvery;
+use eachorevery::eoestruct::{StructVar, StructTemplate, StructPair, StructVarGroup};
 use peregrine_data::ObjectBuilder;
-use peregrine_toolkit::eachorevery::EachOrEvery;
-use peregrine_toolkit::eachorevery::eoestruct::{StructVarGroup, StructTemplate, StructVar, StructPair};
 use peregrine_toolkit::lock;
 use serde_cbor::Value as CborValue;
 

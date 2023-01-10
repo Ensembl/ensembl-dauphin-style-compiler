@@ -42,7 +42,7 @@
 // TODO hashmap to docs
 
 use anyhow::{ bail };
-use peregrine_toolkit::eachorevery::EachOrEvery;
+use eachorevery::EachOrEvery;
 use std::collections::{ HashSet, HashMap };
 use std::iter::Peekable;
 use std::str::Chars;

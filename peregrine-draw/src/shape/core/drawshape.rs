@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
+use eachorevery::{EachOrEveryFilterBuilder, EachOrEvery};
 use peregrine_data::reactive::Observable;
 use peregrine_data::{ Colour, DirectColour, DrawnType, Patina, Plotter, SpaceBaseArea, HollowEdge2, SpaceBase, AuxLeaf, HotspotPatina, AttachmentPoint, PartialSpaceBase, SpaceBasePoint };
-use peregrine_toolkit::eachorevery::{EachOrEvery, EachOrEveryFilterBuilder};
 use peregrine_toolkit::error::Error;
 use super::directcolourdraw::{DirectColourDraw, ColourFragment};
 use super::super::layers::layer::{ Layer };

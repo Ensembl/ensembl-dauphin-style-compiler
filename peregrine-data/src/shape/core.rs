@@ -1,5 +1,6 @@
 use std::{collections::{hash_map::DefaultHasher}, hash::{Hash, Hasher}, sync::Arc, rc::Rc};
-use peregrine_toolkit::eachorevery::{EachOrEveryFilter, EachOrEvery, eoestruct::{StructTemplate}};
+use eachorevery::{EachOrEvery, EachOrEveryFilter, eoestruct::StructTemplate};
+
 use crate::{hotspots::{zmenupatina::ZMenu, hotspots::SpecialClick}, HotspotResult, zmenu_generator, SpaceBasePoint, allotment::leafs::auxleaf::AuxLeaf};
 use super::{settingmode::SettingMode};
 

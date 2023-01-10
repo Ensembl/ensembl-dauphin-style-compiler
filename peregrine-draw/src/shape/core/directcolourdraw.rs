@@ -1,6 +1,7 @@
 use crate::{shape::{layers::{patina::{PatinaProcessName, PatinaFactory}}, util::eoethrow::{eoe_throw2}}, webgl::{ AttribHandle, ProcessStanzaAddable, ProgramBuilder, ProcessBuilder }};
+use eachorevery::EachOrEvery;
 use peregrine_data::{DirectColour};
-use peregrine_toolkit::{eachorevery::EachOrEvery, error::Error};
+use peregrine_toolkit::error::Error;
 use super::super::util::arrayutil::scale_colour;
 
 #[derive(Clone)]

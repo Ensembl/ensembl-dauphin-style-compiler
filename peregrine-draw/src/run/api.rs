@@ -1,6 +1,6 @@
 use crate::util::message::{ Message };
+use eachorevery::eoestruct::StructValue;
 use peregrine_toolkit::console::{set_printer, Severity};
-use peregrine_toolkit::eachorevery::eoestruct::{StructValue};
 use peregrine_toolkit::{log_extra, log_important};
 use peregrine_toolkit_async::sync::blocker::Blocker;
 use peregrine_toolkit_async::sync::needed::Needed;

@@ -1,6 +1,6 @@
+use eachorevery::EachOrEvery;
 use eard_interp::{GlobalBuildContext, GlobalContext, Return, HandleStore, Value};
 use peregrine_data::SpaceBase;
-use peregrine_toolkit::eachorevery::EachOrEvery;
 
 fn coord_to_eoe(ctx: &GlobalContext, reg: usize) -> Result<EachOrEvery<f64>,String> {
     Ok(if ctx.is_finite(reg)? {
