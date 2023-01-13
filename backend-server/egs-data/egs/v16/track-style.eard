@@ -24,8 +24,8 @@ export procedure track_styles() {
     }
 
     tracks/track/*/ {
-        padding-top: 4;
-        padding-bottom: 12;
+        padding-top: 8;
+        padding-bottom: 8;
         height-adjust: tracking;
     }
 
@@ -45,10 +45,11 @@ export procedure track_styles() {
 
     tracks/track/*/main/letter/ {
         system: content;
+        bump-height: none;
         indent: datum(pad-left);
         depth: 60;
     }
-
+    
     tracks/track/*/title/letter/ {
         system: content;
         indent: datum(pad-left);

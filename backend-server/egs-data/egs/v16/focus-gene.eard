@@ -1,0 +1,149 @@
+program "ensembl-webteam/core" "focus-gene" 1;
+refer "libperegrine";
+refer "libeoe";
+include "track-common.eard";
+include "track-style.eard";
+include "gene-common-data.eard";
+include "gene-common-visual.eard";
+include "gene-common-zmenu.eard";
+
+/* Setup styles */
+
+track_styles();
+gene_styles();
+
+style!("""
+    **/main/main/ {
+        type: bumper;
+    }
+
+    **/main/main/*/ {
+        type: overlay;
+    }
+
+    **/main/main/*/blocks/ {
+        depth: 4;
+    }
+
+    **/main/*/text/ {
+        bump-width: none;
+        system: tracking-special;
+    }
+
+    **/main/background/content {
+        depth: -10;
+        padding-top: 32;
+    }
+""");
+
+/* Get the data */
+
+let (focus_genome_id,focus_gene_id) = focus_gene_settings();
+
+let (*gene,*tr) = get_focus_transcript_data();
+
+/* Build gene name for label */
+
+let focus_gene_index = index(position(focus_gene_id==gene.id_unversioned),0);
+// XXX and if it isn't here?
+
+let focus_gene_name = index(gene.name,focus_gene_index);
+let focus_label = join(" ",[focus_gene_name,focus_gene_id]);
+
+/* Setup leafs */
+let leaf.bgd = leaf("tracks/track/focus/main/background/content");
+let leaf.text = leaf(if(setting_boolean("focus-gene-label",[]),"tracks/track/focus/main/main/focus/text/content",""));
+let leaf.letter = leaf("tracks/track/focus/main/letter/content");
+
+let leaf.trackname = leaf("tracks/track/focus/title/content");
+let leaf.main = leaf("tracks/track/focus/main/main/focus/blocks/content");
+gene.block_leaf = [leaf("tracks/track/focus/main/main/focus/blocks/content"),...];
+gene.leaf_index = repeat(4,len(gene.start));
+
+/* Main rectangle and label */
+
+let paint = paint_solid(colour!("#229afc"));
+rectangle(coord(gene.start,[0,...],[-0.5,...]),coord(gene.end,[5,...],[0.5,...]),paint,[leaf.main,...]);
+
+let pen = pen("'IBM Plex Mono', sans-serif",10,colour!("#6f8190"),colour!("transparent"));
+running_text(coord(gene.start,[8,...],[0,...]),coord(gene.end,[8,...],[0,...]),pen,gene.name,[leaf.text,...]);
+
+/* ZMenus */
+
+emit_gene_zmenu(*gene);
+
+/* Draw chevrons */
+
+draw_focus_track_chevrons(index(gene.strand,focus_gene_index),*leaf);
+draw_focus_sidebar_chevrons(index(gene.strand,focus_gene_index),*leaf);
+
+/* Draw track furniture */
+
+draw_track_category(["G"],["focus"],[leaf.letter]);
+draw_track_name(focus_label,"name",leaf.trackname);
+draw_swatch(colour!("#58a8f9"),[leaf.letter]);
+
+// id_gn_uv := data_string(data,"gene_id");
+// id_gn_vo := data_string(data,"gene_id_version");
+// id_gn_vr := concat(id_gn_uv,id_gn_vo);
+// gene_name := data_string(data,"gene_names");
+// gene_desc := data_string(data,"gene_descs");
+// stick := data_string(data,"stick");
+// start := data_number(data,"starts");
+// end := start + data_number(data,"lengths");
+// gene_biotype := data_string(data,"gene_biotypes");
+// strand := data_number(data,"strands");
+// id_dtr_uv := data_string(data,"designated_transcript_id");
+// id_dtr_vo := data_string(data,"designated_transcript_id_version");
+// id_dtr_vr := concat(id_dtr_uv,id_dtr_vo);
+// designated_transcript_biotype := data_string(data,"designated_transcript_biotypes");
+// designated_transcript_designation := data_string(data,"designated_transcript_designations");
+// strand_string := len([strand]) (*) "reverse strand";
+// strand_string#[strand>0] := "forward strand";
+// id_tr_uv := data_string(data,"transcript_id");
+// id_tr_vo := data_string(data,"transcript_id_version");
+// id_tr_vr := concat(id_tr_uv,id_tr_vo);
+// idx_tr_in_gn := run(data_number(data,"transcript_counts"));
+// num_tr_by_gn := data_number(data,"transcript_counts");
+// which_gn_by_tr := derun(num_tr_by_gn);
+
+// /* check if on current stick */
+// this_stick := get_region().stick;
+// on_another_stick := (stick == this_stick) == false;
+
+// /* If we have labels then we bump */
+
+// allotment_letter := use_allotment("tracks/track/focus/main/letter/content");
+// allotment := use_allotment("tracks/track/focus/main/main/focus/blocks/content");
+// text_allotment := use_allotment("tracks/track/focus/main/main/focus/text/content");
+// dotted_allotment := use_allotment("dots/content");
+// dotted_text_allotment := use_allotment("tracks/flagtop/main");
+
+// /* Draw nothing if wrong chromosome!
+//  */
+
+// allotment#[on_another_stick] := use_allotment("");
+// text_allotment#[on_another_stick] := use_allotment("");
+// dotted_allotment#[on_another_stick] := use_allotment("");
+// dotted_text_allotment#[on_another_stick] := use_allotment("");
+
+// /*
+//  * DRAW!
+//  */
+
+// /* focus swatch */
+// draw_focus_swatch(allotment_letter);
+
+// /* red-dotted lines */
+// start_focus := start#[id_gn_uv==focus_gene_id];
+// end_focus := end#[id_gn_uv==focus_gene_id];
+// //red_dotted(start_focus,end_focus,dotted_allotment,dotted_text_allotment,comma_format(start_focus),comma_format(end_focus));
+
+// /* report transcripts (not!) shown */
+
+// report_allotment := use_allotment("tracks/track/focus/main/background/content");
+// calc_focus_transcripts_shown(do_ghost,bool_report_show_tr,bool_show_tr,id_gn_vr,id_tr_vr,which_gn_by_tr,id_gn_uv,focus_gene_id,idx_tr_in_gn);
+// report_shown(bool_report_show_tr,id_tr_vr,report_allotment);
+// report_id(focus_gene_id,report_allotment);
+// report_all(id_tr_vr,id_gn_uv,focus_gene_id,which_gn_by_tr,report_allotment);
+// report_suppressed(true,report_allotment);

@@ -30,6 +30,12 @@ function contents_trackhover(track_ids) {
    contents_trackhover 
 }
 
+export procedure draw_swatch(colour,leaf) {
+    let paint = paint_solid(colour);
+    let enough_zeros = repeat(0,len(leaf));
+    rectangle(coord(enough_zeros,[-10,...],[0,...]),coord(enough_zeros,[30,...],[6,...]),paint,leaf);
+}
+
 /* Draw the G, V, etc in the left margin. Admits multiple tracks, so needs a seq in the last arg
  */
 export procedure draw_track_category(category,track_ids,leafs) {
@@ -46,6 +52,11 @@ export procedure draw_track_category(category,track_ids,leafs) {
     text(coord(enough_zeros,[5,...],[16,...]),pen,category,leafs);
 
     /* Create a hotspot zone for tooltip hover */
+    let buffer = 5; // px
     let hotspot = paint_click(variety_trackhover,contents_trackhover(track_ids));
-    rectangle(coord(enough_zeros,[5,...],[16,...]),coord(enough_zeros,[15,...],[26,...]),hotspot,leafs);
+    rectangle(coord(enough_zeros,[5-buffer,...],[16-buffer,...]),coord(enough_zeros,[17+buffer,...],[28+buffer,...]),hotspot,leafs);
+
+    /* Draw grey swatch */
+    let cat_setting = setting_string("tab-selected",[]);
+    draw_swatch(colour!("#c8c8c8"),set(leafs,category!=cat_setting,[leaf(""),...]));
 }

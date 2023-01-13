@@ -38,7 +38,7 @@ pub(crate) fn op_scope(gctx: &GlobalBuildContext) -> Result<Box<dyn Fn(&mut Glob
         let v = ctx.force_string(regs[2])?.to_string();
         let requests = ctx.context.get_mut(&requests);
         let req = requests.get_mut(h)?;
-        req.add_scope(&k,&vec![v]);
+        *req = req.add_scope(&k,&vec![v]);
         Ok(Return::Sync)
     }))
 }

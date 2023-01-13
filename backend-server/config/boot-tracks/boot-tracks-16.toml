@@ -40,7 +40,10 @@ pc-fwd-several = ["track","gene-pc-fwd","several"]
 pc-rev-several = ["track","gene-pc-rev","several"]
 other-fwd-several = ["track","gene-other-fwd","several"]
 other-rev-several = ["track","gene-other-rev","several"]
-
+other-rev-transcript-label = ["track","gene-other-rev","transcript-label"]
+pc-rev-transcript-label = ["track","gene-pc-rev","transcript-label"]
+other-fwd-transcript-label = ["track","gene-other-fwd","transcript-label"]
+pc-fwd-transcript-label = ["track","gene-pc-fwd","transcript-label"]
 
 [include.focus-gene.general]
 triggers = [

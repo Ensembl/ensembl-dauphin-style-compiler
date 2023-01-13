@@ -56,12 +56,12 @@ struct!(gene_zmenu,"""
         gene.biotype,
         gene.strand_string,
         gene.id_unversioned,
-        index(["gene-other-rev","gene-pc-rev","gene-other-fwd","gene-pc-fwd"],gene.leaf_index)
+        index(["gene-other-rev","gene-pc-rev","gene-other-fwd","gene-pc-fwd","focus"],gene.leaf_index)
     );
     gene_zmenu
 }
 
-/* Gene ZMenu payload */
+/* Transcript ZMenu payload */
 
 function tr_zmenu(*gene) {
 struct!(tr_zmenu,"""
@@ -118,13 +118,10 @@ struct!(tr_zmenu,"""
       gene.strand_string,
       gene.desigtr_unversioned,
       gene.id_versioned,
-      index(["gene-other-rev","gene-pc-rev","gene-other-fwd","gene-pc-fwd"],gene.leaf_index)
+      index(["gene-other-rev","gene-pc-rev","gene-other-fwd","gene-pc-fwd","focus"],gene.leaf_index)
   );
   tr_zmenu
 }
-
-/* Transcript ZMenu payload */
-
 
 export procedure emit_gene_zmenu(*gene) {
     capture variety_zmenu;

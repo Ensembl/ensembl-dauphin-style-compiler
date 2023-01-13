@@ -48,6 +48,46 @@ export procedure get_gene_data() {
     *gene
 }
 
+export procedure get_focus_transcript_data() {
+    let (focus_genome_id,focus_gene_id) = focus_gene_settings();
+
+    let req = request("self()","transcript");
+    scope(req,"id",focus_gene_id);
+    scope(req,"genome",focus_genome_id);
+    let data = get_data(req);
+    // halt(only_warm(),[data]);
+
+    let gene.id_unversioned = data_string(data,"gene_id");
+    let gene.id_version = data_string(data,"gene_id_version");
+    let gene.id_versioned = push_str(gene.id_unversioned,gene.id_version);
+    let gene.name = data_string(data,"gene_names");
+    let gene.description = data_string(data,"gene_descs");
+    let gene.start = data_number(data,"starts");
+    let gene.end = gene.start + data_number(data,"lengths");
+    let gene.biotype = data_string(data,"gene_biotypes");
+    let gene.strand = data_number(data,"strands");
+    let gene.designation = data_string(data,"designated_transcript_designations");
+    let gene.desigtr_unversioned = data_string(data,"designated_transcript_id");
+    let gene.desigtr_version = data_string(data,"designated_transcript_id_version");
+    let gene.desigtr_versioned = push_str(gene.desigtr_unversioned,gene.desigtr_version);
+    let gene.desigtr_biotype = data_string(data,"designated_transcript_biotypes");
+    let gene.desigtr_designation = data_string(data,"designated_transcript_designations");
+    let gene.strand_string = if(gene.strand>0,["forward strand",...],["reverse strand",...]);
+
+    let tr.id_unversioned = data_string(data,"transcript_id");
+    let tr.id_version = data_string(data,"transcript_id_version");
+    let tr.id_versioned = push_str(tr.id_unversioned,tr.id_version);
+
+    let gene.tr_count = data_number(data,"transcript_counts");
+    let tr.index_in_gene = enumerate(gene.tr_count);
+    let tr.which_gene = count(gene.tr_count);
+
+    /* focus only? */
+    let gene.stick = data_string(data,"stick");
+
+    (*gene,*tr)
+}
+
 export procedure allocate_genes_to_leaf_index(*gene) {
     let leaf_index_strand = set(repeat(0,len(gene.start)),gene.strand>0,[2,...]);
     let leaf_index_biotype = set(repeat(0,len(gene.start)),gene.biotype=="protein_coding",[1,...]);

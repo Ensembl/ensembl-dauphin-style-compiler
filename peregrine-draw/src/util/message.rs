@@ -107,7 +107,10 @@ impl PeregrineMessage for Message {
             Message::Ready => format!("ready"),
             Message::AllotmentMetadataReport(metadata) => format!("allotment metadata: {:?}",metadata.summarize_json()),
             Message::ZMenuEvent(x,y,zmenu) => format!("zmenu event: {} at ({},{})",zmenu_item_list_to_json(zmenu),x,y),
-            Message::HotspotEvent(x,y,variety,contents) => format!("click event: {:?} : {:?} at ({},{})",variety,contents,x,y),
+            Message::HotspotEvent(x,y,variety,contents) => format!("click event: {:?} : {:?} at ({},{})",
+                variety.iter().map(|x| x.to_json_value().to_string()).collect::<Vec<_>>().join(","),
+                contents.iter().map(|x| x.to_json_value().to_string()).collect::<Vec<_>>().join(","),
+                x,y),
             Message::HitEndstop(x) => format!("hit endstop: {:?}",x.iter().map(|y| format!("{:?}",y)).collect::<Vec<_>>().join(", ")),
         }
     }

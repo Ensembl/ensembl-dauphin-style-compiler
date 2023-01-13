@@ -1,3 +1,6 @@
 [include.general]
 program_set = "ensembl-webteam/core"
 program_version = 1
+
+[include.general.settings]
+tab-selected = ["settings","tab-selected"]

@@ -521,13 +521,17 @@
           genome_browser.goto(32300000,32420000);
         };
         document.getElementById("expand1").onclick = function() {
-          genome_browser.switch(["track","expand","ff0099"],true);
+          genome_browser.switch(["settings","tab-selected"],"G");
+          //genome_browser.switch(["track","expand","ff0099"],true);
         };
         document.getElementById("expand2").onclick = function() {
+          genome_browser.switch(["settings","tab-selected"],"V");
+          /*
           genome_browser.switch(["settings"],true);
           genome_browser.switch(["settings","green"],50);
           genome_browser.switch(["track","user"],true);
           genome_browser.switch(["track","user","78"],true);
+          */
         };
         document.getElementById("unload").onclick = function() {
           document.getElementById("browser").remove();
