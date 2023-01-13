@@ -40,8 +40,12 @@ path="../dauphin-lib-peregrine"
 
 [dependencies.eard-interp]
 version="*"
-path="../../eard/interp"
+path="../../peregrine-eard/interp"
 
 [dependencies.eard-libperegrine]
 version="*"
 path="../libperegrine"
+
+[dependencies.eard-libeoe]
+version="*"
+path="../../peregrine-eard/libeoe"

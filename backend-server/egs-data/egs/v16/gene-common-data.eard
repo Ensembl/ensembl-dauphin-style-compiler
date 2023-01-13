@@ -36,7 +36,7 @@ export procedure get_gene_data() {
     let gene.description = data_string(data,"gene_descs");
     let gene.start = data_number(data,"starts");
     let gene.end = gene.start + data_number(data,"lengths");
-    let gene.designation = data_string(data,"gene_designation");
+    let gene.designation = data_string(data,"designated_transcript_designations");
     let gene.biotype = data_string(data,"gene_biotypes");
     let gene.strand = data_number(data,"strands");
     let gene.desigtr_unversioned = data_string(data,"designated_transcript_id");

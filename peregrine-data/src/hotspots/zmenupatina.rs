@@ -216,13 +216,13 @@ impl ZMenu {
     }
 }
 
-pub fn zmenu_generator(zmenu: &ZMenu, values: &Vec<(String,EachOrEvery<String>)>) -> Arc<dyn Fn(usize,Option<(SpaceBasePoint<f64,AuxLeaf>,SpaceBasePoint<f64,AuxLeaf>)>) -> HotspotResult> {
+pub fn zmenu_generator(zmenu: &ZMenu, values: &Vec<(String,EachOrEvery<String>)>) -> Arc<dyn Fn(usize,Option<(SpaceBasePoint<f64,AuxLeaf>,SpaceBasePoint<f64,AuxLeaf>)>) -> Option<HotspotResult>> {
     let mut map_values = HashMap::new();
     for (k,v) in values.iter() {
         map_values.insert(k.to_string(),v.clone());
     }
     let (build,values) = ZMenuBuild::build(zmenu,&map_values);
     Arc::new(move |index,_| {
-        HotspotResult::ZMenu(build.value(&values,index))
+        Some(HotspotResult::ZMenu(build.value(&values,index)))
     })    
 }

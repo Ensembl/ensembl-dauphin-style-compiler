@@ -1,26 +1,48 @@
+use std::collections::HashSet;
+
 use commander::CommanderStream;
 use peregrine_data::HotspotResult;
-use peregrine_toolkit::{debug_log, lock};
+use peregrine_toolkit::{debug_log, lock, log};
 use crate::{Message, PeregrineInnerAPI, PgCommanderWeb, input::{InputEvent, InputEventKind, low::lowlevel::LowLevelInput}, run::inner::LockedPeregrineInnerAPI};
 
 fn process_hotspot_event(api: &LockedPeregrineInnerAPI, x: f64, doc_y: f64) -> Result<(),Message> {
     let events = api.trainset.get_hotspot(&api.stage.lock().unwrap().read_stage(), (x,doc_y))?;
     let mut zmenus = vec![];
+    let mut hotspot_contents = vec![];
+    let mut hotspot_varieties = HashSet::new();
     for event in &events {
-        match event.value() {
-            HotspotResult::ZMenu(z) => {
-                zmenus.push(z);
-            },
-            HotspotResult::Setting(path,value) => {
-                debug_log!("setting {:?} gets {:?}",path,value);
-                let path = path.iter().map(|x| x.as_str()).collect::<Vec<_>>();
-                api.data_api.update_switch(&path,value);
-            },
-            HotspotResult::Special(value) => {}
+        if let Some(event) = event.value() {
+            match event {
+                HotspotResult::Click(variety,contents) => {
+                    hotspot_varieties.insert(variety);
+                },
+                _ => {}
+            }
+        }
+    }
+    for event in &events {
+        if let Some(event) = event.value() {
+            match event {
+                HotspotResult::ZMenu(z) => {
+                    zmenus.push(z);
+                },
+                HotspotResult::Setting(path,value) => {
+                    debug_log!("setting {:?} gets {:?}",path,value);
+                    let path = path.iter().map(|x| x.as_str()).collect::<Vec<_>>();
+                    api.data_api.update_switch(&path,value);
+                },
+                HotspotResult::Special(_) => {},
+                HotspotResult::Click(_,contents) => {
+                    hotspot_contents.push(contents);
+                }
+            }
         }
     }
     if zmenus.len() > 0 {
         api.report.zmenu_event(x,doc_y,zmenus);
+    }
+    if hotspot_contents.len() > 0 || hotspot_varieties.len() > 0 {
+        api.report.hotspot_event(x,doc_y,&hotspot_varieties.iter().cloned().collect::<Vec<_>>(),&hotspot_contents);
     }
     Ok(())
 }

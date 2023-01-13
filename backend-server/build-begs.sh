@@ -3,7 +3,7 @@
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 export PATH="$PATH:$DIR/../dauphin/target/release"
-export PATH="$PATH:$DIR/../../eard/compiler/target/release"
+export PATH="$PATH:$DIR/../../peregrine-eard/compiler/target/release"
 
 SRC="$DIR/egs-data/egs"
 DST="$DIR/egs-data/begs"

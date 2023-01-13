@@ -1,5 +1,6 @@
 program "ensembl-webteam/core" "contig" 1;
 refer "libperegrine";
+refer "libeoe";
 include "track-common.eard";
 include "track-style.eard";
 
@@ -34,4 +35,4 @@ rectangle(coord(start,[10,...],[0,...]),coord(end,[14,...],[0,...]),paint,[leaf,
 /* draw track furniture */
 
 draw_track_name("Reference sequence","name",leaf("tracks/track/contig/title/content"));
-draw_track_category(["G"],[leaf("tracks/track/contig/main/letter/content")]);
+draw_track_category(["G"],["contig"],[leaf("tracks/track/contig/main/letter/content")]);

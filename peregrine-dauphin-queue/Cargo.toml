@@ -20,4 +20,4 @@ path="../peregrine-toolkit"
 
 [dependencies.eard-interp]
 version="*"
-path="../../eard/interp"
+path="../../peregrine-eard/interp"

@@ -1,4 +1,3 @@
-use std::sync::{Arc, Mutex};
 use eachorevery::eoestruct::{StructValue, StructConst};
 use eard_interp::{GlobalContext, ContextItem, Return, GlobalBuildContext, Value};
 use peregrine_data::ShapeRequest;

@@ -94,5 +94,5 @@ export procedure draw_gene_track_names(*leaf) {
 }
 
 export procedure draw_gene_track_category(*leaf) {
-    draw_track_category(["G","G","G","G"],leaf.letter);
+    draw_track_category(["G","G","G","G"],["gene-other-rev","gene-pc-rev","gene-other-fwd","gene-pc-fwd"],leaf.letter);
 }

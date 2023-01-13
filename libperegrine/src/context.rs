@@ -1,7 +1,7 @@
 use std::{sync::{Arc, Mutex}, collections::HashMap, any::Any, task::Context};
 use eard_interp::{ ContextItem, HandleStore, InterpreterBuilder, Operation, RunContext };
 use peregrine_data::{LeafRequest, ProgramShapesBuilder, Colour, Patina, SpaceBase, DataRequest, DataResponse, DataStore, LoadMode, RunReport, ShapeRequest, AccessorResolver, Plotter, Pen};
-use crate::{leaf::{op_leaf, op_leaf_s}, style::op_style, paint::{op_colour, op_paint_solid, op_paint_solid_s, op_graph_type, op_pen, op_paint_hollow, op_paint_hollow_s, op_paint_special}, coord::op_coord, shape::{op_rectangle, op_wiggle, op_text, op_image, op_running_text}, data::{op_get_data, op_request, op_scope, op_data_boolean, op_data_number, op_data_string, op_bp_range}, setting::{op_setting_boolean, op_setting_string, op_setting_number_seq, op_setting_number, op_setting_string_seq, op_setting_boolean_seq}};
+use crate::{leaf::{op_leaf, op_leaf_s}, style::op_style, paint::{op_colour, op_paint_solid, op_paint_solid_s, op_graph_type, op_pen, op_paint_hollow, op_paint_hollow_s, op_paint_special, op_zmenu}, coord::op_coord, shape::{op_rectangle, op_wiggle, op_text, op_image, op_running_text}, data::{op_get_data, op_request, op_scope, op_data_boolean, op_data_number, op_data_string, op_bp_range}, setting::{op_setting_boolean, op_setting_string, op_setting_number_seq, op_setting_number, op_setting_string_seq, op_setting_boolean_seq}};
 
 #[derive(Clone)]
 pub struct LibPeregrineBuilder {
@@ -22,20 +22,20 @@ pub struct LibPeregrineBuilder {
 }
 
 pub fn build_libperegrine(builder: &mut InterpreterBuilder) -> Result<LibPeregrineBuilder,String> {
-    let leafs = builder.add_context::<HandleStore<LeafRequest>>("leaf");
-    let colours = builder.add_context::<HandleStore<Colour>>("colours");
-    let paint = builder.add_context::<HandleStore<Patina>>("paint");
-    let shapes = builder.add_context::<Arc<Mutex<Option<ProgramShapesBuilder>>>>("shapes");
-    let coords = builder.add_context::<HandleStore<SpaceBase<f64,()>>>("coords");
-    let requests = builder.add_context::<HandleStore<DataRequest>>("requests");
-    let responses = builder.add_context::<HandleStore<DataResponse>>("responses");
-    let graph_types = builder.add_context::<HandleStore<Plotter>>("graph-types");
-    let pens = builder.add_context::<HandleStore<Pen>>("pens");
-    let shape_request = builder.add_context::<ShapeRequest>("shape-request");
-    let store = builder.add_context::<DataStore>("store");
-    let mode = builder.add_context::<LoadMode>("mode");
-    let report = builder.add_context::<Arc<Mutex<RunReport>>>("report");
-    let resolver = builder.add_context::<AccessorResolver>("channel-resolver");
+    let leafs = builder.add_context::<HandleStore<LeafRequest>>("leaf")?;
+    let colours = builder.add_context::<HandleStore<Colour>>("colours")?;
+    let paint = builder.add_context::<HandleStore<Patina>>("paint")?;
+    let shapes = builder.add_context::<Arc<Mutex<Option<ProgramShapesBuilder>>>>("shapes")?;
+    let coords = builder.add_context::<HandleStore<SpaceBase<f64,()>>>("coords")?;
+    let requests = builder.add_context::<HandleStore<DataRequest>>("requests")?;
+    let responses = builder.add_context::<HandleStore<DataResponse>>("responses")?;
+    let graph_types = builder.add_context::<HandleStore<Plotter>>("graph-types")?;
+    let pens = builder.add_context::<HandleStore<Pen>>("pens")?;
+    let shape_request = builder.add_context::<ShapeRequest>("shape-request")?;
+    let store = builder.add_context::<DataStore>("store")?;
+    let mode = builder.add_context::<LoadMode>("mode")?;
+    let report = builder.add_context::<Arc<Mutex<RunReport>>>("report")?;
+    let resolver = builder.add_context::<AccessorResolver>("channel-resolver")?;
     builder.add_version("libperegrine",(0,0));
     builder.add_operation(256,Operation::new(op_leaf));
     builder.add_operation(257,Operation::new(op_leaf_s));
@@ -67,6 +67,7 @@ pub fn build_libperegrine(builder: &mut InterpreterBuilder) -> Result<LibPeregri
     builder.add_operation(283,Operation::new(op_paint_special));
     builder.add_operation(284,Operation::new(op_image));
     builder.add_operation(285,Operation::new(op_running_text));
+    builder.add_operation(286,Operation::new(op_zmenu));
     Ok(LibPeregrineBuilder { 
         leafs, shapes, colours, paint, coords, requests, responses, store, mode, report,
         shape_request, resolver, graph_types, pens

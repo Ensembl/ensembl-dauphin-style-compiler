@@ -1,5 +1,5 @@
 use std::{collections::{hash_map::DefaultHasher}, hash::{Hash, Hasher}, sync::Arc, rc::Rc};
-use eachorevery::{EachOrEvery, EachOrEveryFilter, eoestruct::StructTemplate};
+use eachorevery::{EachOrEvery, EachOrEveryFilter, eoestruct::{StructTemplate, StructBuilt, struct_select, StructValue}};
 
 use crate::{hotspots::{zmenupatina::ZMenu, hotspots::SpecialClick}, HotspotResult, zmenu_generator, SpaceBasePoint, allotment::leafs::auxleaf::AuxLeaf};
 use super::{settingmode::SettingMode};
@@ -117,24 +117,43 @@ pub enum DrawnType {
 pub enum HotspotPatina {
     ZMenu(ZMenu,Vec<(String,EachOrEvery<String>)>),
     Setting(EachOrEvery<(Vec<String>,SettingMode)>),
-    Special(EachOrEvery<String>)
+    Special(EachOrEvery<String>),
+    Click(Arc<StructTemplate>,Arc<StructTemplate>)
 }
 
-fn setting_generator(values: &EachOrEvery<(Vec<String>,SettingMode)>) -> Arc<dyn Fn(usize,Option<(SpaceBasePoint<f64,AuxLeaf>,SpaceBasePoint<f64,AuxLeaf>)>) -> HotspotResult> {
+fn setting_generator(values: &EachOrEvery<(Vec<String>,SettingMode)>) -> Arc<dyn Fn(usize,Option<(SpaceBasePoint<f64,AuxLeaf>,SpaceBasePoint<f64,AuxLeaf>)>) -> Option<HotspotResult>> {
     let values = Rc::new(values.clone());
     Arc::new(move |index,_| {
         let (path,mode) = values.get(index).unwrap().clone();
-        HotspotResult::Setting(path,mode)
+        Some(HotspotResult::Setting(path,mode))
     })
 }
 
-fn special_generator(values: &EachOrEvery<String>) -> Arc<dyn Fn(usize,Option<(SpaceBasePoint<f64,AuxLeaf>,SpaceBasePoint<f64,AuxLeaf>)>) -> HotspotResult> {
+fn special_generator(values: &EachOrEvery<String>) -> Arc<dyn Fn(usize,Option<(SpaceBasePoint<f64,AuxLeaf>,SpaceBasePoint<f64,AuxLeaf>)>) -> Option<HotspotResult>> {
     let values = Rc::new(values.clone());
     Arc::new(move |index,area| {
-        HotspotResult::Special(SpecialClick {
+        Some(HotspotResult::Special(SpecialClick {
             name: values.get(index).unwrap().to_string(),
             area
-        })
+        }))
+    })
+}
+
+pub fn click_generator(variety: &Arc<StructTemplate>, content: &Arc<StructTemplate>) -> Arc<dyn Fn(usize,Option<(SpaceBasePoint<f64,AuxLeaf>,SpaceBasePoint<f64,AuxLeaf>)>) -> Option<HotspotResult>> {
+    let variety = variety.clone();
+    let content = content.clone();
+    Arc::new(move |index,_| {
+        let built_content = content.set_index(&[],index).ok()?.build().ok()?;
+        let value_content = StructValue::new_expand(&built_content,None).ok()?;
+        let built_variety = variety.build().ok()?;
+        let value_variety = StructValue::new_expand(&built_variety,None).ok()?;
+        Some(HotspotResult::Click(value_variety,value_content))
+    })
+}
+
+fn ok_or_empty_click<E>(input: Result<StructTemplate,E>) -> StructTemplate {
+    input.unwrap_or_else(|_| {
+        StructTemplate::new_object(vec![])
     })
 }
 
@@ -153,10 +172,13 @@ impl HotspotPatina {
             },
             HotspotPatina::Special(value) => {
                 HotspotPatina::Special(value.filter(filter))
+            },
+            HotspotPatina::Click(id,value) => {
+                HotspotPatina::Click(id.clone(),Arc::new(ok_or_empty_click(value.filter(&[],filter))))
             }
         }
     }
-
+    
     fn compatible(&self, len: usize) -> bool {
         match self {
             HotspotPatina::ZMenu(_,values) => {
@@ -167,10 +189,13 @@ impl HotspotPatina {
             },
             HotspotPatina::Setting(value) => { value.compatible(len) },
             HotspotPatina::Special(value) => { value.compatible(len) },
+            HotspotPatina::Click(_,value) => { 
+                value.compatible(&[],len).unwrap_or(false)
+            }
         }
     }
 
-    pub fn generator(&self) -> Arc<dyn Fn(usize,Option<(SpaceBasePoint<f64,AuxLeaf>,SpaceBasePoint<f64,AuxLeaf>)>) -> HotspotResult> {
+    pub fn generator(&self) -> Arc<dyn Fn(usize,Option<(SpaceBasePoint<f64,AuxLeaf>,SpaceBasePoint<f64,AuxLeaf>)>) -> Option<HotspotResult>> {
         match self {
             HotspotPatina::ZMenu(zmenu,values) => {
                 zmenu_generator(&zmenu,values)
@@ -180,6 +205,9 @@ impl HotspotPatina {
             },
             HotspotPatina::Special(values) => {
                 special_generator(&values)
+            },
+            HotspotPatina::Click(variety,content) => {
+                click_generator(variety,content)
             }
         }
     }

@@ -10,7 +10,7 @@ path="../peregrine-data"
 
 [dependencies.eard-interp]
 version="*"
-path="../../eard/interp"
+path="../../peregrine-eard/interp"
 
 [dependencies.peregrine_toolkit]
 version="*"

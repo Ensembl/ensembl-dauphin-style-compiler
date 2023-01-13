@@ -4,6 +4,7 @@ use std::collections::hash_map::{ DefaultHasher };
 use std::collections::HashMap;
 use std::sync::{ Arc, Mutex };
 use commander::cdr_identity;
+use eachorevery::eoestruct::StructValue;
 use lazy_static::lazy_static;
 use peregrine_data::{DataMessage, ZMenuFixed, zmenu_item_list_to_json, GlobalAllotmentMetadata };
 use peregrine_message::{MessageKind, PeregrineMessage};
@@ -29,6 +30,7 @@ pub enum Message {
     TargetLocation(String,f64,f64),
     AllotmentMetadataReport(GlobalAllotmentMetadata),
     ZMenuEvent(f64,f64,Vec<ZMenuFixed>),
+    HotspotEvent(f64,f64,Vec<StructValue>,Vec<StructValue>),
     HitEndstop(Vec<Endstop>),
     Ready,
     /**/
@@ -52,6 +54,7 @@ impl PeregrineMessage for Message {
             Message::Ready => MessageKind::Interface,
             Message::AllotmentMetadataReport(_) => MessageKind::Interface,
             Message::ZMenuEvent(_,_,_) => MessageKind::Interface,
+            Message::HotspotEvent(_,_,_,_) => MessageKind::Interface,
             Message::HitEndstop(_) => MessageKind::Interface,
             _ => MessageKind::Error
         }
@@ -82,6 +85,7 @@ impl PeregrineMessage for Message {
             Message::Ready => (0,0),
             Message::AllotmentMetadataReport(_) => (0,0),
             Message::ZMenuEvent(_,_,_) => (0,0),
+            Message::HotspotEvent(_,_,_,_) => (0,0),
             Message::HitEndstop(_) => (0,0),
         }
     }
@@ -103,6 +107,7 @@ impl PeregrineMessage for Message {
             Message::Ready => format!("ready"),
             Message::AllotmentMetadataReport(metadata) => format!("allotment metadata: {:?}",metadata.summarize_json()),
             Message::ZMenuEvent(x,y,zmenu) => format!("zmenu event: {} at ({},{})",zmenu_item_list_to_json(zmenu),x,y),
+            Message::HotspotEvent(x,y,variety,contents) => format!("click event: {:?} : {:?} at ({},{})",variety,contents,x,y),
             Message::HitEndstop(x) => format!("hit endstop: {:?}",x.iter().map(|y| format!("{:?}",y)).collect::<Vec<_>>().join(", ")),
         }
     }

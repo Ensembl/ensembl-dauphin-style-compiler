@@ -1,5 +1,6 @@
 program "ensembl-webteam/core" "gene" 1;
 refer "libperegrine";
+refer "libeoe";
 include "track-common.eard";
 include "track-style.eard";
 include "gene-common-data.eard";
@@ -68,6 +69,10 @@ rectangle(coord(gene.start,[0,...],[-0.5,...]),coord(gene.end,[5,...],[0.5,...])
 
 let pen = pen("'IBM Plex Mono', sans-serif",10,colour!("#6f8190"),colour!("transparent"));
 running_text(coord(gene.start,[8,...],[0,...]),coord(gene.end,[8,...],[0,...]),pen,gene.name,gene.text_leaf);
+
+/* ZMenus */
+
+emit_gene_zmenu(*gene);
 
 /* Draw chevrons */
 

@@ -268,7 +268,7 @@
                 tr.appendChild(td4);
                 tbody.appendChild(tr);
               }
-          } else if(kind=="zmenu") {
+          } else if(kind=="hotspot" || kind=="zmenu") {
             let zmenu_data_el = document.getElementById("zmenu-click");
             let zmenu_data = more[0];
             zmenu_data_el.innerText = JSON.stringify(zmenu_data);

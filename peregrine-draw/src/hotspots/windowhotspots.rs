@@ -1,5 +1,5 @@
 use peregrine_data::{SingleHotspotEntry, CoordinateSystem, SpaceBasePointRef, AuxLeaf};
-use peregrine_toolkit::{hotspots::hotspotstore::HotspotStoreProfile, ubail};
+use peregrine_toolkit::{hotspots::hotspotstore::HotspotStoreProfile, ubail, log};
 use crate::stage::axis::UnitConverter;
 
 use super::{drawhotspotstore::PointPair, coordconverter::CoordToPxConverter};
@@ -60,38 +60,53 @@ impl WindowHotspotProfile {
 impl HotspotStoreProfile<SingleHotspotEntry> for WindowHotspotProfile {
     type Coords = (f64,f64);
     type Area = PointPair;
-    type Context = (UnitConverter,f64,f64);
+    type Context = (UnitConverter,f64,f64,f64);
 
     fn diagonalise(&self, x: usize, y: usize) -> usize { 
         if x == 0 { 0 } else if x == 1 { 2*y+1 } else { 2*y+2 }
     }
 
-    fn get_zones(&self, context: &(UnitConverter,f64,f64), coords: &(f64,f64)) -> Vec<(usize,usize)> {
-        vec![(0,0),(1,round(coords.1)),(2,round(context.2-coords.1))]
+    fn get_zones(&self, context: &(UnitConverter,f64,f64,f64), coords: &(f64,f64)) -> Vec<(usize,usize)> {
+        vec![
+            (0,0),
+            (1,round(coords.1)),
+            (2,round(context.2-coords.1))
+        ]
     }
 
-    fn intersects(&self, context: &(UnitConverter,f64,f64), coords: &(f64,f64), value: &SingleHotspotEntry) -> bool {
+    fn intersects(&self, context: &(UnitConverter,f64,f64,f64), coords: &(f64,f64), value: &SingleHotspotEntry) -> bool {
         let coord_to_px = ubail!(self.converter(&context.0),false);
-        value.coordinates().map(|(c1,c2)| {            
-            x_intersect(&coord_to_px,coords.0,context.1,&c1,&c2) &&
-            y_intersect(coords.1,context.2,*c1.normal,*c2.normal)
+        value.coordinates().map(|(c1,c2)| {
+            match c1.allotment.coord_system {
+                CoordinateSystem::TrackingWindow |
+                CoordinateSystem::Window => {
+                    x_intersect(&coord_to_px,coords.0,context.1,&c1,&c2) &&
+                    y_intersect(coords.1-context.3,context.2,*c1.normal,*c2.normal)        
+                },
+                CoordinateSystem::Content => {
+                    y_intersect(coords.1,context.2,*c1.normal,*c2.normal)
+                },
+                _ => false
+            }
         }).unwrap_or(false)
     }
 
     fn add_zones(&self, a: &PointPair) -> Option<(std::ops::Range<usize>,std::ops::Range<usize>)> {
-        match &a.0.allotment.coord_system {
-            CoordinateSystem::TrackingWindow => {}
-            CoordinateSystem::Window => {}
-            _ => { return None; }
-        }
         let s0 = round(a.0.normal);
         let s1 = round(a.1.normal);
         let (mut s0,mut s1) = (s0.min(s1),s0.max(s1));
-        let x = match (a.0.normal.is_sign_positive(),a.1.normal.is_sign_positive()) {
-            (true, true) =>   { 1 },
-            (false, false) => { 2 },
-            _ => { s0 = 0; s1 = 0; 0 }
+        let (x,y0,y1) = match &a.0.allotment.coord_system {
+            CoordinateSystem::TrackingWindow | CoordinateSystem::Window => {
+                let x = match (a.0.normal.is_sign_positive(),a.1.normal.is_sign_positive()) {
+                    (true, true) =>   { 1 },
+                    (false, false) => { 2 },
+                    _ => { s0 = 0; s1 = 0; 0 }
+                };
+                (x,s0,s1)
+            },
+            CoordinateSystem::Content => { (0,0,0) },
+            _ => { return None; }
         };
-        Some((x..(x+1),(s0..(s1+1))))
+        Some((x..(x+1),(y0..(y1+1))))
     }
 }

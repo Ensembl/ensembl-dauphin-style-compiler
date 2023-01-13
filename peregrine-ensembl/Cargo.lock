@@ -351,6 +351,16 @@ dependencies = [
  "async-thread",
  "minicbor",
  "serde_json",
+ "web-sys",
+]
+
+[[package]]
+name = "eard-libeoe"
+version = "0.1.0"
+dependencies = [
+ "async-std",
+ "eachorevery",
+ "eard-interp",
 ]
 
 [[package]]
@@ -825,6 +835,7 @@ dependencies = [
  "dauphin_lib_peregrine",
  "dauphin_lib_std",
  "eard-interp",
+ "eard-libeoe",
  "eard-libperegrine",
  "peregrine_data",
  "peregrine_dauphin_queue",

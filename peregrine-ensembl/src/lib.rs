@@ -303,6 +303,18 @@ impl GenomeBrowser {
                                     args.set(1,js_summary);
                                     let _ = closure.apply(&this,&args);
                                 },
+                                Message::HotspotEvent(x,y,varieties,contents) => {
+                                    let value = StructValue::new_object(vec![
+                                        ("x".to_string(),StructValue::new_number(*x)),
+                                        ("y".to_string(),StructValue::new_number(*y)),
+                                        ("variety".to_string(),StructValue::new_array(varieties.to_vec())),
+                                        ("content".to_string(),StructValue::new_array(contents.to_vec()))
+                                    ]);
+                                    let args = Array::new();
+                                    args.set(0,JsValue::from("hotspot"));
+                                    args.set(1,JsValue::from(js_throw(JsValue::from_serde(&value))));
+                                    let _ = closure.apply(&this,&args);
+                                },
                                 Message::ZMenuEvent(x,y,zmenus) => {
                                     let args = Array::new();
                                     let json = zmenu_to_json(*x,*y,zmenus);

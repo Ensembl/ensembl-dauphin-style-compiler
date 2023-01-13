@@ -11,15 +11,41 @@ export procedure draw_track_name(label,setting,leaf) {
     text(coord([0],[0],[8]),pen,[label],[leaf,...]);
 }
 
+struct!(variety_trackhover,"""
+    {
+        "type": "track-hover"
+    }
+""");
+
+function contents_trackhover(track_ids) {
+    struct!(contents_trackhover,"""
+(<0>!
+    {
+        "track": <0s>
+    }
+
+)
+""",
+    track_ids);
+   contents_trackhover 
+}
+
 /* Draw the G, V, etc in the left margin. Admits multiple tracks, so needs a seq in the last arg
  */
-export procedure draw_track_category(category,leafs) {
+export procedure draw_track_category(category,track_ids,leafs) {
+    capture variety_trackhover;
+
     let cat_text_size = 12;
     let cat_text_colour = colour!("#000");
 
     let count = len(leafs);
     let enough_zeros = repeat(0,count);
 
+    /* Draw the label itself */
     let pen = pen("'Lato', sans-serif",cat_text_size,cat_text_colour,colour!("transparent"));
     text(coord(enough_zeros,[5,...],[16,...]),pen,category,leafs);
+
+    /* Create a hotspot zone for tooltip hover */
+    let hotspot = paint_click(variety_trackhover,contents_trackhover(track_ids));
+    rectangle(coord(enough_zeros,[5,...],[16,...]),coord(enough_zeros,[15,...],[26,...]),hotspot,leafs);
 }

@@ -1,4 +1,5 @@
 use std::{sync::Arc };
+use eachorevery::eoestruct::{StructBuilt, StructValue};
 use peregrine_toolkit::{ identitynumber, orderable, hashable };
 use crate::{ZMenuFixed, SettingMode, SpaceBaseArea, HotspotPatina, SpaceBasePointRef, SpaceBasePoint, allotment::leafs::auxleaf::AuxLeaf};
 
@@ -11,7 +12,8 @@ pub struct SpecialClick {
 pub enum HotspotResult {
     ZMenu(ZMenuFixed),
     Setting(Vec<String>,SettingMode),
-    Special(SpecialClick)
+    Special(SpecialClick),
+    Click(StructValue,StructValue)
 }
 
 impl HotspotResult {
@@ -27,7 +29,7 @@ identitynumber!(IDS);
 
 #[derive(Clone)]
 pub struct HotspotGroupEntry {
-    generator: Arc<dyn Fn(usize,Option<(SpaceBasePoint<f64,AuxLeaf>,SpaceBasePoint<f64,AuxLeaf>)>) -> HotspotResult>,
+    generator: Arc<dyn Fn(usize,Option<(SpaceBasePoint<f64,AuxLeaf>,SpaceBasePoint<f64,AuxLeaf>)>) -> Option<HotspotResult>>,
     area: SpaceBaseArea<f64,AuxLeaf>,
     id: u64
 }
@@ -45,7 +47,7 @@ impl HotspotGroupEntry {
     }
 
     pub fn area(&self) -> &SpaceBaseArea<f64,AuxLeaf> { &self.area }
-    pub fn value(&self, index: usize) -> HotspotResult { 
+    pub fn value(&self, index: usize) -> Option<HotspotResult> { 
         let top_left = self.area.top_left().get(index).map(|x| x.make());
         let bottom_right = self.area.bottom_right().get(index).map(|x| x.make());
         let position = top_left.zip(bottom_right);
@@ -73,7 +75,7 @@ impl SingleHotspotEntry {
         self.unscaled.area().iter().nth(self.index)
     }
 
-    pub fn value(&self) -> HotspotResult {
+    pub fn value(&self) -> Option<HotspotResult> {
         self.unscaled.value(self.index)
     }
 }
