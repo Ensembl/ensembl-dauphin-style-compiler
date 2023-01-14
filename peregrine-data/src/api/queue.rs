@@ -113,11 +113,11 @@ impl ApiQueueCampaign {
                 data.train_set.transition_complete();
             },
             ApiMessage::SetPosition(centre,size,only_if_unknown) =>{
-                if let Some(centre) = centre {
-                    self.viewport = self.viewport.set_position(centre,only_if_unknown);
-                }
                 if let Some(size) = size {
                     self.viewport = self.viewport.set_bp_per_screen(size,only_if_unknown);
+                }
+                if let Some(centre) = centre {
+                    self.viewport = self.viewport.set_position(centre,only_if_unknown);
                 }
             },
             ApiMessage::SetMinPxPerCarriage(px) => {
