@@ -177,3 +177,22 @@ pub(crate) fn op_zmenu(gctx: &GlobalBuildContext) -> Result<Box<dyn Fn(&mut Glob
         Ok(Return::Sync)
     }))
 }
+
+pub(crate) fn op_paint_dotted(gctx: &GlobalBuildContext) -> Result<Box<dyn Fn(&mut GlobalContext,&[usize]) -> Result<Return,String>>,String> {
+    let colours = gctx.patterns.lookup::<HandleStore<Colour>>("colours")?;
+    let paints = gctx.patterns.lookup::<HandleStore<Patina>>("paint")?;
+    Ok(Box::new(move |ctx,regs| {
+        let colours = ctx.context.get(&colours);
+        let colour_a = to_direct(colours.get(ctx.force_number(regs[1])? as usize)?)?.clone();
+        let colour_b = to_direct(colours.get(ctx.force_number(regs[2])? as usize)?)?.clone();
+        let length = ctx.force_number(regs[3])?;
+        let width = ctx.force_number(regs[4])?;
+        let prop = ctx.force_number(regs[5])?;
+        let colour = Colour::Bar(colour_a,colour_b,(length as u32,length as u32),prop);
+        let paint = Patina::Drawn(DrawnType::Stroke(width),EachOrEvery::every(colour));
+        let paints = ctx.context.get_mut(&paints);
+        let h = paints.push(paint);
+        ctx.set(regs[0],Value::Number(h as f64))?;
+        Ok(Return::Sync)
+    }))
+}

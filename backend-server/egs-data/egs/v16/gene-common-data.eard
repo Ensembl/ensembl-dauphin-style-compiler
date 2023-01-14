@@ -48,6 +48,25 @@ export procedure get_gene_data() {
     *gene
 }
 
+/* Just the location data, eg for red dots */
+export procedure get_focus_transcript_data_minimal() {
+    let (focus_genome_id,focus_gene_id) = focus_gene_settings();
+
+    let req = request("self()","transcript");
+    scope(req,"id",focus_gene_id);
+    scope(req,"genome",focus_genome_id);
+    let data = get_data(req);
+    // halt(only_warm(),[data]);
+
+    let gene.id_unversioned = data_string(data,"gene_id");
+    let gene.id_version = data_string(data,"gene_id_version");
+    let gene.id_versioned = push_str(gene.id_unversioned,gene.id_version);
+    let gene.start = data_number(data,"starts");
+    let gene.end = gene.start + data_number(data,"lengths");
+
+    *gene
+}
+
 export procedure get_focus_transcript_data() {
     let (focus_genome_id,focus_gene_id) = focus_gene_settings();
 

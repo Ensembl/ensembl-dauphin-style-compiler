@@ -30,8 +30,7 @@ programs = [
     "transcript",
     "focus-zoomed-transcript",
     "focus-transcript",
-    "focus-region",
-    "focus-gene-dots"
+    "focus-region"
 ]
 
 [file.v16e.general]

@@ -42,19 +42,19 @@ let (focus_genome_id,focus_gene_id) = focus_gene_settings();
 
 let (*gene,*tr) = get_focus_transcript_data();
 
-/* Build gene name for label */
-
-let focus_gene_index = index(position(focus_gene_id==gene.id_unversioned),0);
+/* Map from gene to focus gene */
 // XXX and if it isn't here?
 
-let focus_gene_name = index(gene.name,focus_gene_index);
-let focus_label = join(" ",[focus_gene_name,focus_gene_id]);
+let focus_gene_index = index(position(focus_gene_id==gene.id_unversioned),0); 
+let **focus_gene = index(**gene,focus_gene_index);
 
 /* Setup leafs */
+
 let leaf.bgd = leaf("tracks/track/focus/main/background/content");
 let leaf.text = leaf(if(setting_boolean("focus-gene-label",[]),"tracks/track/focus/main/main/focus/text/content",""));
 let leaf.letter = leaf("tracks/track/focus/main/letter/content");
-
+let leaf.dots = leaf("dots/content");
+let leaf.flagtop = leaf("tracks/flagtop/main");
 let leaf.trackname = leaf("tracks/track/focus/title/content");
 let leaf.main = leaf("tracks/track/focus/main/main/focus/blocks/content");
 gene.block_leaf = [leaf("tracks/track/focus/main/main/focus/blocks/content"),...];
@@ -80,7 +80,7 @@ draw_focus_sidebar_chevrons(index(gene.strand,focus_gene_index),*leaf);
 /* Draw track furniture */
 
 draw_track_category(["G"],["focus"],[leaf.letter]);
-draw_track_name(focus_label,"name",leaf.trackname);
+draw_track_name(join(" ",[focus_gene.name,focus_gene_id]),"name",leaf.trackname);
 draw_swatch(colour!("#58a8f9"),[leaf.letter]);
 
 // id_gn_uv := data_string(data,"gene_id");
@@ -130,14 +130,6 @@ draw_swatch(colour!("#58a8f9"),[leaf.letter]);
 // /*
 //  * DRAW!
 //  */
-
-// /* focus swatch */
-// draw_focus_swatch(allotment_letter);
-
-// /* red-dotted lines */
-// start_focus := start#[id_gn_uv==focus_gene_id];
-// end_focus := end#[id_gn_uv==focus_gene_id];
-// //red_dotted(start_focus,end_focus,dotted_allotment,dotted_text_allotment,comma_format(start_focus),comma_format(end_focus));
 
 // /* report transcripts (not!) shown */
 

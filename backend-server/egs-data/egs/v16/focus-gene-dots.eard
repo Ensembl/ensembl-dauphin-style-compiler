@@ -1,0 +1,33 @@
+/* Just to draw the red dots on focus genes. Separated from everything else to allow it to run
+ * at every scale to allow label flipping without stressing performance by doing the other
+ * gene drawing stuff.
+ */
+
+program "ensembl-webteam/core" "focus-gene-dots" 1;
+refer "libperegrine";
+refer "libeoe";
+include "track-common.eard";
+include "track-style.eard";
+include "gene-common-data.eard";
+include "gene-common-visual.eard";
+
+track_styles();
+
+/* Get data */
+// XXX another strand?
+
+let (focus_genome_id,focus_gene_id) = focus_gene_settings();
+
+let *gene = get_focus_transcript_data_minimal();
+// halt(only_warm(),[focus_data]);
+
+let focus_gene_index = index(position(focus_gene_id==gene.id_unversioned),0); 
+let **focus_gene = index(**gene,focus_gene_index);
+
+let leaf_dots = leaf("dots/content");
+let leaf_text = leaf("tracks/flagtop/main");
+
+let text_start = comma_format(focus_gene.start);
+let text_end = comma_format(focus_gene.end);
+
+red_dotted(focus_gene.start,focus_gene.end,text_start,text_end,leaf_dots,leaf_text);
