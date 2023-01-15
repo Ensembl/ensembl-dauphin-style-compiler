@@ -3,7 +3,7 @@ from command.coremodel import DataHandler, Panel, DataAccessor
 from command.response import Response
 from model.chromosome import Chromosome
 from command.exceptionres import DataException
-from data.v15.dataalgorithm import data_algorithm
+from data.v16.dataalgorithm import data_algorithm
 
 def retrieve_range(data_accessor: DataAccessor,chrom: Chromosome, panel: Panel):
     item = chrom.item_seq_path("seqs")
@@ -21,7 +21,7 @@ def sequence_blocks8(out: Dict[str,bytes], data_accessor: DataAccessor, chrom: C
     out['sequence_start'] = data_algorithm("NRL",[panel.start])
     return out
 
-class ZoomedSeqDataHandler15(DataHandler):
+class ZoomedSeqDataHandler16(DataHandler):
     def process_data(self, data_accessor: DataAccessor, panel: Panel, scope, accept) -> Response:
         chrom = data_accessor.data_model.stick(data_accessor,panel.stick)
         if chrom == None:

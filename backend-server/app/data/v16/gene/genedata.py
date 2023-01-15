@@ -12,7 +12,7 @@ from .transcriptorder import sort_data_by_transcript_priority
 from .transcriptfilter import filter_lines_by_criteria
 from tangle.tangle import TangleFactory
 from model.datalocator import AccessItem
-from data.v15.dataalgorithm import data_algorithm
+from data.v16.dataalgorithm import data_algorithm
 from ncd import NCDRead
 
 # We might be asked for very zoomed-in views even when zoomed out for example if we are zoomed
@@ -127,15 +127,15 @@ def for_id(scope):
     else:
         return None
 
-class TranscriptDataHandler15(DataHandler):
+class TranscriptDataHandler16(DataHandler):
     def process_data(self, data_accessor: DataAccessor, panel: Panel, scope, accept) -> Response:
         return extract_gene_data(data_accessor,panel,True,for_id(scope),accept)
 
-class GeneDataHandler15(DataHandler):
+class GeneDataHandler16(DataHandler):
     def process_data(self, data_accessor: DataAccessor, panel: Panel, scope, accept) -> Response:
         return extract_gene_data(data_accessor,panel,False,for_id(scope),accept)
 
-class GeneOverviewDataHandler15(DataHandler):
+class GeneOverviewDataHandler16(DataHandler):
     def process_data(self, data_accessor: DataAccessor, panel: Panel,scope, accept) -> Response:
         chrom = data_accessor.data_model.stick(data_accessor,panel.stick)
         if chrom == None:

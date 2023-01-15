@@ -1,5 +1,5 @@
 use std::{str::{Chars, from_utf8}, sync::{Arc}, fmt};
-use peregrine_toolkit::{lesqlite2::lesqlite2_decode, serdetools::{st_field, ByteData}};
+use peregrine_toolkit::{lesqlite2::lesqlite2_decode, serdetools::{st_field, ByteData}, log};
 use serde::{Deserialize, Deserializer, de::{Visitor, self, IgnoredAny}};
 
 use super::data::{ReceivedData, ReceivedDataType};
@@ -141,8 +141,11 @@ impl StringAlgorithm {
             },
             StringAlgorithm::ZeroSplit(data) => {
                 let bytes = data.data_as_bytes()?;
-                let bytes = from_utf8(&bytes).map_err(|_| ())?;
-                Ok(Arc::new(bytes.split("\0").map(|x| x.to_string()).collect()))
+                let mut values = bytes.split(|b| *b==0).map(|b| {
+                    Ok(from_utf8(b).map_err(|_| ())?.to_string())
+                }).collect::<Result<Vec<_>,_>>()?;
+                values.pop();
+                Ok(Arc::new(values))
             },
             StringAlgorithm::Classify(index,values) => {
                 let values = values.make()?;

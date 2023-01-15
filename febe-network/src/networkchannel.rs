@@ -126,11 +126,11 @@ async fn send(url: &Url, prio: PacketPriority, data: Vec<u8>, timeout: Option<f6
 
 async fn send_wrap(url_str: String, prio: PacketPriority, packet: MaxiRequest, timeout: Option<f64>, cache_buster: String, decoder: ChannelMessageDecoder) -> Result<MaxiResponse,Error> {
     let url = Error::oper_r(Url::parse(&url_str),&format!("bad_url {}",url_str))?;
-    let data = Error::oper_r(serde_cbor::to_vec(&packet),"packet error")?;
+    let data = Error::oper_r(serde_cbor::to_vec(&packet),"packet error/B")?;
     let data = send(&url,prio,data,timeout,&cache_buster).await?;
     let mut deserializer = Deserializer::from_slice(&data);
     let deserialize = decoder.serde_deserialize_maxi(null_payload());
-    let response = Error::oper_r(deserialize.deserialize(&mut deserializer),"packet error")?;
-    Error::oper_r(deserializer.end(),"packet error")?;
+    let response = Error::oper_r(deserialize.deserialize(&mut deserializer),"packet error/C")?;
+    Error::oper_r(deserializer.end(),"packet error/D")?;
     Ok(response)
 }

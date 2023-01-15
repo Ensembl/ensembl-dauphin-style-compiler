@@ -27,7 +27,6 @@ specs_path="specs16"
 boot_for_version=[16]
 programs = [
     "zoomed-transcript",
-    "transcript",
     "focus-zoomed-transcript",
     "focus-transcript",
     "focus-region"

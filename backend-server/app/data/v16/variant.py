@@ -3,7 +3,7 @@ from command.response import Response
 from command.exceptionres import DataException
 from model.bigbed import get_bigwig_stats, get_bigwig
 from model.chromosome import Chromosome
-from data.v15.dataalgorithm import data_algorithm
+from data.v16.dataalgorithm import data_algorithm
 
 SCALE = 4000
 
@@ -47,7 +47,7 @@ def get_variant(data_accessor: DataAccessor, chrom: Chromosome, panel: Panel) ->
         return get_variant_exact(data_accessor, chrom, panel)
 
 
-class VariantDataHandler15(DataHandler):
+class VariantDataHandler16(DataHandler):
     def process_data(self, data_accessor: DataAccessor, panel: Panel, scope, accept) -> Response:
         chrom = data_accessor.data_model.stick(data_accessor,panel.stick)
         if chrom == None:

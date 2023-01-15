@@ -40,7 +40,7 @@ style!("""
 
 let (focus_genome_id,focus_gene_id) = focus_gene_settings();
 
-let (*gene,*tr) = get_focus_transcript_data();
+let (*gene,*tr,*ex) = get_focus_transcript_data();
 
 /* Map from gene to focus gene */
 // XXX and if it isn't here?

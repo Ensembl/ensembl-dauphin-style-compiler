@@ -8,6 +8,10 @@ export PATH="$PATH:$DIR/../../peregrine-eard/compiler/target/release"
 SRC="$DIR/egs-data/egs"
 DST="$DIR/egs-data/begs"
 
-dauphin -c $SRC/v16/focus-region.egs -c $SRC/v16/transcript.egs -c $SRC/v16/zoomed-transcript.egs -c $SRC/v16/focus-transcript.egs -c $SRC/v16/focus-zoomed-transcript.egs -o $DST/render16.begs -L peregrine -O2 
+dauphin -c $SRC/v16/focus-region.egs -c $SRC/v16/zoomed-transcript.egs -c $SRC/v16/focus-transcript.egs -c $SRC/v16/focus-zoomed-transcript.egs -o $DST/render16.begs -L peregrine -O2 
 dauphin -c $SRC/v16/test.egs -c $SRC/v16/test-with-data.egs -o $DST/test16.begs -L peregrine -O2 
-eard-compiler -c $SRC/v16/framing.eard -c $SRC/v16/gc.eard -c $SRC/v16/contig.eard -c $SRC/v16/zoomed-seq.eard -c $SRC/v16/variant.eard -c $SRC/v16/ruler.eard -c $SRC/v16/gene-overview.eard -c $SRC/v16/gene.eard -c $SRC/v16/focus-gene.eard -c $SRC/v16/focus-gene-dots.eard -o $DST/render16.eardo
+eard-compiler \
+    -c $SRC/v16/framing.eard -c $SRC/v16/gc.eard -c $SRC/v16/contig.eard \
+    -c $SRC/v16/zoomed-seq.eard -c $SRC/v16/variant.eard -c $SRC/v16/ruler.eard \
+    -c $SRC/v16/gene-overview.eard -c $SRC/v16/gene.eard -c $SRC/v16/focus-gene.eard \
+    -c $SRC/v16/focus-gene-dots.eard -c $SRC/v16/transcript.eard -o $DST/render16.eardo

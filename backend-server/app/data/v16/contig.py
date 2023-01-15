@@ -1,7 +1,7 @@
 import random
 from typing import List, Tuple
 
-from data.v15.dataalgorithm import data_algorithm
+from data.v16.dataalgorithm import data_algorithm
 from command.coremodel import DataHandler, Panel, DataAccessor
 from command.response import Response
 from model.bigbed import get_bigbed
@@ -101,7 +101,7 @@ def get_contig(data_accessor: DataAccessor, chrom: Chromosome, panel: Panel, do_
         'contig_lengths': data_algorithm("NDZRL",[x[1] - x[0] for x in positions]),
     }
 
-class ContigDataHandler15(DataHandler):
+class ContigDataHandler16(DataHandler):
     def process_data(self, data_accessor: DataAccessor, panel: Panel, scope, accept) -> Response:
         """
 
@@ -118,7 +118,7 @@ class ContigDataHandler15(DataHandler):
             raise DataException("Unknown chromosome {0}".format(panel.stick))
         return get_contig(data_accessor,chrom,panel,False)
 
-class ShimmerContigDataHandler15(DataHandler):
+class ShimmerContigDataHandler16(DataHandler):
     def process_data(self, data_accessor: DataAccessor, panel: Panel, scope, accept) -> Response:
         """
 

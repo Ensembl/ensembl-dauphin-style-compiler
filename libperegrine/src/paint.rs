@@ -3,6 +3,7 @@ use std::sync::Arc;
 use eachorevery::{EachOrEvery, eoestruct::StructTemplate};
 use eard_interp::{GlobalBuildContext, GlobalContext, HandleStore, Value, Return};
 use peregrine_data::{Colour, DirectColour, Patina, DrawnType, Plotter, Pen, AttachmentPoint, Background, HotspotPatina};
+use crate::util::eoe_from_handle;
 
 fn to_u8(v: f64) -> u8 { v as u8 }
 
@@ -121,6 +122,10 @@ fn to_direct(colour: &Colour) -> Result<&DirectColour,String> {
     }
 }
 
+fn to_direct_seq(ctx: &GlobalContext, input: &HandleStore<Colour>, reg: usize) -> Result<EachOrEvery<DirectColour>,String> {
+    Ok(eoe_from_handle(ctx,input,reg)?.map_results(|c| to_direct(c).cloned())?)
+}
+
 pub(crate) fn op_graph_type(gctx: &GlobalBuildContext) -> Result<Box<dyn Fn(&mut GlobalContext,&[usize]) -> Result<Return,String>>,String> {
     let colours = gctx.patterns.lookup::<HandleStore<Colour>>("colours")?;
     let graph_types = gctx.patterns.lookup::<HandleStore<Plotter>>("graph-types")?;
@@ -183,13 +188,15 @@ pub(crate) fn op_paint_dotted(gctx: &GlobalBuildContext) -> Result<Box<dyn Fn(&m
     let paints = gctx.patterns.lookup::<HandleStore<Patina>>("paint")?;
     Ok(Box::new(move |ctx,regs| {
         let colours = ctx.context.get(&colours);
-        let colour_a = to_direct(colours.get(ctx.force_number(regs[1])? as usize)?)?.clone();
-        let colour_b = to_direct(colours.get(ctx.force_number(regs[2])? as usize)?)?.clone();
         let length = ctx.force_number(regs[3])?;
         let width = ctx.force_number(regs[4])?;
         let prop = ctx.force_number(regs[5])?;
-        let colour = Colour::Bar(colour_a,colour_b,(length as u32,length as u32),prop);
-        let paint = Patina::Drawn(DrawnType::Stroke(width),EachOrEvery::every(colour));
+        let colour_a = to_direct_seq(ctx,colours,regs[1])?;
+        let colour_b= to_direct_seq(ctx,colours,regs[2])?;
+        let colour = colour_a.zip(&colour_b,|a,b| {
+            Colour::Bar(a.clone(),b.clone(),(length as u32,length as u32),prop)
+        });
+        let paint = Patina::Drawn(DrawnType::Stroke(width),colour);
         let paints = ctx.context.get_mut(&paints);
         let h = paints.push(paint);
         ctx.set(regs[0],Value::Number(h as f64))?;

@@ -25,13 +25,11 @@ export procedure focus_gene_settings() {
     )    
 }
 
-export procedure get_gene_data() {
-    let data = get_data(request("self()","gene"));
-    // halt(only_warm(),[data]);
-
+procedure extract_gene_data(data) {
     let gene.id_unversioned = data_string(data,"gene_id");
     let gene.id_version = data_string(data,"gene_id_version");
     let gene.id_versioned = push_str(gene.id_unversioned,gene.id_version);
+    let gene.stick = data_string(data,"stick");
     let gene.name = data_string(data,"gene_names");
     let gene.description = data_string(data,"gene_descs");
     let gene.start = data_number(data,"starts");
@@ -48,22 +46,34 @@ export procedure get_gene_data() {
     *gene
 }
 
-/* Just the location data, eg for red dots */
-export procedure get_focus_transcript_data_minimal() {
-    let (focus_genome_id,focus_gene_id) = focus_gene_settings();
+procedure extract_tr_data(data) {
+    let *gene = extract_gene_data(data);
 
-    let req = request("self()","transcript");
-    scope(req,"id",focus_gene_id);
-    scope(req,"genome",focus_genome_id);
-    let data = get_data(req);
+    let tr.start = data_number(data,"transcripts_starts");
+    let tr.end = tr.start + data_number(data,"transcripts_lengths");
+    let tr.designation = data_string(data,"transcript_designation");
+    let tr.id_unversioned  = data_string(data,"transcript_id");
+    let tr.id_version = data_string(data,"transcript_id_version");
+    let tr.id_versioned = push_str(tr.id_unversioned,tr.id_version);
+    let tr.biotype = data_string(data,"transcript_biotypes");
+    let tr.thick_start = data_number(data,"thicks_starts");
+    let tr.thick_end = tr.thick_start + data_number(data,"thicks_lengths");
+    let gene.tr_count = data_number(data,"transcript_counts");
+    let tr.position_in_gene = enumerate(gene.tr_count);
+    let tr.index_of_gene = count(gene.tr_count);
+    let exon.start = data_number(data,"transcript_exon_starts");
+    let exon.end = exon.start + data_number(data,"transcript_exon_lengths");
+    let tr.exon_count = data_number(data,"transcript_exon_counts");
+    let ex.index_of_tr = count(tr.exon_count);
+    let ex.index_of_gene = index(tr.index_of_gene,ex.index_of_tr);
+    (*gene,*tr,*exon)
+}
+
+export procedure get_gene_data() {
+    let data = get_data(request("self()","gene"));
     // halt(only_warm(),[data]);
 
-    let gene.id_unversioned = data_string(data,"gene_id");
-    let gene.id_version = data_string(data,"gene_id_version");
-    let gene.id_versioned = push_str(gene.id_unversioned,gene.id_version);
-    let gene.start = data_number(data,"starts");
-    let gene.end = gene.start + data_number(data,"lengths");
-
+    let *gene = extract_gene_data(data);
     *gene
 }
 
@@ -76,35 +86,17 @@ export procedure get_focus_transcript_data() {
     let data = get_data(req);
     // halt(only_warm(),[data]);
 
-    let gene.id_unversioned = data_string(data,"gene_id");
-    let gene.id_version = data_string(data,"gene_id_version");
-    let gene.id_versioned = push_str(gene.id_unversioned,gene.id_version);
-    let gene.name = data_string(data,"gene_names");
-    let gene.description = data_string(data,"gene_descs");
-    let gene.start = data_number(data,"starts");
-    let gene.end = gene.start + data_number(data,"lengths");
-    let gene.biotype = data_string(data,"gene_biotypes");
-    let gene.strand = data_number(data,"strands");
-    let gene.designation = data_string(data,"designated_transcript_designations");
-    let gene.desigtr_unversioned = data_string(data,"designated_transcript_id");
-    let gene.desigtr_version = data_string(data,"designated_transcript_id_version");
-    let gene.desigtr_versioned = push_str(gene.desigtr_unversioned,gene.desigtr_version);
-    let gene.desigtr_biotype = data_string(data,"designated_transcript_biotypes");
-    let gene.desigtr_designation = data_string(data,"designated_transcript_designations");
-    let gene.strand_string = if(gene.strand>0,["forward strand",...],["reverse strand",...]);
+    let (*gene,*tr,*ex) = extract_tr_data(data);
 
-    let tr.id_unversioned = data_string(data,"transcript_id");
-    let tr.id_version = data_string(data,"transcript_id_version");
-    let tr.id_versioned = push_str(tr.id_unversioned,tr.id_version);
+    (*gene,*tr,*ex)
+}
 
-    let gene.tr_count = data_number(data,"transcript_counts");
-    let tr.index_in_gene = enumerate(gene.tr_count);
-    let tr.which_gene = count(gene.tr_count);
+export procedure get_transcript_data() {
+    let data = get_data(request("self()","transcript"));
+    // halt(only_warm(),[data]);
 
-    /* focus only? */
-    let gene.stick = data_string(data,"stick");
-
-    (*gene,*tr)
+    let (*gene,*tr,*ex) = extract_tr_data(data);
+    (*gene,*tr,*ex)
 }
 
 export procedure allocate_genes_to_leaf_index(*gene) {

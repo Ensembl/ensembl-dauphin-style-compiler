@@ -5,7 +5,7 @@ from command.response import Response
 from model.bigbed import get_bigwig_stats, get_bigwig
 from model.chromosome import Chromosome
 from tangle.tangle import TangleFactory
-from data.v15.dataalgorithm import data_algorithm
+from data.v16.dataalgorithm import data_algorithm
 
 SCALE = 4
 
@@ -37,7 +37,7 @@ def _get_gc(data_accessor: DataAccessor, chrom: Chromosome, panel: Panel) -> Res
         "range": data_algorithm("NRL",[start, end])
     }
 
-class WiggleDataHandler15(DataHandler):
+class WiggleDataHandler16(DataHandler):
     def process_data(self, data_accessor: DataAccessor, panel: Panel, _scope, accept) -> Response:
         """
         Handle a request for wiggle data.

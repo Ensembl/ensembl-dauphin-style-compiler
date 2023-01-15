@@ -46,8 +46,8 @@ impl Dauphin {
     }
 
     pub fn add_binary(&mut self, cbor: &[u8]) -> Result<(),Error> {
-        let binary = serde_cbor::from_slice(cbor).map_err(|_| Error::operr("cannot parse program"))?;
-        let (instance,programs) = DauphinInstance::new(&self.suite,&binary).map_err(|_| Error::operr("cannot parse program"))?;
+        let binary = serde_cbor::from_slice(cbor).map_err(|e| Error::operr(&format!("cannot parse program: {}",e)))?;
+        let (instance,programs) = DauphinInstance::new(&self.suite,&binary).map_err(|e| Error::operr(&format!("cannot parse program: {}",e)))?;
         let instance = Rc::new(instance);
         for program in &programs {
             self.mapping.insert(program.to_string(),instance.clone());

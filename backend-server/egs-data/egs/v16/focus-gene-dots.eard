@@ -18,7 +18,7 @@ track_styles();
 
 let (focus_genome_id,focus_gene_id) = focus_gene_settings();
 
-let *gene = get_focus_transcript_data_minimal();
+let (*gene,*tr,*ex) = get_focus_transcript_data();
 // halt(only_warm(),[focus_data]);
 
 let focus_gene_index = index(position(focus_gene_id==gene.id_unversioned),0); 

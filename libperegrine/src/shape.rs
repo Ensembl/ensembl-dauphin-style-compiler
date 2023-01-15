@@ -3,6 +3,7 @@ use eachorevery::EachOrEvery;
 use eard_interp::{GlobalContext, GlobalBuildContext, Return, HandleStore, AsyncReturn };
 use peregrine_data::{ProgramShapesBuilder, SpaceBaseArea, PartialSpaceBase, SpaceBase, LeafRequest, Patina, Plotter, Pen, AccessorResolver, BackendNamespace};
 use peregrine_toolkit::{lock};
+use crate::util::eoe_from_handle;
 
 fn eoe_from_string_reg(ctx: &GlobalContext, reg: usize) -> Result<EachOrEvery<String>,String> {
     Ok(if !ctx.is_finite(reg)? {
@@ -14,20 +15,6 @@ fn eoe_from_string_reg(ctx: &GlobalContext, reg: usize) -> Result<EachOrEvery<St
             ctx.force_finite_string(reg)?.iter().map(|h| {
                 h.to_string()
             }).collect::<Vec<_>>()
-        )
-    })
-}
-
-fn eoe_from_handle<T: Clone>(ctx: &GlobalContext, input: &HandleStore<T>, reg: usize) -> Result<EachOrEvery<T>,String> {
-    Ok(if !ctx.is_finite(reg)? {
-        EachOrEvery::every(input.get(ctx.force_infinite_number(reg)? as usize)?.clone())
-    } else if ctx.is_atomic(reg)? {
-        EachOrEvery::every(input.get(ctx.force_number(reg)? as usize)?.clone())
-    } else {
-        EachOrEvery::each(
-            ctx.force_finite_number(reg)?.iter().map(|h| {
-                input.get(*h as usize).cloned()
-            }).collect::<Result<Vec<_>,_>>()?
         )
     })
 }
@@ -48,7 +35,7 @@ pub(crate) fn op_rectangle(gctx: &GlobalBuildContext) -> Result<Box<dyn Fn(&mut 
             PartialSpaceBase::from_spacebase(se)).ok_or_else(|| {
                 format!("coordinates differ in size when drawing rectangle")
             })?;
-        let leafs = eoe_from_handle(ctx,leafs,regs[3])?.index(|a| a.name().clone());;
+        let leafs = eoe_from_handle(ctx,leafs,regs[3])?.index(|a| a.name().clone());
         let area = area.replace_allotments(leafs);
         let paint = paints.get(ctx.force_number(regs[2])? as usize)?.clone();
         let shapes = ctx.context.get_mut(&shapes);
