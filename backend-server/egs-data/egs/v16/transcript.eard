@@ -6,56 +6,13 @@ include "track-style.eard";
 include "gene-common-data.eard";
 include "gene-common-visual.eard";
 include "gene-common-zmenu.eard";
+include "transcript-common.eard";
 
 /* Set styles */
 
 track_styles();
 gene_styles();
-
-style!("""
-    **/main/main/ {
-        type: bumper;
-    }
-
-    **/main/background/content {
-        depth: -10;
-        padding-top: 32;
-    }
-
-    **/main/main/*/ {
-        type: overlay;
-    }
-
-    **/main/main/*/text {
-        bump-width: none;
-        system: tracking-special;
-    }
-
-    **/main/main/*/button {
-        priority: 1000;
-        bump-width: none;
-    }
-
-    **/main/main/*/diagram/ {
-        type: overlay;
-    }
-
-    **/main/main/*/diagram/under {
-        depth: -2;
-    }
-
-    **/main/main/*/diagram/blanking {
-        depth: 1;
-    }
-
-    **/main/main/*/diagram/over {
-        depth: 2;
-    }
-
-    **/main/main/*/diagram/far-over {
-        depth: 3;
-    }
-""");
+transcript_styles();
 
 /* Get data */
 
@@ -74,124 +31,62 @@ let enabled_labels = enabled_tracks && enabled_gene_labels();
 let gene.leaf_index = allocate_genes_to_leaf_index(*gene);
 let tr_gene.leaf_index = index(gene.leaf_index,tr.index_of_gene);
 let tr.leaf_index = tr_gene.leaf_index;
-let exon.leaf_index = index(gene.leaf_index,exon.index_of_gene);
 
 /* Remove excess transcripts if several not set */
 
-let (shown_tr,last_tr) = calc_shown_transcripts(*tr);
+let (shown_tr,last_tr) = calc_shown_transcripts(*tr,enabled_several_transcripts());
 
 let gene.leaf_base = make_gene_leaf_base(*gene);
 let tr.leaf_base = index(gene.leaf_base,tr.index_of_gene);
 
-let gene.under_leaf = leaf(empty_off_gene(push_str(gene.leaf_base,"/diagram/under"),enabled_tracks,*gene));
-let gene.under_leaf = set_at(gene.under_leaf,focus_gene_index,[leaf("")]);
-let tr.under_leaf = index(gene.under_leaf,tr.index_of_gene);
-let tr.under_leaf = set(tr.under_leaf,!shown_tr,[leaf(""),...]);
+let *leaf_tr = tr_gene_leafs(*gene,*tr,shown_tr);
 
-let gene.text_leaf = leaf(empty_off_gene(push_str(gene.leaf_base,"/text"),enabled_tracks,*gene));
-let gene.text_leaf = set_at(gene.text_leaf,focus_gene_index,[leaf("")]);
-let tr.text_leaf = index(gene.text_leaf,tr.index_of_gene);
-let tr.text_leaf = set(tr.text_leaf,!shown_tr,[leaf(""),...]);
+let **exon_gene = index(**gene,exon.index_of_gene);
+let **exon_tr = index(**tr,exon.index_of_tr);
+let **leaf_exon_tr = index(**leaf_tr,exon.index_of_tr);
 
-let gene.over_leaf = leaf(empty_off_gene(push_str(gene.leaf_base,"/diagram/over"),enabled_tracks,*gene));
-let gene.over_leaf = set_at(gene.over_leaf,focus_gene_index,[leaf("")]);
-let tr.over_leaf = index(gene.over_leaf,tr.index_of_gene);
-let tr.over_leaf = set(tr.over_leaf,!shown_tr,[leaf(""),...]);
-let exon.over_leaf = index(tr.over_leaf,exon.index_of_tr);
-
-let gene.far_over_leaf = leaf(empty_off_gene(push_str(gene.leaf_base,"/diagram/far-over"),enabled_tracks,*gene));
-let gene.far_over_leaf = set_at(gene.far_over_leaf,focus_gene_index,[leaf("")]);
-let tr.far_over_leaf = index(gene.far_over_leaf,tr.index_of_gene);
-let tr.far_over_leaf = set(tr.far_over_leaf,!shown_tr,[leaf(""),...]);
-let exon.far_over_leaf = index(tr.far_over_leaf,exon.index_of_tr);
-
-let gene.blanking_leaf = leaf(empty_off_gene(push_str(gene.leaf_base,"/diagram/blanking"),enabled_tracks,*gene));
-let gene.blanking_leaf = set_at(gene.blanking_leaf,focus_gene_index,[leaf("")]);
-let tr.blanking_leaf = index(gene.blanking_leaf,tr.index_of_gene);
-let tr.blanking_leaf = set(tr.blanking_leaf,!shown_tr,[leaf(""),...]);
-let exon.blanking_leaf = index(tr.blanking_leaf,exon.index_of_tr);
-
-let (dots.start,dots.end,dots.tr) = 
-    gaps(tr_gene.start,tr_gene.end,tr.start,tr.end,enumerate([len(tr.start)]));
-
-let dotted_leaf = index(tr.under_leaf,dots.tr);
-let dotted_leaf_index = index(tr_gene.leaf_index,dots.tr);
-let dotted_position_in_gene = index(tr.position_in_gene,dots.tr);
-let y = dotted_position_in_gene * 20;
-let colours = index(gene_colours(),dotted_leaf_index);
+let *dots = calc_non_exons(*tr_gene,*tr,*leaf_tr);
+let y = dots.position_in_gene * 20;
+let colours = index(gene_colours(),dots.leaf_index);
 let paint = paint_dotted([colour!("white"),...],colours,4,0,0.5);
-rectangle(coord(dots.start,y+5,[0,...]),coord(dots.end,y+5,[0,...]),paint,dotted_leaf);
+rectangle(coord(dots.start,y+5,[0,...]),coord(dots.end,y+5,[0,...]),paint,dots.leaf);
 
 /* Draw solid lines and their endstops */
 
 let y = tr.position_in_gene * 20;
 let paint = paint_solid(index(gene_colours(),tr_gene.leaf_index));
-rectangle(coord(tr.start,y+5,[0,...]),coord(tr.end,y+6,[0,...]),paint,tr.under_leaf);
+rectangle(coord(tr.start,y+5,[0,...]),coord(tr.end,y+6,[0,...]),paint,leaf_tr.under_leaf);
 
 let paint = paint_hollow(index(gene_colours(),tr_gene.leaf_index),1);
-rectangle(coord(tr_gene.start,y+2,[0,...]),coord(tr_gene.start,y+8,[0,...]),paint,tr.under_leaf);
-rectangle(coord(tr_gene.end,y+2,[0,...]),coord(tr_gene.end,y+8,[0,...]),paint,tr.under_leaf);
+rectangle(coord(tr_gene.start,y+2,[0,...]),coord(tr_gene.start,y+8,[0,...]),paint,leaf_tr.under_leaf);
+rectangle(coord(tr_gene.end,y+2,[0,...]),coord(tr_gene.end,y+8,[0,...]),paint,leaf_tr.under_leaf);
 
 /* Draw hollow and blanking exons */
 
 let y = exon.tr_position_in_gene * 20;
-let paint = paint_hollow(index(gene_colours(),exon.leaf_index),3);
-rectangle(coord(exon.start,y+2,[0,...]),coord(exon.end,y+8,[0,...]),paint,exon.over_leaf);
+let paint = paint_hollow(index(gene_colours(),exon_tr.leaf_index),3);
+rectangle(coord(exon.start,y+2,[0,...]),coord(exon.end,y+8,[0,...]),paint,leaf_exon_tr.over_leaf);
 let paint = paint_solid(colour!("white"));
-rectangle(coord(exon.start,y+2,[0,...]),coord(exon.end,y+8,[0,...]),paint,exon.blanking_leaf);
-
-/* Calculate thick exons */
-
-let exon.thick_start = index(tr.thick_start,exon.index_of_tr);
-let exon.thick_end = index(tr.thick_end,exon.index_of_tr);
-let exon_hollow_on_left = exon.thick_start > exon.start;
-let exon_hollow_on_right = exon.thick_end < exon.end;
-
-/* Iinitially if an exon is thin on the left, we assign its thick start to the start of the
- * thick part of the tr. Of course, it could be entirely thin, in which case this will be after
- * the end of the whole exon. We fix this later. Resp for end.
- */
-let thick_exon.start = if(exon_hollow_on_left,exon.thick_start,exon.start);
-let thick_exon.end = if(exon_hollow_on_right,exon.thick_end,exon.end);
-
-/* Find those entirely thin exons and remove them */
-let entirely_thin = thick_exon.start > thick_exon.end;
-let thick_exon.start = select(thick_exon.start,!entirely_thin);
-let thick_exon.end = select(thick_exon.end,!entirely_thin);
-let thick_exon.index_of_exon = position(!entirely_thin);
-let thick_exon.tr_position_in_gene = index(exon.tr_position_in_gene,thick_exon.index_of_exon);
-let thick_exon.leaf_index = index(exon.leaf_index,thick_exon.index_of_exon);
+rectangle(coord(exon.start,y+2,[0,...]),coord(exon.end,y+8,[0,...]),paint,leaf_exon_tr.blanking_leaf);
 
 /* Draw solid exons */
 
-let thick_exon.far_over_leaf = index(exon.far_over_leaf,thick_exon.index_of_exon);
+let *thick_exon = generate_thick_exons(*tr,*exon_tr,*exon);
+let thick_exon.far_over_leaf = index(leaf_exon_tr.far_over_leaf,thick_exon.index_of_exon);
 let y = thick_exon.tr_position_in_gene * 20;
 let paint = paint_solid(index(gene_colours(),thick_exon.leaf_index));
 rectangle(coord(thick_exon.start,y+2,[0,...]),coord(thick_exon.end,y+8,[0,...]),paint,thick_exon.far_over_leaf);
 
 /* Draw labels */
 
+let text = tr_label_text(*gene,*tr_gene,*tr,last_tr,enabled_gene_labels(),enabled_transcript_labels());
 let y = tr.position_in_gene * 20;
 let pen = pen("'IBM Plex Mono', sans-serif",10,colour!("#6f81ff"),colour!("transparent"));
-
-let gn_labels_by_track = enabled_gene_labels();
-let tr_labels_by_track = enabled_transcript_labels();
-
-let tr.gene_label = index(gn_labels_by_track,tr_gene.leaf_index);
-let tr.label = index(tr_labels_by_track,tr_gene.leaf_index);
-
-let gene_text = push_str(["\0c6F8190",...],gene.name);
-let gene_text = push_str(gene_text,["\0c- ",...]);
-
-let text = push_str(
-    if(tr.gene_label && last_tr,index(gene_text,tr.index_of_gene),["",...]),
-    if(tr.label,tr.id_versioned,["",...])
-);
-
-running_text(coord(tr_gene.start,y+10,[0,...]),coord(tr_gene.end,y+10,[0,...]),pen,text,tr.text_leaf);
+running_text(coord(tr_gene.start,y+10,[0,...]),coord(tr_gene.end,y+10,[0,...]),pen,text,leaf_tr.text_leaf);
 
 /* Draw zmenus */
-emit_tr_zmenu(*tr_gene,*tr);
+
+emit_tr_zmenu(*tr_gene,*tr,*leaf_tr);
 
 /* Draw track furniture */
 
@@ -207,59 +102,4 @@ draw_gene_track_category(*leaf);
 draw_track_chevrons(*leaf);
 draw_sidebar_chevrons(*leaf);
 
-// /*
-//  * prepare the zmenus
-//  */
-
-// /* metadata */
-// pt_zmenu_type := patina_zmenu(zmenu(""),["type"],[["gene-and-one-transcript"]][]);
-
-// /* transcript part */
-// transcript_strand_string := index(which_gn_by_tr,[strand_string]);
-// zmenu_tmpl := zmenu("[<light>Transcript</light> <strong>{versioned_id}</strong>] [<light>{designation}</light>] / [<light>{transcript_biotype}</light>] [<light>{strand}</light>]");
-// transcript_designation#[transcript_designation=="normal"] := "";
-// pt_zmenu_tr := patina_zmenu(zmenu_tmpl,
-//     ["gene_id","unversioned_id","versioned_id","transcript_biotype","strand",
-//      "designation","track","type"],
-//     [[id_gn_by_tr],[id_tr_uv],[id_tr_vr],[transcript_biotype],[transcript_strand_string],
-//      [transcript_designation],[transcript_track_name],[len([id_gn_by_tr]) (*) "transcript"]][]);
-
-// /* gene part */
-// gene_name_by_tr := index(which_gn_by_tr,[gene_name]);
-// id_gn_vr_by_tr := index(which_gn_by_tr,[id_gn_vr]);
-// id_gn_uv_by_tr := index(which_gn_by_tr,[id_gn_uv]);
-// track_name_by_tr := index(which_gn_by_tr,[track_name]);
-// gene_desc_by_tr := index(which_gn_by_tr,[gene_desc]);
-// gene_biotype_by_tr := index(which_gn_by_tr,[gene_biotype]);
-
-// zmenu_tmpl := zmenu(
-//     "[<light>Gene</light> {symbol}] / [<strong><focus>{versioned_id}</focus></strong>] [{name}] / [<light>{gene_biotype}</light>] [<light>{strand}</light>]");
-// pt_zmenu_gn := patina_zmenu(zmenu_tmpl,
-//     ["symbol","unversioned_id","versioned_id","track","type",
-//      "name","gene_biotype","strand"],
-//     [[gene_name_by_tr],[id_gn_uv_by_tr],[id_gn_vr_by_tr],[track_name_by_tr],["gene"],
-//      [gene_desc_by_tr],[gene_biotype_by_tr],[transcript_strand_string]][]);
-
-// /* zmenu areas */
-// c := idx_drawn_tr_gn * 20;
-// w := spacebase(start_tr,c,0);
-// e := spacebase(end_tr,c+20,0);
-// rectangle(w,e,pt_zmenu_type,al_under_by_tr);
-// rectangle(w,e,pt_zmenu_gn,al_under_by_tr);
-// rectangle(w,e,pt_zmenu_tr,al_under_by_tr);
-
-// /* gene & transcript labels */
-// draw_labels(
-//     false,
-//     idx_drawn_tr_gn, which_gn_by_tr,
-//     start_gn, end_gn,
-//     gene_name,id_tr_vr, textpen_blue,
-//     al_trtext_by_tr,
-//     num_drawn_tr_gn, textpen, bool_show_tr,
-//     enabled_gene_labels,  enabled_tr_labels,
-//     al_label_by_gn
-// );
-
 // /* lozenges */
-
-// //draw_lozenges(start_gn,num_drawn_tr_gn,id_gn_vr,expanded_genes,button_allotment);

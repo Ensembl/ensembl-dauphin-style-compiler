@@ -9,12 +9,22 @@ export function enabled_gene_tracks() {
     ]
 }
 
+export function enabled_focus_gene_track() {
+    setting_boolean("focus",[])
+}
+
 export function enabled_gene_labels() {
     [
         setting_boolean("other-rev-label",[]),
         setting_boolean("pc-rev-label",[]),
         setting_boolean("other-fwd-label",[]),
         setting_boolean("pc-fwd-label",[])
+    ]
+}
+
+export function enabled_focus_gene_labels() {
+    [
+        setting_boolean("focus-gene-label",[])
     ]
 }
 
@@ -27,6 +37,12 @@ export function enabled_transcript_labels() {
     ]
 }
 
+export function enabled_focus_transcript_labels() {
+    [
+        setting_boolean("focus-transcript-label",[])
+    ]
+}
+
 export function enabled_several_transcripts() {
     [
         setting_boolean("other-rev-several",[]),
@@ -36,12 +52,17 @@ export function enabled_several_transcripts() {
     ]
 }
 
+export function focus_enabled_several_transcripts() {
+    [
+        setting_boolean("several",[])
+    ]
+}
+
 let several = 5;
 
-export procedure calc_shown_transcripts(*tr) {
+export procedure calc_shown_transcripts(*tr,settings) {
     capture several;
 
-    let settings = enabled_several_transcripts();
     let tr_is_several = index(settings,tr.leaf_index);
     let leaf_limit = if(tr_is_several,[5,...],[1,...]);
     let last_shown = (

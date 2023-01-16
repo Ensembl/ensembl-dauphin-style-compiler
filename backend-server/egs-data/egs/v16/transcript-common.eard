@@ -1,0 +1,130 @@
+export procedure transcript_styles() {
+    style!("""
+        **/main/main/ {
+            type: bumper;
+        }
+
+        **/main/main/*/ {
+            type: overlay;
+        }
+
+        **/main/main/*/text {
+            bump-width: none;
+            system: tracking-special;
+        }
+
+        **/main/background/content {
+            depth: -10;
+            padding-top: 32;
+        }
+
+        **/main/main/*/button {
+            priority: 1000;
+            bump-width: none;
+        }
+
+        **/main/main/*/diagram/ {
+            type: overlay;
+        }
+
+        **/main/main/*/diagram/under {
+            depth: -2;
+        }
+
+        **/main/main/*/diagram/blanking {
+            depth: 1;
+        }
+
+        **/main/main/*/diagram/over {
+            depth: 2;
+        }
+
+        **/main/main/*/diagram/far-over {
+            depth: 3;
+        }
+    """);
+}
+
+export procedure tr_leaf(*gene,*tr,suffix,enabled_tracks,shown_tr) {
+    let (focus_genome_id,focus_gene_id) = focus_gene_settings();
+    let focus_gene_index = position(focus_gene_id==gene.id_unversioned); 
+
+    let leaf_gene = leaf(empty_off_gene(push_str(gene.leaf_base,suffix),enabled_tracks,*gene));
+    let leaf_gene = set_at(leaf_gene,focus_gene_index,[leaf("")]);
+    let leaf_tr = index(leaf_gene,tr.index_of_gene);
+    let leaf_tr = set(leaf_tr,!shown_tr,[leaf(""),...]);
+    leaf_tr
+}
+
+export procedure tr_focus_leaf(*gene,*tr,suffix,shown_tr) {
+    let leaf_gene = leaf(push_str(gene.leaf_base,suffix));
+    let leaf_tr = index(leaf_gene,tr.index_of_gene);
+    let leaf_tr = set(leaf_tr,!shown_tr,[leaf(""),...]);
+    leaf_tr
+}
+
+export procedure tr_gene_leafs(*gene,*tr,shown_tr) {
+    let enabled_tracks = enabled_gene_tracks();
+
+    let leaf_tr.under_leaf = tr_leaf(*gene,*tr,"/diagram/under",enabled_tracks,shown_tr);
+    let leaf_tr.text_leaf = tr_leaf(*gene,*tr,"/text",enabled_tracks,shown_tr);
+    let leaf_tr.over_leaf = tr_leaf(*gene,*tr,"/diagram/over",enabled_tracks,shown_tr);
+    let leaf_tr.far_over_leaf = tr_leaf(*gene,*tr,"/diagram/far-over",enabled_tracks,shown_tr);
+    let leaf_tr.blanking_leaf = tr_leaf(*gene,*tr,"/diagram/blanking",enabled_tracks,shown_tr);
+    *leaf_tr
+}
+
+export procedure tr_focus_gene_leafs(*gene,*tr,shown_tr) {
+    let leaf_tr.under_leaf = tr_focus_leaf(*gene,*tr,"/diagram/under",shown_tr);
+    let leaf_tr.text_leaf = tr_focus_leaf(*gene,*tr,"/text",shown_tr);
+    let leaf_tr.over_leaf = tr_focus_leaf(*gene,*tr,"/diagram/over",shown_tr);
+    let leaf_tr.far_over_leaf = tr_focus_leaf(*gene,*tr,"/diagram/far-over",shown_tr);
+    let leaf_tr.blanking_leaf = tr_focus_leaf(*gene,*tr,"/diagram/blanking",shown_tr);
+    *leaf_tr
+}
+
+export function calc_non_exons(*tr_gene,*tr,*leaf_tr) {
+    let (dots.start,dots.end,dots.tr) = 
+        gaps(tr_gene.start,tr_gene.end,tr.start,tr.end,enumerate([len(tr.start)]));
+
+    let dots.leaf = index(leaf_tr.under_leaf,dots.tr);
+    let dots.leaf_index = index(tr_gene.leaf_index,dots.tr);
+    let dots.position_in_gene = index(tr.position_in_gene,dots.tr);
+    *dots
+}
+
+export procedure generate_thick_exons(*tr,*exon_tr,*exon){
+    /* Calculate thick exons */
+
+    let exon_thick_start = index(tr.thick_start,exon.index_of_tr);
+    let exon_thick_end = index(tr.thick_end,exon.index_of_tr);
+
+    /* Iinitially if an exon is thin on the left, we assign its thick start to the start of the
+    * thick part of the tr. Of course, it could be entirely thin, in which case this will be after
+    * the end of the whole exon. We fix this later. Resp for end.
+    */
+    let thick_exon.start = if(exon_thick_start > exon.start, exon_thick_start,exon.start);
+    let thick_exon.end =   if(exon_thick_end < exon.end,     exon_thick_end,  exon.end);
+
+    /* Find those entirely thin exons and remove them */
+    let entirely_thin = thick_exon.start > thick_exon.end;
+    let thick_exon.start = select(thick_exon.start,!entirely_thin);
+    let thick_exon.end = select(thick_exon.end,!entirely_thin);
+    let thick_exon.index_of_exon = position(!entirely_thin);
+    let thick_exon.tr_position_in_gene = index(exon.tr_position_in_gene,thick_exon.index_of_exon);
+    let thick_exon.leaf_index = index(exon_tr.leaf_index,thick_exon.index_of_exon);    
+    *thick_exon
+}
+
+export function tr_label_text(*gene,*tr_gene,*tr,last_tr,gene_enabled,tr_enabled) {
+    let gene_label_pred = index(gene_enabled,tr_gene.leaf_index);
+    let tr_label_pred = index(tr_enabled,tr_gene.leaf_index);
+
+    let gene_text = push_str(["\0c6F8190",...],gene.name);
+    let gene_text = push_str(gene_text,["\0c- ",...]);
+
+    push_str(
+        if(gene_label_pred && last_tr,index(gene_text,tr.index_of_gene),["",...]),
+        if(tr_label_pred,tr.id_versioned,["",...])
+    )
+}
