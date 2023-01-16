@@ -1,3 +1,6 @@
+# 0.5.4
+  * Fix zoom speed.
+
 # 0.5.3
   * Features
     * Maypole vertical-aligner
