@@ -2,13 +2,13 @@ use std::collections::HashSet;
 
 use commander::CommanderStream;
 use peregrine_data::HotspotResult;
-use peregrine_toolkit::{debug_log, lock, log};
+use peregrine_toolkit::{debug_log, lock};
 use crate::{Message, PeregrineInnerAPI, PgCommanderWeb, input::{InputEvent, InputEventKind, low::lowlevel::LowLevelInput}, run::inner::LockedPeregrineInnerAPI};
 
 fn process_hotspot_event(api: &LockedPeregrineInnerAPI, x: f64, doc_y: f64) -> Result<(),Message> {
     let events = api.trainset.get_hotspot(&api.stage.lock().unwrap().read_stage(), (x,doc_y))?;
     let mut zmenus = vec![];
-    let mut hotspot_contents = vec![];
+    let mut hotspot_contents = HashSet::new();
     let mut hotspot_varieties = HashSet::new();
     for event in &events {
         if let Some(event) = event.value() {
@@ -33,7 +33,7 @@ fn process_hotspot_event(api: &LockedPeregrineInnerAPI, x: f64, doc_y: f64) -> R
                 },
                 HotspotResult::Special(_) => {},
                 HotspotResult::Click(_,contents) => {
-                    hotspot_contents.push(contents);
+                    hotspot_contents.insert(contents);
                 }
             }
         }
@@ -42,7 +42,7 @@ fn process_hotspot_event(api: &LockedPeregrineInnerAPI, x: f64, doc_y: f64) -> R
         api.report.zmenu_event(x,doc_y,zmenus);
     }
     if hotspot_contents.len() > 0 || hotspot_varieties.len() > 0 {
-        api.report.hotspot_event(x,doc_y,&hotspot_varieties.iter().cloned().collect::<Vec<_>>(),&hotspot_contents);
+        api.report.hotspot_event(x,doc_y,&hotspot_varieties.iter().cloned().collect::<Vec<_>>(),&hotspot_contents.drain().collect::<Vec<_>>());
     }
     Ok(())
 }

@@ -61,10 +61,10 @@ struct!(gene_zmenu,"""
     gene_zmenu
 }
 
-/* Transcript ZMenu payload */
+/* Transcript ZMenu payload when using designated transcript (ie at gene scale) */
 
-function tr_zmenu(*gene) {
-struct!(tr_zmenu,"""
+function gene_tr_zmenu(*gene) {
+struct!(gene_tr_zmenu,"""
 (<0,1,2,3,4,5,6>!
       {
         "data": [
@@ -120,6 +120,66 @@ struct!(tr_zmenu,"""
       gene.id_versioned,
       index(["gene-other-rev","gene-pc-rev","gene-other-fwd","gene-pc-fwd","focus"],gene.leaf_index)
   );
+  gene_tr_zmenu
+}
+
+function tr_zmenu(*tr_gene,*tr) {
+struct!(tr_zmenu,"""
+(<0,1,2,3,4,5,6>!
+      {
+        "data": [
+
+          /* First row */
+
+          [
+            {
+              "items": [
+                { "markup": ["light"], "text": "Transcript" },
+                { "markup": [], "text": " " },
+                { "markup": ["strong"], "text": <0s> }
+              ],
+              "type": "block"
+            },
+            {
+              "items": [{ "markup": ["light"], "text": <1s> }],
+              "type": "block"
+            }
+          ],
+
+          /* Second row */
+
+          [
+            {
+              "items": [{ "markup": ["light"], "text": <2s> }],
+              "type": "block"
+            },
+            {
+              "items": [{ "markup": ["light"], "text": <3s> }],
+              "type": "block"
+            }
+          ]
+        ],
+        "metadata": {
+          "designation": <1s>,
+          "gene_id": <5s>,
+          "strand": <3s>,
+          "track": <6s>,
+          "transcript_biotype": <2s>,
+          "type": "transcript",
+          "unversioned_id": <4s>,
+          "versioned_id": <0s>
+        }
+      }
+)
+""",
+    tr.id_versioned,
+    tr.designation,
+    tr.biotype,
+    tr_gene.strand_string,
+    tr.id_unversioned,
+    tr_gene.id_versioned,
+    index(["gene-other-rev","gene-pc-rev","gene-other-fwd","gene-pc-fwd","focus"],tr.leaf_index)
+  );
   tr_zmenu
 }
 
@@ -129,6 +189,18 @@ export procedure emit_gene_zmenu(*gene) {
     let paint_gene = paint_click(variety_zmenu,gene_zmenu(*gene));
     rectangle(coord(gene.start,[0,...],[0,...]),coord(gene.end,[8,...],[0,...]),paint_gene,gene.block_leaf);
 
-    let paint_tr = paint_click(variety_zmenu,tr_zmenu(*gene));
-    rectangle(coord(gene.start,[0,...],[0,...]),coord(gene.end,[8,...],[0,...]),paint_gene,gene.block_leaf);
+    let paint_tr = paint_click(variety_zmenu,gene_tr_zmenu(*gene));
+    rectangle(coord(gene.start,[0,...],[0,...]),coord(gene.end,[8,...],[0,...]),paint_tr,gene.block_leaf);
+}
+
+export procedure emit_tr_zmenu(*tr_gene,*tr) {
+  capture variety_zmenu;
+
+  let y = tr.position_in_gene * 20;
+
+  let paint_gene = paint_click(variety_zmenu,gene_zmenu(*tr_gene));
+  rectangle(coord(tr.start,y,[0,...]),coord(tr.end,y+8,[0,...]),paint_gene,tr.over_leaf);
+
+  let paint_tr = paint_click(variety_zmenu,tr_zmenu(*tr_gene,*tr));
+  rectangle(coord(tr.start,y,[0,...]),coord(tr.end,y+8,[0,...]),paint_tr,tr.over_leaf);
 }

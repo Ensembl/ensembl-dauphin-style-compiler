@@ -65,7 +65,7 @@ impl RectanglesData {
         let elements = builder.get_stanza_builder().make_elements(location.len(),&indexes)?;
         Ok(RectanglesData {
             elements, left,
-            width: if hollow { Some(0.) } else { None }, // XXX variable width
+            width: if hollow { Some(1.) } else { None }, // XXX variable width
             program: adder.clone(),
             location,
             kind: kind.clone()

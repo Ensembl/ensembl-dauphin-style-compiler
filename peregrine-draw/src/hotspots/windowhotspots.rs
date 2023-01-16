@@ -84,6 +84,7 @@ impl HotspotStoreProfile<SingleHotspotEntry> for WindowHotspotProfile {
                     y_intersect(coords.1-context.3,context.2,*c1.normal,*c2.normal)        
                 },
                 CoordinateSystem::Content => {
+                    x_intersect(&coord_to_px,coords.0,context.1,&c1,&c2) &&
                     y_intersect(coords.1,context.2,*c1.normal,*c2.normal)
                 },
                 _ => false

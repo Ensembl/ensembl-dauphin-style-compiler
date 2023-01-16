@@ -18,6 +18,39 @@ export function enabled_gene_labels() {
     ]
 }
 
+export function enabled_transcript_labels() {
+    [
+        setting_boolean("other-rev-transcript-label",[]),
+        setting_boolean("pc-rev-transcript-label",[]),
+        setting_boolean("other-fwd-transcript-label",[]),
+        setting_boolean("pc-fwd-transcript-label",[])
+    ]
+}
+
+export function enabled_several_transcripts() {
+    [
+        setting_boolean("other-rev-several",[]),
+        setting_boolean("pc-rev-several",[]),
+        setting_boolean("other-fwd-several",[]),
+        setting_boolean("pc-fwd-several",[])
+    ]
+}
+
+let several = 5;
+
+export procedure calc_shown_transcripts(*tr) {
+    capture several;
+
+    let settings = enabled_several_transcripts();
+    let tr_is_several = index(settings,tr.leaf_index);
+    let leaf_limit = if(tr_is_several,[5,...],[1,...]);
+    let last_shown = (
+        tr.position_in_gene == leaf_limit-1 || /* hit limit */
+        tr.position_in_gene == tr.count-1      /* las one */
+    );
+    (tr.position_in_gene<leaf_limit,last_shown)
+}
+
 export procedure focus_gene_settings() {
     (
         setting_string("focus-gene",["genome_id"]),
@@ -61,11 +94,13 @@ procedure extract_tr_data(data) {
     let gene.tr_count = data_number(data,"transcript_counts");
     let tr.position_in_gene = enumerate(gene.tr_count);
     let tr.index_of_gene = count(gene.tr_count);
+    let tr.count = index(gene.tr_count,tr.index_of_gene);
     let exon.start = data_number(data,"transcript_exon_starts");
     let exon.end = exon.start + data_number(data,"transcript_exon_lengths");
     let tr.exon_count = data_number(data,"transcript_exon_counts");
-    let ex.index_of_tr = count(tr.exon_count);
-    let ex.index_of_gene = index(tr.index_of_gene,ex.index_of_tr);
+    let exon.index_of_tr = count(tr.exon_count);
+    let exon.index_of_gene = index(tr.index_of_gene,exon.index_of_tr);
+    let exon.tr_position_in_gene = index(tr.position_in_gene,exon.index_of_tr);
     (*gene,*tr,*exon)
 }
 
