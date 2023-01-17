@@ -1,5 +1,5 @@
 use eachorevery::EachOrEvery;
-use peregrine_data::{ DirectColour, PenGeometry, Background, AuxLeaf, TextShape, SpaceBase };
+use peregrine_data::{ DirectColour, PenGeometry, AuxLeaf, TextShape, SpaceBase };
 use peregrine_toolkit::error::Error;
 use crate::shape::core::drawshape::{GLShape, ShapeToAdd, draw_points_from_canvas2, dims_to_sizes, GLAttachmentPoint};
 use crate::shape::layers::drawingtools::{DrawingToolsBuilder, CanvasType};
@@ -24,7 +24,7 @@ pub(crate) struct Text {
 }
 
 impl Text {
-    fn new(pen: &PenGeometry, text: &str, colour: &DirectColour, background: &Option<Background>) -> Text {
+    fn new(pen: &PenGeometry, text: &str, colour: &DirectColour, background: &DirectColour) -> Text {
         Text {
             text: Arc::new(StructuredText::new(pen,text,colour,background))
         }
@@ -66,7 +66,7 @@ impl DrawingText {
         DrawingText(vec![],fonts.clone(),bitmap_multiplier)
     }
 
-    fn make(&mut self, pen: &PenGeometry, text: &str, colour: &DirectColour, background: &Option<Background>) -> Text {
+    fn make(&mut self, pen: &PenGeometry, text: &str, colour: &DirectColour, background: &DirectColour) -> Text {
         let text = Text::new(pen,text,colour,background);
         self.0.push(text.clone());
         text
@@ -86,8 +86,9 @@ pub(crate) fn prepare_text(out: &mut Vec<GLShape>, tools: &mut DrawingToolsBuild
     let background = shape.pen().background();
     let texts = shape.iter_texts().collect::<Vec<_>>();
     let colours_iter = shape.pen().colours().iter(texts.len()).unwrap();
+    let bgd_iter = shape.pen().background().iter(texts.len()).unwrap();
     let mut all_texts = vec![];
-    for (text,colour) in texts.iter().zip(colours_iter) {
+    for (text,(colour,background)) in texts.iter().zip(colours_iter.zip(bgd_iter)) {
         let item = drawing_text.make(&shape.pen().geometry(),&text,colour,background);
         all_texts.push(item);
     }

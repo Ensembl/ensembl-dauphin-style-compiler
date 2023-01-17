@@ -1,5 +1,5 @@
 use std::{hash::{Hash, Hasher}, sync::Mutex};
-use peregrine_data::{PenGeometry, DirectColour, Background};
+use peregrine_data::{PenGeometry, DirectColour};
 use peregrine_toolkit::{lock, error::Error};
 use crate::{util::fonts::Fonts, webgl::canvas::htmlcanvas::canvasinuse::CanvasAndContext};
 
@@ -73,7 +73,7 @@ pub struct StructuredText {
     pen: PenGeometry,
     parts: Vec<StructuredTextPart>,
     colour: DirectColour,
-    background: Option<Background>
+    background: DirectColour
 }
 
 fn u32_to_directcolour(input: u32) -> DirectColour {
@@ -125,7 +125,7 @@ fn parse_structured_text(text: &str) -> Vec<StructuredTextPart> {
 }
 
 impl StructuredText {
-    pub(crate) fn new(pen: &PenGeometry, text: &str, colour: &DirectColour, background: &Option<Background>) -> StructuredText {
+    pub(crate) fn new(pen: &PenGeometry, text: &str, colour: &DirectColour, background: &DirectColour) -> StructuredText {
         let parts = parse_structured_text(text);
         StructuredText {
             pen: pen.clone(), parts, colour: colour.clone(), background: background.clone()
@@ -153,8 +153,7 @@ impl StructuredText {
 
     pub(crate) fn draw(&self, canvas: &mut CanvasAndContext, text_origin: (u32,u32), size: (u32,u32)) -> Result<(),Error> {
         canvas.set_font(&self.pen)?;
-        let background = self.background.clone().unwrap_or_else(|| Background::none());
-        canvas.background(text_origin,size,&background,false)?;
+        canvas.background(text_origin,size,&self.background,false)?;
         let mut offset = pad(text_origin);
         for part in &self.parts {
             part.draw(canvas,offset,self)?;

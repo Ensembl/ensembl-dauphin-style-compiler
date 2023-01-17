@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use eachorevery::{EachOrEvery, eoestruct::StructTemplate};
 use eard_interp::{GlobalBuildContext, GlobalContext, HandleStore, Value, Return};
-use peregrine_data::{Colour, DirectColour, Patina, DrawnType, Plotter, Pen, AttachmentPoint, Background, HotspotPatina};
+use peregrine_data::{Colour, DirectColour, Patina, DrawnType, Plotter, Pen, AttachmentPoint, HotspotPatina};
 use crate::util::eoe_from_handle;
 
 fn to_u8(v: f64) -> u8 { v as u8 }
@@ -153,13 +153,10 @@ pub(crate) fn op_pen(gctx: &GlobalBuildContext) -> Result<Box<dyn Fn(&mut Global
         } else {
             (size,AttachmentPoint::Left)
         };
-        let fgd_h = ctx.force_number(regs[3])? as usize;
-        let bgd_h = ctx.force_number(regs[4])? as usize;
         let colours = ctx.context.get(&colours);
-        let fgd = to_direct(colours.get(fgd_h)?)?.clone();
-        let bgd = to_direct(colours.get(bgd_h)?)?.clone();
-        let bgd = Background { colour: bgd, round: false };
-        let pen = Pen::new(&font,size as u32,&[fgd],&Some(bgd),&attachment);
+        let fgd = to_direct_seq(ctx,colours,regs[3])?.clone();
+        let bgd = to_direct_seq(ctx,colours,regs[4])?.clone();
+        let pen = Pen::new(&font,size as u32,&fgd,&bgd,&attachment);
         let pens = ctx.context.get_mut(&pens);
         let h = pens.push(pen);
         ctx.set(regs[0],Value::Number(h as f64))?;

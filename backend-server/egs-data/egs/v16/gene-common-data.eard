@@ -67,7 +67,7 @@ export procedure calc_shown_transcripts(*tr,settings) {
     let leaf_limit = if(tr_is_several,[5,...],[1,...]);
     let last_shown = (
         tr.position_in_gene == leaf_limit-1 || /* hit limit */
-        tr.position_in_gene == tr.count-1      /* las one */
+        tr.position_in_gene == tr.count-1      /* last one */
     );
     (tr.position_in_gene<leaf_limit,last_shown)
 }

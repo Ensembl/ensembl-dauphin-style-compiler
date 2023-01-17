@@ -71,7 +71,7 @@ let ruler_bp_leaf = leaf("window-top/ruler/main/content"); // follows scroll
 let ruler_under_leaf = leaf("window-top/ruler/background/underlay"); // static on screen, underneath
 let ruler_over_leaf = leaf("window-top/ruler/background/overlay"); // static on screen, on top
 
-let pen = pen("'IBM Plex Mono', sans-serif",12,colour!("#787878"),colour!("transparent"));
+let pen = pen("'IBM Plex Mono', sans-serif",12,[colour!("#787878"),...],[colour!("transparent"),...]);
 let paint = paint_hollow(colour!("#787878"),1);
 let bgd_paint = paint_solid(colour!("white"));
 

@@ -42,6 +42,14 @@ export procedure transcript_styles() {
         **/main/main/*/diagram/far-over {
             depth: 3;
         }
+
+        **/main/main/*/diagram/thick-over {
+            depth: 4;
+        }
+
+        **/main/main/*/diagram/thick-far-over {
+            depth: 5;
+        }
     """);
 }
 
@@ -66,6 +74,7 @@ export procedure tr_focus_leaf(*gene,*tr,suffix,shown_tr) {
 export procedure tr_gene_leafs(*gene,*tr,shown_tr) {
     let enabled_tracks = enabled_gene_tracks();
 
+    let leaf_tr.far_under_leaf = tr_leaf(*gene,*tr,"/diagram/far-under",enabled_tracks,shown_tr);
     let leaf_tr.under_leaf = tr_leaf(*gene,*tr,"/diagram/under",enabled_tracks,shown_tr);
     let leaf_tr.text_leaf = tr_leaf(*gene,*tr,"/text",enabled_tracks,shown_tr);
     let leaf_tr.over_leaf = tr_leaf(*gene,*tr,"/diagram/over",enabled_tracks,shown_tr);
@@ -83,7 +92,7 @@ export procedure tr_focus_gene_leafs(*gene,*tr,shown_tr) {
     *leaf_tr
 }
 
-export function calc_non_exons(*tr_gene,*tr,*leaf_tr) {
+export function calc_outside_of_tr(*tr_gene,*tr,*leaf_tr) {
     let (dots.start,dots.end,dots.tr) = 
         gaps(tr_gene.start,tr_gene.end,tr.start,tr.end,enumerate([len(tr.start)]));
 

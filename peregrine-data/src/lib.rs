@@ -214,7 +214,7 @@ mod shape {
 
     pub use self::core::{ 
         Patina, Pen, Colour, DirectColour, Plotter, DrawnType, HotspotPatina, PenGeometry,
-        Background, AttachmentPoint,
+        AttachmentPoint
     };
     pub use self::settingmode::SettingMode;
     pub use self::shape::{ ShapeDemerge, Shape };
@@ -310,7 +310,7 @@ pub use self::request::core::packetpriority::PacketPriority;
 pub use self::request::core::backend::{ AllBackends, Backend };
 pub use self::shape::shape::DrawingShape;
 pub use self::shape::{ 
-    Patina, Colour, DirectColour, DrawnType, Shape, HotspotPatina, PenGeometry, Background,
+    Patina, Colour, DirectColour, DrawnType, Shape, HotspotPatina, PenGeometry,
     Pen, Plotter, ShapeDemerge, SettingMode,
     ProgramShapesBuilder, RequestedShapesContainer, AttachmentPoint
 };

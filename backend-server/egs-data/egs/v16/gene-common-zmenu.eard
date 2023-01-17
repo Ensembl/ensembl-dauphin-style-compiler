@@ -193,10 +193,10 @@ export procedure emit_gene_zmenu(*gene) {
     rectangle(coord(gene.start,[0,...],[0,...]),coord(gene.end,[8,...],[0,...]),paint_tr,gene.block_leaf);
 }
 
-export procedure emit_tr_zmenu(*tr_gene,*tr,*leaf_tr) {
+export procedure emit_tr_zmenu(*tr_gene,*tr,*leaf_tr,tr_sep) {
   capture variety_zmenu;
 
-  let y = tr.position_in_gene * 20;
+  let y = tr.position_in_gene * tr_sep;
 
   let paint_gene = paint_click(variety_zmenu,gene_zmenu(*tr_gene));
   rectangle(coord(tr.start,y,[0,...]),coord(tr.end,y+8,[0,...]),paint_gene,leaf_tr.over_leaf);

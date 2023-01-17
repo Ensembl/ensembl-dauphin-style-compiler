@@ -14,22 +14,6 @@ pub enum AttachmentPoint {
     Right
 }
 
-#[derive(Clone,Hash)]
-#[cfg_attr(debug_assertions,derive(Debug))]
-pub struct Background {
-    pub colour: DirectColour,
-    pub round: bool
-}
-
-impl Background {
-    pub fn none() -> Background {
-        Background {
-            colour: DirectColour(255,255,255,0),
-            round: false
-        }
-    }
-}
-
 #[derive(Clone,Debug,PartialEq,Eq,Hash)]
 pub struct PenGeometry {
     name: String,
@@ -60,36 +44,32 @@ impl PenGeometry {
 pub struct Pen {
     geometry: Arc<PenGeometry>,
     colours: EachOrEvery<DirectColour>,
-    background: Option<Background>,
+    background: EachOrEvery<DirectColour>,
     attachment: AttachmentPoint
 }
 
 impl Pen {
-    fn new_real(geometry: &Arc<PenGeometry>, colours: &EachOrEvery<DirectColour>, background: &Option<Background>, attachment: &AttachmentPoint) -> Pen {
+    pub fn new(name: &str, size: u32, colours: &EachOrEvery<DirectColour>, background: &EachOrEvery<DirectColour>, attachment: &AttachmentPoint) -> Pen {
         Pen {
-            geometry: geometry.clone(),
+            geometry: Arc::new(PenGeometry::new(name,size)),
             colours: colours.clone(),
             background: background.clone(),
             attachment: attachment.clone()
         }
     }
 
-    pub fn new(name: &str, size: u32, colours: &[DirectColour], background: &Option<Background>, attachment: &AttachmentPoint) -> Pen {
-        let colours = if colours.len() == 1 {
-            EachOrEvery::every(colours[0].clone())
-        } else {
-            EachOrEvery::each(colours.to_vec())
-        };
-        Pen::new_real(&Arc::new(PenGeometry::new(name,size)), &colours.index(|x| x.clone()),background,attachment)
-    }
-
     pub fn geometry(&self) -> &PenGeometry { &self.geometry }
     pub fn colours(&self) -> &EachOrEvery<DirectColour> { &self.colours }
-    pub fn background(&self) -> &Option<Background> { &self.background }
+    pub fn background(&self) -> &EachOrEvery<DirectColour> { &self.background }
     pub fn attachment(&self) -> &AttachmentPoint { &self.attachment }
 
     pub fn filter(&self, filter: &EachOrEveryFilter) -> Pen {
-        Pen::new_real(&self.geometry,&self.colours.filter(filter),&self.background,&self.attachment)
+        Pen {
+            geometry: self.geometry.clone(),
+            colours: self.colours.filter(filter),
+            background: self.background.filter(filter),
+            attachment: self.attachment.clone()
+        }
     }
 }
 

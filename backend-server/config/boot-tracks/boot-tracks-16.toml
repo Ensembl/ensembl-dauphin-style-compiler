@@ -185,7 +185,7 @@ name = ["track","variant","name"]
 [track.contig-shimmer.general]
 include = ["general"]
 program_name = "contig"
-scales = [26,100,3]
+scales = [25,100,3]
 triggers = [["track","contig"]]
 
 [track.contig-shimmer.values]

@@ -45,7 +45,7 @@ let **exon_gene = index(**gene,exon.index_of_gene);
 let **exon_tr = index(**tr,exon.index_of_tr);
 let **leaf_exon_tr = index(**leaf_tr,exon.index_of_tr);
 
-let *dots = calc_non_exons(*tr_gene,*tr,*leaf_tr);
+let *dots = calc_outside_of_tr(*tr_gene,*tr,*leaf_tr);
 let y = dots.position_in_gene * 20;
 let colours = index(gene_colours(),dots.leaf_index);
 let paint = paint_dotted([colour!("white"),...],colours,4,0,0.5);
@@ -81,12 +81,12 @@ rectangle(coord(thick_exon.start,y+2,[0,...]),coord(thick_exon.end,y+8,[0,...]),
 
 let text = tr_label_text(*gene,*tr_gene,*tr,last_tr,enabled_gene_labels(),enabled_transcript_labels());
 let y = tr.position_in_gene * 20;
-let pen = pen("'IBM Plex Mono', sans-serif",10,colour!("#6f81ff"),colour!("transparent"));
+let pen = pen("'IBM Plex Mono', sans-serif",10,[colour!("#6f81ff"),...],[colour!("transparent"),...]);
 running_text(coord(tr_gene.start,y+10,[0,...]),coord(tr_gene.end,y+10,[0,...]),pen,text,leaf_tr.text_leaf);
 
 /* Draw zmenus */
 
-emit_tr_zmenu(*tr_gene,*tr,*leaf_tr);
+emit_tr_zmenu(*tr_gene,*tr,*leaf_tr,20);
 
 /* Draw track furniture */
 

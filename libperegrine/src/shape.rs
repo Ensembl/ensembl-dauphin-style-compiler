@@ -47,6 +47,31 @@ pub(crate) fn op_rectangle(gctx: &GlobalBuildContext) -> Result<Box<dyn Fn(&mut 
     }))
 }
 
+pub(crate) fn op_empty(gctx: &GlobalBuildContext) -> Result<Box<dyn Fn(&mut GlobalContext,&[usize]) -> Result<Return,String>>,String> {
+    let coords = gctx.patterns.lookup::<HandleStore<SpaceBase<f64,()>>>("coords")?;
+    let leafs = gctx.patterns.lookup::<HandleStore<LeafRequest>>("leaf")?;
+    let shapes = gctx.patterns.lookup::<Arc<Mutex<Option<ProgramShapesBuilder>>>>("shapes")?;
+    Ok(Box::new(move |ctx,regs| {
+        let coords = ctx.context.get(&coords);
+        let leafs = ctx.context.get(&leafs);
+        let nw = coords.get(ctx.force_number(regs[0] as usize)? as usize)?.clone();
+        let se = coords.get(ctx.force_number(regs[1] as usize)? as usize)?.clone();
+        let area = SpaceBaseArea::new(
+            PartialSpaceBase::from_spacebase(nw),
+            PartialSpaceBase::from_spacebase(se)).ok_or_else(|| {
+                format!("coordinates differ in size when drawing rectangle")
+            })?;
+        let leafs = eoe_from_handle(ctx,leafs,regs[2])?.index(|a| a.name().clone());
+        let area = area.replace_allotments(leafs);
+        let shapes = ctx.context.get_mut(&shapes);
+        let mut shapes = lock!(shapes);
+        shapes.as_mut().unwrap().add_empty(area).map_err(|e| {
+            format!("cannot add empty: {}",e.to_string())
+        })?;
+        Ok(Return::Sync)
+    }))
+}
+
 pub(crate) fn op_wiggle(gctx: &GlobalBuildContext) -> Result<Box<dyn Fn(&mut GlobalContext,&[usize]) -> Result<Return,String>>,String> {
     let shapes = gctx.patterns.lookup::<Arc<Mutex<Option<ProgramShapesBuilder>>>>("shapes")?;
     let graph_types = gctx.patterns.lookup::<HandleStore<Plotter>>("graph-types")?;

@@ -56,7 +56,7 @@ rectangle(coord(tr.start,y+5,[0,...]),coord(tr.end,y+6,[0,...]),paint,leaf_tr.un
 
 /* Draw dotted lines */
 
-let *dots = calc_non_exons(*tr_gene,*tr,*leaf_tr);
+let *dots = calc_outside_of_tr(*tr_gene,*tr,*leaf_tr);
 
 let y = dots.position_in_gene * 20;
 let colours = index(gene_colours(),dots.leaf_index);
@@ -83,12 +83,12 @@ rectangle(coord(thick_exon.start,y+2,[0,...]),coord(thick_exon.end,y+8,[0,...]),
 
 let text = tr_label_text(*gene,*tr_gene,*tr,last_tr,enabled_focus_gene_labels(),enabled_focus_transcript_labels());
 let y = tr.position_in_gene * 20;
-let pen = pen("'IBM Plex Mono', sans-serif",10,colour!("#6f81ff"),colour!("transparent"));
+let pen = pen("'IBM Plex Mono', sans-serif",10,[colour!("#6f81ff"),...],[colour!("transparent"),...]);
 running_text(coord(tr_gene.start,y+10,[0,...]),coord(tr_gene.end,y+10,[0,...]),pen,text,leaf_tr.text_leaf);
 
 /* Draw zmenus */
 
-emit_tr_zmenu(*tr_gene,*tr,*leaf_tr);
+emit_tr_zmenu(*tr_gene,*tr,*leaf_tr,20);
 
 /* Draw track furniture */
 
@@ -215,39 +215,6 @@ draw_focus_sidebar_chevrons(index(gene.strand,focus_gene_index),*leaf);
 // blue_text_bgd := background(blue_text_colour,true);
 // textpen_lozenge := pen("'IBM Plex Mono', sans-serif",text_size*1.2,white_text_colour,blue_text_bgd);
 
-
-// /*
-//  * prepare the zmenus
-//  */
-
-// /* metadata */
-// pt_zmenu_type := patina_zmenu(zmenu(""),["type"],[["gene-and-one-transcript"]][]);
-
-// /* transcript part */
-// transcript_strand_string := index(which_gn_by_tr,[strand_string]);
-// zmenu_tmpl := zmenu("[<light>Transcript</light> <strong>{versioned_id}</strong>] [<light>{designation}</light>] / [<light>{transcript_biotype}</light>] [<light>{strand}</light>]");
-// transcript_designation#[transcript_designation=="normal"] := "";
-// pt_zmenu_tr := patina_zmenu(zmenu_tmpl,
-//     ["gene_id","unversioned_id","versioned_id","transcript_biotype","strand",
-//      "designation","track","type"],
-//     [[id_gn_by_tr],[id_tr_uv],[id_tr_vr],[transcript_biotype],[transcript_strand_string],
-//      [transcript_designation],["focus"],[len([id_gn_by_tr]) (*) "transcript"]][]);
-
-// /* gene part */
-// gene_name_by_tr := index(which_gn_by_tr,[gene_name]);
-// id_gn_uv_by_tr := index(which_gn_by_tr,[id_gn_uv]);
-// id_gn_vr_by_tr := index(which_gn_by_tr,[id_gn_vr]);
-// gene_desc_by_tr := index(which_gn_by_tr,[gene_desc]);
-// gene_biotype_by_tr := index(which_gn_by_tr,[gene_biotype]);
-
-// zmenu_tmpl := zmenu(
-//     "[<light>Gene</light> {symbol}] / [<strong><focus>{versioned_id}</focus></strong>] [{name}] / [<light>{gene_biotype}</light>] [<light>{strand}</light>]");
-// pt_zmenu_gn := patina_zmenu(zmenu_tmpl,
-//     ["symbol","unversioned_id","versioned_id","track","type",
-//      "name","gene_biotype","strand"],
-//     [[gene_name_by_tr],[id_gn_uv_by_tr],[id_gn_vr_by_tr],["focus"],["gene"],
-//      [gene_desc_by_tr],[gene_biotype_by_tr],[transcript_strand_string]][]);
-
 // allotment_wallpaper#[on_another_stick] := use_allotment("");
 // allotment_dotted#[on_another_stick] := use_allotment("");
 // allotment_dotted_text#[on_another_stick] := use_allotment("");
@@ -260,18 +227,6 @@ draw_focus_sidebar_chevrons(index(gene.strand,focus_gene_index),*leaf);
 // al_button#[on_another_stick] := use_allotment("");
 // al_trtext_by_tr#[on_another_stick] := use_allotment("");
 // al_label_by_gn#[on_another_stick] := use_allotment("");
-
-// /*
-//  * draw everything!
-//  */
-
-// /* zmenu areas */
-// c := idx_drawn_tr_gn * 20;
-// w := spacebase(start_tr,c,0);
-// e := spacebase(end_tr,c+20,0);
-// rectangle(w,e,pt_zmenu_type,al_under_by_tr);
-// rectangle(w,e,pt_zmenu_gn,al_under_by_tr);
-// rectangle(w,e,pt_zmenu_tr,al_under_by_tr);
 
 // /* blue button */
 // //draw_lozenges(start_gn,num_drawn_tr_gn,id_gn_uv,expanded_genes,al_button);

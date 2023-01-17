@@ -7,7 +7,7 @@ export procedure draw_track_name(label,setting,leaf) {
     // Disable if turned off
     let leaf = if(setting_boolean(setting,[]),leaf,leaf(""));
 
-    let pen = pen("'IBM Plex Mono', sans-serif",name_text_size,name_text_colour,colour!("transparent"));
+    let pen = pen("'IBM Plex Mono', sans-serif",name_text_size,[name_text_colour,...],[colour!("transparent"),...]);
     text(coord([0],[0],[8]),pen,[label],[leaf,...]);
 }
 
@@ -47,7 +47,7 @@ export procedure draw_track_category(category,track_ids,leafs) {
     let enough_zeros = repeat(0,count);
 
     /* Draw the label itself */
-    let pen = pen("'Lato', sans-serif",cat_text_size,cat_text_colour,colour!("transparent"));
+    let pen = pen("'Lato', sans-serif",cat_text_size,[cat_text_colour,...],[colour!("transparent"),...]);
     text(coord(enough_zeros,[5,...],[16,...]),pen,category,leafs);
 
     /* Create a hotspot zone for tooltip hover */
@@ -77,8 +77,8 @@ export procedure red_dotted(pos_start,pos_end,text_start,text_end,dots_leaf,text
     /* We need a leftpen and a right pen because right-attachment is triggered by negative
      * font size.
      */
-    let pen_left = pen("'Lato', sans-serif",flip*12,colour!("#000000"),colour!("transparent"));
-    let pen_right = pen("'Lato', sans-serif",flip*-12,colour!("#000000"),colour!("transparent"));
+    let pen_left = pen("'Lato', sans-serif",flip*12,[colour!("#000000"),...],[colour!("transparent"),...]);
+    let pen_right = pen("'Lato', sans-serif",flip*-12,[colour!("#000000"),...],[colour!("transparent"),...]);
 
     /* Text */
     text(coord([pos_start],[8,...],[flip*8,...]),pen_left,[text_start],[text_leaf,...]);

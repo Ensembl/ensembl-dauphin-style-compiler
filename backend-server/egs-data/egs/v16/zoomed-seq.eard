@@ -37,7 +37,7 @@ let three_bonds = seq_letter_fwd == "C" || seq_letter_fwd == "G";
 
 /* Draw the base pair boxes, letters, and bonds */
 
-let base_pen = pen("'IBM Plex Mono', sans-serif",10,colour!("#6f8190"),colour!("transparent"));
+let base_pen = pen("'IBM Plex Mono', sans-serif",10,[colour!("#6f8190"),...],[colour!("transparent"),...]);
 let base_leaf = if(no_letters,leaf(""),leaf("tracks/track/contig/main/main/content"));
 let base_paint = paint_hollow(colour!("#6f8190"),1);
 let base_height = 10;
@@ -72,5 +72,5 @@ one_bond(select(letter_bp,three_bonds),0.5);
 
 /* draw track furniture */
 
-draw_track_name("Reference sequence","name",leaf("tracks/track/gc/title/content"));
-draw_track_category(["G"],["contig"],[leaf("tracks/track/gc/main/letter/content")]);
+draw_track_name("Reference sequence","name",leaf("tracks/track/contig/title/content"));
+draw_track_category(["G"],["contig"],[leaf("tracks/track/contig/main/letter/content")]);

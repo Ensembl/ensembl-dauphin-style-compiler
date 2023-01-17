@@ -2,13 +2,13 @@ use anyhow::{anyhow as err, bail};
 use eachorevery::{EachOrEvery, EachOrEveryGroupCompatible};
 use peregrine_toolkit::{lock};
 use crate::simple_interp_command;
-use peregrine_data::{Colour, DirectColour, DrawnType, Patina, Pen, Plotter, ShapeRequest, SpaceBase, ProgramShapesBuilder, Background, AttachmentPoint, ObjectBuilder, SettingMode, TrackMapping, ZMenu, HotspotPatina};
+use peregrine_data::{Colour, DirectColour, DrawnType, Patina, Pen, Plotter, ShapeRequest, SpaceBase, ProgramShapesBuilder, AttachmentPoint, ObjectBuilder, SettingMode, TrackMapping, ZMenu, HotspotPatina};
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
 use serde_cbor::Value as CborValue;
 use std::cmp::max;
-use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
+use std::vec;
 use crate::util::{get_instance, vec_to_eoe};
 use itertools::izip;
 
@@ -412,12 +412,11 @@ impl InterpCommand for PenInterpCommand {
             (size,AttachmentPoint::Left)
         };
         let colour_ids = registers.get_indexes(&self.3)?;
-        let background_id = registers.get_indexes(&self.4)?.get(0).cloned();
         drop(registers);
         let geometry_builder = get_instance::<ObjectBuilder>(context,"builder")?;
         let colours : anyhow::Result<Vec<_>> = colour_ids.iter().map(|id| geometry_builder.direct_colour(*id as u32)).collect();
-        let colours : Vec<DirectColour> = colours?.iter().map(|x| x.as_ref().clone()).collect();
-        let background = background_id.map(|id| geometry_builder.background(id as u32)).transpose()?.map(|x| x.as_ref().clone());
+        let colours = vec_to_eoe(colours?.iter().map(|x| x.as_ref().clone()).collect());
+        let background = EachOrEvery::every(DirectColour(0,0,0,0));
         let pen = Pen::new(&font,size as u32,&colours,&background,&attachment);
         let id = geometry_builder.add_pen(pen);
         let registers = context.registers_mut();
@@ -485,20 +484,10 @@ impl InterpCommand for BackgroundInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         let registers = context.registers_mut();
         let colours = registers.get_indexes(&self.1)?;
-        let rounded = registers.get_boolean(&self.2)?[0];
         drop(registers);
         let geometry_builder = get_instance::<ObjectBuilder>(context,"builder")?;
-        let colours : anyhow::Result<Vec<_>> = colours.iter().map(|id| geometry_builder.direct_colour(*id as u32)).collect();
-        let colours : Vec<DirectColour> = colours?.iter().map(|x| x.as_ref().clone()).collect();
-        let ids = colours.iter().map(|colour| {
-            let bgd = Background {
-                colour: colour.clone(),
-                round: rounded
-            };
-            geometry_builder.add_background(bgd) as usize
-        }).collect::<Vec<_>>();
         let registers = context.registers_mut();
-        registers.write(&self.0,InterpValue::Indexes(ids));
+        registers.write(&self.0,InterpValue::Indexes(vec![0]));
         Ok(CommandResult::SyncResult())
     }
 }
