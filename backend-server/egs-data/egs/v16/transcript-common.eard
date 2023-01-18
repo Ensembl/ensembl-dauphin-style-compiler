@@ -27,6 +27,10 @@ export procedure transcript_styles() {
             type: overlay;
         }
 
+        **/main/main/*/diagram/far-under {
+            depth: -3;
+        }
+
         **/main/main/*/diagram/under {
             depth: -2;
         }
@@ -84,6 +88,7 @@ export procedure tr_gene_leafs(*gene,*tr,shown_tr) {
 }
 
 export procedure tr_focus_gene_leafs(*gene,*tr,shown_tr) {
+    let leaf_tr.far_under_leaf = tr_focus_leaf(*gene,*tr,"/diagram/far-under",shown_tr);
     let leaf_tr.under_leaf = tr_focus_leaf(*gene,*tr,"/diagram/under",shown_tr);
     let leaf_tr.text_leaf = tr_focus_leaf(*gene,*tr,"/text",shown_tr);
     let leaf_tr.over_leaf = tr_focus_leaf(*gene,*tr,"/diagram/over",shown_tr);

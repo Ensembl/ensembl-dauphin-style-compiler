@@ -38,12 +38,13 @@ let three_bonds = seq_letter_fwd == "C" || seq_letter_fwd == "G";
 /* Draw the base pair boxes, letters, and bonds */
 
 let base_pen = pen("'IBM Plex Mono', sans-serif",10,[colour!("#6f8190"),...],[colour!("transparent"),...]);
-let base_leaf = if(no_letters,leaf(""),leaf("tracks/track/contig/main/main/content"));
+let base_leaf = leaf("tracks/track/contig/main/main/content");
+let letters_base_leaf = if(no_letters,leaf(""),leaf("tracks/track/contig/main/main/content"));
 let base_paint = paint_hollow(colour!("#6f8190"),1);
 let base_height = 10;
 
 procedure draw_base(position,letters,offset) {
-    capture base_pen, base_leaf, base_paint, base_height;
+    capture base_pen, base_leaf, letters_base_leaf, base_paint, base_height;
 
     /* draw the box */
     let nw = coord(position,[offset,...],[1,...]);
@@ -52,16 +53,16 @@ procedure draw_base(position,letters,offset) {
 
     /* draw the letter in the box */
     let text_coord = coord(position+0.5,[offset+1,...],[-3.5,...]);
-    text(text_coord,base_pen,letters,[base_leaf,...]);
+    text(text_coord,base_pen,letters,[letters_base_leaf,...]);
 }
 
 procedure one_bond(position,offset) {
-    capture base_paint, base_height, base_leaf;
+    capture base_paint, base_height, base_leaf, no_letters;
 
     /* draw the bond between boxes */
     let nw = coord(position+offset,[base_height,...],[0,...]);
     let se = coord(position+offset,[base_height+4,...],[1,...]);
-    rectangle(nw,se,base_paint,[base_leaf,...]);
+    rectangle(nw,se,base_paint,[if(no_letters,leaf(""),base_leaf),...]);
 }
 
 draw_base(letter_bp,seq_letter_fwd,0);
