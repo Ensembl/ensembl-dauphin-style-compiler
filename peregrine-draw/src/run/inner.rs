@@ -1,7 +1,6 @@
 use crate::domcss::dom::PeregrineDom;
 use crate::input::Input;
 use crate::integration::pgcommander::PgCommanderWeb;
-use crate::integration::pgdauphin::PgDauphinIntegrationWeb;
 use crate::integration::pgintegration::PgIntegration;
 use crate::shape::spectres::spectremanager::SpectreManager;
 use crate::stage::axis::ReadStageAxis;
@@ -168,7 +167,7 @@ impl PeregrineInnerAPI {
         let mut core = PeregrineCore::new(integration,commander.clone(),move |e| {
             routed_message(Some(commander_id),Message::DataError(DataMessage::XXXTransitional(e)))
         },&api_queue,&redraw_needed,channel_integrations).map_err(|e| Message::DataError(e))?;
-        peregrine_dauphin(Box::new(PgDauphinIntegrationWeb()),&core);
+        peregrine_dauphin(&core);
         core.add_backend(backend);
         report.run(&commander,&dom.shutdown());
         message_sender.add(Some(Message::Ready));

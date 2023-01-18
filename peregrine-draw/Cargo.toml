@@ -73,10 +73,6 @@ features = [
 [dependencies.js-sys]
 version = "^0.3.51"
 
-[dependencies.dauphin_interp]
-version="*"
-path="../dauphin-interp"
-
 [dependencies.peregrine_febe_network]
 version="*"
 path="../febe-network"

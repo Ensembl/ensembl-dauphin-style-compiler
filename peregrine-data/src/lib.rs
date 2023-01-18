@@ -188,13 +188,11 @@ mod request {
 }
 
 mod run {
-    pub mod instancepayload;
     pub mod pgcommander;
     pub mod pgdauphin;
     pub use self::pgcommander::Commander;
     pub use self::pgcommander::{ PgCommander, PgCommanderTaskSpec, add_task, complete_task, async_complete_task };
     pub use self::pgdauphin::{ PgDauphin };
-    pub use self::instancepayload::InstancePayload;
 }
 
 mod shape {
@@ -301,7 +299,7 @@ pub use self::core::channel::channelintegration::{ ChannelIntegration, ChannelSe
 pub use self::index::{ StickStore };
 pub use self::core::program::programbundle::{ SuppliedBundle, UnpackedSuppliedBundle };
 pub use self::shapeload::{ Region, ShapeStore, DataStore, ShapeRequest, LoadMode, ObjectBuilder, RunReport };
-pub use self::run::{ PgCommander, PgCommanderTaskSpec, PgDauphin, Commander, InstancePayload, add_task, complete_task, async_complete_task };
+pub use self::run::{ PgCommander, PgCommanderTaskSpec, PgDauphin, Commander, add_task, complete_task, async_complete_task };
 pub use self::request::core::maxirequest::{ MaxiRequest };
 pub use self::request::core::maxiresponse::{ MaxiResponse, MaxiResponseDeserialize };
 pub use self::request::core::minirequest::{ MiniRequest, MiniRequestAttempt };

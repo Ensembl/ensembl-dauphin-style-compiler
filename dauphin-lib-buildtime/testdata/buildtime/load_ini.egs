@@ -1,9 +1,0 @@
-import "lib:std";
-use "std";
-
-import "lib:buildtime";
-use "buildtime";
-
-print_compile("oink");
-x := load_ini("search:buildtime/test.ini","greetings","hello");
-assert(x=="world",true);

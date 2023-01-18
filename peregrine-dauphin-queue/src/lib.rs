@@ -35,8 +35,6 @@ pub struct PgEardoLoadTaskSpec {
 }
 
 pub enum PgDauphinTaskSpec {
-    Run(PgDauphinRunTaskSpec),
-    Load(PgDauphinLoadTaskSpec),
     LoadEardo(PgEardoLoadTaskSpec),
     RunEardo(PgEardoRunTaskSpec),
     Quit
@@ -66,25 +64,6 @@ impl PgDauphinQueue {
             queue
         }
     }
-
-    pub async fn load(&self, task: PgDauphinLoadTaskSpec) -> Result<(),Error> {
-        let waiter = CommanderStream::new();
-        self.queue.add(PgDauphinQueueEntry {
-            task: PgDauphinTaskSpec::Load(task),
-            channel: waiter.clone()
-        });
-        waiter.get().await
-    }
-
-    pub async fn run(&self, task: PgDauphinRunTaskSpec) -> Result<(),Error> {
-        let waiter = CommanderStream::new();
-        self.queue.add(PgDauphinQueueEntry {
-            task: PgDauphinTaskSpec::Run(task),
-            channel: waiter.clone()
-        });
-        waiter.get().await
-    }
-
 
     pub async fn load_eardo(&self, task: PgEardoLoadTaskSpec) -> Result<(),Error> {
         let waiter = CommanderStream::new();

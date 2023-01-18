@@ -275,47 +275,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "dauphin_interp"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "lazy_static 1.4.0",
- "peregrine_toolkit",
- "serde_cbor",
- "thiserror",
-]
-
-[[package]]
-name = "dauphin_lib_peregrine"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "dauphin_interp",
- "eachorevery",
- "inflate",
- "itertools",
- "owning_ref",
- "peregrine_data",
- "peregrine_toolkit",
- "serde_cbor",
- "serde_json",
- "url",
- "web-sys",
-]
-
-[[package]]
-name = "dauphin_lib_std"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "dauphin_interp",
- "hashbrown",
- "peregrine_toolkit",
- "serde_cbor",
- "web-sys",
-]
-
-[[package]]
 name = "eachorevery"
 version = "0.0.0"
 dependencies = [
@@ -783,7 +742,6 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "commander",
- "dauphin_interp",
  "eachorevery",
  "eard-interp",
  "futures",
@@ -809,9 +767,6 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "commander",
- "dauphin_interp",
- "dauphin_lib_peregrine",
- "dauphin_lib_std",
  "eard-interp",
  "eard-libeoe",
  "eard-libperegrine",
@@ -842,7 +797,6 @@ dependencies = [
  "commander",
  "console_error_panic_hook",
  "css-color-parser",
- "dauphin_interp",
  "eachorevery",
  "enum-iterator",
  "hostname",
@@ -1087,26 +1041,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-ident",
-]
-
-[[package]]
-name = "thiserror"
-version = "1.0.31"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bd829fe32373d27f76265620b5309d0340cb8550f523c1dda251d6298069069a"
-dependencies = [
- "thiserror-impl",
-]
-
-[[package]]
-name = "thiserror-impl"
-version = "1.0.31"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0396bc89e626244658bef819e22d0cc459e795a5ebe878e6ec336d1674a8d79a"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
 ]
 
 [[package]]

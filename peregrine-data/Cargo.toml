@@ -42,10 +42,6 @@ path="../peregrine-message"
 version="*"
 path="../peregrine-config"
 
-[dependencies.dauphin_interp]
-version="*"
-path="../dauphin-interp"
-
 [dependencies.peregrine_toolkit]
 version="*"
 path="../peregrine-toolkit"
