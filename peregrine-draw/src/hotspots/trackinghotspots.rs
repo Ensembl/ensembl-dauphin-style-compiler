@@ -82,8 +82,8 @@ impl HotspotStoreProfile<SingleHotspotEntry> for DrawingHotspotProfile {
         let (top_px,bottom_px) = order(a.0.normal,a.1.normal);
         Some((
             (
-                 ((left_scr*(HORIZ_ZONES as f64)).floor() as usize) ..
-                (((right_scr*(HORIZ_ZONES as f64)).floor() as usize)+1)
+                 ((left_scr.clamp(0.,1.)*(HORIZ_ZONES as f64)).floor() as usize) ..
+                (((right_scr.clamp(0.,1.)*(HORIZ_ZONES as f64)).floor() as usize)+1)
             ),(
                  ((top_px/(VERT_ZONE_HEIGHT as f64)) as usize) ..
                 (((bottom_px/(VERT_ZONE_HEIGHT as f64)) as usize)+1)

@@ -12,7 +12,7 @@ use crate::{Assets, PgCommanderTaskSpec, DrawingCarriage, BackendNamespace, Sett
 use commander::{CommanderStream, PromiseFuture};
 use eachorevery::eoestruct::StructValue;
 use peregrine_toolkit::error::{err_web_drop, Error};
-use peregrine_toolkit::{log_extra, lock, timer_start, timer_end, log};
+use peregrine_toolkit::{log_extra, lock, timer_start, timer_end};
 use peregrine_toolkit_async::sync::blocker::{Blocker, Lockout};
 use super::pgcore::PeregrineCore;
 
@@ -95,7 +95,7 @@ impl ApiQueueCampaign {
     }
 
     async fn run_message(&mut self, data: &mut PeregrineCore, message: ApiMessage) {
-        timer_start!(&format("api message {:?}",message));
+        timer_start!(&format!("api message"));
         match message {
             ApiMessage::WaitForApplicationReady => {
                 data.base.channel_registry.booted().await;
@@ -177,7 +177,7 @@ impl ApiQueueCampaign {
                 data.shutdown().run();
             }
         }
-        timer_end!(&format("api message {:?}",message));
+        timer_end!(&format!("api message"));
     }
 
     fn viewport(&self) -> &Viewport { &self.viewport }
