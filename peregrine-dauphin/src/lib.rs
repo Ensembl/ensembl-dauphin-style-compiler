@@ -7,9 +7,11 @@ use peregrine_data::{
 use peregrine_dauphin_queue::{ PgDauphinTaskSpec, PgEardoLoadTaskSpec, PgEardoRunTaskSpec };
 use eard_libperegrine::{build_libperegrine, prepare_libperegrine, LibPeregrineBuilder};
 use peregrine_toolkit::error::Error;
-use peregrine_toolkit::{log_extra, log};
+use peregrine_toolkit::time::now;
+use peregrine_toolkit::{log_extra, log, lock};
 use std::future::Future;
 use std::pin::Pin;
+use std::sync::{Arc, Mutex};
 
 fn load_eardo(interp: &mut Interpreter, spec: PgEardoLoadTaskSpec, stream: CommanderStream<Result<(),Error>>) {
     stream.add(interp.load(&spec.data).map_err(|e|
@@ -46,7 +48,7 @@ fn run_eardo(interp: &mut Interpreter, data_store: &DataStore,
         timeout: None,
         task: Box::pin(async move {
             let mut context = RunContext::new();
-            prepare_libcore(&mut context,&libcore_builder,LibcoreBrowser);
+            prepare_libcore(&mut context,&libcore_builder,LibcoreBrowser::new());
             result!(prepare_libperegrine(
                 &mut context,&libperegrine_builder,&data_store,
                 spec.payloads
@@ -61,11 +63,29 @@ fn run_eardo(interp: &mut Interpreter, data_store: &DataStore,
     add_task(&commander,task);
 }
 
-async fn call_up_async() -> Result<(),String> {
+async fn call_up_async(last_bounce: Arc<Mutex<Option<f64>>>) -> Result<(),String> {
+    let now = now().round();
+    let prev = *lock!(last_bounce);
+    if let Some(prev) = prev {
+        if prev != now {
+            cdr_tick(0).await;
+        }
+    }
+    *lock!(last_bounce) = Some(now);
     Ok(())
 }
 
-struct LibcoreBrowser;
+struct LibcoreBrowser {
+    last_bounce: Arc<Mutex<Option<f64>>>
+}
+
+impl LibcoreBrowser {
+    fn new() -> LibcoreBrowser {
+        LibcoreBrowser {
+            last_bounce: Arc::new(Mutex::new(None))
+        }
+    }
+}
 
 impl LibcoreTemplate for LibcoreBrowser {
     fn print(&self, s: &str) {
@@ -73,13 +93,13 @@ impl LibcoreTemplate for LibcoreBrowser {
     }
 
     fn call_up(&self) -> Pin<Box<dyn Future<Output=Result<(),String>>>> {
-        Box::pin(call_up_async())
+        let last_bounce = self.last_bounce.clone();
+        Box::pin(call_up_async(last_bounce))
     }    
 }
 
 fn eard_interp() -> Result<(Interpreter,LibcoreBuilder,LibPeregrineBuilder,LibEoEBuilder),String> {
     let mut builder = InterpreterBuilder::new();
-    builder.set_step_by_step(true);
     let libcore_builder = build_libcore(&mut builder)?;
     let libperegrine_builder = build_libperegrine(&mut builder)?;
     let libeoe_builder = build_libeoe(&mut builder)?;

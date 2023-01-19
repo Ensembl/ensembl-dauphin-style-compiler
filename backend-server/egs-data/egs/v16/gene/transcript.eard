@@ -1,0 +1,105 @@
+program "ensembl-webteam/core" "transcript" 1;
+refer "libperegrine";
+refer "libeoe";
+include "../common/track-common.eard";
+include "../common/track-style.eard";
+include "gene-common-data.eard";
+include "gene-common-visual.eard";
+include "gene-common-zmenu.eard";
+include "transcript-common.eard";
+
+/* Set styles */
+
+track_styles();
+gene_styles();
+transcript_styles();
+
+/* Get data */
+
+let (*gene,*tr,*exon) = get_transcript_data();
+
+let (focus_genome_id,focus_gene_id) = focus_gene_settings();
+let focus_gene_index = position(focus_gene_id==gene.id_unversioned); 
+
+let **tr_gene = index(**gene,tr.index_of_gene);
+
+let enabled_tracks = enabled_gene_tracks();
+let enabled_labels = enabled_tracks && enabled_gene_labels();
+
+/* Draw dotted lines between gene start/end and transcript start/end */
+
+let gene.leaf_index = allocate_genes_to_leaf_index(*gene);
+let tr_gene.leaf_index = index(gene.leaf_index,tr.index_of_gene);
+let tr.leaf_index = tr_gene.leaf_index;
+
+/* Remove excess transcripts if several not set */
+
+let (shown_tr,last_tr) = calc_shown_transcripts(*tr,enabled_several_transcripts());
+
+let gene.leaf_base = make_gene_leaf_base(*gene);
+let tr.leaf_base = index(gene.leaf_base,tr.index_of_gene);
+
+let *leaf_tr = tr_gene_leafs(*gene,*tr,shown_tr);
+
+let **exon_gene = index(**gene,exon.index_of_gene);
+let **exon_tr = index(**tr,exon.index_of_tr);
+let **leaf_exon_tr = index(**leaf_tr,exon.index_of_tr);
+
+let *dots = calc_outside_of_tr(*tr_gene,*tr,*leaf_tr);
+let y = dots.position_in_gene * 20;
+let colours = index(gene_colours(),dots.leaf_index);
+let paint = paint_dotted([colour!("white"),...],colours,4,0,0.5);
+rectangle(coord(dots.start,y+5,[0,...]),coord(dots.end,y+5,[0,...]),paint,dots.leaf);
+
+/* Draw solid lines and their endstops */
+
+let y = tr.position_in_gene * 20;
+let paint = paint_solid(index(gene_colours(),tr_gene.leaf_index));
+rectangle(coord(tr.start,y+5,[0,...]),coord(tr.end,y+6,[0,...]),paint,leaf_tr.under_leaf);
+
+let paint = paint_hollow(index(gene_colours(),tr_gene.leaf_index),1);
+rectangle(coord(tr_gene.start,y+2,[0,...]),coord(tr_gene.start,y+8,[0,...]),paint,leaf_tr.under_leaf);
+rectangle(coord(tr_gene.end,y+2,[0,...]),coord(tr_gene.end,y+8,[0,...]),paint,leaf_tr.under_leaf);
+
+/* Draw hollow and blanking exons */
+
+let y = exon.tr_position_in_gene * 20;
+let paint = paint_hollow(index(gene_colours(),exon_tr.leaf_index),3);
+rectangle(coord(exon.start,y+2,[0,...]),coord(exon.end,y+8,[0,...]),paint,leaf_exon_tr.over_leaf);
+let paint = paint_solid(colour!("white"));
+rectangle(coord(exon.start,y+2,[0,...]),coord(exon.end,y+8,[0,...]),paint,leaf_exon_tr.blanking_leaf);
+
+/* Draw solid exons */
+
+let *thick_exon = generate_thick_exons(*tr,*exon_tr,*exon);
+let thick_exon.far_over_leaf = index(leaf_exon_tr.far_over_leaf,thick_exon.index_of_exon);
+let y = thick_exon.tr_position_in_gene * 20;
+let paint = paint_solid(index(gene_colours(),thick_exon.leaf_index));
+rectangle(coord(thick_exon.start,y+2,[0,...]),coord(thick_exon.end,y+8,[0,...]),paint,thick_exon.far_over_leaf);
+
+/* Draw labels */
+
+let text = tr_label_text(*gene,*tr_gene,*tr,last_tr,enabled_gene_labels(),enabled_transcript_labels());
+let y = tr.position_in_gene * 20;
+let pen = pen("'IBM Plex Mono', sans-serif",10,[colour!("#6f81ff"),...],[colour!("transparent"),...]);
+running_text(coord(tr_gene.start,y+10,[0,...]),coord(tr_gene.end,y+10,[0,...]),pen,text,leaf_tr.text_leaf);
+
+/* Draw zmenus */
+
+emit_tr_zmenu(*tr_gene,*tr,*leaf_tr,20);
+
+/* Draw track furniture */
+
+let leaf.bgd = make_gene_leafs("main/background/content",enabled_tracks);
+let leaf.trackname = make_gene_leafs("title/content",enabled_tracks);
+let leaf.letter = make_gene_leafs("main/letter/content",enabled_tracks);
+
+draw_gene_track_names(*leaf);
+draw_gene_track_category(*leaf);
+
+/* Draw chevrons */
+
+draw_track_chevrons(*leaf);
+draw_sidebar_chevrons(*leaf);
+
+// /* lozenges */
