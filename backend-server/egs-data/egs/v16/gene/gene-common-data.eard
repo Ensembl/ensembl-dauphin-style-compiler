@@ -72,6 +72,26 @@ export procedure calc_shown_transcripts(*tr,settings) {
     (tr.position_in_gene<leaf_limit,last_shown)
 }
 
+export procedure calc_focus_shown_transcripts(*tr,settings) {
+    /* get list */
+    let wanted = setting_string_seq("enabled-transcripts",[]);
+
+    /* find where in our transcript list those transcripts are */
+    let shown_tr_index = find(tr.id_versioned,wanted);
+    let shown_tr_index = select(shown_tr_index,shown_tr_index!=-1);
+
+    /* set booleans at drawn locations */
+    let shown_tr = set_at(repeat(false,len(tr.start)),shown_tr_index,[true,...]);
+
+    /* set location on screen */
+    let sorted_shown_tr_index = position(shown_tr);
+    // yuk! should maybe be an internal function. horribly inefficient!
+    let tr_position = set_at(repeat(0,len(tr.start)),sorted_shown_tr_index,enumerate([len(tr.start)]));
+
+    let last_tr = set_at(repeat(false,len(tr.start)),[max_seq(shown_tr_index)],[true,...]);
+    (shown_tr,last_tr,tr_position)
+}
+
 export procedure focus_gene_settings() {
     (
         setting_string("focus-gene",["genome_id"]),
@@ -121,7 +141,6 @@ procedure extract_tr_data(data) {
     let tr.exon_count = data_number(data,"transcript_exon_counts");
     let exon.index_of_tr = count(tr.exon_count);
     let exon.index_of_gene = index(tr.index_of_gene,exon.index_of_tr);
-    let exon.tr_position_in_gene = index(tr.position_in_gene,exon.index_of_tr);
     (*gene,*tr,*exon)
 }
 

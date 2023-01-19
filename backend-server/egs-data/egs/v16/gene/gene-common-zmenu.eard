@@ -204,3 +204,15 @@ export procedure emit_tr_zmenu(*tr_gene,*tr,*leaf_tr,tr_sep) {
   let paint_tr = paint_click(variety_zmenu,tr_zmenu(*tr_gene,*tr));
   rectangle(coord(tr.start,y,[0,...]),coord(tr.end,y+15,[0,...]),paint_tr,leaf_tr.over_leaf);
 }
+
+export procedure emit_focus_tr_zmenu(*tr_gene,*tr,*leaf_tr,tr_sep) {
+  capture variety_zmenu;
+
+  let y = tr.position * tr_sep;
+
+  let paint_gene = paint_click(variety_zmenu,gene_zmenu(*tr_gene));
+  rectangle(coord(tr.start,y,[0,...]),coord(tr.end,y+15,[0,...]),paint_gene,leaf_tr.over_leaf);
+
+  let paint_tr = paint_click(variety_zmenu,tr_zmenu(*tr_gene,*tr));
+  rectangle(coord(tr.start,y,[0,...]),coord(tr.end,y+15,[0,...]),paint_tr,leaf_tr.over_leaf);
+}
