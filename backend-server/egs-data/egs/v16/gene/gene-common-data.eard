@@ -76,6 +76,8 @@ export procedure calc_focus_shown_transcripts(*tr) {
 
     /* set booleans at drawn locations */
     let shown_tr = set_at(repeat(false,len(tr.start)),shown_tr_index,[true,...]);
+    let ghost = !index(shown_tr,0);
+    let shown_tr = set_at(shown_tr,[0],[true,...]);
 
     /* set location on screen */
     let sorted_shown_tr_index = position(shown_tr);
@@ -83,7 +85,7 @@ export procedure calc_focus_shown_transcripts(*tr) {
     let tr_position = set_at(repeat(0,len(tr.start)),sorted_shown_tr_index,enumerate([len(tr.start)]));
 
     let last_tr = set_at(repeat(false,len(tr.start)),[max_seq(shown_tr_index)],[true,...]);
-    (shown_tr,last_tr,tr_position)
+    (shown_tr,last_tr,tr_position,ghost)
 }
 
 export procedure focus_gene_settings() {
