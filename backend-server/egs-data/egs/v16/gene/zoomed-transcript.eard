@@ -34,7 +34,11 @@ let tr.leaf_index = tr_gene.leaf_index;
 let (focus_genome_id,focus_gene_id) = focus_gene_settings();
 let focus_gene_index = position(focus_gene_id==gene.id_unversioned); 
 
-let (shown_tr,last_tr) = calc_shown_transcripts(*gene,*tr,enabled_several_transcripts(),[]);
+
+let expanded_ids = setting_string_keys("expanded",[],gene.id_versioned);
+let expanded_ids = select(expanded_ids,expanded_ids!="");
+
+let (shown_tr,last_tr) = calc_shown_transcripts(*gene,*tr,enabled_several_transcripts(),expanded_ids);
 let gene.leaf_base = make_gene_leaf_base(*gene);
 
 let *leaf_tr = tr_gene_leafs(*gene,*tr,shown_tr);
@@ -186,3 +190,9 @@ let leaf.letter = make_gene_leafs("main/letter/content",enabled_tracks);
 
 draw_gene_track_names(*leaf);
 draw_gene_track_category(*leaf);
+
+/* Lozenges */
+
+let tr.position = tr.position_in_gene;
+let tr_all_shown = tr_all_tr_shown(*gene,*tr,shown_tr);
+draw_all_lozenges(*tr,*tr_gene,*leaf_tr,last_tr,tr_all_shown,20,false);
