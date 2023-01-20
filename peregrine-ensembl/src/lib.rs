@@ -5,7 +5,7 @@ use js_sys::{ Reflect, Array, JSON };
 use serde_wasm_bindgen::from_value;
 use wasm_bindgen::{prelude::*, JsCast};
 use peregrine_draw::{Endstop, Message, PeregrineAPI, PeregrineConfig, PgCommanderWeb};
-use peregrine_data::{ StickId, zmenu_to_json, DataMessage };
+use peregrine_data::{ StickId, DataMessage };
 use peregrine_message::{MessageKind, PeregrineMessage};
 use peregrine_toolkit::{ log, warn, error_important, js::{jstojsonvalue::js_to_json, dommanip::set_css}, error::{CallToAction, Error, ErrorType, err_web_drop}, map};
 use web_sys::{ Element };
@@ -313,13 +313,6 @@ impl GenomeBrowser {
                                     let args = Array::new();
                                     args.set(0,JsValue::from("hotspot"));
                                     args.set(1,JsValue::from(js_throw(JsValue::from_serde(&value))));
-                                    let _ = closure.apply(&this,&args);
-                                },
-                                Message::ZMenuEvent(x,y,zmenus) => {
-                                    let args = Array::new();
-                                    let json = zmenu_to_json(*x,*y,zmenus);
-                                    args.set(0,JsValue::from("zmenu"));
-                                    args.set(1,JsValue::from(js_throw(JsValue::from_serde(&json))));
                                     let _ = closure.apply(&this,&args);
                                 },
                                 Message::HitEndstop(endstops) => {

@@ -268,8 +268,14 @@
                 tr.appendChild(td4);
                 tbody.appendChild(tr);
               }
-          } else if(kind=="hotspot" || kind=="zmenu") {
+          } else if(kind=="hotspot") {
             let zmenu_data_el = document.getElementById("zmenu-click");
+            if(more[0].variety[0].type == "lozenge") {
+              let obj = more[0].content[0];
+              if(obj.focus) {
+                tr_all(!obj.currently_all);
+              }
+            }
             let zmenu_data = more[0];
             zmenu_data_el.innerText = JSON.stringify(zmenu_data);
           }

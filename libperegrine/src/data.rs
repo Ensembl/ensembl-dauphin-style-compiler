@@ -43,6 +43,19 @@ pub(crate) fn op_scope(gctx: &GlobalBuildContext) -> Result<Box<dyn Fn(&mut Glob
     }))
 }
 
+pub(crate) fn op_scope_s(gctx: &GlobalBuildContext) -> Result<Box<dyn Fn(&mut GlobalContext,&[usize]) -> Result<Return,String>>,String> {
+    let requests = gctx.patterns.lookup::<HandleStore<DataRequest>>("requests")?;
+    Ok(Box::new(move |ctx,regs| {
+        let h = ctx.force_number(regs[0])? as usize;
+        let k = ctx.force_string(regs[1])?.to_string();
+        let v = ctx.force_finite_string(regs[2])?.clone();
+        let requests = ctx.context.get_mut(&requests);
+        let req = requests.get_mut(h)?;
+        *req = req.add_scope(&k,&v);
+        Ok(Return::Sync)
+    }))
+}
+
 async fn get_data(data_store: DataStore, request: DataRequest, priority: PacketPriority) -> Result<(DataResponse,f64),String> {
     data_store.get(&request,&priority).await.map_err(|e| e.message.to_string())
 }

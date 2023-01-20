@@ -54,16 +54,22 @@ export function enabled_several_transcripts() {
 
 let several = 5;
 
-export procedure calc_shown_transcripts(*tr,settings) {
+export procedure calc_shown_transcripts(*gene,*tr,settings,expanded_ids) {
     capture several;
+
+    let expanded_index = find(gene.id_versioned,expanded_ids);
+    let gene_expanded = set_at(repeat(false,len(gene.start)),expanded_index,[true,...]);
+    let tr_expanded = index(gene_expanded,tr.index_of_gene);
 
     let tr_is_several = index(settings,tr.leaf_index);
     let leaf_limit = if(tr_is_several,[5,...],[1,...]);
+    let leaf_limit = set(leaf_limit,tr_expanded,[-1,...]);
+
     let last_shown = (
         tr.position_in_gene == leaf_limit-1 || /* hit limit */
         tr.position_in_gene == tr.count-1      /* last one */
     );
-    (tr.position_in_gene<leaf_limit,last_shown)
+    (leaf_limit == -1 || tr.position_in_gene<leaf_limit,last_shown)
 }
 
 export procedure calc_focus_shown_transcripts(*tr) {
@@ -162,8 +168,10 @@ export procedure get_focus_transcript_data() {
     (*gene,*tr,*ex)
 }
 
-export procedure get_transcript_data() {
-    let data = get_data(request("self()","transcript"));
+export procedure get_transcript_data(expanded) {
+    let req = request("self()","transcript");
+    scope(req,"expanded",expanded);
+    let data = get_data(req);
     // halt(only_warm(),[data]);
 
     let (*gene,*tr,*ex) = extract_tr_data(data);

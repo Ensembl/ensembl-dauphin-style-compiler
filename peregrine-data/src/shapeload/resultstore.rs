@@ -4,7 +4,7 @@ use peregrine_toolkit::error::Error;
 use std::collections::HashMap;
 use crate::run::pgdauphin::{PgEardoTaskSpec};
 use crate::shape::originstats::OriginStats;
-use crate::{ProgramShapesBuilder, ObjectBuilder };
+use crate::{ProgramShapesBuilder };
 use std::any::Any;
 use std::sync::{ Arc };
 use crate::shape::{RequestedShapesContainer};
@@ -34,9 +34,6 @@ fn add_payloads(payloads: &mut HashMap<String,Box<dyn Any>>,
 
     /* This is where the output goes */
     payloads.insert("out".to_string(),Box::new(shapes.clone()) as Box<dyn Any>);
-
-    /* Temporary instances of types needed by scripts */
-    payloads.insert("builder".to_string(),Box::new(ObjectBuilder::new()) as Box<dyn Any>);
 
     /* A report about resources consumed by script */
     payloads.insert("report".to_string(),Box::new(run_report.clone()) as Box<dyn Any>);

@@ -71,7 +71,7 @@ def update_panel_from_id(data_accessor: DataAccessor, panel: Panel, for_id: Tupl
 
 # For non-focus genes we need to make sure we include all the transcripts even ones which
 # start&end completely off-panel.
-def extract_data_for_lines(data, for_id: Optional[Tuple[str,str]]) -> Response:
+def extract_data_for_lines(data, for_id: Optional[Tuple[str,str]], expanded: Optional[List[str]]) -> Response:
     lines = [ TranscriptFileLine(row) for row in data ]
 
     # sort the data
@@ -79,10 +79,10 @@ def extract_data_for_lines(data, for_id: Optional[Tuple[str,str]]) -> Response:
     max_tr = 5 if for_id is None else None
 
     # filter the data
-    lines = filter_lines_by_criteria(lines,for_id,max_tr)
+    lines = filter_lines_by_criteria(lines,for_id,max_tr,expanded)
     return lines
 
-def extract_gene_data(data_accessor: DataAccessor, panel: Panel, include_exons: bool, for_id: Optional[Tuple[str,str]], accept: str) -> Response:
+def extract_gene_data(data_accessor: DataAccessor, panel: Panel, include_exons: bool, for_id: Optional[Tuple[str,str]], expanded: Optional[List[str]], accept: str) -> Response:
     # fix location
     if for_id is not None:
         update_panel_from_id(data_accessor,panel,for_id)
@@ -94,7 +94,7 @@ def extract_gene_data(data_accessor: DataAccessor, panel: Panel, include_exons: 
     # serialize the data
     tangle = TANGLE_EXON if include_exons else TANGLE_NO_EXON
     data = get_bigbed(data_accessor,item,panel.start,panel.end)
-    lines = extract_data_for_lines(data,for_id)
+    lines = extract_data_for_lines(data,for_id,expanded)
     out = tangle.run2({},{ "tr_bigbed": lines },**accept_to_tangling_config(accept))
     # Needed for focus which may be returning data about another stick (which is needed because
     # of transcript reporting to UI)
@@ -129,11 +129,11 @@ def for_id(scope):
 
 class TranscriptDataHandler16(DataHandler):
     def process_data(self, data_accessor: DataAccessor, panel: Panel, scope, accept) -> Response:
-        return extract_gene_data(data_accessor,panel,True,for_id(scope),accept)
+        return extract_gene_data(data_accessor,panel,True,for_id(scope),scope.get("expanded"),accept)
 
 class GeneDataHandler16(DataHandler):
     def process_data(self, data_accessor: DataAccessor, panel: Panel, scope, accept) -> Response:
-        return extract_gene_data(data_accessor,panel,False,for_id(scope),accept)
+        return extract_gene_data(data_accessor,panel,False,for_id(scope),scope.get("expanded"),accept)
 
 class GeneOverviewDataHandler16(DataHandler):
     def process_data(self, data_accessor: DataAccessor, panel: Panel,scope, accept) -> Response:

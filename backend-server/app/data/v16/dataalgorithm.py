@@ -63,7 +63,6 @@ class StringAlgorithm:
             if len(value) > 0:
                 data = data + b"\0"
             expr.append(data)
-            logging.warn(expr[-1])
         elif self._code == "Y":
             values = list(set(value))
             lookup = { k: i for (i,k) in enumerate(values) }

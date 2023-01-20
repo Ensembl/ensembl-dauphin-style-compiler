@@ -1,10 +1,9 @@
 use std::sync::Arc;
 
-use eachorevery::{EachOrEvery, eoestruct::{StructTemplate, StructValue}};
-use eard_interp::{GlobalBuildContext, GlobalContext, HandleStore, Value, Return};
-use peregrine_data::{Colour, DirectColour, Patina, DrawnType, Plotter, Pen, AttachmentPoint, HotspotPatina};
-use peregrine_toolkit::log;
-use crate::util::eoe_from_handle;
+use eachorevery::{EachOrEvery, eoestruct::{StructTemplate, StructValue, StructBuilt}};
+use eard_interp::{GlobalBuildContext, GlobalContext, HandleStore, Value, Return, ContextItem};
+use peregrine_data::{Colour, DirectColour, Patina, DrawnType, Plotter, Pen, AttachmentPoint, HotspotPatina, ShapeRequest, DataRequest};
+use crate::{util::eoe_from_handle};
 
 fn to_u8(v: f64) -> u8 { v as u8 }
 
@@ -217,6 +216,33 @@ pub(crate) fn op_paint_metadata(gctx: &GlobalBuildContext) -> Result<Box<dyn Fn(
         }).collect::<Result<Vec<_>,_>>()?;
         let paints = ctx.context.get_mut(&paints);
         let h = paints.push(Patina::Metadata(key.to_string(),EachOrEvery::each(values)));
+        ctx.set(regs[0],Value::Number(h as f64))?;
+        Ok(Return::Sync)
+    }))
+}
+
+pub(crate) fn op_paint_setting(gctx: &GlobalBuildContext) -> Result<Box<dyn Fn(&mut GlobalContext,&[usize]) -> Result<Return,String>>,String> {
+    let paints = gctx.patterns.lookup::<HandleStore<Patina>>("paint")?;
+    let templates = gctx.patterns.lookup::<HandleStore<StructTemplate>>("eoetemplates")?;
+    let shape_request = gctx.patterns.lookup::<ShapeRequest>("shape-request")?;
+    Ok(Box::new(move |ctx,regs| {
+        let setting = ctx.force_string(regs[1])?;
+        let templates = ctx.context.get(&templates);
+        let shape_request = ctx.context.get(&shape_request);
+        let paint = if let Some(switch) = shape_request.track().underlying_switch(setting) {
+            let value = ctx.force_finite_number(regs[3])?.iter().map(|h| {
+                templates.get(*h as usize)
+            });
+            let updates = ctx.force_finite_string(regs[2])?
+                .iter().zip(value).map(|(key,value)| {
+                    Ok::<_,String>((key.to_string(),value?.build()?))
+            }).collect::<Result<Vec<_>,String>>()?;
+            Patina::Hotspot(HotspotPatina::Setting2(switch.clone(),EachOrEvery::each(updates)))
+        } else {
+            Patina::Hotspot(HotspotPatina::Setting2(vec![],EachOrEvery::each(vec![])))
+        };
+        let paints = ctx.context.get_mut(&paints);
+        let h = paints.push(paint);
         ctx.set(regs[0],Value::Number(h as f64))?;
         Ok(Return::Sync)
     }))

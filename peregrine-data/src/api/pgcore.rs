@@ -157,6 +157,10 @@ impl PeregrineCore {
         self.base.queue.push(ApiMessage::UpdateSwitch(path.iter().map(|x| x.to_string()).collect(),value));
     }
 
+    pub fn update_setting(&self, path: &[&str], key: &str, value: StructValue) {
+        self.base.queue.push(ApiMessage::UpdateSwitch(path.iter().map(|x| x.to_string()).collect(),SettingMode::KeyValue(key.to_string(),value)));
+    }
+
     pub fn radio_switch(&self, path: &[&str], yn: bool) {
         self.base.queue.push(ApiMessage::RadioSwitch(path.iter().map(|x| x.to_string()).collect(),yn));
     }

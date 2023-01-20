@@ -19,6 +19,39 @@ fn value_to_atom(value: &StructValue, contents: &[String]) -> Result<Vec<StructC
     })
 }
 
+fn keys_to_atom(value: &StructValue, contents: &[String], keys: &[String]) -> Result<Vec<StructConst>,String> {
+    let contents = contents.iter().map(|x| x.as_str()).collect::<Vec<_>>();
+    let values = match value.extract(&contents).ok() {
+        Some(StructValue::Const(_)) => vec![],
+        Some(StructValue::Array(_)) => vec![],
+        Some(StructValue::Object(obj)) => {
+            keys.iter().map(|key| obj.get(key).cloned().unwrap_or(StructValue::new_null())).collect()
+        },
+        None => vec![]
+    };    
+    Ok(values.into_iter().map(|value| {
+        match value {
+            StructValue::Const(c) => c,
+            _ => StructConst::Null
+        }
+    }).collect())
+}
+
+fn setting_keys(r1: usize, r2: usize, r3: usize, ctx: &mut GlobalContext, request: &ContextItem<ShapeRequest>, is_null_test: bool) -> Result<Vec<StructConst>,String> {
+    let key = ctx.force_string(r1)?;
+    let path = ctx.force_finite_string(r2)?.to_vec();
+    let keys = ctx.force_finite_string(r3)?.to_vec();
+    let request = ctx.context.get(&request);
+    let config = request.track();
+    Ok(if let Some(value) = config.value(&key) {
+        keys_to_atom(value,&path,&keys)?
+    } else if is_null_test && path.len() == 0 {
+        vec![StructConst::Null]
+    } else {
+        vec![]
+    })
+}
+
 fn setting_value(r1: usize, r2: usize, ctx: &mut GlobalContext, request: &ContextItem<ShapeRequest>, is_null_test: bool) -> Result<Vec<StructConst>,String> {
     let key = ctx.force_string(r1)?;
     let path = ctx.force_finite_string(r2)?.to_vec();
@@ -75,6 +108,36 @@ pub(crate) fn op_setting_string_seq(gctx: &GlobalBuildContext) -> Result<Box<dyn
     let shape_request = gctx.patterns.lookup::<ShapeRequest>("shape-request")?;
     Ok(Box::new(move |ctx,regs| {
         let mut value = setting_value(regs[1],regs[2],ctx,&shape_request,false)?;
+        let value = value.drain(..).map(|x| to_string(x)).collect();
+        ctx.set(regs[0],Value::FiniteString(value))?;
+        Ok(Return::Sync)
+    }))
+}
+
+pub(crate) fn op_setting_boolean_keys(gctx: &GlobalBuildContext) -> Result<Box<dyn Fn(&mut GlobalContext,&[usize]) -> Result<Return,String>>,String> {
+    let shape_request = gctx.patterns.lookup::<ShapeRequest>("shape-request")?;
+    Ok(Box::new(move |ctx,regs| {
+        let value = setting_keys(regs[1],regs[2],regs[3],ctx,&shape_request,false)?;
+        let value = value.iter().map(|x| x.truthy()).collect();
+        ctx.set(regs[0],Value::FiniteBoolean(value))?;
+        Ok(Return::Sync)
+    }))
+}
+
+pub(crate) fn op_setting_number_keys(gctx: &GlobalBuildContext) -> Result<Box<dyn Fn(&mut GlobalContext,&[usize]) -> Result<Return,String>>,String> {
+    let shape_request = gctx.patterns.lookup::<ShapeRequest>("shape-request")?;
+    Ok(Box::new(move |ctx,regs| {
+        let mut value = setting_keys(regs[1],regs[2],regs[3],ctx,&shape_request,false)?;
+        let value = value.drain(..).map(|x| to_number(x)).collect();
+        ctx.set(regs[0],Value::FiniteNumber(value))?;
+        Ok(Return::Sync)
+    }))
+}
+
+pub(crate) fn op_setting_string_keys(gctx: &GlobalBuildContext) -> Result<Box<dyn Fn(&mut GlobalContext,&[usize]) -> Result<Return,String>>,String> {
+    let shape_request = gctx.patterns.lookup::<ShapeRequest>("shape-request")?;
+    Ok(Box::new(move |ctx,regs| {
+        let mut value = setting_keys(regs[1],regs[2],regs[3],ctx,&shape_request,false)?;
         let value = value.drain(..).map(|x| to_string(x)).collect();
         ctx.set(regs[0],Value::FiniteString(value))?;
         Ok(Return::Sync)

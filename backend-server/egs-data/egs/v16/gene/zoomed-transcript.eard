@@ -22,7 +22,8 @@ let no_letters = setting_boolean("scale-no-letters",[]);
 
 /* Get main data */
 
-let (*gene,*tr,*exon) = get_transcript_data();
+let all_expanded = setting_string_seq("expanded",[]);
+let (*gene,*tr,*exon) = get_transcript_data(all_expanded);
 let gene.leaf_index = allocate_genes_to_leaf_index(*gene);
 
 let **tr_gene = index(**gene,tr.index_of_gene);
@@ -33,7 +34,7 @@ let tr.leaf_index = tr_gene.leaf_index;
 let (focus_genome_id,focus_gene_id) = focus_gene_settings();
 let focus_gene_index = position(focus_gene_id==gene.id_unversioned); 
 
-let (shown_tr,last_tr) = calc_shown_transcripts(*tr,enabled_several_transcripts());
+let (shown_tr,last_tr) = calc_shown_transcripts(*gene,*tr,enabled_several_transcripts(),[]);
 let gene.leaf_base = make_gene_leaf_base(*gene);
 
 let *leaf_tr = tr_gene_leafs(*gene,*tr,shown_tr);

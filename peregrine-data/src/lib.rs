@@ -119,7 +119,6 @@ mod shapeload {
     pub(crate) mod anticipate;
     pub(crate) mod carriagebuilder;
     mod datastore;
-    mod objectbuilder;
     mod shaperequest;
     pub(crate) mod shaperequestgroup;
     pub(crate) mod loadshapes;
@@ -130,7 +129,6 @@ mod shapeload {
     pub use self::shaperequest::{ Region, ShapeRequest };
     pub use self::loadshapes::LoadMode;
     pub use self::resultstore::{ ShapeStore, RunReport };
-    pub use self::objectbuilder::ObjectBuilder;
 }
 
 mod metric {
@@ -283,8 +281,6 @@ mod util {
 
 pub(crate) mod hotspots {
     pub(crate) mod hotspots;
-    pub(crate) mod zmenupatina;
-    pub(crate) mod zmenuitem;
 }
 
 pub use self::allotment::leafs::leafrequest::LeafRequest;
@@ -298,7 +294,7 @@ pub use self::core::dataalgorithm::DataAlgorithm;
 pub use self::core::channel::channelintegration::{ ChannelIntegration, ChannelSender, ChannelResponse, TrivialChannelResponse, ChannelMessageDecoder, null_payload };
 pub use self::index::{ StickStore };
 pub use self::core::program::programbundle::{ SuppliedBundle, UnpackedSuppliedBundle };
-pub use self::shapeload::{ Region, ShapeStore, DataStore, ShapeRequest, LoadMode, ObjectBuilder, RunReport };
+pub use self::shapeload::{ Region, ShapeStore, DataStore, ShapeRequest, LoadMode, RunReport };
 pub use self::run::{ PgCommander, PgCommanderTaskSpec, PgDauphin, Commander, add_task, complete_task, async_complete_task };
 pub use self::request::core::maxirequest::{ MaxiRequest };
 pub use self::request::core::maxiresponse::{ MaxiResponse, MaxiResponseDeserialize };
@@ -342,8 +338,6 @@ pub use self::request::minirequests::expandreq::{ ExpandReq };
 pub use self::request::minirequests::expandres::{ ExpandRes };
 pub use self::request::minirequests::programreq::{ ProgramReq };
 pub use self::request::minirequests::programres::{ ProgramRes };
-pub use self::hotspots::zmenupatina::{ ZMenu, zmenu_generator };
-pub use self::hotspots::zmenuitem::{ ZMenuFixed, zmenu_item_list_to_json, zmenu_to_json };
 pub use self::hotspots::hotspots::{ 
     HotspotResult, HotspotGroupEntry, SingleHotspotEntry, SpecialClick
 };

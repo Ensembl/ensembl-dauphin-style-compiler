@@ -85,7 +85,7 @@ export procedure red_dotted(pos_start,pos_end,text_start,text_end,dots_leaf,text
     text(coord([pos_end],[8,...],[flip*-8,...]),pen_right,[text_end],[text_leaf,...]);
 
     /* Dots themselves */
-    let paint = paint_dotted([colour!("white"),...],[colour!("red"),...],4,1,0.5);
+    let paint = paint_dotted([colour!("transparent"),...],[colour!("red"),...],4,1,0.5);
     rectangle(coord([pos_start],[-1,...],[1,...]),coord([pos_start],[0,...],[1,...]),paint,[dots_leaf,...]);
     rectangle(coord([pos_end],[-1,...],[-1,...]),coord([pos_end],[0,...],[-1,...]),paint,[dots_leaf,...]);
 }
