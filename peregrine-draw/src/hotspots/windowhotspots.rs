@@ -1,7 +1,6 @@
 use peregrine_data::{SingleHotspotEntry, CoordinateSystem, SpaceBasePointRef, AuxLeaf};
 use peregrine_toolkit::{hotspots::hotspotstore::HotspotStoreProfile, ubail, log};
 use crate::stage::axis::UnitConverter;
-
 use super::{drawhotspotstore::PointPair, coordconverter::CoordToPxConverter};
 
 const STRIPE_SIZE : f64 = 50.;
@@ -30,7 +29,7 @@ fn x_intersect(coord_to_px: &CoordToPxConverter, x: f64, width: f64, c1: &SpaceB
                 coord_to_px.tracking_coord_to_px(&c2)
             )
         },
-        CoordinateSystem::Window => {
+        CoordinateSystem::Window | CoordinateSystem::Content => {
             (
                 (width * c1.base) + c1.tangent,
                 (width * c2.base) + c2.tangent
