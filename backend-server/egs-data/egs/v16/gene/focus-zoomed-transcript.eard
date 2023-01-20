@@ -49,7 +49,16 @@ let sequence_start = index(data_number(seq_data,"sequence_start"),0);
 
 /* Draw */
 
+let ghost_blue = colour!("#bbdefc");
 let focus_blue = colour!("#279afc");
+
+function apply_ghost(ghosts) {
+    capture focus_blue, ghost_blue, ghost;
+
+    let out = repeat(focus_blue,len(ghosts));
+    set_at(out,if(ghost,position(ghosts),[]),[ghost_blue,...])
+}
+
 let tr_sep = 25;
 
 /* Empty box to stop broswer jumping round when there's nothing to draw */
@@ -63,8 +72,8 @@ empty(coord(tr.start,y,[0,...]),coord(tr.end,y+tr_sep,[0,...]),leaf_tr.far_under
 let *dots = calc_outside_of_tr(*tr_gene,*tr,*leaf_tr);
 let **dots_tr = index(**tr,dots.tr);
 let colours = index(gene_colours(),dots.leaf_index);
-let paint = paint_dotted([colour!("white"),...],[focus_blue,...],4,0,0.5);
 let y = dots_tr.position * tr_sep;
+let paint = paint_dotted([colour!("white"),...],apply_ghost(y==0),4,0,0.5);
 rectangle(coord(dots.start,y+5,[0,...]),coord(dots.end,y+5,[0,...]),paint,dots.leaf);
 
 /* Generate thick (ie non-UTR) exon positions */
@@ -107,8 +116,8 @@ let **bp_leaf = index(**leaf_exon_tr,bp.index_of_exon);
 let bp.letter = bp_letters(bp.position,bp_gene.strand,sequence,sequence_rev,sequence_start);
 
 let colours = index(gene_colours(),bp_tr.leaf_index);
-let paint = paint_solid([focus_blue,...]);
 let y = index(tr.position,bp_exon.index_of_tr) * tr_sep;
+let paint = paint_solid(apply_ghost(y==0));
 rectangle(coord(bp.position,y,[1,...]),coord(bp.position+1,y+14,[-1,...]),paint,bp_leaf.over_leaf);
 
 let pen = pen("'IBM Plex Mono', sans-serif",12,[colour!("white"),...],[colour!("transparent"),...]);
@@ -117,11 +126,11 @@ text(coord(bp.position+0.5,y+2,[-3,...]),pen,bp.letter,if(no_letters,[leaf(""),.
 /* pale backing rectangle when in noletter mode to keep exons darker than introns */
 let back_leaf = index(leaf_exon_tr.under_leaf,thick_exon.index_of_exon);
 let y = index(exon_tr.position,thick_exon.index_of_exon) * tr_sep;
-rectangle(coord(thick_exon.start,y,[0,...]),coord(thick_exon.end,y+14,[0,...]),paint_solid(colour!("#70bcfc")),back_leaf);
+rectangle(coord(thick_exon.start,y,[0,...]),coord(thick_exon.end,y+14,[0,...]),paint_solid(if(ghost,colour!("white"),colour!("#70bcfc"))),back_leaf);
 
 /* UTR exons */
 procedure utr_letters(start,end,sequence,sequence_rev,sequence_start) {
-    capture *tr,*exon,*exon_tr,*gene,*leaf_exon,*leaf_exon_tr, no_letters, tr_sep, focus_blue;
+    capture *tr,*exon,*exon_tr,*gene,*leaf_exon,*leaf_exon_tr, no_letters, tr_sep;
 
     let (position,index_of_exon) = startend_to_bp(start,end);
     let **bp_exon = index(**exon,index_of_exon);
@@ -132,10 +141,10 @@ procedure utr_letters(start,end,sequence,sequence_rev,sequence_start) {
 
     let y = bp_tr.position * tr_sep;
     let colours = index(gene_colours(),bp_tr.leaf_index);
-    let paint = paint_hollow([focus_blue,...],1);
+    let paint = paint_hollow(apply_ghost(y==0),1);
     rectangle(coord(position,y,[1,...]),coord(position+1,y+13,[-1,...]),paint,bp_leaf.over_leaf);
 
-    let pen = pen("'IBM Plex Mono', sans-serif",12,[focus_blue,...],[colour!("transparent"),...]);
+    let pen = pen("'IBM Plex Mono', sans-serif",12,apply_ghost(y==0),[colour!("transparent"),...]);
     text(coord(position+0.5,y+2,[-3,...]),pen,bp.letter,if(no_letters,[leaf(""),...],bp_leaf.far_over_leaf));
 }
 
@@ -154,9 +163,9 @@ let (line.start,line.end,line.index_of_tr) =
 
 /* intron lines (if no letters) */
 
-let colours = paint_hollow([focus_blue,...],1);
 let leaf = index(leaf_tr.under_leaf,line.index_of_tr);
 let y = index(tr.position,line.index_of_tr) * tr_sep;
+let colours = paint_hollow(apply_ghost(y==0),1);
 rectangle(coord(line.start,y+7,[0,...]),coord(line.end,y+8,[0,...]),colours,if(no_letters,leaf,[leaf(""),...]));
 
 /* intron letters */
@@ -167,9 +176,9 @@ let bp_strand = index(tr.index_of_gene,bp_index_of_tr);
 let line.letter = bp_letters(position,bp_strand,sequence,sequence_rev,sequence_start);
 
 let colours = index(gene_colours(),index(tr.leaf_index,bp_index_of_tr));
-let pen = pen("'IBM Plex Mono', sans-serif",12,[focus_blue,...],[colour!("transparent"),...]);
-let leaf = index(leaf_tr.under_leaf,bp_index_of_tr);
 let y = index(tr.position,bp_index_of_tr) * tr_sep;
+let pen = pen("'IBM Plex Mono', sans-serif",12,apply_ghost(y==0),[colour!("transparent"),...]);
+let leaf = index(leaf_tr.under_leaf,bp_index_of_tr);
 text(coord(position+0.5,y+2,[-3,...]),pen,line.letter,if(no_letters,[leaf(""),...],leaf));
 
 /* Draw labels */
