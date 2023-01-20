@@ -8,8 +8,6 @@ include "gene-common-visual.eard";
 include "gene-common-zmenu.eard";
 include "transcript-common.eard";
 
-print(format("A"));
-
 /* Set style */
 
 track_styles();
@@ -33,7 +31,7 @@ let gene.leaf_index = repeat(0,len(gene.start));
 let tr_gene.leaf_index = repeat(0,len(tr.start));
 let tr.leaf_index = tr_gene.leaf_index;
 
-let (shown_tr,last_tr,tr.position) = calc_focus_shown_transcripts(*tr,focus_enabled_several_transcripts());
+let (shown_tr,last_tr,tr.position) = calc_focus_shown_transcripts(*tr);
 let gene.leaf_base = make_focus_gene_leaf_base(*gene);
 
 let focus_gene_index = index(position(focus_gene_id==gene.id_unversioned),0); 
@@ -48,8 +46,6 @@ let seq_data = get_data(request("self()","zoomed-seq"));
 let sequence = data_string(seq_data,"sequence");
 let sequence_rev = base_flip(sequence);
 let sequence_start = index(data_number(seq_data,"sequence_start"),0);
-
-print(format("B"));
 
 /* Draw */
 
@@ -88,8 +84,6 @@ let thick_exon.end = min(thick_exon.end,bp_end);
 // TODO forget about non-displayed exons early
 
 /* Non-UTR exons (ie "solid, reversed-out bases") */
-
-print(format("C"));
 
 procedure bp_letters(position,strand,sequence,sequence_rev,sequence_start) {
     let seq_position = position - sequence_start;
@@ -150,8 +144,6 @@ utr_letters(exon.start,left_end,sequence,sequence_rev,sequence_start);
 let right_start = min(max(exon.start,exon_tr.thick_end),exon.end);
 utr_letters(right_start,exon.end,sequence,sequence_rev,sequence_start);
 
-print(format("D"));
-
 /* introns */
 
 screen_tr_start = max(tr.start,bp_start);
@@ -204,8 +196,6 @@ draw_swatch(colour!("#58a8f9"),[leaf.letter]);
 draw_focus_track_chevrons(index(gene.strand,focus_gene_index),*leaf);
 draw_focus_sidebar_chevrons(index(gene.strand,focus_gene_index),*leaf);
 
-print(format("E"));
-
 /* Metadata reports */
 
 let shown_tr_names = select(tr.id_versioned,shown_tr);
@@ -224,5 +214,3 @@ rectangle(coord([0],[0,...],[0,...]),coord([1],[0,...],[0,...]),paint,[leaf.bgd,
 
 let paint = paint_metadata("transcripts-suppressed",[""],[eoe_boolean(false)]);
 rectangle(coord([0],[0,...],[0,...]),coord([1],[0,...],[0,...]),paint,[leaf.bgd,...]);
-
-print(format("F"));

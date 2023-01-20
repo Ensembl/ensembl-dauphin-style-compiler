@@ -37,7 +37,7 @@ let gene.leaf_index = repeat(0,len(gene.start));
 let tr_gene.leaf_index = repeat(0,len(tr.start));
 let tr.leaf_index = tr_gene.leaf_index;
 
-let (shown_tr,last_tr,tr.position) = calc_focus_shown_transcripts(*tr,focus_enabled_several_transcripts());
+let (shown_tr,last_tr,tr.position) = calc_focus_shown_transcripts(*tr);
 let gene.leaf_base = make_focus_gene_leaf_base(*gene);
 let *leaf_tr = tr_focus_gene_leafs(*gene,*tr,shown_tr);
 

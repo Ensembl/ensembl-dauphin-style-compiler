@@ -86,7 +86,7 @@ draw_swatch(colour!("#58a8f9"),[leaf.letter]);
 /* Metadata reports */
 
 tr.leaf_index = repeat(0,len(tr.start));
-let (shown_tr,last_tr,tr_position) = calc_focus_shown_transcripts(*tr,focus_enabled_several_transcripts());
+let (shown_tr,last_tr,tr_position) = calc_focus_shown_transcripts(*tr);
 
 let shown_tr_names = select(tr.id_versioned,shown_tr);
 let paint = paint_metadata("transcripts-shown",shown_tr_names,eoe_string(shown_tr_names));

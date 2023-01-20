@@ -52,12 +52,6 @@ export function enabled_several_transcripts() {
     ]
 }
 
-export function focus_enabled_several_transcripts() {
-    [
-        setting_boolean("several",[])
-    ]
-}
-
 let several = 5;
 
 export procedure calc_shown_transcripts(*tr,settings) {
@@ -72,7 +66,7 @@ export procedure calc_shown_transcripts(*tr,settings) {
     (tr.position_in_gene<leaf_limit,last_shown)
 }
 
-export procedure calc_focus_shown_transcripts(*tr,settings) {
+export procedure calc_focus_shown_transcripts(*tr) {
     /* get list */
     let wanted = setting_string_seq("enabled-transcripts",[]);
 
