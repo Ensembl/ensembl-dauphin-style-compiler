@@ -31,7 +31,7 @@ let gene.leaf_index = repeat(0,len(gene.start));
 let tr_gene.leaf_index = repeat(0,len(tr.start));
 let tr.leaf_index = tr_gene.leaf_index;
 
-let (shown_tr,last_tr,tr.position) = calc_focus_shown_transcripts(*tr);
+let (shown_tr,last_tr,tr.position,ghost) = calc_focus_shown_transcripts(*tr);
 let gene.leaf_base = make_focus_gene_leaf_base(*gene);
 
 let focus_gene_index = index(position(focus_gene_id==gene.id_unversioned),0); 
