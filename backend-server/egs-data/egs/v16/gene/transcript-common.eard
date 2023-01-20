@@ -141,3 +141,50 @@ export function tr_label_text(*gene,*tr_gene,*tr,last_tr,gene_enabled,tr_enabled
         if(tr_label_pred,tr.id_versioned,["",...])
     )
 }
+
+/* There shouldprobably be a primitive to simplify this, but let's hack our way there. Easiest
+ * to spot off transcripts and disqualify their genes. So let's start with a presumption that
+ * all are on and then knock out the other genes.
+ */
+
+export function tr_all_tr_shown(*gene,*tr,shown_tr) {
+    let hidden_genes = select(tr.index_of_gene,shown_tr==false);
+    let all_shown = set_at(repeat(true,len(gene.start)),hidden_genes,[false,...]);
+    index(all_shown,tr.index_of_gene)
+}
+
+/* Draw a lozenge per gene */
+
+export procedure draw_all_lozenges(*tr,*tr_gene,*leaf_tr,last_tr,tr_all_shown,pitch) {
+    let colour = colour!("#279afc");
+
+    let **lozenge = select(**tr,last_tr);
+    let **lozenge_gene = select(**tr_gene,last_tr);
+    let **leaf_lozenge = select(**leaf_tr,last_tr);
+    let lozenge_all_shown = select(tr_all_shown,last_tr);
+
+    let paint = paint_solid(colour);
+    let y = lozenge.position * pitch + pitch + 5;
+    rectangle(coord(lozenge_gene.start,y,[5,...]),coord(lozenge_gene.start,y+12,[25,...]),paint,leaf_lozenge.under_leaf);
+    let pen = pen("'IBM Plex Mono', sans-serif",12,[colour!("white"),...],[colour,...]);
+    text(coord(lozenge_gene.start,y,[12,...]),pen,if(lozenge_all_shown,["-",...],["+",...]),leaf_lozenge.over_leaf);
+
+    struct!(variety_lozenge,"""
+        {
+            "type": "lozenge"
+        }
+    """);
+
+
+    struct!(contents_lozenge,"""
+    (<0,1>!
+        {
+            "id": <0s>,
+            "currently_all": <1b>
+        }
+    )
+    """,lozenge_gene.id_versioned,lozenge_all_shown);
+
+    let hotspot = paint_click(variety_lozenge,contents_lozenge);
+    rectangle(coord(lozenge_gene.start,y,[0,...]),coord(lozenge_gene.start,y+12,[20,...]),hotspot,leaf_lozenge.over_leaf);
+}
