@@ -1,5 +1,5 @@
 use peregrine_data::{SingleHotspotEntry, CoordinateSystem, SpaceBasePointRef, AuxLeaf};
-use peregrine_toolkit::{hotspots::hotspotstore::HotspotStoreProfile, ubail, log};
+use peregrine_toolkit::{hotspots::hotspotstore::HotspotStoreProfile, ubail};
 use crate::stage::axis::UnitConverter;
 use super::{drawhotspotstore::PointPair, coordconverter::CoordToPxConverter};
 
@@ -75,7 +75,8 @@ impl HotspotStoreProfile<SingleHotspotEntry> for WindowHotspotProfile {
 
     fn intersects(&self, context: &(UnitConverter,f64,f64,f64), coords: &(f64,f64), value: &SingleHotspotEntry) -> bool {
         let coord_to_px = ubail!(self.converter(&context.0),false);
-        value.coordinates().map(|(c1,c2)| {
+        let (at_coords,_) = value.coordinates();
+        at_coords.map(|(c1,c2)| {
             match c1.allotment.coord_system {
                 CoordinateSystem::TrackingWindow |
                 CoordinateSystem::Window => {

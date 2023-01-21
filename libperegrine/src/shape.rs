@@ -19,7 +19,8 @@ fn eoe_from_string_reg(ctx: &GlobalContext, reg: usize) -> Result<EachOrEvery<St
     })
 }
 
-pub(crate) fn op_rectangle(gctx: &GlobalBuildContext) -> Result<Box<dyn Fn(&mut GlobalContext,&[usize]) -> Result<Return,String>>,String> {
+fn rectangle(gctx: &GlobalBuildContext, run: bool) -> Result<Box<dyn Fn(&mut GlobalContext,&[usize]) -> Result<Return,String>>,String> {
+    let run1 = if run { 1 } else { 0 };
     let coords = gctx.patterns.lookup::<HandleStore<SpaceBase<f64,()>>>("coords")?;
     let leafs = gctx.patterns.lookup::<HandleStore<LeafRequest>>("leaf")?;
     let paints = gctx.patterns.lookup::<HandleStore<Patina>>("paint")?;
@@ -28,23 +29,45 @@ pub(crate) fn op_rectangle(gctx: &GlobalBuildContext) -> Result<Box<dyn Fn(&mut 
         let coords = ctx.context.get(&coords);
         let leafs = ctx.context.get(&leafs);
         let paints = ctx.context.get(&paints);
+        let paint = paints.get(ctx.force_number(regs[run1+2])? as usize)?.clone();
+        let leafs = eoe_from_handle(ctx,leafs,regs[run1+3])?.index(|a| a.name().clone());
         let nw = coords.get(ctx.force_number(regs[0] as usize)? as usize)?.clone();
         let se = coords.get(ctx.force_number(regs[1] as usize)? as usize)?.clone();
+        let run = if run {
+            Some(if ctx.is_finite(regs[2])? {
+                EachOrEvery::each(ctx.force_finite_number(regs[2]).cloned()?)
+            } else {
+                EachOrEvery::every(ctx.force_infinite_number(regs[2])?)
+            })
+        } else {
+            None
+        };
         let area = SpaceBaseArea::new(
             PartialSpaceBase::from_spacebase(nw),
             PartialSpaceBase::from_spacebase(se)).ok_or_else(|| {
                 format!("coordinates differ in size when drawing rectangle")
             })?;
-        let leafs = eoe_from_handle(ctx,leafs,regs[3])?.index(|a| a.name().clone());
         let area = area.replace_allotments(leafs);
-        let paint = paints.get(ctx.force_number(regs[2])? as usize)?.clone();
         let shapes = ctx.context.get_mut(&shapes);
         let mut shapes = lock!(shapes);
-        shapes.as_mut().unwrap().add_rectangle(area,paint,None).map_err(|e| {
+        let res = if let Some(run) = run {
+            shapes.as_mut().unwrap().add_running_rectangle(area,run,paint,None)
+        } else {
+            shapes.as_mut().unwrap().add_rectangle(area,paint,None)
+        };
+        res.map_err(|e| {
             format!("cannot add rectangle: {}",e.to_string())
         })?;
         Ok(Return::Sync)
     }))
+}
+
+pub(crate) fn op_rectangle(gctx: &GlobalBuildContext) -> Result<Box<dyn Fn(&mut GlobalContext,&[usize]) -> Result<Return,String>>,String> {
+    rectangle(gctx,false)
+}
+
+pub(crate) fn op_running_rectangle(gctx: &GlobalBuildContext) -> Result<Box<dyn Fn(&mut GlobalContext,&[usize]) -> Result<Return,String>>,String> {
+    rectangle(gctx,true)
 }
 
 pub(crate) fn op_empty(gctx: &GlobalBuildContext) -> Result<Box<dyn Fn(&mut GlobalContext,&[usize]) -> Result<Return,String>>,String> {

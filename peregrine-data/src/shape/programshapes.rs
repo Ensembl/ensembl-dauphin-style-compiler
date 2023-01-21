@@ -53,6 +53,11 @@ impl ProgramShapesBuilder {
         Ok(())
     }
 
+    pub fn add_running_rectangle(&mut self, area: SpaceBaseArea<f64,LeafRequest>, run: EachOrEvery<f64>, patina: Patina, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>) -> Result<(),DataMessage> {
+        self.push_shape(RectangleShape::new_running(area,run,patina,wobble)?);
+        Ok(())
+    }
+
     pub fn add_polygon(&mut self, position: SpaceBase<f64,LeafRequest>, radius: EachOrEvery<f64>, points: usize, angle: f32, patina: Patina, wobble: Option<SpaceBase<Observable<'static,f64>,()>>) -> Result<(),DataMessage> {
         self.push_shape(PolygonShape::new(position,radius,points,angle,patina,wobble)?);
         Ok(())

@@ -100,37 +100,38 @@ pub enum HotspotPatina {
     Click(Arc<StructTemplate>,Arc<StructTemplate>)
 }
 
-fn setting_generator(values: &EachOrEvery<(Vec<String>,SettingMode)>) -> Arc<dyn Fn(usize,Option<(SpaceBasePoint<f64,AuxLeaf>,SpaceBasePoint<f64,AuxLeaf>)>) -> Option<HotspotResult>> {
+fn setting_generator(values: &EachOrEvery<(Vec<String>,SettingMode)>) -> Arc<dyn Fn(usize,Option<(SpaceBasePoint<f64,AuxLeaf>,SpaceBasePoint<f64,AuxLeaf>)>,Option<f64>) -> Option<HotspotResult>> {
     let values = Rc::new(values.clone());
-    Arc::new(move |index,_| {
+    Arc::new(move |index,_,_| {
         let (path,mode) = values.get(index).unwrap().clone();
         Some(HotspotResult::Setting(path,mode))
     })
 }
 
-fn setting2_generator(switch: &Vec<String>, values: &EachOrEvery<(String,StructBuilt)>) -> Arc<dyn Fn(usize,Option<(SpaceBasePoint<f64,AuxLeaf>,SpaceBasePoint<f64,AuxLeaf>)>) -> Option<HotspotResult>> {
+fn setting2_generator(switch: &Vec<String>, values: &EachOrEvery<(String,StructBuilt)>) -> Arc<dyn Fn(usize,Option<(SpaceBasePoint<f64,AuxLeaf>,SpaceBasePoint<f64,AuxLeaf>)>,Option<f64>) -> Option<HotspotResult>> {
     let values = Rc::new(values.clone());
     let switch = switch.to_vec();
-    Arc::new(move |index,_| {
+    Arc::new(move |index,_,_| {
         let (key,value) = values.get(index).unwrap().clone();
         Some(HotspotResult::Setting2(switch.clone(),key,value))
     })
 }
 
-fn special_generator(values: &EachOrEvery<String>) -> Arc<dyn Fn(usize,Option<(SpaceBasePoint<f64,AuxLeaf>,SpaceBasePoint<f64,AuxLeaf>)>) -> Option<HotspotResult>> {
+fn special_generator(values: &EachOrEvery<String>) -> Arc<dyn Fn(usize,Option<(SpaceBasePoint<f64,AuxLeaf>,SpaceBasePoint<f64,AuxLeaf>)>,Option<f64>) -> Option<HotspotResult>> {
     let values = Rc::new(values.clone());
-    Arc::new(move |index,area| {
+    Arc::new(move |index,area,run| {
         Some(HotspotResult::Special(SpecialClick {
             name: values.get(index).unwrap().to_string(),
-            area
+            area,
+            run
         }))
     })
 }
 
-pub fn click_generator(variety: &Arc<StructTemplate>, content: &Arc<StructTemplate>) -> Arc<dyn Fn(usize,Option<(SpaceBasePoint<f64,AuxLeaf>,SpaceBasePoint<f64,AuxLeaf>)>) -> Option<HotspotResult>> {
+pub fn click_generator(variety: &Arc<StructTemplate>, content: &Arc<StructTemplate>) -> Arc<dyn Fn(usize,Option<(SpaceBasePoint<f64,AuxLeaf>,SpaceBasePoint<f64,AuxLeaf>)>,Option<f64>) -> Option<HotspotResult>> {
     let variety = variety.clone();
     let content = content.clone();
-    Arc::new(move |index,_| {
+    Arc::new(move |index,_,_| {
         let built_content = content.set_index(&[],index).ok()?.build().ok()?;
         let value_content = StructValue::new_expand(&built_content,None).ok()?;
         let value_content = match value_content {
@@ -179,7 +180,7 @@ impl HotspotPatina {
         }
     }
 
-    pub fn generator(&self) -> Arc<dyn Fn(usize,Option<(SpaceBasePoint<f64,AuxLeaf>,SpaceBasePoint<f64,AuxLeaf>)>) -> Option<HotspotResult>> {
+    pub fn generator(&self) -> Arc<dyn Fn(usize,Option<(SpaceBasePoint<f64,AuxLeaf>,SpaceBasePoint<f64,AuxLeaf>)>,Option<f64>) -> Option<HotspotResult>> {
         match self {
             HotspotPatina::Setting(values) => {
                 setting_generator(&values)

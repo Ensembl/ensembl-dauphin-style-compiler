@@ -24,21 +24,26 @@ fn area_to_rectangle(area: &SpaceBaseArea<f64,AuxLeaf>,  wobble: &Option<SpaceBa
     Ok(apply_hollow(area,edge))
 }
 
-
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub(super) struct RectanglesLocationArea {
     spacebase: SpaceBaseArea<f64,AuxLeaf>,
+    run: Option<SpaceBase<f64,()>>,
     wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>,
-    wobbled_spacebase: Arc<Mutex<SpaceBaseArea<f64,AuxLeaf>>>,
+    wobbled_spacebase: Arc<Mutex<(SpaceBaseArea<f64,AuxLeaf>,Option<SpaceBase<f64,()>>)>>,
     depth: EachOrEvery<i8>,
     edge: Option<HollowEdge2<f64>>
 }
 
 impl RectanglesLocationArea {
-    pub(super) fn new(spacebase: &SpaceBaseArea<f64,AuxLeaf>, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>, depth: EachOrEvery<i8>, edge: Option<HollowEdge2<f64>>) -> Result<RectanglesLocationArea,Error> {
+    pub(super) fn new(spacebase: &SpaceBaseArea<f64,AuxLeaf>, run: &Option<SpaceBase<f64,()>>, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>, depth: EachOrEvery<i8>, edge: Option<HollowEdge2<f64>>) -> Result<RectanglesLocationArea,Error> {
+        let wobbled = (
+            area_to_rectangle(spacebase,&wobble,&edge)?,
+            run.clone()
+        );
         Ok(RectanglesLocationArea {
-            wobbled_spacebase: Arc::new(Mutex::new(area_to_rectangle(spacebase,&wobble,&edge)?)),
+            wobbled_spacebase: Arc::new(Mutex::new(wobbled)),
             spacebase: spacebase.clone(),
+            run: run.clone(),
             wobble, depth, edge,
         })
     }
@@ -50,7 +55,7 @@ impl RectanglesImpl for RectanglesLocationArea {
     fn len(&self) -> usize { self.spacebase.len() }
 
     fn wobbled_location(&self) -> (SpaceBaseArea<f64,AuxLeaf>,Option<SpaceBase<f64,()>>) {
-        (lock!(self.wobbled_spacebase).clone(),None)
+        lock!(self.wobbled_spacebase).clone()
     }
 
     fn wobble(&mut self) -> Option<Box<dyn FnMut() + 'static>> {
@@ -59,9 +64,10 @@ impl RectanglesImpl for RectanglesLocationArea {
             let area = self.spacebase.clone();
             let wobbled = self.wobbled_spacebase.clone();
             let edge = self.edge.clone();
+            let run = self.run.clone();
             Box::new(move || {
                 if let Ok(area) = area_to_rectangle(&area,&Some(wobble.clone()),&edge) {
-                    *lock!(wobbled) = area;
+                    *lock!(wobbled) = (area,run.clone());
                 }
             }) as Box<dyn FnMut() + 'static>
         })

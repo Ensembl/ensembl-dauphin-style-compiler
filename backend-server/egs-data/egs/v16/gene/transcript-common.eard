@@ -166,9 +166,9 @@ export procedure draw_all_lozenges(*tr,*tr_gene,*leaf_tr,last_tr,tr_all_shown,pi
 
     let paint = paint_solid(colour);
     let y = lozenge.position * pitch + pitch + 3;
-    rectangle(coord(lozenge_gene.start,y,[0,...]),coord(lozenge_gene.start,y+12,[20,...]),paint,leaf_lozenge.under_leaf);
+    running_rectangle(coord(lozenge_gene.start,y,[0,...]),coord(lozenge_gene.start,y+12,[20,...]),lozenge_gene.end,paint,leaf_lozenge.text_leaf);
     let pen = pen("'IBM Plex Mono', sans-serif",12,[colour!("white"),...],[colour,...]);
-    text(coord(lozenge_gene.start,y,[7,...]),pen,if(lozenge_all_shown,["-",...],["+",...]),leaf_lozenge.over_leaf);
+    running_text(coord(lozenge_gene.start,y,[7,...]),coord(lozenge_gene.end,y,[7,...]),pen,if(lozenge_all_shown,["-",...],["+",...]),leaf_lozenge.text_leaf);
 
     struct!(variety_lozenge,"""
         {
@@ -187,9 +187,9 @@ export procedure draw_all_lozenges(*tr,*tr_gene,*leaf_tr,last_tr,tr_all_shown,pi
     """,lozenge_gene.id_versioned,lozenge_all_shown,[focus,...]);
 
     let hotspot = paint_click(variety_lozenge,contents_lozenge);
-    rectangle(coord(lozenge_gene.start,y,[0,...]),coord(lozenge_gene.start,y+12,[20,...]),hotspot,leaf_lozenge.over_leaf);
+    running_rectangle(coord(lozenge_gene.start,y,[0,...]),coord(lozenge_gene.start,y+12,[20,...]),lozenge_gene.end,hotspot,leaf_lozenge.over_leaf);
 
     let setting_value = set(lozenge_gene.id_versioned,lozenge_all_shown,["",...]);
     let setting = paint_setting("expanded",lozenge_gene.id_versioned,eoe_string(setting_value));
-    rectangle(coord(lozenge_gene.start,y,[0,...]),coord(lozenge_gene.start,y+12,[20,...]),setting,leaf_lozenge.over_leaf);
+    running_rectangle(coord(lozenge_gene.start,y,[0,...]),coord(lozenge_gene.start,y+12,[20,...]),lozenge_gene.end,setting,leaf_lozenge.over_leaf);
 }

@@ -1,12 +1,12 @@
 use peregrine_data::{SpaceBasePointRef, AuxLeaf};
-
 use crate::stage::axis::UnitConverter;
 
 pub(super) struct CoordToPxConverter {
     left: f64,
     bp_per_px: f64,
     car_px_left: f64,
-    px_per_carriage: f64
+    px_per_carriage: f64,
+    left_rail: f64
 }
 
 impl CoordToPxConverter {
@@ -19,6 +19,7 @@ impl CoordToPxConverter {
             bp_per_px,
             car_px_left,
             left,
+            left_rail: context.left_rail()
         })
     }
 
@@ -29,4 +30,6 @@ impl CoordToPxConverter {
     pub(super) fn px_to_car_prop(&self, px: f64) -> f64 {
         (px - self.car_px_left) / self.px_per_carriage
     }
+
+    pub(super) fn left_rail(&self) -> f64 { self.left_rail }
 }

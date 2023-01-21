@@ -45,8 +45,8 @@ pub(crate) struct RectanglesData {
 }
 
 impl RectanglesData {
-    fn new_area(builder: &mut ProcessBuilder, area: &SpaceBaseArea<f64,AuxLeaf>, depth: &EachOrEvery<i8>, left: f64, hollow: bool, kind: &DrawGroup, edge: &Option<HollowEdge2<f64>>, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>)-> Result<RectanglesData,Error> {
-        let location = RectanglesLocationArea::new(area,wobble,depth.clone(),edge.clone())?;
+    fn new_area(builder: &mut ProcessBuilder, area: &SpaceBaseArea<f64,AuxLeaf>, run: &Option<SpaceBase<f64,()>>, depth: &EachOrEvery<i8>, left: f64, hollow: bool, kind: &DrawGroup, edge: &Option<HollowEdge2<f64>>, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>)-> Result<RectanglesData,Error> {
+        let location = RectanglesLocationArea::new(area,run,wobble,depth.clone(),edge.clone())?;
         Self::real_new(builder,Box::new(location),left,hollow,kind)
     }
 
@@ -107,8 +107,8 @@ impl RectanglesDataFactory {
         }
     }
 
-    pub(crate) fn make_area(&self, builder: &mut ProcessBuilder, area: &SpaceBaseArea<f64,AuxLeaf>, depth: &EachOrEvery<i8>, left: f64, hollow: bool, edge: &Option<HollowEdge2<f64>>, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>)-> Result<RectanglesData,Error> {
-        RectanglesData::new_area(builder,area,depth,left,hollow,&self.draw_group,edge,wobble)
+    pub(crate) fn make_area(&self, builder: &mut ProcessBuilder, area: &SpaceBaseArea<f64,AuxLeaf>, run: &Option<SpaceBase<f64,()>>, depth: &EachOrEvery<i8>, left: f64, hollow: bool, edge: &Option<HollowEdge2<f64>>, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>)-> Result<RectanglesData,Error> {
+        RectanglesData::new_area(builder,area,run,depth,left,hollow,&self.draw_group,edge,wobble)
     }
 
     pub(crate) fn make_sized(&self, builder: &mut ProcessBuilder, points: &SpaceBase<f64,AuxLeaf>, run: &Option<SpaceBase<f64,()>>, x_sizes: Vec<f64>, y_sizes: Vec<f64>, depth: &EachOrEvery<i8>, left: f64, hollow: bool, attachment: GLAttachmentPoint, wobble: Option<SpaceBase<Observable<'static,f64>,()>>)-> Result<RectanglesData,Error> {
