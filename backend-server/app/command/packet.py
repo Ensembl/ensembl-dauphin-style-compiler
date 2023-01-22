@@ -2,6 +2,7 @@ import collections
 import imp
 import logging
 
+from.smallvaluecmd import SmallValueHandler
 from command.bundle import BundleSet, EardoSet
 from model.expansions import Expansions
 from command.response import Response
@@ -30,7 +31,8 @@ handlers = {
     4: DataHandler(),
     5: JumpHandler(),
     6: MetricHandler(),
-    7: ExpansionHandler(expansions)
+    7: ExpansionHandler(expansions),
+    8: SmallValueHandler()
 }
 
 def type_to_handler(typ: int) -> Handler:

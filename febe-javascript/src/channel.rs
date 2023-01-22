@@ -1,5 +1,5 @@
 use std::{ pin::Pin, future::Future };
-use peregrine_data::{ ChannelSender, BackendNamespace, PacketPriority, MaxiRequest, ChannelMessageDecoder, MaxiResponse, MiniRequest, MiniResponse, FailureRes};
+use peregrine_data::{ ChannelSender, BackendNamespace, PacketPriority, MaxiRequest, ChannelMessageDecoder, MaxiResponse, MiniRequest, MiniResponse, FailureRes, SmallValuesRes};
 use peregrine_toolkit::{error::Error };
 use wasm_bindgen::JsValue;
 use crate::{payloadextract::PayloadExtractor, backend::{Backend, CallbackError}, sidecars::JsSidecar};
@@ -54,6 +54,9 @@ impl JavascriptChannel {
                 },
                 MiniRequest::Data(req) => {
                     map_error(self.backend.data(req).await,|r| MiniResponse::Data(r))?
+                },
+                MiniRequest::SmallValues(req) => {
+                    (MiniResponse::SmallValues(SmallValuesRes::empty()),JsSidecar::new_empty())
                 },
                 _ => { 
                     (MiniResponse::FailureRes(FailureRes::new("unimplemented")),JsSidecar::new_empty())

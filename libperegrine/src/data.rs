@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 use eard_interp::{GlobalBuildContext, GlobalContext, HandleStore, Value, Return, AsyncReturn };
-use peregrine_data::{DataRequest, PacketPriority, DataStore, DataResponse, LoadMode, RunReport, ShapeRequest, AccessorResolver, BackendNamespace };
+use peregrine_data::{DataRequest, PacketPriority, DataStore, DataResponse, LoadMode, RunReport, ShapeRequest, AccessorResolver, BackendNamespace, SmallValuesStore };
 
 async fn resolve(resolver: AccessorResolver, accessor: String) -> Result<BackendNamespace,String> {
     resolver.resolve(&accessor).await.map_err(|e| e.message.to_string())
@@ -64,7 +64,7 @@ pub(crate) fn op_get_data(gctx: &GlobalBuildContext) -> Result<Box<dyn Fn(&mut G
     let requests = gctx.patterns.lookup::<HandleStore<DataRequest>>("requests")?;
     let responses = gctx.patterns.lookup::<HandleStore<DataResponse>>("responses")?;
     let report = gctx.patterns.lookup::<Arc<Mutex<RunReport>>>("report")?;
-    let data_store = gctx.patterns.lookup::<DataStore>("store")?;
+    let data_store = gctx.patterns.lookup::<DataStore>("data-store")?;
     let mode = gctx.patterns.lookup::<LoadMode>("mode")?;
     Ok(Box::new(move |ctx,regs| {
         let h = ctx.force_number(regs[1])? as usize;
@@ -152,5 +152,30 @@ pub(crate) fn op_bp_range(gctx: &GlobalBuildContext) -> Result<Box<dyn Fn(&mut G
         ctx.set(regs[0],Value::Number(min as f64))?;
         ctx.set(regs[1],Value::Number(max as f64))?;
         Ok(Return::Sync)
+    }))
+}
+
+async fn get_small_value(small_values_store: SmallValuesStore, namespace: String, column: String, rows: Vec<String>) -> Result<Vec<String>,String> {
+    let mut out = vec![];
+    for row in &rows {
+        out.push(small_values_store.get(&namespace,&column,row).await.map_err(|e| e.message.to_string())?.unwrap_or_else(|| row.to_string()));
+    }
+    Ok(out)
+}
+
+pub(crate) fn op_small_value(gctx: &GlobalBuildContext) -> Result<Box<dyn Fn(&mut GlobalContext,&[usize]) -> Result<Return,String>>,String> {
+    let small_values_store = gctx.patterns.lookup::<SmallValuesStore>("small-values-store")?;
+    Ok(Box::new(move |ctx,regs| {
+        let namespace = ctx.force_string(regs[1])?.to_string();
+        let column = ctx.force_string(regs[2])?.to_string();
+        let rows = ctx.force_finite_string(regs[3])?.to_vec();
+        let small_values_store = ctx.context.get(&small_values_store).clone();
+        Ok(Return::Async(AsyncReturn::new(
+            Box::pin(get_small_value(small_values_store,namespace,column,rows)),
+            move |ctx,regs,values| {
+                ctx.set(regs[0],Value::FiniteString(values))?;
+                Ok(())
+            }
+        )))
     }))
 }

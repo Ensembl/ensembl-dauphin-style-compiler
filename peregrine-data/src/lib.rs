@@ -111,8 +111,10 @@ mod core {
 
 mod index {
     pub(crate) mod stickstore;
+    pub(crate) mod smallvaluesstore;
     pub(crate) mod jumpstore;
     pub use self::stickstore::StickStore;
+    pub use self::smallvaluesstore::SmallValuesStore;
 }
 
 mod shapeload {
@@ -171,6 +173,8 @@ mod request {
         pub(crate) mod metricreq;
         pub(crate) mod programreq;
         pub(crate) mod programres;
+        pub(crate) mod smallvaluesreq;
+        pub(crate) mod smallvaluesres;
         pub(crate) mod stickreq;
         pub(crate) mod stickres;
     }
@@ -292,7 +296,7 @@ pub use self::core::channel::accessorresolver::{ AccessorResolver };
 pub use self::core::channel::backendnamespace::BackendNamespace;
 pub use self::core::dataalgorithm::DataAlgorithm;
 pub use self::core::channel::channelintegration::{ ChannelIntegration, ChannelSender, ChannelResponse, TrivialChannelResponse, ChannelMessageDecoder, null_payload };
-pub use self::index::{ StickStore };
+pub use self::index::{ StickStore, SmallValuesStore };
 pub use self::core::program::programbundle::{ SuppliedBundle, UnpackedSuppliedBundle };
 pub use self::shapeload::{ Region, ShapeStore, DataStore, ShapeRequest, LoadMode, RunReport };
 pub use self::run::{ PgCommander, PgCommanderTaskSpec, PgDauphin, Commander, add_task, complete_task, async_complete_task };
@@ -326,6 +330,7 @@ pub use self::request::core::manager::RequestManager;
 pub use self::request::tracks::trackmodel::{ TrackMapping, TrackModel, TrackModelDeserialize };
 pub use self::request::tracks::expansionmodel::ExpansionModel;
 pub use self::request::minirequests::failureres::FailureRes;
+pub use self::request::minirequests::smallvaluesres::SmallValuesRes;
 pub use self::request::minirequests::bootchannelreq::BootChannelReq;
 pub use self::request::minirequests::bootchannelres::BootChannelRes;
 pub use self::request::minirequests::stickreq::StickReq;

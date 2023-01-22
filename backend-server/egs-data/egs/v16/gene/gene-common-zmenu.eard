@@ -9,7 +9,7 @@ struct!(variety_zmenu,"""
 
 function gene_zmenu(*gene) {
 struct!(gene_zmenu,"""
-(<0,1,2,3,4,5,6>!
+(<0,1,2,3,4,5,6,7>!
       {
         "data": [
           /* First row: gene symbol */
@@ -32,7 +32,7 @@ struct!(gene_zmenu,"""
 
           /* Third row: biotype and strand */ 
           [
-            { "items": [ { "markup": [ "light" ], "text": <3s> } ], "type": "block" },
+            { "items": [ { "markup": [ "light" ], "text": <7s> } ], "type": "block" },
             { "items": [ { "markup": [ "light" ], "text": <4s> } ], "type": "block" }
           ]
         ],
@@ -56,7 +56,8 @@ struct!(gene_zmenu,"""
         gene.biotype,
         gene.strand_string,
         gene.id_unversioned,
-        index(["gene-other-rev","gene-pc-rev","gene-other-fwd","gene-pc-fwd","focus"],gene.leaf_index)
+        index(["gene-other-rev","gene-pc-rev","gene-other-fwd","gene-pc-fwd","focus"],gene.leaf_index),
+        small_value("gene-biotype","label",gene.biotype)
     );
     gene_zmenu
 }
@@ -65,7 +66,7 @@ struct!(gene_zmenu,"""
 
 function gene_tr_zmenu(*gene) {
 struct!(gene_tr_zmenu,"""
-(<0,1,2,3,4,5,6>!
+(<0,1,2,3,4,5,6,7>!
       {
         "data": [
 
@@ -90,7 +91,7 @@ struct!(gene_tr_zmenu,"""
 
           [
             {
-              "items": [{ "markup": ["light"], "text": <2s> }],
+              "items": [{ "markup": ["light"], "text": <7s> }],
               "type": "block"
             },
             {
@@ -118,14 +119,15 @@ struct!(gene_tr_zmenu,"""
       gene.strand_string,
       gene.desigtr_unversioned,
       gene.id_versioned,
-      index(["gene-other-rev","gene-pc-rev","gene-other-fwd","gene-pc-fwd","focus"],gene.leaf_index)
+      index(["gene-other-rev","gene-pc-rev","gene-other-fwd","gene-pc-fwd","focus"],gene.leaf_index),
+      small_value("gene-biotype","label",gene.biotype)
   );
   gene_tr_zmenu
 }
 
 function tr_zmenu(*tr_gene,*tr) {
 struct!(tr_zmenu,"""
-(<0,1,2,3,4,5,6>!
+(<0,1,2,3,4,5,6,7,8>!
       {
         "data": [
 
@@ -141,7 +143,7 @@ struct!(tr_zmenu,"""
               "type": "block"
             },
             {
-              "items": [{ "markup": ["light"], "text": <1s> }],
+              "items": [{ "markup": ["light"], "text": <7s> }],
               "type": "block"
             }
           ],
@@ -150,7 +152,7 @@ struct!(tr_zmenu,"""
 
           [
             {
-              "items": [{ "markup": ["light"], "text": <2s> }],
+              "items": [{ "markup": ["light"], "text": <8s> }],
               "type": "block"
             },
             {
@@ -178,7 +180,9 @@ struct!(tr_zmenu,"""
     tr_gene.strand_string,
     tr.id_unversioned,
     tr_gene.id_versioned,
-    index(["gene-other-rev","gene-pc-rev","gene-other-fwd","gene-pc-fwd","focus"],tr.leaf_index)
+    index(["gene-other-rev","gene-pc-rev","gene-other-fwd","gene-pc-fwd","focus"],tr.leaf_index),
+    small_value("designation","label",tr.designation),
+    small_value("tr-biotype","label",tr.biotype)
   );
   tr_zmenu
 }

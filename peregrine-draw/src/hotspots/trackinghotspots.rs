@@ -58,11 +58,18 @@ impl HotspotStoreProfile<SingleHotspotEntry> for DrawingHotspotProfile {
 
     fn intersects(&self, context: &UnitConverter, coords: &(f64,f64), entry: &SingleHotspotEntry) -> bool {
         let coord_to_px = ubail!(self.converter(context),false);
-        entry.coordinates().map(|(c1,c2)| {            
-            coords.0 >= coord_to_px.tracking_coord_to_px(&c1) && 
-            coords.0 <= coord_to_px.tracking_coord_to_px(&c2) && 
-            coords.1 >= *c1.normal && 
-            coords.1 <= *c2.normal
+        let (at_coords,run) = entry.coordinates();
+        at_coords.map(|(c1,c2)| {
+            let mut obj_left = coord_to_px.tracking_coord_to_px(&c1);
+            let mut obj_right = coord_to_px.tracking_coord_to_px(&c2);
+            let left_rail = coord_to_px.left_rail();
+            if let Some(run) = run {
+                if obj_left < left_rail && run >= left_rail {
+                    obj_right = (obj_right-obj_left)+left_rail;
+                    obj_left = left_rail;
+                }
+            }
+            coords.0 >= obj_left && coords.0 <= obj_right && coords.1 >= *c1.normal && coords.1 <= *c2.normal
         }).unwrap_or(false)
     }
 
@@ -80,15 +87,17 @@ impl HotspotStoreProfile<SingleHotspotEntry> for DrawingHotspotProfile {
         let left_scr = self.bp_to_carriage_prop(self.max_bp_pair_pos(&a,true));
         let right_scr = self.bp_to_carriage_prop(self.max_bp_pair_pos(&a,false));
         let (top_px,bottom_px) = order(a.0.normal,a.1.normal);
-        Some((
-            (
-                 ((left_scr.clamp(0.,1.)*(HORIZ_ZONES as f64)).floor() as usize) ..
-                (((right_scr.clamp(0.,1.)*(HORIZ_ZONES as f64)).floor() as usize)+1)
-            ),(
-                 ((top_px/(VERT_ZONE_HEIGHT as f64)) as usize) ..
-                (((bottom_px/(VERT_ZONE_HEIGHT as f64)) as usize)+1)
-            )
-        ))
+        let horiz = if a.2.is_some() {
+            0..HORIZ_ZONES+1
+        } else {
+            ((left_scr.clamp(0.,1.)*(HORIZ_ZONES as f64)).floor() as usize) ..
+           (((right_scr.clamp(0.,1.)*(HORIZ_ZONES as f64)).floor() as usize)+1)
+        };
+        let vert =
+            ((top_px/(VERT_ZONE_HEIGHT as f64)) as usize) ..
+           (((bottom_px/(VERT_ZONE_HEIGHT as f64)) as usize)+1)
+        ;
+        Some((horiz,vert))
     }
 }
 

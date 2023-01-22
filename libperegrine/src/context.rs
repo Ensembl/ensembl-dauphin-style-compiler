@@ -1,7 +1,7 @@
 use std::{sync::{Arc, Mutex}, collections::HashMap, any::Any};
 use eard_interp::{ ContextItem, HandleStore, InterpreterBuilder, Operation, RunContext };
-use peregrine_data::{LeafRequest, ProgramShapesBuilder, Colour, Patina, SpaceBase, DataRequest, DataResponse, DataStore, LoadMode, RunReport, ShapeRequest, AccessorResolver, Plotter, Pen};
-use crate::{leaf::{op_leaf, op_leaf_s}, style::op_style, paint::{op_colour, op_paint_solid, op_paint_solid_s, op_graph_type, op_pen, op_paint_hollow, op_paint_hollow_s, op_paint_special, op_zmenu, op_paint_dotted, op_paint_metadata, op_paint_setting}, coord::op_coord, shape::{op_rectangle, op_wiggle, op_text, op_image, op_running_text, op_empty, op_running_rectangle}, data::{op_get_data, op_request, op_scope, op_data_boolean, op_data_number, op_data_string, op_bp_range, op_scope_s}, setting::{op_setting_boolean, op_setting_string, op_setting_number_seq, op_setting_number, op_setting_string_seq, op_setting_boolean_seq, op_setting_boolean_keys, op_setting_number_keys, op_setting_string_keys}};
+use peregrine_data::{LeafRequest, ProgramShapesBuilder, Colour, Patina, SpaceBase, DataRequest, DataResponse, DataStore, LoadMode, RunReport, ShapeRequest, AccessorResolver, Plotter, Pen, SmallValuesStore};
+use crate::{leaf::{op_leaf, op_leaf_s}, style::op_style, paint::{op_colour, op_paint_solid, op_paint_solid_s, op_graph_type, op_pen, op_paint_hollow, op_paint_hollow_s, op_paint_special, op_zmenu, op_paint_dotted, op_paint_metadata, op_paint_setting}, coord::op_coord, shape::{op_rectangle, op_wiggle, op_text, op_image, op_running_text, op_empty, op_running_rectangle}, data::{op_get_data, op_request, op_scope, op_data_boolean, op_data_number, op_data_string, op_bp_range, op_scope_s, op_small_value}, setting::{op_setting_boolean, op_setting_string, op_setting_number_seq, op_setting_number, op_setting_string_seq, op_setting_boolean_seq, op_setting_boolean_keys, op_setting_number_keys, op_setting_string_keys}};
 
 #[derive(Clone)]
 pub struct LibPeregrineBuilder {
@@ -15,7 +15,8 @@ pub struct LibPeregrineBuilder {
     graph_types: ContextItem<HandleStore<Plotter>>,
     pens: ContextItem<HandleStore<Pen>>,
     shape_request: ContextItem<ShapeRequest>,
-    store: ContextItem<DataStore>,
+    data_store: ContextItem<DataStore>,
+    small_values_store: ContextItem<SmallValuesStore>,
     mode: ContextItem<LoadMode>,
     report: ContextItem<Arc<Mutex<RunReport>>>,
     resolver: ContextItem<AccessorResolver>
@@ -32,7 +33,8 @@ pub fn build_libperegrine(builder: &mut InterpreterBuilder) -> Result<LibPeregri
     let graph_types = builder.add_context::<HandleStore<Plotter>>("graph-types")?;
     let pens = builder.add_context::<HandleStore<Pen>>("pens")?;
     let shape_request = builder.add_context::<ShapeRequest>("shape-request")?;
-    let store = builder.add_context::<DataStore>("store")?;
+    let data_store = builder.add_context::<DataStore>("data-store")?;
+    let small_values_store = builder.add_context::<SmallValuesStore>("small-values-store")?;
     let mode = builder.add_context::<LoadMode>("mode")?;
     let report = builder.add_context::<Arc<Mutex<RunReport>>>("report")?;
     let resolver = builder.add_context::<AccessorResolver>("channel-resolver")?;
@@ -77,9 +79,10 @@ pub fn build_libperegrine(builder: &mut InterpreterBuilder) -> Result<LibPeregri
     builder.add_operation(293,Operation::new(op_setting_string_keys));
     builder.add_operation(294,Operation::new(op_scope_s));
     builder.add_operation(295,Operation::new(op_running_rectangle));
+    builder.add_operation(296,Operation::new(op_small_value));
     Ok(LibPeregrineBuilder { 
-        leafs, shapes, colours, paint, coords, requests, responses, store, mode, report,
-        shape_request, resolver, graph_types, pens
+        leafs, shapes, colours, paint, coords, requests, responses, data_store, mode, report,
+        shape_request, resolver, graph_types, pens, small_values_store
     })
 }
 
@@ -89,7 +92,7 @@ fn payload_get<'a,T: 'static>(payloads: &'a HashMap<String,Box<dyn Any>>, key: &
     )
 }
 
-pub fn prepare_libperegrine(context: &mut RunContext, builder: &LibPeregrineBuilder, data_store: &DataStore, payloads: HashMap<String,Box<dyn Any>>) -> Result<(),String> {
+pub fn prepare_libperegrine(context: &mut RunContext, builder: &LibPeregrineBuilder, data_store: &DataStore, small_values_store: &SmallValuesStore, payloads: HashMap<String,Box<dyn Any>>) -> Result<(),String> {
     let shapes = payload_get::<Arc<Mutex<Option<ProgramShapesBuilder>>>>(&payloads,"out")?.clone();
     let mode = payload_get::<LoadMode>(&payloads,"mode")?;
     let report = payload_get::<Arc<Mutex<RunReport>>>(&payloads,"report")?;
@@ -104,7 +107,8 @@ pub fn prepare_libperegrine(context: &mut RunContext, builder: &LibPeregrineBuil
     context.add(&builder.graph_types,HandleStore::new());
     context.add(&builder.pens,HandleStore::new());
     context.add(&builder.shapes,shapes);
-    context.add(&builder.store,data_store.clone());
+    context.add(&builder.data_store,data_store.clone());
+    context.add(&builder.small_values_store,small_values_store.clone());
     context.add(&builder.mode,mode.clone());
     context.add(&builder.report,report.clone());
     context.add(&builder.shape_request,shape_request.clone());

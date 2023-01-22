@@ -2,7 +2,7 @@ use commander::{ CommanderStream, cdr_tick };
 use eard_interp::{LibcoreTemplate, InterpreterBuilder, build_libcore, Interpreter, LibcoreBuilder, RunContext, prepare_libcore};
 use eard_libeoe::{ build_libeoe, LibEoEBuilder, prepare_libeoe };
 use peregrine_data::{ 
-    PgCommander, PgCommanderTaskSpec, PeregrineCore, add_task, DataStore
+    PgCommander, PgCommanderTaskSpec, PeregrineCore, add_task, DataStore, SmallValuesStore
 };
 use peregrine_dauphin_queue::{ PgDauphinTaskSpec, PgEardoLoadTaskSpec, PgEardoRunTaskSpec };
 use eard_libperegrine::{build_libperegrine, prepare_libperegrine, LibPeregrineBuilder};
@@ -31,7 +31,7 @@ macro_rules! result {
     };
 }
 
-fn run_eardo(interp: &mut Interpreter, data_store: &DataStore, 
+fn run_eardo(interp: &mut Interpreter, data_store: &DataStore, small_values_store: &SmallValuesStore, 
     libcore_builder: &LibcoreBuilder, libperegrine_builder: &LibPeregrineBuilder, libeoe_builder: &LibEoEBuilder,
     commander: &PgCommander, spec: PgEardoRunTaskSpec, stream: CommanderStream<Result<(),Error>>) {
     /* run */
@@ -41,6 +41,7 @@ fn run_eardo(interp: &mut Interpreter, data_store: &DataStore,
     let libperegrine_builder = libperegrine_builder.clone();
     let libeoe_builder = libeoe_builder.clone();
     let data_store = data_store.clone();
+    let small_values_store = small_values_store.clone();
     let task = PgCommanderTaskSpec {
         name: format!("eard: {:?}",spec.name),
         prio: spec.prio,
@@ -50,7 +51,7 @@ fn run_eardo(interp: &mut Interpreter, data_store: &DataStore,
             let mut context = RunContext::new();
             prepare_libcore(&mut context,&libcore_builder,LibcoreBrowser::new());
             result!(prepare_libperegrine(
-                &mut context,&libperegrine_builder,&data_store,
+                &mut context,&libperegrine_builder,&data_store,&small_values_store,
                 spec.payloads
             ),stream,Ok(()));
             result!(prepare_libeoe(&mut context,&libeoe_builder),stream,Ok(()));
@@ -108,12 +109,13 @@ fn eard_interp() -> Result<(Interpreter,LibcoreBuilder,LibPeregrineBuilder,LibEo
 
 async fn main_loop(core: PeregrineCore) -> Result<(),Error> {
     let data_store = core.agent_store.data_store.clone();
+    let small_values_store = core.agent_store.small_values_store.clone();
     let (mut interp,libcore_builder,libperegrine_builder,libeoe_builder) = eard_interp().map_err(|e| Error::operr(&e))?;
     loop {
         let e = core.base.dauphin_queue.get().await;
         match e.task {
             PgDauphinTaskSpec::LoadEardo(p) => load_eardo(&mut interp,p,e.channel),
-            PgDauphinTaskSpec::RunEardo(r) => run_eardo(&mut interp,&data_store,&libcore_builder,&libperegrine_builder,&libeoe_builder,&core.base.commander,r,e.channel),
+            PgDauphinTaskSpec::RunEardo(r) => run_eardo(&mut interp,&data_store,&small_values_store,&libcore_builder,&libperegrine_builder,&libeoe_builder,&core.base.commander,r,e.channel),
             PgDauphinTaskSpec::Quit => { break; }
         }
     }
