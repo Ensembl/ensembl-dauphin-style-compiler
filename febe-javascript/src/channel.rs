@@ -56,7 +56,7 @@ impl JavascriptChannel {
                     map_error(self.backend.data(req).await,|r| MiniResponse::Data(r))?
                 },
                 MiniRequest::SmallValues(req) => {
-                    (MiniResponse::SmallValues(SmallValuesRes::empty()),JsSidecar::new_empty())
+                    map_error(self.backend.small_values(req).await,|r| MiniResponse::SmallValues(r))?
                 },
                 _ => { 
                     (MiniResponse::FailureRes(FailureRes::new("unimplemented")),JsSidecar::new_empty())

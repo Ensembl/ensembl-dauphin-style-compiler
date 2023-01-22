@@ -330,6 +330,7 @@ pub use self::request::core::manager::RequestManager;
 pub use self::request::tracks::trackmodel::{ TrackMapping, TrackModel, TrackModelDeserialize };
 pub use self::request::tracks::expansionmodel::ExpansionModel;
 pub use self::request::minirequests::failureres::FailureRes;
+pub use self::request::minirequests::smallvaluesreq::SmallValuesReq;
 pub use self::request::minirequests::smallvaluesres::SmallValuesRes;
 pub use self::request::minirequests::bootchannelreq::BootChannelReq;
 pub use self::request::minirequests::bootchannelres::BootChannelRes;

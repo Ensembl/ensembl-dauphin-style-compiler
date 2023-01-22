@@ -13,6 +13,9 @@ impl SmallValuesReq {
             column: column.to_string()
         })
     }
+
+    pub fn namespace(&self) -> &str { &self.namespace }
+    pub fn column(&self) -> &str { &self.column }
 }
 
 impl MiniRequestVariety for SmallValuesReq {

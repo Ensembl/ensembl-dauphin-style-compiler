@@ -6,8 +6,7 @@ use crate::request::core::miniresponse::MiniResponseVariety;
 pub struct SmallValuesRes(HashMap<String,String>);
 
 impl SmallValuesRes {
-    pub fn empty() -> SmallValuesRes { SmallValuesRes(HashMap::new()) }
-
+    pub fn new(values: HashMap<String,String>) -> SmallValuesRes { SmallValuesRes(values) }
     pub fn small_values(&self) -> &HashMap<String,String> { &self.0 }
 }
 
@@ -15,9 +14,9 @@ impl MiniResponseVariety for SmallValuesRes {
     fn description(&self) -> &str { "small-value" }
 }
 
-struct SmallValuesResResVisitor;
+struct SmallValuesResVisitor;
 
-impl<'de> Visitor<'de> for SmallValuesResResVisitor {
+impl<'de> Visitor<'de> for SmallValuesResVisitor {
     type Value = SmallValuesRes;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
@@ -34,6 +33,6 @@ impl<'de> Visitor<'de> for SmallValuesResResVisitor {
 impl<'de> Deserialize<'de> for SmallValuesRes {
     fn deserialize<D>(deserializer: D) -> Result<SmallValuesRes, D::Error>
             where D: Deserializer<'de> {
-        deserializer.deserialize_seq(SmallValuesResResVisitor)
+        deserializer.deserialize_seq(SmallValuesResVisitor)
     }
 }
