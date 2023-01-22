@@ -11,8 +11,7 @@ pub struct SpecialClick {
 }
 
 pub enum HotspotResult {
-    Setting(Vec<String>,SettingMode),
-    Setting2(Vec<String>,String,StructBuilt),
+    Setting(Vec<String>,String,StructBuilt),
     Special(SpecialClick),
     Click(StructValue,StructValue)
 }

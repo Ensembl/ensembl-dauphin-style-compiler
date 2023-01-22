@@ -237,9 +237,9 @@ pub(crate) fn op_paint_setting(gctx: &GlobalBuildContext) -> Result<Box<dyn Fn(&
                 .iter().zip(value).map(|(key,value)| {
                     Ok::<_,String>((key.to_string(),value?.build()?))
             }).collect::<Result<Vec<_>,String>>()?;
-            Patina::Hotspot(HotspotPatina::Setting2(switch.clone(),EachOrEvery::each(updates)))
+            Patina::Hotspot(HotspotPatina::Setting(switch.clone(),EachOrEvery::each(updates)))
         } else {
-            Patina::Hotspot(HotspotPatina::Setting2(vec![],EachOrEvery::each(vec![])))
+            Patina::Hotspot(HotspotPatina::Setting(vec![],EachOrEvery::each(vec![])))
         };
         let paints = ctx.context.get_mut(&paints);
         let h = paints.push(paint);

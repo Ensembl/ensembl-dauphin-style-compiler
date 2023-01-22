@@ -94,26 +94,17 @@ pub enum DrawnType {
 #[derive(Clone)]
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub enum HotspotPatina {
-    Setting(EachOrEvery<(Vec<String>,SettingMode)>),
-    Setting2(Vec<String>,EachOrEvery<(String,StructBuilt)>),
+    Setting(Vec<String>,EachOrEvery<(String,StructBuilt)>),
     Special(EachOrEvery<String>),
     Click(Arc<StructTemplate>,Arc<StructTemplate>)
 }
 
-fn setting_generator(values: &EachOrEvery<(Vec<String>,SettingMode)>) -> Arc<dyn Fn(usize,Option<(SpaceBasePoint<f64,AuxLeaf>,SpaceBasePoint<f64,AuxLeaf>)>,Option<f64>) -> Option<HotspotResult>> {
-    let values = Rc::new(values.clone());
-    Arc::new(move |index,_,_| {
-        let (path,mode) = values.get(index).unwrap().clone();
-        Some(HotspotResult::Setting(path,mode))
-    })
-}
-
-fn setting2_generator(switch: &Vec<String>, values: &EachOrEvery<(String,StructBuilt)>) -> Arc<dyn Fn(usize,Option<(SpaceBasePoint<f64,AuxLeaf>,SpaceBasePoint<f64,AuxLeaf>)>,Option<f64>) -> Option<HotspotResult>> {
+fn setting_generator(switch: &Vec<String>, values: &EachOrEvery<(String,StructBuilt)>) -> Arc<dyn Fn(usize,Option<(SpaceBasePoint<f64,AuxLeaf>,SpaceBasePoint<f64,AuxLeaf>)>,Option<f64>) -> Option<HotspotResult>> {
     let values = Rc::new(values.clone());
     let switch = switch.to_vec();
     Arc::new(move |index,_,_| {
         let (key,value) = values.get(index).unwrap().clone();
-        Some(HotspotResult::Setting2(switch.clone(),key,value))
+        Some(HotspotResult::Setting(switch.clone(),key,value))
     })
 }
 
@@ -154,11 +145,8 @@ fn ok_or_empty_click<E>(input: Result<StructTemplate,E>) -> StructTemplate {
 impl HotspotPatina {
     fn filter(&self, filter: &EachOrEveryFilter) -> HotspotPatina {
         match self {
-            HotspotPatina::Setting(values) => {
-                HotspotPatina::Setting(values.filter(filter))
-            },
-            HotspotPatina::Setting2(key,values) => {
-                HotspotPatina::Setting2(key.clone(),values.filter(filter))
+            HotspotPatina::Setting(key,values) => {
+                HotspotPatina::Setting(key.clone(),values.filter(filter))
             },
             HotspotPatina::Special(value) => {
                 HotspotPatina::Special(value.filter(filter))
@@ -171,8 +159,7 @@ impl HotspotPatina {
     
     fn compatible(&self, len: usize) -> bool {
         match self {
-            HotspotPatina::Setting(value) => { value.compatible(len) },
-            HotspotPatina::Setting2(_,values) => { values.compatible(len) },
+            HotspotPatina::Setting(_,values) => { values.compatible(len) },
             HotspotPatina::Special(value) => { value.compatible(len) },
             HotspotPatina::Click(_,value) => { 
                 value.compatible(&[],len).unwrap_or(false)
@@ -182,11 +169,8 @@ impl HotspotPatina {
 
     pub fn generator(&self) -> Arc<dyn Fn(usize,Option<(SpaceBasePoint<f64,AuxLeaf>,SpaceBasePoint<f64,AuxLeaf>)>,Option<f64>) -> Option<HotspotResult>> {
         match self {
-            HotspotPatina::Setting(values) => {
-                setting_generator(&values)
-            },
-            HotspotPatina::Setting2(key,values) => {
-                setting2_generator(key,&values)
+            HotspotPatina::Setting(key,values) => {
+                setting_generator(key,&values)
             },
             HotspotPatina::Special(values) => {
                 special_generator(&values)

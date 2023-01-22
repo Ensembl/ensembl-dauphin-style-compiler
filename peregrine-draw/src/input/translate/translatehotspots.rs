@@ -1,9 +1,8 @@
 use std::collections::HashSet;
-
 use commander::CommanderStream;
 use eachorevery::eoestruct::StructValue;
 use peregrine_data::{HotspotResult, DataMessage};
-use peregrine_toolkit::{debug_log, lock, log, error::Error};
+use peregrine_toolkit::{lock, error::Error, log};
 use crate::{Message, PeregrineInnerAPI, PgCommanderWeb, input::{InputEvent, InputEventKind, low::lowlevel::LowLevelInput}, run::inner::LockedPeregrineInnerAPI};
 
 fn process_hotspot_event(api: &LockedPeregrineInnerAPI, x: f64, doc_y: f64) -> Result<(),Message> {
@@ -23,16 +22,11 @@ fn process_hotspot_event(api: &LockedPeregrineInnerAPI, x: f64, doc_y: f64) -> R
     for event in &events {
         if let Some(event) = event.value() {
             match event {
-                HotspotResult::Setting(path,value) => {
-                    debug_log!("setting {:?} gets {:?}",path,value);
-                    let path = path.iter().map(|x| x.as_str()).collect::<Vec<_>>();
-                    api.data_api.update_switch(&path,value);
-                },
                 HotspotResult::Special(_) => {},
                 HotspotResult::Click(_,contents) => {
                     hotspot_contents.insert(contents);
                 },
-                HotspotResult::Setting2(switch,path,value) => {
+                HotspotResult::Setting(switch,path,value) => {
                     let switch = switch.iter().map(|x| x.as_str()).collect::<Vec<_>>();
                     api.data_api.update_setting(&switch,&path,StructValue::new_expand(&value,None).map_err(|e| {
                         Message::DataError(DataMessage::XXXTransitional(Error::operr(&e)))
