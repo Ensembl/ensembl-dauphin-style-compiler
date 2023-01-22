@@ -63,7 +63,7 @@ impl GLAttachmentPoint {
 pub(crate) enum SimpleShapePatina {
     Solid(EachOrEvery<DirectColour>),
     Hollow(EachOrEvery<DirectColour>),
-    Hotspot(HotspotPatina),
+    Hotspot(HotspotPatina,bool),
     None
 }
 
@@ -85,7 +85,7 @@ impl SimpleShapePatina {
                     DrawnType::Fill => SimpleShapePatina::Solid(simplify_colours(colours)?),
                 }
             },
-            Patina::Hotspot(hotspot) => { SimpleShapePatina::Hotspot(hotspot.clone()) }
+            Patina::Hotspot(hotspot,hover) => { SimpleShapePatina::Hotspot(hotspot.clone(),*hover) }
             Patina::Metadata(_,_) => { SimpleShapePatina::None }
         })
     }
@@ -166,7 +166,7 @@ fn draw_heraldry_canvas(layer: &mut Layer, left: f64, gl: &mut WebGlGlobal, tool
 
 pub(crate) enum ShapeToAdd {
     Dynamic(Box<dyn DynamicShape>),
-    Hotspot(SpaceBaseArea<f64,AuxLeaf>,Option<EachOrEvery<f64>>,HotspotPatina),
+    Hotspot(SpaceBaseArea<f64,AuxLeaf>,Option<EachOrEvery<f64>>,HotspotPatina,bool),
     None
 }
 
@@ -232,8 +232,8 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, left: f64, gl: &mut WebGlGlo
                     campaign.close()?;
                     Ok(ShapeToAdd::Dynamic(Box::new(Rectangles::new(rectangles,&gl))))
                 },
-                SimpleShapePatina::Hotspot(hotspot) => {
-                    Ok(ShapeToAdd::Hotspot(area,run.clone(),hotspot))
+                SimpleShapePatina::Hotspot(hotspot,hover) => {
+                    Ok(ShapeToAdd::Hotspot(area,run.clone(),hotspot,hover))
                 },
                 _ => {
                     Ok(ShapeToAdd::None)
@@ -256,7 +256,7 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, left: f64, gl: &mut WebGlGlo
                 SimpleShapePatina::Hollow(_) => {
                     todo!()
                 }
-                SimpleShapePatina::Hotspot(hotspot) => {
+                SimpleShapePatina::Hotspot(hotspot,hover) => {
                     let top_left = centre.merge_eoe(radius.clone(),SpaceBasePoint {
                         base: &|c,_r| *c,
                         normal: &|c,r| *c-*r,
@@ -270,7 +270,7 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, left: f64, gl: &mut WebGlGlo
                         allotment: ()
                     });
                     let area = SpaceBaseArea::new(PartialSpaceBase::from_spacebase(top_left),PartialSpaceBase::from_spacebase(borrom_right)).expect("polygon hotspot");
-                    Ok(ShapeToAdd::Hotspot(area,None,hotspot))
+                    Ok(ShapeToAdd::Hotspot(area,None,hotspot,hover))
                 },
                 _ => {
                     Ok(ShapeToAdd::None)

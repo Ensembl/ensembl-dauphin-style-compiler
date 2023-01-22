@@ -52,7 +52,7 @@ export procedure draw_track_category(category,track_ids,leafs) {
 
     /* Create a hotspot zone for tooltip hover */
     let buffer = 5; // px
-    let hotspot = paint_click(variety_trackhover,contents_trackhover(track_ids));
+    let hotspot = paint_click(variety_trackhover,contents_trackhover(track_ids),true);
     rectangle(coord(enough_zeros,[5-buffer,...],[16-buffer,...]),coord(enough_zeros,[17+buffer,...],[28+buffer,...]),hotspot,leafs);
 
     /* Draw grey swatch */

@@ -29,7 +29,7 @@ pub enum Message {
     CurrentLocation(String,f64,f64),
     TargetLocation(String,f64,f64),
     AllotmentMetadataReport(GlobalAllotmentMetadata),
-    HotspotEvent(f64,f64,Vec<StructValue>,Vec<StructValue>),
+    HotspotEvent(f64,f64,bool,Vec<StructValue>,Vec<StructValue>),
     HitEndstop(Vec<Endstop>),
     Ready,
     /**/
@@ -52,7 +52,7 @@ impl PeregrineMessage for Message {
             Message::TargetLocation(_,_,_) => MessageKind::Interface,
             Message::Ready => MessageKind::Interface,
             Message::AllotmentMetadataReport(_) => MessageKind::Interface,
-            Message::HotspotEvent(_,_,_,_) => MessageKind::Interface,
+            Message::HotspotEvent(_,_,_,_,_) => MessageKind::Interface,
             Message::HitEndstop(_) => MessageKind::Interface,
             _ => MessageKind::Error
         }
@@ -82,7 +82,7 @@ impl PeregrineMessage for Message {
             Message::TargetLocation(_,_,_) => (0,0),
             Message::Ready => (0,0),
             Message::AllotmentMetadataReport(_) => (0,0),
-            Message::HotspotEvent(_,_,_,_) => (0,0),
+            Message::HotspotEvent(_,_,_,_,_) => (0,0),
             Message::HitEndstop(_) => (0,0),
         }
     }
@@ -103,10 +103,12 @@ impl PeregrineMessage for Message {
             Message::TargetLocation(stick,left,right) => format!("target location: {}:{}-{}",stick,left,right),
             Message::Ready => format!("ready"),
             Message::AllotmentMetadataReport(metadata) => format!("allotment metadata: {:?}",metadata.summarize_json()),
-            Message::HotspotEvent(x,y,variety,contents) => format!("click event: {:?} : {:?} at ({},{})",
-                variety.iter().map(|x| x.to_json_value().to_string()).collect::<Vec<_>>().join(","),
-                contents.iter().map(|x| x.to_json_value().to_string()).collect::<Vec<_>>().join(","),
-                x,y),
+            Message::HotspotEvent(x,y,start,variety,contents) => 
+                format!("click event: {:?} : {:?} at ({},{}) start={}",
+                    variety.iter().map(|x| x.to_json_value().to_string()).collect::<Vec<_>>().join(","),
+                    contents.iter().map(|x| x.to_json_value().to_string()).collect::<Vec<_>>().join(","),
+                    x,y,start
+                ),
             Message::HitEndstop(x) => format!("hit endstop: {:?}",x.iter().map(|y| format!("{:?}",y)).collect::<Vec<_>>().join(", ")),
         }
     }

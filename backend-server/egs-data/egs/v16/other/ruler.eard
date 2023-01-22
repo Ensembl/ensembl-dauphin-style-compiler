@@ -102,6 +102,6 @@ rectangle(coord([0],[16],[0]),coord([1],[16],[0]),paint,[ruler_over_leaf,...]);
 rectangle(coord([0],[-16],[0]),coord([1],[-16],[0]),paint,[ruler_over_leaf,...]);
 
 /* Setup maypole "special zone" */
-let maypole_paint = paint_special("maypole");
+let maypole_paint = paint_special("maypole",false);
 rectangle(coord([0],[0],[0]),coord([1],[16],[0]),maypole_paint,[ruler_under_leaf,...]);
 rectangle(coord([0],[-1],[0]),coord([1],[-16],[0]),maypole_paint,[ruler_under_leaf,...]);

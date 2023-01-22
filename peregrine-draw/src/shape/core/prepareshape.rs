@@ -41,8 +41,8 @@ fn split_spacebaserect(tools: &mut DrawingToolsBuilder, shape: &RectangleShape<A
                 }
             }
         },
-        Patina::Hotspot(hotspot) => {
-            out.push(GLShape::SpaceBaseRect(shape.area().clone(),shape.run().clone(),SimpleShapePatina::Hotspot(hotspot.clone()),depth,draw_group.clone(),None));
+        Patina::Hotspot(hotspot,hover) => {
+            out.push(GLShape::SpaceBaseRect(shape.area().clone(),shape.run().clone(),SimpleShapePatina::Hotspot(hotspot.clone(),*hover),depth,draw_group.clone(),None));
         },
         Patina::Metadata(_,_) => {}
     }
@@ -56,8 +56,8 @@ fn split_polygon(shape: &PolygonShape<AuxLeaf>, draw_group: &DrawGroup) -> Resul
         Patina::Drawn(_,_) => {
             out.push(GLShape::Polygon(shape.position().clone(),shape.radius().clone(),draw_group.depth(),shape.points(),shape.angle(),SimpleShapePatina::from_patina(shape.patina())?,draw_group.clone(),wobble));
         },
-        Patina::Hotspot(hotspot) => {
-            out.push(GLShape::Polygon(shape.position().clone(),shape.radius().clone(),draw_group.depth(),shape.points(),shape.angle(),SimpleShapePatina::Hotspot(hotspot.clone()),draw_group.clone(),None));
+        Patina::Hotspot(hotspot,hover) => {
+            out.push(GLShape::Polygon(shape.position().clone(),shape.radius().clone(),draw_group.depth(),shape.points(),shape.angle(),SimpleShapePatina::Hotspot(hotspot.clone(),*hover),draw_group.clone(),None));
         },
         Patina::Metadata(_,_) => {}
     }

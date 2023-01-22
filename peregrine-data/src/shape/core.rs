@@ -186,7 +186,7 @@ impl HotspotPatina {
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub enum Patina {
     Drawn(DrawnType,EachOrEvery<Colour>),
-    Hotspot(HotspotPatina),
+    Hotspot(HotspotPatina,bool),
     Metadata(String,EachOrEvery<(String,StructValue)>)
 }
 
@@ -194,7 +194,7 @@ impl Patina {
     pub fn filter(&self, filter: &EachOrEveryFilter) -> Patina {
         match self {
             Patina::Drawn(drawn_type,colours) => Patina::Drawn(drawn_type.clone(),colours.filter(filter)),
-            Patina::Hotspot(hotspot) => Patina::Hotspot(hotspot.filter(filter)),
+            Patina::Hotspot(hotspot,hover) => Patina::Hotspot(hotspot.filter(filter),*hover),
             Patina::Metadata(key,values) => Patina::Metadata(key.clone(),values.filter(filter))
         }
     }
@@ -202,7 +202,7 @@ impl Patina {
     pub fn compatible(&self, len: usize) -> bool {
         match self {
             Patina::Drawn(_,x) => x.compatible(len),
-            Patina::Hotspot(hotspot) => { hotspot.compatible(len) },
+            Patina::Hotspot(hotspot,_) => { hotspot.compatible(len) },
             Patina::Metadata(_,values) => { values.compatible(len) }
         }
     }

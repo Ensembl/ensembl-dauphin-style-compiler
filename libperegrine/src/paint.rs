@@ -107,7 +107,8 @@ pub(crate) fn op_paint_special(gctx: &GlobalBuildContext) -> Result<Box<dyn Fn(&
     let paints = gctx.patterns.lookup::<HandleStore<Patina>>("paint")?;
     Ok(Box::new(move |ctx,regs| {
         let special = ctx.force_string(regs[1])?;
-        let paint = Patina::Hotspot(HotspotPatina::Special(EachOrEvery::every(special.to_string())));
+        let hover = ctx.force_boolean(regs[2])?;
+        let paint = Patina::Hotspot(HotspotPatina::Special(EachOrEvery::every(special.to_string())),hover);
         let paints = ctx.context.get_mut(&paints);
         let h = paints.push(paint);
         ctx.set(regs[0],Value::Number(h as f64))?;
@@ -173,8 +174,9 @@ pub(crate) fn op_zmenu(gctx: &GlobalBuildContext) -> Result<Box<dyn Fn(&mut Glob
         let variety = templates.get(variety_h)?.clone();
         let content_h = ctx.force_number(regs[2])? as usize;
         let content = templates.get(content_h)?.clone();
+        let hover = ctx.force_boolean(regs[3])?;
         let paints = ctx.context.get_mut(&paints);
-        let h = paints.push(Patina::Hotspot(HotspotPatina::Click(Arc::new(variety),Arc::new(content))));
+        let h = paints.push(Patina::Hotspot(HotspotPatina::Click(Arc::new(variety),Arc::new(content)),hover));
         ctx.set(regs[0],Value::Number(h as f64))?;
         Ok(Return::Sync)
     }))
@@ -229,6 +231,7 @@ pub(crate) fn op_paint_setting(gctx: &GlobalBuildContext) -> Result<Box<dyn Fn(&
         let setting = ctx.force_string(regs[1])?;
         let templates = ctx.context.get(&templates);
         let shape_request = ctx.context.get(&shape_request);
+        let hover = ctx.force_boolean(regs[4])?;
         let paint = if let Some(switch) = shape_request.track().underlying_switch(setting) {
             let value = ctx.force_finite_number(regs[3])?.iter().map(|h| {
                 templates.get(*h as usize)
@@ -237,9 +240,9 @@ pub(crate) fn op_paint_setting(gctx: &GlobalBuildContext) -> Result<Box<dyn Fn(&
                 .iter().zip(value).map(|(key,value)| {
                     Ok::<_,String>((key.to_string(),value?.build()?))
             }).collect::<Result<Vec<_>,String>>()?;
-            Patina::Hotspot(HotspotPatina::Setting(switch.clone(),EachOrEvery::each(updates)))
+            Patina::Hotspot(HotspotPatina::Setting(switch.clone(),EachOrEvery::each(updates)),hover)
         } else {
-            Patina::Hotspot(HotspotPatina::Setting(vec![],EachOrEvery::each(vec![])))
+            Patina::Hotspot(HotspotPatina::Setting(vec![],EachOrEvery::each(vec![])),hover)
         };
         let paints = ctx.context.get_mut(&paints);
         let h = paints.push(paint);

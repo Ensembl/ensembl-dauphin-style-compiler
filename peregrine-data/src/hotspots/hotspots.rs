@@ -1,8 +1,9 @@
 use std::{sync::Arc };
 use eachorevery::{eoestruct::{StructValue, StructBuilt}, EachOrEvery};
 use peregrine_toolkit::{ identitynumber, orderable, hashable };
-use crate::{SettingMode, SpaceBaseArea, HotspotPatina, SpaceBasePointRef, SpaceBasePoint, allotment::leafs::auxleaf::AuxLeaf};
+use crate::{SpaceBaseArea, HotspotPatina, SpaceBasePointRef, SpaceBasePoint, allotment::leafs::auxleaf::AuxLeaf};
 
+#[derive(Debug)]
 #[derive(Clone)]
 pub struct SpecialClick {
     pub name: String,
@@ -10,6 +11,7 @@ pub struct SpecialClick {
     pub run: Option<f64>
 }
 
+#[derive(Debug)]
 pub enum HotspotResult {
     Setting(Vec<String>,String,StructBuilt),
     Special(SpecialClick),
@@ -30,6 +32,7 @@ identitynumber!(IDS);
 #[derive(Clone)]
 pub struct HotspotGroupEntry {
     generator: Arc<dyn Fn(usize,Option<(SpaceBasePoint<f64,AuxLeaf>,SpaceBasePoint<f64,AuxLeaf>)>,Option<f64>) -> Option<HotspotResult>>,
+    hover: bool,
     area: SpaceBaseArea<f64,AuxLeaf>,
     run: Option<EachOrEvery<f64>>,
     id: u64
@@ -39,10 +42,10 @@ hashable!(HotspotGroupEntry,id);
 orderable!(HotspotGroupEntry,id);
 
 impl HotspotGroupEntry {
-    pub fn new(area: SpaceBaseArea<f64,AuxLeaf>, run: Option<EachOrEvery<f64>>, hotspot: &HotspotPatina) -> HotspotGroupEntry {
+    pub fn new(area: SpaceBaseArea<f64,AuxLeaf>, run: Option<EachOrEvery<f64>>, hotspot: &HotspotPatina, hover: bool) -> HotspotGroupEntry {
         HotspotGroupEntry {
             generator: hotspot.generator(),
-            area, run,
+            hover, area, run,
             id: IDS.next()
         }
     }
@@ -73,6 +76,8 @@ impl SingleHotspotEntry {
             order
         }
     }
+
+    pub fn is_hover(&self) -> bool { self.unscaled.hover }
 
     pub fn coordinates(&self) -> (Option<(SpaceBasePointRef<f64,AuxLeaf>,SpaceBasePointRef<f64,AuxLeaf>)>,Option<f64>) {
         (

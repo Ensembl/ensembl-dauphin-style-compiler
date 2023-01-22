@@ -190,10 +190,10 @@ struct!(tr_zmenu,"""
 export procedure emit_gene_zmenu(*gene) {
     capture variety_zmenu;
 
-    let paint_gene = paint_click(variety_zmenu,gene_zmenu(*gene));
+    let paint_gene = paint_click(variety_zmenu,gene_zmenu(*gene),false);
     rectangle(coord(gene.start,[0,...],[0,...]),coord(gene.end,[8,...],[0,...]),paint_gene,gene.block_leaf);
 
-    let paint_tr = paint_click(variety_zmenu,gene_tr_zmenu(*gene));
+    let paint_tr = paint_click(variety_zmenu,gene_tr_zmenu(*gene),false);
     rectangle(coord(gene.start,[0,...],[0,...]),coord(gene.end,[8,...],[0,...]),paint_tr,gene.block_leaf);
 }
 
@@ -202,10 +202,10 @@ export procedure emit_tr_zmenu(*tr_gene,*tr,*leaf_tr,tr_sep) {
 
   let y = tr.position_in_gene * tr_sep;
 
-  let paint_gene = paint_click(variety_zmenu,gene_zmenu(*tr_gene));
+  let paint_gene = paint_click(variety_zmenu,gene_zmenu(*tr_gene),false);
   rectangle(coord(tr.start,y,[0,...]),coord(tr.end,y+15,[0,...]),paint_gene,leaf_tr.over_leaf);
 
-  let paint_tr = paint_click(variety_zmenu,tr_zmenu(*tr_gene,*tr));
+  let paint_tr = paint_click(variety_zmenu,tr_zmenu(*tr_gene,*tr),false);
   rectangle(coord(tr.start,y,[0,...]),coord(tr.end,y+15,[0,...]),paint_tr,leaf_tr.over_leaf);
 }
 
@@ -214,9 +214,9 @@ export procedure emit_focus_tr_zmenu(*tr_gene,*tr,*leaf_tr,tr_sep) {
 
   let y = tr.position * tr_sep;
 
-  let paint_gene = paint_click(variety_zmenu,gene_zmenu(*tr_gene));
+  let paint_gene = paint_click(variety_zmenu,gene_zmenu(*tr_gene),false);
   rectangle(coord(tr.start,y,[0,...]),coord(tr.end,y+15,[0,...]),paint_gene,leaf_tr.over_leaf);
 
-  let paint_tr = paint_click(variety_zmenu,tr_zmenu(*tr_gene,*tr));
+  let paint_tr = paint_click(variety_zmenu,tr_zmenu(*tr_gene,*tr),false);
   rectangle(coord(tr.start,y,[0,...]),coord(tr.end,y+15,[0,...]),paint_tr,leaf_tr.over_leaf);
 }

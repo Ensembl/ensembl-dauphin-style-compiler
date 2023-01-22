@@ -1,3 +1,5 @@
+use std::collections::BTreeSet;
+use std::iter::FromIterator;
 use std::sync::{ Arc, Mutex };
 use crate::domcss::dom::PeregrineDom;
 use crate::input::InputEventKind;
@@ -17,7 +19,7 @@ use super::mouseinput::{ mouse_events };
 use crate::input::{ InputEvent };
 use super::mapping::InputMap;
 use js_sys::Date;
-use peregrine_data::{Commander, SpecialClick };
+use peregrine_data::{Commander, SpecialClick, SingleHotspotEntry };
 use peregrine_toolkit::lock;
 use peregrine_toolkit::plumbing::distributor::Distributor;
 use peregrine_toolkit_async::sync::needed::Needed;
@@ -125,7 +127,8 @@ pub struct LowLevelInput {
     distributor: Distributor<InputEvent>,
     state: LowLevelState,
     mouse_moved: Needed,
-    hotspot_cursor_handle: Option<Arc<CursorHandle>>
+    hotspot_cursor_handle: Option<Arc<CursorHandle>>,
+    hover_hotspots: BTreeSet<SingleHotspotEntry>
 }
 
 impl LowLevelInput {
@@ -134,7 +137,11 @@ impl LowLevelInput {
         let (state,distributor) = LowLevelState::new(dom,commander,spectres,config,target_reporter)?;
         let keyboard = keyboard_events(&state)?;
         let mouse = mouse_events(config,&state,gl,&mouse_moved)?;
-        Ok(LowLevelInput { keyboard, mouse, distributor, state, mouse_moved, hotspot_cursor_handle: None })
+        Ok(LowLevelInput { 
+            keyboard, mouse, distributor, state, mouse_moved, 
+            hover_hotspots: BTreeSet::new(),
+            hotspot_cursor_handle: None 
+        })
     }
 
     pub fn distributor_mut(&mut self) -> &mut Distributor<InputEvent> { &mut self.distributor }
@@ -143,7 +150,14 @@ impl LowLevelInput {
     pub fn pointer_last_seen(&self) -> Option<(f64,f64)> { self.state.pointer_last_seen() }
     pub fn get_mouse_move_waiter(&self) -> Needed { self.mouse_moved.clone() }
 
-    pub fn set_hotspot(&mut self, yn: bool, special: &[SpecialClick]) {
+    pub fn set_hotspot(&mut self, yn: bool, mut hover: Vec<SingleHotspotEntry>, special: &[SpecialClick], position: (f64,f64)) {
+        if self.hover_hotspots.len() > 0 || hover.len() > 0 {
+            let hover = BTreeSet::from_iter(hover.drain(..));
+            if self.hover_hotspots != hover {
+                self.state.send(InputEventKind::HoverChange,true,&[position.0,position.1]);
+            }
+            self.hover_hotspots = hover;
+        }
         if yn {
             self.hotspot_cursor_handle = Some(Arc::new(self.state.set_cursor(&CursorCircumstance::Hotspot)));
         } else {
