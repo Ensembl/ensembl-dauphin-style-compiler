@@ -18,7 +18,7 @@ style!("""
 /* Get data */
 
 let data = get_data(request("self()","variant"));
-// halt(only_warm(),[data]);
+halt(only_warm());
 
 let values = data_number(data,"values");
 let x_range = data_number(data,"range");

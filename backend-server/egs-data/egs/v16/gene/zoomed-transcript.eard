@@ -34,7 +34,6 @@ let tr.leaf_index = tr_gene.leaf_index;
 let (focus_genome_id,focus_gene_id) = focus_gene_settings();
 let focus_gene_index = position(focus_gene_id==gene.id_unversioned); 
 
-
 let expanded_ids = setting_string_keys("expanded",[],gene.id_versioned);
 let expanded_ids = select(expanded_ids,expanded_ids!="");
 
@@ -51,6 +50,8 @@ let seq_data = get_data(request("self()","zoomed-seq"));
 let sequence = data_string(seq_data,"sequence");
 let sequence_rev = base_flip(sequence);
 let sequence_start = index(data_number(seq_data,"sequence_start"),0);
+
+halt(only_warm());
 
 /* Empty box to stop broswer jumping round when there's nothing to draw */
 

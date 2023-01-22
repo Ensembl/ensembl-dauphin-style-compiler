@@ -23,6 +23,8 @@ let (focus_genome_id,focus_gene_id) = focus_gene_settings();
 
 let (*gene,*tr,*exon) = get_focus_transcript_data();
 
+halt(only_warm());
+
 /* Map from gene to focus gene */
 // XXX and if it isn't here?
 

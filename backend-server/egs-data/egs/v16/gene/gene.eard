@@ -42,6 +42,8 @@ let (focus_genome_id,focus_gene_id) = focus_gene_settings();
 
 let *gene = get_gene_data();
 
+halt(only_warm());
+
 let enabled_tracks = enabled_gene_tracks();
 let enabled_labels = enabled_tracks && enabled_gene_labels();
 

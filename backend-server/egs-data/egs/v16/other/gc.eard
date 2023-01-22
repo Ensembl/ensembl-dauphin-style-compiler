@@ -18,7 +18,7 @@ style!("""
 /* get data */
 
 let res = get_data(request("self()","gc"));
-// halt(only_warm(),[data]);
+halt(only_warm());
 
 /* process data and draw wiggle */
 

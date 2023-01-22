@@ -19,6 +19,8 @@ transcript_styles();
 let all_expanded = setting_string_seq("expanded",[]);
 let (*gene,*tr,*exon) = get_transcript_data(all_expanded);
 
+halt(only_warm());
+
 let (focus_genome_id,focus_gene_id) = focus_gene_settings();
 let focus_gene_index = position(focus_gene_id==gene.id_unversioned); 
 

@@ -25,6 +25,8 @@ let (focus_genome_id,focus_gene_id) = focus_gene_settings();
 
 let (*gene,*tr,*exon) = get_focus_transcript_data();
 
+halt(only_warm());
+
 let **tr_gene = index(**gene,tr.index_of_gene);
 
 let gene.leaf_index = repeat(0,len(gene.start));

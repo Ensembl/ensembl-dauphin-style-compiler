@@ -43,7 +43,8 @@ let focus_request = request("self()","transcript");
 scope(focus_request,"genome",focus_genome_id);
 scope(focus_request,"id",focus_gene_id);
 let focus_data = get_data(focus_request);
-// halt(only_warm(),[data,focus_data]);
+
+halt(only_warm());
 
 /* Extract data */
 

@@ -20,7 +20,7 @@ style!("""
 
 let no_letters = setting_boolean("scale-no-letters",[]);
 let data = get_data(request("self()","zoomed-seq"));
-// halt(only_warm(),[data]);
+halt(only_warm());
 
 let sequence = data_string(data,"sequence");
 let sequence_rev = base_flip(sequence);

@@ -155,6 +155,18 @@ pub(crate) fn op_bp_range(gctx: &GlobalBuildContext) -> Result<Box<dyn Fn(&mut G
     }))
 }
 
+pub(crate) fn op_only_warm(gctx: &GlobalBuildContext) -> Result<Box<dyn Fn(&mut GlobalContext,&[usize]) -> Result<Return,String>>,String> {
+    let mode = gctx.patterns.lookup::<LoadMode>("mode")?;
+    Ok(Box::new(move |ctx,regs| {
+        let yn = match ctx.context.get(&mode) {
+            LoadMode::Network => true,
+            _ => false
+        };
+        ctx.set(regs[0],Value::Boolean(yn))?;
+        Ok(Return::Sync)
+    }))
+}
+
 async fn get_small_value(small_values_store: SmallValuesStore, namespace: String, column: String, rows: Vec<String>) -> Result<Vec<String>,String> {
     let mut out = vec![];
     for row in &rows {

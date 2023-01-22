@@ -21,7 +21,7 @@ style!("""
 
 let endpoint = if(setting_boolean("shimmer",[]),"shimmer-contig","contig");
 let data = get_data(request("self()",endpoint));
-// halt(only_warm(),[data]);
+halt(only_warm());
 
 let start = data_number(data,"contig_starts");
 let end = start + data_number(data,"contig_lengths");
