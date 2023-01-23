@@ -45,27 +45,27 @@ pub(crate) struct RectanglesData {
 }
 
 impl RectanglesData {
-    fn new_area(builder: &mut ProcessBuilder, area: &SpaceBaseArea<f64,AuxLeaf>, run: &Option<SpaceBase<f64,()>>, depth: &EachOrEvery<i8>, left: f64, hollow: bool, kind: &DrawGroup, edge: &Option<HollowEdge2<f64>>, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>)-> Result<RectanglesData,Error> {
+    fn new_area(builder: &mut ProcessBuilder, area: &SpaceBaseArea<f64,AuxLeaf>, run: &Option<SpaceBase<f64,()>>, depth: &EachOrEvery<i8>, left: f64, hollow: Option<f64>, kind: &DrawGroup, edge: &Option<HollowEdge2<f64>>, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>)-> Result<RectanglesData,Error> {
         let location = RectanglesLocationArea::new(area,run,wobble,depth.clone(),edge.clone())?;
         Self::real_new(builder,Box::new(location),left,hollow,kind)
     }
 
-    fn new_sized(builder: &mut ProcessBuilder, points: &SpaceBase<f64,AuxLeaf>, run: &Option<SpaceBase<f64,()>>, x_sizes: Vec<f64>, y_sizes: Vec<f64>, depth: &EachOrEvery<i8>, left: f64, hollow: bool, kind: &DrawGroup, attachment: GLAttachmentPoint, wobble: Option<SpaceBase<Observable<'static,f64>,()>>)-> Result<RectanglesData,Error> {
+    fn new_sized(builder: &mut ProcessBuilder, points: &SpaceBase<f64,AuxLeaf>, run: &Option<SpaceBase<f64,()>>, x_sizes: Vec<f64>, y_sizes: Vec<f64>, depth: &EachOrEvery<i8>, left: f64, hollow: Option<f64>, kind: &DrawGroup, attachment: GLAttachmentPoint, wobble: Option<SpaceBase<Observable<'static,f64>,()>>)-> Result<RectanglesData,Error> {
         let location = RectanglesLocationSized::new(points,run,wobble,depth.clone(),x_sizes,y_sizes,attachment)?;
         Self::real_new(builder,Box::new(location),left,hollow,kind)
     }
 
-    fn real_new(builder: &mut ProcessBuilder, location: Box<dyn RectanglesImpl>, left: f64, hollow: bool, kind: &DrawGroup)-> Result<RectanglesData,Error> {
+    fn real_new(builder: &mut ProcessBuilder, location: Box<dyn RectanglesImpl>, left: f64, hollow: Option<f64>, kind: &DrawGroup)-> Result<RectanglesData,Error> {
         let adder = TriangleAdder::new(builder)?;
-        let indexes = if hollow {
-            vec![0,1,2, 1,2,3, 2,3,4, 3,4,5, 4,5,6, 5,6,7, 6,7,0, 7,0,1]
+        let indexes = if hollow.is_some() {
+            vec![0,1,2, 1,2,3, 2,3,4, 2,4,5, 4,5,6, 5,6,7, 6,7,0, 6,0,1]
         } else {
             vec![0,3,1, 2,0,3]
         };
         let elements = builder.get_stanza_builder().make_elements(location.len(),&indexes)?;
         Ok(RectanglesData {
             elements, left,
-            width: if hollow { Some(1.) } else { None }, // XXX variable width
+            width: hollow,
             program: adder.clone(),
             location,
             kind: kind.clone()
@@ -107,11 +107,11 @@ impl RectanglesDataFactory {
         }
     }
 
-    pub(crate) fn make_area(&self, builder: &mut ProcessBuilder, area: &SpaceBaseArea<f64,AuxLeaf>, run: &Option<SpaceBase<f64,()>>, depth: &EachOrEvery<i8>, left: f64, hollow: bool, edge: &Option<HollowEdge2<f64>>, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>)-> Result<RectanglesData,Error> {
+    pub(crate) fn make_area(&self, builder: &mut ProcessBuilder, area: &SpaceBaseArea<f64,AuxLeaf>, run: &Option<SpaceBase<f64,()>>, depth: &EachOrEvery<i8>, left: f64, hollow: Option<f64>, edge: &Option<HollowEdge2<f64>>, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>)-> Result<RectanglesData,Error> {
         RectanglesData::new_area(builder,area,run,depth,left,hollow,&self.draw_group,edge,wobble)
     }
 
-    pub(crate) fn make_sized(&self, builder: &mut ProcessBuilder, points: &SpaceBase<f64,AuxLeaf>, run: &Option<SpaceBase<f64,()>>, x_sizes: Vec<f64>, y_sizes: Vec<f64>, depth: &EachOrEvery<i8>, left: f64, hollow: bool, attachment: GLAttachmentPoint, wobble: Option<SpaceBase<Observable<'static,f64>,()>>)-> Result<RectanglesData,Error> {
+    pub(crate) fn make_sized(&self, builder: &mut ProcessBuilder, points: &SpaceBase<f64,AuxLeaf>, run: &Option<SpaceBase<f64,()>>, x_sizes: Vec<f64>, y_sizes: Vec<f64>, depth: &EachOrEvery<i8>, left: f64, hollow: Option<f64>, attachment: GLAttachmentPoint, wobble: Option<SpaceBase<Observable<'static,f64>,()>>)-> Result<RectanglesData,Error> {
         RectanglesData::new_sized(builder,points,run,x_sizes,y_sizes,depth,left,hollow,&self.draw_group,attachment,wobble)
     }
 }

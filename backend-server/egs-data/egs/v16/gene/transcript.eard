@@ -70,7 +70,7 @@ rectangle(coord(tr_gene.end,y+2,[0,...]),coord(tr_gene.end,y+8,[0,...]),paint,le
 /* Draw hollow and blanking exons */
 
 let y = exon_tr.position_in_gene * 20;
-let paint = paint_hollow(index(gene_colours(),exon_tr.leaf_index),3);
+let paint = paint_hollow(index(gene_colours(),exon_tr.leaf_index),1);
 rectangle(coord(exon.start,y+2,[0,...]),coord(exon.end,y+8,[0,...]),paint,leaf_exon_tr.over_leaf);
 let paint = paint_solid(colour!("white"));
 rectangle(coord(exon.start,y+2,[0,...]),coord(exon.end,y+8,[0,...]),paint,leaf_exon_tr.blanking_leaf);

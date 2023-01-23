@@ -62,7 +62,7 @@ impl GLAttachmentPoint {
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub(crate) enum SimpleShapePatina {
     Solid(EachOrEvery<DirectColour>),
-    Hollow(EachOrEvery<DirectColour>),
+    Hollow(EachOrEvery<DirectColour>,f64),
     Hotspot(HotspotPatina,bool),
     None
 }
@@ -81,7 +81,7 @@ impl SimpleShapePatina {
         Ok(match patina {
             Patina::Drawn(drawn_variety,colours) => {
                 match drawn_variety {
-                    DrawnType::Stroke(_) => SimpleShapePatina::Hollow(simplify_colours(colours)?),
+                    DrawnType::Stroke(width) => SimpleShapePatina::Hollow(simplify_colours(colours)?,*width),
                     DrawnType::Fill => SimpleShapePatina::Solid(simplify_colours(colours)?),
                 }
             },
@@ -105,7 +105,7 @@ fn add_colour(addable: &mut ProcessStanzaElements, patina: &SimpleShapePatina, d
     let number_of_shapes = addable.number_of_shapes();
     match patina {
         SimpleShapePatina::Solid(colours) |
-        SimpleShapePatina::Hollow(colours) => {
+        SimpleShapePatina::Hollow(colours,_) => {
             draw.direct(addable,&colours,points_per_shape,number_of_shapes)?;
         },
         _ => {}
@@ -129,7 +129,7 @@ fn draw_area_from_canvas(layer: &mut Layer, left: f64, gl: &mut WebGlGlobal, dra
     let draw_factory = TextureDrawFactory::new(canvas,freedom);
     let builder = layer.get_process_builder(&rectangle_factory,&draw_factory)?;
     let draw = draw_factory.make(builder)?;
-    let mut rectangles = rectangle_factory.make_area(builder,&area,run,depth,left,false,edge,wobble)?;
+    let mut rectangles = rectangle_factory.make_area(builder,&area,run,depth,left,None,edge,wobble)?;
     let campaign = rectangles.elements_mut();
     draw.add_rectangle(campaign,&canvas,&dims,freedom)?;
     campaign.close()?;
@@ -141,7 +141,7 @@ pub(crate) fn draw_points_from_canvas2(layer: &mut Layer, left: f64, gl: &mut We
     let draw_factory = TextureDrawFactory::new(canvas,freedom);
     let builder = layer.get_process_builder(&rectangle_factory,&draw_factory)?;
     let draw = draw_factory.make(builder)?;
-    let mut rectangles = rectangle_factory.make_sized(builder,&points,run,x_sizes,y_sizes,depth,left,false,attachment,wobble)?;
+    let mut rectangles = rectangle_factory.make_sized(builder,&points,run,x_sizes,y_sizes,depth,left,None,attachment,wobble)?;
     let campaign = rectangles.elements_mut();
     draw.add_rectangle(campaign,&canvas,&dims,&Freedom::None)?;
     campaign.close()?;
@@ -219,8 +219,8 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, left: f64, gl: &mut WebGlGlo
         },
         GLShape::SpaceBaseRect(area,run,simple_shape_patina,depth,draw_group,wobble) => {
             match simple_shape_patina {
-                SimpleShapePatina::Solid(_) | SimpleShapePatina::Hollow(_) => {
-                    let hollow = match simple_shape_patina { SimpleShapePatina::Hollow(_) => true, _ => false };
+                SimpleShapePatina::Solid(_) | SimpleShapePatina::Hollow(_,_) => {
+                    let hollow = match simple_shape_patina { SimpleShapePatina::Hollow(_,w) => Some(w), _ => None };
                     let vertex_factory = RectanglesDataFactory::new(&draw_group);
                     let fragment_factory = ColourFragment::new();
                     let builder = layer.get_process_builder(&vertex_factory,&fragment_factory)?;
@@ -253,7 +253,7 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, left: f64, gl: &mut WebGlGlo
                     campaign.close()?;
                     Ok(ShapeToAdd::Dynamic(Box::new(SolidPolygon::new(polygons,&gl))))
                 },
-                SimpleShapePatina::Hollow(_) => {
+                SimpleShapePatina::Hollow(_,_) => {
                     todo!()
                 }
                 SimpleShapePatina::Hotspot(hotspot,hover) => {
