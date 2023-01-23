@@ -30,7 +30,7 @@ halt(only_warm());
 
 let **tr_gene = index(**gene,tr.index_of_gene);
 
-let right_chr = focus_genome_id==stick();
+let right_chr = index(gene.stick,0)==stick();
 let focus_gene_index = index(position(focus_gene_id==gene.id_unversioned),0); 
 let **focus_gene = index(**gene,focus_gene_index);
 
@@ -78,7 +78,7 @@ rectangle(coord(dots.start,y+5,[0,...]),coord(dots.end,y+5,[0,...]),paint,dots.l
 /* Draw hollow and blanking exons */
 
 let y = exon_tr.position * 20;
-let paint = paint_hollow(apply_ghost(y==0),3);
+let paint = paint_hollow(apply_ghost(y==0),1);
 rectangle(coord(exon.start,y+2,[0,...]),coord(exon.end,y+8,[0,...]),paint,leaf_exon_tr.over_leaf);
 let paint = paint_solid(colour!("white"));
 rectangle(coord(exon.start,y+2,[0,...]),coord(exon.end,y+8,[0,...]),paint,leaf_exon_tr.blanking_leaf);

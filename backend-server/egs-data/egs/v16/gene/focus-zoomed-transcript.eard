@@ -25,7 +25,7 @@ let (focus_genome_id,focus_gene_id) = focus_gene_settings();
 
 let (*gene,*tr,*exon) = get_focus_transcript_data();
 
-let right_chr = focus_genome_id==stick();
+let right_chr = index(gene.stick,0)==stick();
 
 halt(only_warm());
 
@@ -40,7 +40,7 @@ let gene.leaf_base = make_focus_gene_leaf_base(*gene);
 
 let focus_gene_index = index(position(focus_gene_id==gene.id_unversioned),0); 
 let **focus_gene = index(**gene,focus_gene_index);
-let *leaf_tr = tr_focus_gene_leafs(*gene,*tr,shown_tr,focus_genome_id==stick());
+let *leaf_tr = tr_focus_gene_leafs(*gene,*tr,shown_tr,right_chr);
 let **exon_tr = index(**tr,exon.index_of_tr);
 let **leaf_exon_tr = index(**leaf_tr,exon.index_of_tr);
 

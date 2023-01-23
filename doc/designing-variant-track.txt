@@ -30,4 +30,5 @@ To make the gb less confusing when working on the variant track, the next step i
 
 After restart etc, stillhHave nothing at zoomed in level, but when zoomed out enough reverts to variant summary track. No dotted red lines for this yet. (Dotted lines should probably be different "track", anyway).
 
-Commit is "Variant track, revert to summary when zoomed out" on dev/0.6.0 
+Commit is "Variant track, revert to summary when zoomed out" on dev/0.6.0 a5dcbc2a
+

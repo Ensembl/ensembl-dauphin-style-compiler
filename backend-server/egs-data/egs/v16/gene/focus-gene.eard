@@ -42,6 +42,8 @@ let (focus_genome_id,focus_gene_id) = focus_gene_settings();
 
 let (*gene,*tr,*ex) = get_focus_transcript_data();
 
+let right_chr = index(gene.stick,0)==stick();
+
 halt(only_warm());
 
 /* Map from gene to focus gene */
@@ -52,9 +54,9 @@ let **focus_gene = index(index(**gene,focus_gene_index),0);
 /* Setup leafs */
 
 function focus_leaf(path) {
-    capture focus_genome_id;
+    capture right_chr;
 
-    if(focus_genome_id==stick(),leaf(path),leaf(""))
+    if(right_chr,leaf(path),leaf(""))
 }
 
 let leaf.bgd = focus_leaf("tracks/track/focus/main/background/content");
