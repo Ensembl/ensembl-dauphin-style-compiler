@@ -14,14 +14,13 @@ include "gene-common-visual.eard";
 track_styles();
 
 /* Get data */
-// XXX another strand?
 
 let (focus_genome_id,focus_gene_id) = focus_gene_settings();
 
 let (*gene,*tr,*ex) = get_focus_transcript_data();
 halt(only_warm());
 
-let on_this_stick = focus_genome_id == stick();
+let on_this_stick = index(gene.stick,0) == stick();
 
 let focus_gene_index = index(position(focus_gene_id==gene.id_unversioned),0); 
 let **focus_gene = index(**gene,focus_gene_index);
