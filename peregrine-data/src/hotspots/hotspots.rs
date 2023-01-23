@@ -3,7 +3,6 @@ use eachorevery::{eoestruct::{StructValue, StructBuilt}, EachOrEvery};
 use peregrine_toolkit::{ identitynumber, orderable, hashable };
 use crate::{SpaceBaseArea, HotspotPatina, SpaceBasePointRef, SpaceBasePoint, allotment::leafs::auxleaf::AuxLeaf};
 
-#[derive(Debug)]
 #[derive(Clone)]
 pub struct SpecialClick {
     pub name: String,
@@ -11,7 +10,6 @@ pub struct SpecialClick {
     pub run: Option<f64>
 }
 
-#[derive(Debug)]
 pub enum HotspotResult {
     Setting(Vec<String>,String,StructBuilt),
     Special(SpecialClick),
