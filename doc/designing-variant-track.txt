@@ -32,3 +32,13 @@ After restart etc, stillhHave nothing at zoomed in level, but when zoomed out en
 
 Commit is "Variant track, revert to summary when zoomed out" on dev/0.6.0 a5dcbc2a
 
+Shore
+=====
+
+The variant track divides into three parts, which I'm going to call sky, shore, and sea (by analogy with a sunset over water). Next thing to do is to set up those containers in the style and then get the data sorted for the shore seems to make the most sense.
+
+The only data used by the shore is a colour. It looks like the colour is consequence-based and so can probably use the same data as the summary track. That will do for the initial implementation, anyway. If that isn't correct all we'd need to do would be to change the sndpoint from "variant" (to something else currently unused) and add an endpoint in the BE server. We're going to do that for the sky and sea parts anyway, so if we need to do that for the shore as well in the future, just do the same thing here. In general it helps to iterate on the data and design, though, even if each part isn't quite correct initially. So we'll use the variant endpoint.
+
+It's basically boxes like the the transcript track when zoomed in.
+
+Commit is "Variant track, shore, initial" on dev/0.6.0

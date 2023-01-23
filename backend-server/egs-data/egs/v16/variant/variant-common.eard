@@ -9,6 +9,17 @@ function summary_leaf(track_name,suffix) {
     leaf(join("/",["tracks/track",track_name,suffix]))
 }
 
+export function variant_colours() {
+    [
+        colour!("#fff"), // 0 = white
+        colour!("#438693"), // 1 = petrol
+        colour!("#a5d5cf"), // 2 = duick-egg
+        colour!("#9df35f"), // 3 = green
+        colour!("#ebca62"), // 4 = orange
+        colour!("#d82f24") // 5 = red
+    ]
+}
+
 export procedure variant_summary_track(track_name,track_label) {
     let data = get_data(request("self()","variant"));
     halt(only_warm());
@@ -18,19 +29,12 @@ export procedure variant_summary_track(track_name,track_label) {
 
     let start = index(x_range,0);
     let end = index(x_range,1);
-    let step = index(x_range,2) / 4000; // Eh? is this correct? Why 4000? variant payload is v sus.
+    let step = index(x_range,2) / 4000; // 4000 is multiple for precision applied in BE variant endpoint. (named SCALE there). Yuk!
 
     let pos_start = enumerate([len(values)]) * step + start;
     let pos_end = pos_start + step;
 
-    let colours = [
-        colour!("#fff"), // 0 = white
-        colour!("#438693"), // 1 = petrol
-        colour!("#a5d5cf"), // 2 = duick-egg
-        colour!("#9df35f"), // 3 = green
-        colour!("#ebca62"), // 4 = orange
-        colour!("#d82f24") // 5 = red
-    ];
+    let colours = variant_colours();
 
     let paint = paint_solid(index(colours,values));
     let leaf = summary_leaf(track_name,"main/main/content");
