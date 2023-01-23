@@ -3,6 +3,7 @@ refer "libperegrine";
 refer "libeoe";
 include "../common/track-common.eard";
 include "../common/track-style.eard";
+include "variant-common.eard";
 
 /* Setup styles */
 
@@ -16,13 +17,6 @@ style!("""
 """);
 
 /* Get settings */
-
-export procedure focus_variant_settings() {
-    (
-        setting_string("focus-variant",["genome_id"]),
-        setting_string("focus-variant",["variant_id"])
-    )    
-}
 
 let (focus_genome_id,focus_variant_id) = focus_variant_settings();
 

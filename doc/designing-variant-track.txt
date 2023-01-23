@@ -20,3 +20,14 @@ Rebuild files. Restart BE to pick up changes to track API contents.
 May as well do a rust release build (rather than dev) to check all this as we won't be doing any rebuilding of the rust and it's nice if it's fast.
 
 Result is, when zoomed into the right place, a blank track (with label containing rsid), when zoomed out a little, said track disappears completely.
+
+Commit is "Variant track initial commit." on dev/0.6.0 95d9fae8
+
+Falling back to summary track
+=============================
+
+To make the gb less confusing when working on the variant track, the next step is probably to copy up the variant summary track into the focus track. That involves pushing much of the current summary track into a function in an include file, so that we can reuse it and then setting up the relevant track in the track payload again.
+
+After restart etc, stillhHave nothing at zoomed in level, but when zoomed out enough reverts to variant summary track. No dotted red lines for this yet. (Dotted lines should probably be different "track", anyway).
+
+Commit is "Variant track, revert to summary when zoomed out" on dev/0.6.0 
