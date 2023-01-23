@@ -1,0 +1,22 @@
+How I designed the variant track in the genome browser. Not necessarily the optimal SOP. Just what I did in practice.
+
+1. Look at XD to get idea of:
+   a. a suitable overall structure of leafs.
+   b. the data we will need to drive the views.
+   c. the scales at which we would need the various tracks.
+   d. the structure of the focus payload.
+
+Set up basic track
+==================
+
+It makes sens to draw the rudiments of the track before looking at the data as then when we get to the data, it can immediately go onto the screen for inspection.
+
+It looks like we need a completely new track at zoomed in scales and the standard variant summary track when zoomed out but with dotted red lines. The dotted lines will closely resemble focus-region.eard. From Andrea's design it looks like ~64 (breakpoint 6) will be roughly the scale to switch over. Maybe ~32 (5): we can switch over later, if we need to.
+
+First I create a basic eard track (with nothing in it) for the new scale; add it it to the ubild script; add the scale and the trigger to the track payload (ultimately this will be a task for the track API); and add relevant payloads to peregrine-generic/index.html for testing.
+
+Rebuild files. Restart BE to pick up changes to track API contents.
+
+May as well do a rust release build (rather than dev) to check all this as we won't be doing any rebuilding of the rust and it's nice if it's fast.
+
+Result is, when zoomed into the right place, a blank track (with label containing rsid), when zoomed out a little, said track disappears completely.

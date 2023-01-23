@@ -1,0 +1,46 @@
+program "ensembl-webteam/core" "focus-variant" 1;
+refer "libperegrine";
+refer "libeoe";
+include "../common/track-common.eard";
+include "../common/track-style.eard";
+
+/* Setup styles */
+
+track_styles();
+
+style!("""
+        tracks/track/focus/ {
+            priority: -900;
+            report: "track;switch-id=focus;has-labels=true;!id";
+        }
+""");
+
+/* Get settings */
+
+export procedure focus_variant_settings() {
+    (
+        setting_string("focus-variant",["genome_id"]),
+        setting_string("focus-variant",["variant_id"])
+    )    
+}
+
+let (focus_genome_id,focus_variant_id) = focus_variant_settings();
+
+/* Setup leafs */
+
+function focus_leaf(path) {
+    capture focus_genome_id;
+
+    if(focus_genome_id==stick() || true,leaf(path),leaf(""))
+}
+
+let leaf.bgd = focus_leaf("tracks/track/focus/main/background/content");
+let leaf.text = focus_leaf(if(setting_boolean("focus-gene-label",[]),"tracks/track/focus/main/main/focus/text/content",""));
+let leaf.letter = focus_leaf("tracks/track/focus/main/letter/content");
+let leaf.trackname = focus_leaf("tracks/track/focus/title/content");
+
+/* Draw track furniture */
+
+draw_track_category(["G"],["focus"],[leaf.letter]);
+draw_track_name(focus_variant_id,"name",leaf.trackname);
+draw_swatch(colour!("#58a8f9"),[leaf.letter]);
