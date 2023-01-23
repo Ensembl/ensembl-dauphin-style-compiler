@@ -153,6 +153,7 @@ impl GenomeBrowser {
         let element = target_element.to_element()?;
         err_web_drop(set_css(&element.clone().dyn_into().ok().unwrap(),&map! {
             "overflow-y" => "auto",
+            "overflow-x" => "hidden",
             "position" => "relative"
         }).map_err(|e| Error::fatal(&e)));
         let url = config_in.get("backend_url").unwrap().to_string()?;

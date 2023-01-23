@@ -12,11 +12,13 @@ let focus_stick = push_str(push_str(focus_genome_id,":"),focus_region_name);
 let focus_start = setting_number("region",["start"])-1;
 let focus_end = setting_number("region",["end"])-1;
 
-// this_stick := get_region().stick;
-// on_another_stick := (focus_stick == this_stick) == false;
+let right_chr = focus_stick == stick();
 
-let leaf_dots = leaf("dots/content");
-let leaf_text = leaf("tracks/flagtop/main");
+print(format(focus_stick));
+print(format(stick()));
+
+let leaf_dots = if(right_chr,leaf("dots/content"),leaf(""));
+let leaf_text =  if(right_chr,leaf("tracks/flagtop/main"),leaf(""));
 
 let text_start = comma_format(focus_start);
 let text_end = comma_format(focus_end);

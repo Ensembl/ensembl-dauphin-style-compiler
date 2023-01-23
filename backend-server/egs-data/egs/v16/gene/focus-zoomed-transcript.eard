@@ -25,6 +25,8 @@ let (focus_genome_id,focus_gene_id) = focus_gene_settings();
 
 let (*gene,*tr,*exon) = get_focus_transcript_data();
 
+let right_chr = focus_genome_id==stick();
+
 halt(only_warm());
 
 let **tr_gene = index(**gene,tr.index_of_gene);
@@ -38,7 +40,7 @@ let gene.leaf_base = make_focus_gene_leaf_base(*gene);
 
 let focus_gene_index = index(position(focus_gene_id==gene.id_unversioned),0); 
 let **focus_gene = index(**gene,focus_gene_index);
-let *leaf_tr = tr_focus_gene_leafs(*gene,*tr,shown_tr);
+let *leaf_tr = tr_focus_gene_leafs(*gene,*tr,shown_tr,focus_genome_id==stick());
 let **exon_tr = index(**tr,exon.index_of_tr);
 let **leaf_exon_tr = index(**leaf_tr,exon.index_of_tr);
 
@@ -196,16 +198,16 @@ emit_focus_tr_zmenu(*tr_gene,*tr,*leaf_tr,tr_sep);
 
 /* Draw track furniture */
 
-let leaf.bgd = make_focus_gene_leaf("main/background/content",enabled_track);
-let leaf.trackname = make_focus_gene_leaf("title/content",enabled_track);
-let leaf.letter = make_focus_gene_leaf("main/letter/content",enabled_track);
+let leaf.bgd = make_focus_gene_leaf("main/background/content",enabled_track && right_chr);
+let leaf.trackname = make_focus_gene_leaf("title/content",enabled_track && right_chr);
+let leaf.letter = make_focus_gene_leaf("main/letter/content",enabled_track && right_chr);
 
 draw_track_category(["G"],["focus"],[leaf.letter]);
 draw_track_name(join(" ",[focus_gene.name,focus_gene_id]),"name",leaf.trackname);
 draw_swatch(colour!("#58a8f9"),[leaf.letter]);
 
-draw_focus_track_chevrons(index(gene.strand,focus_gene_index),*leaf);
-draw_focus_sidebar_chevrons(index(gene.strand,focus_gene_index),*leaf);
+draw_focus_track_chevrons([index(gene.strand,focus_gene_index)],*leaf);
+draw_focus_sidebar_chevrons([index(gene.strand,focus_gene_index)],*leaf);
 
 /* Metadata reports */
 

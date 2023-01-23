@@ -68,10 +68,10 @@ export procedure tr_leaf(*gene,*tr,suffix,enabled_tracks,shown_tr) {
     leaf_tr
 }
 
-export procedure tr_focus_leaf(*gene,*tr,suffix,shown_tr) {
+export procedure tr_focus_leaf(*gene,*tr,suffix,shown_tr,right_chr) {
     let leaf_gene = leaf(push_str(gene.leaf_base,suffix));
     let leaf_tr = index(leaf_gene,tr.index_of_gene);
-    let leaf_tr = set(leaf_tr,!shown_tr,[leaf(""),...]);
+    let leaf_tr = set(leaf_tr,!shown_tr || !right_chr,[leaf(""),...]);
     leaf_tr
 }
 
@@ -87,13 +87,13 @@ export procedure tr_gene_leafs(*gene,*tr,shown_tr) {
     *leaf_tr
 }
 
-export procedure tr_focus_gene_leafs(*gene,*tr,shown_tr) {
-    let leaf_tr.far_under_leaf = tr_focus_leaf(*gene,*tr,"/diagram/far-under",shown_tr);
-    let leaf_tr.under_leaf = tr_focus_leaf(*gene,*tr,"/diagram/under",shown_tr);
-    let leaf_tr.text_leaf = tr_focus_leaf(*gene,*tr,"/text",shown_tr);
-    let leaf_tr.over_leaf = tr_focus_leaf(*gene,*tr,"/diagram/over",shown_tr);
-    let leaf_tr.far_over_leaf = tr_focus_leaf(*gene,*tr,"/diagram/far-over",shown_tr);
-    let leaf_tr.blanking_leaf = tr_focus_leaf(*gene,*tr,"/diagram/blanking",shown_tr);
+export procedure tr_focus_gene_leafs(*gene,*tr,shown_tr,right_chr) {
+    let leaf_tr.far_under_leaf = tr_focus_leaf(*gene,*tr,"/diagram/far-under",shown_tr,right_chr);
+    let leaf_tr.under_leaf = tr_focus_leaf(*gene,*tr,"/diagram/under",shown_tr,right_chr);
+    let leaf_tr.text_leaf = tr_focus_leaf(*gene,*tr,"/text",shown_tr,right_chr);
+    let leaf_tr.over_leaf = tr_focus_leaf(*gene,*tr,"/diagram/over",shown_tr,right_chr);
+    let leaf_tr.far_over_leaf = tr_focus_leaf(*gene,*tr,"/diagram/far-over",shown_tr,right_chr);
+    let leaf_tr.blanking_leaf = tr_focus_leaf(*gene,*tr,"/diagram/blanking",shown_tr,right_chr);
     *leaf_tr
 }
 

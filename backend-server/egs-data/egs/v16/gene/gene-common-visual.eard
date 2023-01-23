@@ -92,8 +92,8 @@ export procedure draw_track_chevrons(*leaf) {
 export procedure draw_focus_track_chevrons(strand,*leaf) {
     capture chevron_spacing;
 
-    let image = if(strand>0,["chevron-right",...],["chevron-left",...]);
-    image(coord(chevron_spacing,[0,...],[0,...]),image,[leaf.bgd,...]);
+    let image = if(index(strand,0)>0,["chevron-right",...],["chevron-left",...]);
+    image(coord(chevron_spacing,[0,...],[0,...]),image,[if(len(strand)>0,leaf.bgd,leaf("")),...]);
 }
 
 export procedure draw_sidebar_chevrons(*leaf) {
@@ -104,8 +104,8 @@ export procedure draw_sidebar_chevrons(*leaf) {
 }
 
 export procedure draw_focus_sidebar_chevrons(strand,*leaf) {
-    let image = if(strand>0,["chevron-dark-right",...],["chevron-dark-left",...]);
-    image(coord([0],[0],[24]),image,[leaf.letter,...]);
+    let image = if(index(strand,0)>0,["chevron-dark-right",...],["chevron-dark-left",...]);
+    image(coord([0],[0],[24]),image,[if(len(strand)>0,leaf.bgd,leaf("")),...]);
 }
 
 export procedure draw_gene_track_names(*leaf) {

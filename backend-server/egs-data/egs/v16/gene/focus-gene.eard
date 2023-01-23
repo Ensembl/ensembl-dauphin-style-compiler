@@ -45,21 +45,24 @@ let (*gene,*tr,*ex) = get_focus_transcript_data();
 halt(only_warm());
 
 /* Map from gene to focus gene */
-// XXX and if it isn't here?
 
-let focus_gene_index = index(position(focus_gene_id==gene.id_unversioned),0); 
-let **focus_gene = index(**gene,focus_gene_index);
+let focus_gene_index = if(focus_genome_id==stick(),position(focus_gene_id==gene.id_unversioned),[]);
+let **focus_gene = index(index(**gene,focus_gene_index),0);
 
 /* Setup leafs */
 
-let leaf.bgd = leaf("tracks/track/focus/main/background/content");
-let leaf.text = leaf(if(setting_boolean("focus-gene-label",[]),"tracks/track/focus/main/main/focus/text/content",""));
-let leaf.letter = leaf("tracks/track/focus/main/letter/content");
-let leaf.dots = leaf("dots/content");
-let leaf.flagtop = leaf("tracks/flagtop/main");
-let leaf.trackname = leaf("tracks/track/focus/title/content");
-let leaf.main = leaf("tracks/track/focus/main/main/focus/blocks/content");
-gene.block_leaf = [leaf("tracks/track/focus/main/main/focus/blocks/content"),...];
+function focus_leaf(path) {
+    capture focus_genome_id;
+
+    if(focus_genome_id==stick(),leaf(path),leaf(""))
+}
+
+let leaf.bgd = focus_leaf("tracks/track/focus/main/background/content");
+let leaf.text = focus_leaf(if(setting_boolean("focus-gene-label",[]),"tracks/track/focus/main/main/focus/text/content",""));
+let leaf.letter = focus_leaf("tracks/track/focus/main/letter/content");
+let leaf.trackname = focus_leaf("tracks/track/focus/title/content");
+let leaf.main = focus_leaf("tracks/track/focus/main/main/focus/blocks/content");
+gene.block_leaf = [focus_leaf("tracks/track/focus/main/main/focus/blocks/content"),...];
 gene.leaf_index = repeat(4,len(gene.start));
 
 /* Main rectangle and label */

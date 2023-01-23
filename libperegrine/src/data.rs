@@ -155,6 +155,16 @@ pub(crate) fn op_bp_range(gctx: &GlobalBuildContext) -> Result<Box<dyn Fn(&mut G
     }))
 }
 
+pub(crate) fn op_stick(gctx: &GlobalBuildContext) -> Result<Box<dyn Fn(&mut GlobalContext,&[usize]) -> Result<Return,String>>,String> {
+    let shape_request = gctx.patterns.lookup::<ShapeRequest>("shape-request")?;
+    Ok(Box::new(move |ctx,regs| {
+        let shape_request = ctx.context.get(&shape_request);
+        let stick_id = shape_request.region().stick().get_id();
+        ctx.set(regs[0],Value::String(stick_id.to_string()))?;
+        Ok(Return::Sync)
+    }))
+}
+
 pub(crate) fn op_only_warm(gctx: &GlobalBuildContext) -> Result<Box<dyn Fn(&mut GlobalContext,&[usize]) -> Result<Return,String>>,String> {
     let mode = gctx.patterns.lookup::<LoadMode>("mode")?;
     Ok(Box::new(move |ctx,regs| {
