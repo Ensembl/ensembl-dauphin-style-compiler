@@ -65,11 +65,5 @@ export procedure track_styles() {
         system: content;
     }
 
-    tracks/earth/ {
-        min-height: 90;
-        priority: 10000000;
-        system: content;
-    }
-
     """); 
 }
