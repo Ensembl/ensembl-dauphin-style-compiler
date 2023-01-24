@@ -10,7 +10,7 @@ from data.v15.sequence import ZoomedSeqDataHandler15
 from data.v15.gene.genedata import TranscriptDataHandler15
 from data.v15.gene.genedata import GeneDataHandler15
 from data.v15.gene.genedata import GeneOverviewDataHandler15
-from data.v16.variant import VariantDataHandler16
+from data.v16.variant import VariantLabelsDataHandler, VariantSummaryDataHandler
 from data.v16.contig import ShimmerContigDataHandler16
 from data.v16.contig import ContigDataHandler16
 from data.v16.wiggle.gc import WiggleDataHandler16
@@ -79,7 +79,8 @@ handlers = [
     ("gc", WiggleDataHandler16(),16),
     ("contig", ContigDataHandler16(),16),
     ("shimmer-contig", ShimmerContigDataHandler16(),16),
-    ("variant", VariantDataHandler16(),16),
+    ("variant", VariantSummaryDataHandler(),16),
+    ("variant-labels", VariantLabelsDataHandler(),16),
 ]
 
 def compress_payload(data):

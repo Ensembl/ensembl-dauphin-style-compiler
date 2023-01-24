@@ -20,6 +20,11 @@ style!("""
             report: "track;switch-id=focus;has-labels=true;!id";
         }
 
+        tracks/track/focus/main/main/sun/ {
+            type: overlay;
+            priority: -1;
+        }
+
         tracks/track/focus/main/main/shore/ {
             type: overlay;
             priority: 0;
@@ -38,17 +43,15 @@ style!("""
 
 let (focus_genome_id,focus_variant_id) = focus_variant_settings();
 
-/* Get data */
+/* Get data data */
 
-let data = get_data(request("self()","variant"));
+let data = get_data(request("self()","variant-labels"));
+let start = data_number(data,"start");
+let id = data_string(data,"id");
+let severity = data_number(data,"severity");
+
 halt(only_warm());
 
-let values = data_number(data,"values");
-let x_range = data_number(data,"range");
-
-let start = index(x_range,0);
-let end = index(x_range,1);
-let step = index(x_range,2) / 4000; // 4000 is multiple for precision applied in BE variant endpoint. (named SCALE there). Yuk!
 
 /* Setup leafs */
 
@@ -65,18 +68,28 @@ let leaf.letter = focus_leaf("tracks/track/focus/main/letter/content");
 let leaf.trackname = focus_leaf("tracks/track/focus/title/content");
 let leaf.shore_under = focus_leaf("tracks/track/focus/main/main/shore/under/content");
 let leaf.shore_over = focus_leaf("tracks/track/focus/main/main/shore/over/content");
+let leaf.sun = focus_leaf("tracks/track/focus/main/main/sun/content");
 
 /* Draw shore */
 
 let base_height = 7;
-let base_paint = paint_hollow(colour!("#999"),0);
-let colour_paint = paint_solid(index(variant_colours(),values));
-let position = enumerate([end-start]) + start;
 
+let paint = paint_solid(index(variant_colours(),severity));
+let nw = coord(start,[0,...],[2,...]);
+let se = coord(start+1,[base_height,...],[-2,...]);
+rectangle(nw,se,paint,[leaf.shore_over,...]);
+
+let (bp_start,bp_end) = bp_range();
+let position = enumerate([bp_end-bp_start+1]) + bp_start;
 let nw = coord(position,[0,...],[2,...]);
 let se = coord(position+1,[base_height,...],[-2,...]);
-rectangle(nw,se,base_paint,[leaf.shore_over,...]);
-rectangle(nw,se,colour_paint,[leaf.shore_under,...]);
+let paint = paint_hollow(colour!("#999"),0);
+rectangle(nw,se,paint,[leaf.shore_under,...]);
+
+/* Draw sun */
+
+let pen = pen("'IBM Plex Mono', sans-serif",10,[colour!("red"),...],[colour!("transparent"),...]);
+text(coord(start,[0,...],[0,...]),pen,id,[leaf.sun,...]);
 
 /* Draw track furniture */
 
