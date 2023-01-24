@@ -121,17 +121,18 @@ rectangle(nw,se,paint,[leaf.shore_over,...]);
 
 /* Create templates for all the variants (whether destined for sun or sea) */
 
+let variety_str = index(["SNV","indel","insertion","deletion"],find(["SNV","INDEL","INS","DEL"],variety));
+
 let tmpl = template_start("{0} {1}/{2}");
-template_set(tmpl,0,variety);
+template_set(tmpl,0,variety_str);
 template_set(tmpl,1,ref);
 template_set(tmpl,2,alt);
 let top_line = template_end(tmpl);
+let bottom_line = id;
 
 /* Draw sun */
 
 let pen = pen("'IBM Plex Mono', sans-serif",10,[colour!("red"),...],[colour!("transparent"),...]);
-let bottom_line = id;
-
 let sun_leaf = if(id == focus_variant_id,[leaf.sun,...],[leaf(""),...]);
 
 text(coord(start,[0,...],[0,...]),pen,top_line,sun_leaf);
@@ -139,17 +140,19 @@ text(coord(start,[10,...],[0,...]),pen,bottom_line,sun_leaf);
 
 /* Create sea leafs */
 
-shallow_container = push_str("tracks/track/focus/main/main/sea/shallow/",id);
-shallow_text_leaf = leaf(push_str(shallow_container,"text/content"));
+let deep = variety != "SNV";
+let base_container = push_str("tracks/track/focus/main/main/sea/",if(deep,["deep/",...],["shallow/",...]));
+shallow_container = push_str(push_str(base_container,variety),id);
+shallow_text_leaf = leaf(push_str(shallow_container,"/text/content"));
+shallow_text_leaf = set(shallow_text_leaf,id==focus_variant_id,[leaf(""),...]); // remove focus from sea
 
 /* Draw shallow sea text */
 
 text(coord(start,[0,...],[0,...]),pen,top_line,shallow_text_leaf);
 text(coord(start,[10,...],[0,...]),pen,bottom_line,shallow_text_leaf);
-//rectangle(coord(start,[0,...],[0,...]),coord(start,[20,...],[20,...]),paint_solid(colour!("green")),shallow_text_leaf);
 
 /* Draw track furniture */
 
-draw_track_category(["G"],["focus"],[leaf.letter]);
+draw_track_category(["V"],["focus"],[leaf.letter]);
 draw_track_name(focus_variant_id,"name",leaf.trackname);
 draw_swatch(colour!("#58a8f9"),[leaf.letter]);

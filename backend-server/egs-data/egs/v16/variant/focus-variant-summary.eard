@@ -14,6 +14,10 @@ style!("""
         priority: -900;
         report: "track;switch-id=variant";
     }
+
+    tracks/track/focus/main/main/ {
+        padding-top: 25;
+    }
 """);
 
 /* Get settings */
@@ -23,3 +27,4 @@ let (focus_genome_id,focus_variant_id) = focus_variant_settings();
 /* Get data */
 
 variant_summary_track("focus",focus_variant_id);
+draw_swatch(colour!("#58a8f9"),[leaf("tracks/track/focus/main/letter/content")]);

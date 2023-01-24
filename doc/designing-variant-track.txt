@@ -130,6 +130,15 @@ Next we need to do the sea. There are two parts to the sea: the shallow sea, whe
 
 Things in the sea bump! That means that each needs its own leaf. Discovery: the same ID can have mulitple alt alleles. Time to regenerate the data again! Decided to stop showing detail at scale 6: too cluttered. Tweaked step to avoid to much jiggling when bumping.
 
+commit to dev/0.6.0 "Start of sea implementation for variant track." abdb4f424
+
+Separating sea
+==============
+
+sea needs separating into shallows (SNVs) and depths (others) and focus removing from sea (repeated). Also add some space to top of summary track to make transition smoother. Also need to rename SNV/INDEL, etc to "friendly" names in labels. Bumping algorithm still seems a bit wonky sometimes. Looks like a bug.
+
+
+
 TODO
 ====
 switchable labels
