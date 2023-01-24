@@ -48,6 +48,12 @@ impl<A> TextShape<A> {
     }
 }
 
+/* If this isn't good enough for you, make the text non-bump and use empties for size.
+ * This value was chosen because it's pretty pessimistic as fonts go (allowing more space) but
+ * fonts for small, technical displays (IDs etc) tend to be toward this end.
+ */
+const FONT_ASPECT_RATIO : f64 = 0.6;
+
 impl TextShape<LeafRequest> {
     pub fn new(position: SpaceBase<f64,LeafRequest>, pen: Pen, text: EachOrEvery<String>) -> Result<Shape<LeafRequest>,DataMessage> {
         let details = TextShape::new_details(position,None,pen,text.clone())?;
@@ -67,8 +73,8 @@ impl TextShape<LeafRequest> {
             /* Running */
             for ((top_left,bottom_right),text) in major.zip(minor).zip(self.iter_texts()) {
                 top_left.allotment.shape_bounds(|allotment| {
-                    allotment.merge_base_range(&RangeUsed::Part(*top_left.base,*bottom_right.base));
-                    allotment.merge_pixel_range(&RangeUsed::Part(*top_left.tangent,(top_left.tangent+size*text.len() as f64).max(*bottom_right.tangent))); // Not ideal: assume square
+                    allotment.merge_base_range(&RangeUsed::Part(*top_left.base,*bottom_right.base+1.));
+                    allotment.merge_pixel_range(&RangeUsed::Part(*top_left.tangent,(top_left.tangent+size*text.len() as f64*FONT_ASPECT_RATIO).max(*bottom_right.tangent))); // Not ideal: assume square
                     allotment.merge_height((*top_left.normal + size).ceil());
                 });
             }    
@@ -77,7 +83,7 @@ impl TextShape<LeafRequest> {
             for (position,text) in major.zip(self.iter_texts()) {
                 position.allotment.shape_bounds(|allotment| {
                     allotment.merge_base_range(&RangeUsed::Part(*position.base,*position.base));
-                    allotment.merge_pixel_range(&RangeUsed::Part(*position.tangent,position.tangent+size*text.len() as f64)); // Not ideal: assume square
+                    allotment.merge_pixel_range(&RangeUsed::Part(*position.tangent,position.tangent+size*text.len() as f64*FONT_ASPECT_RATIO)); // Not ideal: assume square
                     allotment.merge_height((*position.normal + size).ceil());
                 });
             }    

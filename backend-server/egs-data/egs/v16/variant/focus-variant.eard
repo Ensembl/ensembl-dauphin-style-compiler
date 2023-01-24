@@ -54,6 +54,7 @@ style!("""
 
         tracks/track/focus/main/main/sea/shallow/* {
             type: stack;
+            bump-scale: 0.6;
             padding-top: 4;
             padding-bottom: 4;
         }
@@ -146,7 +147,7 @@ shallow_container = push_str(push_str(base_container,variety),id);
 shallow_text_leaf = leaf(push_str(shallow_container,"/text/content"));
 shallow_text_leaf = set(shallow_text_leaf,id==focus_variant_id,[leaf(""),...]); // remove focus from sea
 
-/* Draw shallow sea text */
+/* Draw sea text */
 
 text(coord(start,[0,...],[0,...]),pen,top_line,shallow_text_leaf);
 text(coord(start,[10,...],[0,...]),pen,bottom_line,shallow_text_leaf);

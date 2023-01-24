@@ -137,6 +137,12 @@ Separating sea
 
 sea needs separating into shallows (SNVs) and depths (others) and focus removing from sea (repeated). Also add some space to top of summary track to make transition smoother. Also need to rename SNV/INDEL, etc to "friendly" names in labels. Bumping algorithm still seems a bit wonky sometimes. Looks like a bug.
 
+commit to dev/0.6.0 "Separate sea into shallow and deep" 65f7336
+
+(Interlude)
+===========
+
+Bugfixes for bumping and new feature for interbox lines and drawing circles. Not part of normal track making process!
 
 
 TODO
