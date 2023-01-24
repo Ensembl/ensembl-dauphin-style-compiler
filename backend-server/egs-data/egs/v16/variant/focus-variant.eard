@@ -21,11 +21,13 @@ style!("""
         }
 
         tracks/track/focus/main/main/sun/ {
+            min-height: 25;
             type: overlay;
             priority: -1;
         }
 
         tracks/track/focus/main/main/shore/ {
+            padding-top: 2;
             type: overlay;
             priority: 0;
         }
@@ -48,6 +50,9 @@ let (focus_genome_id,focus_variant_id) = focus_variant_settings();
 let data = get_data(request("self()","variant-labels"));
 let start = data_number(data,"start");
 let id = data_string(data,"id");
+let ref = data_string(data,"ref");
+let alt = data_string(data,"alt");
+let variety = data_string(data,"variety");
 let severity = data_number(data,"severity");
 
 halt(only_warm());
@@ -77,19 +82,30 @@ let base_height = 7;
 let paint = paint_solid(index(variant_colours(),severity));
 let nw = coord(start,[0,...],[2,...]);
 let se = coord(start+1,[base_height,...],[-2,...]);
-rectangle(nw,se,paint,[leaf.shore_over,...]);
+rectangle(nw,se,paint,[leaf.shore_under,...]);
 
 let (bp_start,bp_end) = bp_range();
 let position = enumerate([bp_end-bp_start+1]) + bp_start;
 let nw = coord(position,[0,...],[2,...]);
 let se = coord(position+1,[base_height,...],[-2,...]);
 let paint = paint_hollow(colour!("#999"),0);
-rectangle(nw,se,paint,[leaf.shore_under,...]);
+rectangle(nw,se,paint,[leaf.shore_over,...]);
 
 /* Draw sun */
 
 let pen = pen("'IBM Plex Mono', sans-serif",10,[colour!("red"),...],[colour!("transparent"),...]);
-text(coord(start,[0,...],[0,...]),pen,id,[leaf.sun,...]);
+let tmpl = template_start("{0} {1}/{2}");
+template_set(tmpl,0,variety);
+template_set(tmpl,1,ref);
+template_set(tmpl,2,alt);
+let top_line = template_end(tmpl);
+let bottom_line = id;
+
+let sun_leaf = if(id == focus_variant_id,[leaf.sun,...],[leaf(""),...]);
+//let sun_leaf = [leaf.sun,...];
+
+text(coord(start,[0,...],[0,...]),pen,top_line,sun_leaf);
+text(coord(start,[10,...],[0,...]),pen,bottom_line,sun_leaf);
 
 /* Draw track furniture */
 

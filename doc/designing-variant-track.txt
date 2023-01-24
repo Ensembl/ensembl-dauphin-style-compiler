@@ -41,4 +41,89 @@ The only data used by the shore is a colour. It looks like the colour is consequ
 
 It's basically boxes like the the transcript track when zoomed in.
 
-Commit is "Variant track, shore, initial" on dev/0.6.0
+Commit is "Variant track, shore, initial" on dev/0.6.0 efc32156
+
+Data
+====
+
+Next is probably sun. As well as this being much simpler than sea, it will give us a little prototype of those "modules" of text which are scattered all over sea. They seem to comprise a single row with variant type and allele on top and id on the bottom. Ultimately parts of these modules will be configurable, but let's display them all for now, to reduce complexity. THe challenge here is going to be the data. It looks like the sun module (the focus variant) needs the same data as all the sea modules, so we don't need a special data endpoint for focus vs non-focus. But we do need to pull this from a new variant-endpoint. Let's call it "variant-labels". We need "type", "allele", and "id". We need to use the vcfs for that, so that's the next task.
+
+It probably makes sense to extract the data from these VCFs into bigbeds in our pipeline. We *could* add VCF support but BigBED support is already there (time-expedience) and in general it helps to reduce the data as much as possible for speed.
+
+Looking at the module contents, it seems to make sense to do this to prerocess the VCFs.
+
+```
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+import vcfpy
+
+reader = vcfpy.Reader.from_path('test.vcf')
+for record in reader:
+    start = int(record.POS)
+    end = int(record.POS) + len(record.REF)
+    for (id,alt) in zip(record.ID,record.ALT):
+        line = [str(record.CHROM),str(start),str(end),id,alt.type,str(record.REF),alt.value]
+    print("\t".join(line))
+```
+
+Rewrote in rust because the python was sloooow. Copied into the relevant data files dir, wrote the python to present the data to the GB. Did it via amazon in the first instance (quicker) using upload-to-s3.py. Wrote code on local BE server by stopping it forwarding to AWS via commenting out data forward in sources-dan.toml. When that was working copied to amazon and reenabled.
+
+The python at the moment is simple because only a few fields required. If this ever gets complex, it should switch to using tangle, like the gene/transcript endpoints. Tangle has a setup overhead but is quick to maintain and cleaner code.
+
+Data algorithm spec strings chosen according to the type and general pattern of the data. See dataalgorithm.py. The spec is just a forwards-polish expression defining a tree that defines functions to call to process the data.
+
+To avoid too many potential sources of breakage, this was tested first with data-test.py till I found something which "Looked like data".
+
+```
+dan@shep:~/ensembl-dauphin-style-compiler/backend-server$ ./data-test.py http://localhost:3333/api/data/hi/
+Endpoint name?  variant-labels
+Ok, using endpoint variant-labels
+Enter stick name (eg homo_sapiens_GCA_000001405_28:4)?  
+Roughly how many bp in data?  64
+Ok, nearest is scale 6 which has 64 bp
+Approx centre in bp?  
+Ok, nearest is index 156250 which has bp range 10000000 - 10000063
+
+
+RAW DUMP
+========
+
+
+alts ['SYRLZ', b'\x00\x01', b'T\x00C\x00']
+ids ['SZ', b'rs34407859\x00rs7695555\x00']
+lengths ['NDZRL', b'\x02\x00']
+refs ['SYRLZ', b'\x01\x00', b'T\x00C\x00']
+starts ['NDZRL', b'\xfb8-1\x01\x08']
+varieties ['SYRLZ', b'\x00\x00', b'SNV\x00']
+
+APPROX SIZES
+============
+
+
+alts           4  23%
+starts         4  23%
+lengths        2  16%
+varieties      2  16%
+refs           2  13%
+ids            2  10%
+```
+
+For now bolded labels after non-bolded looks difficult (I think we can only change colour ATM in the middle of a render), so I'll leave them non-bold.
+
+Just for testing purposes I'm going to put all the IDs into sun on the screen to check the data looks right.
+
+Looking at the data, it looks to weird to have the summary data so out of sync with the source. I hadn't realised there would be such a difference. So we should switch to getting consequence from the label source (which is a good idea anyway). So I'm going to investigating adding consequence to that payload. Where is it in the VCFs? It's in there, at least in gnomad, I can tell from grep. Looks like it's in CSQ which is in INFO. CSQ seems to be a pipe-separated field and we want position 1 (ie second position). Updated extraction code.
+
+commit to dev/0.6.0 named "More variant track." c194a1060a
+
+Sun
+===
+
+We now need to restrict the sun to just the focus variant and update the module. Let's update the module first as then we'll be able to temporarily see it in its various forms as we don't have sea implemented yet.
+
+
+
+TODO
+====
+switchable labels
+bold labels
