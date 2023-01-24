@@ -1,4 +1,5 @@
 use eachorevery::{EachOrEvery, EachOrEveryFilter};
+use peregrine_toolkit::log;
 
 use crate::{DataMessage, Pen, ShapeDemerge, Shape, SpaceBase, allotment::{leafs::anchored::AnchoredLeaf, core::rangeused::RangeUsed}, LeafRequest, SpaceBaseArea, PartialSpaceBase, CoordinateSystem, AuxLeaf };
 use std::{hash::Hash};
@@ -66,7 +67,7 @@ impl TextShape<LeafRequest> {
             /* Running */
             for ((top_left,bottom_right),text) in major.zip(minor).zip(self.iter_texts()) {
                 top_left.allotment.shape_bounds(|allotment| {
-                    allotment.merge_base_range(&RangeUsed::Part(*top_left.base,*bottom_right.base+1.));
+                    allotment.merge_base_range(&RangeUsed::Part(*top_left.base,*bottom_right.base));
                     allotment.merge_pixel_range(&RangeUsed::Part(*top_left.tangent,(top_left.tangent+size*text.len() as f64).max(*bottom_right.tangent))); // Not ideal: assume square
                     allotment.merge_height((*top_left.normal + size).ceil());
                 });
@@ -75,7 +76,7 @@ impl TextShape<LeafRequest> {
             /* Normal */
             for (position,text) in major.zip(self.iter_texts()) {
                 position.allotment.shape_bounds(|allotment| {
-                    allotment.merge_base_range(&RangeUsed::Part(*position.base,*position.base+1.));
+                    allotment.merge_base_range(&RangeUsed::Part(*position.base,*position.base));
                     allotment.merge_pixel_range(&RangeUsed::Part(*position.tangent,position.tangent+size*text.len() as f64)); // Not ideal: assume square
                     allotment.merge_height((*position.normal + size).ceil());
                 });
