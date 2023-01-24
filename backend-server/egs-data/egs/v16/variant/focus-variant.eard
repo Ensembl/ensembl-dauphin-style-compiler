@@ -39,6 +39,35 @@ style!("""
         tracks/track/focus/main/main/shore/over/ {
             depth: 1;
         }
+
+        tracks/track/focus/main/main/sea/ {
+            type: stack;
+            priority: 1;
+        }
+
+        tracks/track/focus/main/main/sea/shallow/ {
+            type: bumper;
+            priority: 0;
+            padding-top: 4;
+            padding-bottom: 4;
+        }
+
+        tracks/track/focus/main/main/sea/shallow/* {
+            type: stack;
+            padding-top: 4;
+            padding-bottom: 4;
+        }
+
+        tracks/track/focus/main/main/sea/deep/ {
+            type: bumper;
+            priority: 1;
+        }
+
+        tracks/track/focus/main/main/sea/deep/* {
+            type: stack;
+            padding-top: 4;
+            padding-bottom: 4;
+        }
 """);
 
 /* Get settings */
@@ -56,7 +85,6 @@ let variety = data_string(data,"variety");
 let severity = data_number(data,"severity");
 
 halt(only_warm());
-
 
 /* Setup leafs */
 
@@ -91,21 +119,34 @@ let se = coord(position+1,[base_height,...],[-2,...]);
 let paint = paint_hollow(colour!("#999"),0);
 rectangle(nw,se,paint,[leaf.shore_over,...]);
 
-/* Draw sun */
+/* Create templates for all the variants (whether destined for sun or sea) */
 
-let pen = pen("'IBM Plex Mono', sans-serif",10,[colour!("red"),...],[colour!("transparent"),...]);
 let tmpl = template_start("{0} {1}/{2}");
 template_set(tmpl,0,variety);
 template_set(tmpl,1,ref);
 template_set(tmpl,2,alt);
 let top_line = template_end(tmpl);
+
+/* Draw sun */
+
+let pen = pen("'IBM Plex Mono', sans-serif",10,[colour!("red"),...],[colour!("transparent"),...]);
 let bottom_line = id;
 
 let sun_leaf = if(id == focus_variant_id,[leaf.sun,...],[leaf(""),...]);
-//let sun_leaf = [leaf.sun,...];
 
 text(coord(start,[0,...],[0,...]),pen,top_line,sun_leaf);
 text(coord(start,[10,...],[0,...]),pen,bottom_line,sun_leaf);
+
+/* Create sea leafs */
+
+shallow_container = push_str("tracks/track/focus/main/main/sea/shallow/",id);
+shallow_text_leaf = leaf(push_str(shallow_container,"text/content"));
+
+/* Draw shallow sea text */
+
+text(coord(start,[0,...],[0,...]),pen,top_line,shallow_text_leaf);
+text(coord(start,[10,...],[0,...]),pen,bottom_line,shallow_text_leaf);
+//rectangle(coord(start,[0,...],[0,...]),coord(start,[20,...],[20,...]),paint_solid(colour!("green")),shallow_text_leaf);
 
 /* Draw track furniture */
 

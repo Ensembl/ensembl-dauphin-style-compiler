@@ -180,7 +180,7 @@ name = ["track","variant","name"]
 
 [track.focus-variant.general]
 include = ["general"]
-scales = [1,6,6]
+scales = [3,5,3]
 triggers = [["track","focus","item","variant"]]
 tags= "#has-variants"
 
@@ -190,7 +190,7 @@ name = ["track","focus","name"]
 
 [track.focus-variant-summary.general]
 include = ["general"]
-scales = [7,100,4]
+scales = [6,100,4]
 triggers = [["track","focus","item","variant"]]
 tags= "#has-variants"
 

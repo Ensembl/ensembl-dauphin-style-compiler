@@ -121,7 +121,14 @@ Sun
 
 We now need to restrict the sun to just the focus variant and update the module. Let's update the module first as then we'll be able to temporarily see it in its various forms as we don't have sea implemented yet.
 
+commit to dev/0.6.0 named "Sun track." fac23c5b
 
+Sea
+===
+
+Next we need to do the sea. There are two parts to the sea: the shallow sea, where SNVs live, and the deep sea where other types live attached to fishing lines. As a first cut, let's just create the distinction and plonk everything in the shallow sea.
+
+Things in the sea bump! That means that each needs its own leaf. Discovery: the same ID can have mulitple alt alleles. Time to regenerate the data again! Decided to stop showing detail at scale 6: too cluttered. Tweaked step to avoid to much jiggling when bumping.
 
 TODO
 ====
