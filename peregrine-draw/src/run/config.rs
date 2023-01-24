@@ -134,7 +134,7 @@ lazy_static! {
             ConfigKeyInfo { key: PgConfigKey::InstructedDragLethargy, name: "animate.lethargy.instruct-drag", default: &PgConfigValue::Float(50.) },
             ConfigKeyInfo { key: PgConfigKey::SelfDragLethargy, name: "animate.lethargy.self-drag", default: &PgConfigValue::Float(2.) },
             ConfigKeyInfo { key: PgConfigKey::WindowLethargy, name: "animate.lethargy.window", default: &PgConfigValue::Float(5.) },
-            ConfigKeyInfo { key: PgConfigKey::MinBpPerScreen, name: "display.min-bp-per-screen", default: &PgConfigValue::Float(30.) },
+            ConfigKeyInfo { key: PgConfigKey::MinBpPerScreen, name: "display.min-bp-per-screen", default: &PgConfigValue::Float(32.) },
             ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::DebugAction), name: "keys.debug-action", default: &PgConfigValue::StaticStr("") },
             ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PixelsLeft), name: "keys.pixels-left", default: &PgConfigValue::StaticStr("Alt-a[200]") },
             ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PixelsRight), name: "keys.pixels-right", default: &PgConfigValue::StaticStr("MirrorRunningDrag Alt-d[200]") },
