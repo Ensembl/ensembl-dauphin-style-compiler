@@ -149,12 +149,13 @@ Fishing lines
 
 Items in the deep sea need to be attached to the shore with fishing lines. To start with, let's draw fishing lines for all sea items. Bug: dotted line lengths have gone wonky, AGAIN! We'll draw them without bait for now, as we don't have a circle primitive exposed in eard.
 
-commit to dev/0.6.0 "fishing lines". d9d29f46
+commit to dev/0.6.0 "fishing lines". d9d29f46 and b07b39b1
 
-(Interlude)
-===========
+Adding bobbles to fishing lines
+===============================
 
-Add circles, fix dot length bug (again!).
+Adding bobbles should be as simple as drawing a circle, but the polygon primative wasn't exposed to eard (accidental omission). So that's added and then drawn at the end of the fishing lines. FIshing lines are also disabled for SNVs.
+
 
 
 

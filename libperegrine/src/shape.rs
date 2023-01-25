@@ -3,7 +3,7 @@ use eachorevery::EachOrEvery;
 use eard_interp::{GlobalContext, GlobalBuildContext, Return, HandleStore, AsyncReturn };
 use peregrine_data::{ProgramShapesBuilder, SpaceBaseArea, PartialSpaceBase, SpaceBase, LeafRequest, Patina, Plotter, Pen, AccessorResolver, BackendNamespace};
 use peregrine_toolkit::{lock};
-use crate::util::eoe_from_handle;
+use crate::util::{eoe_from_handle, eoe_from_number};
 
 fn eoe_from_string_reg(ctx: &GlobalContext, reg: usize) -> Result<EachOrEvery<String>,String> {
     Ok(if !ctx.is_finite(reg)? {
@@ -214,9 +214,34 @@ pub(crate) fn op_image(gctx: &GlobalBuildContext) -> Result<Box<dyn Fn(&mut Glob
                 let mut shapes = lock!(shapes);
                 shapes.as_mut().unwrap().add_image(&channel,coords,image).map_err(|e| {
                     format!("cannot add text: {}",e.to_string())
-                })?;        
+                })?;
                 Ok(())
             }
         )))
+    }))
+}
+
+pub(crate) fn op_polygon(gctx: &GlobalBuildContext) -> Result<Box<dyn Fn(&mut GlobalContext,&[usize]) -> Result<Return,String>>,String> {
+    let coords = gctx.patterns.lookup::<HandleStore<SpaceBase<f64,()>>>("coords")?;
+    let leafs = gctx.patterns.lookup::<HandleStore<LeafRequest>>("leaf")?;
+    let paints = gctx.patterns.lookup::<HandleStore<Patina>>("paint")?;
+    let shapes = gctx.patterns.lookup::<Arc<Mutex<Option<ProgramShapesBuilder>>>>("shapes")?;
+    Ok(Box::new(move |ctx,regs| {
+        let coords = ctx.context.get(&coords);
+        let leafs = ctx.context.get(&leafs);
+        let paints = ctx.context.get(&paints);
+        let centre = coords.get(ctx.force_number(regs[0] as usize)? as usize)?.clone();
+        let radius = eoe_from_number(ctx,regs[1])?;
+        let points = ctx.force_number(regs[2])? as usize;
+        let angle = ctx.force_number(regs[3])? as f32;
+        let paint = paints.get(ctx.force_number(regs[4])? as usize)?.clone();
+        let leaf = eoe_from_handle(ctx,leafs,regs[5])?;
+        let shapes = ctx.context.get_mut(&shapes);
+        let centre = centre.replace_allotments(leaf.clone());
+        let mut shapes = lock!(shapes);
+        shapes.as_mut().unwrap().add_polygon(centre.clone(),radius.clone(),points,angle,paint.clone(),None).map_err(|e| {
+            format!("cannot add polygon: {}",e.to_string())
+        })?;
+        Ok(Return::Sync)
     }))
 }

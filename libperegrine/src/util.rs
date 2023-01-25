@@ -14,3 +14,15 @@ pub(crate) fn eoe_from_handle<T: Clone>(ctx: &GlobalContext, input: &HandleStore
         )
     })
 }
+
+pub(crate) fn eoe_from_number(ctx: &GlobalContext, reg: usize) -> Result<EachOrEvery<f64>,String> {
+    Ok(if !ctx.is_finite(reg)? {
+        EachOrEvery::every(ctx.force_infinite_number(reg)?)
+    } else if ctx.is_atomic(reg)? {
+        EachOrEvery::every(ctx.force_number(reg)?)
+    } else {
+        EachOrEvery::each(
+            ctx.force_finite_number(reg)?.clone()
+        )
+    })
+}

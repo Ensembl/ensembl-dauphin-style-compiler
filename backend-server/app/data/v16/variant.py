@@ -68,7 +68,6 @@ def get_variant_labels(data_accessor: DataAccessor, chrom: Chromosome, panel: Pa
         severities = []
         for (start,end,rest) in data:
             rest = rest.split()
-            logging.warn(rest)
             starts.append(start)
             lengths.append(end-start)
             ids.append(rest[0])
