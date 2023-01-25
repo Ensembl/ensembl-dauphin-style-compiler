@@ -144,8 +144,17 @@ commit to dev/0.6.0 "Separate sea into shallow and deep" 65f7336
 
 Bugfixes for bumping and new feature for interbox lines and drawing circles. Not part of normal track making process!
 
+Fishing lines
+=============
+
+Items in the deep sea need to be attached to the shore with fishing lines. To start with, let's draw fishing lines for all sea items. Bug: dotted line lengths have gone wonky, AGAIN! We'll draw them without bait for now, as we don't have a circle primitive exposed in eard.
+
+commit to dev/0.6.0 ""
+
+
 
 TODO
 ====
 switchable labels
 bold labels
+dot pitch
