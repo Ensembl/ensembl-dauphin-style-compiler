@@ -20,7 +20,7 @@ use crate::input::{ InputEvent };
 use super::mapping::InputMap;
 use js_sys::Date;
 use peregrine_data::{Commander, SpecialClick, SingleHotspotEntry };
-use peregrine_toolkit::lock;
+use peregrine_toolkit::{lock, log};
 use peregrine_toolkit::plumbing::distributor::Distributor;
 use peregrine_toolkit_async::sync::needed::Needed;
 use crate::run::CursorCircumstance;
@@ -154,7 +154,8 @@ impl LowLevelInput {
         if self.hover_hotspots.len() > 0 || hover.len() > 0 {
             let hover = BTreeSet::from_iter(hover.drain(..));
             if self.hover_hotspots != hover {
-                self.state.send(InputEventKind::HoverChange,true,&[position.0,position.1]);
+                let y = self.state.stage().map(|s| s.y().position().unwrap_or(0.)).unwrap_or(0.);
+                self.state.send(InputEventKind::HoverChange,true,&[position.0,position.1-y]);
             }
             self.hover_hotspots = hover;
         }
