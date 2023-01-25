@@ -19,18 +19,23 @@ fn eoe_from_string_reg(ctx: &GlobalContext, reg: usize) -> Result<EachOrEvery<St
     })
 }
 
-fn rectangle(gctx: &GlobalBuildContext, run: bool) -> Result<Box<dyn Fn(&mut GlobalContext,&[usize]) -> Result<Return,String>>,String> {
+fn rectangle(gctx: &GlobalBuildContext, run: bool, join: bool) -> Result<Box<dyn Fn(&mut GlobalContext,&[usize]) -> Result<Return,String>>,String> {
     let run1 = if run { 1 } else { 0 };
     let coords = gctx.patterns.lookup::<HandleStore<SpaceBase<f64,()>>>("coords")?;
-    let leafs = gctx.patterns.lookup::<HandleStore<LeafRequest>>("leaf")?;
+    let leafs_store = gctx.patterns.lookup::<HandleStore<LeafRequest>>("leaf")?;
     let paints = gctx.patterns.lookup::<HandleStore<Patina>>("paint")?;
     let shapes = gctx.patterns.lookup::<Arc<Mutex<Option<ProgramShapesBuilder>>>>("shapes")?;
     Ok(Box::new(move |ctx,regs| {
         let coords = ctx.context.get(&coords);
-        let leafs = ctx.context.get(&leafs);
+        let leafs_store = ctx.context.get(&leafs_store);
         let paints = ctx.context.get(&paints);
         let paint = paints.get(ctx.force_number(regs[run1+2])? as usize)?.clone();
-        let leafs = eoe_from_handle(ctx,leafs,regs[run1+3])?.index(|a| a.name().clone());
+        let leafs = eoe_from_handle(ctx,leafs_store,regs[run1+3])?.index(|a| a.name().clone());
+        let extra_leafs = if join {
+            eoe_from_handle(ctx,leafs_store,regs[run1+4])?.index(|a| a.name().clone())
+        } else {
+            leafs.clone()
+        };
         let nw = coords.get(ctx.force_number(regs[0] as usize)? as usize)?.clone();
         let se = coords.get(ctx.force_number(regs[1] as usize)? as usize)?.clone();
         let run = if run {
@@ -46,8 +51,8 @@ fn rectangle(gctx: &GlobalBuildContext, run: bool) -> Result<Box<dyn Fn(&mut Glo
             PartialSpaceBase::from_spacebase(nw),
             PartialSpaceBase::from_spacebase(se)).ok_or_else(|| {
                 format!("coordinates differ in size when drawing rectangle")
-            })?;
-        let area = area.replace_allotments(leafs);
+        })?;
+        let area = area.replace_allotments(leafs.clone(),extra_leafs);
         let shapes = ctx.context.get_mut(&shapes);
         let mut shapes = lock!(shapes);
         let res = if let Some(run) = run {
@@ -63,11 +68,15 @@ fn rectangle(gctx: &GlobalBuildContext, run: bool) -> Result<Box<dyn Fn(&mut Glo
 }
 
 pub(crate) fn op_rectangle(gctx: &GlobalBuildContext) -> Result<Box<dyn Fn(&mut GlobalContext,&[usize]) -> Result<Return,String>>,String> {
-    rectangle(gctx,false)
+    rectangle(gctx,false,false)
 }
 
 pub(crate) fn op_running_rectangle(gctx: &GlobalBuildContext) -> Result<Box<dyn Fn(&mut GlobalContext,&[usize]) -> Result<Return,String>>,String> {
-    rectangle(gctx,true)
+    rectangle(gctx,true,false)
+}
+
+pub(crate) fn op_rectangle_join(gctx: &GlobalBuildContext) -> Result<Box<dyn Fn(&mut GlobalContext,&[usize]) -> Result<Return,String>>,String> {
+    rectangle(gctx,false,true)
 }
 
 pub(crate) fn op_empty(gctx: &GlobalBuildContext) -> Result<Box<dyn Fn(&mut GlobalContext,&[usize]) -> Result<Return,String>>,String> {
@@ -85,7 +94,7 @@ pub(crate) fn op_empty(gctx: &GlobalBuildContext) -> Result<Box<dyn Fn(&mut Glob
                 format!("coordinates differ in size when drawing rectangle")
             })?;
         let leafs = eoe_from_handle(ctx,leafs,regs[2])?.index(|a| a.name().clone());
-        let area = area.replace_allotments(leafs);
+        let area = area.replace_allotments(leafs.clone(),leafs);
         let shapes = ctx.context.get_mut(&shapes);
         let mut shapes = lock!(shapes);
         shapes.as_mut().unwrap().add_empty(area).map_err(|e| {
@@ -171,7 +180,7 @@ pub(crate) fn op_running_text(gctx: &GlobalBuildContext) -> Result<Box<dyn Fn(&m
         let area = SpaceBaseArea::new(
             PartialSpaceBase::from_spacebase(nw),
             PartialSpaceBase::from_spacebase(se)).ok_or_else(|| format!("lengths don't match in running text"))?;
-        let area = area.replace_allotments(leafs);
+        let area = area.replace_allotments(leafs.clone(),leafs);
         let shapes = ctx.context.get_mut(&shapes);
         let mut shapes = lock!(shapes);
         shapes.as_mut().unwrap().add_running_text(area,pen,text).map_err(|e| {

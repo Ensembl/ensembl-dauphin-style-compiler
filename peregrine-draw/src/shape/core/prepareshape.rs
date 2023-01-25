@@ -122,7 +122,7 @@ pub(crate) fn prepare_shape_in_layer(tools: &mut DrawingToolsBuilder, shape: Dra
                 out.push(GLShape::Wiggle(shape.range(),shape.values(),shape.plotter().clone(),shape.get_style().depth));
             },
             Shape::Text(shape) => {
-                prepare_text(&mut out,tools,&shape,&draw_group);
+                prepare_text(&mut out,tools,&shape,&draw_group)?;
             },
             Shape::Image(shape) => {
                 let depth = shape.position().allotments().map(|x| x.depth);
@@ -133,7 +133,7 @@ pub(crate) fn prepare_shape_in_layer(tools: &mut DrawingToolsBuilder, shape: Dra
                 let handles = all_bitmaps.drain(..).map(|x| manager.add(x)).collect::<Result<_,_>>()?;
                 out.push(GLShape::Image(shape.position().clone(),handles,depth,draw_group));
             },
-            Shape::SpaceBaseRect(shape) => {
+            Shape::Rectangle(shape) => {
                 out.append(&mut split_spacebaserect(tools,&shape,&draw_group)?);
             },
             Shape::Polygon(shape) => {

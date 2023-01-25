@@ -47,10 +47,10 @@ impl<X: Clone, Y: Clone> SpaceBaseArea<X,Y> {
         other.iter().cycle().take(len)
     }
 
-    pub fn replace_allotments<A>(&self, allotment: EachOrEvery<A>) -> SpaceBaseArea<X,A> {
+    pub fn replace_allotments<A>(&self, nw: EachOrEvery<A>, se: EachOrEvery<A>) -> SpaceBaseArea<X,A> {
         SpaceBaseArea(
-            self.0.replace_allotments(allotment.clone()),
-            self.1.replace_allotments(allotment),
+            self.0.replace_allotments(nw),
+            self.1.replace_allotments(se),
             self.2
         )
     }

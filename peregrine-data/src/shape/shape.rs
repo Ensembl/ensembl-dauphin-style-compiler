@@ -35,7 +35,7 @@ pub enum Shape<A> {
     Polygon(PolygonShape<A>),
     Image(ImageShape<A>),
     Wiggle(WiggleShape<A>),
-    SpaceBaseRect(RectangleShape<A>),
+    Rectangle(RectangleShape<A>),
     Empty(EmptyShape<A>)
 }
 
@@ -51,7 +51,7 @@ impl<A> Clone for Shape<A> where A: Clone {
             Self::Text(arg0) => Self::Text(arg0.clone()),
             Self::Image(arg0) => Self::Image(arg0.clone()),
             Self::Wiggle(arg0) => Self::Wiggle(arg0.clone()),
-            Self::SpaceBaseRect(arg0) => Self::SpaceBaseRect(arg0.clone()),
+            Self::Rectangle(arg0) => Self::Rectangle(arg0.clone()),
             Self::Empty(arg0) => Self::Empty(arg0.clone()),
             Self::Polygon(arg0) => Self::Polygon(arg0.clone())
         }
@@ -64,7 +64,7 @@ impl<A> Shape<A> {
             Self::Text(arg0) => Shape::<B>::Text(arg0.map_new_allotment(cb)),
             Self::Image(arg0) => Shape::<B>::Image(arg0.map_new_allotment(cb)),
             Self::Wiggle(arg0) => Shape::<B>::Wiggle(arg0.map_new_allotment(cb)),
-            Self::SpaceBaseRect(arg0) => Shape::<B>::SpaceBaseRect(arg0.map_new_allotment(cb)),
+            Self::Rectangle(arg0) => Shape::<B>::Rectangle(arg0.map_new_allotment(cb)),
             Self::Empty(arg0) => Shape::<B>::Empty(arg0.map_new_allotment(cb)),
             Self::Polygon(arg0) => Shape::<B>::Polygon(arg0.map_new_allotment(cb)),
         }
@@ -72,7 +72,7 @@ impl<A> Shape<A> {
 
     pub fn len(&self) -> usize {
         match &self {
-            Shape::SpaceBaseRect(shape) => shape.len(),
+            Shape::Rectangle(shape) => shape.len(),
             Shape::Text(shape) => shape.len(),
             Shape::Image(shape) => shape.len(),
             Shape::Wiggle(shape) => shape.len(),
@@ -85,7 +85,7 @@ impl<A> Shape<A> {
 impl Shape<LeafRequest> {
     pub fn base_filter(&self, min: f64, max: f64) -> Shape<LeafRequest> {
         match self {
-            Shape::SpaceBaseRect(shape) => Shape::SpaceBaseRect(shape.base_filter(min,max)),
+            Shape::Rectangle(shape) => Shape::Rectangle(shape.base_filter(min,max)),
             Shape::Text(shape) => Shape::Text(shape.base_filter(min,max)),
             Shape::Image(shape) => Shape::Image(shape.base_filter(min,max)),
             Shape::Wiggle(shape) => Shape::Wiggle(shape.base_filter(min,max)),
@@ -113,9 +113,9 @@ impl Shape<AuxLeaf> {
                     (x,Shape::Image(details))
                 ).collect()
             },
-            Shape::SpaceBaseRect(shape) => {
+            Shape::Rectangle(shape) => {
                 return shape.demerge(cat).drain(..).map(|(x,details)|
-                    (x,Shape::SpaceBaseRect(details))
+                    (x,Shape::Rectangle(details))
                 ).collect()
             },
             Shape::Polygon(shape) => {
@@ -136,7 +136,7 @@ impl Shape<AnchoredLeaf> {
     pub fn make(&self) -> Vec<Shape<AuxLeaf>> {
         match self {
             Shape::Polygon(shape) => shape.make().drain(..).map(|x| Shape::Polygon(x)).collect(),
-            Shape::SpaceBaseRect(shape) => shape.make().drain(..).map(|x| Shape::SpaceBaseRect(x)).collect(),
+            Shape::Rectangle(shape) => shape.make().drain(..).map(|x| Shape::Rectangle(x)).collect(),
             Shape::Text(shape) => shape.make().drain(..).map(|x| Shape::Text(x)).collect(),
             Shape::Image(shape) => shape.make().drain(..).map(|x| Shape::Image(x)).collect(),
             Shape::Wiggle(shape) => shape.make().drain(..).map(|x| Shape::Wiggle(x)).collect(),
@@ -172,7 +172,7 @@ fn register_patina(shape: &RectangleShape<LeafRequest>) {
 impl Shape<LeafRequest> {
     pub fn register_space(&self, assets: &Assets) -> Result<(),DataMessage> {
         match &self {
-            Shape::SpaceBaseRect(shape) => {
+            Shape::Rectangle(shape) => {
                 register_space_area(shape.area());
                 register_patina(shape);
             },

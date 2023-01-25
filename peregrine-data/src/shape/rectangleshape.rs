@@ -57,12 +57,12 @@ fn run_area<A: Clone>(area: &SpaceBaseArea<f64,A>, run: &EachOrEvery<f64>) -> Sp
 impl RectangleShape<LeafRequest> {
     pub fn new(area: SpaceBaseArea<f64,LeafRequest>, patina: Patina, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>) -> Result<Shape<LeafRequest>,DataMessage> {
         let details = RectangleShape::new_details(area,None,patina.clone(),wobble.clone())?;
-        Ok(Shape::SpaceBaseRect(details))
+        Ok(Shape::Rectangle(details))
     }
 
     pub fn new_running(area: SpaceBaseArea<f64,LeafRequest>, run: EachOrEvery<f64>, patina: Patina, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>) -> Result<Shape<LeafRequest>,DataMessage> {
         let details = RectangleShape::new_details(area,Some(run),patina.clone(),wobble.clone())?;
-        Ok(Shape::SpaceBaseRect(details))
+        Ok(Shape::Rectangle(details))
     }
 
     pub fn base_filter(&self, min_value: f64, max_value: f64) -> RectangleShape<LeafRequest> {

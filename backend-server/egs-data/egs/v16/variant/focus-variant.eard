@@ -136,21 +136,27 @@ let bottom_line = id;
 let pen = pen("'IBM Plex Mono', sans-serif",10,[colour!("red"),...],[colour!("transparent"),...]);
 let sun_leaf = if(id == focus_variant_id,[leaf.sun,...],[leaf(""),...]);
 
-text(coord(start,[0,...],[0,...]),pen,top_line,sun_leaf);
-text(coord(start,[10,...],[0,...]),pen,bottom_line,sun_leaf);
+text(coord(start,[0,...],[5,...]),pen,top_line,sun_leaf);
+text(coord(start,[10,...],[5,...]),pen,bottom_line,sun_leaf);
 
 /* Create sea leafs */
 
 let deep = variety != "SNV";
 let base_container = push_str("tracks/track/focus/main/main/sea/",if(deep,["deep/",...],["shallow/",...]));
 shallow_container = push_str(push_str(base_container,variety),id);
-shallow_text_leaf = leaf(push_str(shallow_container,"/text/content"));
-shallow_text_leaf = set(shallow_text_leaf,id==focus_variant_id,[leaf(""),...]); // remove focus from sea
+sea_text_leaf = leaf(push_str(shallow_container,"/text/content"));
+sea_text_leaf = set(sea_text_leaf,id==focus_variant_id,[leaf(""),...]); // remove focus from sea
 
 /* Draw sea text */
 
-text(coord(start,[0,...],[0,...]),pen,top_line,shallow_text_leaf);
-text(coord(start,[10,...],[0,...]),pen,bottom_line,shallow_text_leaf);
+text(coord(start,[0,...],[5,...]),pen,top_line,sea_text_leaf);
+text(coord(start,[10,...],[5,...]),pen,bottom_line,sea_text_leaf);
+
+/* Draw fishing lines */
+
+let paint = paint_dotted([colour!("#999"),...],[colour!("white"),...],4,1,0.5);
+rectangle_join(coord(start,[10,...],[-1,...]),coord(start,[7,...],[-1,...]),paint,sea_text_leaf,[leaf.shore_under,...]);
+
 
 /* Draw track furniture */
 
