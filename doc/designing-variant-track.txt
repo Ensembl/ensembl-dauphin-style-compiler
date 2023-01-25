@@ -154,8 +154,9 @@ commit to dev/0.6.0 "fishing lines". d9d29f46 and b07b39b1
 Adding bobbles to fishing lines
 ===============================
 
-Adding bobbles should be as simple as drawing a circle, but the polygon primative wasn't exposed to eard (accidental omission). So that's added and then drawn at the end of the fishing lines. FIshing lines are also disabled for SNVs.
+Adding bobbles should be as simple as drawing a circle, but the polygon primative wasn't exposed to eard (accidental omission). So that's added and then drawn at the end of the fishing lines. Fishing lines are also disabled for SNVs.
 
+commit to dev/0.6.0 "Variant fishing lines". f50d735f
 
 
 

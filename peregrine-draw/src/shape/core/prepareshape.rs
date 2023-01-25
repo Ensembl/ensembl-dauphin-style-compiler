@@ -20,7 +20,7 @@ fn split_spacebaserect(tools: &mut DrawingToolsBuilder, shape: &RectangleShape<A
             };
             match draw_group.shape_category() {
                 ShapeCategory::SolidColour | ShapeCategory::Other => {
-                    out.push(GLShape::SpaceBaseRect(shape.area().clone(),shape.run().clone(),SimpleShapePatina::from_patina(shape.patina())?,depth,draw_group.clone(),wobble));
+                    out.push(GLShape::Rectangle(shape.area().clone(),shape.run().clone(),SimpleShapePatina::from_patina(shape.patina())?,depth,draw_group.clone(),wobble));
                 },
                 ShapeCategory::Heraldry(HeraldryCanvasesUsed::Solid(heraldry_canvas),scale) => {
                     let heraldry = make_heraldry(shape.patina())?;
@@ -42,7 +42,7 @@ fn split_spacebaserect(tools: &mut DrawingToolsBuilder, shape: &RectangleShape<A
             }
         },
         Patina::Hotspot(hotspot,hover) => {
-            out.push(GLShape::SpaceBaseRect(shape.area().clone(),shape.run().clone(),SimpleShapePatina::Hotspot(hotspot.clone(),*hover),depth,draw_group.clone(),None));
+            out.push(GLShape::Rectangle(shape.area().clone(),shape.run().clone(),SimpleShapePatina::Hotspot(hotspot.clone(),*hover),depth,draw_group.clone(),None));
         },
         Patina::Metadata(_,_) => {}
     }

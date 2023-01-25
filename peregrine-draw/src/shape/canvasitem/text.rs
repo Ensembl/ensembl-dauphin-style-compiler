@@ -1,7 +1,7 @@
 use eachorevery::EachOrEvery;
 use peregrine_data::{ DirectColour, PenGeometry, AuxLeaf, TextShape, SpaceBase };
 use peregrine_toolkit::error::Error;
-use crate::shape::core::drawshape::{GLShape, ShapeToAdd, draw_points_from_canvas2, dims_to_sizes, GLAttachmentPoint};
+use crate::shape::core::drawshape::{GLShape, ShapeToAdd, draw_points_from_canvas, dims_to_sizes, GLAttachmentPoint};
 use crate::shape::layers::drawingtools::{DrawingToolsBuilder, CanvasType};
 use crate::shape::layers::layer::Layer;
 use crate::shape::layers::patina::Freedom;
@@ -113,6 +113,6 @@ pub(crate) fn draw_text(layer: &mut Layer, left: f64, gl: &mut WebGlGlobal, tool
     if bitmap_dims.len() == 0 { return Ok(ShapeToAdd::None); }
     let (x_sizes,y_sizes) = dims_to_sizes(&bitmap_dims,1./bitmap_multiplier);
     let canvas = tools.composition_builder(&CanvasType::Crisp).canvas().ok_or_else(|| Error::fatal("no canvas id A"))?;
-    let rectangles = draw_points_from_canvas2(layer,left,gl,&draw_group,&points,&run,x_sizes,y_sizes,&depth,&canvas,&bitmap_dims,&Freedom::None,attachment,None)?;
+    let rectangles = draw_points_from_canvas(layer,left,gl,&draw_group,&points,&run,x_sizes,y_sizes,&depth,&canvas,&bitmap_dims,&Freedom::None,attachment,None)?;
     Ok(ShapeToAdd::Dynamic(rectangles))
 }

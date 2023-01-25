@@ -96,7 +96,7 @@ pub(crate) enum GLShape {
     Image(SpaceBase<f64,AuxLeaf>,Vec<CanvasItemAreaSource>,EachOrEvery<i8>,DrawGroup),
     Heraldry(SpaceBaseArea<f64,AuxLeaf>,Option<EachOrEvery<f64>>,EachOrEvery<HeraldryHandle>,EachOrEvery<i8>,DrawGroup,HeraldryCanvas,HeraldryScale,Option<HollowEdge2<f64>>,Option<SpaceBaseArea<Observable<'static,f64>,()>>),
     Wiggle((f64,f64),Arc<Vec<Option<f64>>>,Plotter,i8),
-    SpaceBaseRect(SpaceBaseArea<f64,AuxLeaf>,Option<EachOrEvery<f64>>,SimpleShapePatina,EachOrEvery<i8>,DrawGroup,Option<SpaceBaseArea<Observable<'static,f64>,()>>),
+    Rectangle(SpaceBaseArea<f64,AuxLeaf>,Option<EachOrEvery<f64>>,SimpleShapePatina,EachOrEvery<i8>,DrawGroup,Option<SpaceBaseArea<Observable<'static,f64>,()>>),
     Polygon(SpaceBase<f64,AuxLeaf>,EachOrEvery<f64>,i8,usize,f32,SimpleShapePatina,DrawGroup,Option<SpaceBase<Observable<'static,f64>,()>>)
 }
 
@@ -136,7 +136,7 @@ fn draw_area_from_canvas(layer: &mut Layer, left: f64, gl: &mut WebGlGlobal, dra
     Ok(Box::new(Rectangles::new(rectangles,gl)))
 }
 
-pub(crate) fn draw_points_from_canvas2(layer: &mut Layer, left: f64, gl: &mut WebGlGlobal, draw_group: &DrawGroup, points: &SpaceBase<f64,AuxLeaf>, run: &Option<SpaceBase<f64,()>>, x_sizes: Vec<f64>, y_sizes:Vec<f64>, depth: &EachOrEvery<i8>, canvas: &CanvasInUse, dims: &[CanvasItemArea], freedom: &Freedom, attachment: GLAttachmentPoint, wobble: Option<SpaceBase<Observable<'static,f64>,()>>) -> Result<Box<dyn DynamicShape>,Error> {
+pub(crate) fn draw_points_from_canvas(layer: &mut Layer, left: f64, gl: &mut WebGlGlobal, draw_group: &DrawGroup, points: &SpaceBase<f64,AuxLeaf>, run: &Option<SpaceBase<f64,()>>, x_sizes: Vec<f64>, y_sizes:Vec<f64>, depth: &EachOrEvery<i8>, canvas: &CanvasInUse, dims: &[CanvasItemArea], freedom: &Freedom, attachment: GLAttachmentPoint, wobble: Option<SpaceBase<Observable<'static,f64>,()>>) -> Result<Box<dyn DynamicShape>,Error> {
     let rectangle_factory = RectanglesDataFactory::new(&draw_group);
     let draw_factory = TextureDrawFactory::new(canvas,freedom);
     let builder = layer.get_process_builder(&rectangle_factory,&draw_factory)?;
@@ -205,7 +205,7 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, left: f64, gl: &mut WebGlGlo
             if bitmap_dims.len() == 0 { return Ok(ShapeToAdd::None); }
             let (x_sizes,y_sizes) = dims_to_sizes(&bitmap_dims,1./bitmap_multiplier);
             let canvas = tools.composition_builder(&CanvasType::Crisp).canvas().ok_or_else(|| Error::fatal("no canvas id A"))?;
-            let rectangles = draw_points_from_canvas2(layer,left,gl,&kind,&points,&None,x_sizes,y_sizes,&depth,&canvas,&bitmap_dims,&Freedom::None,GLAttachmentPoint::Left,None)?;
+            let rectangles = draw_points_from_canvas(layer,left,gl,&kind,&points,&None,x_sizes,y_sizes,&depth,&canvas,&bitmap_dims,&Freedom::None,GLAttachmentPoint::Left,None)?;
             Ok(ShapeToAdd::Dynamic(rectangles))
         },
         GLShape::Heraldry(area,run,handles,depth,kind,heraldry_canvas,scale,edge,wobble) => {
@@ -217,7 +217,7 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, left: f64, gl: &mut WebGlGlo
                 Ok(ShapeToAdd::None)
             }
         },
-        GLShape::SpaceBaseRect(area,run,simple_shape_patina,depth,draw_group,wobble) => {
+        GLShape::Rectangle(area,run,simple_shape_patina,depth,draw_group,wobble) => {
             match simple_shape_patina {
                 SimpleShapePatina::Solid(_) | SimpleShapePatina::Hollow(_,_) => {
                     let hollow = match simple_shape_patina { SimpleShapePatina::Hollow(_,w) => Some(w), _ => None };
