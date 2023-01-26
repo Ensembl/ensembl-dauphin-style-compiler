@@ -163,6 +163,7 @@ impl GenomeBrowser {
          */
         let tmpl_true = StructValue::new_boolean(true);
         self.api.switch(&["track"],tmpl_true.clone());
+        self.api.switch(&["track","focus","variant"],tmpl_true.clone());
         self.api.switch(&["track","focus"],tmpl_true.clone());
         self.api.switch(&["track","focus","item"],tmpl_true.clone());
         self.api.switch(&["focus"],tmpl_true.clone());

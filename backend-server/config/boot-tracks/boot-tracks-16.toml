@@ -187,6 +187,10 @@ tags= "#has-variants"
 [track.focus-variant.settings]
 focus-variant = ["track","focus","item","variant"]
 name = ["track","focus","name"]
+label-snv-id = ["track","focus","variant","label-snv-id"]
+label-snv-alleles = ["track","focus","variant","label-snv-alleles"]
+label-other-id = ["track","focus","variant","label-other-id"]
+label-other-alleles = ["track","focus","variant","label-other-alleles"]
 
 [track.focus-variant-summary.general]
 include = ["general"]

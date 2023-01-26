@@ -172,9 +172,10 @@ ZMenus
 
 Next thing to add is zmenus. That should be pretty simple at this point. We just need a template and then add rectangles over our modules. The template code should probably go in a separate file because it's ugly. It makes sense to start putting these variables in a bundle since we've started passing them around.
 
+commit to dev/0.6.0 "variant zmenus" df5b210b
+
 TODO
 ====
 switchable labels
-zmenus
 worms
 wrong chr

@@ -157,6 +157,7 @@ impl GenomeBrowser {
         self.api.radio_switch(&["focus"],true);
         self.api.radio_switch(&["focus","gene"],true);
         self.api.radio_switch(&["track","focus","item"],true);
+        self.api.switch(&["track","focus","variant"],tmpl_true.clone());
         self.api.switch(&["track","focus","item"],tmpl_true.clone());
         self.api.switch(&["buttons"],tmpl_true.clone());
         self.api.switch(&["buttons","gene"],tmpl_true.clone());
