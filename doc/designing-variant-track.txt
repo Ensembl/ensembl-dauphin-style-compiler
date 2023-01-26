@@ -158,7 +158,14 @@ Adding bobbles should be as simple as drawing a circle, but the polygon primativ
 
 commit to dev/0.6.0 "Variant fishing lines". f50d735f
 
+Sorting out text formats
+========================
 
+One of the awkwardnesses of the genome browser is intra-line font changes aren't really supported.
+This affects the display of these little text modules. We'll draw them as separate texts, shifted
+by the size of the string.
+
+commit to dev/0.6.0 "Fix font in variant track." 
 
 TODO
 ====

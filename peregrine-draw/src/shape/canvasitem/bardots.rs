@@ -44,7 +44,6 @@ impl HeraldryBarDots {
     }
 
     pub(super) fn new_dots(col_a: &DirectColour, col_b: &DirectColour, prop: u32, mut number: (u32,u32), dir: bool) -> HeraldryBarDots {
-        log!("prop {} number {:?}",prop,number);
         at_least_one(&mut number);
         HeraldryBarDots { col_a: col_a.clone(), col_b: col_b.clone(), prop, number, dir, variety: Variety::Dots }
     }

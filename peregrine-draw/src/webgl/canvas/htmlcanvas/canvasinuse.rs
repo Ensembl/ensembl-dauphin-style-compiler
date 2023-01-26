@@ -14,10 +14,6 @@ use crate::webgl::util::handle_context_errors2;
 const MIN_ROUNDING_SIZE: u32 = 8; // px :should be configurable in Background object if anyone wants it
 const MAX_ROUNDING_SIZE: u32 = 16; // px :should be configurable in Background object if anyone wants it
 
-fn pen_to_font(pen: &PenGeometry, bitmap_multiplier: f64) -> String {
-    format!("{}px {}",(pen.size_in_webgl() * bitmap_multiplier).round(),pen.name())
-}
-
 fn colour_to_css(c: &DirectColour) -> String {
     format!("rgb({},{},{},{})",c.0,c.1,c.2,c.3)
 }
@@ -88,7 +84,7 @@ impl CanvasAndContext {
 
     pub(crate) fn set_font(&mut self, pen: &PenGeometry) -> Result<(),Error> {
         if self.discarded { return Err(Error::fatal("set_font on discarded flat canvas")); }
-        let new_font = pen_to_font(pen,self.bitmap_multiplier);
+        let new_font = pen.to_font(self.bitmap_multiplier);
         if let Some(old_font) = &self.font {
             if *old_font == new_font { return Ok(()); }
         }

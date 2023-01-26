@@ -7,11 +7,6 @@ use crate::{util::fonts::Fonts, webgl::canvas::htmlcanvas::canvasinuse::CanvasAn
  * \0c-      -- reset colour
  */
 
-// XXX dedup from flat: generally move all text stuff into here
-fn pen_to_font(pen: &PenGeometry, bitmap_multiplier: f64) -> String {
-    format!("{}px {}",(pen.size_in_webgl() * bitmap_multiplier).round(),pen.name())
-}
-
 const PAD : u32 = 4;
 
 fn pad(x: (u32,u32)) -> (u32,u32) {
@@ -133,7 +128,7 @@ impl StructuredText {
     }
 
     pub(crate) async fn prepare(&self, fonts: &Fonts, bitmap_multiplier: f64) {
-        let new_font = pen_to_font(&self.pen,bitmap_multiplier);
+        let new_font = self.pen.to_font(bitmap_multiplier);
         fonts.load_font(&new_font).await;
     }
 

@@ -1,5 +1,6 @@
 use std::{collections::{hash_map::DefaultHasher}, hash::{Hash, Hasher}, sync::Arc, rc::Rc};
 use eachorevery::{EachOrEvery, EachOrEveryFilter, eoestruct::{StructTemplate, StructValue, StructBuilt}};
+use peregrine_toolkit::log;
 use crate::{hotspots::{hotspots::SpecialClick}, HotspotResult, SpaceBasePoint, allotment::leafs::auxleaf::AuxLeaf};
 use super::{settingmode::SettingMode};
 
@@ -36,6 +37,36 @@ impl PenGeometry {
     pub fn name(&self) -> &str { &self.name }
     pub fn size_in_webgl(&self) -> f64 { self.size as f64 }
     pub fn group_hash(&self) -> u64 { self.hash }
+
+    pub fn to_font(&self, bitmap_multiplier: f64) -> String {
+        let mut name = self.name().trim();
+        let mut prefix = String::new();
+        loop {
+            if name.len() == 0 { break; }
+            if name.starts_with("bold ") {
+                prefix.push_str("bold");
+                name = &name["bold".len()..];
+            } else if name.starts_with("italic") {
+                prefix.push_str("italic ");
+                name = &name["italic".len()..];                
+            } else {
+                let mut number = String::new();
+                let mut chars = name.chars();
+                while let Some(digit) = chars.next().filter(|x| x.is_digit(10)) {
+                    number.push(digit);
+                }
+                if number.len() > 0 {
+                    prefix.push_str(&number);
+                    prefix.push(' ');
+                    name = &name[number.len()..];
+                } else {
+                    break;
+                }
+            }
+        }
+        log!("{} {}px {}",prefix,(self.size_in_webgl() * bitmap_multiplier).round(),name);        
+        format!("{} {}px {}",prefix,(self.size_in_webgl() * bitmap_multiplier).round(),name)
+    }    
 }
 
 #[cfg_attr(debug_assertions,derive(Debug))]
