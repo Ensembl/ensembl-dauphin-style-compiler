@@ -476,14 +476,17 @@
         };
         document.getElementById("jump-no-bug").onclick = function() {
           genome_browser.switch(["track","focus","variant","label-snv-id"],true);
-          genome_browser.switch(["track","focus","variant","label-other-alleles"],true);
+          genome_browser.switch(["track","focus","variant","label-other-id"],true);
         };
         document.getElementById("jump-no-bug-zoom").onclick = function() {
           document.getElementById('browser').remove();
         };
         document.getElementById("jump-bug").onclick = function() {
-          genome_browser.switch(["track","focus","variant","label-other-id"],true);
           genome_browser.switch(["track","focus","variant","label-snv-alleles"],true);
+          genome_browser.switch(["track","focus","variant","label-other-alleles"],true);
+          genome_browser.switch(["track","focus","variant","label-snv-alleles"],true);
+          genome_browser.switch(["track","focus","variant","label-other-alleles"],true);
+          genome_browser.switch(["track","focus","variant","show-extents"],true);
         };
         document.getElementById("create-error").onclick = function() {
           //genome_browser.jump("focus:none");

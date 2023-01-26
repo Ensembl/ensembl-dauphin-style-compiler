@@ -16,7 +16,7 @@ style!("""
     }
 
     tracks/track/focus/main/main/ {
-        padding-top: 25;
+        padding-top: 35;
     }
 """);
 

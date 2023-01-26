@@ -174,8 +174,23 @@ Next thing to add is zmenus. That should be pretty simple at this point. We just
 
 commit to dev/0.6.0 "variant zmenus" df5b210b
 
+Switchable labels
+=================
+
+Next let's switch labels on and off. That means we need settings boot_tracks_16.toml was updated (in lieu of the track API) to map the required settings to a switch ofr this track. These switches were then wired to the relevant part of the track code.
+
+commit to dev/0.6.0 "Settings to variant track." c2c43e5e
+
+Eels
+====
+
+Non SNVs have can long eely creatures next to them to show their extent. These are configurable. The code to position and repeat positions at different offsets might be a bit hairy. The bumping will almost certainly be sub-optimal comparedto the XD. Depending on how that pans out that may or may not be fixable. (It's possible we need a new "grid-bump" layout type, which will be fun). For now let's avoid all that bother and just show a small entity when the eels are switched on so that we can get our leafs and settings organised and add a switch to index.html to help us test it.
+
+Looking at the result, it looks like I might need to get the BE returning some fake data to get up to the feature density where bumping issues would occur in real life given the sparse test data set. But I'll do that later. Probably the best thing to do will be to add fake extra extent to SNVs, that will be for later, but I will leave eels turned on for SNVs for now to allow this.
+
+
 TODO
 ====
-switchable labels
 worms
 wrong chr
+flipped op opcodes

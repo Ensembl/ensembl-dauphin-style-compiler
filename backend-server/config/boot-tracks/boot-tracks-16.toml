@@ -191,6 +191,7 @@ label-snv-id = ["track","focus","variant","label-snv-id"]
 label-snv-alleles = ["track","focus","variant","label-snv-alleles"]
 label-other-id = ["track","focus","variant","label-other-id"]
 label-other-alleles = ["track","focus","variant","label-other-alleles"]
+show-extents = ["track","focus","variant","show-extents"]
 
 [track.focus-variant-summary.general]
 include = ["general"]

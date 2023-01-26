@@ -22,7 +22,7 @@ style!("""
         }
 
         tracks/track/focus/main/main/sun/ {
-            min-height: 25;
+            min-height: 35;
             type: overlay;
             priority: -1;
         }
@@ -136,7 +136,7 @@ let label.snv_id = setting_boolean("label-snv-id",[]);
 let label.snv_alleles = setting_boolean("label-snv-alleles",[]);
 let label.other_id = setting_boolean("label-other-id",[]);
 let label.other_alleles = setting_boolean("label-other-alleles",[]);
-let label.extent = setting_boolean("show-extent",[]);
+let label.eel = setting_boolean("show-extents",[]);
 
 v.label_id = if(deep,[label.other_id,...],[label.snv_id,...]);
 v.label_alleles = if(deep,[label.other_alleles,...],[label.snv_alleles,...]);
@@ -152,6 +152,12 @@ let top_right = template_end(tmpl);
 let bottom_line = v.id;
 let right_offset = strlen(top_left)*6+5;
 
+let height_to_eel = if(v.label_id,[20,...],[10,...]);
+let height = height_to_eel + if(label.eel,[10,...],[0,...]);
+let sun_delta = -(height-30);
+
+/* ZMenu */
+
 let zmenu_paint = variant_zmenu(*v);
 
 /* Draw sun */
@@ -159,14 +165,20 @@ let zmenu_paint = variant_zmenu(*v);
 let pen = pen("'IBM Plex Mono', sans-serif",10,[colour!("#999"),...],[colour!("transparent"),...]);
 let bold_pen = pen("700 Lato, sans-serif",10,[colour!("#999"),...],[colour!("transparent"),...]);
 let sun_leaf = if(v.id == focus_variant_id,[leaf.sun,...],[leaf(""),...]);
-text(coord(v.start,[0,...],[5,...]),pen,top_left,sun_leaf);
-text(coord(v.start,[0,...],right_offset+5),bold_pen,top_right,if(v.label_alleles,sun_leaf,[leaf(""),...]));
-text(coord(v.start,[10,...],[5,...]),bold_pen,bottom_line,if(v.label_id,sun_leaf,[leaf(""),...]));
+text(coord(v.start,sun_delta,[5,...]),pen,top_left,sun_leaf);
+text(coord(v.start,sun_delta,right_offset+5),bold_pen,top_right,if(v.label_alleles,sun_leaf,[leaf(""),...]));
+text(coord(v.start,sun_delta+10,[5,...]),bold_pen,bottom_line,if(v.label_id,sun_leaf,[leaf(""),...]));
+
+/* Draw sun eel */
+
+rectangle(coord(v.start,sun_delta+height_to_eel,[5,...]),coord(v.start,sun_delta+height_to_eel+10,[315,...]),paint_solid(colour!("#9ff")),if(label.eel,sun_leaf,[leaf(""),...]));
+
+/* Draw sun zmenu */
+
 let width = max(
     strlen(top_left)+if(v.label_alleles,strlen(top_right),[0,...])+1,
     if(v.label_id,strlen(bottom_line),[0,...]))*6+5;
-let height = if(v.label_id,[20,...],[10,...]);
-rectangle(coord(v.start,[0,...],[5,...]),coord(v.start,[20,...],width),zmenu_paint,sun_leaf);
+rectangle(coord(v.start,[0,...],[5,...]),coord(v.start,height,width),zmenu_paint,sun_leaf);
 
 /* Create sea leafs */
 
@@ -184,6 +196,10 @@ text(coord(v.start,[0,...],[5,...]),pen,top_left,sea_text_leaf);
 text(coord(v.start,[0,...],right_offset+5),bold_pen,top_right,if(v.label_alleles,sea_text_leaf,[leaf(""),...]));
 text(coord(v.start,[10,...],[5,...]),pen,bottom_line,if(v.label_id,sea_text_leaf,[leaf(""),...]));
 rectangle(coord(v.start,[0,...],[5,...]),coord(v.start,height,width),zmenu_paint,sea_text_leaf);
+
+/* Draw sea eels */
+
+rectangle(coord(v.start,height_to_eel,[5,...]),coord(v.start,height_to_eel+10,[315,...]),paint_solid(colour!("#9ff")),if(label.eel,sea_text_leaf,[leaf(""),...]));
 
 /* Draw fishing lines */
 
