@@ -162,7 +162,7 @@ text(coord(start,[10,...],[5,...]),pen,bottom_line,sea_text_leaf);
 
 /* Draw fishing lines */
 
-let paint = paint_dotted([colour!("#999"),...],[colour!("white"),...],4,1,0.5);
+let paint = paint_dotted([colour!("white"),...],[colour!("#999"),...],2,1,0.5);
 rectangle_join(coord(start,[10,...],[-1,...]),coord(start,[7,...],[-1,...]),paint,deep_sea_text_leaf,[leaf.shore_under,...]);
 polygon(coord(start,[13,...],[-1,...]),[3,...],7,0,paint_solid(colour!("red")),deep_sea_text_leaf);
 

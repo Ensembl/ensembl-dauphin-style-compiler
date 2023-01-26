@@ -1,5 +1,5 @@
 use peregrine_data::DirectColour;
-use peregrine_toolkit::{error::Error};
+use peregrine_toolkit::{error::Error, log};
 use crate::webgl::canvas::htmlcanvas::canvasinuse::CanvasAndContext;
 
 use super::heraldry::{HeraldryHandleType, HeraldryScale};
@@ -33,6 +33,10 @@ fn at_least_one(x: &mut (u32,u32)) {
     x.1 = x.1.max(1);
 }
 
+fn sanitise_mult(mult: f64) -> f64 {
+    (1 << (mult.log2().round() as u32)) as f64
+}
+
 impl HeraldryBarDots {
     pub(super) fn new_bar(col_a: &DirectColour, col_b: &DirectColour, prop: u32, mut number: (u32,u32), dir: bool) -> HeraldryBarDots {
         at_least_one(&mut number);
@@ -40,6 +44,7 @@ impl HeraldryBarDots {
     }
 
     pub(super) fn new_dots(col_a: &DirectColour, col_b: &DirectColour, prop: u32, mut number: (u32,u32), dir: bool) -> HeraldryBarDots {
+        log!("prop {} number {:?}",prop,number);
         at_least_one(&mut number);
         HeraldryBarDots { col_a: col_a.clone(), col_b: col_b.clone(), prop, number, dir, variety: Variety::Dots }
     }
@@ -80,7 +85,7 @@ impl HeraldryBarDots {
     }
 
     fn draw_one(&self, canvas: &CanvasAndContext, text_origin: (u32,u32), x: u32, y: u32) -> Result<(),Error> {
-        let bitmap_multiplier = canvas.bitmap_multiplier();
+        let bitmap_multiplier = sanitise_mult(canvas.bitmap_multiplier().round());
         let unit = self.unit_size(bitmap_multiplier);
         let t = (text_origin.0+x*unit.0,text_origin.1+y*unit.1);
         let extent= if self.dir { (100,self.prop) } else { (self.prop,100) };
@@ -98,7 +103,6 @@ impl HeraldryBarDots {
     }
     
     pub(super) fn draw(&self, canvas: &mut CanvasAndContext, text_origin: (u32,u32), size: (u32,u32)) -> Result<(),Error> {
-        let bitmap_multiplier = canvas.bitmap_multiplier();
         let unit = self.unit_size(1.);
         let count = (size.0/unit.0,size.1/unit.1);
         for y in 0..count.1 {
