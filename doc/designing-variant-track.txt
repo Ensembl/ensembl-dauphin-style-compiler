@@ -165,10 +165,10 @@ One of the awkwardnesses of the genome browser is intra-line font changes aren't
 This affects the display of these little text modules. We'll draw them as separate texts, shifted
 by the size of the string.
 
-commit to dev/0.6.0 "Fix font in variant track." 
+commit to dev/0.6.0 "Fix font in variant track." cb2c4d8e5
 
 TODO
 ====
 switchable labels
-bold labels
 dot pitch
+zmenus

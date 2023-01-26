@@ -1,8 +1,6 @@
 use std::{collections::{hash_map::DefaultHasher}, hash::{Hash, Hasher}, sync::Arc, rc::Rc};
 use eachorevery::{EachOrEvery, EachOrEveryFilter, eoestruct::{StructTemplate, StructValue, StructBuilt}};
-use peregrine_toolkit::log;
 use crate::{hotspots::{hotspots::SpecialClick}, HotspotResult, SpaceBasePoint, allotment::leafs::auxleaf::AuxLeaf};
-use super::{settingmode::SettingMode};
 
 #[derive(Clone,Debug,PartialEq,Eq,Hash)]
 pub struct DirectColour(pub u8,pub u8,pub u8,pub u8);
@@ -64,7 +62,6 @@ impl PenGeometry {
                 }
             }
         }
-        log!("{} {}px {}",prefix,(self.size_in_webgl() * bitmap_multiplier).round(),name);        
         format!("{} {}px {}",prefix,(self.size_in_webgl() * bitmap_multiplier).round(),name)
     }    
 }
