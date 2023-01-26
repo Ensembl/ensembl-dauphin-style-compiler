@@ -1,0 +1,92 @@
+export function variant_zmenu(*variant) {
+    let tmpl = template_start("{0}:{1}-{2}");
+    template_set(tmpl,0,variant.chromosome);
+    template_set(tmpl,1,comma_format(variant.start));
+    template_set(tmpl,2,comma_format(variant.end));
+    let position = template_end(tmpl);
+
+    let tmpl = template_start("{0}/{1}");
+    template_set(tmpl,0,variant.ref);
+    template_set(tmpl,1,variant.alt);
+    let alleles = template_end(tmpl);
+
+    struct!(metadata_zmenu,"""
+    {
+        "type": "zmenu",
+        "zmenu-type": "variant"
+    }
+""");
+
+    struct!(content_zmenu,"""
+(<0,1,2,3,4>!
+      {
+        "data": [
+
+          /* First row */
+          [
+            {
+              "items": [
+                { "markup": ["light"], "text": "Variant" },
+                { "markup": [], "text": " " },
+                { "markup": ["strong"], "text": <0s> }
+              ],
+              "type": "block"
+            }
+          ],
+
+          /* Second row */
+          [
+            {
+              "items": [
+                { "markup": ["light"], "text": "Most severe consequence" },
+                { "markup": [], "text": " " },
+                { "markup": ["strong"], "text": <1s> }
+              ],
+              "type": "block"
+            }
+          ],
+
+          /* Third row */
+          [
+            {
+              "items": [{ "markup": ["strong"], "text": <2s> }],
+              "type": "block"
+            },
+            {
+              "items": [{ "markup": [], "text": <3s> }],
+              "type": "block"
+            }
+          ],
+
+          /* Fourth row */
+          [
+            {
+              "items": [
+                { "markup": ["light"], "text": "Alleles" },
+                { "markup": [], "text": " " },
+                { "markup": ["strong"], "text": <4s> }
+              ],
+              "type": "block"
+            }
+          ]
+        ],
+        "metadata": {
+          "id": <0s>,
+          "consequence": <1s>,
+          "variety": <2s>,
+          "position": <3s>,
+          "alleles": <4s>,
+          "type": "variant"
+        }
+      }
+)
+""",
+    variant.id,
+    variant.consequence,
+    variant.variety,
+    position,
+    alleles
+  );
+  let paint = paint_click(metadata_zmenu,content_zmenu,false);
+  paint
+}

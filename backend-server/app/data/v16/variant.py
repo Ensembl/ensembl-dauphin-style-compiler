@@ -66,8 +66,11 @@ def get_variant_labels(data_accessor: DataAccessor, chrom: Chromosome, panel: Pa
         refs = []
         alts = []
         severities = []
+        consequence = []
+        chromosomes = []
         for (start,end,rest) in data:
             rest = rest.split()
+            chromosomes.append(chrom.name)
             starts.append(start)
             lengths.append(end-start)
             ids.append(rest[0])
@@ -75,16 +78,19 @@ def get_variant_labels(data_accessor: DataAccessor, chrom: Chromosome, panel: Pa
             refs.append(rest[2])
             alts.append(rest[3])
             severities.append(int(rest[4]))
+            consequence.append(rest[5])
     except Exception as e:
         logging.error(e)
     return {
+        "chromosome": data_algorithm("SZ",chromosomes),
         "start": data_algorithm("NDZRL",starts),
         "length": data_algorithm("NDZRL",lengths),
         "id": data_algorithm("SZ",ids),
         "variety": data_algorithm("SYRLZ",varieties),
         "ref": data_algorithm("SYRLZ",refs),
         "alt": data_algorithm("SYRLZ",alts),
-        "severity": data_algorithm("NRL",severities)
+        "severity": data_algorithm("NRL",severities),
+        "consequence": data_algorithm("SYRLZ",consequence)
     }
 
 class VariantLabelsDataHandler(DataHandler):

@@ -167,8 +167,14 @@ by the size of the string.
 
 commit to dev/0.6.0 "Fix font in variant track." cb2c4d8e5
 
+ZMenus
+======
+
+Next thing to add is zmenus. That should be pretty simple at this point. We just need a template and then add rectangles over our modules. The template code should probably go in a separate file because it's ugly. It makes sense to start putting these variables in a bundle since we've started passing them around.
+
 TODO
 ====
 switchable labels
-dot pitch
 zmenus
+worms
+wrong chr
