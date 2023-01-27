@@ -181,16 +181,40 @@ Next let's switch labels on and off. That means we need settings boot_tracks_16.
 
 commit to dev/0.6.0 "Settings to variant track." c2c43e5e
 
-Eels
-====
+Space for Eels
+==============
 
 Non SNVs have can long eely creatures next to them to show their extent. These are configurable. The code to position and repeat positions at different offsets might be a bit hairy. The bumping will almost certainly be sub-optimal comparedto the XD. Depending on how that pans out that may or may not be fixable. (It's possible we need a new "grid-bump" layout type, which will be fun). For now let's avoid all that bother and just show a small entity when the eels are switched on so that we can get our leafs and settings organised and add a switch to index.html to help us test it.
 
 Looking at the result, it looks like I might need to get the BE returning some fake data to get up to the feature density where bumping issues would occur in real life given the sparse test data set. But I'll do that later. Probably the best thing to do will be to add fake extra extent to SNVs, that will be for later, but I will leave eels turned on for SNVs for now to allow this.
 
+commit to dev/0.6.0 "Add placeholder for eels" ceacc97
+
+Eels
+====
+
+Faked data by making all SNVs 12 bp long. Need to create somemore datapoints, the entire length prr variant. This is exactly the stuff that eard can do eaily but it's really confusing to work out exactly how. We have starts and ends: [A1,B1,C1,D1] and [A9,B9,C9,D9]. We need [A1,A2,A3,..,A9,B1,B2,B3...,B9,.....D9] and presumably a map to which element belongs to which original source.
+
+So, we clearly need the number of bases between start and end. "end-start", [9,9,9,9] in our example. Let's all it length. We're going to be creating that many bases for each variant. The easy one is the mapping, [0,0,0,0,0,0,0,0,0,1,1,1,.....,3,3]. That's just just count() lets call it "index". We then need that many copies of the start as our basis [A1,A1,A1,...B1,B1,B1,....,D1]. index(start,index). We then need to add one, two, three, etc to A1,A1,A1 to get A1,A2,A3. So overall we have.
+
+let length = end-start;
+let index = count(length);
+let position = index(start,index) + enumerate(length);
+
+That works. But lets keep it cyan so we remember to remove the BE fake data and to remove eels from the shallow sea. Worth a commit, though.
+
+commit to dev/0.6.0 "Eels impl"
+
+Eel zmenus
+==========
+
+Eel zmenus are easy enough at this point.
+
+commit to dev/0.6.0 
 
 TODO
 ====
-worms
+eel zmenu
 wrong chr
 flipped op opcodes
+red dots

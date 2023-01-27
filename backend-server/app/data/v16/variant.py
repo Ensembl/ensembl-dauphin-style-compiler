@@ -58,7 +58,7 @@ class VariantSummaryDataHandler(DataHandler):
 def get_variant_labels(data_accessor: DataAccessor, chrom: Chromosome, panel: Panel) -> Response:
     item = chrom.item_path("variant-labels")
     try:
-        data = get_bigbed(data_accessor,item,panel.start,panel.end)
+        data = get_bigbed(data_accessor,item,panel.start-12,panel.end+12)
         starts = []
         lengths = []
         ids = []
@@ -72,7 +72,7 @@ def get_variant_labels(data_accessor: DataAccessor, chrom: Chromosome, panel: Pa
             rest = rest.split()
             chromosomes.append(chrom.name)
             starts.append(start)
-            lengths.append(end-start)
+            lengths.append(max(end-start,12))
             ids.append(rest[0])
             varieties.append(rest[1])
             refs.append(rest[2])
