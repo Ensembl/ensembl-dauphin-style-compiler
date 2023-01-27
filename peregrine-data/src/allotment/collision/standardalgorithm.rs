@@ -1,80 +1,45 @@
-use std::{sync::{Arc, Mutex}, collections::{HashMap, HashSet}, ops::Range, mem};
-use peregrine_toolkit::{lock};
-use peregrine_toolkit::skyline::Skyline;
-use crate::allotment::{core::{allotmentname::AllotmentName, rangeused::RangeUsed}};
-use super::{bumppart::Part, bumprequest::{BumpRequestSet, BumpRequest}};
+use std::{sync::{Arc, Mutex}, collections::{HashMap, HashSet}, ops::Range};
+use peregrine_toolkit::{skyline::Skyline, lock};
+use crate::allotment::core::{allotmentname::AllotmentName, rangeused::RangeUsed};
+use super::{bumprequest::{BumpRequest, BumpRequestSet}, bumppart::Part, algorithmbuilder::BumpResponses, bumpprocess::GenericBumpingAlgorithm};
 
-#[cfg_attr(debug_assertions,derive(Debug))]
-#[derive(Clone)]
-pub struct BumpResponses {
-    offset: f64,
-    total_height: f64,
-    value: Arc<Mutex<HashMap<AllotmentName,f64>>>
+enum AlgorithmDetails {
+    Bumper(Skyline),
+    Wall()
 }
 
-impl BumpResponses {
-    pub(crate) fn get(&self, name: &AllotmentName) -> f64 {
-        lock!(self.value).get(name).copied().map(|x| x+self.offset).unwrap_or(0.)
-    }
-
-    pub(crate) fn height(&self) -> f64 {
-        self.total_height
-    }
-}
-
-pub(crate) struct AlgorithmBuilder {
-    indexes: HashSet<usize>,
-    requests: Vec<BumpRequestSet>,
-}
-
-impl AlgorithmBuilder {
-    pub(crate) fn new() -> AlgorithmBuilder {
-        AlgorithmBuilder {
-            indexes: HashSet::new(),
-            requests: vec![],
+impl AlgorithmDetails {
+    fn total_height(&self) -> f64 {
+        match self {
+            AlgorithmDetails::Bumper(b) => b.max_height(),
+            AlgorithmDetails::Wall() => 0.,
         }
     }
 
-    fn real_add(&self, requests: &BumpRequestSet, request_data: &mut HashMap<AllotmentName,BumpRequest>, request_order: &mut Vec<AllotmentName>) {
-        for request in requests.values.iter() {
-            if let Some(old) = request_data.get(&request.name) {
-                let new_range = request.range.merge(&old.range);
-                let new_height = request.height.max(old.height);
-                let new_request = BumpRequest::new(&request.name,&new_range,new_height);
-                request_data.insert(request.name.clone(),new_request);
-            } else {
-                request_order.push(request.name.clone());
-                request_data.insert(request.name.clone(),request.clone());
-            }
+    pub fn renew(&mut self, start: i64, end: i64, height: f64) -> f64 {
+        match self {
+            AlgorithmDetails::Bumper(b) => b.set_min(start,end,height),
+            AlgorithmDetails::Wall() => { 0. }
         }
     }
 
-    pub(crate) fn add(&mut self, requests: &BumpRequestSet) {
-        self.indexes.insert(requests.index);
-        self.requests.push(requests.clone());
-    }
-
-    pub(crate) fn make(mut self) -> Algorithm {
-        let mut request_order = vec![];
-        let mut request_data = HashMap::new();
-        let mut requests = mem::replace(&mut self.requests,vec![]);
-        requests.sort_by_key(|r| r.index);
-        for request in requests {
-            self.real_add(&request,&mut request_data,&mut request_order);
+    pub fn allocate(&mut self, start: i64, end: i64, height: f64) -> f64 {
+        match self {
+            AlgorithmDetails::Bumper(b) => { b.add(start,end,height) },
+            AlgorithmDetails::Wall() => { 0. }
         }
-        Algorithm::new(request_data,request_order,self.indexes)
     }
 }
 
-pub(crate) struct Algorithm {
+pub(crate) struct StandardAlgorithm {
     indexes: Option<Range<usize>>,
     requests: HashMap<AllotmentName,BumpRequest>,
     value: Arc<Mutex<HashMap<AllotmentName,f64>>>,
-    skyline: Skyline,
+    details: AlgorithmDetails,
     substrate: u64
 }
 
-impl Algorithm {
+impl StandardAlgorithm {
     fn to_range(indexes: HashSet<usize>) -> Option<Range<usize>> {
         let mut indexes = indexes.iter().cloned().collect::<Vec<_>>();
         indexes.sort();
@@ -90,11 +55,16 @@ impl Algorithm {
         Some(start..start+indexes.len())
     }
 
-    fn new(requests: HashMap<AllotmentName,BumpRequest>, request_order: Vec<AllotmentName>, indexes: HashSet<usize>) -> Algorithm {
-        let mut out = Algorithm {
+    pub(super) fn new(requests: HashMap<AllotmentName,BumpRequest>, request_order: Vec<AllotmentName>, indexes: HashSet<usize>, use_wall: bool) -> StandardAlgorithm {
+        let details = if use_wall {
+            AlgorithmDetails::Wall()
+        } else {
+            AlgorithmDetails::Bumper(Skyline::new())
+        };
+        let mut out = StandardAlgorithm {
             requests: HashMap::new(),
             indexes: Self::to_range(indexes),
-            skyline: Skyline::new(),
+            details,
             value: Arc::new(Mutex::new(HashMap::new())),
             substrate: 0
         };
@@ -119,13 +89,14 @@ impl Algorithm {
             RangeUsed::Part(a,b) => {
                 let interval = (*a as i64)..(*b as i64);
                 let part = Part::new(&request.name,&interval,request.height);
-                let height = part.watermark_add(&mut self.skyline);
+                let (start,end,height) = part.shape();
+                let height = self.details.allocate(start,end,height);
                 value.insert(part.name().clone(),height);
             }
         }
     }
 
-    /* With care we can often extend an existing Algorithm with a new carriage. This is of
+    /* With care we can often extend an existing StandardAlgorithm with a new carriage. This is of
      * practical significance because it prevents a TrainState change which means that an
      * awful lot of layout and rendering code need not be rerun in these cases.
      * 
@@ -186,7 +157,7 @@ impl Algorithm {
             }
             /* 2c. adjust skyline to at least reach point */
             if let RangeUsed::Part(start,end) = incoming_req.range {
-                self.skyline.set_min(start as i64,end as i64,*offset+existing_req.height);
+                self.details.renew(start as i64,end as i64,*offset+existing_req.height);
             }
         }
         true
@@ -205,8 +176,10 @@ impl Algorithm {
         }
         true
     }
+}
 
-    pub(crate) fn add(&mut self, requests: &BumpRequestSet) -> bool {
+impl GenericBumpingAlgorithm for StandardAlgorithm {
+    fn add(&mut self, requests: &BumpRequestSet) -> bool {
         /* seen already */
         if self.in_range(requests.index) { return true; }
         /* 1. We cannot add in a bridging fashion, bail.*/
@@ -219,11 +192,12 @@ impl Algorithm {
         true
     }
 
-    pub(crate) fn build(&self) -> BumpResponses {
+    fn build(&self) -> BumpResponses {
         BumpResponses {
             offset: self.substrate as f64,
-            total_height: self.substrate as f64 + self.skyline.max_height(),
+            total_height: self.substrate as f64 + self.details.total_height(),
             value: self.value.clone()
         }
     }
-}
+}    
+

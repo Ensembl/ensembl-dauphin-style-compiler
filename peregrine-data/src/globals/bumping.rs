@@ -1,10 +1,10 @@
 use std::{sync::{Arc, Mutex}, rc::Rc};
 use peregrine_toolkit::{puzzle::{StaticValue, StaticAnswer}, lock, log};
-use crate::{allotment::{collision::{collisionalgorithm::{BumpResponses}, bumprequest::BumpRequestSet}, core::allotmentname::AllotmentName}};
+use crate::{allotment::{collision::{bumprequest::BumpRequestSet, algorithmbuilder::BumpResponses}, core::allotmentname::AllotmentName}};
 use super::{globalvalue::{LocalValueBuilder, LocalValueSpec, GlobalValueBuilder, GlobalValueSpec}, trainpersistent::TrainPersistent};
 
 pub struct LocalBumpBuilder {
-    builder: LocalValueBuilder<AllotmentName,Rc<BumpRequestSet>,BumpResponses>
+    builder: LocalValueBuilder<AllotmentName,Rc<(BumpRequestSet,bool)>,BumpResponses>
 }
 
 impl LocalBumpBuilder {
@@ -14,7 +14,7 @@ impl LocalBumpBuilder {
         }
     }
 
-    pub(crate) fn set(&mut self, name: &AllotmentName, requests: &StaticValue<Rc<BumpRequestSet>>) {
+    pub(crate) fn set(&mut self, name: &AllotmentName, requests: &StaticValue<Rc<(BumpRequestSet,bool)>>) {
         self.builder.entry(name.clone()).add_local(requests.clone());
     }
 
@@ -23,7 +23,7 @@ impl LocalBumpBuilder {
     }
 }
 
-pub struct LocalBump(LocalValueSpec<AllotmentName,Rc<BumpRequestSet>,BumpResponses>);
+pub struct LocalBump(LocalValueSpec<AllotmentName,Rc<(BumpRequestSet,bool)>,BumpResponses>);
 
 impl LocalBump {
     pub(crate) fn new(builder: &LocalBumpBuilder) -> LocalBump {
@@ -38,7 +38,7 @@ impl LocalBump {
     }
 }
 
-pub struct GlobalBumpBuilder(GlobalValueBuilder<AllotmentName,Rc<BumpRequestSet>,BumpResponses>);
+pub struct GlobalBumpBuilder(GlobalValueBuilder<AllotmentName,Rc<(BumpRequestSet,bool)>,BumpResponses>);
 
 impl GlobalBumpBuilder {
     pub(crate) fn new() -> GlobalBumpBuilder {
@@ -53,9 +53,11 @@ impl GlobalBump {
     pub(crate) fn new(builder: GlobalBumpBuilder, answer: &mut StaticAnswer, persistent: &Arc<Mutex<TrainPersistent>>) -> GlobalBump {
         let persistent = persistent.clone();
         GlobalBump(GlobalValueSpec::new(builder.0,move |name,requests,answer| {
-            let requests = requests.iter().map(|x| x.call(answer)).collect::<Vec<_>>();
+            let mut requests = requests.iter().map(|x| x.call(answer)).collect::<Vec<_>>();
             let mut persistent = lock!(persistent);
-            persistent.bump_mut(name).make(&requests)
+            let use_wall = requests.iter().any(|x| x.1);
+            let requests = requests.drain(..).map(|x| x.0.clone()).collect::<Vec<_>>();
+            persistent.bump_mut(name,use_wall).make(&requests)
         },answer))
     }
 

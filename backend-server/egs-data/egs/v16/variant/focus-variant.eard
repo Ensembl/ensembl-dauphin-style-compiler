@@ -47,7 +47,7 @@ style!("""
         }
 
         tracks/track/focus/main/main/sea/shallow/ {
-            type: bumper;
+            type: wall;
             priority: 0;
             padding-top: 4;
             padding-bottom: 4;
@@ -62,7 +62,7 @@ style!("""
 
         tracks/track/focus/main/main/sea/deep/ {
             padding-top: 8;
-            type: bumper;
+            type: wall;
             priority: 1;
         }
 

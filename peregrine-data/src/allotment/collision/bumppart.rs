@@ -26,7 +26,7 @@ impl Part {
 
     pub(super) fn name(&self) -> &AllotmentName { &self.name }
 
-    pub(super) fn watermark_add(&self, watermark: &mut Skyline) -> f64 {
-        watermark.add(self.interval.start,self.interval.end,self.height)
+    pub(super) fn shape(&self) -> (i64,i64,f64) {
+        (self.interval.start,self.interval.end,self.height)
     }
 }

@@ -26,7 +26,8 @@ mod allotment {
         pub(crate) mod bumprequest;
         mod bumppart;
         pub(crate) mod bumpprocess;
-        pub(crate) mod collisionalgorithm;
+        mod standardalgorithm;
+        pub(crate) mod algorithmbuilder;
     }
 
     pub(crate) mod style {

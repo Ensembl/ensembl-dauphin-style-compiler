@@ -13,7 +13,7 @@ impl TrainPersistent {
         }
     }
 
-    pub(crate) fn bump_mut(&mut self, name: &AllotmentName) -> &mut BumpPersistent {
-        self.bump.entry(name.clone()).or_insert_with(|| BumpPersistent::new())
+    pub(crate) fn bump_mut(&mut self, name: &AllotmentName, use_wall: bool) -> &mut BumpPersistent {
+        self.bump.entry(name.clone()).or_insert_with(|| BumpPersistent::new(use_wall))
     }
 }

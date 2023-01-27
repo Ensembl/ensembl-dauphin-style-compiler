@@ -6,7 +6,8 @@ fn new_container(name: &AllotmentName, style: &ContainerStyle) -> Box<dyn Contai
     match &style.allot_type {
         ContainerAllotmentType::Stack => Box::new(Stacker::new()),
         ContainerAllotmentType::Overlay => Box::new(Overlay::new()),
-        ContainerAllotmentType::Bumper => Box::new(Bumper::new(name))
+        ContainerAllotmentType::Bumper => Box::new(Bumper::new(name,false)),
+        ContainerAllotmentType::Wall => Box::new(Bumper::new(name,true)),
     }
 }
 

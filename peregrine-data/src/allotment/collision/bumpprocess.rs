@@ -1,22 +1,29 @@
-use std::{collections::HashSet, mem, rc::Rc};
-use super::{collisionalgorithm::{BumpResponses, AlgorithmBuilder, Algorithm}, bumprequest::BumpRequestSet};
+use std::{collections::HashSet, mem };
+use super::{bumprequest::BumpRequestSet, algorithmbuilder::{BumpResponses, AlgorithmBuilder}};
+
+pub(crate) trait GenericBumpingAlgorithm {
+    fn add(&mut self, requests: &BumpRequestSet) -> bool;
+    fn build(&self) -> BumpResponses;
+}
 
 pub(crate) struct BumpPersistent {
     wanted: HashSet<usize>,
-    algorithm: Option<Algorithm>,
+    use_wall: bool,
+    algorithm: Option<Box<dyn GenericBumpingAlgorithm>>,
     bumper_number: u64
 }
 
 impl BumpPersistent {
-    pub(crate) fn new() -> BumpPersistent {
+    pub(crate) fn new(use_wall: bool) -> BumpPersistent {
         BumpPersistent {
             wanted: HashSet::new(),
             algorithm: None,
+            use_wall,
             bumper_number: 0
         }
     }
 
-    fn try_only_new(&mut self, new: &[Rc<BumpRequestSet>]) -> bool {
+    fn try_only_new(&mut self, new: &[BumpRequestSet]) -> bool {
         let algorithm = self.algorithm.as_mut().unwrap();
         for new in new {
             if !algorithm.add(new) { return false; }
@@ -24,7 +31,7 @@ impl BumpPersistent {
         true
     }
 
-    pub(crate) fn make(&mut self, input: &[Rc<BumpRequestSet>]) -> (BumpResponses,u64) {
+    pub(crate) fn make(&mut self, input: &[BumpRequestSet]) -> (BumpResponses,u64) {
         let new_all_wanted = input.iter().map(|x| x.index()).collect::<HashSet<_>>();
         /* Perfect match? */
         if let Some(bumper) = &self.algorithm {
@@ -42,12 +49,15 @@ impl BumpPersistent {
             }
         }
         /* Rebuild completely */
-        let inputs = input.iter().map(|x| x.as_ref()).collect::<Vec<_>>();
         let mut builder = AlgorithmBuilder::new();
-        for set in &inputs {
+        for set in input {
             builder.add(&set);
         }
-        let bumper = builder.make();
+        let bumper = if self.use_wall {
+            Box::new(builder.make_standard(true)) as Box<dyn GenericBumpingAlgorithm>
+        } else {
+            Box::new(builder.make_standard(false)) as Box<dyn GenericBumpingAlgorithm>
+        };
         self.algorithm = Some(bumper);
         (self.algorithm.as_ref().unwrap().build(),self.bumper_number)
     }
