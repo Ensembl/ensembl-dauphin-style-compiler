@@ -223,9 +223,19 @@ To get the integration trivia out the way, let's first implement a "bumping algo
 
 commit to dev/0.6.0 "New "wall" algorithm (just overlays for now)." 0ab8e06
 
+THen the algorithm is just a matter of recording intervals in rows. The point of divergance being near the bottom of the stack really helped with reducing the amount of code.
+
+commit to dev/0.6.0 "New "wall" bumping type" ebd206e
+
+Restyling and removing fake data
+================================
+
+We can now remove the fake data, remove eals from shallow seas, and reset the style.
+
+Eels potnentially take a lot of compute, let's actually remove them at the data stage rather than dumping to the dustbin leaf this time.
+
 TODO
 ====
-eel zmenu
 wrong chr
 flipped op opcodes
 red dots

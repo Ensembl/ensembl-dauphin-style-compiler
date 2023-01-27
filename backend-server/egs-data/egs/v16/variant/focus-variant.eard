@@ -162,7 +162,7 @@ let zmenu_paint = variant_zmenu(*v);
 
 /* Eels */
 
-let eel_length = v.end-v.start;
+let eel_length = if(deep,v.end-v.start,[0,...]);
 let eel_v = count(eel_length);
 let position = index(v.start,eel_v) + enumerate(eel_length);
 
@@ -180,7 +180,7 @@ text(coord(v.start,sun_delta+10,[5,...]),bold_pen,bottom_line,if(v.label_id,sun_
 rectangle(
     coord(position,index(height_to_eel+sun_delta,eel_v),[2,...]),
     coord(position+1,index(height_to_eel+sun_delta,eel_v)+5,[-2,...]),
-    paint_solid(colour!("#9ff")),if(label.eel,index(sun_leaf,eel_v),[leaf(""),...])
+    paint_solid(colour!("#999")),if(label.eel,index(sun_leaf,eel_v),[leaf(""),...])
 );
 
 /* Draw sun zmenu */
@@ -217,14 +217,14 @@ text(coord(v.start,[10,...],[5,...]),pen,bottom_line,if(v.label_id,sea_text_leaf
 rectangle(
     coord(v.start,height_to_eel,[2,...]),
     coord(v.end,height_to_eel+10,[-2,...]),
-    zmenu_paint,if(label.eel,sea_text_leaf,[leaf(""),...])
+    zmenu_paint,if(label.eel && deep,sea_text_leaf,[leaf(""),...])
 );
 
 rectangle(coord(v.start,[0,...],[5,...]),coord(v.start,height,width),zmenu_paint,sea_text_leaf);
 
 /* Draw sea eels */
 
-rectangle(coord(position,index(height_to_eel,eel_v),[2,...]),coord(position+1,index(height_to_eel,eel_v)+5,[-2,...]),paint_solid(colour!("#9ff")),if(label.eel,index(sea_text_leaf,eel_v),[leaf(""),...]));
+rectangle(coord(position,index(height_to_eel,eel_v),[2,...]),coord(position+1,index(height_to_eel,eel_v)+5,[-2,...]),paint_solid(colour!("#999")),if(label.eel,index(sea_text_leaf,eel_v),[leaf(""),...]));
 
 /* Draw fishing lines */
 
