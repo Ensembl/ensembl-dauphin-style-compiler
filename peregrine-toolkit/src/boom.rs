@@ -5,7 +5,7 @@ use std::fmt::Debug;
  * horrible inefficiencies. As well as the usual operations (insert, remove, all), there is an unusual 
  * pseudo-iterator, BoomCursorMut. As well as a next() method, it has rewind() which efficiently goes to the
  * entry *before* the current position. One of these iterators can be placed at the start() or at some key.
- * All these methods are present in Rust's btreemapbut are horribly inefficient.
+ * All these methods are present in Rust's btreemap but are horribly inefficient.
  */
 
 #[derive(Debug)]

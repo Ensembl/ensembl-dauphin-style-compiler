@@ -23,11 +23,12 @@ mod allotment {
     }
     
     pub(crate) mod collision {
+        pub(crate) mod algorithmbuilder;
         pub(crate) mod bumprequest;
         mod bumppart;
         pub(crate) mod bumpprocess;
         mod standardalgorithm;
-        pub(crate) mod algorithmbuilder;
+        mod wall;
     }
 
     pub(crate) mod style {

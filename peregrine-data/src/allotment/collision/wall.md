@@ -9,3 +9,11 @@ In general (such as when used with genes) the elements to be bumped can differ g
 So if your elements can all be guaranteed to be roughly the same height, use "wall" instead of "bumper". The height chosen will be the largest element you specify for *all* of the elements in the wall, so don't have any tall outliers!
 
 Wall collects data in the same way as bumper, which is described in the first section of `collision.md`, but then applies its own algorithm to the positioning.
+
+## Algorithm
+
+The wall algorithm allocates "courses" of bricks known as rows. Each row has a height. If the height changes in incremental update, incremental update is abandoned.
+
+Each row has a range within which it is occupied. When a new request comes in, rows are searched from the least to the greatest to find one where the request will fit, and the occupied range for that row updated.
+
+That's it. It's orders of magnitude simpler than the bumper algorithm!

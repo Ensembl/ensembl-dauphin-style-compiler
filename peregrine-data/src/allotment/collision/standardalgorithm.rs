@@ -1,38 +1,45 @@
-use std::{sync::{Arc, Mutex}, collections::{HashMap, HashSet}, ops::Range};
-use peregrine_toolkit::{skyline::Skyline, lock};
+use std::{sync::{Arc, Mutex}, collections::{HashMap, HashSet}};
+use peregrine_toolkit::{skyline::Skyline, lock, boom::Boom};
 use crate::allotment::core::{allotmentname::AllotmentName, rangeused::RangeUsed};
-use super::{bumprequest::{BumpRequest, BumpRequestSet}, bumppart::Part, algorithmbuilder::BumpResponses, bumpprocess::GenericBumpingAlgorithm};
+use super::{bumprequest::{BumpRequest, BumpRequestSet}, bumppart::Part, algorithmbuilder::BumpResponses, bumpprocess::GenericBumpingAlgorithm, wall::Wall};
 
 enum AlgorithmDetails {
     Bumper(Skyline),
-    Wall()
+    Wall(Wall)
 }
 
 impl AlgorithmDetails {
+    fn verify(&mut self, requests: &[BumpRequest]) -> bool {
+        match self {
+            AlgorithmDetails::Bumper(_) => true,
+            AlgorithmDetails::Wall(w) => w.verify(requests)
+        }
+    }
+    
     fn total_height(&self) -> f64 {
         match self {
             AlgorithmDetails::Bumper(b) => b.max_height(),
-            AlgorithmDetails::Wall() => 0.,
+            AlgorithmDetails::Wall(w) => w.total_height()
         }
     }
 
-    pub fn renew(&mut self, start: i64, end: i64, height: f64) -> f64 {
+    fn renew(&mut self, start: i64, end: i64, offset: f64, height: f64) {
         match self {
-            AlgorithmDetails::Bumper(b) => b.set_min(start,end,height),
-            AlgorithmDetails::Wall() => { 0. }
+            AlgorithmDetails::Bumper(b) => b.set_min(start,end,offset+height),
+            AlgorithmDetails::Wall(w) => w.renew(start,end,offset)
         }
     }
 
-    pub fn allocate(&mut self, start: i64, end: i64, height: f64) -> f64 {
+    fn allocate(&mut self, start: i64, end: i64, height: f64) -> f64 {
         match self {
-            AlgorithmDetails::Bumper(b) => { b.add(start,end,height) },
-            AlgorithmDetails::Wall() => { 0. }
+            AlgorithmDetails::Bumper(b) => b.add(start,end,height),
+            AlgorithmDetails::Wall(w) => w.allocate(start,end)
         }
     }
 }
 
 pub(crate) struct StandardAlgorithm {
-    indexes: Option<Range<usize>>,
+    indexes: HashSet<usize>,
     requests: HashMap<AllotmentName,BumpRequest>,
     value: Arc<Mutex<HashMap<AllotmentName,f64>>>,
     details: AlgorithmDetails,
@@ -40,34 +47,27 @@ pub(crate) struct StandardAlgorithm {
 }
 
 impl StandardAlgorithm {
-    fn to_range(indexes: HashSet<usize>) -> Option<Range<usize>> {
-        let mut indexes = indexes.iter().cloned().collect::<Vec<_>>();
-        indexes.sort();
-        if indexes.len() == 0 { return None; }
-        let mut prev = None;
-        for index in &indexes {
-            if let Some(prev) = prev {
-                if prev != *index - 1 { return None; }
-            }
-            prev = Some(*index);
-        }
-        let start = indexes[0];
-        Some(start..start+indexes.len())
+    fn good_index(&self, requests: &BumpRequestSet) -> bool {
+        self.indexes.len() == 0 ||
+        self.indexes.contains(&(requests.index+1)) ||
+        self.indexes.contains(&(requests.index-1))
     }
 
     pub(super) fn new(requests: HashMap<AllotmentName,BumpRequest>, request_order: Vec<AllotmentName>, indexes: HashSet<usize>, use_wall: bool) -> StandardAlgorithm {
         let details = if use_wall {
-            AlgorithmDetails::Wall()
+            AlgorithmDetails::Wall(Wall::new())
         } else {
             AlgorithmDetails::Bumper(Skyline::new())
         };
         let mut out = StandardAlgorithm {
             requests: HashMap::new(),
-            indexes: Self::to_range(indexes),
+            indexes,
             details,
             value: Arc::new(Mutex::new(HashMap::new())),
             substrate: 0
         };
+        let values = requests.values().cloned().collect::<Vec<_>>();
+        out.details.verify(&values);
         for name in &request_order {
             let request = requests.get(name).unwrap();
             out.requests.insert(name.clone(),request.clone());
@@ -124,26 +124,6 @@ impl StandardAlgorithm {
         (old,new)
     }
 
-    fn in_range(&self, index: usize) -> bool {
-        self.indexes.as_ref().map(|range| {
-            index >= range.start && index < range.end
-        }).unwrap_or(false)
-    }
-
-    fn update_range(&mut self, index: usize) -> bool {
-        if self.in_range(index) { return true; }
-        if let Some(range) = &mut self.indexes {
-            if range.start == index+1 {
-                range.start -= 1;
-            } else if range.end == index {
-                range.end += 1;
-            } else {
-                return false;
-            }
-        }
-        true
-    }
-
     fn add_old(&mut self, old: &[(BumpRequest,BumpRequest,f64)]) -> bool {
         for (existing_req,incoming_req,offset) in old {
             /* 2a. if height is increased, bail */
@@ -157,7 +137,7 @@ impl StandardAlgorithm {
             }
             /* 2c. adjust skyline to at least reach point */
             if let RangeUsed::Part(start,end) = incoming_req.range {
-                self.details.renew(start as i64,end as i64,*offset+existing_req.height);
+                self.details.renew(start as i64,end as i64,*offset,existing_req.height);
             }
         }
         true
@@ -181,9 +161,12 @@ impl StandardAlgorithm {
 impl GenericBumpingAlgorithm for StandardAlgorithm {
     fn add(&mut self, requests: &BumpRequestSet) -> bool {
         /* seen already */
-        if self.in_range(requests.index) { return true; }
+        if self.indexes.contains(&requests.index) { return true; }
         /* 1. We cannot add in a bridging fashion, bail.*/
-        if !self.update_range(requests.index) { return false; }
+        if !self.good_index(requests) { return false; }
+        if !self.details.verify(&requests.values) { return false; }
+        self.indexes.insert(requests.index);
+        /* 1. Algorithm-specific rejection criteria */
         /* 2. For everything with pre-existing value */
         let (old,new) = self.separate_preexisting(requests);
         if !self.add_old(&old) { return false; }

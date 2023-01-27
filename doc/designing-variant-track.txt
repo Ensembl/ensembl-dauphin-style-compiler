@@ -221,6 +221,8 @@ So, it looks like the bumping code has two main parts: the stuff to collect and 
 
 To get the integration trivia out the way, let's first implement a "bumping algorithm" which leaves everything overlaying each other at the top of the track. As we can use the collection stuff as-is, this means we need to add a flag to the Bumper container and wiring it up to the style system.
 
+commit to dev/0.6.0 "New "wall" algorithm (just overlays for now)." 0ab8e06
+
 TODO
 ====
 eel zmenu

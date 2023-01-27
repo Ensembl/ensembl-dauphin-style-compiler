@@ -31,10 +31,8 @@ impl BumpRequest {
     fn add_delta(&mut self, delta: f64) -> bool {
         match &mut self.range {
             RangeUsed::Part(a,b) => {
-                *a += delta;
-                *b += delta;
-                *a *= PIXEL_PRECISION;
-                *b *= PIXEL_PRECISION;
+                *a += delta*PIXEL_PRECISION;
+                *b += delta*PIXEL_PRECISION;
                 true
             },
             RangeUsed::All => { true },
