@@ -8,7 +8,7 @@
 
 use std::sync::Arc;
 use crate::allotment::core::{allotmentname::AllotmentName, rangeused::RangeUsed};
-use peregrine_toolkit::{identitynumber, hashable, orderable};
+use peregrine_toolkit::{identitynumber, hashable, orderable, log};
 
 const PIXEL_PRECISION : f64 = 1000000.;
 
@@ -31,8 +31,10 @@ impl BumpRequest {
     fn add_delta(&mut self, delta: f64) -> bool {
         match &mut self.range {
             RangeUsed::Part(a,b) => {
-                *a += delta*PIXEL_PRECISION;
-                *b += delta*PIXEL_PRECISION;
+                *a += delta;
+                *b += delta;
+                *a *= PIXEL_PRECISION;
+                *b *= PIXEL_PRECISION;
                 true
             },
             RangeUsed::All => { true },

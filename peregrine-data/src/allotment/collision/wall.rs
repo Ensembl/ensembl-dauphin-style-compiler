@@ -1,4 +1,4 @@
-use peregrine_toolkit::boom::Boom;
+use peregrine_toolkit::{boom::Boom, log};
 use super::bumprequest::BumpRequest;
 
 struct WallRow(Boom<i64>);
@@ -7,9 +7,12 @@ impl WallRow {
     fn new() -> WallRow { WallRow(Boom::new()) }
 
     fn add_interval(&mut self, start: i64, end: i64) -> bool {
-        if let Some((match_start,match_end)) = self.0.seek_mut(&(start+1)).rewind() {
-            let miss = start >= *match_end || end <= match_start;
-            if !miss { return false; }
+        let mut iter = self.0.seek_mut(&(start+1));
+        iter.rewind();
+        iter.rewind();
+        while let Some((match_start,match_end)) = iter.next() {
+            if match_start >= end { break; }
+            if *match_end > start { return false; }
         }
         self.0.insert(start,end);
         true
@@ -47,6 +50,7 @@ impl Wall {
         if row > self.rows.len() {
             self.rows.resize_with(row+1,|| WallRow::new());
         }
+        log!("renew {}-{} on row {}",(start as f64)*16./1000000.,(end as f64)*16./1000000.,row);
         self.rows[row].add_interval(start,end);
     }
 
@@ -54,6 +58,7 @@ impl Wall {
         let row_height = self.row_height.expect("no row height. should never happen") as usize;
         for (i,row) in self.rows.iter_mut().enumerate() {
             if row.add_interval(start,end) {
+                log!("add {}-{} to row {}",(start as f64)*16./1000000.,(end as f64)*16./1000000.,i);
                 return (i * row_height) as f64;
             }
         }

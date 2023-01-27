@@ -234,6 +234,12 @@ We can now remove the fake data, remove eals from shallow seas, and reset the st
 
 Eels potnentially take a lot of compute, let's actually remove them at the data stage rather than dumping to the dustbin leaf this time.
 
+commit to dev/0.6.0 "Only deep sea has eels." cf7ecdd
+
+(+bumping bugfix)
+
+
+
 TODO
 ====
 wrong chr
