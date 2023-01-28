@@ -72,7 +72,7 @@ def get_variant_labels(data_accessor: DataAccessor, chrom: Chromosome, panel: Pa
             rest = rest.split()
             chromosomes.append(chrom.name)
             starts.append(start)
-            lengths.append(max(end-start,12))
+            lengths.append(end-start)
             ids.append(rest[0])
             varieties.append(rest[1])
             refs.append(rest[2])

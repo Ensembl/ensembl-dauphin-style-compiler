@@ -50,7 +50,6 @@ impl Wall {
         if row > self.rows.len() {
             self.rows.resize_with(row+1,|| WallRow::new());
         }
-        log!("renew {}-{} on row {}",(start as f64)*16./1000000.,(end as f64)*16./1000000.,row);
         self.rows[row].add_interval(start,end);
     }
 
@@ -58,7 +57,6 @@ impl Wall {
         let row_height = self.row_height.expect("no row height. should never happen") as usize;
         for (i,row) in self.rows.iter_mut().enumerate() {
             if row.add_interval(start,end) {
-                log!("add {}-{} to row {}",(start as f64)*16./1000000.,(end as f64)*16./1000000.,i);
                 return (i * row_height) as f64;
             }
         }
