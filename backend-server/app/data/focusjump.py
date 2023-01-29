@@ -26,7 +26,7 @@ class FocusJumpHandler:
 
     def _ensure_ncd(self, data_accessor: DataAccessor, sp_obj: Species):
         if sp_obj.wire_id not in self._ncd_files:
-            accessor = data_accessor.resolver.get(sp_obj.item_path("jump2"))
+            accessor = data_accessor.resolver.get(sp_obj.item_path("jump"))
             self._ncd_files[sp_obj.wire_id] = NCDRead(accessor.ncd())
 
     def get(self,data_accessor: DataAccessor, location: str, version: Version):

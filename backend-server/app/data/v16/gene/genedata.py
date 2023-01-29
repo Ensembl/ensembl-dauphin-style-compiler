@@ -49,15 +49,17 @@ TANGLE_OVERVIEW_WITH_IDS = TANGLE_FACTORY.make_from_tomlfile(OV_TANGLE_PATH,["id
 def get_approx_location(data_accessor: DataAccessor, genome: str, id):
     # replace with canonical form for focus lookup
     genome = data_accessor.data_model.canonical_genome_id(genome)
-    key = "focus:{}:{}".format(genome,id)
-    accessor = data_accessor.resolver.get(AccessItem("jump"))
-    jump_ncd = NCDRead(accessor.ncd())
-    value = jump_ncd.get(key.encode("utf-8"))
-    if value != None:
-        parts = value.decode('utf-8').split("\t")
-        if len(parts) == 3:
-            on_stick = "{}:{}".format(genome,parts[0])
-            return (on_stick,int(parts[1]),int(parts[2]))
+    if genome != None:
+        species = data_accessor.data_model.species(genome)
+        key = "focus:gene:{}:{}".format(genome,id)
+        accessor = data_accessor.resolver.get(AccessItem("jump",species.genome_id))
+        jump_ncd = NCDRead(accessor.ncd())
+        value = jump_ncd.get(key.encode("utf-8"))
+        if value != None:
+            parts = value.decode('utf-8').split("\t")
+            if len(parts) == 3:
+                on_stick = "{}:{}".format(genome,parts[0])
+                return (on_stick,int(parts[1]),int(parts[2]))
     return (None,None,None)
 
 # We need to return all the data for the focus gene wherever we are (except for the sequence) as
@@ -68,6 +70,9 @@ def update_panel_from_id(data_accessor: DataAccessor, panel: Panel, for_id: Tupl
         panel.stick = stick
         panel.start = start
         panel.end = end
+    else:
+        # can't find one but expected one. This data will be junked on the FE, so keep it small
+        panel.end = panel.start + 1
 
 # For non-focus genes we need to make sure we include all the transcripts even ones which
 # start&end completely off-panel.

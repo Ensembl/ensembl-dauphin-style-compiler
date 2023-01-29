@@ -42,6 +42,7 @@ style!("""
         }
 
         tracks/track/focus/main/main/sea/ {
+            min-height: 35;
             type: stack;
             priority: 1;
         }

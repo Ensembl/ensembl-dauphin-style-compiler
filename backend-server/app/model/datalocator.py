@@ -44,8 +44,6 @@ class AccessItem(object):
         elif self.variety == "variant-labels":
             return "/".join(["variants", self.genome, "variant-labels.bb"])
         elif self.variety == "jump":
-            return "/".join(["jump.ncd"])
-        elif self.variety == "jump2":
             return "/".join(["jump",self.genome,"jump.ncd"])
         elif self.variety == "seqs":
             return "/".join(["seqs", self.genome, self.chromosome])

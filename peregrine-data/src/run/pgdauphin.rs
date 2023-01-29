@@ -71,7 +71,6 @@ impl PgDauphin {
              Error::operr(&format!("cannot read file: {}",e))
         )?;
         for name in eardo.list_programs() {
-            log!("registering {:?}",name);
             lock!(self.0).programs_present.insert(name,backend_namespace.clone());
         }
         Ok(())

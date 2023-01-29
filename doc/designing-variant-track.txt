@@ -238,10 +238,23 @@ commit to dev/0.6.0 "Only deep sea has eels." cf7ecdd
 
 (+bumping bugfix)
 
+Inderlude
+=========
 
+The jump data needed modifying to accommodate rsids. And there was a corresponding update in the backend server.
+
+commit to dev/0.6.0 "Use split varaint files" 26c5bde7
+
+Dotted lines
+============
+
+The last remaining feature is dotted lines. These should be a separate program because we want to display them at all scales, even when very zoomed out. To support them, we need a modification of the variant-labels endpoint, to add a scope, so that data for the releavnt region can always be retrieved no matter the region of the request (just as with focus genes). We can do this now that we have the jump database to guide the backend. We probably want to report it to the UI too, so this is the best place to do it because of its persistence. First let's set up the data source and draw them though.
+
+commit to dev/0.6.0 ""
 
 TODO
 ====
 wrong chr
 flipped op opcodes
 red dots
+reporting

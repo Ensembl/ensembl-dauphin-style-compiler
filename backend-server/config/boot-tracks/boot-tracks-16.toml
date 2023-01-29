@@ -203,6 +203,14 @@ tags= "#has-variants"
 focus-variant = ["track","focus","item","variant"]
 name = ["track","focus","name"]
 
+[track.focus-variant-dots.general]
+scales = [1,66,1]
+include=["general"]
+triggers = [["track","focus","item","variant"]]
+
+[track.focus-variant-dots.settings]
+focus-variant = ["track","focus","item","variant"]
+
 #
 # Contigs and Sequences
 #
