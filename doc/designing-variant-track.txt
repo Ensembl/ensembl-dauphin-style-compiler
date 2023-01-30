@@ -254,9 +254,4 @@ commit to dev/0.6.0 "Focus variant dotted lines." 6b08e0ae
 
 In a slight chang of plan, it makes sense for the leaf for the variant track to not just be /focus/, but to have its own name: that will mean we can avoid tangled-up styles. So let's factor that out while we add the metadata rectangles.
 
-TODO
-====
-wrong chr
-flipped op opcodes
-red dots
-reporting
+commit to dev/0.6.0 "Focus dots in variant track (and rust bugfix)." d63fef19

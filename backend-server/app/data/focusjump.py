@@ -43,9 +43,9 @@ class FocusJumpHandler:
         # We need to extract something which at least maps to a genome UUID from the chromosome
         # and use that to choose the file and lookup within it.
         if location.startswith(PREFIX):
-            (sp_obj,_,chr_name) = data_accessor.data_model.split_total_wire_id(location[len(PREFIX):])
+            (sp_obj,good_id) = data_accessor.data_model.split_total_wire_id(location[len(PREFIX):])
             self._ensure_ncd(data_accessor,sp_obj)
-            lookup_key = "focus:{}:{}".format(sp_obj.wire_id,chr_name)
+            lookup_key = "focus:{}".format(good_id)
             cached = data_accessor.cache.get_jump(lookup_key,version)
             if cached is not None:
                 return cached
