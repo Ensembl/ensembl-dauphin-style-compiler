@@ -121,8 +121,8 @@ let base_height = 7;
 let paint = paint_solid(index(variant_colours(),v.severity));
 let nw = coord(v.start,[0,...],[2,...]);
 let se = coord(v.start+1,[base_height,...],[-2,...]);
-rectangle(nw,se,paint,[leaf.shore_under,...]);
-rectangle(nw,se,zmenu_paint,[leaf.shore_over,...]);
+rectangle(nw,se,paint,if(!deep,[leaf.shore_under,...],[leaf(""),...]));
+rectangle(nw,se,zmenu_paint,if(!deep,[leaf.shore_over,...],[leaf(""),...]));
 
 let (bp_start,bp_end) = bp_range();
 let position = enumerate([bp_end-bp_start+1]) + bp_start;
