@@ -1,6 +1,7 @@
 use crate::util::message::{ Message };
 use eachorevery::eoestruct::StructValue;
 use peregrine_toolkit::console::{set_printer, Severity};
+use peregrine_toolkit::error::{err_web_drop, Error};
 use peregrine_toolkit::{log_extra, log_important};
 use peregrine_toolkit_async::sync::blocker::Blocker;
 use peregrine_toolkit_async::sync::needed::Needed;
@@ -110,7 +111,7 @@ impl DrawMessage {
         log_extra!("message {:?}",self);
         match self {
             DrawMessage::Goto(centre,scale) => {
-                draw.goto(centre,scale);
+                err_web_drop(draw.goto(centre,scale).map_err(|e| Error::operr(&e.to_string())));
             },
             DrawMessage::SetArtificial(name,down) => {
                 draw.set_artificial(&name,down);

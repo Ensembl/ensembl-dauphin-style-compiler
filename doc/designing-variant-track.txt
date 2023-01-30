@@ -255,3 +255,7 @@ commit to dev/0.6.0 "Focus variant dotted lines." 6b08e0ae
 In a slight chang of plan, it makes sense for the leaf for the variant track to not just be /focus/, but to have its own name: that will mean we can avoid tangled-up styles. So let's factor that out while we add the metadata rectangles.
 
 commit to dev/0.6.0 "Focus dots in variant track (and rust bugfix)." d63fef19
+
+Bugfix: zmenus on shore only for SNVs.
+
+commit to dev/0.6.0 "SHore zmenus only for shallow variants (SNVs)" f984e3b4d77

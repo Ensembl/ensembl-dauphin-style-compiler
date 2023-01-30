@@ -34,6 +34,11 @@ style!("""
         depth: -10;
         padding-top: 32;
     }
+    
+    tracks/track/focus/ {
+        priority: -900;
+        report: "track;switch-id=focus;has-labels=true;!transcripts-shown;!all-transcripts;!id;!transcripts-suppressed";
+    }
 """);
 
 /* Get the data */

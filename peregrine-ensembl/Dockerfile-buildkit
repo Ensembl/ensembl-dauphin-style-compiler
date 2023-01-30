@@ -9,6 +9,9 @@ ARG CFG_RUST_MODE
 
 COPY . /peregrine-build
 
+RUN git clone --depth 1 https://github.com/Ensembl/peregrine-eachorevery.git
+RUN git clone --depth 1 https://github.com/Ensembl/peregrine-eard.git
+
 WORKDIR /peregrine-build/peregrine-ensembl
 
 ARG FLAGS
