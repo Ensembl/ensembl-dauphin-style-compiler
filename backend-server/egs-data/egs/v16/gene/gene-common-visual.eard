@@ -23,11 +23,6 @@ export procedure gene_styles() {
             report: "track;switch-id=gene-pc-fwd;has-labels=true";
             min-height: 92;
         }
-
-        tracks/track/focus/ {
-            priority: -900;
-            report: "track;switch-id=focus;has-labels=true;!transcripts-shown;!all-transcripts;!id;!transcripts-suppressed";
-        }
     """);
 }
 

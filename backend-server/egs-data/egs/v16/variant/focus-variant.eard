@@ -11,69 +11,64 @@ include "focus-variant-zmenu.eard";
 track_styles();
 
 style!("""
-        tracks/track/focus/ {
+        tracks/track/focus-variant/ {
             priority: -900;
-            report: "track;switch-id=focus;has-labels=true;!id";
+            report: "track;switch-id=focus;!variant-id";
         }
 
-        tracks/track/focus/ {
-            priority: -900;
-            report: "track;switch-id=focus;has-labels=true;!id";
-        }
-
-        tracks/track/focus/main/main/sun/ {
+        tracks/track/focus-variant/main/main/sun/ {
             min-height: 35;
             type: overlay;
             priority: -1;
         }
 
-        tracks/track/focus/main/main/shore/ {
+        tracks/track/focus-variant/main/main/shore/ {
             padding-top: 2;
             type: overlay;
             priority: 0;
         }
 
-        tracks/track/focus/main/main/shore/under/ {
+        tracks/track/focus-variant/main/main/shore/under/ {
             depth: 0;
         }
 
-        tracks/track/focus/main/main/shore/over/ {
+        tracks/track/focus-variant/main/main/shore/over/ {
             depth: 1;
         }
 
-        tracks/track/focus/main/main/sea/ {
+        tracks/track/focus-variant/main/main/sea/ {
             min-height: 35;
             type: stack;
             priority: 1;
         }
 
-        tracks/track/focus/main/main/sea/shallow/ {
+        tracks/track/focus-variant/main/main/sea/shallow/ {
             type: wall;
             priority: 0;
             padding-top: 4;
             padding-bottom: 4;
         }
 
-        tracks/track/focus/main/main/sea/shallow/* {
+        tracks/track/focus-variant/main/main/sea/shallow/* {
             type: stack;
             bump-scale: 0.6;
             padding-top: 4;
             padding-bottom: 4;
         }
 
-        tracks/track/focus/main/main/sea/deep/ {
+        tracks/track/focus-variant/main/main/sea/deep/ {
             padding-top: 8;
             type: wall;
             priority: 1;
         }
 
-        tracks/track/focus/main/main/sea/deep/* {
+        tracks/track/focus-variant/main/main/sea/deep/* {
             type: stack;
             padding-top: 4;
             padding-bottom: 4;
         }
 
-        tracks/track/focus/main/main/sea/*/over {
+        tracks/track/focus-variant/main/main/sea/*/over {
             depth: 2;
         }
 """);
@@ -108,13 +103,16 @@ function focus_leaf(path) {
     leaf(path)
 }
 
-let leaf.bgd = focus_leaf("tracks/track/focus/main/background/content");
-let leaf.text = focus_leaf(if(setting_boolean("focus-gene-label",[]),"tracks/track/focus/main/main/focus/text/content",""));
-let leaf.letter = focus_leaf("tracks/track/focus/main/letter/content");
-let leaf.trackname = focus_leaf("tracks/track/focus/title/content");
-let leaf.shore_under = focus_leaf("tracks/track/focus/main/main/shore/under/content");
-let leaf.shore_over = focus_leaf("tracks/track/focus/main/main/shore/over/content");
-let leaf.sun = focus_leaf("tracks/track/focus/main/main/sun/content");
+let leaf.bgd = focus_leaf("tracks/track/focus-variant/main/background/content");
+let leaf.letter = focus_leaf("tracks/track/focus-variant/main/letter/content");
+let leaf.trackname = focus_leaf("tracks/track/focus-variant/title/content");
+let leaf.shore_under = focus_leaf("tracks/track/focus-variant/main/main/shore/under/content");
+let leaf.shore_over = focus_leaf("tracks/track/focus-variant/main/main/shore/over/content");
+let leaf.sun = focus_leaf("tracks/track/focus-variant/main/main/sun/content");
+
+/* ZMenu data */
+
+let zmenu_paint = variant_zmenu(*v);
 
 /* Draw shore */
 
@@ -124,6 +122,7 @@ let paint = paint_solid(index(variant_colours(),v.severity));
 let nw = coord(v.start,[0,...],[2,...]);
 let se = coord(v.start+1,[base_height,...],[-2,...]);
 rectangle(nw,se,paint,[leaf.shore_under,...]);
+rectangle(nw,se,zmenu_paint,[leaf.shore_over,...]);
 
 let (bp_start,bp_end) = bp_range();
 let position = enumerate([bp_end-bp_start+1]) + bp_start;
@@ -157,10 +156,6 @@ let height_to_eel = if(v.label_id,[20,...],[10,...]);
 let height = height_to_eel + if(label.eel,[10,...],[0,...]);
 let sun_delta = -(height-30);
 
-/* ZMenu */
-
-let zmenu_paint = variant_zmenu(*v);
-
 /* Eels */
 
 let eel_length = if(deep,v.end-v.start,[0,...]);
@@ -189,7 +184,7 @@ rectangle(
 let width = max(
     strlen(top_left)+if(v.label_alleles,strlen(top_right),[0,...])+1,
     if(v.label_id,strlen(bottom_line),[0,...]))*6+5;
-rectangle(coord(v.start,[0,...],[5,...]),coord(v.start,height,width),zmenu_paint,sun_leaf);
+rectangle(coord(v.start,sun_delta,[5,...]),coord(v.start,sun_delta+height,width),zmenu_paint,sun_leaf);
 
 rectangle(
     coord(v.start,sun_delta+height_to_eel,[2,...]),
@@ -199,7 +194,7 @@ rectangle(
 
 /* Create sea leafs */
 
-let base_container = push_str("tracks/track/focus/main/main/sea/",if(deep,["deep/",...],["shallow/",...]));
+let base_container = push_str("tracks/track/focus-variant/main/main/sea/",if(deep,["deep/",...],["shallow/",...]));
 shallow_container = push_str(push_str(base_container,v.variety),v.id);
 sea_text_leaf = leaf(push_str(shallow_container,"/text/content"));
 sea_text_leaf = set(sea_text_leaf,v.id==focus_variant_id,[leaf(""),...]); // remove focus from sea
@@ -235,6 +230,6 @@ polygon(coord(v.start,height/2,[-1,...]),[3,...],7,0,paint_solid(colour!("red"))
 
 /* Draw track furniture */
 
-draw_track_category(["V"],["focus"],[leaf.letter]);
+draw_track_category(["V"],["focus-variant"],[leaf.letter]);
 draw_track_name(focus_variant_id,"name",leaf.trackname);
 draw_swatch(colour!("#58a8f9"),[leaf.letter]);

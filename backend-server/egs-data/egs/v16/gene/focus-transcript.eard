@@ -14,6 +14,13 @@ track_styles();
 gene_styles();
 transcript_styles();
 
+style!("""
+    tracks/track/focus/ {
+        priority: -900;
+        report: "track;switch-id=focus;has-labels=true;!transcripts-shown;!all-transcripts;!id;!transcripts-suppressed";
+    }
+""");
+
 /* Get data */
 
 let enabled_track = enabled_focus_gene_track();

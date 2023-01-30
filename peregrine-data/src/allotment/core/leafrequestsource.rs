@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{sync::Arc, collections::HashMap};
 use peregrine_toolkit::error::Error;
 use crate::{LeafRequest, allotment::{layout::{layouttree::build_layout_tree, layoutcontext::LayoutContext}, leafs::floating::FloatingLeaf}, Shape, globals::trainstate::CarriageTrainStateSpec, shapeload::shaperequestgroup::ShapeRequestGroup};
 use super::{allotmentname::{allotmentname_hashmap, AllotmentName, AllotmentNameHashMap}};
@@ -16,10 +16,16 @@ impl LeafRequestSource {
 
     pub(crate) fn merge(input: Vec<Arc<LeafRequestSource>>) -> LeafRequestSource {
         let len = input.iter().map(|x| x.leafs.len()).sum();
-        let mut leafs = allotmentname_hashmap();
+        let mut leafs : HashMap<AllotmentName,LeafRequest,_> = allotmentname_hashmap();
         leafs.reserve(len);
         for more in input {
-            leafs.extend(more.leafs.iter().map(|(n,r)| (n.clone(),r.clone())));
+            for (name,request) in &more.leafs {
+                if let Some(old) = leafs.get_mut(name) {
+                    old.shape_bounds(|bounds| bounds.merge(&request.shape_bounds(|b| b.clone())) );
+                } else {
+                    leafs.insert(name.clone(),request.clone());
+                }
+            }
         }
         LeafRequestSource { leafs }
     }

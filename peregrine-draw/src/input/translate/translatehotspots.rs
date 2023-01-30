@@ -54,7 +54,6 @@ fn process_each_hotspot_event(api: &LockedPeregrineInnerAPI, events: &[SingleHot
         }
     }
     if hotspot_contents.len() > 0 || hotspot_varieties.len() > 0 {
-        log!("report");
         api.report.hotspot_event(x,doc_y,start,&hotspot_varieties.iter().cloned().collect::<Vec<_>>(),&hotspot_contents.drain().collect::<Vec<_>>());
     }
     Ok(())

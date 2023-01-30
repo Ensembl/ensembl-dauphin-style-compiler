@@ -1,5 +1,5 @@
 use std::{collections::{HashMap, hash_map::DefaultHasher }, sync::Arc, hash::{Hash, Hasher}, iter::FromIterator};
-use eachorevery::eoestruct::{StructTemplate, struct_to_json, StructValue};
+use eachorevery::eoestruct::{StructValue};
 use hashbrown::HashSet;
 use peregrine_toolkit::{puzzle::{ StaticValue, StaticAnswer, derived }, timer_end, timer_start};
 use crate::{allotment::core::allotmentname::{AllotmentName}};

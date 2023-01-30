@@ -39,4 +39,11 @@ impl LeafRequestSize {
     pub(crate) fn merge_metadata(&mut self, entry: AllotmentMetadataEntry) {
         self.metadata.push(entry);
     }
+
+    pub(crate) fn merge(&mut self, other: &LeafRequestSize) {
+        self.merge_height(other.height);
+        self.merge_base_range(&other.base_range);
+        self.merge_pixel_range(&other.pixel_range);
+        self.metadata.extend(&mut other.metadata.iter().cloned());
+    }
 }

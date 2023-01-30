@@ -6,6 +6,13 @@ include "../common/track-style.eard";
 
 track_styles();
 
+style!("""
+    tracks/track/focus-variant/ {
+        priority: -900;
+        report: "track;switch-id=focus;!variant-id";
+    }
+""");
+
 /* Get data */
 
 let genome_id = setting_string("focus-variant",["genome_id"]);
@@ -32,7 +39,11 @@ let correct_chr = focus_stick == stick();
 let text_start = comma_format(fv.start);
 let text_end = comma_format(fv.end);
 
-let leaf_dots = if(correct_chr && len(fv_pos) > 0,leaf("dots/content"),leaf(""));
-let leaf_text = if(correct_chr && len(fv_pos) > 0,leaf("tracks/flagtop/main"),leaf(""));
+let active = correct_chr && len(fv_pos) > 0;
+
+let leaf_dots = if(active,leaf("dots/content"),leaf(""));
+let leaf_text = if(active,leaf("tracks/flagtop/main"),leaf(""));
 
 red_dotted(fv.start,fv.end,text_start,text_end,leaf_dots,leaf_text);
+let paint = paint_metadata("variant-id",[fv.id],[eoe_string(fv.id)]);
+rectangle(coord([0],[0],[0]),coord([1],[16],[0]),paint,[if(active,leaf("tracks/track/focus-variant/main/background/content"),leaf(""))]);

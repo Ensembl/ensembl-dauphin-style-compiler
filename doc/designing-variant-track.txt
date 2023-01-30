@@ -250,7 +250,9 @@ Dotted lines
 
 The last remaining feature is dotted lines. These should be a separate program because we want to display them at all scales, even when very zoomed out. To support them, we need a modification of the variant-labels endpoint, to add a scope, so that data for the releavnt region can always be retrieved no matter the region of the request (just as with focus genes). We can do this now that we have the jump database to guide the backend. We probably want to report it to the UI too, so this is the best place to do it because of its persistence. First let's set up the data source and draw them though.
 
-commit to dev/0.6.0 ""
+commit to dev/0.6.0 "Focus variant dotted lines." 6b08e0ae
+
+In a slight chang of plan, it makes sense for the leaf for the variant track to not just be /focus/, but to have its own name: that will mean we can avoid tangled-up styles. So let's factor that out while we add the metadata rectangles.
 
 TODO
 ====

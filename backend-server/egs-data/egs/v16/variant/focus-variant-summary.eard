@@ -10,12 +10,12 @@ include "variant-common.eard";
 track_styles();
 
 style!("""
-    tracks/track/focus/ {
+    tracks/track/focus-variant/ {
         priority: -900;
-        report: "track;switch-id=variant";
+        report: "track;switch-id=focus;!variant-id";
     }
 
-    tracks/track/focus/main/main/ {
+    tracks/track/focus-variant/main/main/ {
         padding-top: 35;
         padding-bottom: 50;
     }
@@ -27,5 +27,5 @@ let (focus_genome_id,focus_variant_id) = focus_variant_settings();
 
 /* Get data */
 
-variant_summary_track("focus",focus_variant_id);
-draw_swatch(colour!("#58a8f9"),[leaf("tracks/track/focus/main/letter/content")]);
+variant_summary_track("focus-variant",focus_variant_id);
+draw_swatch(colour!("#58a8f9"),[leaf("tracks/track/focus-variant/main/letter/content")]);
