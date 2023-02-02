@@ -1,0 +1,49 @@
+program "ensembl-webteam/core" "focus-variant-dots" 1;
+refer "libperegrine";
+refer "libeoe";
+include "../common/track-common.eard";
+include "../common/track-style.eard";
+
+track_styles();
+
+style!("""
+    tracks/track/focus-variant/ {
+        priority: -900;
+        report: "track;switch-id=focus;!variant-id";
+    }
+""");
+
+/* Get data */
+
+let genome_id = setting_string("focus-variant",["genome_id"]);
+let item_id = setting_string("focus-variant",["variant_id"]);
+
+let req = request("self()","variant-labels");
+scope(req,"id",item_id);
+scope(req,"genome",genome_id);
+let data = get_data(req);
+
+let v.chromosome = data_string(data,"chromosome");
+let v.start = data_number(data,"start");
+let v.end = v.start + data_number(data,"length");
+let v.id = data_string(data,"id");
+
+let fv_pos = position(item_id == v.id);
+let fv_index = index(fv_pos,0);
+let **fv = index(**v,fv_index);
+
+let focus_stick = join(":",[genome_id,fv.chromosome]);
+
+let correct_chr = focus_stick == stick();
+
+let text_start = comma_format(fv.start);
+let text_end = comma_format(fv.end);
+
+let active = correct_chr && len(fv_pos) > 0;
+
+let leaf_dots = if(active,leaf("dots/content"),leaf(""));
+let leaf_text = if(active,leaf("tracks/flagtop/main"),leaf(""));
+
+red_dotted(fv.start,fv.end,text_start,text_end,leaf_dots,leaf_text);
+let paint = paint_metadata("variant-id",[fv.id],[eoe_string(fv.id)]);
+rectangle(coord([0],[0],[0]),coord([1],[16],[0]),paint,[if(active,leaf("tracks/track/focus-variant/main/background/content"),leaf(""))]);

@@ -1,0 +1,87 @@
+program "ensembl-webteam/core" "gene" 1;
+refer "libperegrine";
+refer "libeoe";
+include "../common/track-common.eard";
+include "../common/track-style.eard";
+include "gene-common-data.eard";
+include "gene-common-visual.eard";
+include "gene-common-zmenu.eard";
+
+/* Set styles */
+
+track_styles();
+gene_styles();
+
+style!("""
+    **/main/main/ {
+        type: bumper;
+    }
+
+    **/main/main/*/ {
+        type: overlay;
+    }
+
+    **/main/main/*/blocks/ {
+        depth: 4;
+    }
+
+    **/main/main/*/text/ {
+        bump-width: none;
+        system: tracking-special;
+    }
+
+    **/main/background/content {
+        depth: -10;
+        padding-top: 32;
+    }
+""");
+
+/* Get data */
+
+let (focus_genome_id,focus_gene_id) = focus_gene_settings();
+
+let *gene = get_gene_data();
+
+halt(only_warm());
+
+let enabled_tracks = enabled_gene_tracks();
+let enabled_labels = enabled_tracks && enabled_gene_labels();
+
+/* Calculate leafs */
+
+let gene.leaf_index = allocate_genes_to_leaf_index(*gene);
+gene.is_focus = gene.id_unversioned == focus_gene_id;
+
+let gene.leaf_base = make_gene_leaf_base(*gene);
+let gene.block_leaf = leaf(empty_off_gene(push_str(gene.leaf_base,"/blocks/content"),enabled_tracks,*gene));
+let gene.text_leaf = leaf(empty_off_gene(push_str(gene.leaf_base,"/text/content"),enabled_labels,*gene));
+let leaf.bgd = make_gene_leafs("main/background/content",enabled_tracks);
+let leaf.letter = make_gene_leafs("main/letter/content",enabled_tracks);
+let leaf.trackname = make_gene_leafs("title/content",enabled_tracks);
+
+/* Disable focus gene */
+let gene.is_focus = gene.id_unversioned == focus_gene_id;
+let gene.block_leaf = set(gene.block_leaf,gene.is_focus,[leaf(""),...]);
+let gene.text_leaf = set(gene.text_leaf,gene.is_focus,[leaf(""),...]);
+
+/* Draw gene blocks and labels */
+
+let paint = make_gene_paint(*gene);
+rectangle(coord(gene.start,[0,...],[-0.5,...]),coord(gene.end,[5,...],[0.5,...]),paint,gene.block_leaf);
+
+let pen = pen("'IBM Plex Mono', sans-serif",10,[colour!("#6f8190"),...],[colour!("transparent"),...]);
+running_text(coord(gene.start,[8,...],[0,...]),coord(gene.end,[8,...],[0,...]),pen,gene.name,gene.text_leaf);
+
+/* ZMenus */
+
+emit_gene_zmenu(*gene);
+
+/* Draw chevrons */
+
+draw_track_chevrons(*leaf);
+draw_sidebar_chevrons(*leaf);
+
+/* Draw track furniture */
+
+draw_gene_track_names(*leaf);
+draw_gene_track_category(*leaf);

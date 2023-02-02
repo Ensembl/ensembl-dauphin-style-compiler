@@ -52,7 +52,19 @@ impl FullGoto {
     }
 
     fn r(b: f64) -> f64 {
-        ((b*b+1.).sqrt()-b).ln()
+        /* top approximates bottom, but top form avoids big-big underflow, 
+         * important when taking ln straight afterwards! Approximation should be out by less than 
+         * 1ppm when b>1000., thankfully! When less than 1000, the bottom does fine. There is 
+         * probably cinsiderable leaway in the choice of 1000 as a cutoff.
+         * 
+         * At 1000 exact formula gives -7.60090271, approximation gives -7.60090246. THis is the
+         * point of maximum percentage disparity.
+         */
+        if b > 1000. {
+            -((2.*b).ln())
+        } else {
+            ((b*b+1.).sqrt()-b).ln()
+        }
     }
 
     fn new(regime: &GotoRegime, x: (f64,f64), bp: (f64,f64)) -> FullGoto {
@@ -100,7 +112,6 @@ impl ZoomOnlyGoto {
         }
     }
 }
-
 
 impl GotoAlgortihm for ZoomOnlyGoto {
     fn total_distance(&self) -> f64 { self.s }

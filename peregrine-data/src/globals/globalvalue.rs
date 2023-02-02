@@ -122,13 +122,18 @@ impl<X: Hash+Eq+Clone, U:Clone, V:Clone> LocalValueSpec<X,U,V> {
 }
 
 pub(crate) struct GlobalValueBuilder<X:Hash+Eq+Clone, U:'static+Clone, V:'static+Clone> {
-    entries: HashMap<X,Vec<BuiltLocalEntry<U,V>>>
+    entries: HashMap<X,Vec<BuiltLocalEntry<U,V>>>,
+    reverse: bool
 }
 
-impl<X:Hash+Eq+Clone, U:'static+Clone, V:Clone> GlobalValueBuilder<X,U,V> {
-    pub(crate) fn new() -> GlobalValueBuilder<X,U,V> {
+/* Keys must be ordered as sometimes it matters what order things are resolved in. For example,
+ * bumping of inner leafs must happen before outer.
+ */
+impl<X:Hash+Eq+Clone+Ord, U:'static+Clone, V:Clone> GlobalValueBuilder<X,U,V> {
+    pub(crate) fn new(reverse: bool) -> GlobalValueBuilder<X,U,V> {
         GlobalValueBuilder {
-            entries: HashMap::new()
+            entries: HashMap::new(),
+            reverse
         }
     }
 
@@ -143,14 +148,13 @@ impl<X:Hash+Eq+Clone, U:'static+Clone, V:Clone> GlobalValueBuilder<X,U,V> {
 
     fn stable_entries(&self) -> Vec<(&X,&Vec<BuiltLocalEntry<U,V>>)> {
         let mut keys = self.entries.keys().collect::<Vec<_>>();
-        keys.sort_by_cached_key(|x| {
-            let mut h = DefaultHasher::new();
-            x.hash(&mut h);
-            h.finish()
-        });
+        keys.sort();
         let mut out = vec![];
         for key in keys {
             out.push((key,self.entries.get(key).unwrap()));
+        }
+        if self.reverse {
+            out.reverse()
         }
         out
     }
@@ -178,7 +182,7 @@ impl<X:Hash+Eq+Clone+Debug, V:Debug> std::fmt::Debug for GlobalValueSpec<X,V> {
     }
 }
 
-impl<X:Hash+Eq+Clone, V:Clone> GlobalValueSpec<X,V> {
+impl<X:Hash+Eq+Clone+Ord, V:Clone> GlobalValueSpec<X,V> {
     pub(crate) fn new<F, U:'static+Clone, H:Hash>(builder: GlobalValueBuilder<X,U,V>, merger: F, answer: &mut StaticAnswer) -> GlobalValueSpec<X,V>
             where F: Fn(&X,&[&StaticValue<U>],&mut StaticAnswer) -> (V,H) {
         let mut hasher = DefaultHasher::new();

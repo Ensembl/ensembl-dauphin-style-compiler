@@ -253,12 +253,6 @@ impl GlRailwayData {
         }).unwrap_or(Ok(vec![]))
     }
 
-    fn any_hotspot(&mut self, stage: &ReadStage, position: (f64,f64)) -> Result<bool,Message> {
-        self.train_for_hotspots().map(|t| {
-            t.any_hotspot(stage,position)
-        }).unwrap_or(Ok(false))
-    }
-
     fn special_hotspots(&mut self, stage: &ReadStage, position: (f64,f64)) -> Result<Vec<SpecialClick>,Message> {
         self.train_for_hotspots().map(|t| {
             t.special_hotspots(stage,position)
@@ -317,10 +311,6 @@ impl GlRailway {
 
     pub(crate) fn get_hotspot(&self,stage: &ReadStage, position: (f64,f64)) -> Result<Vec<SingleHotspotEntry>,Message> {
         lock!(self.data).get_hotspot(stage,position)
-    }
-
-    pub(crate) fn any_hotspot(&self,stage: &ReadStage, position: (f64,f64)) -> Result<bool,Message> {
-        lock!(self.data).any_hotspot(stage,position)
     }
 
     pub(crate) fn special_hotspots(&self,stage: &ReadStage, position: (f64,f64)) -> Result<Vec<SpecialClick>,Message> {

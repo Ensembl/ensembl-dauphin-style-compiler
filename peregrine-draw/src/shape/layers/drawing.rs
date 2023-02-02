@@ -61,8 +61,8 @@ impl DrawingBuilder {
             ShapeToAdd::Dynamic(dynamic) => {
                 self.dynamic_shapes.push(dynamic);
             },
-            ShapeToAdd::Hotspot(area,hotspot) => {
-                self.tools.hotspots().add_rectangle(HotspotGroupEntry::new(area,&hotspot));
+            ShapeToAdd::Hotspot(area,run,hotspot,hover) => {
+                self.tools.hotspots().add_rectangle(HotspotGroupEntry::new(area,run,&hotspot,hover));
             },
             ShapeToAdd::None => {}
         }

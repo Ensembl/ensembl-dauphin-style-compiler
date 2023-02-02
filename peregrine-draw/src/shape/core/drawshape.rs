@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
+use eachorevery::{EachOrEveryFilterBuilder, EachOrEvery};
 use peregrine_data::reactive::Observable;
 use peregrine_data::{ Colour, DirectColour, DrawnType, Patina, Plotter, SpaceBaseArea, HollowEdge2, SpaceBase, AuxLeaf, HotspotPatina, AttachmentPoint, PartialSpaceBase, SpaceBasePoint };
-use peregrine_toolkit::eachorevery::{EachOrEvery, EachOrEveryFilterBuilder};
 use peregrine_toolkit::error::Error;
 use super::directcolourdraw::{DirectColourDraw, ColourFragment};
 use super::super::layers::layer::{ Layer };
@@ -62,8 +62,8 @@ impl GLAttachmentPoint {
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub(crate) enum SimpleShapePatina {
     Solid(EachOrEvery<DirectColour>),
-    Hollow(EachOrEvery<DirectColour>),
-    Hotspot(HotspotPatina),
+    Hollow(EachOrEvery<DirectColour>,f64),
+    Hotspot(HotspotPatina,bool),
     None
 }
 
@@ -81,11 +81,11 @@ impl SimpleShapePatina {
         Ok(match patina {
             Patina::Drawn(drawn_variety,colours) => {
                 match drawn_variety {
-                    DrawnType::Stroke(_) => SimpleShapePatina::Hollow(simplify_colours(colours)?),
+                    DrawnType::Stroke(width) => SimpleShapePatina::Hollow(simplify_colours(colours)?,*width),
                     DrawnType::Fill => SimpleShapePatina::Solid(simplify_colours(colours)?),
                 }
             },
-            Patina::Hotspot(hotspot) => { SimpleShapePatina::Hotspot(hotspot.clone()) }
+            Patina::Hotspot(hotspot,hover) => { SimpleShapePatina::Hotspot(hotspot.clone(),*hover) }
             Patina::Metadata(_,_) => { SimpleShapePatina::None }
         })
     }
@@ -94,9 +94,9 @@ impl SimpleShapePatina {
 pub(crate) enum GLShape {
     Text(SpaceBase<f64,AuxLeaf>,Option<SpaceBase<f64,()>>,Vec<CanvasItemAreaSource>,EachOrEvery<i8>,DrawGroup,GLAttachmentPoint),
     Image(SpaceBase<f64,AuxLeaf>,Vec<CanvasItemAreaSource>,EachOrEvery<i8>,DrawGroup),
-    Heraldry(SpaceBaseArea<f64,AuxLeaf>,EachOrEvery<HeraldryHandle>,EachOrEvery<i8>,DrawGroup,HeraldryCanvas,HeraldryScale,Option<HollowEdge2<f64>>,Option<SpaceBaseArea<Observable<'static,f64>,()>>),
+    Heraldry(SpaceBaseArea<f64,AuxLeaf>,Option<EachOrEvery<f64>>,EachOrEvery<HeraldryHandle>,EachOrEvery<i8>,DrawGroup,HeraldryCanvas,HeraldryScale,Option<HollowEdge2<f64>>,Option<SpaceBaseArea<Observable<'static,f64>,()>>),
     Wiggle((f64,f64),Arc<Vec<Option<f64>>>,Plotter,i8),
-    SpaceBaseRect(SpaceBaseArea<f64,AuxLeaf>,SimpleShapePatina,EachOrEvery<i8>,DrawGroup,Option<SpaceBaseArea<Observable<'static,f64>,()>>),
+    Rectangle(SpaceBaseArea<f64,AuxLeaf>,Option<EachOrEvery<f64>>,SimpleShapePatina,EachOrEvery<i8>,DrawGroup,Option<SpaceBaseArea<Observable<'static,f64>,()>>),
     Polygon(SpaceBase<f64,AuxLeaf>,EachOrEvery<f64>,i8,usize,f32,SimpleShapePatina,DrawGroup,Option<SpaceBase<Observable<'static,f64>,()>>)
 }
 
@@ -105,7 +105,7 @@ fn add_colour(addable: &mut ProcessStanzaElements, patina: &SimpleShapePatina, d
     let number_of_shapes = addable.number_of_shapes();
     match patina {
         SimpleShapePatina::Solid(colours) |
-        SimpleShapePatina::Hollow(colours) => {
+        SimpleShapePatina::Hollow(colours,_) => {
             draw.direct(addable,&colours,points_per_shape,number_of_shapes)?;
         },
         _ => {}
@@ -124,31 +124,31 @@ pub(crate) fn dims_to_sizes(areas: &[CanvasItemArea], factor: f64) -> (Vec<f64>,
     (x_sizes,y_sizes)
 }
 
-fn draw_area_from_canvas(layer: &mut Layer, left: f64, gl: &mut WebGlGlobal, draw_group: &DrawGroup, area: &SpaceBaseArea<f64,AuxLeaf>, depth: &EachOrEvery<i8>, canvas: &CanvasInUse, dims: &[CanvasItemArea], edge: &Option<HollowEdge2<f64>>, freedom: &Freedom, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>) -> Result<Box<dyn DynamicShape>,Error> {
+fn draw_area_from_canvas(layer: &mut Layer, left: f64, gl: &mut WebGlGlobal, draw_group: &DrawGroup, area: &SpaceBaseArea<f64,AuxLeaf>, run: &Option<SpaceBase<f64,()>>, depth: &EachOrEvery<i8>, canvas: &CanvasInUse, dims: &[CanvasItemArea], edge: &Option<HollowEdge2<f64>>, freedom: &Freedom, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>) -> Result<Box<dyn DynamicShape>,Error> {
     let rectangle_factory = RectanglesDataFactory::new(&draw_group);
     let draw_factory = TextureDrawFactory::new(canvas,freedom);
     let builder = layer.get_process_builder(&rectangle_factory,&draw_factory)?;
     let draw = draw_factory.make(builder)?;
-    let mut rectangles = rectangle_factory.make_area(builder,&area,depth,left,false,edge,wobble)?;
+    let mut rectangles = rectangle_factory.make_area(builder,&area,run,depth,left,None,edge,wobble)?;
     let campaign = rectangles.elements_mut();
     draw.add_rectangle(campaign,&canvas,&dims,freedom)?;
     campaign.close()?;
     Ok(Box::new(Rectangles::new(rectangles,gl)))
 }
 
-pub(crate) fn draw_points_from_canvas2(layer: &mut Layer, left: f64, gl: &mut WebGlGlobal, draw_group: &DrawGroup, points: &SpaceBase<f64,AuxLeaf>, run: &Option<SpaceBase<f64,()>>, x_sizes: Vec<f64>, y_sizes:Vec<f64>, depth: &EachOrEvery<i8>, canvas: &CanvasInUse, dims: &[CanvasItemArea], freedom: &Freedom, attachment: GLAttachmentPoint, wobble: Option<SpaceBase<Observable<'static,f64>,()>>) -> Result<Box<dyn DynamicShape>,Error> {
+pub(crate) fn draw_points_from_canvas(layer: &mut Layer, left: f64, gl: &mut WebGlGlobal, draw_group: &DrawGroup, points: &SpaceBase<f64,AuxLeaf>, run: &Option<SpaceBase<f64,()>>, x_sizes: Vec<f64>, y_sizes:Vec<f64>, depth: &EachOrEvery<i8>, canvas: &CanvasInUse, dims: &[CanvasItemArea], freedom: &Freedom, attachment: GLAttachmentPoint, wobble: Option<SpaceBase<Observable<'static,f64>,()>>) -> Result<Box<dyn DynamicShape>,Error> {
     let rectangle_factory = RectanglesDataFactory::new(&draw_group);
     let draw_factory = TextureDrawFactory::new(canvas,freedom);
     let builder = layer.get_process_builder(&rectangle_factory,&draw_factory)?;
     let draw = draw_factory.make(builder)?;
-    let mut rectangles = rectangle_factory.make_sized(builder,&points,run,x_sizes,y_sizes,depth,left,false,attachment,wobble)?;
+    let mut rectangles = rectangle_factory.make_sized(builder,&points,run,x_sizes,y_sizes,depth,left,None,attachment,wobble)?;
     let campaign = rectangles.elements_mut();
     draw.add_rectangle(campaign,&canvas,&dims,&Freedom::None)?;
     campaign.close()?;
     Ok(Box::new(Rectangles::new(rectangles,gl)))
 }
 
-fn draw_heraldry_canvas(layer: &mut Layer, left: f64, gl: &mut WebGlGlobal, tools: &mut DrawingToolsBuilder, kind: &DrawGroup, area_a: &SpaceBaseArea<f64,AuxLeaf>, handles: &EachOrEvery<HeraldryHandle>, depth: &EachOrEvery<i8>, heraldry_canvas: &HeraldryCanvas, scale: &HeraldryScale, edge: &Option<HollowEdge2<f64>>, count: usize, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>) -> Result<Option<Box<dyn DynamicShape>>,Error> {
+fn draw_heraldry_canvas(layer: &mut Layer, left: f64, gl: &mut WebGlGlobal, tools: &mut DrawingToolsBuilder, kind: &DrawGroup, area_a: &SpaceBaseArea<f64,AuxLeaf>, run: &Option<SpaceBase<f64,()>>, handles: &EachOrEvery<HeraldryHandle>, depth: &EachOrEvery<i8>, heraldry_canvas: &HeraldryCanvas, scale: &HeraldryScale, edge: &Option<HollowEdge2<f64>>, count: usize, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>) -> Result<Option<Box<dyn DynamicShape>>,Error> {
     let mut dims = vec![];
     let mut filter_builder = EachOrEveryFilterBuilder::new();
     for (i,handle) in eoe_throw2("heraldry",handles.iter(count))?.enumerate() {
@@ -161,13 +161,24 @@ fn draw_heraldry_canvas(layer: &mut Layer, left: f64, gl: &mut WebGlGlobal, tool
     let filter = filter_builder.make(area_a.len());
     if filter.count() == 0 { return Ok(None); }
     let canvas = tools.composition_builder(&heraldry_canvas.to_canvas_type()).canvas().ok_or_else(|| Error::fatal("no canvas id A"))?;
-    Ok(Some(draw_area_from_canvas(layer,left,gl,kind,&area_a.filter(&filter),&depth.filter(&filter),&canvas,&dims,edge,&heraldry_canvas.to_freedom(),wobble)?))
+    Ok(Some(draw_area_from_canvas(layer,left,gl,kind,&area_a.filter(&filter),run,&depth.filter(&filter),&canvas,&dims,edge,&heraldry_canvas.to_freedom(),wobble)?))
 }
 
 pub(crate) enum ShapeToAdd {
     Dynamic(Box<dyn DynamicShape>),
-    Hotspot(SpaceBaseArea<f64,AuxLeaf>,HotspotPatina),
+    Hotspot(SpaceBaseArea<f64,AuxLeaf>,Option<EachOrEvery<f64>>,HotspotPatina,bool),
     None
+}
+
+fn run_to_spacebase(run: Option<EachOrEvery<f64>>) -> Option<SpaceBase<f64,()>> {
+    run.and_then(|run| {
+        SpaceBase::new(
+            &run,
+            &EachOrEvery::every(0.),
+            &EachOrEvery::every(0.),
+            &EachOrEvery::every(()),
+        )
+    })
 }
 
 pub(crate) fn add_shape_to_layer(layer: &mut Layer, left: f64, gl: &mut WebGlGlobal, tools: &mut DrawingToolsBuilder, shape: GLShape) -> Result<ShapeToAdd,Error> {
@@ -194,33 +205,35 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, left: f64, gl: &mut WebGlGlo
             if bitmap_dims.len() == 0 { return Ok(ShapeToAdd::None); }
             let (x_sizes,y_sizes) = dims_to_sizes(&bitmap_dims,1./bitmap_multiplier);
             let canvas = tools.composition_builder(&CanvasType::Crisp).canvas().ok_or_else(|| Error::fatal("no canvas id A"))?;
-            let rectangles = draw_points_from_canvas2(layer,left,gl,&kind,&points,&None,x_sizes,y_sizes,&depth,&canvas,&bitmap_dims,&Freedom::None,GLAttachmentPoint::Left,None)?;
+            let rectangles = draw_points_from_canvas(layer,left,gl,&kind,&points,&None,x_sizes,y_sizes,&depth,&canvas,&bitmap_dims,&Freedom::None,GLAttachmentPoint::Left,None)?;
             Ok(ShapeToAdd::Dynamic(rectangles))
         },
-        GLShape::Heraldry(area,handles,depth,kind,heraldry_canvas,scale,edge,wobble) => {
-            let rectangles = draw_heraldry_canvas(layer,left,gl,tools,&kind,&area,&handles,&depth,&heraldry_canvas,&scale,&edge,area.len(),wobble)?;
+        GLShape::Heraldry(area,run,handles,depth,kind,heraldry_canvas,scale,edge,wobble) => {
+            let run = run_to_spacebase(run);
+            let rectangles = draw_heraldry_canvas(layer,left,gl,tools,&kind,&area,&run,&handles,&depth,&heraldry_canvas,&scale,&edge,area.len(),wobble)?;
             if let Some(rectangles) = rectangles {
                 Ok(ShapeToAdd::Dynamic(rectangles))
             } else {
                 Ok(ShapeToAdd::None)
             }
         },
-        GLShape::SpaceBaseRect(area,simple_shape_patina,depth,draw_group,wobble) => {
+        GLShape::Rectangle(area,run,simple_shape_patina,depth,draw_group,wobble) => {
             match simple_shape_patina {
-                SimpleShapePatina::Solid(_) | SimpleShapePatina::Hollow(_) => {
-                    let hollow = match simple_shape_patina { SimpleShapePatina::Hollow(_) => true, _ => false };
+                SimpleShapePatina::Solid(_) | SimpleShapePatina::Hollow(_,_) => {
+                    let hollow = match simple_shape_patina { SimpleShapePatina::Hollow(_,w) => Some(w), _ => None };
                     let vertex_factory = RectanglesDataFactory::new(&draw_group);
                     let fragment_factory = ColourFragment::new();
                     let builder = layer.get_process_builder(&vertex_factory,&fragment_factory)?;
-                    let mut rectangles = vertex_factory.make_area(builder,&area,&depth,left,hollow,&None,wobble)?;
+                    let run = run_to_spacebase(run);
+                    let mut rectangles = vertex_factory.make_area(builder,&area,&run,&depth,left,hollow,&None,wobble)?;
                     let draw = fragment_factory.make(builder)?;
                     let campaign = rectangles.elements_mut();
                     add_colour(campaign,&simple_shape_patina,&draw)?;
                     campaign.close()?;
                     Ok(ShapeToAdd::Dynamic(Box::new(Rectangles::new(rectangles,&gl))))
                 },
-                SimpleShapePatina::Hotspot(hotspot) => {
-                    Ok(ShapeToAdd::Hotspot(area,hotspot))
+                SimpleShapePatina::Hotspot(hotspot,hover) => {
+                    Ok(ShapeToAdd::Hotspot(area,run.clone(),hotspot,hover))
                 },
                 _ => {
                     Ok(ShapeToAdd::None)
@@ -240,10 +253,10 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, left: f64, gl: &mut WebGlGlo
                     campaign.close()?;
                     Ok(ShapeToAdd::Dynamic(Box::new(SolidPolygon::new(polygons,&gl))))
                 },
-                SimpleShapePatina::Hollow(_) => {
+                SimpleShapePatina::Hollow(_,_) => {
                     todo!()
                 }
-                SimpleShapePatina::Hotspot(hotspot) => {
+                SimpleShapePatina::Hotspot(hotspot,hover) => {
                     let top_left = centre.merge_eoe(radius.clone(),SpaceBasePoint {
                         base: &|c,_r| *c,
                         normal: &|c,r| *c-*r,
@@ -257,7 +270,7 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, left: f64, gl: &mut WebGlGlo
                         allotment: ()
                     });
                     let area = SpaceBaseArea::new(PartialSpaceBase::from_spacebase(top_left),PartialSpaceBase::from_spacebase(borrom_right)).expect("polygon hotspot");
-                    Ok(ShapeToAdd::Hotspot(area,hotspot))
+                    Ok(ShapeToAdd::Hotspot(area,None,hotspot,hover))
                 },
                 _ => {
                     Ok(ShapeToAdd::None)

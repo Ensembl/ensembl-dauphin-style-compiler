@@ -3,7 +3,7 @@ from command.coremodel import DataHandler, Panel, DataAccessor
 from command.response import Response
 from model.chromosome import Chromosome
 from command.exceptionres import DataException
-from data.v14.dataalgorithm import data_algorithm
+from data.v15.dataalgorithm import data_algorithm
 
 def retrieve_range(data_accessor: DataAccessor,chrom: Chromosome, panel: Panel):
     item = chrom.item_seq_path("seqs")

@@ -3,7 +3,7 @@ from command.response import Response
 from command.exceptionres import DataException
 from model.bigbed import get_bigwig_stats, get_bigwig
 from model.chromosome import Chromosome
-from data.v14.dataalgorithm import data_algorithm
+from data.v15.dataalgorithm import data_algorithm
 
 SCALE = 4000
 

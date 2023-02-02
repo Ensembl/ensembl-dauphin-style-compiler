@@ -1,0 +1,185 @@
+/* Settings */
+
+export function enabled_gene_tracks() {
+    [
+        setting_boolean("other-rev",[]),
+        setting_boolean("pc-rev",[]),
+        setting_boolean("other-fwd",[]),
+        setting_boolean("pc-fwd",[])
+    ]
+}
+
+export function enabled_focus_gene_track() {
+    setting_boolean("focus",[])
+}
+
+export function enabled_gene_labels() {
+    [
+        setting_boolean("other-rev-label",[]),
+        setting_boolean("pc-rev-label",[]),
+        setting_boolean("other-fwd-label",[]),
+        setting_boolean("pc-fwd-label",[])
+    ]
+}
+
+export function enabled_focus_gene_labels() {
+    [
+        setting_boolean("focus-gene-label",[])
+    ]
+}
+
+export function enabled_transcript_labels() {
+    [
+        setting_boolean("other-rev-transcript-label",[]),
+        setting_boolean("pc-rev-transcript-label",[]),
+        setting_boolean("other-fwd-transcript-label",[]),
+        setting_boolean("pc-fwd-transcript-label",[])
+    ]
+}
+
+export function enabled_focus_transcript_labels() {
+    [
+        setting_boolean("focus-transcript-label",[])
+    ]
+}
+
+export function enabled_several_transcripts() {
+    [
+        setting_boolean("other-rev-several",[]),
+        setting_boolean("pc-rev-several",[]),
+        setting_boolean("other-fwd-several",[]),
+        setting_boolean("pc-fwd-several",[])
+    ]
+}
+
+let several = 5;
+
+export procedure calc_shown_transcripts(*gene,*tr,settings,expanded_ids) {
+    capture several;
+
+    let expanded_index = find(gene.id_versioned,expanded_ids);
+    let gene_expanded = set_at(repeat(false,len(gene.start)),expanded_index,[true,...]);
+    let tr_expanded = index(gene_expanded,tr.index_of_gene);
+
+    let tr_is_several = index(settings,tr.leaf_index);
+    let leaf_limit = if(tr_is_several,[5,...],[1,...]);
+    let leaf_limit = set(leaf_limit,tr_expanded,[-1,...]);
+
+    let last_shown = (
+        tr.position_in_gene == leaf_limit-1 || /* hit limit */
+        tr.position_in_gene == tr.count-1      /* last one */
+    );
+    (leaf_limit == -1 || tr.position_in_gene<leaf_limit,last_shown)
+}
+
+export procedure calc_focus_shown_transcripts(*tr) {
+    /* get list */
+    let wanted = setting_string_seq("enabled-transcripts",[]);
+
+    /* find where in our transcript list those transcripts are */
+    let shown_tr_index = find(tr.id_versioned,wanted);
+    let shown_tr_index = select(shown_tr_index,shown_tr_index!=-1);
+
+    /* set booleans at drawn locations */
+    let shown_tr = set_at(repeat(false,len(tr.start)),shown_tr_index,[true,...]);
+    let ghost = !index(shown_tr,0);
+    let shown_tr = set_at(shown_tr,[0],[true,...]);
+
+    /* set location on screen */
+    let sorted_shown_tr_index = position(shown_tr);
+    // yuk! should maybe be an internal function. horribly inefficient!
+    let tr_position = set_at(repeat(0,len(tr.start)),sorted_shown_tr_index,enumerate([len(tr.start)]));
+
+    let last_tr = set_at(repeat(false,len(tr.start)),[max_seq(shown_tr_index)],[true,...]);
+    (shown_tr,last_tr,tr_position,ghost)
+}
+
+export procedure focus_gene_settings() {
+    (
+        setting_string("focus-gene",["genome_id"]),
+        setting_string("focus-gene",["item_id"])
+    )    
+}
+
+procedure extract_gene_data(data) {
+    let gene.id_unversioned = data_string(data,"gene_id");
+    let gene.id_version = data_string(data,"gene_id_version");
+    let gene.id_versioned = push_str(gene.id_unversioned,gene.id_version);
+    let gene.stick = data_string(data,"stick");
+    let gene.name = data_string(data,"gene_names");
+    let gene.description = data_string(data,"gene_descs");
+    let gene.start = data_number(data,"starts");
+    let gene.end = gene.start + data_number(data,"lengths");
+    let gene.designation = data_string(data,"designated_transcript_designations");
+    let gene.biotype = data_string(data,"gene_biotypes");
+    let gene.strand = data_number(data,"strands");
+    let gene.desigtr_unversioned = data_string(data,"designated_transcript_id");
+    let gene.desigtr_version = data_string(data,"designated_transcript_id_version");
+    let gene.desigtr_versioned = push_str(gene.desigtr_unversioned,gene.desigtr_version);
+    let gene.desigtr_biotype = data_string(data,"designated_transcript_biotypes");
+    let gene.desigtr_designation = data_string(data,"designated_transcript_designations");
+    let gene.strand_string = if(gene.strand>0,["forward strand",...],["reverse strand",...]);
+    *gene
+}
+
+procedure extract_tr_data(data) {
+    let *gene = extract_gene_data(data);
+
+    let tr.start = data_number(data,"transcripts_starts");
+    let tr.end = tr.start + data_number(data,"transcripts_lengths");
+    let tr.designation = data_string(data,"transcript_designation");
+    let tr.id_unversioned  = data_string(data,"transcript_id");
+    let tr.id_version = data_string(data,"transcript_id_version");
+    let tr.id_versioned = push_str(tr.id_unversioned,tr.id_version);
+    let tr.biotype = data_string(data,"transcript_biotypes");
+    let tr.thick_start = data_number(data,"thicks_starts");
+    let tr.thick_end = tr.thick_start + data_number(data,"thicks_lengths");
+    let gene.tr_count = data_number(data,"transcript_counts");
+    let tr.position_in_gene = enumerate(gene.tr_count);
+    let tr.index_of_gene = count(gene.tr_count);
+    let tr.count = index(gene.tr_count,tr.index_of_gene);
+    let exon.start = data_number(data,"transcript_exon_starts");
+    let exon.end = exon.start + data_number(data,"transcript_exon_lengths");
+    let tr.exon_count = data_number(data,"transcript_exon_counts");
+    let exon.index_of_tr = count(tr.exon_count);
+    let exon.index_of_gene = index(tr.index_of_gene,exon.index_of_tr);
+    (*gene,*tr,*exon)
+}
+
+export procedure get_gene_data() {
+    let data = get_data(request("self()","gene"));
+    // halt(only_warm(),[data]);
+
+    let *gene = extract_gene_data(data);
+    *gene
+}
+
+export procedure get_focus_transcript_data() {
+    let (focus_genome_id,focus_gene_id) = focus_gene_settings();
+
+    let req = request("self()","transcript");
+    scope(req,"id",focus_gene_id);
+    scope(req,"genome",focus_genome_id);
+    let data = get_data(req);
+    // halt(only_warm(),[data]);
+
+    let (*gene,*tr,*ex) = extract_tr_data(data);
+
+    (*gene,*tr,*ex)
+}
+
+export procedure get_transcript_data(expanded) {
+    let req = request("self()","transcript");
+    scope(req,"expanded",expanded);
+    let data = get_data(req);
+    // halt(only_warm(),[data]);
+
+    let (*gene,*tr,*ex) = extract_tr_data(data);
+    (*gene,*tr,*ex)
+}
+
+export procedure allocate_genes_to_leaf_index(*gene) {
+    let leaf_index_strand = set(repeat(0,len(gene.start)),gene.strand>0,[2,...]);
+    let leaf_index_biotype = set(repeat(0,len(gene.start)),gene.biotype=="protein_coding",[1,...]);
+    leaf_index_strand + leaf_index_biotype
+}

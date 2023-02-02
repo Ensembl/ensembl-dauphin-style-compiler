@@ -1,7 +1,8 @@
 use std::sync::{Arc, Mutex};
 
+use eachorevery::EachOrEvery;
 use peregrine_data::{SpaceBase, SpaceBaseArea, reactive::{Observable, Observer}, AuxLeaf};
-use peregrine_toolkit::{eachorevery::EachOrEvery, error::Error, lock};
+use peregrine_toolkit::{error::Error, lock};
 
 use crate::shape::core::drawshape::GLAttachmentPoint;
 

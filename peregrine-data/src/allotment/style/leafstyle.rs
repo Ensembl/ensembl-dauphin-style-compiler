@@ -44,6 +44,7 @@ impl Indent {
 pub struct InheritableLeafStyle {
     coord_system: Option<CoordinateSystem>,
     bump_invisible: Option<bool>,
+    height_invisible: Option<bool>,
     depth: Option<i8>,
     indent: Option<Indent>
 }
@@ -53,6 +54,7 @@ impl InheritableLeafStyle {
         InheritableLeafStyle {
             coord_system: None,
             bump_invisible: None,
+            height_invisible: None,
             depth: None,
             indent: None
         }
@@ -64,8 +66,9 @@ impl InheritableLeafStyle {
         let coord_system = CoordinateSystem::build(spec);
         let indent = Indent::build(spec);
         let bump_invisible = spec.get("bump-width").map(|x| x.as_str() == "none");
+        let height_invisible = spec.get("bump-height").map(|x| x.as_str() == "none");
         InheritableLeafStyle {
-            depth, coord_system, indent, bump_invisible
+            depth, coord_system, indent, bump_invisible, height_invisible
         }
     }
 
@@ -82,6 +85,9 @@ impl InheritableLeafStyle {
         if other.bump_invisible.is_some() {
             self.bump_invisible = other.bump_invisible.clone();
         }
+        if other.height_invisible.is_some() {
+            self.height_invisible = other.height_invisible.clone();
+        }
     }
 
     pub(crate) fn make(&self, uninh: &UninheritableLeafStyle) -> LeafStyle {
@@ -93,7 +99,8 @@ impl InheritableLeafStyle {
             },
             priority: uninh.priority,
             indent: self.indent.as_ref().unwrap_or(&Indent::None).clone(),
-            bump_invisible: self.bump_invisible.unwrap_or(false)
+            bump_invisible: self.bump_invisible.unwrap_or(false),
+            height_invisible: self.height_invisible.unwrap_or(false)
         }
     }
 }
@@ -118,7 +125,8 @@ pub struct LeafStyle {
     pub(crate) aux: AuxLeaf,
     pub(crate) priority: i64,
     pub(crate) indent: Indent,
-    pub(crate) bump_invisible: bool
+    pub(crate) bump_invisible: bool,
+    pub(crate) height_invisible: bool
 }
 
 impl LeafStyle {
@@ -130,7 +138,8 @@ impl LeafStyle {
             },
             priority: 0,
             indent: Indent::None,
-            bump_invisible: false
+            bump_invisible: false,
+            height_invisible: false
         }
     }
 }

@@ -1,0 +1,23 @@
+program "ensembl-webteam/core" "focus-region" 1;
+refer "libperegrine";
+refer "libeoe";
+include "../common/track-common.eard";
+include "../common/track-style.eard";
+
+track_styles();
+
+let focus_genome_id = setting_string("region",["genome_id"]);
+let focus_region_name = setting_string("region",["region_name"]);
+let focus_stick = push_str(push_str(focus_genome_id,":"),focus_region_name);
+let focus_start = setting_number("region",["start"])-1;
+let focus_end = setting_number("region",["end"])-1;
+
+let correct_chr = focus_stick == stick();
+
+let leaf_dots = if(correct_chr,leaf("dots/content"),leaf(""));
+let leaf_text =  if(correct_chr,leaf("tracks/flagtop/main"),leaf(""));
+
+let text_start = comma_format(focus_start);
+let text_end = comma_format(focus_end);
+
+red_dotted(focus_start,focus_end,text_start,text_end,leaf_dots,leaf_text);

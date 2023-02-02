@@ -1,5 +1,6 @@
 use std::{sync::{Arc}};
-use peregrine_toolkit::{puzzle::{DelayedSetter, derived, cache_constant, constant, StaticValue, promise_delayed, short_memoized_clonable, cache_constant_clonable, StaticAnswer }, eachorevery::eoestruct::StructTemplate};
+use eachorevery::eoestruct::{StructValue};
+use peregrine_toolkit::{puzzle::{DelayedSetter, derived, cache_constant, constant, StaticValue, promise_delayed, short_memoized_clonable, cache_constant_clonable, StaticAnswer }};
 use crate::{allotment::{core::{allotmentname::{AllotmentName}, rangeused::RangeUsed}, style::{containerstyle::{ContainerStyle}, metadataproperty::MetadataStyle}, style::{styletree::StyleTree}, leafs::{floating::FloatingLeaf, anchored::AnchoredLeaf}, layout::{layouttree::{ContainerOrLeaf}, layoutcontext::LayoutContext, contentsize::ContentSize}}, CoordinateSystem, LeafRequest, globals::allotmentmetadata::LocalAllotmentMetadataBuilder};
 use super::{haskids::HasKids};
 
@@ -35,10 +36,10 @@ pub struct Container {
 }
 
 fn add_report(metadata: &mut LocalAllotmentMetadataBuilder, name: &AllotmentName, in_values: &MetadataStyle, top: &StaticValue<f64>, height: &StaticValue<Arc<f64>>) {
-    metadata.set(name,"offset",derived(top.clone(),|v| StructTemplate::new_number(v)),None);
-    metadata.set(name,"height",derived(height.clone(),|v| StructTemplate::new_number(*v)),None);
+    metadata.set(name,"offset",derived(top.clone(),|v| StructValue::new_number(v)),None);
+    metadata.set(name,"height",derived(height.clone(),|v| StructValue::new_number(*v)),None);
     for (key,value) in in_values.iter() {
-        let value = constant(StructTemplate::new_string(value.to_string()));
+        let value = constant(StructValue::new_string(value.to_string()));
         metadata.set(name,key,value,None);
     }
     metadata.set_reporting(name,in_values.reporting());

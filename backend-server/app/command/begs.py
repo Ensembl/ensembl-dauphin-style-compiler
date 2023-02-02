@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from command.eardo import EardoFile
 from command.bundle import Bundle
 from core.config import BEGS_CONFIG, BEGS_FILES, OLD_BEGS_CONFIG, EGS_FILES
 from typing import Any, List, Optional, Tuple;
@@ -79,6 +80,37 @@ class OldVersionedBegsFiles(object):
         bundle.monitor(self._monitor)
         return bundle.serialize(self.name_to_bundle_name[bundle.name])
 
+class OneEardoFile:
+    def __init__(self, name, toml_data, file_path):
+        self._dir = os.path.dirname(file_path)
+        self._load_config(name,toml_data)
+        self._path = os.path.join(self._dir,self._path)
+        self._eardo = EardoFile(self._name,self._path)
+
+    def program_names(self):
+        return self._eardo.program_names()
+
+    def _load_config(self, name, toml_data):
+        self._name = name
+        self._type = "eardo"
+        self.load_toml(toml_data)
+        for key in ("path","type"):
+            if not hasattr(self,"_"+key):
+                raise Exception("missing {} from program inventory for {}".format(key,name))
+
+    def load_toml(self, data):
+        if "general" in data:
+            self.load_toml(data["general"])
+        for key in ("path","type","boot_for_version"):
+            if key in data:
+                setattr(self,"_"+key,data[key])
+
+    def boot_versions(self):
+        return self._boot_for_version
+
+    def eardo(self):
+        return self._eardo
+
 class OneBegsFile:
     def __init__(self, name, toml_data, file_path):
         self._dir = os.path.dirname(file_path)
@@ -94,10 +126,17 @@ class OneBegsFile:
         self._boot_for_version = []
         self._mapping = {}
         self._program_name = None
+        self._type = "begs"
         self.load_toml(toml_data)
-        for key in ("path","program_set","program_version","specs_path","programs"):
+        logging.warn("TYPE {} = {}".format(name,self._type))
+        for key in ("path","specs_path","programs"):
             if not hasattr(self,"_"+key):
                 raise Exception("missing {} from program inventory for {}".format(key,name))
+        if self._type == "begs":
+            for key in ("program_set","program_version"):
+                if not hasattr(self,"_"+key):
+                    raise Exception("missing {} from program inventory for {}".format(key,name))
+
         self._program_version = int(self._program_version)
         self._boot_for_version = set(self._boot_for_version)
         self._path = os.path.join(self._dir,self._path)
@@ -119,7 +158,7 @@ class OneBegsFile:
     def load_toml(self, data):
         if "general" in data:
             self.load_toml(data["general"])
-        for key in ("path","program_set","program_version","specs_path","boot_for_version","programs"):
+        for key in ("path","program_set","program_version","specs_path","boot_for_version","programs","type"):
             if key in data:
                 setattr(self,"_"+key,data[key])
         if "mapping" in data:
@@ -151,32 +190,47 @@ class OneBegsFile:
 class ProgramInventory:
     def __init__(self, egs_version):
         self._bundle = {}
+        self._program_to_bundle = {}
         self._map_to_bundle = {}
         self._bundle_programs = {}
         self._boot_bundles = {}
+        self._boot_eardos = {}
+        self._eardo = {}
         self._monitor = BegsFilesMonitor()
+        logging.warn("A file at {}".format(BEGS_CONFIG))
         with open(BEGS_CONFIG) as f:
             toml_data = toml.loads(f.read())
             for (name,data) in toml_data.get("file",{}).items():
-                one_file = OneBegsFile(name,data,BEGS_CONFIG)
-                self._bundle[name] = Bundle(name,one_file.path(),egs_version)
-                all_specs = one_file.spec_files()
-                programs = []
-                for (begs_name,program_set,program_name,program_version) in one_file.all_programs():
-                    if begs_name not in all_specs:
-                        raise Exception("missing spec for {}".format(begs_name))
-                    program_spec = self._bundle[name].add_program(begs_name,all_specs[begs_name])
-                    if program_spec.full_name() != (program_set,program_name,program_version):
-                        raise Exception("version mismatch {} vs {}".format(program_spec.full_name(),(program_set,program_name,program_version)))
-                    full_name = (program_set,program_name,program_version)
-                    self._map_to_bundle[full_name] = (name,begs_name)
-                    programs.append(full_name)
-                self._bundle_programs[name] = programs
-                for version in one_file.boot_versions():
-                    if version not in self._boot_bundles:
-                        self._boot_bundles[version] = []
-                    self._boot_bundles[version].append(name)
+                if data.get("type","begs") == "eardo" or data.get("general",{}).get("type","begs") == "eardo":
+                    one_file = OneEardoFile(name,data,BEGS_CONFIG)
+                    self._eardo[name] = one_file
+                    for program in one_file.program_names():
+                        self._program_to_bundle[program] = name
+                    for version in one_file.boot_versions():
+                        if version not in self._boot_eardos:
+                            self._boot_eardos[version] = []
+                        self._boot_eardos[version].append(name)
+                else:
+                    one_file = OneBegsFile(name,data,BEGS_CONFIG)
+                    self._bundle[name] = Bundle(name,one_file.path(),egs_version)
+                    all_specs = one_file.spec_files()
+                    programs = []
+                    for (begs_name,program_set,program_name,program_version) in one_file.all_programs():
+                        if begs_name not in all_specs:
+                            raise Exception("missing spec for {}".format(begs_name))
+                        program_spec = self._bundle[name].add_program(begs_name,all_specs[begs_name])
+                        if program_spec.full_name() != (program_set,program_name,program_version):
+                            raise Exception("version mismatch {} vs {}".format(program_spec.full_name(),(program_set,program_name,program_version)))
+                        full_name = (program_set,program_name,program_version)
+                        self._map_to_bundle[full_name] = (name,begs_name)
+                        programs.append(full_name)
+                    self._bundle_programs[name] = programs
+                    for version in one_file.boot_versions():
+                        if version not in self._boot_bundles:
+                            self._boot_bundles[version] = []
+                        self._boot_bundles[version].append(name)
 
+    # TUE Call from boot endpoint
     def boot_bundles(self, egs_version):
         out = []
         for name in self._boot_bundles.get(egs_version,[]):
@@ -186,14 +240,31 @@ class ProgramInventory:
             out.append(b)
         return out
 
+    def boot_eardos(self, egs_version):
+        out = []
+        for name in self._boot_eardos.get(egs_version,[]):
+            b = self._eardo[name]
+            b.eardo().reload_if_necessary()
+            out.append(b.eardo())
+        return out
+
+    # TUE Call from program endpoint
     def find_bundle(self, program_set: str, program_name: str, program_version: int):
-        (bundle_name,_) = self._map_to_bundle.get((program_set,program_name,program_version),(None,None))
+        (bundle_name,_) = self._map_to_bundle.get((program_set,program_name,program_version),None)
         if bundle_name is None:
             return None
         b = self._bundle[bundle_name]
         if self._monitor.check(b.path):
             b.reload()
         return b
+
+    def find_eardo_bundle(self, program_set: str, program_name: str, program_version: int):
+        bundle_name = self._program_to_bundle.get((program_set,program_name,program_version),None)
+        if bundle_name is None:
+            return None
+        b = self._eardo[bundle_name]
+        b.eardo().reload_if_necessary()
+        return b.eardo()
 
 class BegsFiles(object):
     def __init__(self):

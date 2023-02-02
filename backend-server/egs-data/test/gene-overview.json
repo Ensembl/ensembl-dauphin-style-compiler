@@ -1,0 +1,39 @@
+{
+  "self()": {
+    "gene-overview": {
+      "starts":        [1000000,2000000,3000000,4000000],
+      "lengths":       [100000,100000,100000,100000],
+      "gene_biotypes": ["protein_coding","tRNA","tRNA","protein_coding"],
+      "strands":       [1,1,0,0]
+    },
+    "transcript": {
+      "starts":  [2000000],
+      "lengths": [100000],
+      "gene_id": ["ENSGfocus"],
+      "gene_biotypes": ["tRNA"]
+    }
+  },
+   "__request": {
+       "bp_range": {
+           "": [1100000,1200020]
+       }
+   },
+   "__settings": {
+    "one_based": {
+      "": [ true ]
+    },
+    "other-rev": { "": [true] },
+    "pc-rev": { "": [true] },
+    "other-fwd": { "": [true] },
+    "pc-fwd": { "": [true] },
+
+    "pc-rev-name": { "": [true] },
+    "pc-fwd-name": { "": [true] },
+
+    "focus-gene": {
+      "genome_id": [""],
+      "item_id": ["ENSGfocus"]
+    }
+  }
+}
+

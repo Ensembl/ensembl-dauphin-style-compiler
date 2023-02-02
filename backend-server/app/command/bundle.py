@@ -1,5 +1,7 @@
 from __future__ import annotations
 import logging, os.path, cbor2
+
+from command.eardo import EardoFile
 from model.programs import AllProgramSpecs, ProgramSpec
 from typing import Any
 from core.config import EGS_FILES
@@ -60,3 +62,21 @@ class BundleSet:
 
     def bundle_data(self) -> Any:
         return [ b.serialize() for b in self.bundles ]
+
+class EardoSet:
+    def __init__(self):
+        self.eardos = []
+        self._names = set()
+
+    def add(self, eardo: EardoFile):
+        if eardo.name() in self._names:
+            return
+        self.eardos.append(eardo)
+        self._names.add(eardo.name())
+
+    def merge(self, other: EardoSet):
+        for e in other.eardos:
+            self.add(e)
+
+    def eardo_data(self) -> Any:
+        return [ b.serialise() for b in self.eardos ]

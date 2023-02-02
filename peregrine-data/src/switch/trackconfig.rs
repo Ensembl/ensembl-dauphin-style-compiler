@@ -2,7 +2,7 @@ use std::{collections::{hash_map::DefaultHasher, BTreeMap}, hash::{ Hash, Hasher
 use std::fmt;
 use std::sync::{ Arc };
 use std::collections::HashMap;
-use peregrine_toolkit::{eachorevery::eoestruct::StructValue};
+use eachorevery::eoestruct::StructValue;
 
 use super::{track::Track};
 
@@ -20,23 +20,26 @@ pub(super) fn hashmap_hasher<H: Hasher, K: Hash+PartialEq+Eq+PartialOrd+Ord, V: 
 pub struct TrackConfig {
     track: Track,
     hash: u64,
-    values: Arc<BTreeMap<String,StructValue>>
+    values: Arc<BTreeMap<String,StructValue>>,
+    underlying_switch: Arc<BTreeMap<String,Vec<String>>>
 }
 
 impl TrackConfig {
-    pub(super) fn new(track: &Track, values: BTreeMap<String,StructValue>) -> TrackConfig {
+    pub(super) fn new(track: &Track, values: BTreeMap<String,StructValue>, underlying_switch: &BTreeMap<String,Vec<String>>) -> TrackConfig {
         let mut state = DefaultHasher::new();
         values.hash(&mut state);
         track.hash(&mut state);
         TrackConfig {
             track: track.clone(),
             hash: state.finish(),
-            values: Arc::new(values)
+            values: Arc::new(values),
+            underlying_switch: Arc::new(underlying_switch.clone())
         }
     }
 
     pub fn track(&self) -> &Track { &self.track }
     pub fn value(&self, name: &str) -> Option<&StructValue> { self.values.get(name) }
+    pub fn underlying_switch(&self, setting: &str) -> Option<&Vec<String>> { self.underlying_switch.get(setting) }
 }
 
 #[cfg(debug_assertions)]

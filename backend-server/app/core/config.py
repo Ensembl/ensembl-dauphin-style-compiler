@@ -69,6 +69,7 @@ ASSETS_TOML = config("ASSETS_TOML",default=os.path.join(config_directory,"assets
 SPECIESLIST_TOML = config("SPECIESLIST_TOML",default=os.path.join(config_directory,"species-list.toml"))
 BOOT_TRACKS_TOML = config("BOOT_TRACKS_TOML",default=os.path.join(config_directory,"boot-tracks","boot-tracks.toml"))
 EXTRA_TRACKS_TOML = config("EXTRA_TRACKS_TOML",default=os.path.join(config_directory,"extra-tracks.toml"))
+SMALL_VALUE_TOML = config("SMALL_VALUE_TOML",default=os.path.join(config_directory,"small-values.toml"))
 
 default_channel_str = config("DEFAULT_BACKEND_NAMESPACE", default="ensembl:main")
 DEFAULT_CHANNEL = default_channel_str.split(":")

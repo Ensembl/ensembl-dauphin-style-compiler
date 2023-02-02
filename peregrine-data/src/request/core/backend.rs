@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::{Arc, Mutex}, rc::Rc};
 use peregrine_toolkit::{lock, error::Error};
-use crate::{Stick, StickId, metric::{datastreammetric::PacketDatastreamMetricBuilder, metricreporter::MetricCollector}, request::minirequests::{datareq::DataRequest, datares::{DataResponse}, jumpreq::JumpReq, jumpres::{JumpLocation, JumpRes}, programreq::ProgramReq, stickreq::StickReq, stickres::StickRes, expandreq::ExpandReq}, PacketPriority, BackendNamespace, shapeload::programname::ProgramName};
+use crate::{Stick, StickId, metric::{datastreammetric::PacketDatastreamMetricBuilder, metricreporter::MetricCollector}, request::minirequests::{datareq::DataRequest, datares::{DataResponse}, jumpreq::JumpReq, jumpres::{JumpLocation, JumpRes}, programreq::ProgramReq, stickreq::StickReq, stickres::StickRes, expandreq::ExpandReq, smallvaluesreq::SmallValuesReq}, PacketPriority, BackendNamespace, shapeload::programname::ProgramName};
 use super::{minirequest::{MiniRequest}, manager::{RequestManager}, miniresponse::{MiniResponseAttempt, MiniResponseError}};
 
 #[derive(Clone)]
@@ -65,6 +65,12 @@ impl Backend {
         let req = ProgramReq::new(&program_name);
         self.submit_hi(req, |d| d.into_variety().into_program()).await?;
         Ok(())
+    }
+
+    pub async fn small_values(&self, namespace: &str, column: &str) -> Result<HashMap<String,String>,Error> {
+        let req = SmallValuesReq::new(namespace,column);
+        let values = self.submit_hi(req, |d| d.into_variety().into_small_values()).await?;
+        Ok(values.small_values().clone())
     }
 
     pub async fn expand(&self, name: &str, step: &str) -> Result<(),Error> {

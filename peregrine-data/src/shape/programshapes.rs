@@ -1,5 +1,6 @@
 use std::{collections::{HashSet}};
-use peregrine_toolkit::{debug_log, eachorevery::EachOrEvery};
+use eachorevery::EachOrEvery;
+use peregrine_toolkit::{debug_log, error::{err_web_drop, Error}};
 use super::{core::{ Patina, Pen, Plotter }, imageshape::ImageShape, rectangleshape::RectangleShape, textshape::TextShape, wiggleshape::WiggleShape, emptyshape::EmptyShape};
 use crate::{LeafRequest, RequestedShapesContainer, allotment::{core::leafrequestsource::LeafRequestSource, style::styletree::StyleTree}, BackendNamespace, LoadMode, PolygonShape, Shape};
 use crate::{Assets, DataMessage, SpaceBaseArea, reactive::Observable, SpaceBase};
@@ -38,7 +39,7 @@ impl ProgramShapesBuilder {
     pub fn len(&self) -> usize { self.shapes.len() }
 
     fn push_shape(&mut self, shape: Shape<LeafRequest>) {
-        shape.register_space(&self.assets);
+        err_web_drop(shape.register_space(&self.assets).map_err(|e| Error::operr(&e.to_string())));
         self.shapes.push(shape);
     }
 
@@ -49,6 +50,11 @@ impl ProgramShapesBuilder {
 
     pub fn add_rectangle(&mut self, area: SpaceBaseArea<f64,LeafRequest>, patina: Patina, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>) -> Result<(),DataMessage> {
         self.push_shape(RectangleShape::new(area,patina,wobble)?);
+        Ok(())
+    }
+
+    pub fn add_running_rectangle(&mut self, area: SpaceBaseArea<f64,LeafRequest>, run: EachOrEvery<f64>, patina: Patina, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>) -> Result<(),DataMessage> {
+        self.push_shape(RectangleShape::new_running(area,run,patina,wobble)?);
         Ok(())
     }
 

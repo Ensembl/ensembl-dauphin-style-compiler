@@ -1,0 +1,91 @@
+/* The long label of the track on the left-hand side, configuref by the "name" setting.
+ */
+export procedure draw_track_name(label,setting,leaf) {
+    let name_text_size = 12;
+    let name_text_colour = colour!("#6f8190");
+
+    // Disable if turned off
+    let leaf = if(setting_boolean(setting,[]),leaf,leaf(""));
+
+    let pen = pen("'IBM Plex Mono', sans-serif",name_text_size,[name_text_colour,...],[colour!("transparent"),...]);
+    text(coord([0],[0],[8]),pen,[label],[leaf,...]);
+}
+
+struct!(variety_trackhover,"""
+    {
+        "type": "track-hover"
+    }
+""");
+
+function contents_trackhover(track_ids) {
+    struct!(contents_trackhover,"""
+(<0>!
+    {
+        "track": <0s>
+    }
+)
+""",
+    track_ids);
+   contents_trackhover 
+}
+
+export procedure draw_swatch(colour,leaf) {
+    let paint = paint_solid(colour);
+    let enough_zeros = repeat(0,len(leaf));
+    rectangle(coord(enough_zeros,[-10,...],[0,...]),coord(enough_zeros,[30,...],[6,...]),paint,leaf);
+}
+
+/* Draw the G, V, etc in the left margin. Admits multiple tracks, so needs a seq in the last arg
+ */
+export procedure draw_track_category(category,track_ids,leafs) {
+    capture variety_trackhover;
+
+    let cat_text_size = 12;
+    let cat_text_colour = colour!("#000");
+
+    let count = len(leafs);
+    let enough_zeros = repeat(0,count);
+
+    /* Draw the label itself */
+    let pen = pen("'Lato', sans-serif",cat_text_size,[cat_text_colour,...],[colour!("transparent"),...]);
+    text(coord(enough_zeros,[5,...],[16,...]),pen,category,leafs);
+
+    /* Create a hotspot zone for tooltip hover */
+    let buffer = 5; // px
+    let hotspot = paint_click(variety_trackhover,contents_trackhover(track_ids),true);
+    rectangle(coord(enough_zeros,[5-buffer,...],[16-buffer,...]),coord(enough_zeros,[17+buffer,...],[28+buffer,...]),hotspot,leafs);
+
+    /* Draw grey swatch */
+    let cat_setting = setting_string("tab-selected",[]);
+    draw_swatch(colour!("#c8c8c8"),set(leafs,category!=cat_setting,[leaf(""),...]));
+}
+
+function draw_inside_pred(pos_start,pos_end) {
+    let (bp_start,bp_end) = bp_range();
+    let bp_in_panel = bp_end-bp_start;
+    let bp_between_lines = pos_end-pos_start;
+    bp_between_lines>bp_in_panel/4
+}
+
+export procedure red_dotted(pos_start,pos_end,text_start,text_end,dots_leaf,text_leaf) {
+    /* We consider writing inside the lines "normal". If we need to write outside we need to
+     * flip the sign of things, so this flip variable is set to -1 and then multiplied by anything
+     * which needs such treatment.
+     */
+    let flip = if(draw_inside_pred(pos_start,pos_end),1,-1);
+
+    /* We need a leftpen and a right pen because right-attachment is triggered by negative
+     * font size.
+     */
+    let pen_left = pen("'Lato', sans-serif",flip*12,[colour!("#000000"),...],[colour!("transparent"),...]);
+    let pen_right = pen("'Lato', sans-serif",flip*-12,[colour!("#000000"),...],[colour!("transparent"),...]);
+
+    /* Text */
+    text(coord([pos_start],[8,...],[flip*8,...]),pen_left,[text_start],[text_leaf,...]);
+    text(coord([pos_end],[8,...],[flip*-8,...]),pen_right,[text_end],[text_leaf,...]);
+
+    /* Dots themselves */
+    let paint = paint_dotted([colour!("transparent"),...],[colour!("red"),...],8,1,0.5);
+    rectangle(coord([pos_start],[-1,...],[1,...]),coord([pos_start],[0,...],[1,...]),paint,[dots_leaf,...]);
+    rectangle(coord([pos_end],[-1,...],[-1,...]),coord([pos_end],[0,...],[-1,...]),paint,[dots_leaf,...]);
+}

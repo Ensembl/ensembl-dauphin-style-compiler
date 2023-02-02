@@ -1,2 +1,0 @@
-proc assign(stomp mask _A, _A);
-func assign(_A,_A) becomes _;

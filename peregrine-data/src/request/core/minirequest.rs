@@ -6,6 +6,7 @@ use crate::request::minirequests::failureres::FailureRes;
 use crate::request::minirequests::jumpreq::JumpReq;
 use crate::request::minirequests::metricreq::MetricReport;
 use crate::request::minirequests::programreq::ProgramReq;
+use crate::request::minirequests::smallvaluesreq::SmallValuesReq;
 use crate::request::minirequests::stickreq::StickReq;
 use std::rc::Rc;
 use super::miniresponse::MiniResponseAttempt;
@@ -20,13 +21,14 @@ pub trait MiniRequestVariety {
 }
 
 pub enum MiniRequest {
-    BootChannel(BootChannelReq), // y
-    Program(ProgramReq), // y
-    Stick(StickReq), // y
+    BootChannel(BootChannelReq),
+    Program(ProgramReq),
+    Stick(StickReq),
     Data(DataRequest),
-    Jump(JumpReq), // y
+    Jump(JumpReq),
     Metric(MetricReport),
-    Expand(ExpandReq) // y
+    Expand(ExpandReq),
+    SmallValues(SmallValuesReq)
 }
 
 impl MiniRequest {
@@ -39,7 +41,8 @@ impl MiniRequest {
             MiniRequest::Data(x) => x,
             MiniRequest::Jump(x) => x,
             MiniRequest::Metric(x) => x,
-            MiniRequest::Expand(x) => x
+            MiniRequest::Expand(x) => x,
+            MiniRequest::SmallValues(x) => x,
         }
     }
 }
@@ -55,6 +58,7 @@ impl Serialize for MiniRequest {
             MiniRequest::Jump(x) =>  x.serialize(serializer),
             MiniRequest::Metric(x) => x.serialize(serializer),
             MiniRequest::Expand(x) => x.serialize(serializer),
+            MiniRequest::SmallValues(x) => x.serialize(serializer),
         }
     }
 }

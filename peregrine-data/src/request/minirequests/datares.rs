@@ -69,8 +69,10 @@ impl<'de> Visitor<'de> for DataVisitor {
         }
         let mut data = st_field("data",data)?;
         let data : HashMap<String,ReceivedData> = data.drain().map(|(k,v)| {
-            Ok((k,v.to_received_data()?))
-        }).collect::<Result<_,()>>().map_err(|_| de::Error::custom("cannot create data"))?;
+            Ok((k.clone(),v.to_received_data().map_err(|_e| {
+                de::Error::custom(&format!("wrong type for field: {}",k))
+            })?))
+        }).collect::<Result<_,_>>()?;
         //debug_log!("data: {:?}",data);
         Ok(DataRes {
             data,

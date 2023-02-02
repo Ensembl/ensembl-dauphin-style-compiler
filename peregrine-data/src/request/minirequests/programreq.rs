@@ -1,5 +1,4 @@
 use crate::{request::core::minirequest::{MiniRequest, MiniRequestVariety}, shapeload::programname::ProgramName};
-use peregrine_toolkit::log;
 use serde::Serialize;
 
 pub struct ProgramReq {
@@ -8,7 +7,6 @@ pub struct ProgramReq {
 
 impl ProgramReq {
     pub(crate) fn new(program_name: &ProgramName) -> MiniRequest {
-        log!("ProgramReq({:?})",program_name);
         MiniRequest::Program(ProgramReq {
             program_name: program_name.clone()
         })

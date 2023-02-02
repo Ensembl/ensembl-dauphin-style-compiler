@@ -1,0 +1,31 @@
+program "ensembl-webteam/core" "focus-variant-summary" 1;
+refer "libperegrine";
+refer "libeoe";
+include "../common/track-common.eard";
+include "../common/track-style.eard";
+include "variant-common.eard";
+
+/* Setup styles */
+
+track_styles();
+
+style!("""
+    tracks/track/focus-variant/ {
+        priority: -900;
+        report: "track;switch-id=focus;!variant-id";
+    }
+
+    tracks/track/focus-variant/main/main/ {
+        padding-top: 35;
+        padding-bottom: 50;
+    }
+""");
+
+/* Get settings */
+
+let (focus_genome_id,focus_variant_id) = focus_variant_settings();
+
+/* Get data */
+
+variant_summary_track("focus-variant",focus_variant_id);
+draw_swatch(colour!("#58a8f9"),[leaf("tracks/track/focus-variant/main/letter/content")]);

@@ -30,6 +30,10 @@ path="../commander"
 version="*"
 path="../peregrine-dauphin-queue"
 
+[dependencies.eachorevery]
+version="*"
+path="../../peregrine-eachorevery"
+
 [dependencies.peregrine_message]
 version="*"
 path="../peregrine-message"
@@ -38,10 +42,6 @@ path="../peregrine-message"
 version="*"
 path="../peregrine-config"
 
-[dependencies.dauphin_interp]
-version="*"
-path="../dauphin-interp"
-
 [dependencies.peregrine_toolkit]
 version="*"
 path="../peregrine-toolkit"
@@ -49,3 +49,7 @@ path="../peregrine-toolkit"
 [dependencies.peregrine_toolkit_async]
 version="*"
 path="../peregrine-toolkit-async"
+
+[dependencies.eard-interp]
+version="*"
+path="../../peregrine-eard/interp"

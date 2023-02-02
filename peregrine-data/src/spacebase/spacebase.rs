@@ -1,9 +1,10 @@
 use std::ops::{Add, Div};
 use std::hash::Hash;
 
-use peregrine_toolkit::eachorevery::{EachOrEvery, EachOrEveryFilter, EachOrEveryGroupCompatible};
+use eachorevery::{EachOrEvery, EachOrEveryFilter, EachOrEveryGroupCompatible};
 use peregrine_toolkit::ubail;
 
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub struct SpaceBasePoint<X,Y> {
     pub base: X,
     pub normal: X,
@@ -264,6 +265,10 @@ impl<X: Clone, Y: Clone> SpaceBase<X,Y> {
             cb(&mut t2,a);
             t2
         });
+    }
+
+    pub fn update_base<'a,F>(&mut self, cb: F) where F: FnMut(&X) -> X {
+        self.base.map_mut(cb);
     }
 
     pub fn update_tangent<'a,F>(&mut self, cb: F) where F: Fn(&X) -> X {

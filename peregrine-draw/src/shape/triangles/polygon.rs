@@ -1,6 +1,7 @@
 use std::{sync::{Arc, Mutex}, f64::consts::PI};
+use eachorevery::EachOrEvery;
 use peregrine_data::{SpaceBase, AuxLeaf, reactive::{Observer, Observable}, SpaceBasePoint};
-use peregrine_toolkit::{eachorevery::EachOrEvery, error::{Error, err_web_drop}, lock};
+use peregrine_toolkit::{ error::{Error, err_web_drop}, lock};
 use crate::{webgl::{ProcessStanzaElements, ProcessBuilder, global::WebGlGlobal}, shape::{layers::{drawing::DynamicShape, geometry::{GeometryProcessName, GeometryFactory}}}};
 use super::{triangleadder::TriangleAdder, drawgroup::DrawGroup, rectangles::fix_normal_unpacked};
 

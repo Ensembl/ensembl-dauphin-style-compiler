@@ -30,6 +30,7 @@ pub(crate) struct Callbacks {
     expansion: Option<Function>,
     program: Option<Function>,
     data: Option<Function>,
+    small_values: Option<Function>
 }
 
 impl Callbacks {
@@ -42,7 +43,8 @@ impl Callbacks {
             stickinfo: None,
             expansion: None,
             program: None,
-            data: None
+            data: None,
+            small_values: None
         }
     }
 
@@ -54,6 +56,7 @@ impl Callbacks {
             "expand" => { self.expansion = Some(to_function(value)?); },
             "program" => { self.program = Some(to_function(value)?); },
             "data" => { self.data = Some(to_function(value)?); },
+            "small_values" => { self.small_values = Some(to_function(value)?); },
             _ => {}
         }
         Ok(())
@@ -77,6 +80,19 @@ impl Callbacks {
             Ok((self.jump_res(&out)?,sidecar))
         } else {
             Ok((None,JsSidecar::new_empty()))
+        }
+    }
+
+    pub(crate) async fn small_values(&self, namespace: &str, column: &str) -> Result<(HashMap<String,String>,JsSidecar),CallbackError> {
+        if let Some(small_values) = &self.small_values {
+            let promise = emap(Error::oper_r(small_values.call2(&self.this,&JsString::from(namespace),&JsString::from(column)),"jump callback"))?;
+            let out = finish_promise(&promise).await?;
+            let mut out = to_hashmap(out)?;
+            let out = out.drain().map(|(k,v)| Ok((k,to_string(&v)?))).collect::<Result<HashMap<String,String>,_>>()?;
+            let sidecar = JsSidecar::new_empty();
+            Ok((out,sidecar))
+        } else {
+            Ok((HashMap::new(),JsSidecar::new_empty()))
         }
     }
 

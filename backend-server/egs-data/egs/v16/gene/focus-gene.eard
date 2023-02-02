@@ -1,0 +1,118 @@
+program "ensembl-webteam/core" "focus-gene" 1;
+refer "libperegrine";
+refer "libeoe";
+include "../common/track-common.eard";
+include "../common/track-style.eard";
+include "gene-common-data.eard";
+include "gene-common-visual.eard";
+include "gene-common-zmenu.eard";
+
+/* Setup styles */
+
+track_styles();
+gene_styles();
+
+style!("""
+    **/main/main/ {
+        type: bumper;
+    }
+
+    **/main/main/*/ {
+        type: overlay;
+    }
+
+    **/main/main/*/blocks/ {
+        depth: 4;
+    }
+
+    **/main/*/text/ {
+        bump-width: none;
+        system: tracking-special;
+    }
+
+    **/main/background/content {
+        depth: -10;
+        padding-top: 32;
+    }
+    
+    tracks/track/focus/ {
+        priority: -900;
+        report: "track;switch-id=focus;has-labels=true;!transcripts-shown;!all-transcripts;!id;!transcripts-suppressed";
+    }
+""");
+
+/* Get the data */
+
+let (focus_genome_id,focus_gene_id) = focus_gene_settings();
+
+let (*gene,*tr,*ex) = get_focus_transcript_data();
+
+let right_chr = index(gene.stick,0)==stick();
+
+halt(only_warm());
+
+/* Map from gene to focus gene */
+
+let focus_gene_index = if(focus_genome_id==stick(),position(focus_gene_id==gene.id_unversioned),[]);
+let **focus_gene = index(index(**gene,focus_gene_index),0);
+
+/* Setup leafs */
+
+function focus_leaf(path) {
+    capture right_chr;
+
+    if(right_chr,leaf(path),leaf(""))
+}
+
+let leaf.bgd = focus_leaf("tracks/track/focus/main/background/content");
+let leaf.text = focus_leaf(if(setting_boolean("focus-gene-label",[]),"tracks/track/focus/main/main/focus/text/content",""));
+let leaf.letter = focus_leaf("tracks/track/focus/main/letter/content");
+let leaf.trackname = focus_leaf("tracks/track/focus/title/content");
+let leaf.main = focus_leaf("tracks/track/focus/main/main/focus/blocks/content");
+gene.block_leaf = [focus_leaf("tracks/track/focus/main/main/focus/blocks/content"),...];
+gene.leaf_index = repeat(4,len(gene.start));
+
+/* Main rectangle and label */
+
+let paint = paint_solid(colour!("#229afc"));
+rectangle(coord(gene.start,[0,...],[-0.5,...]),coord(gene.end,[5,...],[0.5,...]),paint,[leaf.main,...]);
+
+let pen = pen("'IBM Plex Mono', sans-serif",10,[colour!("#6f8190"),...],[colour!("transparent"),...]);
+running_text(coord(gene.start,[8,...],[0,...]),coord(gene.end,[8,...],[0,...]),pen,gene.name,[leaf.text,...]);
+
+/* ZMenus */
+
+emit_gene_zmenu(*gene);
+
+/* Draw chevrons */
+
+draw_focus_track_chevrons(index(gene.strand,focus_gene_index),*leaf);
+draw_focus_sidebar_chevrons(index(gene.strand,focus_gene_index),*leaf);
+
+/* Draw track furniture */
+
+draw_track_category(["G"],["focus"],[leaf.letter]);
+draw_track_name(join(" ",[focus_gene.name,focus_gene_id]),"name",leaf.trackname);
+draw_swatch(colour!("#58a8f9"),[leaf.letter]);
+
+/* Metadata reports */
+
+tr.leaf_index = repeat(0,len(tr.start));
+let (shown_tr,last_tr,tr_position,ghost) = calc_focus_shown_transcripts(*tr);
+
+let shown_tr_names = select(tr.id_versioned,shown_tr);
+let paint = paint_metadata("transcripts-shown",shown_tr_names,eoe_string(shown_tr_names));
+let enough_zeros = repeat(0,len(shown_tr_names));
+let enough_ones = repeat(1,len(shown_tr_names));
+rectangle(coord(enough_zeros,[0,...],[0,...]),coord(enough_ones,[0,...],[0,...]),paint,[leaf.bgd,...]);
+
+let paint = paint_metadata("all-transcripts",tr.id_versioned,eoe_string(tr.id_versioned));
+let enough_zeros = repeat(0,len(tr.id_versioned));
+let enough_ones = repeat(1,len(tr.id_versioned));
+rectangle(coord(enough_zeros,[0,...],[0,...]),coord(enough_ones,[0,...],[0,...]),paint,[leaf.bgd,...]);
+
+let paint = paint_metadata("id",[""],[eoe_string(focus_gene_id)]);
+rectangle(coord([0],[0,...],[0,...]),coord([1],[0,...],[0,...]),paint,[leaf.bgd,...]);
+
+let paint = paint_metadata("transcripts-suppressed",[""],[eoe_boolean(true)]);
+rectangle(coord([0],[0,...],[0,...]),coord([1],[0,...],[0,...]),paint,[leaf.bgd,...]);

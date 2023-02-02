@@ -10,6 +10,14 @@ from data.v15.sequence import ZoomedSeqDataHandler15
 from data.v15.gene.genedata import TranscriptDataHandler15
 from data.v15.gene.genedata import GeneDataHandler15
 from data.v15.gene.genedata import GeneOverviewDataHandler15
+from data.v16.variant import VariantLabelsDataHandler, VariantSummaryDataHandler
+from data.v16.contig import ShimmerContigDataHandler16
+from data.v16.contig import ContigDataHandler16
+from data.v16.wiggle.gc import WiggleDataHandler16
+from data.v16.sequence import ZoomedSeqDataHandler16
+from data.v16.gene.genedata import TranscriptDataHandler16
+from data.v16.gene.genedata import GeneDataHandler16
+from data.v16.gene.genedata import GeneOverviewDataHandler16
 from tokenize import Number
 from typing import Any, Dict, List, Optional
 import time
@@ -63,6 +71,16 @@ handlers = [
     ("contig", ContigDataHandler15(),15),
     ("shimmer-contig", ShimmerContigDataHandler15(),15),
     ("variant", VariantDataHandler15(),15),
+
+    ("gene-overview", GeneOverviewDataHandler16(),16),
+    ("gene", GeneDataHandler16(),16),
+    ("transcript", TranscriptDataHandler16(),16),
+    ("zoomed-seq", ZoomedSeqDataHandler16(),16),
+    ("gc", WiggleDataHandler16(),16),
+    ("contig", ContigDataHandler16(),16),
+    ("shimmer-contig", ShimmerContigDataHandler16(),16),
+    ("variant", VariantSummaryDataHandler(),16),
+    ("variant-labels", VariantLabelsDataHandler(),16),
 ]
 
 def compress_payload(data):

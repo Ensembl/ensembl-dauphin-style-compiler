@@ -1,6 +1,7 @@
 use std::{sync::{Arc, Mutex}};
 use commander::{CommanderStream, cdr_tick, cdr_timer };
-use peregrine_data::{GlobalAllotmentMetadata, ZMenuFixed};
+use eachorevery::eoestruct::StructValue;
+use peregrine_data::{GlobalAllotmentMetadata};
 use peregrine_toolkit::{plumbing::oneshot::OneShot};
 use peregrine_toolkit_async::sync::{needed::{Needed, NeededLock}, changed::Changed};
 use crate::{Message, PgCommanderWeb, util::message::Endstop};
@@ -84,8 +85,8 @@ impl ReportData {
     fn set_target_bp_per_screen(&mut self, value: f64) { self.fast_lock(); self.target_bp_per_screen.set(value); }
     fn set_endstops(&mut self, value: &[Endstop]) {  self.fast_lock(); self.endstop.set(value.to_vec()); }
 
-    fn zmenu_event(&self, x: f64, y: f64, event: Vec<ZMenuFixed>) {
-        self.messages.add(Some(Message::ZMenuEvent(x,y,event)));
+    fn hotspot_event(&self, x: f64, y: f64, start: bool, varieties: &[StructValue], content: &[StructValue]) {
+        self.messages.add(Some(Message::HotspotEvent(x,y,start,varieties.to_vec(),content.to_vec())));
     }
 
     fn build_messages(&mut self, fast: bool) -> Vec<Message> {
@@ -174,8 +175,8 @@ impl Report {
         self.data.lock().unwrap().set_allotter_metadata(metadata);
     }
 
-    pub(crate) fn zmenu_event(&self, x: f64, y: f64, event: Vec<ZMenuFixed>) {
-        self.data.lock().unwrap().zmenu_event(x,y,event);
+    pub(crate) fn hotspot_event(&self, x: f64, y: f64, start: bool, varieties: &[StructValue], content: &[StructValue]) {
+        self.data.lock().unwrap().hotspot_event(x,y,start,varieties,content);
     }
 
     pub(crate) fn run(&self, commander: &PgCommanderWeb, shutdown: &OneShot) {

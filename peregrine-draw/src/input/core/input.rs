@@ -1,5 +1,5 @@
 use std::sync::{ Arc, Mutex };
-use peregrine_data::{PeregrineCore, SpecialClick};
+use peregrine_data::{PeregrineCore, SpecialClick, SingleHotspotEntry};
 use peregrine_toolkit_async::sync::blocker::{Blocker, Lockout};
 
 use crate::PeregrineInnerAPI;
@@ -30,6 +30,7 @@ pub enum InputEventKind {
     PixelsOut,
     DebugAction,
     ZMenu,
+    HoverChange
 }
 
 impl InputEventKind {
@@ -49,6 +50,7 @@ impl InputEventKind {
             InputEventKind::PixelsOut,
             InputEventKind::DebugAction,
             InputEventKind::ZMenu,
+            InputEventKind::HoverChange,
         ]
     }
 }
@@ -106,8 +108,8 @@ impl Input {
         }
     }
 
-    pub fn set_hotspot(&self, yn: bool, special: &[SpecialClick]) {
-        self.state(|state| state.low_level.set_hotspot(yn,special));
+    pub fn set_hotspot(&self, yn: bool, hover: Vec<SingleHotspotEntry>, special: &[SpecialClick], position: (f64,f64)) {
+        self.state(|state| state.low_level.set_hotspot(yn,hover,special,position));
     }
 
     pub fn update_stage(&self, stage: &ReadStage) { 

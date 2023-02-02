@@ -1,12 +1,13 @@
 use std::{collections::HashMap, sync::{ Arc, Mutex }};
 use std::fmt::Debug;
+use eachorevery::eoestruct::StructValue;
 use js_sys::{ Reflect, Array, JSON };
 use serde_wasm_bindgen::from_value;
 use wasm_bindgen::{prelude::*, JsCast};
 use peregrine_draw::{Endstop, Message, PeregrineAPI, PeregrineConfig, PgCommanderWeb};
-use peregrine_data::{ StickId, zmenu_to_json, DataMessage };
+use peregrine_data::{ StickId, DataMessage };
 use peregrine_message::{MessageKind, PeregrineMessage};
-use peregrine_toolkit::{ log, warn, error_important, eachorevery::eoestruct::{StructValue}, js::{jstojsonvalue::js_to_json, dommanip::set_css}, error::{CallToAction, Error, ErrorType, err_web_drop}, map};
+use peregrine_toolkit::{ log, warn, error_important, js::{jstojsonvalue::js_to_json, dommanip::set_css}, error::{CallToAction, Error, ErrorType, err_web_drop}, map};
 use web_sys::{ Element };
 use serde::{Serialize, Deserialize};
 use serde_json::{ Map as JsonMap, Value as JsonValue };
@@ -152,6 +153,7 @@ impl GenomeBrowser {
         let element = target_element.to_element()?;
         err_web_drop(set_css(&element.clone().dyn_into().ok().unwrap(),&map! {
             "overflow-y" => "auto",
+            "overflow-x" => "hidden",
             "position" => "relative"
         }).map_err(|e| Error::fatal(&e)));
         let url = config_in.get("backend_url").unwrap().to_string()?;
@@ -161,6 +163,7 @@ impl GenomeBrowser {
          */
         let tmpl_true = StructValue::new_boolean(true);
         self.api.switch(&["track"],tmpl_true.clone());
+        self.api.switch(&["track","focus","variant"],tmpl_true.clone());
         self.api.switch(&["track","focus"],tmpl_true.clone());
         self.api.switch(&["track","focus","item"],tmpl_true.clone());
         self.api.switch(&["focus"],tmpl_true.clone());
@@ -302,11 +305,17 @@ impl GenomeBrowser {
                                     args.set(1,js_summary);
                                     let _ = closure.apply(&this,&args);
                                 },
-                                Message::ZMenuEvent(x,y,zmenus) => {
+                                Message::HotspotEvent(x,y,start,varieties,contents) => {
+                                    let value = StructValue::new_object(vec![
+                                        ("x".to_string(),StructValue::new_number(*x)),
+                                        ("y".to_string(),StructValue::new_number(*y)),
+                                        ("start".to_string(),StructValue::new_boolean(*start)),
+                                        ("variety".to_string(),StructValue::new_array(varieties.to_vec())),
+                                        ("content".to_string(),StructValue::new_array(contents.to_vec()))
+                                    ]);
                                     let args = Array::new();
-                                    let json = zmenu_to_json(*x,*y,zmenus);
-                                    args.set(0,JsValue::from("zmenu"));
-                                    args.set(1,JsValue::from(js_throw(JsValue::from_serde(&json))));
+                                    args.set(0,JsValue::from("hotspot"));
+                                    args.set(1,JsValue::from(js_throw(JsValue::from_serde(&value))));
                                     let _ = closure.apply(&this,&args);
                                 },
                                 Message::HitEndstop(endstops) => {

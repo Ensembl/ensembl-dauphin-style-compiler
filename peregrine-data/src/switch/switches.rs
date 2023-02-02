@@ -1,5 +1,6 @@
 use std::{sync::{Arc, Mutex}, collections::HashSet};
-use peregrine_toolkit::{eachorevery::eoestruct::{ StructConst, StructValue}, lock, error::Error};
+use eachorevery::eoestruct::{StructValue, StructConst};
+use peregrine_toolkit::{lock, error::Error};
 use crate::{request::tracks::{trackmodel::TrackModel, expansionmodel::ExpansionModel}, AllBackends, PgDauphin, SettingMode, BackendNamespace};
 use super::{trackconfiglist::{TrackConfigList, TrackConfigListBuilder}, switch::Switch, expansion::Expansion};
 

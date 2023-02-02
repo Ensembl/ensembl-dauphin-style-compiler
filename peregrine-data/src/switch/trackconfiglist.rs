@@ -2,7 +2,8 @@ use std::{collections::{hash_map::DefaultHasher, BTreeMap, BTreeSet}, hash::{ Ha
 use std::fmt;
 use std::sync::{ Arc };
 use std::collections::HashMap;
-use peregrine_toolkit::{error::Error, eachorevery::eoestruct::StructValue};
+use eachorevery::eoestruct::StructValue;
+use peregrine_toolkit::{error::Error};
 use peregrine_toolkit_async::sync::{asynconce::AsyncOnce};
 use super::{track::Track, switches::{SwitchesData}};
 use super::trackconfig::{ TrackConfig, hashmap_hasher };
@@ -62,13 +63,13 @@ impl fmt::Debug for TrackConfigList {
 }
 
 impl TrackConfigList {
-    async fn new(models: BTreeSet<(TrackModel,BTreeMap<String,StructValue>)>, hash: u64, pgd: &PgDauphin) -> Result<TrackConfigList,Error> {
+    async fn new(models: BTreeSet<(TrackModel,(BTreeMap<String,StructValue>,BTreeMap<String,Vec<String>>))>, hash: u64, pgd: &PgDauphin) -> Result<TrackConfigList,Error> {
         let mut configs = HashMap::new();
         for (model, settings) in models.iter() {
             let mut settings = settings.clone();
             let track = model.to_track(&pgd).await?;
-            track.program().apply_defaults(&mut settings);
-            configs.insert(track.clone(),Arc::new(TrackConfig::new(&track,settings)));
+            track.program().apply_defaults(&mut settings.0);
+            configs.insert(track.clone(),Arc::new(TrackConfig::new(&track,settings.0,&settings.1)));
         }
         Ok(TrackConfigList {
             configs: Arc::new(configs),

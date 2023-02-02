@@ -1,5 +1,6 @@
 use std::collections::{HashMap, HashSet};
-use peregrine_toolkit::{eachorevery::eoestruct::StructValue};
+use eachorevery::eoestruct::StructValue;
+
 use super::expansion::Expansion;
 use crate::TrackModel;
 

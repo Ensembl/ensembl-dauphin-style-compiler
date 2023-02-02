@@ -1,7 +1,7 @@
 use std::{fmt, sync::Arc, any::Any};
 use peregrine_toolkit::{serdetools::st_field, error::Error};
 use serde::{Deserializer, de::{Visitor, DeserializeSeed}};
-use crate::{request::minirequests::{bootchannelres::BootChannelRes, datares::{DataRes, DataResDeserialize}, failureres::{FailureRes, UnavailableRes, UnavailableReason}, jumpres::JumpRes, programres::ProgramRes, stickres::StickRes, expandres::ExpandRes }, core::channel::wrappedchannelsender::WrappedChannelSender};
+use crate::{request::minirequests::{bootchannelres::BootChannelRes, datares::{DataRes, DataResDeserialize}, failureres::{FailureRes, UnavailableRes, UnavailableReason}, jumpres::JumpRes, programres::ProgramRes, stickres::StickRes, expandres::ExpandRes, smallvaluesres::SmallValuesRes }, core::channel::wrappedchannelsender::WrappedChannelSender};
 
 pub(crate) trait MiniResponseVariety {
     fn description(&self) -> &str;
@@ -23,6 +23,7 @@ pub enum MiniResponse {
     Jump(JumpRes),
     Expand(ExpandRes),
     Unavailable(UnavailableRes),
+    SmallValues(SmallValuesRes)
 }
 
 macro_rules! accessor {
@@ -47,6 +48,7 @@ impl MiniResponse {
             MiniResponse::Jump(x) => x,
             MiniResponse::Expand(x) => x,
             MiniResponse::Unavailable(x) => x,
+            MiniResponse::SmallValues(x) => x
         }
     }
 
@@ -78,7 +80,7 @@ impl MiniResponse {
     accessor!(self,into_data,Data,DataRes);
     accessor!(self,into_boot_channel,BootChannel,BootChannelRes);
     accessor!(self,into_expand,Expand,ExpandRes);
-
+    accessor!(self,into_small_values,SmallValues,SmallValuesRes);
 
     #[cfg(debug_big_requests)]
     pub(crate) fn total_size(&self) -> usize { self.as_mini().total_size() }
@@ -105,6 +107,7 @@ impl<'de> Visitor<'de> for MiniResponseVisitor {
             6 => MiniResponse::Jump(st_field("opdata",seq.next_element()?)?),
             7 => MiniResponse::Expand(st_field("opdata",seq.next_element()?)?),
             8 => MiniResponse::Unavailable(st_field("opdata",seq.next_element()?)?),
+            9 => MiniResponse::SmallValues(st_field("opdata",seq.next_element()?)?),
             v => { return Err(serde::de::Error::custom(format!("unknown opcode {}",v))); }
         })
     }

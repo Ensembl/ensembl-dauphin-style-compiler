@@ -1,0 +1,114 @@
+[input.default]
+default_source_type = "getattr"
+name = "tr_bigbed"
+
+#
+# Gene level
+#
+
+[tangle.gene_names]
+string = ['gene_name','gene_id']
+first = "gene_id"
+
+[tangle.gene_descs]
+string = "gene_description"
+first = "gene_id"
+
+[tangle.gene_biotypes]
+classify = "gene_biotype"
+first = "gene_id"
+
+[tangle.gene_sizes]
+name = ""
+start = "gene_start"
+end = "gene_end"
+first = "gene_id"
+
+[tangle.gene_id_version]
+string = "gene_id"
+without_prefix_source = "unversioned_gene_id"
+first = "gene_id"
+
+[tangle.gene_id]
+string = "unversioned_gene_id"
+first = "gene_id"
+
+[tangle.strands]
+number.field = "strand"
+number.process = "plus_strand"
+positive = true
+first = "gene_id"
+
+[tangle.designated_transcript_biotypes]
+classify = "transcript_biotype"
+first = "gene_id"
+
+[tangle.designated_transcript_ids]
+string = "transcript_id"
+first = "gene_id"
+
+[tangle.designated_transcript_id]
+string = "unversioned_transcript_id"
+first = "gene_id"
+
+[tangle.designated_transcript_id_version]
+string = "transcript_id"
+without_prefix_source = "unversioned_transcript_id"
+first = "gene_id"
+
+[tangle.designated_transcript_designations]
+classify = "transcript_designation"
+first = "gene_id"
+
+#
+# Transcript level
+#
+
+[tangle.transcript_designations]
+classify = "transcript_designation"
+
+#
+# Exon structure (when required)
+#
+
+[tangle.transcript_id_version]
+string = "transcript_id"
+without_prefix_source = "unversioned_transcript_id"
+condition = "exon"
+
+[tangle.transcript_id]
+string = "unversioned_transcript_id"
+condition = "exon"
+
+[tangle.transcript_designation]
+classify = "transcript_designation"
+condition = "exon"
+
+[tangle.transcript_biotypes]
+classify = "transcript_biotype"
+condition = "exon"
+
+[tangle.thicks]
+start = "thick_start"
+end = "thick_end"
+condition = "exon"
+
+[tangle.transcripts]
+start = "transcript_start"
+end = "transcript_end"
+condition = "exon"
+
+[tangle.transcript_exon]
+start = "block_starts"
+length = "block_sizes"
+delta = "transcript_start"
+condition = "exon"
+
+[tangle.transcript_exon_counts]
+count = "block_starts"
+allow_negative = true
+condition = "exon"
+
+[tangle.transcript_counts]
+group_count = "gene_id"
+condition = "exon"

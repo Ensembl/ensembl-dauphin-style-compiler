@@ -56,11 +56,11 @@ pub(crate) enum Heraldry {
 
 impl Heraldry {
     pub(crate) fn new_dots(col_a: &DirectColour, col_b: &DirectColour, prop: u32, number: (u32,u32), dir: bool) -> Heraldry {
-        Heraldry::BarDots(HeraldryBarDots::new_dots(col_a,col_b,prop,number,dir))
+        Heraldry::BarDots(HeraldryBarDots::new_dots(col_a,col_b,prop,number.0,dir))
     }
 
     pub(crate) fn new_bar(col_a: &DirectColour, col_b: &DirectColour, prop: u32, number: (u32,u32), dir: bool) -> Heraldry {
-        Heraldry::BarDots(HeraldryBarDots::new_bar(col_a,col_b,prop,number,dir))
+        Heraldry::BarDots(HeraldryBarDots::new_bar(col_a,col_b,prop,number.0,dir))
     }
 
     pub(crate) fn rotate(&self) -> Heraldry {

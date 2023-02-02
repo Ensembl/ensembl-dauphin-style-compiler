@@ -1,47 +1,28 @@
 use anyhow::{ self };
 use peregrine_toolkit::error::Error;
-use peregrine_toolkit::{lock};
+use peregrine_toolkit::{lock, log};
 use std::any::Any;
-use std::collections::HashMap;
+use std::collections::{HashMap};
 use std::sync::{ Arc, Mutex };
 use crate::core::channel::channelregistry::ChannelRegistry;
 use crate::core::program::programspec::ProgramModel;
-use crate::request::tracks::trackmodel::TrackMapping;
 use crate::{MaxiResponse, BackendNamespace, AccessorResolver, LoadMode, AllBackends, CountingPromise};
 use crate::api::MessageSender;
 use crate::core::program::programbundle::SuppliedBundle;
-use peregrine_dauphin_queue::{ PgDauphinQueue, PgDauphinLoadTaskSpec, PgDauphinRunTaskSpec };
+use peregrine_dauphin_queue::{ PgDauphinQueue, PgDauphinLoadTaskSpec, PgEardoLoadTaskSpec, PgEardoRunTaskSpec };
 use crate::shapeload::programname::{ProgramName};
+use eard_interp::ObjectFile;
 
-pub(crate) struct PgDauphinTaskSpec {
-    pub(crate) program: ProgramModel,
+pub(crate) struct PgEardoTaskSpec {
+    pub(crate) program: eard_interp::ProgramName,
     pub(crate) track_base: BackendNamespace,
-    pub(crate) mapping: TrackMapping,
     pub(crate) payloads: Option<HashMap<String,Box<dyn Any>>>
-}
-
-#[derive(Clone)]
-struct Program {
-    backend_namespace: BackendNamespace,
-    program: ProgramModel,
-    bundle_name: String,
-    in_bundle_name: String
-}
-
-impl Program {
-    fn new(backend_namespace: &BackendNamespace, program: &ProgramModel, bundle_name: &str, in_bundle_name: &str) -> Program {
-        Program {
-            backend_namespace: backend_namespace.clone(),
-            bundle_name: bundle_name.to_string(),
-            program: program.clone(),
-            in_bundle_name: in_bundle_name.to_string()
-        }
-    }
 }
 
 struct PgDauphinData {
     pdq: PgDauphinQueue,
-    programs: HashMap<ProgramName,Option<Program>>,
+    programs_present: HashMap<eard_interp::ProgramName,BackendNamespace>,
+    programs: HashMap<ProgramName,Option<ProgramModel>>,
     all_backends: Option<AllBackends>,
     channel_registry: ChannelRegistry
 }
@@ -54,6 +35,7 @@ impl PgDauphin {
         Ok(PgDauphin(Arc::new(Mutex::new(PgDauphinData {
             pdq: pdq.clone(),
             programs: HashMap::new(),
+            programs_present: HashMap::new(),
             all_backends: None,
             channel_registry: channel_registry.clone()
         })),booted.clone()))
@@ -79,32 +61,39 @@ impl PgDauphin {
         lock!(self.0).all_backends = Some(all_backends.clone());
     }
 
-    async fn add_binary_direct(&self, binary_name: &str, data: &[u8]) -> Result<(),Error> {
-        let obj = lock!(self.0);
-        let pdq = obj.pdq.clone();
-        drop(obj);
-        pdq.load(PgDauphinLoadTaskSpec {
-            bundle_name: binary_name.to_string(),
-            data: data.to_vec()
-        }).await
-    }
-
     fn binary_name(&self, channel: &BackendNamespace, name_of_bundle: &str) -> String {
         let channel_name = channel.to_string();
         format!("{}-{}-{}",channel_name.len(),channel_name,name_of_bundle)
     }
 
-    async fn add_binary(&self, channel: &BackendNamespace, name_of_bundle: &str, cbor: &[u8]) -> Result<(),Error> {
-        self.add_binary_direct(&self.binary_name(channel,name_of_bundle),cbor).await
+    fn register_eardo(&self, backend_namespace: &BackendNamespace, data: &[u8]) -> Result<(),Error> {
+        let eardo = ObjectFile::decode(data.to_vec()).map_err(|e| 
+             Error::operr(&format!("cannot read file: {}",e))
+        )?;
+        for name in eardo.list_programs() {
+            lock!(self.0).programs_present.insert(name,backend_namespace.clone());
+        }
+        Ok(())
     }
 
-    fn register(&self, backend_namespace: &BackendNamespace, program: &ProgramModel, name_of_bundle: &str) {
-        let binary_name = self.binary_name(backend_namespace,name_of_bundle);
-        let internal_name = Program::new(backend_namespace,program,&binary_name,program.in_bundle_name());
-        lock!(self.0).programs.insert(program.name().clone(),Some(internal_name));
+    async fn add_eardo(&self, backend_namespace: &BackendNamespace, name: &str, data: &[u8]) -> Result<(),Error> {
+        let obj = lock!(self.0);
+        let pdq = obj.pdq.clone();
+        pdq.load_eardo(PgEardoLoadTaskSpec {
+            bundle_name: name.to_string(),
+            data: data.to_vec()
+        }).await?;
+        drop(obj);
+        self.register_eardo(backend_namespace,data)?;
+        Ok(())
+    }
+
+    fn register(&self, program: &ProgramModel) {
+        lock!(self.0).programs.insert(program.name().clone(),Some(program.clone()));
     }
 
     pub fn is_present(&self, program_name: &ProgramName) -> bool {
+        if lock!(self.0).programs_present.contains_key(program_name.to_eard()) { return true; }
         lock!(self.0).programs.get(program_name).and_then(|x| x.as_ref()).is_some()
     }
 
@@ -113,7 +102,7 @@ impl PgDauphin {
         data.programs.insert(program_name.clone(),None);
     }
 
-    async fn get_program(&self, program_name: &ProgramName) -> Result<Program,Error> {
+    async fn get_program(&self, program_name: &ProgramName) -> Result<ProgramModel,Error> {
         let program_name = program_name.clone();
         if !self.is_present(&program_name) {
             self.load_program(&program_name).await?;
@@ -127,49 +116,41 @@ impl PgDauphin {
     }
 
     pub(crate) async fn get_program_model(&self, program_name: &ProgramName) -> Result<ProgramModel,Error> {
-        let program = self.get_program(program_name).await?;
-        Ok(program.program)
+        match self.get_program(program_name).await {
+            Ok(program) => Ok(program),
+            Err(_) => Ok(ProgramModel::empty(program_name))
+        }
     }
 
-    pub(crate) async fn run_program(&self, registry: &ChannelRegistry, spec: PgDauphinTaskSpec, mode: &LoadMode) -> Result<(),Error> {
-        let program = self.get_program(&spec.program.name()).await?;
+    pub(crate) async fn run_eardo(&self, registry: &ChannelRegistry, spec: PgEardoTaskSpec, mode: &LoadMode) -> Result<(),Error> {
+        let program_backend = lock!(self.0).programs_present.get(&spec.program).cloned().ok_or_else(||
+            Error::operr(&format!("cannot find program {:?}",spec.program))
+        )?;
         let mut payloads = spec.payloads.unwrap_or_else(|| HashMap::new());
-        payloads.insert("channel-resolver".to_string(),Box::new(AccessorResolver::new(registry,&program.backend_namespace,&spec.track_base)));
-        payloads.insert("program-spec".to_string(),Box::new(spec.program.clone()) as Box::<dyn Any>);
-        payloads.insert("track-mapping".to_string(),Box::new(spec.mapping.clone()) as Box::<dyn Any>);
+        payloads.insert("channel-resolver".to_string(),Box::new(AccessorResolver::new(registry,&program_backend,&spec.track_base)));
         let pdq = lock!(self.0).pdq.clone();
-        pdq.run(PgDauphinRunTaskSpec {
+        pdq.run_eardo(PgEardoRunTaskSpec {
             prio: if mode.high_priority() { 2 } else { 9 },
-            slot: None,
-            timeout: None,
-            bundle_name: program.bundle_name.to_string(), 
-            in_bundle_name: program.in_bundle_name.to_string(),
+            name: spec.program,
             payloads
         }).await
     }
 }
 
-async fn add_bundle(pgd: &PgDauphin, channel: &BackendNamespace, bundle: &SuppliedBundle, messages: &MessageSender) -> Result<(),Error> {
-    let specs = bundle.specs().to_program_models()?;
-    match pgd.add_binary(&channel,bundle.bundle_name(),bundle.code()).await {
-        Ok(_) => {
-            for spec in specs {
-                pgd.register(channel,&spec,bundle.bundle_name());
-            }
-        },
+async fn add_eardo(pgd: &PgDauphin, backend_namespace: &BackendNamespace, name: &str, data: &[u8], messages: &MessageSender) -> Result<(),Error> {
+    //let specs = bundle.specs().to_program_models()?;
+    match pgd.add_eardo(backend_namespace,name,data).await {
+        Ok(_) => {},
         Err(e) => {
             messages.send(e);
-            for spec in specs {
-                pgd.mark_missing(spec.name());
-            }
         }
     }
     Ok(())
 }
 
 pub(crate) async fn add_programs_from_response(pgd: &PgDauphin, channel: &BackendNamespace, response: &MaxiResponse, messages: &MessageSender) -> Result<(),Error> {
-    for bundle in response.programs().clone().iter() {
-        add_bundle(&pgd,&channel, bundle, &messages).await?;
+    for (name,data) in response.eardos() {
+        add_eardo(&pgd,channel,&name,data,&messages).await?;
     }
     Ok(())
 }
