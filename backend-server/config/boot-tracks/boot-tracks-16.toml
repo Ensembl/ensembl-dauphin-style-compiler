@@ -178,6 +178,39 @@ tags= "#has-variants"
 [track.variant.settings]
 name = ["track","variant","name"]
 
+[track.focus-variant.general]
+include = ["general"]
+scales = [3,5,1]
+triggers = [["track","focus","item","variant"]]
+tags= "#has-variants"
+
+[track.focus-variant.settings]
+focus-variant = ["track","focus","item","variant"]
+name = ["track","focus","name"]
+label-snv-id = ["track","focus","variant","label-snv-id"]
+label-snv-alleles = ["track","focus","variant","label-snv-alleles"]
+label-other-id = ["track","focus","variant","label-other-id"]
+label-other-alleles = ["track","focus","variant","label-other-alleles"]
+show-extents = ["track","focus","variant","show-extents"]
+
+[track.focus-variant-summary.general]
+include = ["general"]
+scales = [6,100,4]
+triggers = [["track","focus","item","variant"]]
+tags= "#has-variants"
+
+[track.focus-variant-summary.settings]
+focus-variant = ["track","focus","item","variant"]
+name = ["track","focus","name"]
+
+[track.focus-variant-dots.general]
+scales = [1,66,1]
+include=["general"]
+triggers = [["track","focus","item","variant"]]
+
+[track.focus-variant-dots.settings]
+focus-variant = ["track","focus","item","variant"]
+
 #
 # Contigs and Sequences
 #

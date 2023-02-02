@@ -1,7 +1,7 @@
 import random
 from typing import List, Tuple
 
-from data.v14.dataalgorithm import data_algorithm
+from data.v15.dataalgorithm import data_algorithm
 from command.coremodel import DataHandler, Panel, DataAccessor
 from command.response import Response
 from model.bigbed import get_bigbed

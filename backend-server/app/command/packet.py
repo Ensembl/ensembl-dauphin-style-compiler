@@ -2,7 +2,8 @@ import collections
 import imp
 import logging
 
-from command.bundle import BundleSet
+from.smallvaluecmd import SmallValueHandler
+from command.bundle import BundleSet, EardoSet
 from model.expansions import Expansions
 from command.response import Response
 from command.coremodel import Handler
@@ -30,7 +31,8 @@ handlers = {
     4: DataHandler(),
     5: JumpHandler(),
     6: MetricHandler(),
-    7: ExpansionHandler(expansions)
+    7: ExpansionHandler(expansions),
+    8: SmallValueHandler()
 }
 
 def type_to_handler(typ: int) -> Handler:
@@ -73,12 +75,12 @@ def process_packet(packet_cbor: Any, high_priority: bool) -> Any:
     metrics = ResponseMetrics("realtime" if high_priority else "batch")
     channel = replace_empty_channel(packet_cbor["channel"])
     response = []
-    program_data = []
     local_requests = []
     remote_requests = collections.defaultdict(list)
     version = Version(packet_cbor.get("version",None))
     data_accessor = data_accessor_collection.get(version.get_egs())
     bundles = BundleSet()
+    eardos = EardoSet()
     tracks = Tracks()
     # separate into local and remote
     metrics.count_packets += len(packet_cbor["requests"])
@@ -90,11 +92,9 @@ def process_packet(packet_cbor: Any, high_priority: bool) -> Any:
         else:
             local_requests.append((msgid,typ,payload))
     # remote stuff
-    remote_tracks = []
     for (request,messages) in remote_requests.items():
         r = do_request_remote(request,channel,messages,high_priority,version)
         response += [[x[0],cbor2.dumps(x[1])] for x in r["responses"]]
-        program_data += r["programs"]
         if "tracks-packed" in r and len(r["tracks-packed"])>0:
             tracks.add_cookeds(r["tracks-packed"])
     # local stuff
@@ -102,10 +102,11 @@ def process_packet(packet_cbor: Any, high_priority: bool) -> Any:
         if version.get_egs() in data_accessor.supported_versions:
             r = process_local_request(data_accessor,channel,typ,payload,metrics,version)
             response.append([msgid,r.payload])
+            eardos.merge(r.eardos)
             bundles.merge(r.bundles)
             tracks.merge(r.tracks)
         else:
             response.append([msgid,Response(8,[0]).payload])
     metrics.send()
     tracks = tracks.dump_for_wire()
-    return (response,bundles.bundle_data(),channel,tracks)
+    return (response,bundles.bundle_data(),eardos.eardo_data(),channel,tracks)

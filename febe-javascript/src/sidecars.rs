@@ -26,7 +26,7 @@ fn js_array_extract_track(value: &JsValue, track_namespace: &BackendNamespace) -
     value.iter().map(|x| {
         let deserializer = Deserializer::from(x);
         let deserialize = TrackModelDeserialize(track_namespace.clone());
-        Error::oper_r(deserialize.deserialize(deserializer),"packet error")
+        Error::oper_r(deserialize.deserialize(deserializer),"packet error/A")
     }).collect::<Result<Vec<_>,_>>()
 }
 

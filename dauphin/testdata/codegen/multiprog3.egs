@@ -1,4 +1,0 @@
-import "lib:std";
-use "std";
-
-notice("prog3");

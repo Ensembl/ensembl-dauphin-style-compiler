@@ -26,22 +26,13 @@ program_version=1
 specs_path="specs16"
 boot_for_version=[16]
 programs = [
-    "zoomed-seq",
-    "zoomed-transcript",
-    "transcript",
-    "gene",
-    "gene-overview",
-    "gc",
-    "contig",
-    "variant",
-    "ruler",
-    "framing",
-    "focus-zoomed-transcript",
-    "focus-transcript",
-    "focus-gene",
-    "focus-region",
-    "focus-gene-dots"
+    "focus-region"
 ]
+
+[file.v16e.general]
+type="eardo"
+path="render16.eardo"
+boot_for_version=[16]
 
 [file.test.general]
 path="test16.begs"

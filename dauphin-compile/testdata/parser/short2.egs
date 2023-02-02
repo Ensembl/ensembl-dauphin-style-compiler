@@ -1,5 +1,0 @@
-use "library1";
-
-library1::assert(true,true);
-library2::assert(true,true);
-assert(true,true);

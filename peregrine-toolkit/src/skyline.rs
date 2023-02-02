@@ -220,12 +220,11 @@ impl Skyline {
         offset
     }
 
-    pub fn set_min(&mut self, start: i64, end: i64, height: f64) -> f64 {
+    pub fn set_min(&mut self, start: i64, end: i64, height: f64) {
         let mut req = SkylineRequest::new(self,start,end,height);
-        let offset = req.add(|old,more| old.max(more));
+        req.add(|old,more| old.max(more));
         drop(req);
         self.max_height = self.max_height.max(height);
-        offset
     }
 
     pub fn max_height(&self) -> f64 { self.max_height }

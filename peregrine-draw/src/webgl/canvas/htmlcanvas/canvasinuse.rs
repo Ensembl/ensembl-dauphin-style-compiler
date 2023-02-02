@@ -5,7 +5,7 @@ use peregrine_toolkit::{identitynumber, hashable, lock};
 use peregrine_toolkit::plumbing::lease::Lease;
 use wasm_bindgen::{JsCast, JsValue};
 use web_sys::{CanvasRenderingContext2d, HtmlImageElement, WebGlRenderingContext, HtmlCanvasElement };
-use peregrine_data::{ DirectColour, PenGeometry, Background };
+use peregrine_data::{ DirectColour, PenGeometry };
 use crate::shape::canvasitem::bitmap::Bitmap;
 use crate::webgl::canvas::binding::texturebinding::{TextureBindingSlot, TextureBinding};
 use crate::webgl::canvas::binding::weave::CanvasWeave;
@@ -13,10 +13,6 @@ use crate::webgl::util::handle_context_errors2;
 
 const MIN_ROUNDING_SIZE: u32 = 8; // px :should be configurable in Background object if anyone wants it
 const MAX_ROUNDING_SIZE: u32 = 16; // px :should be configurable in Background object if anyone wants it
-
-fn pen_to_font(pen: &PenGeometry, bitmap_multiplier: f64) -> String {
-    format!("{}px {}",(pen.size_in_webgl() * bitmap_multiplier).round(),pen.name())
-}
 
 fn colour_to_css(c: &DirectColour) -> String {
     format!("rgb({},{},{},{})",c.0,c.1,c.2,c.3)
@@ -88,7 +84,7 @@ impl CanvasAndContext {
 
     pub(crate) fn set_font(&mut self, pen: &PenGeometry) -> Result<(),Error> {
         if self.discarded { return Err(Error::fatal("set_font on discarded flat canvas")); }
-        let new_font = pen_to_font(pen,self.bitmap_multiplier);
+        let new_font = pen.to_font(self.bitmap_multiplier);
         if let Some(old_font) = &self.font {
             if *old_font == new_font { return Ok(()); }
         }
@@ -162,24 +158,8 @@ impl CanvasAndContext {
         Ok(())
     }
 
-    pub(crate) fn background(&self, origin: (u32,u32), size: (u32,u32), background: &Background, multiply: bool) -> Result<(),Error> {
-        if background.round {
-            let d = (size.0/2).min(size.1/2).min(MAX_ROUNDING_SIZE).max(MIN_ROUNDING_SIZE);
-            let d = 16;
-            self.rectangle((origin.0+d,origin.1),(sub(size.0,2*d+1),size.1),&background.colour,multiply)?;
-            self.rectangle((origin.0,origin.1+d),(size.0,sub(size.1,2*d+1)),&background.colour,multiply)?;
-            let nw = (origin.0 + d,origin.1 + d);
-            let ne = (sub(nw.0 + size.0, 2*d+1),nw.1);
-            let sw = (nw.0, sub(nw.1 + size.1,2*d+1));
-            let se = (ne.0,sw.1);
-
-            self.circle(nw,d,&background.colour,multiply)?;
-            self.circle(ne,d,&background.colour,multiply)?;
-            self.circle(sw,d,&background.colour,multiply)?;
-            self.circle(se,d,&background.colour,multiply)?;
-        } else {
-            self.rectangle(origin,size,&background.colour,multiply)?;
-        }
+    pub(crate) fn background(&self, origin: (u32,u32), size: (u32,u32), background: &DirectColour, multiply: bool) -> Result<(),Error> {
+        self.rectangle(origin,size,background,multiply)?;
         Ok(())
     }
 

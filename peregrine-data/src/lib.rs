@@ -23,10 +23,12 @@ mod allotment {
     }
     
     pub(crate) mod collision {
+        pub(crate) mod algorithmbuilder;
         pub(crate) mod bumprequest;
         mod bumppart;
         pub(crate) mod bumpprocess;
-        pub(crate) mod collisionalgorithm;
+        mod standardalgorithm;
+        mod wall;
     }
 
     pub(crate) mod style {
@@ -111,15 +113,16 @@ mod core {
 
 mod index {
     pub(crate) mod stickstore;
+    pub(crate) mod smallvaluesstore;
     pub(crate) mod jumpstore;
     pub use self::stickstore::StickStore;
+    pub use self::smallvaluesstore::SmallValuesStore;
 }
 
 mod shapeload {
     pub(crate) mod anticipate;
     pub(crate) mod carriagebuilder;
     mod datastore;
-    mod objectbuilder;
     mod shaperequest;
     pub(crate) mod shaperequestgroup;
     pub(crate) mod loadshapes;
@@ -130,7 +133,6 @@ mod shapeload {
     pub use self::shaperequest::{ Region, ShapeRequest };
     pub use self::loadshapes::LoadMode;
     pub use self::resultstore::{ ShapeStore, RunReport };
-    pub use self::objectbuilder::ObjectBuilder;
 }
 
 mod metric {
@@ -173,6 +175,8 @@ mod request {
         pub(crate) mod metricreq;
         pub(crate) mod programreq;
         pub(crate) mod programres;
+        pub(crate) mod smallvaluesreq;
+        pub(crate) mod smallvaluesres;
         pub(crate) mod stickreq;
         pub(crate) mod stickres;
     }
@@ -188,13 +192,11 @@ mod request {
 }
 
 mod run {
-    pub mod instancepayload;
     pub mod pgcommander;
     pub mod pgdauphin;
     pub use self::pgcommander::Commander;
     pub use self::pgcommander::{ PgCommander, PgCommanderTaskSpec, add_task, complete_task, async_complete_task };
     pub use self::pgdauphin::{ PgDauphin };
-    pub use self::instancepayload::InstancePayload;
 }
 
 mod shape {
@@ -214,7 +216,7 @@ mod shape {
 
     pub use self::core::{ 
         Patina, Pen, Colour, DirectColour, Plotter, DrawnType, HotspotPatina, PenGeometry,
-        Background, AttachmentPoint,
+        AttachmentPoint
     };
     pub use self::settingmode::SettingMode;
     pub use self::shape::{ ShapeDemerge, Shape };
@@ -285,8 +287,6 @@ mod util {
 
 pub(crate) mod hotspots {
     pub(crate) mod hotspots;
-    pub(crate) mod zmenupatina;
-    pub(crate) mod zmenuitem;
 }
 
 pub use self::allotment::leafs::leafrequest::LeafRequest;
@@ -298,10 +298,10 @@ pub use self::core::channel::accessorresolver::{ AccessorResolver };
 pub use self::core::channel::backendnamespace::BackendNamespace;
 pub use self::core::dataalgorithm::DataAlgorithm;
 pub use self::core::channel::channelintegration::{ ChannelIntegration, ChannelSender, ChannelResponse, TrivialChannelResponse, ChannelMessageDecoder, null_payload };
-pub use self::index::{ StickStore };
+pub use self::index::{ StickStore, SmallValuesStore };
 pub use self::core::program::programbundle::{ SuppliedBundle, UnpackedSuppliedBundle };
-pub use self::shapeload::{ Region, ShapeStore, DataStore, ShapeRequest, LoadMode, ObjectBuilder, RunReport };
-pub use self::run::{ PgCommander, PgCommanderTaskSpec, PgDauphin, Commander, InstancePayload, add_task, complete_task, async_complete_task };
+pub use self::shapeload::{ Region, ShapeStore, DataStore, ShapeRequest, LoadMode, RunReport };
+pub use self::run::{ PgCommander, PgCommanderTaskSpec, PgDauphin, Commander, add_task, complete_task, async_complete_task };
 pub use self::request::core::maxirequest::{ MaxiRequest };
 pub use self::request::core::maxiresponse::{ MaxiResponse, MaxiResponseDeserialize };
 pub use self::request::core::minirequest::{ MiniRequest, MiniRequestAttempt };
@@ -310,7 +310,7 @@ pub use self::request::core::packetpriority::PacketPriority;
 pub use self::request::core::backend::{ AllBackends, Backend };
 pub use self::shape::shape::DrawingShape;
 pub use self::shape::{ 
-    Patina, Colour, DirectColour, DrawnType, Shape, HotspotPatina, PenGeometry, Background,
+    Patina, Colour, DirectColour, DrawnType, Shape, HotspotPatina, PenGeometry,
     Pen, Plotter, ShapeDemerge, SettingMode,
     ProgramShapesBuilder, RequestedShapesContainer, AttachmentPoint
 };
@@ -332,6 +332,8 @@ pub use self::request::core::manager::RequestManager;
 pub use self::request::tracks::trackmodel::{ TrackMapping, TrackModel, TrackModelDeserialize };
 pub use self::request::tracks::expansionmodel::ExpansionModel;
 pub use self::request::minirequests::failureres::FailureRes;
+pub use self::request::minirequests::smallvaluesreq::SmallValuesReq;
+pub use self::request::minirequests::smallvaluesres::SmallValuesRes;
 pub use self::request::minirequests::bootchannelreq::BootChannelReq;
 pub use self::request::minirequests::bootchannelres::BootChannelRes;
 pub use self::request::minirequests::stickreq::StickReq;
@@ -344,8 +346,6 @@ pub use self::request::minirequests::expandreq::{ ExpandReq };
 pub use self::request::minirequests::expandres::{ ExpandRes };
 pub use self::request::minirequests::programreq::{ ProgramReq };
 pub use self::request::minirequests::programres::{ ProgramRes };
-pub use self::hotspots::zmenupatina::{ ZMenu, zmenu_generator };
-pub use self::hotspots::zmenuitem::{ ZMenuFixed, zmenu_item_list_to_json, zmenu_to_json };
 pub use self::hotspots::hotspots::{ 
     HotspotResult, HotspotGroupEntry, SingleHotspotEntry, SpecialClick
 };

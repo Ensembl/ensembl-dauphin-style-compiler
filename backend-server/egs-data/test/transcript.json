@@ -1,0 +1,54 @@
+{
+  "self()": {
+    "transcript": {
+      "starts":                   [1000000,2000000,3000000,4000000],
+      "lengths":                  [100000,100000,100000,100000],
+      "gene_biotypes":            ["protein_coding","tRNA","tRNA","protein_coding"],
+      "strands":                  [1,1,0,0],
+      "gene_id":                  ["a","b","c","d"],
+      "gene_id_version":          ["1","2","3","4"],
+      "gene_names":               ["A","B","C","D"],
+      "gene_descs":               ["Aa","Bb","Cc","Dd"],
+      "gene_designation":         ["W","X","Y","Z"],
+      "designated_transcript_id": ["p","q","r","s"],
+      "designated_transcript_id_version": ["5","6","7","8"],
+      "designated_transcript_biotypes": ["e","f","g","h"],
+      "designated_transcript_designations": ["i","j","k","l"],
+      "transcripts_starts":        [1000000,2000000,3000000,4000000],
+      "transcripts_lengths":       [100000,100000,100000,100000],
+      "transcripts_designation":   ["W","X","Y","Z"],
+      "transcripts_id_unversioned": ["p","q","r","s"],
+      "transcripts_id_version":    ["5","6","7","8"],
+      "transcripts_biotypes":      ["e","f","g","h"],
+      "thicks_start":             [1000000,2000000,3000000,4000000],
+      "thicks_lengths":           [100000,100000,100000,100000],
+      "transcript_counts":        [1,1,1,1],
+      "transcript_exon_starts":   [1000000,2000000,3000000,4000000],
+      "transcript_exon_lengths":  [100000,100000,100000,100000],
+      "transcript_exon_counts":   [1,1,1,1]  
+    }
+  },
+   "__request": {
+       "bp_range": {
+           "": [1100000,1200020]
+       }
+   },
+   "__settings": {
+    "one_based": {
+      "": [ true ]
+    },
+    "other-rev": { "": [true] },
+    "pc-rev": { "": [true] },
+    "other-fwd": { "": [true] },
+    "pc-fwd": { "": [false] },
+    "pc-fwd-several": { "": [true] },
+
+    "pc-rev-name": { "": [true] },
+    "pc-fwd-name": { "": [true] },
+
+    "focus-gene": {
+      "genome_id": [""],
+      "item_id": ["ENSGfocus"]
+    }
+  }
+}

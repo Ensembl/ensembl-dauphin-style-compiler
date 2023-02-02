@@ -1,21 +1,22 @@
 use std::{rc::Rc};
 use peregrine_toolkit::{puzzle::{derived, DelayedSetter, compose, StaticValue, promise_delayed, cache_constant_rc, short_memoized_rc, compose_slice_vec }};
-use crate::{allotment::{core::{allotmentname::{AllotmentName}}, collision::{collisionalgorithm::{BumpResponses}, bumprequest::{BumpRequestSetBuilder, BumpRequest, BumpRequestSet}}, layout::{layouttree::{ContainerOrLeaf}, layoutcontext::LayoutContext, contentsize::ContentSize}}};
+use crate::{allotment::{core::{allotmentname::{AllotmentName}}, collision::{bumprequest::{BumpRequestSetBuilder, BumpRequest, BumpRequestSet}, algorithmbuilder::BumpResponses}, layout::{layouttree::{ContainerOrLeaf}, layoutcontext::LayoutContext, contentsize::ContentSize}}};
 use super::container::ContainerSpecifics;
 
 #[derive(Clone)]
 pub struct Bumper {
     name: AllotmentName,
+    use_wall: bool,
     results: StaticValue<BumpResponses>,
     results_setter: DelayedSetter<'static,'static,BumpResponses>
 }
 
 impl Bumper {
-    pub fn new(name: &AllotmentName) -> Bumper {
+    pub fn new(name: &AllotmentName, use_wall: bool) -> Bumper {
         let (results_setter,results) = promise_delayed();
         Bumper {
             name: name.clone(),
-            results, results_setter
+            results, results_setter, use_wall
         }
     }
 }
@@ -30,12 +31,13 @@ impl ContainerSpecifics for Bumper {
         let items = compose_slice_vec(&items);
         /* build the ConcreteRequests for this container */
         let carriage_index = prep.extent.as_ref().map(|x| x.region().index()).unwrap_or(0);
+        let use_wall = self.use_wall.clone();
         let concrete_req = derived(items,move |items| {
             let mut builder = BumpRequestSetBuilder::new(carriage_index as usize);
             for (name,height,range) in &items {
                 builder.add(BumpRequest::new(name,range,*height));
             }
-            Rc::new(BumpRequestSet::new(builder))
+            Rc::new((BumpRequestSet::new(builder),use_wall))
         });
         let concrete_req = cache_constant_rc(short_memoized_rc(concrete_req));
         prep.state_request.bump_mut().set(&self.name,&concrete_req);
@@ -45,7 +47,7 @@ impl ContainerSpecifics for Bumper {
 
     fn set_locate(&self, prep: &mut LayoutContext, top: &StaticValue<f64>, children: &mut [&mut Box<dyn ContainerOrLeaf>]) {
         for child in children.iter_mut() {
-            /* Retrieve algorithm offset from bumper top */
+            /* Retrieve algorithm offset of this child from bumper top */
             let name = child.name().clone();
             let offset = derived(self.results.clone(),move |algorithm|
                 algorithm.get(&name) as f64

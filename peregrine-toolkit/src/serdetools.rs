@@ -1,5 +1,4 @@
 use std::{fmt};
-
 use serde::{Deserializer, de::Visitor, Deserialize};
 
 pub fn st_field<T,E>(name: &'static str, value: Option<T>) -> Result<T,E> where E: serde::de::Error {
@@ -15,6 +14,12 @@ pub fn st_err<T,E,F>(value: Result<T,F>,text: &str) -> Result<T,E> where E: serd
 pub struct ByteData {
     #[serde(with="serde_bytes")]
     pub data: Vec<u8>
+}
+
+impl fmt::Debug for ByteData {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("ByteData").field("data", &self.data).finish()
+    }
 }
 
 macro_rules! force_string {

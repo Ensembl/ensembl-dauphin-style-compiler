@@ -28,7 +28,7 @@ impl FloatingLeaf {
     pub fn new(name: &AllotmentName, statics: &LeafStyle, shape_bounds: &LeafRequestSize) -> FloatingLeaf {
         let shape_bounds = Arc::new(shape_bounds.clone());
         let (max_y_piece_setter,max_y_piece) = promise_delayed();
-        if statics.aux.coord_system.is_dustbin() {
+        if statics.aux.coord_system.is_dustbin() || statics.height_invisible {
             max_y_piece_setter.set(constant(0.));
         }
         let (top_setter,top) = if statics.aux.coord_system.is_dustbin() {
@@ -74,9 +74,14 @@ impl ContainerOrLeaf for FloatingLeaf {
     fn name(&self) -> &AllotmentName { &self.name }
 
     fn build(&mut self, prep: &mut LayoutContext) -> ContentSize {
-        self.max_y_piece_setter.set(constant(self.shape_bounds.height()));
+        let height = if self.statics.height_invisible {
+            constant(0.)
+        } else {
+            self.max_y_piece_setter.set(constant(self.shape_bounds.height()));
+            self.max_y_piece.clone()
+        };
         ContentSize {
-            height: self.max_y_piece.clone(),
+            height,
             range: self.full_range(self.shape_bounds.base_range(),self.shape_bounds.pixel_range(),prep.extent.as_ref()),
             metadata: self.shape_bounds.metadata().to_vec()
         }

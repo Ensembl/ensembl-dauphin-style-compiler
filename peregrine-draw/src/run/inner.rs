@@ -1,7 +1,6 @@
 use crate::domcss::dom::PeregrineDom;
 use crate::input::Input;
 use crate::integration::pgcommander::PgCommanderWeb;
-use crate::integration::pgdauphin::PgDauphinIntegrationWeb;
 use crate::integration::pgintegration::PgIntegration;
 use crate::shape::spectres::spectremanager::SpectreManager;
 use crate::stage::axis::ReadStageAxis;
@@ -9,12 +8,12 @@ use std::rc::Rc;
 use std::sync::{ Mutex, Arc };
 use crate::util::message::{ Message, message_register_callback, routed_message, message_register_default };
 use crate::input::translate::targetreporter::TargetReporter;
+use eachorevery::eoestruct::StructValue;
 use peregrine_data::{Assets, Commander, PeregrineCore, PeregrineApiQueue, BackendNamespace, ChannelIntegration, DataMessage};
 use peregrine_dauphin::peregrine_dauphin;
 use peregrine_febe_javascript::JavascriptIntegration;
 use peregrine_febe_network::NetworkChannel;
 use peregrine_message::MessageKind;
-use peregrine_toolkit::eachorevery::eoestruct::{StructValue};
 use peregrine_toolkit::error::err_web_drop;
 use peregrine_toolkit::{log, lock};
 use peregrine_toolkit::plumbing::distributor::Distributor;
@@ -168,7 +167,7 @@ impl PeregrineInnerAPI {
         let mut core = PeregrineCore::new(integration,commander.clone(),move |e| {
             routed_message(Some(commander_id),Message::DataError(DataMessage::XXXTransitional(e)))
         },&api_queue,&redraw_needed,channel_integrations).map_err(|e| Message::DataError(e))?;
-        peregrine_dauphin(Box::new(PgDauphinIntegrationWeb()),&core);
+        peregrine_dauphin(&core);
         core.add_backend(backend);
         report.run(&commander,&dom.shutdown());
         message_sender.add(Some(Message::Ready));

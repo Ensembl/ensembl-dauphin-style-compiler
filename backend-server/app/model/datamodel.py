@@ -26,20 +26,18 @@ class DataModel(object):
         return out
 
     def try_stick(self, data_accessor, alias):
-        """
-
-        Args:
-            data_accessor ():
-            alias ():
-
-        Returns:
-
-        """
         for (prefix, _) in split_all(":", alias):
             species_name = self._species_aliases.get(prefix)
             if species_name is not None:
                 return self._species[species_name].chromosome(data_accessor, alias)
         return None
+
+    def species(self, alias):
+        species_name = self._species_aliases.get(alias)
+        if species_name is not None:
+            return self._species[species_name]
+        else:
+            return None        
 
     def canonical_genome_id(self, alias):
         for (prefix, chr) in split_all(":", alias):
@@ -74,17 +72,14 @@ class DataModel(object):
 
     def split_total_wire_id(self, total_wire_id: str):
         # we know that we split on a colon, but which one? We go from longest to shortest, trying
-        # them all!
+        # all combinations of positions, :-( .
         parts = total_wire_id.split(":")
-        for partition in reversed(range(0,len(parts))):
-            head = ":".join(parts[0:partition+1])
-            species_name = self._species_aliases.get(head,None)
-            if species_name is not None:
-                species = self._species[species_name]
-                if species is not None:
-                    try:
-                        (sp_name,chr_name) = species.split_total_wire_id(total_wire_id)
-                        return (species,sp_name,chr_name)
-                    except RequestException:
-                        pass
+        for num in reversed(range(1,len(parts)+1)):
+            for start in range(0,len(parts)-num+1):
+                species = ":".join(parts[start:start+num])
+                species_name = self._species_aliases.get(species,None)
+                if species_name is not None:
+                    species = self._species[species_name]
+                    out = parts[:start] + [species.wire_id] + parts[start+num:]
+                    return (species,":".join(out))
         raise RequestException("cannot split id")

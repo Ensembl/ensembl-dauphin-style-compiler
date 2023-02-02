@@ -44,7 +44,7 @@ bp_in_data = int(ask("Roughly how many bp in data",100000))
 scale = 1
 for try_scale in range(0,40):
     base_bp = 2**try_scale
-    if base_bp * 1.41 < bp_in_data:
+    if base_bp / 1.41 < bp_in_data:
         scale = try_scale
 print(rich("Ok, nearest is scale \0y{}\0- which has \0y{}\0- bp".format(scale,2**scale)))
 
@@ -75,7 +75,8 @@ def calc_sizes_one(sizes,keys,data):
     prev_len = compressed_size("")
     current_str = b''
     for key in keys:
-        current_str += to_bytes(data[key])
+        for part in data[key]:
+            current_str += to_bytes(part)
         new_len = compressed_size(current_str)
         sizes[key] += new_len-prev_len
         prev_len = new_len
@@ -109,7 +110,7 @@ def make_request(accept):
     request_data = cbor2.dumps({ 
         "channel": "self()", 
         "requests": [request_data],
-        "version": { "egs": 14 }
+        "version": { "egs": 16 }
     })
     request = requests.post(url,data=request_data)
     if request.status_code > 299:

@@ -1,0 +1,34 @@
+program "ensembl-webteam/core" "framing" 1;
+refer "libperegrine";
+
+let pad_left = leaf("pad-left/content");
+let pad_right = leaf("pad-right/content");
+
+style!("""
+    pad-left/ {
+        system: left;
+        depth: 57;
+        set-datum: pad-left;
+    }
+
+    pad-right/ {
+        system: right;
+        depth: 54;
+    }
+
+    tracks/earth/ {
+        min-height: 90;
+        priority: 10000000;
+        system: content;
+    }
+""");
+
+let paint = paint_solid(colour!("white"));
+
+let nw = coord([0],[0],[0]);
+let se = coord([1],[48],[0]);
+
+rectangle(nw,se,paint,pad_left);
+rectangle(nw,se,paint,pad_right);
+
+empty(coord([0],[0],[0]),coord([1],[90],[0]),[leaf("tracks/earth/content")]);

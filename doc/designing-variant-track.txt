@@ -1,0 +1,261 @@
+How I designed the variant track in the genome browser. Not necessarily the optimal SOP. Just what I did in practice.
+
+1. Look at XD to get idea of:
+   a. a suitable overall structure of leafs.
+   b. the data we will need to drive the views.
+   c. the scales at which we would need the various tracks.
+   d. the structure of the focus payload.
+
+Set up basic track
+==================
+
+It makes sens to draw the rudiments of the track before looking at the data as then when we get to the data, it can immediately go onto the screen for inspection.
+
+It looks like we need a completely new track at zoomed in scales and the standard variant summary track when zoomed out but with dotted red lines. The dotted lines will closely resemble focus-region.eard. From Andrea's design it looks like ~64 (breakpoint 6) will be roughly the scale to switch over. Maybe ~32 (5): we can switch over later, if we need to.
+
+First I create a basic eard track (with nothing in it) for the new scale; add it it to the ubild script; add the scale and the trigger to the track payload (ultimately this will be a task for the track API); and add relevant payloads to peregrine-generic/index.html for testing.
+
+Rebuild files. Restart BE to pick up changes to track API contents.
+
+May as well do a rust release build (rather than dev) to check all this as we won't be doing any rebuilding of the rust and it's nice if it's fast.
+
+Result is, when zoomed into the right place, a blank track (with label containing rsid), when zoomed out a little, said track disappears completely.
+
+Commit is "Variant track initial commit." on dev/0.6.0 95d9fae8
+
+Falling back to summary track
+=============================
+
+To make the gb less confusing when working on the variant track, the next step is probably to copy up the variant summary track into the focus track. That involves pushing much of the current summary track into a function in an include file, so that we can reuse it and then setting up the relevant track in the track payload again.
+
+After restart etc, stillhHave nothing at zoomed in level, but when zoomed out enough reverts to variant summary track. No dotted red lines for this yet. (Dotted lines should probably be different "track", anyway).
+
+Commit is "Variant track, revert to summary when zoomed out" on dev/0.6.0 a5dcbc2a
+
+Shore
+=====
+
+The variant track divides into three parts, which I'm going to call sky, shore, and sea (by analogy with a sunset over water). Next thing to do is to set up those containers in the style and then get the data sorted for the shore seems to make the most sense.
+
+The only data used by the shore is a colour. It looks like the colour is consequence-based and so can probably use the same data as the summary track. That will do for the initial implementation, anyway. If that isn't correct all we'd need to do would be to change the sndpoint from "variant" (to something else currently unused) and add an endpoint in the BE server. We're going to do that for the sky and sea parts anyway, so if we need to do that for the shore as well in the future, just do the same thing here. In general it helps to iterate on the data and design, though, even if each part isn't quite correct initially. So we'll use the variant endpoint.
+
+It's basically boxes like the the transcript track when zoomed in.
+
+Commit is "Variant track, shore, initial" on dev/0.6.0 efc32156
+
+Data
+====
+
+Next is probably sun. As well as this being much simpler than sea, it will give us a little prototype of those "modules" of text which are scattered all over sea. They seem to comprise a single row with variant type and allele on top and id on the bottom. Ultimately parts of these modules will be configurable, but let's display them all for now, to reduce complexity. THe challenge here is going to be the data. It looks like the sun module (the focus variant) needs the same data as all the sea modules, so we don't need a special data endpoint for focus vs non-focus. But we do need to pull this from a new variant-endpoint. Let's call it "variant-labels". We need "type", "allele", and "id". We need to use the vcfs for that, so that's the next task.
+
+It probably makes sense to extract the data from these VCFs into bigbeds in our pipeline. We *could* add VCF support but BigBED support is already there (time-expedience) and in general it helps to reduce the data as much as possible for speed.
+
+Looking at the module contents, it seems to make sense to do this to prerocess the VCFs.
+
+```
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+import vcfpy
+
+reader = vcfpy.Reader.from_path('test.vcf')
+for record in reader:
+    start = int(record.POS)
+    end = int(record.POS) + len(record.REF)
+    for (id,alt) in zip(record.ID,record.ALT):
+        line = [str(record.CHROM),str(start),str(end),id,alt.type,str(record.REF),alt.value]
+    print("\t".join(line))
+```
+
+Rewrote in rust because the python was sloooow. Copied into the relevant data files dir, wrote the python to present the data to the GB. Did it via amazon in the first instance (quicker) using upload-to-s3.py. Wrote code on local BE server by stopping it forwarding to AWS via commenting out data forward in sources-dan.toml. When that was working copied to amazon and reenabled.
+
+The python at the moment is simple because only a few fields required. If this ever gets complex, it should switch to using tangle, like the gene/transcript endpoints. Tangle has a setup overhead but is quick to maintain and cleaner code.
+
+Data algorithm spec strings chosen according to the type and general pattern of the data. See dataalgorithm.py. The spec is just a forwards-polish expression defining a tree that defines functions to call to process the data.
+
+To avoid too many potential sources of breakage, this was tested first with data-test.py till I found something which "Looked like data".
+
+```
+dan@shep:~/ensembl-dauphin-style-compiler/backend-server$ ./data-test.py http://localhost:3333/api/data/hi/
+Endpoint name?  variant-labels
+Ok, using endpoint variant-labels
+Enter stick name (eg homo_sapiens_GCA_000001405_28:4)?  
+Roughly how many bp in data?  64
+Ok, nearest is scale 6 which has 64 bp
+Approx centre in bp?  
+Ok, nearest is index 156250 which has bp range 10000000 - 10000063
+
+
+RAW DUMP
+========
+
+
+alts ['SYRLZ', b'\x00\x01', b'T\x00C\x00']
+ids ['SZ', b'rs34407859\x00rs7695555\x00']
+lengths ['NDZRL', b'\x02\x00']
+refs ['SYRLZ', b'\x01\x00', b'T\x00C\x00']
+starts ['NDZRL', b'\xfb8-1\x01\x08']
+varieties ['SYRLZ', b'\x00\x00', b'SNV\x00']
+
+APPROX SIZES
+============
+
+
+alts           4  23%
+starts         4  23%
+lengths        2  16%
+varieties      2  16%
+refs           2  13%
+ids            2  10%
+```
+
+For now bolded labels after non-bolded looks difficult (I think we can only change colour ATM in the middle of a render), so I'll leave them non-bold.
+
+Just for testing purposes I'm going to put all the IDs into sun on the screen to check the data looks right.
+
+Looking at the data, it looks to weird to have the summary data so out of sync with the source. I hadn't realised there would be such a difference. So we should switch to getting consequence from the label source (which is a good idea anyway). So I'm going to investigating adding consequence to that payload. Where is it in the VCFs? It's in there, at least in gnomad, I can tell from grep. Looks like it's in CSQ which is in INFO. CSQ seems to be a pipe-separated field and we want position 1 (ie second position). Updated extraction code.
+
+commit to dev/0.6.0 named "More variant track." c194a1060a
+
+Sun
+===
+
+We now need to restrict the sun to just the focus variant and update the module. Let's update the module first as then we'll be able to temporarily see it in its various forms as we don't have sea implemented yet.
+
+commit to dev/0.6.0 named "Sun track." fac23c5b
+
+Sea
+===
+
+Next we need to do the sea. There are two parts to the sea: the shallow sea, where SNVs live, and the deep sea where other types live attached to fishing lines. As a first cut, let's just create the distinction and plonk everything in the shallow sea.
+
+Things in the sea bump! That means that each needs its own leaf. Discovery: the same ID can have mulitple alt alleles. Time to regenerate the data again! Decided to stop showing detail at scale 6: too cluttered. Tweaked step to avoid to much jiggling when bumping.
+
+commit to dev/0.6.0 "Start of sea implementation for variant track." abdb4f424
+
+Separating sea
+==============
+
+sea needs separating into shallows (SNVs) and depths (others) and focus removing from sea (repeated). Also add some space to top of summary track to make transition smoother. Also need to rename SNV/INDEL, etc to "friendly" names in labels. Bumping algorithm still seems a bit wonky sometimes. Looks like a bug.
+
+commit to dev/0.6.0 "Separate sea into shallow and deep" 65f7336
+
+(Interlude)
+===========
+
+Bugfixes for bumping and new feature for interbox lines and drawing circles. Not part of normal track making process!
+
+Fishing lines
+=============
+
+Items in the deep sea need to be attached to the shore with fishing lines. To start with, let's draw fishing lines for all sea items. Bug: dotted line lengths have gone wonky, AGAIN! We'll draw them without bait for now, as we don't have a circle primitive exposed in eard.
+
+commit to dev/0.6.0 "fishing lines". d9d29f46 and b07b39b1
+
+Adding bobbles to fishing lines
+===============================
+
+Adding bobbles should be as simple as drawing a circle, but the polygon primative wasn't exposed to eard (accidental omission). So that's added and then drawn at the end of the fishing lines. Fishing lines are also disabled for SNVs.
+
+commit to dev/0.6.0 "Variant fishing lines". f50d735f
+
+Sorting out text formats
+========================
+
+One of the awkwardnesses of the genome browser is intra-line font changes aren't really supported.
+This affects the display of these little text modules. We'll draw them as separate texts, shifted
+by the size of the string.
+
+commit to dev/0.6.0 "Fix font in variant track." cb2c4d8e5
+
+ZMenus
+======
+
+Next thing to add is zmenus. That should be pretty simple at this point. We just need a template and then add rectangles over our modules. The template code should probably go in a separate file because it's ugly. It makes sense to start putting these variables in a bundle since we've started passing them around.
+
+commit to dev/0.6.0 "variant zmenus" df5b210b
+
+Switchable labels
+=================
+
+Next let's switch labels on and off. That means we need settings boot_tracks_16.toml was updated (in lieu of the track API) to map the required settings to a switch ofr this track. These switches were then wired to the relevant part of the track code.
+
+commit to dev/0.6.0 "Settings to variant track." c2c43e5e
+
+Space for Eels
+==============
+
+Non SNVs have can long eely creatures next to them to show their extent. These are configurable. The code to position and repeat positions at different offsets might be a bit hairy. The bumping will almost certainly be sub-optimal comparedto the XD. Depending on how that pans out that may or may not be fixable. (It's possible we need a new "grid-bump" layout type, which will be fun). For now let's avoid all that bother and just show a small entity when the eels are switched on so that we can get our leafs and settings organised and add a switch to index.html to help us test it.
+
+Looking at the result, it looks like I might need to get the BE returning some fake data to get up to the feature density where bumping issues would occur in real life given the sparse test data set. But I'll do that later. Probably the best thing to do will be to add fake extra extent to SNVs, that will be for later, but I will leave eels turned on for SNVs for now to allow this.
+
+commit to dev/0.6.0 "Add placeholder for eels" ceacc97
+
+Eels
+====
+
+Faked data by making all SNVs 12 bp long. Need to create somemore datapoints, the entire length prr variant. This is exactly the stuff that eard can do eaily but it's really confusing to work out exactly how. We have starts and ends: [A1,B1,C1,D1] and [A9,B9,C9,D9]. We need [A1,A2,A3,..,A9,B1,B2,B3...,B9,.....D9] and presumably a map to which element belongs to which original source.
+
+So, we clearly need the number of bases between start and end. "end-start", [9,9,9,9] in our example. Let's all it length. We're going to be creating that many bases for each variant. The easy one is the mapping, [0,0,0,0,0,0,0,0,0,1,1,1,.....,3,3]. That's just just count() lets call it "index". We then need that many copies of the start as our basis [A1,A1,A1,...B1,B1,B1,....,D1]. index(start,index). We then need to add one, two, three, etc to A1,A1,A1 to get A1,A2,A3. So overall we have.
+
+let length = end-start;
+let index = count(length);
+let position = index(start,index) + enumerate(length);
+
+That works. But lets keep it cyan so we remember to remove the BE fake data and to remove eels from the shallow sea. Worth a commit, though.
+
+commit to dev/0.6.0 "Eels impl"
+
+Eel zmenus
+==========
+
+Eel zmenus are easy enough at this point.
+
+commit to dev/0.6.0 "Eel zmenus" d49cdd6
+
+(Interlude)
+===========
+
+New container type. Bumping works fine but doesn't ideally position things. This is hard to fix in general, but we have a special case we can exploit here. Unlike, for example, gene bumping, our elements are all the same size, so we can bump in rows. Let's add a new container type and bumping algorithm, "wall", for such cases. If you weren't confident with making changes like this you can just skip this and the track will be fine. But I wanted to put in as much flexibility and functionality as I could before I went and the change is pretty isolated and controlled.
+
+So, it looks like the bumping code has two main parts: the stuff to collect and distribute the bump positions from the containers, etc, and the algorithm itself. We can reuse the former and implement the latter again.
+
+To get the integration trivia out the way, let's first implement a "bumping algorithm" which leaves everything overlaying each other at the top of the track. As we can use the collection stuff as-is, this means we need to add a flag to the Bumper container and wiring it up to the style system.
+
+commit to dev/0.6.0 "New "wall" algorithm (just overlays for now)." 0ab8e06
+
+THen the algorithm is just a matter of recording intervals in rows. The point of divergance being near the bottom of the stack really helped with reducing the amount of code.
+
+commit to dev/0.6.0 "New "wall" bumping type" ebd206e
+
+Restyling and removing fake data
+================================
+
+We can now remove the fake data, remove eals from shallow seas, and reset the style.
+
+Eels potnentially take a lot of compute, let's actually remove them at the data stage rather than dumping to the dustbin leaf this time.
+
+commit to dev/0.6.0 "Only deep sea has eels." cf7ecdd
+
+(+bumping bugfix)
+
+Inderlude
+=========
+
+The jump data needed modifying to accommodate rsids. And there was a corresponding update in the backend server.
+
+commit to dev/0.6.0 "Use split varaint files" 26c5bde7
+
+Dotted lines
+============
+
+The last remaining feature is dotted lines. These should be a separate program because we want to display them at all scales, even when very zoomed out. To support them, we need a modification of the variant-labels endpoint, to add a scope, so that data for the releavnt region can always be retrieved no matter the region of the request (just as with focus genes). We can do this now that we have the jump database to guide the backend. We probably want to report it to the UI too, so this is the best place to do it because of its persistence. First let's set up the data source and draw them though.
+
+commit to dev/0.6.0 "Focus variant dotted lines." 6b08e0ae
+
+In a slight chang of plan, it makes sense for the leaf for the variant track to not just be /focus/, but to have its own name: that will mean we can avoid tangled-up styles. So let's factor that out while we add the metadata rectangles.
+
+commit to dev/0.6.0 "Focus dots in variant track (and rust bugfix)." d63fef19
+
+Bugfix: zmenus on shore only for SNVs.
+
+commit to dev/0.6.0 "SHore zmenus only for shallow variants (SNVs)" f984e3b4d77

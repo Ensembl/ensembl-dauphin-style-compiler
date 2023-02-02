@@ -81,10 +81,16 @@ impl GeometryProgramName {
                 "),
                 Statement::new_vertex("
                     vec4 origin = transform(aOriginCoords);
+                    vec4 base_origin = transform(vec4(
+                        0,
+                        aOriginCoords.y,
+                        aOriginCoords.z,
+                        aOriginCoords.a
+                    ));
                     vec4 pos = transform(aCoords);
-                    if (origin.x < uLeftRail) {
+                    if (base_origin.x < uLeftRail) {
                         vec4 rightmost = transform(aRunCoords);
-                        pos.x = min(uLeftRail,rightmost.x) - origin.x + pos.x;
+                        pos.x = min(uLeftRail,rightmost.x) - base_origin.x + pos.x;
                     }
                     gl_Position = pos;
                 "),

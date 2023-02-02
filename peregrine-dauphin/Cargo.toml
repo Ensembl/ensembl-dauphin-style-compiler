@@ -26,14 +26,14 @@ path="../peregrine-dauphin-queue"
 version="*"
 path="../peregrine-data"
 
-[dependencies.dauphin_interp]
+[dependencies.eard-interp]
 version="*"
-path="../dauphin-interp"
+path="../../peregrine-eard/interp"
 
-[dependencies.dauphin_lib_std]
+[dependencies.eard-libperegrine]
 version="*"
-path="../dauphin-lib-std"
+path="../libperegrine"
 
-[dependencies.dauphin_lib_peregrine]
+[dependencies.eard-libeoe]
 version="*"
-path="../dauphin-lib-peregrine"
+path="../../peregrine-eard/libeoe"

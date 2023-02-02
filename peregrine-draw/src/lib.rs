@@ -66,10 +66,8 @@ mod input {
 mod integration {
     mod bell;
     pub(crate) mod pgcommander;
-    pub(crate) mod pgdauphin;
     pub(crate) mod pgintegration;
     mod custom;
-    mod stream;
 
     pub use self::pgcommander::PgCommanderWeb;
 }

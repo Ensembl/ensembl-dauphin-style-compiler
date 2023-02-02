@@ -12,7 +12,7 @@ from .transcriptorder import sort_data_by_transcript_priority
 from .transcriptfilter import filter_lines_by_criteria
 from tangle.tangle import TangleFactory
 from model.datalocator import AccessItem
-from data.v14.dataalgorithm import data_algorithm
+from data.v15.dataalgorithm import data_algorithm
 from ncd import NCDRead
 
 # We might be asked for very zoomed-in views even when zoomed out for example if we are zoomed

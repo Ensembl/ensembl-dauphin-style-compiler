@@ -1,7 +1,6 @@
 use std::{collections::{hash_map::DefaultHasher}, hash::{Hash, Hasher}, sync::Arc, rc::Rc};
-use peregrine_toolkit::eachorevery::{EachOrEveryFilter, EachOrEvery, eoestruct::{StructTemplate}};
-use crate::{hotspots::{zmenupatina::ZMenu, hotspots::SpecialClick}, HotspotResult, zmenu_generator, SpaceBasePoint, allotment::leafs::auxleaf::AuxLeaf};
-use super::{settingmode::SettingMode};
+use eachorevery::{EachOrEvery, EachOrEveryFilter, eoestruct::{StructTemplate, StructValue, StructBuilt}};
+use crate::{hotspots::{hotspots::SpecialClick}, HotspotResult, SpaceBasePoint, allotment::leafs::auxleaf::AuxLeaf};
 
 #[derive(Clone,Debug,PartialEq,Eq,Hash)]
 pub struct DirectColour(pub u8,pub u8,pub u8,pub u8);
@@ -11,22 +10,6 @@ pub struct DirectColour(pub u8,pub u8,pub u8,pub u8);
 pub enum AttachmentPoint {
     Left,
     Right
-}
-
-#[derive(Clone,Hash)]
-#[cfg_attr(debug_assertions,derive(Debug))]
-pub struct Background {
-    pub colour: DirectColour,
-    pub round: bool
-}
-
-impl Background {
-    pub fn none() -> Background {
-        Background {
-            colour: DirectColour(255,255,255,0),
-            round: false
-        }
-    }
 }
 
 #[derive(Clone,Debug,PartialEq,Eq,Hash)]
@@ -52,6 +35,35 @@ impl PenGeometry {
     pub fn name(&self) -> &str { &self.name }
     pub fn size_in_webgl(&self) -> f64 { self.size as f64 }
     pub fn group_hash(&self) -> u64 { self.hash }
+
+    pub fn to_font(&self, bitmap_multiplier: f64) -> String {
+        let mut name = self.name().trim();
+        let mut prefix = String::new();
+        loop {
+            if name.len() == 0 { break; }
+            if name.starts_with("bold ") {
+                prefix.push_str("bold");
+                name = &name["bold".len()..];
+            } else if name.starts_with("italic") {
+                prefix.push_str("italic ");
+                name = &name["italic".len()..];                
+            } else {
+                let mut number = String::new();
+                let mut chars = name.chars();
+                while let Some(digit) = chars.next().filter(|x| x.is_digit(10)) {
+                    number.push(digit);
+                }
+                if number.len() > 0 {
+                    prefix.push_str(&number);
+                    prefix.push(' ');
+                    name = &name[number.len()..];
+                } else {
+                    break;
+                }
+            }
+        }
+        format!("{} {}px {}",prefix,(self.size_in_webgl() * bitmap_multiplier).round(),name)
+    }    
 }
 
 #[cfg_attr(debug_assertions,derive(Debug))]
@@ -59,36 +71,32 @@ impl PenGeometry {
 pub struct Pen {
     geometry: Arc<PenGeometry>,
     colours: EachOrEvery<DirectColour>,
-    background: Option<Background>,
+    background: EachOrEvery<DirectColour>,
     attachment: AttachmentPoint
 }
 
 impl Pen {
-    fn new_real(geometry: &Arc<PenGeometry>, colours: &EachOrEvery<DirectColour>, background: &Option<Background>, attachment: &AttachmentPoint) -> Pen {
+    pub fn new(name: &str, size: u32, colours: &EachOrEvery<DirectColour>, background: &EachOrEvery<DirectColour>, attachment: &AttachmentPoint) -> Pen {
         Pen {
-            geometry: geometry.clone(),
+            geometry: Arc::new(PenGeometry::new(name,size)),
             colours: colours.clone(),
             background: background.clone(),
             attachment: attachment.clone()
         }
     }
 
-    pub fn new(name: &str, size: u32, colours: &[DirectColour], background: &Option<Background>, attachment: &AttachmentPoint) -> Pen {
-        let colours = if colours.len() == 1 {
-            EachOrEvery::every(colours[0].clone())
-        } else {
-            EachOrEvery::each(colours.to_vec())
-        };
-        Pen::new_real(&Arc::new(PenGeometry::new(name,size)), &colours.index(|x| x.clone()),background,attachment)
-    }
-
     pub fn geometry(&self) -> &PenGeometry { &self.geometry }
     pub fn colours(&self) -> &EachOrEvery<DirectColour> { &self.colours }
-    pub fn background(&self) -> &Option<Background> { &self.background }
+    pub fn background(&self) -> &EachOrEvery<DirectColour> { &self.background }
     pub fn attachment(&self) -> &AttachmentPoint { &self.attachment }
 
     pub fn filter(&self, filter: &EachOrEveryFilter) -> Pen {
-        Pen::new_real(&self.geometry,&self.colours.filter(filter),&self.background,&self.attachment)
+        Pen {
+            geometry: self.geometry.clone(),
+            colours: self.colours.filter(filter),
+            background: self.background.filter(filter),
+            attachment: self.attachment.clone()
+        }
     }
 }
 
@@ -114,71 +122,89 @@ pub enum DrawnType {
 #[derive(Clone)]
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub enum HotspotPatina {
-    ZMenu(ZMenu,Vec<(String,EachOrEvery<String>)>),
-    Setting(EachOrEvery<(Vec<String>,SettingMode)>),
-    Special(EachOrEvery<String>)
+    Setting(Vec<String>,EachOrEvery<(String,StructBuilt)>),
+    Special(EachOrEvery<String>),
+    Click(Arc<StructTemplate>,Arc<StructTemplate>)
 }
 
-fn setting_generator(values: &EachOrEvery<(Vec<String>,SettingMode)>) -> Arc<dyn Fn(usize,Option<(SpaceBasePoint<f64,AuxLeaf>,SpaceBasePoint<f64,AuxLeaf>)>) -> HotspotResult> {
+fn setting_generator(switch: &Vec<String>, values: &EachOrEvery<(String,StructBuilt)>) -> Arc<dyn Fn(usize,Option<(SpaceBasePoint<f64,AuxLeaf>,SpaceBasePoint<f64,AuxLeaf>)>,Option<f64>) -> Option<HotspotResult>> {
     let values = Rc::new(values.clone());
-    Arc::new(move |index,_| {
-        let (path,mode) = values.get(index).unwrap().clone();
-        HotspotResult::Setting(path,mode)
+    let switch = switch.to_vec();
+    Arc::new(move |index,_,_| {
+        let (key,value) = values.get(index).unwrap().clone();
+        Some(HotspotResult::Setting(switch.clone(),key,value))
     })
 }
 
-fn special_generator(values: &EachOrEvery<String>) -> Arc<dyn Fn(usize,Option<(SpaceBasePoint<f64,AuxLeaf>,SpaceBasePoint<f64,AuxLeaf>)>) -> HotspotResult> {
+fn special_generator(values: &EachOrEvery<String>) -> Arc<dyn Fn(usize,Option<(SpaceBasePoint<f64,AuxLeaf>,SpaceBasePoint<f64,AuxLeaf>)>,Option<f64>) -> Option<HotspotResult>> {
     let values = Rc::new(values.clone());
-    Arc::new(move |index,area| {
-        HotspotResult::Special(SpecialClick {
+    Arc::new(move |index,area,run| {
+        Some(HotspotResult::Special(SpecialClick {
             name: values.get(index).unwrap().to_string(),
-            area
-        })
+            area,
+            run
+        }))
+    })
+}
+
+pub fn click_generator(variety: &Arc<StructTemplate>, content: &Arc<StructTemplate>) -> Arc<dyn Fn(usize,Option<(SpaceBasePoint<f64,AuxLeaf>,SpaceBasePoint<f64,AuxLeaf>)>,Option<f64>) -> Option<HotspotResult>> {
+    let variety = variety.clone();
+    let content = content.clone();
+    Arc::new(move |index,_,_| {
+        let built_content = content.set_index(&[],index).ok()?.build().ok()?;
+        let value_content = StructValue::new_expand(&built_content,None).ok()?;
+        let value_content = match value_content {
+            StructValue::Array(a) => a.get(0).cloned(),
+            _ => None
+        };
+        let value_content = value_content.unwrap_or(StructValue::new_null());
+        let built_variety = variety.build().ok()?;
+        let value_variety = StructValue::new_expand(&built_variety,None).ok()?;
+        Some(HotspotResult::Click(value_variety,value_content))
+    })
+}
+
+fn ok_or_empty_click<E>(input: Result<StructTemplate,E>) -> StructTemplate {
+    input.unwrap_or_else(|_| {
+        StructTemplate::new_object(vec![])
     })
 }
 
 impl HotspotPatina {
     fn filter(&self, filter: &EachOrEveryFilter) -> HotspotPatina {
         match self {
-            HotspotPatina::ZMenu(zmenu,values) => {
-                let mut out = Vec::with_capacity(values.len());
-                for (k,v) in values {
-                    out.push((k.to_string(),v.filter(filter)));
-                }
-                HotspotPatina::ZMenu(zmenu.clone(),out)          
-            },
-            HotspotPatina::Setting(values) => {
-                HotspotPatina::Setting(values.filter(filter))
+            HotspotPatina::Setting(key,values) => {
+                HotspotPatina::Setting(key.clone(),values.filter(filter))
             },
             HotspotPatina::Special(value) => {
                 HotspotPatina::Special(value.filter(filter))
+            },
+            HotspotPatina::Click(id,value) => {
+                HotspotPatina::Click(id.clone(),Arc::new(ok_or_empty_click(value.filter(&[],filter))))
+            }
+        }
+    }
+    
+    fn compatible(&self, len: usize) -> bool {
+        match self {
+            HotspotPatina::Setting(_,values) => { values.compatible(len) },
+            HotspotPatina::Special(value) => { value.compatible(len) },
+            HotspotPatina::Click(_,value) => { 
+                value.compatible(&[],len).unwrap_or(false)
             }
         }
     }
 
-    fn compatible(&self, len: usize) -> bool {
+    pub fn generator(&self) -> Arc<dyn Fn(usize,Option<(SpaceBasePoint<f64,AuxLeaf>,SpaceBasePoint<f64,AuxLeaf>)>,Option<f64>) -> Option<HotspotResult>> {
         match self {
-            HotspotPatina::ZMenu(_,values) => {
-                for (_,value) in values.iter() {
-                    if !value.compatible(len) { return false; }
-                }
-                true
-            },
-            HotspotPatina::Setting(value) => { value.compatible(len) },
-            HotspotPatina::Special(value) => { value.compatible(len) },
-        }
-    }
-
-    pub fn generator(&self) -> Arc<dyn Fn(usize,Option<(SpaceBasePoint<f64,AuxLeaf>,SpaceBasePoint<f64,AuxLeaf>)>) -> HotspotResult> {
-        match self {
-            HotspotPatina::ZMenu(zmenu,values) => {
-                zmenu_generator(&zmenu,values)
-            },
-            HotspotPatina::Setting(values) => {
-                setting_generator(&values)
+            HotspotPatina::Setting(key,values) => {
+                setting_generator(key,&values)
             },
             HotspotPatina::Special(values) => {
                 special_generator(&values)
+            },
+            HotspotPatina::Click(variety,content) => {
+                click_generator(variety,content)
             }
         }
     }
@@ -188,15 +214,15 @@ impl HotspotPatina {
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub enum Patina {
     Drawn(DrawnType,EachOrEvery<Colour>),
-    Hotspot(HotspotPatina),
-    Metadata(String,EachOrEvery<(String,StructTemplate)>)
+    Hotspot(HotspotPatina,bool),
+    Metadata(String,EachOrEvery<(String,StructValue)>)
 }
 
 impl Patina {
     pub fn filter(&self, filter: &EachOrEveryFilter) -> Patina {
         match self {
             Patina::Drawn(drawn_type,colours) => Patina::Drawn(drawn_type.clone(),colours.filter(filter)),
-            Patina::Hotspot(hotspot) => Patina::Hotspot(hotspot.filter(filter)),
+            Patina::Hotspot(hotspot,hover) => Patina::Hotspot(hotspot.filter(filter),*hover),
             Patina::Metadata(key,values) => Patina::Metadata(key.clone(),values.filter(filter))
         }
     }
@@ -204,7 +230,7 @@ impl Patina {
     pub fn compatible(&self, len: usize) -> bool {
         match self {
             Patina::Drawn(_,x) => x.compatible(len),
-            Patina::Hotspot(hotspot) => { hotspot.compatible(len) },
+            Patina::Hotspot(hotspot,_) => { hotspot.compatible(len) },
             Patina::Metadata(_,values) => { values.compatible(len) }
         }
     }

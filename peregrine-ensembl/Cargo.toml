@@ -51,3 +51,11 @@ path="../peregrine-toolkit"
 [dependencies.peregrine_message]
 version="*"
 path="../peregrine-message"
+
+[dependencies.eachorevery]
+version="*"
+path="../../peregrine-eachorevery"
+
+
+[profile.release]
+lto=true

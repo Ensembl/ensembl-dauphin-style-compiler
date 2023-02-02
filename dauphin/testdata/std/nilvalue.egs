@@ -1,5 +1,0 @@
-import "lib:std"; use "std";
-import "lib:buildtime"; use "buildtime";
-
-assert(#version == version { major: 0, minor: 0 },true);
-assert(#vec(version) == [],true);

@@ -3,31 +3,31 @@ use std::fmt;
 use peregrine_toolkit::serdetools::st_field;
 use serde::{Serialize, ser::SerializeSeq, de::Visitor, Deserialize, Deserializer};
 
+// XXX whole struct can die
 #[derive(Clone,Debug,Eq,Hash,PartialEq,PartialOrd,Ord)]
 pub struct ProgramName {
-    group: String,
-    name: String,
-    version: u32
+    pub(crate) eard: eard_interp::ProgramName,
 }
 
 impl ProgramName {
     pub fn new(group: &str, name: &str, version: u32) -> ProgramName {
-        ProgramName { group: group.to_string(), name: name.to_string(), version }
+        ProgramName { eard: eard_interp::ProgramName::new(group,name,version) }
     }
 
-    pub fn indicative_name(&self) -> String { format!("{}::{}::{}",self.group,self.name,self.version) }
-    pub fn group(&self) -> &str { &self.group }
-    pub fn name(&self) -> &str { &self.name }
-    pub fn version(&self) -> u32 { self.version }
+    pub(crate) fn to_eard(&self) -> &eard_interp::ProgramName { &self.eard }
+    pub fn indicative_name(&self) -> String { format!("{}::{}::{}",self.eard.group,self.eard.name,self.eard.version) }
+    pub fn group(&self) -> &str { &self.eard.group }
+    pub fn name(&self) -> &str { &self.eard.name }
+    pub fn version(&self) -> u32 { self.eard.version }
 }
 
 impl Serialize for ProgramName {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
             where S: serde::Serializer {
         let mut seq = serializer.serialize_seq(Some(3))?;
-        seq.serialize_element(&self.group)?;
-        seq.serialize_element(&self.name)?;
-        seq.serialize_element(&self.version)?;
+        seq.serialize_element(&self.eard.group)?;
+        seq.serialize_element(&self.eard.name)?;
+        seq.serialize_element(&self.eard.version)?;
         seq.end()
     }
 }
@@ -43,10 +43,11 @@ impl<'de> Visitor<'de> for ProgramNameVisitor {
 
     fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
             where A: serde::de::SeqAccess<'de> {
-        let group = st_field("group",seq.next_element()?)?;
-        let name = st_field("name",seq.next_element()?)?;
+        let group : String = st_field("group",seq.next_element()?)?;
+        let name : String = st_field("name",seq.next_element()?)?;
         let version = st_field("version",seq.next_element()?)?;
-        Ok(ProgramName { group, name, version })
+        let eard = eard_interp::ProgramName::new(&group,&name,version);
+        Ok(ProgramName { eard })
     }
 }
 

@@ -8,9 +8,9 @@ use crate::request::minirequests::metricreq::MetricReport;
 use crate::api::PeregrineIntegration;
 use crate::train::main::railway::Railway;
 use commander::PromiseFuture;
+use eachorevery::eoestruct::StructValue;
 use peregrine_dauphin_queue::{ PgDauphinQueue };
 use peregrine_message::PeregrineMessage;
-use peregrine_toolkit::eachorevery::eoestruct::{StructValue};
 use peregrine_toolkit::error::Error;
 use peregrine_toolkit::lock;
 use peregrine_toolkit::plumbing::oneshot::OneShot;
@@ -155,6 +155,10 @@ impl PeregrineCore {
 
     pub fn update_switch(&self, path: &[&str], value: SettingMode) {
         self.base.queue.push(ApiMessage::UpdateSwitch(path.iter().map(|x| x.to_string()).collect(),value));
+    }
+
+    pub fn update_setting(&self, path: &[&str], key: &str, value: StructValue) {
+        self.base.queue.push(ApiMessage::UpdateSwitch(path.iter().map(|x| x.to_string()).collect(),SettingMode::KeyValue(key.to_string(),value)));
     }
 
     pub fn radio_switch(&self, path: &[&str], yn: bool) {

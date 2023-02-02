@@ -63,15 +63,6 @@ impl GLTrain {
         Ok(out)
     }
 
-    pub(crate) fn any_hotspot(&self, stage: &ReadStage, position: (f64,f64)) -> Result<bool,Message> {
-        for carriage in &lock!(self.0).carriages {
-           if carriage.any_hotspot(stage,position)? {
-               return Ok(true);
-           }
-        }
-        Ok(false)
-    }
-
     pub(crate) fn special_hotspots(&self, stage: &ReadStage, position: (f64,f64)) -> Result<Vec<SpecialClick>,Message> {
         let mut out = vec![];
         for carriage in lock!(self.0).carriages.iter() {

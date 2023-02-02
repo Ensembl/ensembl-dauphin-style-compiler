@@ -7,7 +7,8 @@ use super::{leafstyle::InheritableLeafStyle, metadataproperty::MetadataStyle};
 pub enum ContainerAllotmentType {
     Stack,
     Overlay,
-    Bumper
+    Bumper,
+    Wall
 }
 
 impl ContainerAllotmentType {
@@ -16,6 +17,7 @@ impl ContainerAllotmentType {
         match type_str {
             Some("overlay") => ContainerAllotmentType::Overlay,
             Some("bumper") => ContainerAllotmentType::Bumper,
+            Some("wall") => ContainerAllotmentType::Wall,
             _ => ContainerAllotmentType::Stack
         }    
     }

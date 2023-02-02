@@ -83,6 +83,8 @@ def check_pid(pid):
     else:
         return True
 
+if args.cache_path != None:
+    shutil.rmtree(args.cache_path,ignore_errors=True)
 run()
 while True:
     if not check_pid(pid):

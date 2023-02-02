@@ -1,5 +1,6 @@
 use std::{sync::Arc, collections::BTreeMap, mem};
-use peregrine_toolkit::{eachorevery::eoestruct::{StructValue}, error::Error };
+use eachorevery::eoestruct::StructValue;
+use peregrine_toolkit::{ error::Error };
 use serde::{Deserialize, Deserializer, de::DeserializeSeed};
 use crate::{Track, shapeload::programname::ProgramName, PgDauphin, switch::switches::SwitchesData, BackendNamespace };
 
@@ -36,19 +37,21 @@ impl TrackMapping {
         TrackMapping(Arc::new(builder))
     }
 
-    pub(crate) fn apply(&self, switches_data: &SwitchesData) -> BTreeMap<String,StructValue> {
-        let mut out = BTreeMap::new();
+    pub(crate) fn apply(&self, switches_data: &SwitchesData) -> (BTreeMap<String,StructValue>,BTreeMap<String,Vec<String>>) {
+        let mut values = BTreeMap::new();
+        let mut sources = BTreeMap::new();
         for (key,value) in &self.0.values {
-            out.insert(key.to_string(),value.clone());
+            values.insert(key.to_string(),value.clone());
         }
         for (key,path) in &self.0.settings {
             let path_str = path.iter().map(|x| x.as_str()).collect::<Vec<_>>();
-            out.insert(key.to_string(),switches_data.get_value(&path_str));
+            sources.insert(key.to_string(),path.to_vec());
+            values.insert(key.to_string(),switches_data.get_value(&path_str));
         }
-        out
+        (values,sources)
     }
 
-    pub fn get_switch(&self, setting: &str) -> Option<&[String]> {
+    pub(crate) fn get_switch(&self, setting: &str) -> Option<&[String]> {
         self.0.settings.get(setting).map(|x| x.as_slice())
     }
 }

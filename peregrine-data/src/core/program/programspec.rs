@@ -1,5 +1,6 @@
 use std::{collections::{HashMap, BTreeMap}, sync::Arc, fmt};
-use peregrine_toolkit::{error::Error, eachorevery::eoestruct::{StructValue}};
+use eachorevery::eoestruct::StructValue;
+use peregrine_toolkit::{error::Error};
 use serde::{Deserializer, de::{MapAccess, Visitor}, Deserialize};
 use crate::{shapeload::programname::ProgramName };
 use super::packedprogramspec::PackedProgramSpec;
@@ -79,6 +80,12 @@ pub struct ProgramModel(Arc<ProgramModelBuilder>);
 impl ProgramModel {
     pub(crate) fn new(builder: ProgramModelBuilder) -> ProgramModel {
         ProgramModel(Arc::new(builder))
+    }
+
+    pub fn empty(name: &ProgramName) -> ProgramModel {
+        ProgramModel::new(
+            ProgramModelBuilder::new(name,"*anon*")
+        )
     }
 
     pub fn name(&self) -> &ProgramName { &self.0.name }

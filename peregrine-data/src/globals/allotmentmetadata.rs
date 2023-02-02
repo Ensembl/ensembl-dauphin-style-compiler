@@ -1,11 +1,12 @@
 use std::{collections::{HashMap, hash_map::DefaultHasher }, sync::Arc, hash::{Hash, Hasher}, iter::FromIterator};
+use eachorevery::eoestruct::{StructValue};
 use hashbrown::HashSet;
-use peregrine_toolkit::{puzzle::{ StaticValue, StaticAnswer, derived }, eachorevery::eoestruct::{StructTemplate, struct_to_json}, timer_end, timer_start};
+use peregrine_toolkit::{puzzle::{ StaticValue, StaticAnswer, derived }, timer_end, timer_start};
 use crate::{allotment::core::allotmentname::{AllotmentName}};
 use serde_json::{ Value as JsonValue, Map as JsonMap };
 
 struct AllotmentData {
-    values: HashMap<(AllotmentName,String),Vec<StaticValue<(StructTemplate,Option<String>)>>>,
+    values: HashMap<(AllotmentName,String),Vec<StaticValue<(StructValue,Option<String>)>>>,
     reports: Vec<(AllotmentName,String)>
 }
 
@@ -22,7 +23,7 @@ impl LocalAllotmentMetadataBuilder {
         LocalAllotmentMetadataBuilder(AllotmentData::new())
     }
 
-    pub(crate) fn set(&mut self, allotment: &AllotmentName, key: &str, value: StaticValue<StructTemplate>, via_boxes: Option<String>) {
+    pub(crate) fn set(&mut self, allotment: &AllotmentName, key: &str, value: StaticValue<StructValue>, via_boxes: Option<String>) {
         let value = derived(value, move |x| {
            (x,via_boxes.clone())
         });
@@ -104,16 +105,12 @@ impl MapToReporter {
     }
 }
 
-fn merge(input: &[(StructTemplate,Option<String>)]) -> Option<(JsonValue,bool)> {
+fn merge(input: &[(StructValue,Option<String>)]) -> Option<(JsonValue,bool)> {
     let mut via_boxes = false;
     let mut collated = HashMap::new();
-    for (template,key) in input {
+    for (value,key) in input {
         if key.is_some() { via_boxes = true; }
-        if let Ok(value) = template.build() {
-            if let Ok(json) = struct_to_json(&value,None) {
-                collated.insert(key.clone(),json);
-            }
-        }
+        collated.insert(key.clone(),value.to_json_value());
     }
     if via_boxes {
         if let Some(value) = collated.get(&Some("".to_string())) {

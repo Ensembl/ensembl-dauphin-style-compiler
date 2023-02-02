@@ -85,6 +85,7 @@ impl UnitConverter {
 
     pub fn bp_per_screen(&self) -> f64 { self.bp_per_screen }
     pub fn position(&self) -> f64 { self.position }
+    pub fn left_rail(&self) -> f64 { self.squeeze.0 as f64 }
 
     pub fn canvas_prop_delta_to_bp(&self, prop: f64) -> f64 {
         let invisible_prop = (self.squeeze.0+self.squeeze.1) as f64/self.draw_size;

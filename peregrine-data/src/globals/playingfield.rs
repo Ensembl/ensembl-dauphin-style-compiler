@@ -53,7 +53,7 @@ pub struct GlobalPlayingFieldBuilder(GlobalValueBuilder<PlayingFieldEdge,f64,f64
 
 impl GlobalPlayingFieldBuilder {
     pub(crate) fn new() -> GlobalPlayingFieldBuilder {
-        GlobalPlayingFieldBuilder(GlobalValueBuilder::new())
+        GlobalPlayingFieldBuilder(GlobalValueBuilder::new(false))
     }
 }
 

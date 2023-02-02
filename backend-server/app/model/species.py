@@ -22,6 +22,17 @@ class Species(object):
         self._tags = tags
         self.alias_prefixes = [self.wire_id]
 
+    def item_path(self, variety):
+        """
+
+        Args:
+            variety ():
+
+        Returns:
+            AccessItem:
+        """
+        return AccessItem(variety, self.genome_id)
+
     def _load_ncd(self, data_accessor, variety, wire_id, missing_ok = False):
         """
 

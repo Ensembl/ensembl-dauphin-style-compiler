@@ -35,7 +35,7 @@ pub struct GlobalAlignerBuilder(GlobalValueBuilder<String,f64,f64>);
 
 impl GlobalAlignerBuilder {
     pub(crate) fn new() -> GlobalAlignerBuilder {
-        GlobalAlignerBuilder(GlobalValueBuilder::new())
+        GlobalAlignerBuilder(GlobalValueBuilder::new(false))
     }
 }
 

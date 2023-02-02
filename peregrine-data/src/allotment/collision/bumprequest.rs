@@ -8,7 +8,7 @@
 
 use std::sync::Arc;
 use crate::allotment::core::{allotmentname::AllotmentName, rangeused::RangeUsed};
-use peregrine_toolkit::{identitynumber, hashable, orderable};
+use peregrine_toolkit::{identitynumber, hashable, orderable, log};
 
 const PIXEL_PRECISION : f64 = 1000000.;
 

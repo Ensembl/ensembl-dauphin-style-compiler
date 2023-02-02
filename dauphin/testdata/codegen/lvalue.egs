@@ -1,8 +1,0 @@
-import "lib:std";
-use "std";
-
-y := [1,2,3];
-y[@==2] (+=) 30;
-notice(format(y[@==0]));
-notice(format(y[@==1]));
-notice(format(y[@==2]));

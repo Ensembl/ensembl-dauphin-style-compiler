@@ -1,0 +1,77 @@
+program "ensembl-webteam/core" "zoomed-seq" 1;
+refer "libperegrine";
+refer "libeoe";
+include "../common/track-common.eard";
+include "../common/track-style.eard";
+
+/* Setup styles */
+
+track_styles();
+
+style!("""
+    tracks/track/contig/ {
+        min-height: 50;
+        priority: 0;
+        report: "track;switch-id=contig";
+    }
+""");
+
+/* Get settings and data */
+
+let no_letters = setting_boolean("scale-no-letters",[]);
+let data = get_data(request("self()","zoomed-seq"));
+halt(only_warm());
+
+let sequence = data_string(data,"sequence");
+let sequence_rev = base_flip(sequence);
+let sequence_start = index(data_number(data,"sequence_start"),0);
+
+/* Do maths to extract sequence position and letters from what we got from the backend */
+
+let (bp_start,bp_end) = bp_range();
+let letter_bp = enumerate([bp_end-bp_start+1]) + bp_start; // bp of letter in seq to draw
+let letter_offset = letter_bp - sequence_start; // offset of letter in seq
+let seq_letter_fwd = index(sequence,letter_offset); // letters to draw (forward)
+let seq_letter_rev = index(sequence_rev,letter_offset); // letters to draw (reverse)
+let three_bonds = seq_letter_fwd == "C" || seq_letter_fwd == "G";
+
+/* Draw the base pair boxes, letters, and bonds */
+
+let base_pen = pen("'IBM Plex Mono', sans-serif",10,[colour!("#6f8190"),...],[colour!("transparent"),...]);
+let base_leaf = leaf("tracks/track/contig/main/main/content");
+let letters_base_leaf = if(no_letters,leaf(""),leaf("tracks/track/contig/main/main/content"));
+let base_paint = paint_hollow(colour!("#6f8190"),1);
+let base_height = 10;
+
+procedure draw_base(position,letters,offset) {
+    capture base_pen, base_leaf, letters_base_leaf, base_paint, base_height;
+
+    /* draw the box */
+    let nw = coord(position,[offset,...],[1,...]);
+    let se = coord(position+1,[offset+base_height,...],[-1,...]);
+    rectangle(nw,se,base_paint,[base_leaf,...]);
+
+    /* draw the letter in the box */
+    let text_coord = coord(position+0.5,[offset+1,...],[-3.5,...]);
+    text(text_coord,base_pen,letters,[letters_base_leaf,...]);
+}
+
+procedure one_bond(position,offset) {
+    capture base_paint, base_height, base_leaf, no_letters;
+
+    /* draw the bond between boxes */
+    let nw = coord(position+offset,[base_height,...],[0,...]);
+    let se = coord(position+offset,[base_height+4,...],[1,...]);
+    rectangle(nw,se,base_paint,[if(no_letters,leaf(""),base_leaf),...]);
+}
+
+draw_base(letter_bp,seq_letter_fwd,0);
+draw_base(letter_bp,seq_letter_rev,14);
+one_bond(letter_bp,0.3);
+one_bond(letter_bp,0.7);
+one_bond(select(letter_bp,three_bonds),0.5);
+
+/* draw track furniture */
+
+draw_track_name("Reference sequence","name",leaf("tracks/track/contig/title/content"));
+draw_track_category(["G"],["contig"],[leaf("tracks/track/contig/main/letter/content")]);

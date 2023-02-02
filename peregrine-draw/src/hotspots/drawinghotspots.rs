@@ -3,7 +3,6 @@ use peregrine_data::{ Scale, HotspotGroupEntry, SingleHotspotEntry, SpecialClick
 use peregrine_toolkit::error::Error;
 use crate::stage::{stage::{ ReadStage }, axis::UnitConverter};
 use crate::util::message::Message;
-
 use super::{trackinghotspots::TrackingHotspots, windowhotspots::WindowHotspotProfile, drawhotspotstore::{DrawHotspotStore}};
 
 /* A major complication with using zones is dynamic rescaling and the ability for co-ordinates to include both
@@ -72,7 +71,7 @@ pub struct DrawingHotspots {
      * not be store super-effitiently. They have simple y-coordinate handling so just partition
      * by stripe.
      */
-    window: DrawHotspotStore<(UnitConverter,f64,f64)>
+    window: DrawHotspotStore<(UnitConverter,f64,f64,f64)>
 }
 
 impl DrawingHotspots {
@@ -102,12 +101,13 @@ impl DrawingHotspots {
     }
 
     pub(crate) fn get_hotspot(&self, stage: &ReadStage, position_px: (f64,f64)) -> Result<Vec<SingleHotspotEntry>,Message> {
+        let y_offset_px = stage.y().position()?;
         let converter = stage.x().unit_converter()?;
-        let mut out = self.tracking.as_ref()
+        let mut tracking = self.tracking.as_ref()
             .map(|scaled| scaled.1.get_hotspot(stage,position_px))
             .transpose()?.unwrap_or(vec![]);
-        let mut window = self.window.get_hotspot(&(converter,self.x_px,self.y_px),position_px)?;
-        out.append(&mut window);
+        let mut out = self.window.get_hotspot(&(converter,self.x_px,self.y_px,y_offset_px),position_px)?;
+        out.append(&mut tracking);
         Ok(out)
     }
 
@@ -116,6 +116,6 @@ impl DrawingHotspots {
     }
 
     pub(crate) fn special_hotspots(&self, stage: &ReadStage, position_px: (f64,f64)) -> Result<Vec<SpecialClick>,Message> {
-        Ok(self.get_hotspot(stage,position_px)?.iter().filter_map(|x| x.value().get_special()).collect())
+        Ok(self.get_hotspot(stage,position_px)?.iter().filter_map(|x| x.value()?.get_special()).collect())
     }
 }

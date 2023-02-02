@@ -1,6 +1,7 @@
 use std::{collections::HashMap, sync::{Arc, Mutex}};
+use eachorevery::EachOrEvery;
 use peregrine_data::{Colour, DirectColour, DrawnType, Patina, SpaceBase, SpaceBaseArea, PartialSpaceBase, reactive::{Observable}, ProgramShapesBuilder};
-use peregrine_toolkit::{eachorevery::EachOrEvery, lock};
+use peregrine_toolkit::{lock};
 use crate::{Message, run::{PgConfigKey, PgPeregrineConfig}, shape::{util::eoethrow::eoe_throw}};
 use super::{spectre::{AreaVariables, Spectre}, spectremanager::{SpectreConfigKey, SpectreManager}};
 

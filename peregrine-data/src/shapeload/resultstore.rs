@@ -2,9 +2,9 @@ use std::sync::Mutex;
 use commander::cdr_current_time;
 use peregrine_toolkit::error::Error;
 use std::collections::HashMap;
-use crate::run::pgdauphin::PgDauphinTaskSpec;
+use crate::run::pgdauphin::{PgEardoTaskSpec};
 use crate::shape::originstats::OriginStats;
-use crate::{ProgramShapesBuilder, ObjectBuilder };
+use crate::{ProgramShapesBuilder };
 use std::any::Any;
 use std::sync::{ Arc };
 use crate::shape::{RequestedShapesContainer};
@@ -12,7 +12,7 @@ use super::loadshapes::LoadMode;
 use super::shaperequest::ShapeRequest;
 use crate::util::memoized::{ Memoized, MemoizedType };
 use crate::api::{ PeregrineCoreBase };
-use peregrine_toolkit::lock;
+use peregrine_toolkit::{lock};
 
 pub struct RunReport {
     pub net_ms: f64
@@ -35,9 +35,6 @@ fn add_payloads(payloads: &mut HashMap<String,Box<dyn Any>>,
     /* This is where the output goes */
     payloads.insert("out".to_string(),Box::new(shapes.clone()) as Box<dyn Any>);
 
-    /* Temporary instances of types needed by scripts */
-    payloads.insert("builder".to_string(),Box::new(ObjectBuilder::new()) as Box<dyn Any>);
-
     /* A report about resources consumed by script */
     payloads.insert("report".to_string(),Box::new(run_report.clone()) as Box<dyn Any>);
 
@@ -48,16 +45,15 @@ fn add_payloads(payloads: &mut HashMap<String,Box<dyn Any>>,
 async fn make_unfiltered_shapes(base: PeregrineCoreBase, request: ShapeRequest, mode: LoadMode, will_discard_output: bool) -> Result<Arc<RequestedShapesContainer>,Error> {
     base.booted.wait().await;
     let shapes = Arc::new(Mutex::new(Some(ProgramShapesBuilder::new(&lock!(base.assets).clone(),&mode))));
+    let start = cdr_current_time();
     let mut payloads = HashMap::new();
     let run_report = Arc::new(Mutex::new(RunReport::new()));
     add_payloads(&mut payloads,&request,&mode,&run_report,&shapes);
-    let start = cdr_current_time();
-    base.dauphin.run_program(&base.channel_registry,PgDauphinTaskSpec {
-        program: request.track().track().program().clone(),
-        mapping: request.track().track().mapping().clone(),
+    base.dauphin.run_eardo(&base.channel_registry, PgEardoTaskSpec {
+        program: request.track().track().program().name().to_eard().clone(),
         track_base: request.track().track().track_base().clone(),
         payloads: Some(payloads)
-    },&mode).await.map_err(|e| e.context(&format!("running {}",request.track().track().program().name().indicative_name())))?;
+    },&mode).await?;
     let took_ms = cdr_current_time() - start;
     let net_time_ms = lock!(run_report).net_ms;
     if will_discard_output {
