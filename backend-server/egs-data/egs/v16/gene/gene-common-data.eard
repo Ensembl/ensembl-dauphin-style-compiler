@@ -89,7 +89,7 @@ export function calc_all_tr_shown(*gene,settings,expanded_ids) {
     let leaf_limit = if(gene_is_several,[several,...],[1,...]);
 
     /* calculate initially ignoring expansion */
-    if(gene_expanded,[-1,...],if(leaf_limit>=gene.all_tr_count,[0,...],gene.all_tr_count-leaf_limit))
+    if(leaf_limit>=gene.all_tr_count,[0,...],if(gene_expanded,[-1,...],gene.all_tr_count-leaf_limit))
 }
 
 /* Will all focus transcripts be shown?
