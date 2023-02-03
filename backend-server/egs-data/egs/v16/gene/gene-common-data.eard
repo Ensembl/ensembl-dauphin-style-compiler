@@ -62,7 +62,7 @@ export procedure calc_shown_transcripts(*gene,*tr,settings,expanded_ids) {
     let tr_expanded = index(gene_expanded,tr.index_of_gene);
 
     let tr_is_several = index(settings,tr.leaf_index);
-    let leaf_limit = if(tr_is_several,[5,...],[1,...]);
+    let leaf_limit = if(tr_is_several,[several,...],[1,...]);
     let leaf_limit = set(leaf_limit,tr_expanded,[-1,...]);
 
     let last_shown = (
@@ -70,6 +70,44 @@ export procedure calc_shown_transcripts(*gene,*tr,settings,expanded_ids) {
         tr.position_in_gene == tr.count-1      /* last one */
     );
     (leaf_limit == -1 || tr.position_in_gene<leaf_limit,last_shown)
+}
+
+/* Will all transcripts be shown?
+ * +n = n are hidden
+ * 0 = yes due to fewer transcripts than several
+ * -1 = yes due to expansion
+ */
+export function calc_all_tr_shown(*gene,settings,expanded_ids) {
+    capture several;
+
+    /* which genes are expanded? */
+    let expanded_index = find(gene.id_versioned,expanded_ids);
+    let gene_expanded = set_at(repeat(false,len(gene.start)),expanded_index,[true,...]);
+
+    /* what is the several limit for the gene? (ignoring expansion) */
+    let gene_is_several = index(settings,gene.leaf_index);
+    let leaf_limit = if(gene_is_several,[several,...],[1,...]);
+
+    /* calculate initially ignoring expansion */
+    if(gene_expanded,[-1,...],if(leaf_limit>=gene.all_tr_count,[0,...],gene.all_tr_count-leaf_limit))
+}
+
+/* Will all focus transcripts be shown?
+ * +n = n are hidden
+ * 0 = yes due to fewer transcripts than several
+ * -1 = yes due to expansion
+ */
+export procedure calc_focus_tr_shown(*gene,*tr) {
+    /* get list */
+    let wanted = setting_string_seq("enabled-transcripts",[]);
+
+    /* find where in our transcript list those transcripts are */
+    let shown_tr_index = find(tr.id_versioned,wanted);
+    let shown_tr_index = select(shown_tr_index,shown_tr_index!=-1);
+
+    /* count them and compare to number of transcripts */
+    let out = gene.all_tr_count - len(shown_tr_index);
+    if(out>0,out,[-1,...])
 }
 
 export procedure calc_focus_shown_transcripts(*tr) {
@@ -135,6 +173,7 @@ procedure extract_tr_data(data) {
     let tr.thick_start = data_number(data,"thicks_starts");
     let tr.thick_end = tr.thick_start + data_number(data,"thicks_lengths");
     let gene.tr_count = data_number(data,"transcript_counts");
+    let gene.all_tr_count = data_number(data,"all_transcript_counts");
     let tr.position_in_gene = enumerate(gene.tr_count);
     let tr.index_of_gene = count(gene.tr_count);
     let tr.count = index(gene.tr_count,tr.index_of_gene);

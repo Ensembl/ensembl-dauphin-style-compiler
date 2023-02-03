@@ -60,6 +60,10 @@ first = "gene_id"
 classify = "transcript_designation"
 first = "gene_id"
 
+[tangle.all_transcript_counts]
+number = "all_transcript_counts"
+first = "gene_id"
+
 #
 # Transcript level
 #

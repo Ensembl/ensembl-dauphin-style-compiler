@@ -237,5 +237,5 @@ rectangle(coord([0],[0,...],[0,...]),coord([1],[0,...],[0,...]),paint,[leaf.bgd,
 
 /* Lozenges */
 
-let tr_all_shown = tr_all_tr_shown(*gene,*tr,shown_tr);
-draw_all_lozenges(*tr,*tr_gene,*leaf_tr,last_tr,tr_all_shown,tr_sep,true);
+let tr_all_shown = calc_focus_tr_shown(*gene,*tr);
+draw_all_lozenges(*tr,*tr_gene,*leaf_tr,last_tr,tr_sep,true,tr_all_shown);
