@@ -32,6 +32,4 @@ Window/document zoning is a singleton. Vertical zoning again uses a fixed pixel 
 
 ## Types
 
-* A `Hotspot` is a zmenu or otehr hotspot in abstract, independent of its co-ordinates. 
-
-* A `HotspotUnscaledEntryDetails` is 
+* A `Hotspot` is a zmenu or other hotspot in abstract, independent of its co-ordinates. 

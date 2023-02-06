@@ -11,15 +11,15 @@ pub struct SpecialClick {
 }
 
 pub enum HotspotResult {
-    Setting(Vec<String>,String,StructBuilt),
-    Special(SpecialClick),
-    Click(StructValue,StructValue)
+    Setting(Vec<String>,String,StructBuilt,i8),
+    Special(SpecialClick,i8),
+    Click(StructValue,StructValue,i8)
 }
 
 impl HotspotResult {
     pub fn get_special(&self) -> Option<SpecialClick> {
         match self {
-            HotspotResult::Special(c) => Some(c.clone()),
+            HotspotResult::Special(c,_) => Some(c.clone()),
             _ => None
         }
     }
@@ -29,10 +29,11 @@ identitynumber!(IDS);
 
 #[derive(Clone)]
 pub struct HotspotGroupEntry {
-    generator: Arc<dyn Fn(usize,Option<(SpaceBasePoint<f64,AuxLeaf>,SpaceBasePoint<f64,AuxLeaf>)>,Option<f64>) -> Option<HotspotResult>>,
+    generator: Arc<dyn Fn(usize,Option<(SpaceBasePoint<f64,AuxLeaf>,SpaceBasePoint<f64,AuxLeaf>)>,Option<f64>,i8) -> Option<HotspotResult>>,
     hover: bool,
     area: SpaceBaseArea<f64,AuxLeaf>,
     run: Option<EachOrEvery<f64>>,
+    depth: EachOrEvery<i8>,
     id: u64
 }
 
@@ -40,10 +41,10 @@ hashable!(HotspotGroupEntry,id);
 orderable!(HotspotGroupEntry,id);
 
 impl HotspotGroupEntry {
-    pub fn new(area: SpaceBaseArea<f64,AuxLeaf>, run: Option<EachOrEvery<f64>>, hotspot: &HotspotPatina, hover: bool) -> HotspotGroupEntry {
+    pub fn new(area: SpaceBaseArea<f64,AuxLeaf>, run: Option<EachOrEvery<f64>>, hotspot: &HotspotPatina, depth: EachOrEvery<i8>, hover: bool) -> HotspotGroupEntry {
         HotspotGroupEntry {
             generator: hotspot.generator(),
-            hover, area, run,
+            hover, area, run, depth,
             id: IDS.next()
         }
     }
@@ -55,7 +56,8 @@ impl HotspotGroupEntry {
         let bottom_right = self.area.bottom_right().get(index).map(|x| x.make());
         let run = self.run.as_ref().and_then(|x| x.get(index).cloned());
         let position = top_left.zip(bottom_right);
-        (self.generator)(index,position,run)
+        let depth = *self.depth.get(index).unwrap_or(&0);
+        (self.generator)(index,position,run,depth)
     }
 }
 
