@@ -166,7 +166,7 @@ fn draw_heraldry_canvas(layer: &mut Layer, left: f64, gl: &mut WebGlGlobal, tool
 
 pub(crate) enum ShapeToAdd {
     Dynamic(Box<dyn DynamicShape>),
-    Hotspot(SpaceBaseArea<f64,AuxLeaf>,Option<EachOrEvery<f64>>,HotspotPatina,bool),
+    Hotspot(SpaceBaseArea<f64,AuxLeaf>,Option<EachOrEvery<f64>>,HotspotPatina,EachOrEvery<i8>,bool),
     None
 }
 
@@ -233,7 +233,7 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, left: f64, gl: &mut WebGlGlo
                     Ok(ShapeToAdd::Dynamic(Box::new(Rectangles::new(rectangles,&gl))))
                 },
                 SimpleShapePatina::Hotspot(hotspot,hover) => {
-                    Ok(ShapeToAdd::Hotspot(area,run.clone(),hotspot,hover))
+                    Ok(ShapeToAdd::Hotspot(area,run.clone(),hotspot,depth,hover))
                 },
                 _ => {
                     Ok(ShapeToAdd::None)
@@ -270,7 +270,7 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, left: f64, gl: &mut WebGlGlo
                         allotment: ()
                     });
                     let area = SpaceBaseArea::new(PartialSpaceBase::from_spacebase(top_left),PartialSpaceBase::from_spacebase(borrom_right)).expect("polygon hotspot");
-                    Ok(ShapeToAdd::Hotspot(area,None,hotspot,hover))
+                    Ok(ShapeToAdd::Hotspot(area,None,hotspot,EachOrEvery::every(depth),hover))
                 },
                 _ => {
                     Ok(ShapeToAdd::None)

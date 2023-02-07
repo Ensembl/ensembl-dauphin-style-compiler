@@ -142,33 +142,32 @@ export function tr_label_text(*gene,*tr_gene,*tr,last_tr,gene_enabled,tr_enabled
     )
 }
 
-/* There shouldprobably be a primitive to simplify this, but let's hack our way there. Easiest
- * to spot off transcripts and disqualify their genes. So let's start with a presumption that
- * all are on and then knock out the other genes.
- */
-
-export function tr_all_tr_shown(*gene,*tr,shown_tr) {
-    let hidden_genes = select(tr.index_of_gene,shown_tr==false);
-    let all_shown = set_at(repeat(true,len(gene.start)),hidden_genes,[false,...]);
-    index(all_shown,tr.index_of_gene)
-}
-
 /* Draw a lozenge per gene */
 
-export procedure draw_all_lozenges(*tr,*tr_gene,*leaf_tr,last_tr,tr_all_shown,pitch,focus) {
+export procedure draw_all_lozenges(*tr,*tr_gene,*leaf_tr,last_tr,pitch,focus,all_tr_shown) {
     let colour = colour!("#279afc");
 
-    let lozenge_here = last_tr && tr_gene.tr_count != 1;
+    let tr_all_tr_shown = index(all_tr_shown,tr.index_of_gene);
+    let lozenge_here = last_tr && tr_all_tr_shown != 0;
     let **lozenge = select(**tr,lozenge_here);
     let **lozenge_gene = select(**tr_gene,lozenge_here);
     let **leaf_lozenge = select(**leaf_tr,lozenge_here);
-    let lozenge_all_shown = select(tr_all_shown,lozenge_here);
+    let lozenge_all_shown = select(tr_all_tr_shown == -1,lozenge_here);
+    let lozenge_text = select(push_str("+",to_string(tr_all_tr_shown)),lozenge_here);
+    let lozenge_text = set(lozenge_text,lozenge_all_shown,["X",...]);
 
     let paint = paint_solid(colour);
     let y = lozenge.position * pitch + pitch + 3;
-    running_rectangle(coord(lozenge_gene.start,y,[0,...]),coord(lozenge_gene.start,y+12,[20,...]),lozenge_gene.end,paint,leaf_lozenge.text_leaf);
-    let pen = pen("'IBM Plex Mono', sans-serif",12,[colour!("white"),...],[colour,...]);
-    running_text(coord(lozenge_gene.start,y,[7,...]),coord(lozenge_gene.end,y,[7,...]),pen,if(lozenge_all_shown,["-",...],["+",...]),leaf_lozenge.text_leaf);
+    let width = strlen(lozenge_text) * 8 + 4;
+    running_rectangle(coord(lozenge_gene.start,y,[0,...]),coord(lozenge_gene.start,y+12,width),lozenge_gene.end,paint,leaf_lozenge.text_leaf);
+    let pen = pen("700 Lato, sans-serif",12,[colour!("white"),...],[colour,...]);
+    running_text(
+        coord(lozenge_gene.start,y,[2,...]),
+        coord(lozenge_gene.end,y,[2,...]),
+        pen,
+        lozenge_text,
+        leaf_lozenge.text_leaf
+    );
 
     struct!(variety_lozenge,"""
         {

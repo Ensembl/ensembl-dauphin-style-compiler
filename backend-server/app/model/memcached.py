@@ -183,19 +183,6 @@ class Memcached(object):
         return cbor2.loads(value) if value is not None else None
 
     def set_jump(self, name: str, stick: str, start: int, end: int, version):
-        """
-
-        Args:
-            name (str):
-            stick (str):
-            start (int):
-            end (int):
-            version (Version):
-
-        Returns:
-            None
-        """
-    def set_jump(self, name: str, stick: str, start: int, end: int, version):
         if not self._is_available():
             return
         key = self.hashed_key(["jump",name],version)
