@@ -1,12 +1,21 @@
 use std::{ops::Range};
 
+#[cfg_attr(debug_assertions,derive(Debug))]
+#[derive(Clone)]
+pub struct HotspotPosition {
+    pub top: f64,
+    pub left: f64,
+    pub right: f64,
+    pub bottom: f64
+}
+
 pub trait HotspotStoreProfile<V> {
     type Context;
     type Area;
 
     fn diagonalise(&self, x: usize, y: usize) -> usize;
     fn get_zones(&self, context: &Self::Context, coords: &(f64,f64)) -> Vec<(usize,usize)>;
-    fn bounds(&self, context: &Self::Context, value: &V) -> Option<((f64,f64),(f64,f64))>;
+    fn bounds(&self, context: &Self::Context, value: &V) -> Option<HotspotPosition>;
     fn add_zones(&self, a: &Self::Area) -> Option<(Range<usize>,Range<usize>)>;
 }
 
@@ -46,18 +55,19 @@ impl<A,X,V> HotspotStore<A,X,V> {
         self.get(context,coord).len() != 0
     }
 
-    pub fn get<'b>(&'b self, context: &X, coord: &(f64,f64)) -> Vec<&'b V> {
+    pub fn get<'b>(&'b self, context: &X, coord: &(f64,f64)) -> Vec<(&'b V,HotspotPosition)> {
         let mut out = vec![];
         for (x,y) in self.profile.get_zones(context,coord) {
             if let Some(indexes) = self.data.get(self.profile.diagonalise(x,y)).map(|x| x.as_ref()).flatten() {
                 let more = indexes.iter()
                     .map(|v| &self.values[*v])
-                    .filter(|v| {
-                        if let Some(((w,n),(e,s))) = self.profile.bounds(context,v) {
-                            coord.0 >= w && coord.0 < e && coord.1 >= n && coord.1 < s
-                        } else {
-                            false
+                    .filter_map(|v| {
+                        if let Some(p) = self.profile.bounds(context,v) {
+                            if coord.0 >= p.left && coord.0 < p.right && coord.1 >= p.top && coord.1 < p.bottom {
+                                return Some((v,p));
+                            }
                         }
+                        None
                     });
                 out.extend(more);
             }

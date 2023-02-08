@@ -1,5 +1,5 @@
 use peregrine_data::{SingleHotspotEntry, CoordinateSystem, SpaceBasePointRef, AuxLeaf};
-use peregrine_toolkit::{hotspots::hotspotstore::HotspotStoreProfile, ubail};
+use peregrine_toolkit::{hotspots::hotspotstore::{HotspotStoreProfile, HotspotPosition}, ubail};
 use crate::stage::axis::UnitConverter;
 use super::{drawhotspotstore::PointPair, coordconverter::CoordToPxConverter};
 
@@ -71,7 +71,7 @@ impl HotspotStoreProfile<SingleHotspotEntry> for WindowHotspotProfile {
         ]
     }
 
-    fn bounds(&self, context: &(UnitConverter,f64,f64,f64), value: &SingleHotspotEntry) -> Option<((f64,f64),(f64,f64))> {
+    fn bounds(&self, context: &(UnitConverter,f64,f64,f64), value: &SingleHotspotEntry) -> Option<HotspotPosition> {
         let coord_to_px = ubail!(self.converter(&context.0),None);
         let (at_coords,_) = value.coordinates();
         let out = at_coords.map(|(c1,c2)| {
@@ -92,8 +92,8 @@ impl HotspotStoreProfile<SingleHotspotEntry> for WindowHotspotProfile {
                 _ => None
             }
         }).unwrap_or(None);
-        out.and_then(|(a,b)| a.zip(b).map(|((w,e),(n,s))|
-            ((w,n),(e,s))
+        out.and_then(|(a,b)| a.zip(b).map(|((left,right),(top,bottom))|
+            HotspotPosition { top, bottom, left, right }
         ))
     }
 

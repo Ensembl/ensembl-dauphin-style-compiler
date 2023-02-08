@@ -1,6 +1,6 @@
 use std::{ops::Range};
 use peregrine_data::{SingleHotspotEntry, Scale, HotspotGroupEntry, SpaceBasePoint, AuxLeaf, SingleHotspotResult };
-use peregrine_toolkit::{hotspots::hotspotstore::{HotspotStoreProfile}, ubail, error::Error};
+use peregrine_toolkit::{hotspots::hotspotstore::{HotspotStoreProfile, HotspotPosition}, ubail, error::Error};
 use crate::{Message, stage::{stage::ReadStage, axis::UnitConverter}};
 use super::{drawhotspotstore::{PointPair, DrawHotspotStore}, coordconverter::CoordToPxConverter};
 
@@ -55,7 +55,7 @@ impl HotspotStoreProfile<SingleHotspotEntry> for DrawingHotspotProfile {
 
     fn diagonalise(&self, x: usize, y: usize) -> usize { x + y*HORIZ_ZONES }
 
-    fn bounds(&self, context: &UnitConverter, entry: &SingleHotspotEntry) -> Option<((f64,f64),(f64,f64))> {
+    fn bounds(&self, context: &UnitConverter, entry: &SingleHotspotEntry) -> Option<HotspotPosition> {
         let coord_to_px = ubail!(self.converter(context),None);
         let (at_coords,run) = entry.coordinates();
         at_coords.map(|(c1,c2)| {
@@ -68,7 +68,12 @@ impl HotspotStoreProfile<SingleHotspotEntry> for DrawingHotspotProfile {
                     obj_left = left_rail;
                 }
             }
-            Some(((obj_left,*c1.normal),(obj_right,*c2.normal)))
+            Some(HotspotPosition {
+                top: *c1.normal,
+                bottom: *c2.normal,
+                left: obj_left,
+                right: obj_right
+            })
         }).unwrap_or(None)
     }
 

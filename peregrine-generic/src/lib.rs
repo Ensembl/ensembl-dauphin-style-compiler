@@ -297,7 +297,14 @@ impl GenomeBrowser {
                                     let value = StructValue::new_object(vec![
                                         ("x".to_string(),StructValue::new_number(he.x)),
                                         ("y".to_string(),StructValue::new_number(he.y)),
-                                        ("y_offset".to_string(),StructValue::new_number(he.y_offset)),
+                                        ("hotspot-area".to_string(),
+                                            StructValue::new_array(vec![
+                                                StructValue::new_number(he.area.top),
+                                                StructValue::new_number(he.area.right),
+                                                StructValue::new_number(he.area.bottom),
+                                                StructValue::new_number(he.area.left),
+                                            ]),
+                                        ),
                                         ("start".to_string(),StructValue::new_boolean(he.start)),
                                         ("variety".to_string(),StructValue::new_array(he.varieties.to_vec())),
                                         ("content".to_string(),StructValue::new_array(he.content.to_vec()))

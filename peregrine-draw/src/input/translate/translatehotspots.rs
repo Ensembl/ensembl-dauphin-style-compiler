@@ -2,7 +2,7 @@ use std::{collections::{HashSet, BTreeSet}, sync::{Arc, Mutex}, iter::FromIterat
 use commander::CommanderStream;
 use eachorevery::eoestruct::StructValue;
 use peregrine_data::{DataMessage, HotspotResultVariety, SingleHotspotResult};
-use peregrine_toolkit::{lock, error::Error};
+use peregrine_toolkit::{lock, error::Error, hotspots::hotspotstore::HotspotPosition};
 use crate::{Message, PeregrineInnerAPI, PgCommanderWeb, input::{InputEvent, InputEventKind, low::lowlevel::LowLevelInput}, run::inner::LockedPeregrineInnerAPI};
 
 fn process_hotspot_event(api: &LockedPeregrineInnerAPI, engaged: &mut BTreeSet<SingleHotspotResult>, x: f64, doc_y: f64, win_y: f64, only_hover: bool) -> Result<(),Message> {
@@ -42,6 +42,19 @@ fn filter_events_by_depth(mut events: Vec<SingleHotspotResult>) -> Vec<SingleHot
     events
 } 
 
+fn merge_area(a: Option<HotspotPosition>, b: &HotspotPosition) -> HotspotPosition {
+    if let Some(a) = a {
+        HotspotPosition {
+            top: a.top.min(b.top),
+            bottom: a.bottom.max(b.bottom),
+            left: a.left.min(b.left),
+            right: a.right.max(b.right)
+        } 
+    } else {
+        b.clone()
+    }
+}
+
 fn process_each_hotspot_event(api: &LockedPeregrineInnerAPI, events: &[SingleHotspotResult], x: f64, doc_y: f64, win_y: f64, start: bool) -> Result<(),Message> {
     let mut hotspot_contents = HashSet::new();
     let mut hotspot_varieties = HashSet::new();
@@ -55,9 +68,10 @@ fn process_each_hotspot_event(api: &LockedPeregrineInnerAPI, events: &[SingleHot
             }
         }
     }
-    let area = (0.,0.,0.,0.);
-    for event in events {
-        if let Some(event) = event.entry.value() {
+    let mut area = None;
+    for result in events {
+        if let Some(event) = result.entry.value() {
+            area = Some(merge_area(area,&result.position));
             match event.variety {
                 HotspotResultVariety::Special(_) => {},
                 HotspotResultVariety::Click(_,contents) => {
@@ -70,11 +84,13 @@ fn process_each_hotspot_event(api: &LockedPeregrineInnerAPI, events: &[SingleHot
                     })?);
                 }
             }
-            //log!("area {:?}",event.area);
         }
     }
+    let mut area = area.unwrap_or_else(|| HotspotPosition { top: 0., bottom: 0., left: 0., right: 0. });
+    area.top -= win_y;
+    area.bottom -= win_y;
     if hotspot_contents.len() > 0 || hotspot_varieties.len() > 0 {
-        api.report.hotspot_event(x,doc_y,win_y,area,start,&hotspot_varieties.iter().cloned().collect::<Vec<_>>(),&hotspot_contents.drain().collect::<Vec<_>>());
+        api.report.hotspot_event(x,doc_y,area,start,&hotspot_varieties.iter().cloned().collect::<Vec<_>>(),&hotspot_contents.drain().collect::<Vec<_>>());
     }
     Ok(())
 }

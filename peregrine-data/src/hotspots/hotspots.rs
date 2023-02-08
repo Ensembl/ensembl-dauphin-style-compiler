@@ -1,6 +1,6 @@
 use std::{sync::Arc };
 use eachorevery::{eoestruct::{StructValue, StructBuilt}, EachOrEvery};
-use peregrine_toolkit::{ identitynumber, orderable, hashable };
+use peregrine_toolkit::{ identitynumber, orderable, hashable, hotspots::hotspotstore::HotspotPosition };
 use crate::{SpaceBaseArea, HotspotPatina, SpaceBasePointRef, SpaceBasePoint, allotment::leafs::auxleaf::AuxLeaf};
 
 #[derive(Clone)]
@@ -68,13 +68,6 @@ impl HotspotGroupEntry {
     }
 }
 
-pub struct ClickedHotspotPosition {
-    pub top: f64,
-    pub left: f64,
-    pub right: f64,
-    pub bottom: f64
-}
-
 #[derive(Clone)]
 pub struct SingleHotspotEntry {
     index: usize,
@@ -127,7 +120,8 @@ impl Ord for SingleHotspotEntry {
 
 #[derive(Clone)]
 pub struct SingleHotspotResult {
-    pub entry: SingleHotspotEntry
+    pub entry: SingleHotspotEntry,
+    pub position: HotspotPosition
 }
 
 impl PartialEq for SingleHotspotResult {

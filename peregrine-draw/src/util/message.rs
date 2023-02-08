@@ -8,6 +8,7 @@ use eachorevery::eoestruct::StructValue;
 use lazy_static::lazy_static;
 use peregrine_data::{DataMessage, GlobalAllotmentMetadata };
 use peregrine_message::{MessageKind, PeregrineMessage};
+use peregrine_toolkit::hotspots::hotspotstore::HotspotPosition;
 
 fn calculate_hash<T: Hash>(t: &T) -> u64 {
     let mut s = DefaultHasher::new();
@@ -28,8 +29,7 @@ pub enum Endstop {
 pub struct HotspotEvent {
     pub x: f64,
     pub y: f64,
-    pub y_offset: f64,
-    pub area: (f64,f64,f64,f64),
+    pub area: HotspotPosition,
     pub start: bool,
     pub varieties: Vec<StructValue>,
     pub content: Vec<StructValue>

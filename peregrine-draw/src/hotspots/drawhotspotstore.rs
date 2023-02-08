@@ -1,5 +1,5 @@
 use peregrine_data::{SingleHotspotEntry, HotspotGroupEntry, SpaceBasePoint, AuxLeaf, SingleHotspotResult};
-use peregrine_toolkit::{hotspots::hotspotstore::{HotspotStore, HotspotStoreProfile}, error::Error};
+use peregrine_toolkit::{hotspots::hotspotstore::{HotspotStore, HotspotStoreProfile, HotspotPosition}, error::Error};
 use crate::{Message};
 
 pub(super) type PointPair = (SpaceBasePoint<f64,AuxLeaf>,SpaceBasePoint<f64,AuxLeaf>,Option<f64>);
@@ -39,8 +39,9 @@ impl<X> DrawHotspotStore<X> {
 
     pub(crate) fn get_hotspot(&self, context: &X, position_px: (f64,f64)) -> Result<Vec<SingleHotspotResult>,Message> {
         let mut candidates = self.store.get(context,&position_px)
-            .drain(..).map(|entry| SingleHotspotResult {
-                entry: entry.clone()
+            .drain(..).map(|(entry,position)| SingleHotspotResult {
+                entry: entry.clone(),
+                position
             }).collect::<Vec<_>>();
         candidates.sort();
         Ok(candidates)
