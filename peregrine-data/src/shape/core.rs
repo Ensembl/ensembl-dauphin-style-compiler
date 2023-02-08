@@ -1,6 +1,6 @@
 use std::{collections::{hash_map::DefaultHasher}, hash::{Hash, Hasher}, sync::Arc, rc::Rc};
 use eachorevery::{EachOrEvery, EachOrEveryFilter, eoestruct::{StructTemplate, StructValue, StructBuilt}};
-use crate::{hotspots::{hotspots::SpecialClick}, HotspotResult, SpaceBasePoint, allotment::leafs::auxleaf::AuxLeaf};
+use crate::{hotspots::{hotspots::{SpecialClick, HotspotResultVariety}}, HotspotResult, SpaceBasePoint, allotment::leafs::auxleaf::AuxLeaf};
 
 #[derive(Clone,Debug,PartialEq,Eq,Hash)]
 pub struct DirectColour(pub u8,pub u8,pub u8,pub u8);
@@ -127,30 +127,30 @@ pub enum HotspotPatina {
     Click(Arc<StructTemplate>,Arc<StructTemplate>)
 }
 
-fn setting_generator(switch: &Vec<String>, values: &EachOrEvery<(String,StructBuilt)>) -> Arc<dyn Fn(usize,Option<(SpaceBasePoint<f64,AuxLeaf>,SpaceBasePoint<f64,AuxLeaf>)>,Option<f64>,i8) -> Option<HotspotResult>> {
+fn setting_generator(switch: &Vec<String>, values: &EachOrEvery<(String,StructBuilt)>) -> Arc<dyn Fn(usize,Option<(SpaceBasePoint<f64,AuxLeaf>,SpaceBasePoint<f64,AuxLeaf>)>,Option<f64>) -> Option<HotspotResultVariety>> {
     let values = Rc::new(values.clone());
     let switch = switch.to_vec();
-    Arc::new(move |index,_,_,depth| {
+    Arc::new(move |index,_,_| {
         let (key,value) = values.get(index).unwrap().clone();
-        Some(HotspotResult::Setting(switch.clone(),key,value,depth))
+        Some(HotspotResultVariety::Setting(switch.clone(),key,value))
     })
 }
 
-fn special_generator(values: &EachOrEvery<String>) -> Arc<dyn Fn(usize,Option<(SpaceBasePoint<f64,AuxLeaf>,SpaceBasePoint<f64,AuxLeaf>)>,Option<f64>,i8) -> Option<HotspotResult>> {
+fn special_generator(values: &EachOrEvery<String>) -> Arc<dyn Fn(usize,Option<(SpaceBasePoint<f64,AuxLeaf>,SpaceBasePoint<f64,AuxLeaf>)>,Option<f64>) -> Option<HotspotResultVariety>> {
     let values = Rc::new(values.clone());
-    Arc::new(move |index,area,run,depth| {
-        Some(HotspotResult::Special(SpecialClick {
-            name: values.get(index).unwrap().to_string(),
-            area,
-            run
-        },depth))
+    Arc::new(move |index,area,run| {
+        Some(HotspotResultVariety::Special(SpecialClick {
+                name: values.get(index).unwrap().to_string(),
+                area,
+                run
+        }))
     })
 }
 
-pub fn click_generator(variety: &Arc<StructTemplate>, content: &Arc<StructTemplate>) -> Arc<dyn Fn(usize,Option<(SpaceBasePoint<f64,AuxLeaf>,SpaceBasePoint<f64,AuxLeaf>)>,Option<f64>,i8) -> Option<HotspotResult>> {
+pub fn click_generator(variety: &Arc<StructTemplate>, content: &Arc<StructTemplate>) -> Arc<dyn Fn(usize,Option<(SpaceBasePoint<f64,AuxLeaf>,SpaceBasePoint<f64,AuxLeaf>)>,Option<f64>) -> Option<HotspotResultVariety>> {
     let variety = variety.clone();
     let content = content.clone();
-    Arc::new(move |index,_,_,depth| {
+    Arc::new(move |index,_,_| {
         let built_content = content.set_index(&[],index).ok()?.build().ok()?;
         let value_content = StructValue::new_expand(&built_content,None).ok()?;
         let value_content = match value_content {
@@ -160,7 +160,7 @@ pub fn click_generator(variety: &Arc<StructTemplate>, content: &Arc<StructTempla
         let value_content = value_content.unwrap_or(StructValue::new_null());
         let built_variety = variety.build().ok()?;
         let value_variety = StructValue::new_expand(&built_variety,None).ok()?;
-        Some(HotspotResult::Click(value_variety,value_content,depth))
+        Some(HotspotResultVariety::Click(value_variety,value_content))
     })
 }
 
@@ -195,7 +195,7 @@ impl HotspotPatina {
         }
     }
 
-    pub fn generator(&self) -> Arc<dyn Fn(usize,Option<(SpaceBasePoint<f64,AuxLeaf>,SpaceBasePoint<f64,AuxLeaf>)>,Option<f64>,i8) -> Option<HotspotResult>> {
+    pub fn generator(&self) -> Arc<dyn Fn(usize,Option<(SpaceBasePoint<f64,AuxLeaf>,SpaceBasePoint<f64,AuxLeaf>)>,Option<f64>) -> Option<HotspotResultVariety>> {
         match self {
             HotspotPatina::Setting(key,values) => {
                 setting_generator(key,&values)

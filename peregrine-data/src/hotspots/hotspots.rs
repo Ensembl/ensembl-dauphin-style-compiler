@@ -10,16 +10,21 @@ pub struct SpecialClick {
     pub run: Option<f64>
 }
 
-pub enum HotspotResult {
-    Setting(Vec<String>,String,StructBuilt,i8),
-    Special(SpecialClick,i8),
-    Click(StructValue,StructValue,i8)
+pub enum HotspotResultVariety {
+    Setting(Vec<String>,String,StructBuilt),
+    Special(SpecialClick),
+    Click(StructValue,StructValue)
+}
+
+pub struct HotspotResult {
+    pub variety: HotspotResultVariety,
+    pub depth: i8
 }
 
 impl HotspotResult {
     pub fn get_special(&self) -> Option<SpecialClick> {
-        match self {
-            HotspotResult::Special(c,_) => Some(c.clone()),
+        match &self.variety {
+            HotspotResultVariety::Special(c) => Some(c.clone()),
             _ => None
         }
     }
@@ -29,7 +34,7 @@ identitynumber!(IDS);
 
 #[derive(Clone)]
 pub struct HotspotGroupEntry {
-    generator: Arc<dyn Fn(usize,Option<(SpaceBasePoint<f64,AuxLeaf>,SpaceBasePoint<f64,AuxLeaf>)>,Option<f64>,i8) -> Option<HotspotResult>>,
+    generator: Arc<dyn Fn(usize,Option<(SpaceBasePoint<f64,AuxLeaf>,SpaceBasePoint<f64,AuxLeaf>)>,Option<f64>) -> Option<HotspotResultVariety>>,
     hover: bool,
     area: SpaceBaseArea<f64,AuxLeaf>,
     run: Option<EachOrEvery<f64>>,
@@ -57,7 +62,9 @@ impl HotspotGroupEntry {
         let run = self.run.as_ref().and_then(|x| x.get(index).cloned());
         let position = top_left.zip(bottom_right);
         let depth = *self.depth.get(index).unwrap_or(&0);
-        (self.generator)(index,position,run,depth)
+        (self.generator)(index,position,run).map(|variety| {
+            HotspotResult { variety, depth }
+        })
     }
 }
 
