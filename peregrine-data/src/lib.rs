@@ -347,5 +347,6 @@ pub use self::request::minirequests::expandres::{ ExpandRes };
 pub use self::request::minirequests::programreq::{ ProgramReq };
 pub use self::request::minirequests::programres::{ ProgramRes };
 pub use self::hotspots::hotspots::{ 
-    HotspotResult, HotspotResultVariety, HotspotGroupEntry, SingleHotspotEntry, SpecialClick
+    HotspotResult, HotspotResultVariety, HotspotGroupEntry, SingleHotspotEntry, SpecialClick,
+    SingleHotspotResult
 };

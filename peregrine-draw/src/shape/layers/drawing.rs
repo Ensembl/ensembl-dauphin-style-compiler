@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 use super::drawingtools::DrawingToolsBuilder;
 use super::layer::Layer;
 use commander::cdr_tick;
-use peregrine_data::{Assets, Scale, DrawingShape, HotspotGroupEntry, SingleHotspotEntry, SpecialClick };
+use peregrine_data::{Assets, Scale, DrawingShape, HotspotGroupEntry, SingleHotspotEntry, SpecialClick, SingleHotspotResult };
 use peregrine_toolkit::error::Error;
 use peregrine_toolkit::lock;
 use peregrine_toolkit_async::sync::needed::Needed;
@@ -137,12 +137,8 @@ impl Drawing {
         lock!(self.0).hotspots.set_px_per_screen(px_per_screen);
     }
 
-    pub(crate) fn get_hotspot(&self, stage: &ReadStage, position: (f64,f64)) -> Result<Vec<SingleHotspotEntry>,Message> {
+    pub(crate) fn get_hotspot(&self, stage: &ReadStage, position: (f64,f64)) -> Result<Vec<SingleHotspotResult>,Message> {
         lock!(self.0).hotspots.get_hotspot(stage,position)
-    }
-
-    pub(crate) fn any_hotspot(&self, stage: &ReadStage, position: (f64,f64)) -> Result<bool,Message> {
-        lock!(self.0).hotspots.any_hotspots(stage,position)
     }
 
     pub(crate) fn special_hotspots(&self, stage: &ReadStage, position: (f64,f64)) -> Result<Vec<SpecialClick>,Message> {

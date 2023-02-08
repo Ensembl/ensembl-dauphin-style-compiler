@@ -1,11 +1,11 @@
 use std::{collections::{HashSet, BTreeSet}, sync::{Arc, Mutex}, iter::FromIterator};
 use commander::CommanderStream;
 use eachorevery::eoestruct::StructValue;
-use peregrine_data::{HotspotResult, DataMessage, SingleHotspotEntry, HotspotResultVariety};
-use peregrine_toolkit::{lock, error::Error, log};
+use peregrine_data::{DataMessage, HotspotResultVariety, SingleHotspotResult};
+use peregrine_toolkit::{lock, error::Error};
 use crate::{Message, PeregrineInnerAPI, PgCommanderWeb, input::{InputEvent, InputEventKind, low::lowlevel::LowLevelInput}, run::inner::LockedPeregrineInnerAPI};
 
-fn process_hotspot_event(api: &LockedPeregrineInnerAPI, engaged: &mut BTreeSet<SingleHotspotEntry>, x: f64, doc_y: f64, win_y: f64, only_hover: bool) -> Result<(),Message> {
+fn process_hotspot_event(api: &LockedPeregrineInnerAPI, engaged: &mut BTreeSet<SingleHotspotResult>, x: f64, doc_y: f64, win_y: f64, only_hover: bool) -> Result<(),Message> {
     let events = api.trainset.get_hotspot(&lock!(api.stage).read_stage(), (x,doc_y))?;
     let events = filter_events_by_depth(events);
     if only_hover {
@@ -25,11 +25,11 @@ fn process_hotspot_event(api: &LockedPeregrineInnerAPI, engaged: &mut BTreeSet<S
     Ok(())
 }
 
-fn event_depth(event: &SingleHotspotEntry) -> Option<i8> {
-    event.value().map(|r| r.depth)
+fn event_depth(event: &SingleHotspotResult) -> Option<i8> {
+    event.entry.value().map(|r| r.depth)
 }
 
-fn filter_events_by_depth(mut events: Vec<SingleHotspotEntry>) -> Vec<SingleHotspotEntry> {
+fn filter_events_by_depth(mut events: Vec<SingleHotspotResult>) -> Vec<SingleHotspotResult> {
     let depths = events.iter().map(|d| event_depth(d)).collect::<Vec<_>>();
     let max = depths.iter().filter_map(|x| *x).max().unwrap_or(0);
     let events = events.drain(..).zip(depths).filter_map(|(e,d)|
@@ -42,11 +42,11 @@ fn filter_events_by_depth(mut events: Vec<SingleHotspotEntry>) -> Vec<SingleHots
     events
 } 
 
-fn process_each_hotspot_event(api: &LockedPeregrineInnerAPI, events: &[SingleHotspotEntry], x: f64, doc_y: f64, win_y: f64, start: bool) -> Result<(),Message> {
+fn process_each_hotspot_event(api: &LockedPeregrineInnerAPI, events: &[SingleHotspotResult], x: f64, doc_y: f64, win_y: f64, start: bool) -> Result<(),Message> {
     let mut hotspot_contents = HashSet::new();
     let mut hotspot_varieties = HashSet::new();
     for event in events {
-        if let Some(event) = event.value() {
+        if let Some(event) = event.entry.value() {
             match event.variety {
                 HotspotResultVariety::Click(variety,_) => {
                     hotspot_varieties.insert(variety);
@@ -57,7 +57,7 @@ fn process_each_hotspot_event(api: &LockedPeregrineInnerAPI, events: &[SingleHot
     }
     let area = (0.,0.,0.,0.);
     for event in events {
-        if let Some(event) = event.value() {
+        if let Some(event) = event.entry.value() {
             match event.variety {
                 HotspotResultVariety::Special(_) => {},
                 HotspotResultVariety::Click(_,contents) => {

@@ -1,5 +1,5 @@
 use std::{ops::Range};
-use peregrine_data::{SingleHotspotEntry, Scale, HotspotGroupEntry, SpaceBasePoint, AuxLeaf };
+use peregrine_data::{SingleHotspotEntry, Scale, HotspotGroupEntry, SpaceBasePoint, AuxLeaf, SingleHotspotResult };
 use peregrine_toolkit::{hotspots::hotspotstore::{HotspotStoreProfile}, ubail, error::Error};
 use crate::{Message, stage::{stage::ReadStage, axis::UnitConverter}};
 use super::{drawhotspotstore::{PointPair, DrawHotspotStore}, coordconverter::CoordToPxConverter};
@@ -119,7 +119,7 @@ impl TrackingHotspots {
         })
     }
 
-    pub(crate) fn get_hotspot(&self, stage: &ReadStage, position_px: (f64,f64)) -> Result<Vec<SingleHotspotEntry>,Message> {
+    pub(crate) fn get_hotspot(&self, stage: &ReadStage, position_px: (f64,f64)) -> Result<Vec<SingleHotspotResult>,Message> {
         let converter = stage.x().unit_converter()?;
         self.store.get_hotspot(&converter,position_px)
     }

@@ -1,5 +1,5 @@
 use std::{sync::{Arc}};
-use peregrine_data::{ Scale, HotspotGroupEntry, SingleHotspotEntry, SpecialClick };
+use peregrine_data::{ Scale, HotspotGroupEntry, SingleHotspotEntry, SpecialClick, SingleHotspotResult };
 use peregrine_toolkit::error::Error;
 use crate::stage::{stage::{ ReadStage }, axis::UnitConverter};
 use crate::util::message::Message;
@@ -100,7 +100,7 @@ impl DrawingHotspots {
         self.tracking = screen.ok().map(|s| (new_min_pps,s));
     }
 
-    pub(crate) fn get_hotspot(&self, stage: &ReadStage, position_px: (f64,f64)) -> Result<Vec<SingleHotspotEntry>,Message> {
+    pub(crate) fn get_hotspot(&self, stage: &ReadStage, position_px: (f64,f64)) -> Result<Vec<SingleHotspotResult>,Message> {
         let y_offset_px = stage.y().position()?;
         let converter = stage.x().unit_converter()?;
         let mut tracking = self.tracking.as_ref()
@@ -111,11 +111,7 @@ impl DrawingHotspots {
         Ok(out)
     }
 
-    pub(crate) fn any_hotspots(&self, stage: &ReadStage, position_px: (f64,f64)) -> Result<bool,Message> {
-        Ok(self.get_hotspot(stage,position_px)?.len() > 0)
-    }
-
     pub(crate) fn special_hotspots(&self, stage: &ReadStage, position_px: (f64,f64)) -> Result<Vec<SpecialClick>,Message> {
-        Ok(self.get_hotspot(stage,position_px)?.iter().filter_map(|x| x.value()?.get_special()).collect())
+        Ok(self.get_hotspot(stage,position_px)?.iter().filter_map(|x| x.entry.value()?.get_special()).collect())
     }
 }

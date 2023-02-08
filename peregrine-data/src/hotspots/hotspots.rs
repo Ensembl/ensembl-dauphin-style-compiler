@@ -68,6 +68,13 @@ impl HotspotGroupEntry {
     }
 }
 
+pub struct ClickedHotspotPosition {
+    pub top: f64,
+    pub left: f64,
+    pub right: f64,
+    pub bottom: f64
+}
+
 #[derive(Clone)]
 pub struct SingleHotspotEntry {
     index: usize,
@@ -115,5 +122,30 @@ impl PartialOrd for SingleHotspotEntry {
 impl Ord for SingleHotspotEntry {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         self.order.cmp(&other.order)
+    }
+}
+
+#[derive(Clone)]
+pub struct SingleHotspotResult {
+    pub entry: SingleHotspotEntry
+}
+
+impl PartialEq for SingleHotspotResult {
+    fn eq(&self, other: &Self) -> bool {
+        self.entry == other.entry
+    }
+}
+
+impl Eq for SingleHotspotResult {}
+
+impl PartialOrd for SingleHotspotResult {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.entry.partial_cmp(&other.entry)
+    }
+}
+
+impl Ord for SingleHotspotResult {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.entry.cmp(&other.entry)
     }
 }
