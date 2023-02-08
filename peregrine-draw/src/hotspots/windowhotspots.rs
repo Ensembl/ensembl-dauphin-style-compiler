@@ -14,14 +14,14 @@ fn order(a: f64, b: f64) -> (f64,f64) { (a.min(b),a.max(b)) }
 
 fn round(y: f64) -> usize { (y.abs()/STRIPE_SIZE).floor() as usize }
 
-fn y_intersect(y: f64, height: f64, mut y1: f64, mut y2: f64) -> bool {
+fn y_intersect(height: f64, offset: f64, mut y1: f64, mut y2: f64) -> Option<(f64,f64)> {
     if y1 < 0. { y1 += height; }
     if y2 < 0. { y2 += height; }
     let (y1,y2) = order(y1,y2);
-    y >= y1.min(y2) && y < y1.max(y2)
+    Some((y1.min(y2)+offset,y1.max(y2)+offset))
 }
 
-fn x_intersect(coord_to_px: &CoordToPxConverter, x: f64, width: f64, c1: &SpaceBasePointRef<f64,AuxLeaf>, c2: &SpaceBasePointRef<f64,AuxLeaf>) -> bool {
+fn x_intersect(coord_to_px: &CoordToPxConverter, width: f64, c1: &SpaceBasePointRef<f64,AuxLeaf>, c2: &SpaceBasePointRef<f64,AuxLeaf>) -> Option<(f64,f64)> {
     let (px1,px2) = match c1.allotment.coord_system {
         CoordinateSystem::TrackingWindow => {
             (
@@ -35,10 +35,9 @@ fn x_intersect(coord_to_px: &CoordToPxConverter, x: f64, width: f64, c1: &SpaceB
                 (width * c2.base) + c2.tangent
             )
         },
-        _ => { return false; }
+        _ => { return None; }
     };
-    let (px1,px2) = order(px1,px2);
-    x >= px1 && x < px2
+    Some(order(px1,px2))
 }
 
 pub(super) struct WindowHotspotProfile {
@@ -57,7 +56,6 @@ impl WindowHotspotProfile {
 }
 
 impl HotspotStoreProfile<SingleHotspotEntry> for WindowHotspotProfile {
-    type Coords = (f64,f64);
     type Area = PointPair;
     type Context = (UnitConverter,f64,f64,f64);
 
@@ -73,23 +71,30 @@ impl HotspotStoreProfile<SingleHotspotEntry> for WindowHotspotProfile {
         ]
     }
 
-    fn intersects(&self, context: &(UnitConverter,f64,f64,f64), coords: &(f64,f64), value: &SingleHotspotEntry) -> bool {
-        let coord_to_px = ubail!(self.converter(&context.0),false);
+    fn bounds(&self, context: &(UnitConverter,f64,f64,f64), value: &SingleHotspotEntry) -> Option<((f64,f64),(f64,f64))> {
+        let coord_to_px = ubail!(self.converter(&context.0),None);
         let (at_coords,_) = value.coordinates();
-        at_coords.map(|(c1,c2)| {
+        let out = at_coords.map(|(c1,c2)| {
             match c1.allotment.coord_system {
                 CoordinateSystem::TrackingWindow |
                 CoordinateSystem::Window => {
-                    x_intersect(&coord_to_px,coords.0,context.1,&c1,&c2) &&
-                    y_intersect(coords.1-context.3,context.2,*c1.normal,*c2.normal)        
+                    Some((
+                        x_intersect(&coord_to_px,context.1,&c1,&c2),
+                        y_intersect(context.2,context.3,*c1.normal,*c2.normal)
+                    ))
                 },
                 CoordinateSystem::Content => {
-                    x_intersect(&coord_to_px,coords.0,context.1,&c1,&c2) &&
-                    y_intersect(coords.1,context.2,*c1.normal,*c2.normal)
+                    Some((
+                        x_intersect(&coord_to_px,context.1,&c1,&c2),
+                        y_intersect(context.2,0.,*c1.normal,*c2.normal)
+                    ))
                 },
-                _ => false
+                _ => None
             }
-        }).unwrap_or(false)
+        }).unwrap_or(None);
+        out.and_then(|(a,b)| a.zip(b).map(|((w,e),(n,s))|
+            ((w,n),(e,s))
+        ))
     }
 
     fn add_zones(&self, a: &PointPair) -> Option<(std::ops::Range<usize>,std::ops::Range<usize>)> {

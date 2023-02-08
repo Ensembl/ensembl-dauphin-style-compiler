@@ -50,14 +50,13 @@ impl DrawingHotspotProfile {
 }
 
 impl HotspotStoreProfile<SingleHotspotEntry> for DrawingHotspotProfile {
-    type Coords = (f64,f64);
     type Area = PointPair;
     type Context = UnitConverter;
 
     fn diagonalise(&self, x: usize, y: usize) -> usize { x + y*HORIZ_ZONES }
 
-    fn intersects(&self, context: &UnitConverter, coords: &(f64,f64), entry: &SingleHotspotEntry) -> bool {
-        let coord_to_px = ubail!(self.converter(context),false);
+    fn bounds(&self, context: &UnitConverter, entry: &SingleHotspotEntry) -> Option<((f64,f64),(f64,f64))> {
+        let coord_to_px = ubail!(self.converter(context),None);
         let (at_coords,run) = entry.coordinates();
         at_coords.map(|(c1,c2)| {
             let mut obj_left = coord_to_px.tracking_coord_to_px(&c1);
@@ -69,8 +68,8 @@ impl HotspotStoreProfile<SingleHotspotEntry> for DrawingHotspotProfile {
                     obj_left = left_rail;
                 }
             }
-            coords.0 >= obj_left && coords.0 <= obj_right && coords.1 >= *c1.normal && coords.1 <= *c2.normal
-        }).unwrap_or(false)
+            Some(((obj_left,*c1.normal),(obj_right,*c2.normal)))
+        }).unwrap_or(None)
     }
 
     fn get_zones(&self, context: &UnitConverter, position: &(f64,f64)) -> Vec<(usize,usize)> {

@@ -5,11 +5,11 @@ use crate::{Message};
 pub(super) type PointPair = (SpaceBasePoint<f64,AuxLeaf>,SpaceBasePoint<f64,AuxLeaf>,Option<f64>);
 
 pub(super) struct DrawHotspotStore<X> {
-    store: HotspotStore<(f64,f64),PointPair,X,SingleHotspotEntry>
+    store: HotspotStore<PointPair,X,SingleHotspotEntry>
 }
 
 impl<X> DrawHotspotStore<X> {
-    pub(super) fn new(profile: Box<dyn HotspotStoreProfile<SingleHotspotEntry,Area=PointPair,Coords=(f64,f64),Context=X>>, entries: &[HotspotGroupEntry]) -> Result<DrawHotspotStore<X>,Error> {
+    pub(super) fn new(profile: Box<dyn HotspotStoreProfile<SingleHotspotEntry,Area=PointPair,Context=X>>, entries: &[HotspotGroupEntry]) -> Result<DrawHotspotStore<X>,Error> {
         let mut out = DrawHotspotStore {
             store: HotspotStore::new(profile)
         };

@@ -2,23 +2,22 @@ use std::{ops::Range};
 
 pub trait HotspotStoreProfile<V> {
     type Context;
-    type Coords;
     type Area;
 
     fn diagonalise(&self, x: usize, y: usize) -> usize;
-    fn get_zones(&self, context: &Self::Context, coords: &Self::Coords) -> Vec<(usize,usize)>;
-    fn intersects(&self, context: &Self::Context, coords: &Self::Coords, value: &V) -> bool;
+    fn get_zones(&self, context: &Self::Context, coords: &(f64,f64)) -> Vec<(usize,usize)>;
+    fn bounds(&self, context: &Self::Context, value: &V) -> Option<((f64,f64),(f64,f64))>;
     fn add_zones(&self, a: &Self::Area) -> Option<(Range<usize>,Range<usize>)>;
 }
 
-pub struct HotspotStore<C,A,X,V> {
-    profile: Box<dyn HotspotStoreProfile<V,Context=X,Coords=C,Area=A>>,
+pub struct HotspotStore<A,X,V> {
+    profile: Box<dyn HotspotStoreProfile<V,Context=X,Area=A>>,
     data: Vec<Option<Vec<usize>>>,
     values: Vec<V>
 }
 
-impl<C,A,X,V> HotspotStore<C,A,X,V> {
-    pub fn new(profile: Box<dyn HotspotStoreProfile<V,Context=X,Coords=C,Area=A>>) -> HotspotStore<C,A,X,V> {
+impl<A,X,V> HotspotStore<A,X,V> {
+    pub fn new(profile: Box<dyn HotspotStoreProfile<V,Context=X,Area=A>>) -> HotspotStore<A,X,V> {
         HotspotStore {
             profile,
             data: vec![],
@@ -43,17 +42,23 @@ impl<C,A,X,V> HotspotStore<C,A,X,V> {
         }
     }
 
-    pub fn any(&self, context: &X, coord: &C) -> bool {
+    pub fn any(&self, context: &X, coord: &(f64,f64)) -> bool {
         self.get(context,coord).len() != 0
     }
 
-    pub fn get<'b>(&'b self, context: &X, coord: &C) -> Vec<&'b V> {
+    pub fn get<'b>(&'b self, context: &X, coord: &(f64,f64)) -> Vec<&'b V> {
         let mut out = vec![];
         for (x,y) in self.profile.get_zones(context,coord) {
             if let Some(indexes) = self.data.get(self.profile.diagonalise(x,y)).map(|x| x.as_ref()).flatten() {
                 let more = indexes.iter()
                     .map(|v| &self.values[*v])
-                    .filter(|v| self.profile.intersects(context,coord,v));
+                    .filter(|v| {
+                        if let Some(((w,n),(e,s))) = self.profile.bounds(context,v) {
+                            coord.0 >= w && coord.0 < e && coord.1 >= n && coord.1 < s
+                        } else {
+                            false
+                        }
+                    });
                 out.extend(more);
             }
         }
