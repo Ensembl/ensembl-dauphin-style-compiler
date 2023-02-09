@@ -298,12 +298,12 @@ impl GenomeBrowser {
                                         ("x".to_string(),StructValue::new_number(he.x)),
                                         ("y".to_string(),StructValue::new_number(he.y)),
                                         ("hotspot-area".to_string(),
-                                            StructValue::new_array(vec![
-                                                StructValue::new_number(he.area.top),
-                                                StructValue::new_number(he.area.right),
-                                                StructValue::new_number(he.area.bottom),
-                                                StructValue::new_number(he.area.left),
-                                            ]),
+                                            StructValue::new_object(vec![
+                                                ("top".to_string(),StructValue::new_number(he.area.top)),
+                                                ("right".to_string(),StructValue::new_number(he.area.right)),
+                                                ("bottom".to_string(),StructValue::new_number(he.area.bottom)),
+                                                ("left".to_string(),StructValue::new_number(he.area.left))
+                                            ])
                                         ),
                                         ("start".to_string(),StructValue::new_boolean(he.start)),
                                         ("variety".to_string(),StructValue::new_array(he.varieties.to_vec())),
