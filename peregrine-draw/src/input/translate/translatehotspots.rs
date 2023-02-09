@@ -7,7 +7,7 @@ use crate::{Message, PeregrineInnerAPI, PgCommanderWeb, input::{InputEvent, Inpu
 
 fn process_hotspot_event(api: &LockedPeregrineInnerAPI, engaged: &mut BTreeSet<SingleHotspotResult>, x: f64, doc_y: f64, win_y: f64, only_hover: bool) -> Result<(),Message> {
     let events = api.trainset.get_hotspot(&lock!(api.stage).read_stage(), (x,doc_y))?;
-    let events = filter_events_by_depth(events);
+    let events = filter_events(events,only_hover);
     if only_hover {
         /* If this is only a hover event, then the only events we ware about are those which
          * have just been added to or removed from the engaged set.
@@ -29,7 +29,7 @@ fn event_depth(event: &SingleHotspotResult) -> Option<i8> {
     event.entry.value().map(|r| r.depth)
 }
 
-fn filter_events_by_depth(mut events: Vec<SingleHotspotResult>) -> Vec<SingleHotspotResult> {
+fn filter_events(mut events: Vec<SingleHotspotResult>, only_hover: bool) -> Vec<SingleHotspotResult> {
     let depths = events.iter().map(|d| event_depth(d)).collect::<Vec<_>>();
     let max = depths.iter().filter_map(|x| *x).max().unwrap_or(0);
     let events = events.drain(..).zip(depths).filter_map(|(e,d)|
@@ -38,7 +38,8 @@ fn filter_events_by_depth(mut events: Vec<SingleHotspotResult>) -> Vec<SingleHot
         } else {
             None
         }
-    ).collect();
+    ).filter(|e| e.entry.is_hover() || !only_hover)
+    .collect();
     events
 } 
 
