@@ -1,6 +1,6 @@
 use std::{collections::{hash_map::DefaultHasher}, hash::{Hash, Hasher}, sync::Arc, rc::Rc};
 use eachorevery::{EachOrEvery, EachOrEveryFilter, eoestruct::{StructTemplate, StructValue, StructBuilt}};
-use crate::{hotspots::{hotspots::{SpecialClick, HotspotResultVariety}}, HotspotResult, SpaceBasePoint, allotment::leafs::auxleaf::AuxLeaf};
+use crate::{hotspots::{hotspots::{SpecialClick, HotspotResultVariety}}, SpaceBasePoint, allotment::leafs::auxleaf::AuxLeaf};
 
 #[derive(Clone,Debug,PartialEq,Eq,Hash)]
 pub struct DirectColour(pub u8,pub u8,pub u8,pub u8);
@@ -160,7 +160,11 @@ pub fn click_generator(variety: &Arc<StructTemplate>, content: &Arc<StructTempla
         let value_content = value_content.unwrap_or(StructValue::new_null());
         let built_variety = variety.build().ok()?;
         let value_variety = StructValue::new_expand(&built_variety,None).ok()?;
-        Some(HotspotResultVariety::Click(value_variety,value_content))
+        if value_variety == StructValue::new_null() {
+            Some(HotspotResultVariety::Nothing)
+        } else {
+            Some(HotspotResultVariety::Click(value_variety,value_content))
+        }
     })
 }
 

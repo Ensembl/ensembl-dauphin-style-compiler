@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 use commander::cdr_tick;
 use peregrine_data::Commander;
 use peregrine_toolkit::{plumbing::oneshot::OneShot, log_extra};
-use crate::{Message, PeregrineInnerAPI, input::Input, stage::stage::{ReadStage, Stage}, train::GlRailway, domcss::dom::PeregrineDom};
+use crate::{Message, PeregrineInnerAPI, input::{Input, translate::translatehotspots::filter_hotspot_events}, stage::stage::{ReadStage, Stage}, train::GlRailway, domcss::dom::PeregrineDom};
 
 fn mouse_move_tick(input: &Input, mouse_position: &mut Option<(f64,f64)>, stage: &ReadStage, train_set: &GlRailway) -> Result<(),Message> {
     let position = input.get_pointer_last_seen();
@@ -12,7 +12,8 @@ fn mouse_move_tick(input: &Input, mouse_position: &mut Option<(f64,f64)>, stage:
             if *old_position == position { return Ok(()); }
         }
         *mouse_position = Some(position);
-        let mut hotspot = train_set.get_hotspot(stage,position)?;
+        let hotspot = train_set.get_hotspot(stage,position)?;
+        let mut hotspot = filter_hotspot_events(hotspot,false);
         let any = hotspot.len() > 0;
         let hover_hotspots = hotspot.drain(..).map(|x| x.entry).filter(|x| x.is_hover()).collect::<Vec<_>>();
         let special_hotspots = train_set.special_hotspots(stage,position)?;

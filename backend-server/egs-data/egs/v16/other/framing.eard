@@ -1,5 +1,6 @@
 program "ensembl-webteam/core" "framing" 1;
 refer "libperegrine";
+refer "libeoe";
 
 let pad_left = leaf("pad-left/content");
 let pad_right = leaf("pad-right/content");
@@ -24,11 +25,16 @@ style!("""
 """);
 
 let paint = paint_solid(colour!("white"));
+let blank = paint_click(eoe_null(),eoe_null(),true);
 
 let nw = coord([0],[0],[0]);
 let se = coord([1],[48],[0]);
 
+/* draw white rectangles */
 rectangle(nw,se,paint,pad_left);
 rectangle(nw,se,paint,pad_right);
+/* hide all zmenus underneath */
+rectangle(nw,se,blank,pad_left);
+rectangle(nw,se,blank,pad_right);
 
 empty(coord([0],[0],[0]),coord([1],[90],[0]),[leaf("tracks/earth/content")]);

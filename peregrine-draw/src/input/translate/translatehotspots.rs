@@ -7,7 +7,7 @@ use crate::{Message, PeregrineInnerAPI, PgCommanderWeb, input::{InputEvent, Inpu
 
 fn process_hotspot_event(api: &LockedPeregrineInnerAPI, engaged: &mut BTreeSet<SingleHotspotResult>, x: f64, doc_y: f64, win_y: f64, only_hover: bool) -> Result<(),Message> {
     let events = api.trainset.get_hotspot(&lock!(api.stage).read_stage(), (x,doc_y))?;
-    let events = filter_events(events,only_hover);
+    let events = filter_hotspot_events(events,only_hover);
     if only_hover {
         /* If this is only a hover event, then the only events we ware about are those which
          * have just been added to or removed from the engaged set.
@@ -29,17 +29,33 @@ fn event_depth(event: &SingleHotspotResult) -> Option<i8> {
     event.entry.value().map(|r| r.depth)
 }
 
-fn filter_events(mut events: Vec<SingleHotspotResult>, only_hover: bool) -> Vec<SingleHotspotResult> {
+fn event_is_nothing(event: &SingleHotspotResult) -> bool {
+    event.entry.value().map(|r| match r.variety { 
+        HotspotResultVariety::Nothing => true,
+        _ => false
+    }).unwrap_or(false)
+}
+
+pub(crate) fn filter_hotspot_events(mut events: Vec<SingleHotspotResult>, only_hover: bool) -> Vec<SingleHotspotResult> {
     let depths = events.iter().map(|d| event_depth(d)).collect::<Vec<_>>();
     let max = depths.iter().filter_map(|x| *x).max().unwrap_or(0);
-    let events = events.drain(..).zip(depths).filter_map(|(e,d)|
-        if d.map(|d| d == max).unwrap_or(false) {
-            Some(e)
-        } else {
-            None
-        }
-    ).filter(|e| e.entry.is_hover() || !only_hover)
-    .collect();
+    let events = events.drain(..).zip(depths)
+        /* only events at maximum depth */
+        .filter_map(|(e,d)|
+            if d.map(|d| d == max).unwrap_or(false) {
+                Some(e)
+            } else {
+                None
+            }
+        )
+        /* only hover events if we're hover */
+        .filter(|e| 
+            e.entry.is_hover() || !only_hover
+        )
+        /* no blank events */
+        .filter(|e|
+            !event_is_nothing(e)
+        ).collect::<Vec<_>>();
     events
 } 
 
@@ -63,7 +79,9 @@ fn process_each_hotspot_event(api: &LockedPeregrineInnerAPI, events: &[SingleHot
         if let Some(event) = event.entry.value() {
             match event.variety {
                 HotspotResultVariety::Click(variety,_) => {
-                    hotspot_varieties.insert(variety);
+                    if variety != StructValue::new_null() {
+                        hotspot_varieties.insert(variety);
+                    }
                 },
                 _ => {}
             }
@@ -75,6 +93,7 @@ fn process_each_hotspot_event(api: &LockedPeregrineInnerAPI, events: &[SingleHot
             area = Some(merge_area(area,&result.position));
             match event.variety {
                 HotspotResultVariety::Special(_) => {},
+                HotspotResultVariety::Nothing => {},
                 HotspotResultVariety::Click(_,contents) => {
                     hotspot_contents.insert(contents);
                 },

@@ -30,7 +30,7 @@ pub enum CoordinateSystem {
      */
     Content,
 
-    /* base = 0->top-of-window, 1->bottom-of-window, tangent = y-px,  normal = x-px (-ve = bottom)
+    /* base = 0->top-of-window, 1->bottom-of-window, tangent = y-px,  normal = x-px (-ve = right)
      * drawing relative to the window on left and right.
      * 
      * Though both can access left and right via negative coordinates, playingfield squeeze means

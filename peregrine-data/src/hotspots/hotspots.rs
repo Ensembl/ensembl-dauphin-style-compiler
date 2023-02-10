@@ -13,7 +13,8 @@ pub struct SpecialClick {
 pub enum HotspotResultVariety {
     Setting(Vec<String>,String,StructBuilt),
     Special(SpecialClick),
-    Click(StructValue,StructValue)
+    Click(StructValue,StructValue),
+    Nothing
 }
 
 pub struct HotspotResult {
