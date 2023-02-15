@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use crate::{shape::metadata::AllotmentMetadataEntry, allotment::core::rangeused::RangeUsed};
 
 #[cfg_attr(debug_assertions,derive(Debug))]
@@ -6,7 +7,7 @@ pub struct LeafRequestSize {
     base_range: RangeUsed<f64>,
     pixel_range: RangeUsed<f64>,
     height: f64,
-    metadata: Vec<AllotmentMetadataEntry>
+    metadata: HashSet<AllotmentMetadataEntry>
 }
 
 impl LeafRequestSize {
@@ -15,14 +16,14 @@ impl LeafRequestSize {
             base_range: RangeUsed::None,
             pixel_range: RangeUsed::None,
             height: 0.,
-            metadata: vec![]
+            metadata: HashSet::new()
         }
     }
 
     pub(crate) fn base_range(&self) -> &RangeUsed<f64> { &self.base_range }
     pub(crate) fn pixel_range(&self) -> &RangeUsed<f64> { &self.pixel_range }
     pub(crate) fn height(&self) -> f64 { self.height }
-    pub(crate) fn metadata(&self) -> &[AllotmentMetadataEntry] { &self.metadata }
+    pub(crate) fn metadata(&self) -> &HashSet<AllotmentMetadataEntry> { &self.metadata }
 
     pub fn merge_height(&mut self, new_max: f64) { 
         self.height = self.height.max(new_max);
@@ -37,7 +38,7 @@ impl LeafRequestSize {
     }
 
     pub(crate) fn merge_metadata(&mut self, entry: AllotmentMetadataEntry) {
-        self.metadata.push(entry);
+        self.metadata.insert(entry);
     }
 
     pub(crate) fn merge(&mut self, other: &LeafRequestSize) {
