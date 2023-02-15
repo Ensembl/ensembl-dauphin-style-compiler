@@ -83,7 +83,7 @@ impl ContainerOrLeaf for FloatingLeaf {
         ContentSize {
             height,
             range: self.full_range(self.shape_bounds.base_range(),self.shape_bounds.pixel_range(),prep.extent.as_ref()),
-            metadata: self.shape_bounds.metadata().to_vec()
+            metadata: self.shape_bounds.metadata().iter().cloned().collect()
         }
     }
     
