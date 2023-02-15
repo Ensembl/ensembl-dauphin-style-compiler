@@ -4,7 +4,7 @@ Peregrine is a WASM / WebGL based genome browser written in Rust.
 
 ### Technology Architecture
 
-The following diagram was take from [tech-arch.md](peregrine-guide/tech-arch.md) found in `peregrine-guide`
+The following diagram was taken from [tech-arch.md](peregrine-guide/tech-arch.md) found in `peregrine-guide`
 
 ```mermaid
 flowchart LR
@@ -87,8 +87,8 @@ graph TD
 2. Call `./build.sh` this will ask you a set of questions about debugging output and port details. Once you accept the settings it will build the browser and start a server on the port you specified. If you are unsure what settings to use you can do with the default / suggested settings
 3. Go to http://127.0.0.1:PORT replacing PORT with the one defined during **2.** 
 
-You should now see the something like this :-
-![Image not found: docs/images/browser-screenshot.png](doc/images/browser-screenshot.png "Image not found: docs/images/browser-screenshot.png")
+You should now see something like this :-
+![Genome browser running locally](doc/images/browser-screenshot.png)
 
 
 **Updating EARD files and testing the changes**
