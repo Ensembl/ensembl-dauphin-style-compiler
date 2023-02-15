@@ -87,6 +87,8 @@ graph TD
 2. Call `./build.sh` this will ask you a set of questions about debugging output and port details. Once you accept the settings it will build the browser and start a server on the port you specified. If you are unsure what settings to use you can do with the default / suggested settings
 3. Go to http://127.0.0.1:PORT replacing PORT with the one defined during **2.** 
 
+Once you have ran `./build.sh` you can start the front end service by using `python server.py PORT`, ` python -m http.server PORT` or any other http server. 
+
 You should now see something like this :-
 ![Genome browser running locally](doc/images/browser-screenshot.png)
 
@@ -106,7 +108,7 @@ You should now see something like this :-
 Once you have setup the above you should be able to make changes to the EARD files and see the changes in the test harness. The following steps provide a quick way of confirming that everything is setup for developing styles for the browser.
 
 1. Update `ensembl-dauphin-style-compiler/backend-server/egs-data/egs/v16/common/track-common.eard`
-2. On line **44** change `colour!("#000")` to `colour!("#FF00FF")`
+2. Change `colour!("#000")` to `colour!("#FF00FF")` on [line 44](https://github.com/Ensembl/ensembl-dauphin-style-compiler/blob/22f194d70830290c149f4a1b5db388cb54bdcbc8/backend-server/egs-data/egs/v16/common/track-common.eard#L44)
 ```eard 
 export procedure draw_track_category(category,track_ids,leafs) {
     capture variety_trackhover;
@@ -123,9 +125,9 @@ export procedure draw_track_category(category,track_ids,leafs) {
 
 You should now see that the track category letters on the left hand side are now magenta `#FF00FF` as seen below
 
-![Track category letter colour change](doc/images/track-cat-change.png)
+![Track category letter colour change](doc/images/track-cat-change.png "Track category letter colour change")
 
 
 ### Data
 
-For the dev configuration of the back end server the data used to power the browser is taken from `ensembl-2020-gb-flatfiles.s3.eu-west-2.amazonaws.com`. This is defined in `/ensembl-dauphin-style-compiler/configurations/dev.docker-compose.override.yml` on line **63** as part of the **nginx** configuration.
+For the dev configuration of the back end server the data used to power the browser is taken from `ensembl-2020-gb-flatfiles.s3.eu-west-2.amazonaws.com`. This is defined in `/ensembl-dauphin-style-compiler/configurations/dev.docker-compose.override.yml` [on line 63](https://github.com/Ensembl/ensembl-dauphin-style-compiler/blob/22f194d70830290c149f4a1b5db388cb54bdcbc8/configurations/dev/docker-compose.override.yml#L63) as part of the **nginx** configuration.
