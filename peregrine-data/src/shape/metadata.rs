@@ -1,10 +1,9 @@
-use eachorevery::eoestruct::{StructTemplate, StructValue};
+use eachorevery::eoestruct::{StructValue};
 use peregrine_toolkit::{puzzle::constant};
 use crate::{allotment::{core::allotmentname::AllotmentName}, globals::allotmentmetadata::LocalAllotmentMetadataBuilder};
 
 #[cfg_attr(debug_assertions,derive(Debug))]
-#[derive(Clone)]
-
+#[derive(Clone,PartialEq,Eq,Hash)]
 pub(crate) struct AllotmentMetadataEntry {
     allotment: AllotmentName,
     key: String,
