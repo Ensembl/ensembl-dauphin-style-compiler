@@ -293,13 +293,21 @@ impl GenomeBrowser {
                                     args.set(1,js_summary);
                                     let _ = closure.apply(&this,&args);
                                 },
-                                Message::HotspotEvent(x,y,start,varieties,contents) => {
+                                Message::HotspotEvent(he) => {
                                     let value = StructValue::new_object(vec![
-                                        ("x".to_string(),StructValue::new_number(*x)),
-                                        ("y".to_string(),StructValue::new_number(*y)),
-                                        ("start".to_string(),StructValue::new_boolean(*start)),
-                                        ("variety".to_string(),StructValue::new_array(varieties.to_vec())),
-                                        ("content".to_string(),StructValue::new_array(contents.to_vec()))
+                                        ("x".to_string(),StructValue::new_number(he.x)),
+                                        ("y".to_string(),StructValue::new_number(he.y)),
+                                        ("hotspot-area".to_string(),
+                                            StructValue::new_object(vec![
+                                                ("top".to_string(),StructValue::new_number(he.area.top)),
+                                                ("right".to_string(),StructValue::new_number(he.area.right)),
+                                                ("bottom".to_string(),StructValue::new_number(he.area.bottom)),
+                                                ("left".to_string(),StructValue::new_number(he.area.left))
+                                            ])
+                                        ),
+                                        ("start".to_string(),StructValue::new_boolean(he.start)),
+                                        ("variety".to_string(),StructValue::new_array(he.varieties.to_vec())),
+                                        ("content".to_string(),StructValue::new_array(he.content.to_vec()))
                                     ]);
                                     let args = Array::new();
                                     args.set(0,JsValue::from("hotspot"));

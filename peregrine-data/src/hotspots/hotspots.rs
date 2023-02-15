@@ -1,6 +1,6 @@
 use std::{sync::Arc };
 use eachorevery::{eoestruct::{StructValue, StructBuilt}, EachOrEvery};
-use peregrine_toolkit::{ identitynumber, orderable, hashable };
+use peregrine_toolkit::{ identitynumber, orderable, hashable, hotspots::hotspotstore::HotspotPosition };
 use crate::{SpaceBaseArea, HotspotPatina, SpaceBasePointRef, SpaceBasePoint, allotment::leafs::auxleaf::AuxLeaf};
 
 #[derive(Clone)]
@@ -10,16 +10,22 @@ pub struct SpecialClick {
     pub run: Option<f64>
 }
 
-pub enum HotspotResult {
-    Setting(Vec<String>,String,StructBuilt,i8),
-    Special(SpecialClick,i8),
-    Click(StructValue,StructValue,i8)
+pub enum HotspotResultVariety {
+    Setting(Vec<String>,String,StructBuilt),
+    Special(SpecialClick),
+    Click(StructValue,StructValue),
+    Nothing
+}
+
+pub struct HotspotResult {
+    pub variety: HotspotResultVariety,
+    pub depth: i8
 }
 
 impl HotspotResult {
     pub fn get_special(&self) -> Option<SpecialClick> {
-        match self {
-            HotspotResult::Special(c,_) => Some(c.clone()),
+        match &self.variety {
+            HotspotResultVariety::Special(c) => Some(c.clone()),
             _ => None
         }
     }
@@ -29,7 +35,7 @@ identitynumber!(IDS);
 
 #[derive(Clone)]
 pub struct HotspotGroupEntry {
-    generator: Arc<dyn Fn(usize,Option<(SpaceBasePoint<f64,AuxLeaf>,SpaceBasePoint<f64,AuxLeaf>)>,Option<f64>,i8) -> Option<HotspotResult>>,
+    generator: Arc<dyn Fn(usize,Option<(SpaceBasePoint<f64,AuxLeaf>,SpaceBasePoint<f64,AuxLeaf>)>,Option<f64>) -> Option<HotspotResultVariety>>,
     hover: bool,
     area: SpaceBaseArea<f64,AuxLeaf>,
     run: Option<EachOrEvery<f64>>,
@@ -57,7 +63,9 @@ impl HotspotGroupEntry {
         let run = self.run.as_ref().and_then(|x| x.get(index).cloned());
         let position = top_left.zip(bottom_right);
         let depth = *self.depth.get(index).unwrap_or(&0);
-        (self.generator)(index,position,run,depth)
+        (self.generator)(index,position,run).map(|variety| {
+            HotspotResult { variety, depth }
+        })
     }
 }
 
@@ -108,5 +116,31 @@ impl PartialOrd for SingleHotspotEntry {
 impl Ord for SingleHotspotEntry {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         self.order.cmp(&other.order)
+    }
+}
+
+#[derive(Clone)]
+pub struct SingleHotspotResult {
+    pub entry: SingleHotspotEntry,
+    pub position: HotspotPosition
+}
+
+impl PartialEq for SingleHotspotResult {
+    fn eq(&self, other: &Self) -> bool {
+        self.entry == other.entry
+    }
+}
+
+impl Eq for SingleHotspotResult {}
+
+impl PartialOrd for SingleHotspotResult {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.entry.partial_cmp(&other.entry)
+    }
+}
+
+impl Ord for SingleHotspotResult {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.entry.cmp(&other.entry)
     }
 }

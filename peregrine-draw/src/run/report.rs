@@ -2,9 +2,9 @@ use std::{sync::{Arc, Mutex}};
 use commander::{CommanderStream, cdr_tick, cdr_timer };
 use eachorevery::eoestruct::StructValue;
 use peregrine_data::{GlobalAllotmentMetadata};
-use peregrine_toolkit::{plumbing::oneshot::OneShot};
+use peregrine_toolkit::{plumbing::oneshot::OneShot, hotspots::hotspotstore::HotspotPosition};
 use peregrine_toolkit_async::sync::{needed::{Needed, NeededLock}, changed::Changed};
-use crate::{Message, PgCommanderWeb, util::message::Endstop};
+use crate::{Message, PgCommanderWeb, util::message::{Endstop, HotspotEvent}};
 use super::{PgConfigKey, PgPeregrineConfig};
 
 const TRIVIAL_PIXELS : f64 = 20000.; // if nothing would move more than 1px on a screen this size, ignore the change
@@ -85,8 +85,14 @@ impl ReportData {
     fn set_target_bp_per_screen(&mut self, value: f64) { self.fast_lock(); self.target_bp_per_screen.set(value); }
     fn set_endstops(&mut self, value: &[Endstop]) {  self.fast_lock(); self.endstop.set(value.to_vec()); }
 
-    fn hotspot_event(&self, x: f64, y: f64, start: bool, varieties: &[StructValue], content: &[StructValue]) {
-        self.messages.add(Some(Message::HotspotEvent(x,y,start,varieties.to_vec(),content.to_vec())));
+    fn hotspot_event(&self, x: f64, doc_y: f64, area: HotspotPosition, start: bool, varieties: &[StructValue], content: &[StructValue]) {
+        self.messages.add(Some(Message::HotspotEvent(HotspotEvent {
+            x,start,
+            y: doc_y,
+            area,
+            varieties: varieties.to_vec(),
+            content: content.to_vec()
+        })));
     }
 
     fn build_messages(&mut self, fast: bool) -> Vec<Message> {
@@ -175,8 +181,8 @@ impl Report {
         self.data.lock().unwrap().set_allotter_metadata(metadata);
     }
 
-    pub(crate) fn hotspot_event(&self, x: f64, y: f64, start: bool, varieties: &[StructValue], content: &[StructValue]) {
-        self.data.lock().unwrap().hotspot_event(x,y,start,varieties,content);
+    pub(crate) fn hotspot_event(&self, x: f64, doc_y: f64, area: HotspotPosition, start: bool, varieties: &[StructValue], content: &[StructValue]) {
+        self.data.lock().unwrap().hotspot_event(x,doc_y,area,start,varieties,content);
     }
 
     pub(crate) fn run(&self, commander: &PgCommanderWeb, shutdown: &OneShot) {

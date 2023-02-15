@@ -1,15 +1,15 @@
-use peregrine_data::{SingleHotspotEntry, HotspotGroupEntry, SpaceBasePoint, AuxLeaf};
-use peregrine_toolkit::{hotspots::hotspotstore::{HotspotStore, HotspotStoreProfile}, error::Error};
+use peregrine_data::{SingleHotspotEntry, HotspotGroupEntry, SpaceBasePoint, AuxLeaf, SingleHotspotResult};
+use peregrine_toolkit::{hotspots::hotspotstore::{HotspotStore, HotspotStoreProfile, HotspotPosition}, error::Error};
 use crate::{Message};
 
 pub(super) type PointPair = (SpaceBasePoint<f64,AuxLeaf>,SpaceBasePoint<f64,AuxLeaf>,Option<f64>);
 
 pub(super) struct DrawHotspotStore<X> {
-    store: HotspotStore<(f64,f64),PointPair,X,SingleHotspotEntry>
+    store: HotspotStore<PointPair,X,SingleHotspotEntry>
 }
 
 impl<X> DrawHotspotStore<X> {
-    pub(super) fn new(profile: Box<dyn HotspotStoreProfile<SingleHotspotEntry,Area=PointPair,Coords=(f64,f64),Context=X>>, entries: &[HotspotGroupEntry]) -> Result<DrawHotspotStore<X>,Error> {
+    pub(super) fn new(profile: Box<dyn HotspotStoreProfile<SingleHotspotEntry,Area=PointPair,Context=X>>, entries: &[HotspotGroupEntry]) -> Result<DrawHotspotStore<X>,Error> {
         let mut out = DrawHotspotStore {
             store: HotspotStore::new(profile)
         };
@@ -37,9 +37,12 @@ impl<X> DrawHotspotStore<X> {
         }
     }
 
-    pub(crate) fn get_hotspot(&self, context: &X, position_px: (f64,f64)) -> Result<Vec<SingleHotspotEntry>,Message> {
+    pub(crate) fn get_hotspot(&self, context: &X, position_px: (f64,f64)) -> Result<Vec<SingleHotspotResult>,Message> {
         let mut candidates = self.store.get(context,&position_px)
-            .drain(..).cloned().collect::<Vec<_>>();
+            .drain(..).map(|(entry,position)| SingleHotspotResult {
+                entry: entry.clone(),
+                position
+            }).collect::<Vec<_>>();
         candidates.sort();
         Ok(candidates)
     }

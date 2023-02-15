@@ -1,4 +1,4 @@
-use peregrine_data::{Assets, DrawingCarriage, CarriageExtent, PeregrineApiQueue, DataMessage, SingleHotspotEntry, SpecialClick};
+use peregrine_data::{Assets, DrawingCarriage, CarriageExtent, PeregrineApiQueue, DataMessage, SpecialClick, SingleHotspotResult};
 use peregrine_toolkit::{lock, warn, error };
 use peregrine_toolkit_async::sync::asynconce::AsyncOnce;
 use peregrine_toolkit_async::sync::needed::Needed;
@@ -111,7 +111,7 @@ impl GLCarriage {
         Ok(())
     }
 
-    pub(crate) fn get_hotspot(&self, stage: &ReadStage, position: (f64,f64)) -> Result<Vec<SingleHotspotEntry>,Message> {
+    pub(crate) fn get_hotspot(&self, stage: &ReadStage, position: (f64,f64)) -> Result<Vec<SingleHotspotResult>,Message> {
         let state = lock!(self.0);
         if let Some(drawing) = get_drawing(&state)? {
             drawing.get_hotspot(stage,position)

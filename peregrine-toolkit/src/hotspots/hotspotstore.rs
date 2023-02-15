@@ -1,24 +1,32 @@
 use std::{ops::Range};
 
+#[cfg_attr(debug_assertions,derive(Debug))]
+#[derive(Clone)]
+pub struct HotspotPosition {
+    pub top: f64,
+    pub left: f64,
+    pub right: f64,
+    pub bottom: f64
+}
+
 pub trait HotspotStoreProfile<V> {
     type Context;
-    type Coords;
     type Area;
 
     fn diagonalise(&self, x: usize, y: usize) -> usize;
-    fn get_zones(&self, context: &Self::Context, coords: &Self::Coords) -> Vec<(usize,usize)>;
-    fn intersects(&self, context: &Self::Context, coords: &Self::Coords, value: &V) -> bool;
+    fn get_zones(&self, context: &Self::Context, coords: &(f64,f64)) -> Vec<(usize,usize)>;
+    fn bounds(&self, context: &Self::Context, value: &V) -> Option<HotspotPosition>;
     fn add_zones(&self, a: &Self::Area) -> Option<(Range<usize>,Range<usize>)>;
 }
 
-pub struct HotspotStore<C,A,X,V> {
-    profile: Box<dyn HotspotStoreProfile<V,Context=X,Coords=C,Area=A>>,
+pub struct HotspotStore<A,X,V> {
+    profile: Box<dyn HotspotStoreProfile<V,Context=X,Area=A>>,
     data: Vec<Option<Vec<usize>>>,
     values: Vec<V>
 }
 
-impl<C,A,X,V> HotspotStore<C,A,X,V> {
-    pub fn new(profile: Box<dyn HotspotStoreProfile<V,Context=X,Coords=C,Area=A>>) -> HotspotStore<C,A,X,V> {
+impl<A,X,V> HotspotStore<A,X,V> {
+    pub fn new(profile: Box<dyn HotspotStoreProfile<V,Context=X,Area=A>>) -> HotspotStore<A,X,V> {
         HotspotStore {
             profile,
             data: vec![],
@@ -43,17 +51,24 @@ impl<C,A,X,V> HotspotStore<C,A,X,V> {
         }
     }
 
-    pub fn any(&self, context: &X, coord: &C) -> bool {
+    pub fn any(&self, context: &X, coord: &(f64,f64)) -> bool {
         self.get(context,coord).len() != 0
     }
 
-    pub fn get<'b>(&'b self, context: &X, coord: &C) -> Vec<&'b V> {
+    pub fn get<'b>(&'b self, context: &X, coord: &(f64,f64)) -> Vec<(&'b V,HotspotPosition)> {
         let mut out = vec![];
         for (x,y) in self.profile.get_zones(context,coord) {
             if let Some(indexes) = self.data.get(self.profile.diagonalise(x,y)).map(|x| x.as_ref()).flatten() {
                 let more = indexes.iter()
                     .map(|v| &self.values[*v])
-                    .filter(|v| self.profile.intersects(context,coord,v));
+                    .filter_map(|v| {
+                        if let Some(p) = self.profile.bounds(context,v) {
+                            if coord.0 >= p.left && coord.0 < p.right && coord.1 >= p.top && coord.1 < p.bottom {
+                                return Some((v,p));
+                            }
+                        }
+                        None
+                    });
                 out.extend(more);
             }
         }

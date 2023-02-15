@@ -1,6 +1,6 @@
 use std::{ops::Range};
-use peregrine_data::{SingleHotspotEntry, Scale, HotspotGroupEntry, SpaceBasePoint, AuxLeaf };
-use peregrine_toolkit::{hotspots::hotspotstore::{HotspotStoreProfile}, ubail, error::Error};
+use peregrine_data::{SingleHotspotEntry, Scale, HotspotGroupEntry, SpaceBasePoint, AuxLeaf, SingleHotspotResult };
+use peregrine_toolkit::{hotspots::hotspotstore::{HotspotStoreProfile, HotspotPosition}, ubail, error::Error};
 use crate::{Message, stage::{stage::ReadStage, axis::UnitConverter}};
 use super::{drawhotspotstore::{PointPair, DrawHotspotStore}, coordconverter::CoordToPxConverter};
 
@@ -50,14 +50,13 @@ impl DrawingHotspotProfile {
 }
 
 impl HotspotStoreProfile<SingleHotspotEntry> for DrawingHotspotProfile {
-    type Coords = (f64,f64);
     type Area = PointPair;
     type Context = UnitConverter;
 
     fn diagonalise(&self, x: usize, y: usize) -> usize { x + y*HORIZ_ZONES }
 
-    fn intersects(&self, context: &UnitConverter, coords: &(f64,f64), entry: &SingleHotspotEntry) -> bool {
-        let coord_to_px = ubail!(self.converter(context),false);
+    fn bounds(&self, context: &UnitConverter, entry: &SingleHotspotEntry) -> Option<HotspotPosition> {
+        let coord_to_px = ubail!(self.converter(context),None);
         let (at_coords,run) = entry.coordinates();
         at_coords.map(|(c1,c2)| {
             let mut obj_left = coord_to_px.tracking_coord_to_px(&c1);
@@ -69,8 +68,13 @@ impl HotspotStoreProfile<SingleHotspotEntry> for DrawingHotspotProfile {
                     obj_left = left_rail;
                 }
             }
-            coords.0 >= obj_left && coords.0 <= obj_right && coords.1 >= *c1.normal && coords.1 <= *c2.normal
-        }).unwrap_or(false)
+            Some(HotspotPosition {
+                top: *c1.normal,
+                bottom: *c2.normal,
+                left: obj_left,
+                right: obj_right
+            })
+        }).unwrap_or(None)
     }
 
     fn get_zones(&self, context: &UnitConverter, position: &(f64,f64)) -> Vec<(usize,usize)> {
@@ -119,7 +123,7 @@ impl TrackingHotspots {
         })
     }
 
-    pub(crate) fn get_hotspot(&self, stage: &ReadStage, position_px: (f64,f64)) -> Result<Vec<SingleHotspotEntry>,Message> {
+    pub(crate) fn get_hotspot(&self, stage: &ReadStage, position_px: (f64,f64)) -> Result<Vec<SingleHotspotResult>,Message> {
         let converter = stage.x().unit_converter()?;
         self.store.get_hotspot(&converter,position_px)
     }
