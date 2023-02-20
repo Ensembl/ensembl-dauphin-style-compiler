@@ -78,8 +78,7 @@ let *dots = calc_outside_of_tr(*tr_gene,*tr,*leaf_tr);
 let **dots_tr = index(**tr,dots.tr);
 
 let y = dots_tr.position * 20;
-let colours = index(gene_colours(),dots.leaf_index);
-let paint = paint_dotted([colour!("white"),...],apply_ghost(y==0),4,0,0.5);
+let paint = paint_dotted([colour!("white"),...],[colour!("#9aa7b1"),...],4,0,0.5);
 rectangle(coord(dots.start,y+5,[0,...]),coord(dots.end,y+5,[0,...]),paint,dots.leaf);
 
 /* Draw hollow and blanking exons */
