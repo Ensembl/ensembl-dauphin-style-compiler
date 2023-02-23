@@ -1,0 +1,18 @@
+[source.apple]
+driver = "s3"
+url="http://staging-2020.ensembl.org/api/browser/data"
+max_version = 13
+
+[source.banana]
+driver = "s3"
+url="http://staging-2020.ensembl.org/api/browser/data"
+min_version = 14
+
+[redirect.data]
+upstream="http://staging-2020.ensembl.org/api/browser/data"
+
+[redirect.jump]
+upstream="http://staging-2020.ensembl.org/api/browser/data"
+
+[redirect.metric]
+upstream="http://staging-2020.ensembl.org/api/browser/data"
