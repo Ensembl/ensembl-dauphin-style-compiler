@@ -86,7 +86,7 @@ graph TD
 1. Go to `ensembl-dauphin-style-compiler/peregrine-generic`
 2. Call `./build.sh` this will ask you a set of questions about debugging output and port details. Once you accept the settings it will build the browser and start a server on the port you specified. If you are unsure what settings to use you can do with the default / suggested settings
 3. Go to http://127.0.0.1:PORT replacing PORT with the one defined during **2.** 
-4. Open `ensembl-dauphin-style-compiler/peregrine-generic/index.html` and check if `backend_url` is pointing to the local backend server running on docker.
+4. Open `ensembl-dauphin-style-compiler/peregrine-generic/index.html` and check if `backend_url` is pointing to the local backend server that you started in the previous section.
 
 Once you have ran `./build.sh` you can start the front end service by using `python server.py PORT`, ` python -m http.server PORT` or any other http server. 
 
