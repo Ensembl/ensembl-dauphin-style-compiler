@@ -86,6 +86,7 @@ graph TD
 1. Go to `ensembl-dauphin-style-compiler/peregrine-generic`
 2. Call `./build.sh` this will ask you a set of questions about debugging output and port details. Once you accept the settings it will build the browser and start a server on the port you specified. If you are unsure what settings to use you can do with the default / suggested settings
 3. Go to http://127.0.0.1:PORT replacing PORT with the one defined during **2.** 
+4. Open `ensembl-dauphin-style-compiler/peregrine-generic/index.html` and check if `backend_url` is pointing to the local backend server that you started in the previous section.
 
 Once you have ran `./build.sh` you can start the front end service by using `python server.py PORT`, ` python -m http.server PORT` or any other http server. 
 
@@ -96,7 +97,7 @@ You should now see something like this :-
 **Updating EARD files and testing the changes**
 
 1. Before you can begin you need to build a release version of **peregrine-eard**
-2. Go to `peregrine-eard/`
+2. Go to `peregrine-eard/compiler`
 3. Build the compiler with  `cargo build --release`
 4. EARD files can be found in `ensembl-dauphin-style-compiler/backend-server/egs-data/egs`
 5. Make what ever changes you desire.
