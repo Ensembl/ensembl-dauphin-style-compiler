@@ -11,12 +11,12 @@ function summary_leaf(track_name,suffix) {
 
 export function variant_colours() {
     [
-        colour!("#fff"), // 0 = white
-        colour!("#438693"), // 1 = petrol
-        colour!("#a5d5cf"), // 2 = duick-egg
-        colour!("#9df35f"), // 3 = green
-        colour!("#ebca62"), // 4 = orange
-        colour!("#d82f24") // 5 = red
+        colour!("#fff"),    // 0 = white
+        colour!("#96d0c9"), // 1 = duckegg-blue
+        colour!("#327c89"), // 2 = teal
+        colour!("#84fa3a"), // 3 = lime
+        colour!("#f8c041"), // 4 = dark-yellow
+        colour!("#EB768A")  // 5 = dark-pink
     ]
 }
 
