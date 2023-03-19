@@ -1,0 +1,33 @@
+{
+  "name": "@ensembl/ensembl-genome-browser",
+  "version": "0.6.6",
+  "description": "Ensembl genome browser",
+  "main": "dist/bundle-cjs.cjs",
+  "module": "dist/peregrine_ensembl.js",
+  "type": "module",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/peregrine_ensembl.js",
+      "require": "./dist/bundle-cjs.cjs"
+    }
+  },
+  "scripts": {
+    "prebuild": "rm -rf ./dist && rm -rf ./tmp && mkdir tmp",
+    "build:wasm": "cd .. && wasm-pack build --target web --release && cp pkg/peregrine* ./publish/tmp && cd -",
+    "build:cjs": "cd .. && wasm-pack build --target web --release && cp pkg/peregrine* ./publish/tmp && cd -",
+    "build": "npm run build:wasm && rollup -c",
+    "prepublishOnly": "npm run build"
+  },
+  "publishConfig": {
+    "@ensembl:registry": "https://gitlab.ebi.ac.uk/api/v4/projects/3500/packages/npm/"
+  },
+  "author": "EMBL-EBI",
+  "files": [
+    "dist/*"
+  ],
+  "devDependencies": {
+    "rollup": "3.19.1",
+    "rollup-plugin-copy": "3.4.0"
+  }
+}
