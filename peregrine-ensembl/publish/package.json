@@ -15,8 +15,8 @@
   "scripts": {
     "prebuild": "rm -rf ./dist && rm -rf ./tmp && mkdir tmp",
     "build:wasm": "cd .. && wasm-pack build --target web --release && cp pkg/peregrine* ./publish/tmp && cd -",
-    "build:cjs": "cd .. && wasm-pack build --target web --release && cp pkg/peregrine* ./publish/tmp && cd -",
     "build": "npm run build:wasm && rollup -c",
+    "build:noisy": "RUSTFLAGS='--cfg console_noisy' npm run build",
     "prepublishOnly": "npm run build"
   },
   "publishConfig": {
