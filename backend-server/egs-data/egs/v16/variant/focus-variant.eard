@@ -90,6 +90,9 @@ let v.variety = data_string(data,"variety");
 let v.severity = data_number(data,"severity");
 let v.consequence = data_string(data,"consequence");
 
+let variety_str = index(["SNV","indel","insertion","deletion"],find(["SNV","INDEL","INS","DEL"],v.variety));
+let v.variety_str = variety_str;
+
 let deep = v.variety != "SNV";
 
 halt(only_warm());
@@ -143,7 +146,6 @@ v.label_alleles = if(deep,[label.other_alleles,...],[label.snv_alleles,...]);
 
 /* Create templates for all the variants (whether destined for sun or sea) */
 
-let variety_str = index(["SNV","indel","insertion","deletion"],find(["SNV","INDEL","INS","DEL"],v.variety));
 let top_left = variety_str;
 let tmpl = template_start("{0}/{1}");
 template_set(tmpl,0,v.ref);
