@@ -83,7 +83,7 @@ export function variant_zmenu(*variant) {
 """,
     variant.id,
     variant.consequence,
-    variant.variety_str,
+    variant.variety_pretty,
     position,
     alleles
   );
