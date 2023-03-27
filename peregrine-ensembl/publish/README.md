@@ -1,6 +1,17 @@
 # Description
 This is a setup for publishing Ensembl genome browser (see the parent directory) as an npm package.
 
+## Requirements
+- Rust
+- The `wasm-pack` library
+
+See the Dockerfile in the parent directory for more details about the setup for the Rust build.
+
+## Details
+- The script (see `package.json` > `scripts:build`) visits the parent directory, builds the Rust code into webassembly using `wasm-pack`, and copies the build output into a temporary directory in the current directory.
+- Since `wasm-pack` generates an ES-module build, the script also produces a commonjs build for better compatibility (see the settings in the `rollup.config.js` file).
+- Both the ES-module build and the commonjs build are then copied to the `dist` folder, and an npm package is generated and published. See below on further instructions on how to publish the package.
+
 ## How to publish a package
 Note that this repository has been configured to use a custom package registry set up in an EBI Gitlab instance. The full list of published packages can be seen at at https://gitlab.ebi.ac.uk/ensembl-web/package-registry/-/packages. For configuration details, see the `publishConfig` field of the `package.json`, and the `.npmrc` file.
 

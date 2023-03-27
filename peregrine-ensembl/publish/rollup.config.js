@@ -1,7 +1,7 @@
 import copy from 'rollup-plugin-copy';
 
 export default [
-  // CommonJS
+  // Generate a commonjs build
   {
     input: './tmp/peregrine_ensembl.js',
     output: {
