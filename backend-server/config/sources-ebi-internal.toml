@@ -5,5 +5,5 @@ max_version = 13
 
 [source.banana]
 driver = "file"
-root = "/usr/data/newsite/internal/genome_browser/upload-20220829"
+root = "/usr/data/newsite/internal/genome_browser/7"
 min_version = 14
