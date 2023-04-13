@@ -1,4 +1,5 @@
-html, body {
+html,
+body {
     padding: 0;
     margin: 0;
 }
@@ -6,22 +7,29 @@ html, body {
 .grid {
     height: 100vh;
     display: grid;
-    grid-template: "header header" "viewport sidebar";
+    gap: 5px;
+    grid-template: "header header" "viewport sidebar" "footer footer";
     grid-template-columns: 1fr min-content;
-    grid-template-rows: 100px 1fr;
-    transition: min-width 1s cubic-bezier(0.64, 0, 0.78, 0), height 0s cubic-bezier(0.64, 0, 0.78, 0);
-    background: #8b8;
+    grid-template-rows: min-content 1fr min-content;
+    background: rgb(169, 201, 169);
+    color: rgb(26, 39, 26);
 }
 
-.other {
+.header {
+    grid-area: header;
+}
+
+.sidebar {
+    display: grid;
     min-width: 300px;
-    grid-row: 1/3;
+    padding: 5px;
+    gap: 5px;
+    grid-area: sidebar;
     overflow-y: scroll;
 }
 
-.other2 {
-    min-width: 50px;
-    transition: min-width 1s cubic-bezier(0.64, 0, 0.78, 0), height 0s cubic-bezier(0.64, 0, 0.78, 0);
+.payload {
+    word-break: break-all;
 }
 
 .viewport {
@@ -32,6 +40,42 @@ html, body {
     overflow-x: hidden;
 }
 
+.footer {
+    grid-area: footer;
+}
+
 input {
     display: inline;
+}
+
+button {
+    margin: 1px;
+    padding: 2px 6px;
+    border: 1px solid #888;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+table {
+    border-top: 1px solid #96b299;
+}
+
+tbody tr:nth-child(odd) {
+    background-color: rgb(197 220 197);
+}
+
+td {
+    padding: 0 3px;
+}
+
+a {
+    color: #444;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+a.lbl {
+    display: block;
+    letter-spacing: -12px;
+    width: 16px;
 }
