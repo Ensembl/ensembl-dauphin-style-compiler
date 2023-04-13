@@ -182,7 +182,7 @@ rectangle(coord(line.start,y+7,[0,...]),coord(line.end,y+8,[0,...]),colours,if(n
 
 let (position,bp_index_of_line) = startend_to_bp(line.start,line.end);
 let bp_index_of_tr = index(line.index_of_tr,bp_index_of_line);
-let bp_strand = index(tr.index_of_gene,bp_index_of_tr);
+let bp_strand = repeat(index(gene.strand, 0), len(bp_index_of_line)); // make an array of strand codes (1 or 0) of the same length as bp_index_of_line
 let line.letter = bp_letters(position,bp_strand,sequence,sequence_rev,sequence_start);
 
 let colours = index(gene_colours(),index(tr.leaf_index,bp_index_of_tr));
