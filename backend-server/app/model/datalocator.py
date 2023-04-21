@@ -21,6 +21,24 @@ class AccessItem(object):
             chromosome (str):
     """
 
+    variety_map = {
+        "contigs" : "contigs/{genome}/contigs.bb",
+        "transcripts" : "genes_and_transcripts/{genome}/transcripts.bb",
+        "gc" : "gc/{genome}/gc.bw",
+        "variant-labels" : "variants/{genome}/variant-labels.bb",
+        "jump" : "jump/{genome}/jump.ncd",
+        "seqs" : "seqs/{genome}/{chromosome}",
+        "chrom-hashes": "common_files/{genome}/chrom.hashes.ncd",
+        "chrom-sizes" : "common_files/{genome}/chrom.sizes.ncd",
+        "species-list": "species.txt",
+        "variant-summary" : "variants/{genome}/variant-summary.bw",
+        "variant-summary-2" : "variants/{genome}/variant-summary.bw",
+        "variant-summary-3" : "variants/{genome}/variant-summary.bw",
+        "variant-summary-4" : "variants/{genome}/variant-summary.bw",
+        "variant-summary-5" : "variants/{genome}/variant-summary.bw",
+        "variant-summary-6" : "variants/{genome}/variant-summary.bw",
+    }
+
     def __init__(self, variety: str, genome: str = None, chromosome: str = None):
         self.variety: str = variety
         self.genome: str = genome
@@ -33,26 +51,8 @@ class AccessItem(object):
             variety string.
 
         """
-        if self.variety == "contigs":
-            return "/".join(["contigs", self.genome, "contigs.bb"])
-        elif self.variety == "transcripts":
-            return "/".join(["genes_and_transcripts", self.genome, "transcripts.bb"])
-        elif self.variety == "gc":
-            return "/".join(["gc", self.genome, "gc.bw"])
-        elif self.variety == "variant-summary":
-            return "/".join(["variants", self.genome, "variant-summary.bw"])
-        elif self.variety == "variant-labels":
-            return "/".join(["variants", self.genome, "variant-labels.bb"])
-        elif self.variety == "jump":
-            return "/".join(["jump",self.genome,"jump.ncd"])
-        elif self.variety == "seqs":
-            return "/".join(["seqs", self.genome, self.chromosome])
-        elif self.variety == "chrom-hashes":
-            return "/".join(["common_files", self.genome, "chrom.hashes.ncd"])
-        elif self.variety == "chrom-sizes":
-            return "/".join(["common_files", self.genome, "chrom.sizes.ncd"])
-        elif self.variety == "species-list":
-            return "/".join(["species.txt"])
+        if self.variety in AccessItem.variety_map:
+            return AccessItem.variety_map[self.variety].format(genome = self.genome, chromosome = self.chromosome)
         else:
             raise RequestException("unknown variety '{}'".format(self.variety))
 
