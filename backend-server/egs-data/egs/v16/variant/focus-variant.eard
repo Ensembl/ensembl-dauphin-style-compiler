@@ -118,10 +118,10 @@ let zmenu_paint = variant_zmenu(*v);
 
 let base_height = 7;
 
-let paint = paint_solid(index(variant_colours(),v.severity));
+let variant_severity_paint = paint_solid(index(variant_colours(),v.severity));
 let nw = coord(v.start,[0,...],[2,...]);
 let se = coord(v.start+1,[base_height,...],[-2,...]);
-rectangle(nw,se,paint,if(!deep,[leaf.shore_under,...],[leaf(""),...]));
+rectangle(nw,se,variant_severity_paint,if(!deep,[leaf.shore_under,...],[leaf(""),...]));
 rectangle(nw,se,zmenu_paint,if(!deep,[leaf.shore_over,...],[leaf(""),...]));
 
 let (bp_start,bp_end) = bp_range();
@@ -226,7 +226,7 @@ rectangle(coord(position,index(height_to_eel,eel_v),[2,...]),coord(position+1,in
 
 let paint = paint_dotted([colour!("white"),...],[colour!("#999"),...],4,1,0.5);
 rectangle_join(coord(v.start,height/2,[1,...]),coord(v.start,[7,...],[1,...]),paint,deep_sea_text_leaf,[leaf.shore_under,...]);
-polygon(coord(v.start,height/2,[-1,...]),[3,...],7,0,paint_solid(colour!("red")),deep_sea_text_leaf);
+polygon(coord(v.start,height/2,[-1,...]),[3,...],7,0,variant_severity_paint,deep_sea_text_leaf);
 
 /* Draw track furniture */
 
