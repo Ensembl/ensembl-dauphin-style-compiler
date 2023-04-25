@@ -90,6 +90,9 @@ let v.variety = data_string(data,"variety");
 let v.severity = data_number(data,"severity");
 let v.consequence = data_string(data,"consequence");
 
+let variety_pretty = index(["SNV","indel","insertion","deletion"],find(["SNV","INDEL","INS","DEL"],v.variety));
+let v.variety_pretty = variety_pretty;
+
 let deep = v.variety != "SNV";
 
 halt(only_warm());
@@ -143,8 +146,7 @@ v.label_alleles = if(deep,[label.other_alleles,...],[label.snv_alleles,...]);
 
 /* Create templates for all the variants (whether destined for sun or sea) */
 
-let variety_str = index(["SNV","indel","insertion","deletion"],find(["SNV","INDEL","INS","DEL"],v.variety));
-let top_left = variety_str;
+let top_left = variety_pretty;
 let tmpl = template_start("{0}/{1}");
 template_set(tmpl,0,v.ref);
 template_set(tmpl,1,v.alt);
@@ -204,9 +206,10 @@ deep_sea_text_leaf = if(deep,sea_text_leaf,[leaf(""),...]);
 
 /* Draw sea text */
 
-text(coord(v.start,[0,...],[5,...]),pen,top_left,sea_text_leaf);
-text(coord(v.start,[0,...],right_offset+5),bold_pen,top_right,if(v.label_alleles,sea_text_leaf,[leaf(""),...]));
-text(coord(v.start,[10,...],[5,...]),pen,bottom_line,if(v.label_id,sea_text_leaf,[leaf(""),...]));
+let text_offset = 8;
+text(coord(v.start,[0,...],[text_offset,...]),pen,top_left,sea_text_leaf);
+text(coord(v.start,[0,...],right_offset+text_offset),bold_pen,top_right,if(v.label_alleles,sea_text_leaf,[leaf(""),...]));
+text(coord(v.start,[10,...],[text_offset,...]),pen,bottom_line,if(v.label_id,sea_text_leaf,[leaf(""),...]));
 
 /* Draw sea zmenus */
 
@@ -225,8 +228,8 @@ rectangle(coord(position,index(height_to_eel,eel_v),[2,...]),coord(position+1,in
 /* Draw fishing lines */
 
 let paint = paint_dotted([colour!("white"),...],[colour!("#999"),...],4,1,0.5);
-rectangle_join(coord(v.start,height/2,[1,...]),coord(v.start,[7,...],[1,...]),paint,deep_sea_text_leaf,[leaf.shore_under,...]);
-polygon(coord(v.start,height/2,[-1,...]),[3,...],7,0,variant_severity_paint,deep_sea_text_leaf);
+rectangle_join(coord(v.start,(height/2)-5,[1,...]),coord(v.start,[7,...],[1,...]),paint,deep_sea_text_leaf,[leaf.shore_under,...]);
+polygon(coord(v.start,height/2,[1,...]),[5,...],7,0,variant_severity_paint,deep_sea_text_leaf);
 
 /* Draw track furniture */
 

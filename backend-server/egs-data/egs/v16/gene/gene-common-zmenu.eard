@@ -9,31 +9,41 @@ struct!(variety_zmenu,"""
 
 function gene_zmenu(*gene) {
 struct!(gene_zmenu,"""
-(<0,1,2,3,4,5,6,7>!
+(<0,1,2,3,4,5,6,7,8,9>!
       {
         "data": [
           /* First row: gene symbol */
           [
-            {
-              "items": [
-                { "markup": [ "light" ], "text": "Gene" },
-                { "markup": [], "text": " " },
-                { "markup": [], "text": <0s> }
-              ],
-              "type": "block"
-            }
+            { "items": [ { "markup": [ "light" ], "text": "Gene" } ], "type": "block" },
+            { "items": [ { "markup": [], "text": <0s> } ], "type": "block" },
+            { "items": [ { "markup": [], "text": <1s> } ], "type": "block" }
           ],
 
           /* Second row: id and description */
           [
-            { "items": [ { "markup": [ "strong", "focus" ], "text": <1s> } ], "type": "block" },
-            { "items": [ { "markup": [], "text": <2s> } ], "type": "block" }
+            { "items": [ { "markup": [ "light" ], "text": <2s> } ], "type": "block" }
           ],
 
-          /* Third row: biotype and strand */ 
+          /* Third row: biotype */
           [
-            { "items": [ { "markup": [ "light" ], "text": <7s> } ], "type": "block" },
-            { "items": [ { "markup": [ "light" ], "text": <4s> } ], "type": "block" }
+            { "items": [ { "markup": [ "light" ], "text": "Biotype" } ], "type": "block" },
+            { "items": [ { "markup": [ ], "text": <7s> } ], "type": "block" }
+          ],
+
+          /* Fourth row: strand and location */
+          [
+            { "items": [ { "markup": [ "light" ], "text": <4s> } ], "type": "block" },
+          ],
+
+          /* Fourth row: strand and location */
+          [
+            { "items": [
+                { "markup": [], "text": <8n> },
+                { "markup": [], "text": " " },
+                { "markup": [ "light" ], "text": <9s> },
+              ],
+              "type": "block"
+            }
           ]
         ],
         "metadata": {
@@ -57,7 +67,9 @@ struct!(gene_zmenu,"""
         gene.strand_string,
         gene.id_unversioned,
         index(["gene-other-rev","gene-pc-rev","gene-other-fwd","gene-pc-fwd","focus"],gene.leaf_index),
-        small_value("gene-biotype","label",gene.biotype)
+        small_value("gene-biotype","label",gene.biotype),
+        gene.all_tr_count,
+        if(gene.all_tr_count > 1,["transcripts",...],["transcript",...])
     );
     gene_zmenu
 }
@@ -66,7 +78,7 @@ struct!(gene_zmenu,"""
 
 function gene_tr_zmenu(*gene) {
 struct!(gene_tr_zmenu,"""
-(<0,1,2,3,4,5,6,7>!
+(<0,1,2,3,4,5,6,7,8>!
       {
         "data": [
 
@@ -90,10 +102,10 @@ struct!(gene_tr_zmenu,"""
           /* Second row */
 
           [
-            {
-              "items": [{ "markup": ["light"], "text": <7s> }],
-              "type": "block"
-            },
+            { "items": [ { "markup": [ "light" ], "text": "Biotype" } ], "type": "block" },
+            { "items": [ { "markup": [ ], "text": <7s> } ], "type": "block" }
+          ],
+          [
             {
               "items": [{ "markup": ["light"], "text": <3s> }],
               "type": "block"
@@ -149,12 +161,11 @@ struct!(tr_zmenu,"""
           ],
 
           /* Second row */
-
           [
-            {
-              "items": [{ "markup": ["light"], "text": <8s> }],
-              "type": "block"
-            },
+            { "items": [ { "markup": [ "light" ], "text": "Biotype" } ], "type": "block" },
+            { "items": [ { "markup": [ ], "text": <8s> } ], "type": "block" }
+          ],
+          [
             {
               "items": [{ "markup": ["light"], "text": <3s> }],
               "type": "block"
