@@ -21,7 +21,7 @@ export function variant_colours() {
 }
 
 export procedure variant_summary_track(track_name,track_label) {
-    let data = get_data(request("self()","variant"));
+    let data = get_data(request("self()",track_name));
     halt(only_warm());
 
     let values = data_number(data,"values");
@@ -43,5 +43,11 @@ export procedure variant_summary_track(track_name,track_label) {
     /* draw track furniture */
 
     draw_track_name(track_label,"name",summary_leaf(track_name,"title/content"));
-    draw_track_category(["V"],["variant"],[summary_leaf(track_name,"main/letter/content")]);
+    draw_track_category(["V"],[track_name],[summary_leaf(track_name,"main/letter/content")]);
+}
+
+
+export procedure variant_summary_tracks() {
+    variant_summary_track("variant","All short variant data");
+    variant_summary_track("v_2","V2");
 }

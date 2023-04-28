@@ -14,8 +14,13 @@ style!("""
         priority: 1000;
         report: "track;switch-id=variant";
     }
+
+    tracks/track/v_2/ {
+        priority: 1010;
+        report: "track;switch-id=v_2";
+    }
 """);
 
 /* Get data */
 
-variant_summary_track("variant","All short variant data");
+variant_summary_tracks();
