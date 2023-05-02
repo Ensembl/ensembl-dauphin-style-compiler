@@ -12,6 +12,7 @@ DST="$DIR/egs-data/begs"
 eard-compiler \
     -c $SRC/v16/other/framing.eard -c $SRC/v16/other/gc.eard -c $SRC/v16/other/contig.eard \
     -c $SRC/v16/other/zoomed-seq.eard -c $SRC/v16/variant/variant-summary.eard \
+    -c $SRC/v16/variant/v_2-summary.eard \
     -c $SRC/v16/other/ruler.eard -c $SRC/v16/gene/gene-overview.eard -c $SRC/v16/gene/gene.eard \
     -c $SRC/v16/gene/focus-gene.eard -c $SRC/v16/gene/focus-gene-dots.eard \
     -c $SRC/v16/gene/transcript.eard  -c $SRC/v16/other/focus-region.eard \
