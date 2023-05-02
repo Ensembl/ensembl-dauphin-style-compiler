@@ -172,12 +172,19 @@ name = ["track","gc","name"]
 [track.variant.general]
 include = ["general"]
 scales = [1,100,4]
-triggers = [["track","variant"],
-    ["track","v_2"]]
+triggers = [["track","variant"]]
 tags= "#has-variants"
 
 [track.variant.settings]
 name = ["track","variant","name"]
+
+[track.v_2.general]
+include = ["general"]
+scales = [1,100,4]
+triggers = [["track","v_2"]]
+tags= "#has-variants"
+
+[track.v_2.settings]
 name = ["track","v_2","name"]
 
 [track.focus-variant.general]
