@@ -172,7 +172,8 @@ name = ["track","gc","name"]
 [track.variant.general]
 include = ["general"]
 scales = [1,100,4]
-triggers = [["track","variant"]]
+triggers = [["track","variant"],
+    ["track","v_2"]]
 tags= "#has-variants"
 
 [track.variant.settings]
@@ -196,12 +197,7 @@ show-extents = ["track","focus","variant","show-extents"]
 [track.focus-variant-summary.general]
 include = ["general"]
 scales = [6,100,4]
-triggers = [["track","focus","item","variant"],
-    ["track","focus","item","v_2"],
-    ["track","focus","item","v_3"],
-    ["track","focus","item","v_4"],
-    ["track","focus","item","v_5"],
-    ["track","focus","item","v_6"]]
+triggers = [["track","focus","item","variant"]]
 tags= "#has-variants"
 
 [track.focus-variant-summary.settings]

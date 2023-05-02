@@ -1,46 +1,4 @@
-[file.v15.general]
-path="render15.begs"
-program_set="ensembl-webteam/core"
-program_version=1
-specs_path="specs15"
-boot_for_version=[15]
-programs = [
-    "zoomed-seq",
-    "zoomed-transcript",
-    "transcript",
-    "gene",
-    "gene-overview",
-    "gc",
-    "contig",
-    "variant",
-    "ruler",
-    "framing",
-    "focus-zoomed-transcript",
-    "focus-transcript"
-]
-
-[file.v16.general]
-path="render16.begs"
-program_set="ensembl-webteam/core"
-program_version=1
-specs_path="specs16"
-boot_for_version=[16]
-programs = [
-    "focus-region"
-]
-
 [file.v16e.general]
 type="eardo"
 path="render16.eardo"
 boot_for_version=[16]
-
-[file.test.general]
-path="test16.begs"
-program_set="ensembl-webteam/core"
-program_version=1
-specs_path="specs16"
-programs = [ "test", "test-with-data" ]
-
-[file.test.mapping.test]
-program_name="test"
-program_version=2
