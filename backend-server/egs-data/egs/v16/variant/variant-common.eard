@@ -45,9 +45,3 @@ export procedure variant_summary_track(track_name,track_label) {
     draw_track_name(track_label,"name",summary_leaf(track_name,"title/content"));
     draw_track_category(["V"],[track_name],[summary_leaf(track_name,"main/letter/content")]);
 }
-
-
-export procedure variant_summary_tracks() {
-    variant_summary_track("variant","All short variant data");
-    variant_summary_track("v_2","V2");
-}

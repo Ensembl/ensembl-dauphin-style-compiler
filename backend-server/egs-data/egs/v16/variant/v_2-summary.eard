@@ -1,4 +1,4 @@
-program "ensembl-webteam/core" "variant" 1;
+program "ensembl-webteam/core" "v_2" 1;
 refer "libperegrine";
 refer "libeoe";
 include "../common/track-common.eard";
@@ -13,4 +13,5 @@ variation_track_styles();
 
 /* Get data */
 
-variant_summary_track("variant","All short variant data");
+
+variant_summary_track("v_2","VARIANT 2");

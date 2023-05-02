@@ -1,0 +1,14 @@
+
+export procedure variation_track_styles() {
+style!("""
+    tracks/track/variant/ {
+        priority: 1000;
+        report: "track;switch-id=variant";
+    }
+
+    tracks/track/v_2/ {
+        priority: 1020;
+        report: "track;switch-id=v_2";
+    }
+""");
+}
