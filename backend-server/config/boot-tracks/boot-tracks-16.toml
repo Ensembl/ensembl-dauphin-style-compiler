@@ -178,6 +178,7 @@ tags= "#has-variants"
 
 [track.variant.settings]
 name = ["track","variant","name"]
+name = ["track","v_2","name"]
 
 [track.focus-variant.general]
 include = ["general"]
