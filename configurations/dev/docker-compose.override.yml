@@ -17,6 +17,7 @@ services:
             - TELEGRAF_HOST=telegraf
         volumes:
             - ${BEGS_PATH:-.}:/begs
+            - ${SOURCE_PATH:-.}:/usr/src/app
 
     backend-lo:
         environment:
@@ -29,6 +30,7 @@ services:
             - TELEGRAF_HOST=telegraf
         volumes:
             - ${BEGS_PATH:-.}:/begs
+            - ${SOURCE_PATH:-.}:/usr/src/app
 
     memcached:
         environment:
