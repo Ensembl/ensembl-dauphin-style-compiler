@@ -60,18 +60,12 @@ class ProgramHandler(Handler):
         (prog_set,name,prog_version) = payload
         eardo = []
         try:
-            if version.get_egs() < 15:
-                bundle = data_accessor.begs_files.find_bundle(name,version)
-            else:
-                eardo = data_accessor.program_inventory.find_eardo_bundle(prog_set,name,prog_version)
-                bundle = data_accessor.program_inventory.find_bundle(prog_set,name,prog_version)
+            eardo = data_accessor.program_inventory.find_eardo_bundle(prog_set,name,prog_version)
         except UnknownVersionException as e:
             return Response(1,e)
         r = Response(2,[])
         if eardo != None:
             r.add_eardo(eardo)
-        if bundle != None:
-            r.add_bundle(bundle)
         return r
 
     def remote_prefix(self, payload: Any) -> Optional[List[str]]:

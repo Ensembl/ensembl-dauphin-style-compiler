@@ -43,35 +43,6 @@ from util.influx import ResponseMetrics
 from model.version import Version
 
 handlers = [
-    ("gene-overview", GeneOverviewDataHandler8()),
-    ("gene", GeneDataHandler8()),
-    ("transcript", TranscriptDataHandler8(False)),
-    ("zoomed-transcript", TranscriptDataHandler8(True)),
-    ("zoomed-seq", ZoomedSeqDataHandler8()),
-    ("gene-location", GeneLocationHandler8()),
-    ("gc", WiggleDataHandler()),
-    ("contig", ContigDataHandler()),
-    ("shimmer-contig", ShimmerContigDataHandler()),
-    ("variant", VariantDataHandler()),
-
-    ("gene-overview", GeneOverviewDataHandler(),14),
-    ("gene", GeneDataHandler(),14),
-    ("transcript", TranscriptDataHandler(),14),
-    ("zoomed-seq", ZoomedSeqDataHandler(),14),
-    ("gc", WiggleDataHandler2(),14),
-    ("contig", ContigDataHandler2(),14),
-    ("shimmer-contig", ShimmerContigDataHandler2(),14),
-    ("variant", VariantDataHandler2(),14),
-
-    ("gene-overview", GeneOverviewDataHandler15(),15),
-    ("gene", GeneDataHandler15(),15),
-    ("transcript", TranscriptDataHandler15(),15),
-    ("zoomed-seq", ZoomedSeqDataHandler15(),15),
-    ("gc", WiggleDataHandler15(),15),
-    ("contig", ContigDataHandler15(),15),
-    ("shimmer-contig", ShimmerContigDataHandler15(),15),
-    ("variant", VariantDataHandler15(),15),
-
     ("gene-overview", GeneOverviewDataHandler16(),16),
     ("gene", GeneDataHandler16(),16),
     ("transcript", TranscriptDataHandler16(),16),
