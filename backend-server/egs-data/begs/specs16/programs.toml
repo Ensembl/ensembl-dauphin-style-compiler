@@ -11,7 +11,7 @@ programs = [
     "test.toml",
     "transcript.toml",
     "variant.toml",
-    "v_2.toml"
+    "v_2.toml",
     "zoomed-seq.toml",
     "zoomed-transcript.toml"
 ]
