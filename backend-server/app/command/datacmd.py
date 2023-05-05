@@ -50,8 +50,8 @@ handlers = [
     ("gc", WiggleDataHandler16(),16),
     ("contig", ContigDataHandler16(),16),
     ("shimmer-contig", ShimmerContigDataHandler16(),16),
-    ("variant", VariantSummaryDataHandler(),16),
-    ("v_2", VariantSummaryDataHandler(),16),
+    ("variant", VariantSummaryDataHandler("variant"),16),
+    ("v_2", VariantSummaryDataHandler("v_2"),16),
     ("variant-labels", VariantLabelsDataHandler(),16),
 ]
 

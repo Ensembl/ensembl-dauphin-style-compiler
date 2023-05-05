@@ -32,7 +32,7 @@ class AccessItem(object):
         "chrom-sizes" : "common_files/{genome}/chrom.sizes.ncd",
         "species-list": "species.txt",
         "variant-summary" : "variants/{genome}/variant-summary.bw",
-        "v_2-summary" : "variants/{genome}/variant-summary.bw",
+        "v_2-summary" : "variants/{genome}/variant-summary-2.bw",
         "variant-summary-3" : "variants/{genome}/variant-summary.bw",
         "variant-summary-4" : "variants/{genome}/variant-summary.bw",
         "variant-summary-5" : "variants/{genome}/variant-summary.bw",
