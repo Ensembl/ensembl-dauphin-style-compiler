@@ -1,4 +1,5 @@
 stages:
+  - build-eardo
   - build
   - deploy
 
@@ -6,6 +7,25 @@ variables:
   DOCKER_IMAGE: ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}
   DOCKER_TLS_CERTDIR: ""
   BASE: backend-server/k8s/base
+
+.build-eardo:
+  stage: build-eardo
+  image: dockerhub.ebi.ac.uk/ensembl-web/peregrine-eard:latest
+
+  # rules:
+  #   - if: '$CI_DEPLOY_FREEZE == null'
+  #     changes:
+  #       - backend-server/egs-data/egs/*.eard
+  #     when: always
+  #   - when: never
+
+  script:
+    - build_begs.sh
+
+  artifacts:
+    name: eardo_artifacts
+    paths:
+      - backend-server/egs-data/begs/render16.eardo
 
 .base-be-rules:
   rules:
@@ -117,6 +137,9 @@ variables:
     # Update hi/lo configuration
     - kustomize build ${BASE}/hi | kubectl apply -f -
     - kustomize build ${BASE}/lo | kubectl apply -f -
+
+BE-Eardo:
+  extends: .build-eardo
 
 BE-Docker:
   extends: .build_backend
