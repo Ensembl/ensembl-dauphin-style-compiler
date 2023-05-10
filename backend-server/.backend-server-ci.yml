@@ -20,7 +20,7 @@ variables:
   #   - when: never
 
   script:
-    - build_begs.sh
+    - build-begs.sh
 
   artifacts:
     name: eardo_artifacts
