@@ -52,6 +52,8 @@ handlers = [
     ("shimmer-contig", ShimmerContigDataHandler16(),16),
     ("variant", VariantSummaryDataHandler("variant"),16),
     ("v_2", VariantSummaryDataHandler("v_2"),16),
+    ("variant-eva", VariantSummaryDataHandler("variant-eva"),16),
+    ("variant-sgrp", VariantSummaryDataHandler("variant-sgrp"),16),
     ("variant-labels", VariantLabelsDataHandler(),16),
 ]
 

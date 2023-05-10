@@ -187,6 +187,24 @@ tags= "#has-variants"
 [track.v_2.settings]
 name = ["track","v_2","name"]
 
+[track.variant-eva.general]
+include = ["general"]
+scales = [1,100,4]
+triggers = [["track","variant-eva"]]
+tags= "#has-variants"
+
+[track.variant-eva.settings]
+name = ["track","variant-eva","name"]
+
+[track.variant-sgrp.general]
+include = ["general"]
+scales = [1,100,4]
+triggers = [["track","variant-sgrp"]]
+tags= "#has-variants"
+
+[track.variant-sgrp.settings]
+name = ["track","variant-sgrp","name"]
+
 [track.focus-variant.general]
 include = ["general"]
 scales = [3,5,1]

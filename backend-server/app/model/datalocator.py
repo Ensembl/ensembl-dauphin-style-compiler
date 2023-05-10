@@ -33,8 +33,8 @@ class AccessItem(object):
         "species-list": "species.txt",
         "variant-summary" : "variants/{genome}/variant-summary.bw",
         "v_2-summary" : "variants/{genome}/variant-summary-2.bw",
-        "variant-summary-3" : "variants/{genome}/variant-summary.bw",
-        "variant-summary-4" : "variants/{genome}/variant-summary.bw",
+        "variant-eva-summary" : "variants/{genome}/variant-summary-eva.bw",
+        "variant-sgrp-summary" : "variants/{genome}/variant-summary-sgrp.bw",
         "variant-summary-5" : "variants/{genome}/variant-summary.bw",
         "variant-summary-6" : "variants/{genome}/variant-summary.bw",
     }

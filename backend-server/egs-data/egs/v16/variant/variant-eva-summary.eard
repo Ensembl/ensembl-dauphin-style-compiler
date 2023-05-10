@@ -1,0 +1,17 @@
+program "ensembl-webteam/core" "variant-eva" 1;
+refer "libperegrine";
+refer "libeoe";
+include "../common/track-common.eard";
+include "../common/track-style.eard";
+include "variant-common.eard";
+include "variation-style.eard";
+
+/* Setup styles */
+
+track_styles();
+variation_track_styles();
+
+/* Get data */
+
+
+variant_summary_track("variant-eva","VARIANT EVA");

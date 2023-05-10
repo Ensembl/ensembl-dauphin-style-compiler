@@ -10,5 +10,15 @@ style!("""
         priority: 1020;
         report: "track;switch-id=v_2";
     }
+
+    tracks/track/variant-eva/ {
+        priority: 1040;
+        report: "track;switch-id=variant-eva";
+    }
+
+    tracks/track/variant-sgrp/ {
+        priority: 1060;
+        report: "track;switch-id=variant-sgrp";
+    }
 """);
 }
