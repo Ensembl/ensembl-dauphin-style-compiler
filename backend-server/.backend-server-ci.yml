@@ -20,6 +20,9 @@ variables:
   #   - when: never
 
   script:
+    - echo $PATH
+    - pwd
+    - ls -l /app/compiler/target/release/
     - build-begs.sh
 
   artifacts:

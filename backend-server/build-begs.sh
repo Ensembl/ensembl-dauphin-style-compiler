@@ -2,11 +2,8 @@
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
-export PATH="$PATH:$DIR/../dauphin/target/release"
-export PATH="$PATH:$DIR/../../peregrine-eard/compiler/target/release"
-
-SRC="$DIR/egs-data/egs"
-DST="$DIR/egs-data/begs"
+SRC="./egs-data/egs"
+DST="./egs-data/begs"
 
 #dauphin -c $SRC/v16/test.egs -c $SRC/v16/test-with-data.egs -o $DST/test16.begs -L peregrine -O2 
 eard-compiler \
