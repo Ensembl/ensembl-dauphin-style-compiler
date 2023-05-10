@@ -6,11 +6,12 @@ from core.config import SOURCES_TOML
 from core.exceptions import RequestException
 import requests
 from ncd import NCDFileAccessor, NCDHttpAccessor
+
 """
 Attributes:
     AccessItem (namedtuple):
 """
-AccessItem = namedtuple('AccessItem', ['variety', 'genome', 'chromosome'])
+AccessItem = namedtuple("AccessItem", ["variety", "genome", "chromosome"])
 
 
 class AccessItem(object):
@@ -22,21 +23,20 @@ class AccessItem(object):
     """
 
     variety_map = {
-        "contigs" : "contigs/{genome}/contigs.bb",
-        "transcripts" : "genes_and_transcripts/{genome}/transcripts.bb",
-        "gc" : "gc/{genome}/gc.bw",
-        "variant-labels" : "variants/{genome}/variant-labels.bb",
-        "jump" : "jump/{genome}/jump.ncd",
-        "seqs" : "seqs/{genome}/{chromosome}",
+        "contigs": "contigs/{genome}/contigs.bb",
+        "transcripts": "genes_and_transcripts/{genome}/transcripts.bb",
+        "gc": "gc/{genome}/gc.bw",
+        "variant-labels": "variants/{genome}/variant-labels.bb",
+        "jump": "jump/{genome}/jump.ncd",
+        "seqs": "seqs/{genome}/{chromosome}",
         "chrom-hashes": "common_files/{genome}/chrom.hashes.ncd",
-        "chrom-sizes" : "common_files/{genome}/chrom.sizes.ncd",
+        "chrom-sizes": "common_files/{genome}/chrom.sizes.ncd",
         "species-list": "species.txt",
-        "variant-summary" : "variants/{genome}/variant-summary.bw",
-        "v_2-summary" : "variants/{genome}/variant-summary-2.bw",
-        "variant-summary-3" : "variants/{genome}/variant-summary.bw",
-        "variant-summary-4" : "variants/{genome}/variant-summary.bw",
-        "variant-summary-5" : "variants/{genome}/variant-summary.bw",
-        "variant-summary-6" : "variants/{genome}/variant-summary.bw",
+        "variant-1000genomes-summary": "variants/{genome}/variant-summary-1000genomes.bw",
+        "variant-dbsnp-summary": "variants/{genome}/variant-summary-dbsnp.bw",
+        "variant-eva-summary": "variants/{genome}/variant-summary-eva.bw",
+        "variant-sgrp-summary": "variants/{genome}/variant-summary-sgrp.bw",
+        "variant-summary": "variants/{genome}/variant-summary.bw",
     }
 
     def __init__(self, variety: str, genome: str = None, chromosome: str = None):
@@ -52,7 +52,9 @@ class AccessItem(object):
 
         """
         if self.variety in AccessItem.variety_map:
-            return AccessItem.variety_map[self.variety].format(genome = self.genome, chromosome = self.chromosome)
+            return AccessItem.variety_map[self.variety].format(
+                genome=self.genome, chromosome=self.chromosome
+            )
         else:
             raise RequestException("unknown variety '{}'".format(self.variety))
 
@@ -62,13 +64,11 @@ class AccessItem(object):
         Returns:
             str:
         """
-        return ":".join([self.genome, self.chromosome]).replace('.', '_')
+        return ":".join([self.genome, self.chromosome]).replace(".", "_")
 
 
 class AccessMethod:
-    """
-
-    """
+    """ """
 
     def __init__(self):
         self.url = None
@@ -158,7 +158,9 @@ class FileAccessMethod(AccessMethod):
                         out += more
                 return out
         except Exception as e:
-            raise RequestException("Error accessing {0} (base={1}): {2}".format(self.file, self.base, e))
+            raise RequestException(
+                "Error accessing {0} (base={1}): {2}".format(self.file, self.base, e)
+            )
 
     def ncd(self):
         """
@@ -176,6 +178,7 @@ class S3DataSource(object):
     Args:
         data ():
     """
+
     def __init__(self, data):
 
         self.url = data.get("url", None)
@@ -212,7 +215,6 @@ class FileDataSource(object):
 
 
 class NoneDataSource(object):
-
     @staticmethod
     def resolve(_item: AccessItem) -> Optional[AccessMethod]:
         """
@@ -227,15 +229,13 @@ class NoneDataSource(object):
 
 
 class DataSourceResolver:
-    """
-
-    """
+    """ """
 
     def __init__(self, version: int):
         self._paths = {}
         self._redirect = {}
         self._blacklist = set()
-        self._load(SOURCES_TOML,version)
+        self._load(SOURCES_TOML, version)
 
     def _add_here(self, path, data):
         """
@@ -291,16 +291,16 @@ class DataSourceResolver:
                 self._add_redirect(path + [more_path], new_data)
 
     def _select_source(self, config, version: int) -> Any:
-        sources_conf = config.get('source',{})
+        sources_conf = config.get("source", {})
         for source in sources_conf:
             source_conf = sources_conf[source]
-            min_version = source_conf.get('min_version',None)
+            min_version = source_conf.get("min_version", None)
             if min_version is not None and version < min_version:
                 continue
-            max_version = source_conf.get('max_version',None)
+            max_version = source_conf.get("max_version", None)
             if max_version is not None and version > max_version:
                 continue
-            logging.info("Choosing source '{}' for version {}".format(source,version))
+            logging.info("Choosing source '{}' for version {}".format(source, version))
             return source_conf
         raise RequestException("no source for version {}".format(version))
 
@@ -314,8 +314,8 @@ class DataSourceResolver:
 
         """
         toml_data = toml.load(source)
-        self._add([], self._select_source(toml_data,version))
-        self._add_redirect([], toml_data.get('redirect', {}))
+        self._add([], self._select_source(toml_data, version))
+        self._add_redirect([], toml_data.get("redirect", {}))
 
     def get(self, item: AccessItem) -> Optional[AccessMethod]:
         """

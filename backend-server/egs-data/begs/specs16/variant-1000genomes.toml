@@ -1,12 +1,12 @@
 set = "ensembl-webteam/core"
-name = "variant"
+name = "variant-1000genomes"
 version = 1
 description = """
 
 Show variant summary track. Perhaps surprisingly, basically a wiggle track where colours are
 used rather than heights.
 
-Uses data sequences from "variant":
+Uses data sequences from "variant-1000genomes" endpoint:
 - values
 - range
 

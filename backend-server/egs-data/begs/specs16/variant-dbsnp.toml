@@ -1,19 +1,19 @@
 set = "ensembl-webteam/core"
-name = "v_2"
+name = "variant-dbsnp"
 version = 1
 description = """
 
 Show variant summary track. Perhaps surprisingly, basically a wiggle track where colours are
 used rather than heights.
 
-Uses data sequences from "v_2":
+Uses data sequences from "variant-dbsnp" endpoint:
 - values
 - range
 
 """
 
 
-[setting.v_2_name]
+[setting.name]
 default = false
 description = """
 

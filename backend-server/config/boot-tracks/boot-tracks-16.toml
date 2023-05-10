@@ -169,23 +169,41 @@ name = ["track","gc","name"]
 # Variants
 #
 
-[track.variant.general]
+[track.variant-1000genomes.general]
 include = ["general"]
 scales = [1,100,4]
-triggers = [["track","variant"]]
+triggers = [["track","variant-1000genomes"]]
 tags= "#has-variants"
 
-[track.variant.settings]
-name = ["track","variant","name"]
+[track.variant-1000genomes.settings]
+name = ["track","variant-1000genomes","name"]
 
-[track.v_2.general]
+[track.variant-dbsnp.general]
 include = ["general"]
 scales = [1,100,4]
-triggers = [["track","v_2"]]
-tags= "#has-variants"
+triggers = [["track","variant-dbsnp"]]
+tags = "#has-variants"
 
-[track.v_2.settings]
-name = ["track","v_2","name"]
+[track.variant-dbsnp.settings]
+name = ["track","variant-dbsnp","name"]
+
+[track.variant-eva.general]
+include = ["general"]
+scales = [1,100,4]
+triggers = [["track","variant-eva"]]
+tags = "#has-variants"
+
+[track.variant-eva.settings]
+name = ["track","variant-eva","name"]
+
+[track.variant-sgrp.general]
+include = ["general"]
+scales = [1,100,4]
+triggers = [["track","variant-sgrp"]]
+tags = "#has-variants"
+
+[track.variant-sgrp.settings]
+name = ["track","variant-sgrp","name"]
 
 [track.focus-variant.general]
 include = ["general"]
