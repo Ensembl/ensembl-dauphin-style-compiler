@@ -21,7 +21,7 @@ variables:
 
   script:
     - cd backend-server
-    - build-begs.sh
+    - ./build-begs.sh
 
   artifacts:
     name: eardo_artifacts
