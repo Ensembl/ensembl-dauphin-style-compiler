@@ -69,6 +69,9 @@ variables:
     - docker rmi ${DOCKER_IMAGE}
     - docker logout $CI_REGISTRY
 
+  dependencies:
+    - BE-eardo
+
 .deploy_backend:
   extends: .base-be-deploy-rules
   stage: deploy
@@ -139,7 +142,7 @@ variables:
     - kustomize build ${BASE}/hi | kubectl apply -f -
     - kustomize build ${BASE}/lo | kubectl apply -f -
 
-BE-Eardo:
+BE-eardo:
   extends: .build-eardo
 
 BE-Docker:
