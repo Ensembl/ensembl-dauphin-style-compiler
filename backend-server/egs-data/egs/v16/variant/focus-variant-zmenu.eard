@@ -1,8 +1,8 @@
 export function variant_zmenu(*variant) {
     let tmpl = template_start("{0}:{1}-{2}");
     template_set(tmpl,0,variant.chromosome);
-    template_set(tmpl,1,comma_format(variant.start));
-    template_set(tmpl,2,comma_format(variant.end));
+    template_set(tmpl,1,comma_format(variant.start+1));
+    template_set(tmpl,2,comma_format(variant.end+1));
     let position = template_end(tmpl);
 
     let tmpl = template_start("{0}/{1}");

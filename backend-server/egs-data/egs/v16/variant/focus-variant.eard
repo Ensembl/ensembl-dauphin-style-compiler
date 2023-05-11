@@ -81,7 +81,7 @@ let (focus_genome_id,focus_variant_id) = focus_variant_settings();
 
 let data = get_data(request("self()","variant-labels"));
 let v.chromosome = data_string(data,"chromosome");
-let v.start = data_number(data,"start");
+let v.start = data_number(data,"start")-1;
 let v.end = v.start + data_number(data,"length");
 let v.id = data_string(data,"id");
 let v.ref = data_string(data,"ref");
