@@ -44,6 +44,6 @@ let active = correct_chr && len(fv_pos) > 0;
 let leaf_dots = if(active,leaf("dots/content"),leaf(""));
 let leaf_text = if(active,leaf("tracks/flagtop/main"),leaf(""));
 
-red_dotted(fv.start,fv.end,text_start,text_end,leaf_dots,leaf_text);
+red_dotted(fv.start-1,fv.end,text_start,text_end,leaf_dots,leaf_text);
 let paint = paint_metadata("variant-id",[fv.id],[eoe_string(fv.id)]);
 rectangle(coord([0],[0],[0]),coord([1],[16],[0]),paint,[if(active,leaf("tracks/track/focus-variant/main/background/content"),leaf(""))]);
