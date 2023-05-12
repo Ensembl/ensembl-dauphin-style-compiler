@@ -61,6 +61,8 @@ handlers = [
     ("shimmer-contig", ShimmerContigDataHandler16(), 16),
     ("variant-1000genomes", VariantSummaryDataHandler("variant-1000genomes"), 16),
     ("variant-dbsnp", VariantSummaryDataHandler("variant-dbsnp"), 16),
+    ("variant-clinvar", VariantSummaryDataHandler("variant-clinvar"), 16),
+    ("variant-gwas", VariantSummaryDataHandler("variant-gwas"), 16),
     ("variant-eva", VariantSummaryDataHandler("variant-eva"), 16),
     ("variant-sgrp", VariantSummaryDataHandler("variant-sgrp"), 16),
     ("focus-variant", VariantSummaryDataHandler("variant"), 16),

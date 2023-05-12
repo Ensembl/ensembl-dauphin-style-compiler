@@ -187,6 +187,24 @@ tags = "#has-variants"
 [track.variant-dbsnp.settings]
 name = ["track","variant-dbsnp","name"]
 
+[track.variant-clinvar.general]
+include = ["general"]
+scales = [1,100,4]
+triggers = [["track","variant-clinvar"]]
+tags = "#has-variants"
+
+[track.variant-clinvar.settings]
+name = ["track","variant-clinvar","name"]
+
+[track.variant-gwas.general]
+include = ["general"]
+scales = [1,100,4]
+triggers = [["track","variant-gwas"]]
+tags = "#has-variants"
+
+[track.variant-gwas.settings]
+name = ["track","variant-gwas","name"]
+
 [track.variant-eva.general]
 include = ["general"]
 scales = [1,100,4]

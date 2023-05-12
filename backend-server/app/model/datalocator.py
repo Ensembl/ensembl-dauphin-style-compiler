@@ -34,6 +34,8 @@ class AccessItem(object):
         "species-list": "species.txt",
         "variant-1000genomes-summary": "variants/{genome}/variant-summary-1000genomes.bw",
         "variant-dbsnp-summary": "variants/{genome}/variant-summary-dbsnp.bw",
+        "variant-clinvar-summary": "variants/{genome}/variant-summary-clinvar.bw",
+        "variant-gwas-summary": "variants/{genome}/variant-summary-gwas.bw",
         "variant-eva-summary": "variants/{genome}/variant-summary-eva.bw",
         "variant-sgrp-summary": "variants/{genome}/variant-summary-sgrp.bw",
         "variant-summary": "variants/{genome}/variant-summary.bw",

@@ -11,13 +11,23 @@ style!("""
         report: "track;switch-id=variant-dbsnp";
     }
 
-    tracks/track/variant-eva/ {
+    tracks/track/variant-clinvar/ {
         priority: 1040;
+        report: "track;switch-id=variant-dbsnp";
+    }
+
+    tracks/track/variant-gwas/ {
+        priority: 1060;
+        report: "track;switch-id=variant-dbsnp";
+    }
+
+    tracks/track/variant-eva/ {
+        priority: 1000;
         report: "track;switch-id=variant-eva";
     }
 
     tracks/track/variant-sgrp/ {
-        priority: 1060;
+        priority: 1000;
         report: "track;switch-id=variant-sgrp";
     }
 """);
