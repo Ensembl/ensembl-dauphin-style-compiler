@@ -12,13 +12,6 @@ variables:
   stage: build-eardo
   image: dockerhub.ebi.ac.uk/ensembl-web/peregrine-eard:latest
 
-  # rules:
-  #   - if: '$CI_DEPLOY_FREEZE == null'
-  #     changes:
-  #       - backend-server/egs-data/egs/*.eard
-  #     when: always
-  #   - when: never
-
   script:
     - cd backend-server
     - ./build-begs.sh
