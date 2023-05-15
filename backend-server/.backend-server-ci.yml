@@ -26,7 +26,7 @@ variables:
     - if: '$CI_DEPLOY_FREEZE == null'
       changes:
         - backend-server/**/*
-      when: always
+      when: on_success
     - when: never
 
 .base-be-deploy-rules:
@@ -34,7 +34,7 @@ variables:
     - if: '$CI_DEPLOY_FREEZE == null && $CI_COMMIT_BRANCH == "master"'
       changes:
         - backend-server/**/*
-      when: always
+      when: on_success
     - when: never
 
 .base-be-deploy-rules-branches:
@@ -42,7 +42,7 @@ variables:
     - if: '$CI_DEPLOY_FREEZE == null && ( $CI_COMMIT_BRANCH != "master" || $CI_COMMIT_BRANCH != "staging" )'
       changes:
         - backend-server/**/*
-      when: always
+      when: on_success
     - when: never
 
 .build_backend:
