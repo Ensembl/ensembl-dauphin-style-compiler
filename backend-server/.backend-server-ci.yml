@@ -1,4 +1,5 @@
 stages:
+  - build-eardo
   - build
   - deploy
 
@@ -7,12 +8,25 @@ variables:
   DOCKER_TLS_CERTDIR: ""
   BASE: backend-server/k8s/base
 
+.build-eardo:
+  stage: build-eardo
+  image: dockerhub.ebi.ac.uk/ensembl-web/peregrine-eard:latest
+
+  script:
+    - cd backend-server
+    - ./build-begs.sh
+
+  artifacts:
+    name: eardo_artifacts
+    paths:
+      - backend-server/egs-data/begs/render16.eardo
+
 .base-be-rules:
   rules:
     - if: '$CI_DEPLOY_FREEZE == null'
       changes:
         - backend-server/**/*
-      when: always
+      when: on_success
     - when: never
 
 .base-be-deploy-rules:
@@ -20,7 +34,7 @@ variables:
     - if: '$CI_DEPLOY_FREEZE == null && $CI_COMMIT_BRANCH == "master"'
       changes:
         - backend-server/**/*
-      when: always
+      when: on_success
     - when: never
 
 .base-be-deploy-rules-branches:
@@ -28,7 +42,7 @@ variables:
     - if: '$CI_DEPLOY_FREEZE == null && ( $CI_COMMIT_BRANCH != "master" || $CI_COMMIT_BRANCH != "staging" )'
       changes:
         - backend-server/**/*
-      when: always
+      when: on_success
     - when: never
 
 .build_backend:
@@ -47,6 +61,8 @@ variables:
     - docker push ${DOCKER_IMAGE}
     - docker rmi ${DOCKER_IMAGE}
     - docker logout $CI_REGISTRY
+
+  needs: ["BE-eardo"]
 
 .deploy_backend:
   extends: .base-be-deploy-rules
@@ -97,6 +113,9 @@ variables:
     - sed -i "s#<NFS_SERVER>#${NFS_SERVER}#g" ${BASE}/lo/patch.yaml
     - sed -i "s#<NFS_PATH>#${NFS_PATH}#g" ${BASE}/lo/patch.yaml
 
+  dependencies:
+    - BE-eardo
+
   script:
     # Update hi configuration
     - cd ${BASE}/hi
@@ -117,6 +136,9 @@ variables:
     # Update hi/lo configuration
     - kustomize build ${BASE}/hi | kubectl apply -f -
     - kustomize build ${BASE}/lo | kubectl apply -f -
+
+BE-eardo:
+  extends: .build-eardo
 
 BE-Docker:
   extends: .build_backend
