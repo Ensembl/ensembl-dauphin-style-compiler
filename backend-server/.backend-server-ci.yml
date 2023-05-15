@@ -62,8 +62,7 @@ variables:
     - docker rmi ${DOCKER_IMAGE}
     - docker logout $CI_REGISTRY
 
-  dependencies:
-    - BE-eardo
+  needs: ["BE-eardo"]
 
 .deploy_backend:
   extends: .base-be-deploy-rules
