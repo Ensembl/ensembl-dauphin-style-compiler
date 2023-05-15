@@ -13,7 +13,7 @@ variables:
   image: dockerhub.ebi.ac.uk/ensembl-web/peregrine-eard:latest
 
   script:
-    # - cd backend-server
+    - cd backend-server
     - ./build-begs.sh
 
   artifacts:
