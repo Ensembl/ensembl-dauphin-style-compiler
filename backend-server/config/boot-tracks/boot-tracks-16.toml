@@ -257,6 +257,17 @@ triggers = [["track","focus","item","variant"]]
 focus-variant = ["track","focus","item","variant"]
 
 #
+# Regulation
+#
+[track.regulation]
+include = ["general"]
+scales = [1,100,1]
+triggers = [["track","regulation"]]
+
+[track.regulation.settings]
+name = ["track","regulation","name"]
+
+#
 # Contigs and Sequences
 #
 
