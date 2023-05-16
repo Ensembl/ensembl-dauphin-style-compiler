@@ -37,31 +37,15 @@ def load_assets(chrome: bool):
 class BootstrapHandler(Handler):
     def process(self, data_accessor: DataAccessor, channel: Any, payload: Any, metrics: ResponseMetrics, version: Version) -> Response:
         try:
-            if version.get_egs() < 15:
-                r = Response(0,{
-                    "boot": [channel,data_accessor.begs_files.boot_program(version)],
-                    "hi": channel,
-                    "lo": channel,
-                    "namespace":  channel,
-                    "assets": load_assets(False),
-                    "chrome-assets": load_assets(True),
-                    "supports": data_accessor.supported_versions
-                })
-                bundles = data_accessor.begs_files.boot_bundles(version)
-                eardos = []
-            else:
-                r = Response(0,{
-                    "namespace":  channel,
-                    "assets": load_assets(False),
-                    "chrome-assets": load_assets(True),
-                    "supports": data_accessor.supported_versions
-                })
-                bundles = data_accessor.program_inventory.boot_bundles(version.get_egs())
-                eardos = data_accessor.program_inventory.boot_eardos(version.get_egs())
+            r = Response(0,{
+                "namespace":  channel,
+                "assets": load_assets(False),
+                "chrome-assets": load_assets(True),
+                "supports": data_accessor.supported_versions
+            })
+            eardos = data_accessor.program_inventory.boot_eardos(version.get_egs())
         except UnknownVersionException as e:
             return Response(1,"Backend out of date: Doesn't support egs version {}".format(e))
-        for b in bundles:
-            r.add_bundle(b)
         for e in eardos:
             r.add_eardo(e)
         r.add_tracks(data_accessor.boot_tracks[version.get_egs()])
@@ -76,18 +60,12 @@ class ProgramHandler(Handler):
         (prog_set,name,prog_version) = payload
         eardo = []
         try:
-            if version.get_egs() < 15:
-                bundle = data_accessor.begs_files.find_bundle(name,version)
-            else:
-                eardo = data_accessor.program_inventory.find_eardo_bundle(prog_set,name,prog_version)
-                bundle = data_accessor.program_inventory.find_bundle(prog_set,name,prog_version)
+            eardo = data_accessor.program_inventory.find_eardo_bundle(prog_set,name,prog_version)
         except UnknownVersionException as e:
             return Response(1,e)
         r = Response(2,[])
         if eardo != None:
             r.add_eardo(eardo)
-        if bundle != None:
-            r.add_bundle(bundle)
         return r
 
     def remote_prefix(self, payload: Any) -> Optional[List[str]]:

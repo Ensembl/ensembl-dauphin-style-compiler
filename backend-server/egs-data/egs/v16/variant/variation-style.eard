@@ -1,0 +1,34 @@
+
+export procedure variation_track_styles() {
+style!("""
+    tracks/track/variant-1000genomes/ {
+        priority: 1000;
+        report: "track;switch-id=variant-1000genomes";
+    }
+
+    tracks/track/variant-dbsnp/ {
+        priority: 1020;
+        report: "track;switch-id=variant-dbsnp";
+    }
+
+    tracks/track/variant-clinvar/ {
+        priority: 1040;
+        report: "track;switch-id=variant-clinvar";
+    }
+
+    tracks/track/variant-gwas/ {
+        priority: 1060;
+        report: "track;switch-id=variant-gwas";
+    }
+
+    tracks/track/variant-eva/ {
+        priority: 1000;
+        report: "track;switch-id=variant-eva";
+    }
+
+    tracks/track/variant-sgrp/ {
+        priority: 1000;
+        report: "track;switch-id=variant-sgrp";
+    }
+""");
+}

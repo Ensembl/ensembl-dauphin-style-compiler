@@ -201,44 +201,14 @@ class ProgramInventory:
         with open(BEGS_CONFIG) as f:
             toml_data = toml.loads(f.read())
             for (name,data) in toml_data.get("file",{}).items():
-                if data.get("type","begs") == "eardo" or data.get("general",{}).get("type","begs") == "eardo":
-                    one_file = OneEardoFile(name,data,BEGS_CONFIG)
-                    self._eardo[name] = one_file
-                    for program in one_file.program_names():
-                        self._program_to_bundle[program] = name
-                    for version in one_file.boot_versions():
-                        if version not in self._boot_eardos:
-                            self._boot_eardos[version] = []
-                        self._boot_eardos[version].append(name)
-                else:
-                    one_file = OneBegsFile(name,data,BEGS_CONFIG)
-                    self._bundle[name] = Bundle(name,one_file.path(),egs_version)
-                    all_specs = one_file.spec_files()
-                    programs = []
-                    for (begs_name,program_set,program_name,program_version) in one_file.all_programs():
-                        if begs_name not in all_specs:
-                            raise Exception("missing spec for {}".format(begs_name))
-                        program_spec = self._bundle[name].add_program(begs_name,all_specs[begs_name])
-                        if program_spec.full_name() != (program_set,program_name,program_version):
-                            raise Exception("version mismatch {} vs {}".format(program_spec.full_name(),(program_set,program_name,program_version)))
-                        full_name = (program_set,program_name,program_version)
-                        self._map_to_bundle[full_name] = (name,begs_name)
-                        programs.append(full_name)
-                    self._bundle_programs[name] = programs
-                    for version in one_file.boot_versions():
-                        if version not in self._boot_bundles:
-                            self._boot_bundles[version] = []
-                        self._boot_bundles[version].append(name)
-
-    # TUE Call from boot endpoint
-    def boot_bundles(self, egs_version):
-        out = []
-        for name in self._boot_bundles.get(egs_version,[]):
-            b = self._bundle[name]
-            if self._monitor.check(b.path):
-                b.reload()
-            out.append(b)
-        return out
+                one_file = OneEardoFile(name,data,BEGS_CONFIG)
+                self._eardo[name] = one_file
+                for program in one_file.program_names():
+                    self._program_to_bundle[program] = name
+                for version in one_file.boot_versions():
+                    if version not in self._boot_eardos:
+                        self._boot_eardos[version] = []
+                    self._boot_eardos[version].append(name)
 
     def boot_eardos(self, egs_version):
         out = []
@@ -247,16 +217,6 @@ class ProgramInventory:
             b.eardo().reload_if_necessary()
             out.append(b.eardo())
         return out
-
-    # TUE Call from program endpoint
-    def find_bundle(self, program_set: str, program_name: str, program_version: int):
-        (bundle_name,_) = self._map_to_bundle.get((program_set,program_name,program_version),None)
-        if bundle_name is None:
-            return None
-        b = self._bundle[bundle_name]
-        if self._monitor.check(b.path):
-            b.reload()
-        return b
 
     def find_eardo_bundle(self, program_set: str, program_name: str, program_version: int):
         bundle_name = self._program_to_bundle.get((program_set,program_name,program_version),None)

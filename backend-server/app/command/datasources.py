@@ -29,7 +29,7 @@ class DataAccessor:
         self.data_model = DataModel()
         self.cache = Memcached("{}:{}".format(MEMCACHED_PREFIX,version),MEMCACHED_BUMP_ON_RESTART)
         self.boot_tracks = all_boot_tracks()
-        self.supported_versions = [9,10,11,12,13,14,15,16]
+        self.supported_versions = [16]
 
 class DataAccessorCollection:
     def __init__(self):

@@ -10,7 +10,8 @@ programs = [
     "ruler.toml",
     "test.toml",
     "transcript.toml",
-    "variant.toml",
+    "variant-1000genomes.toml",
+    "variant-dbsnp.toml",
     "zoomed-seq.toml",
     "zoomed-transcript.toml"
 ]

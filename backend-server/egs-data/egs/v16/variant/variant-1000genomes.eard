@@ -1,0 +1,16 @@
+program "ensembl-webteam/core" "variant-1000genomes" 1;
+refer "libperegrine";
+refer "libeoe";
+include "../common/track-common.eard";
+include "../common/track-style.eard";
+include "variant-common.eard";
+include "variation-style.eard";
+
+/* Setup styles */
+
+track_styles();
+variation_track_styles();
+
+/* Get data */
+
+variant_summary_track("variant-1000genomes","1000 Genomes short variants");

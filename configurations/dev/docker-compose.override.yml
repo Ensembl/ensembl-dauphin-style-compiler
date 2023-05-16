@@ -8,7 +8,6 @@ services:
 
     backend-hi:
         environment:
-            - BEGS_FILES=/begs
             - THREADS=16
             - DEBUG=1
             - LOG_HOST=syslog
@@ -16,11 +15,10 @@ services:
             - STARTUP_WAIT=10
             - TELEGRAF_HOST=telegraf
         volumes:
-            - ${BEGS_PATH:-.}:/begs
+            - ../../backend-server:/usr/src/app
 
     backend-lo:
         environment:
-            - BEGS_FILES=/begs
             - THREADS=4
             - DEBUG=1
             - LOG_HOST=syslog
@@ -28,7 +26,7 @@ services:
             - STARTUP_WAIT=10
             - TELEGRAF_HOST=telegraf
         volumes:
-            - ${BEGS_PATH:-.}:/begs
+            - ../../backend-server:/usr/src/app
 
     memcached:
         environment:
