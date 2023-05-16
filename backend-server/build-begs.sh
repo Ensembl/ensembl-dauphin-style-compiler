@@ -5,7 +5,6 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 SRC="./egs-data/egs"
 DST="./egs-data/begs"
 
-#dauphin -c $SRC/v16/test.egs -c $SRC/v16/test-with-data.egs -o $DST/test16.begs -L peregrine -O2 
 eard-compiler \
     -c $SRC/v16/other/framing.eard -c $SRC/v16/other/gc.eard -c $SRC/v16/other/contig.eard \
     -c $SRC/v16/other/zoomed-seq.eard -c $SRC/v16/variant/variant-1000genomes.eard \
