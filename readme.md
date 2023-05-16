@@ -77,9 +77,8 @@ graph TD
 
 1. Go to `/ensembl-dauphin-style-compiler/configurations/dev`
 2. Copy `sample.env` to `.env`
-3. Update `.env` with local file paths - Update paths with `tmp` in them to a sensible temp directory on your machine. For example `LOG_DIR=/home/dan/tmp/logs` could become `LOG_DIR=/Users/jon/tmp/logs`
-4. Update `BEGS_PATH` to be the location that you cloned `ensembl-dauphin-style-compiler` into. For example `BEGS_PATH=/Users/jon/Programming/ensembl-dauphin-style-compiler/backend-server/egs-data/begs`
-5. Start the back end service by calling `docker-compose up`. Remember to use **-d** to detach if you want the service to run in the background
+3. Update `.env` with sensible temp directory paths on your machine. For example `LOG_DIR=/home/dan/tmp/logs` could become `LOG_DIR=/Users/jon/tmp/logs`
+4. Start the back end service by calling `docker-compose up`. Remember to use **-d** to detach if you want the service to run in the background
 
 **Setup and start the genome browser test harness** 
 
