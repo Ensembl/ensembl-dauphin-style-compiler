@@ -120,3 +120,6 @@ backend-server/metric.log
 # egb build artefact
 egb.tar.gz
 ec.tar.gz
+
+# eardo binaries
+*.eardo
