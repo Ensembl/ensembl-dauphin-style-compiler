@@ -136,7 +136,7 @@ def get_variant_labels(
             refs.append(rest[2])
             alts.append(rest[3])
             severities.append(int(rest[4]))
-            consequence.append(rest[5].replace("_", " "))
+            consequence.append(rest[5])
     except Exception as e:
         logging.error(e)
     return {
