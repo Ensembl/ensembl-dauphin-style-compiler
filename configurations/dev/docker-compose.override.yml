@@ -85,6 +85,6 @@ services:
     eard-complier:
         image: dockerhub.ebi.ac.uk/ensembl-web/peregrine-eard:latest
         volumes:
-            - ${SOURCE_PATH:-.}:/usr/src/app
+            - ../../backend-server:/usr/src/app
         working_dir: /usr/src/app
         tty: true
