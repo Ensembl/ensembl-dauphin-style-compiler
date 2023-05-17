@@ -62,8 +62,6 @@ A detailed view can be seen [here](peregrine-guide/developer-requirements.md)
 Three projects need to be cloned in order to develop the browser. These projects need to be cloned to the same root path as they contain relative paths to each other.
 
 1. [ensembl-dauphin-style-compiler](https://github.com/Ensembl/ensembl-dauphin-style-compiler)
-2. [peregrine-eard](https://github.com/Ensembl/peregrine-eard/)
-3. [peregrine-eachorevery](https://github.com/Ensembl/peregrine-eachorevery)
 
 ```mermaid
 graph TD
@@ -120,7 +118,7 @@ export procedure draw_track_category(category,track_ids,leafs) {
     let enough_zeros = repeat(0,count);
 ...
 ```
-4. run `ensembl-dauphin-style-compiler/backend-server/build-begs.sh`
+4. run `docker exec dev-eard-complier-1 ./build-begs.sh`
 5. refresh your browser
 
 You should now see that the track category letters on the left hand side are now magenta `#FF00FF` as seen below
