@@ -93,12 +93,9 @@ You should now see something like this :-
 
 **Updating EARD files and testing the changes**
 
-1. Before you can begin you need to build a release version of **peregrine-eard**
-2. Go to `peregrine-eard/compiler`
-3. Build the compiler with  `cargo build --release`
-4. EARD files can be found in `ensembl-dauphin-style-compiler/backend-server/egs-data/egs`
-5. Make what ever changes you desire.
-6. Once you have made your changes you can build them by going to `ensembl-dauphin-style-compiler/backend-server` and calling `./build-begs.sh`.
+1. EARD files can be found in `ensembl-dauphin-style-compiler/backend-server/egs-data/egs`
+2. Make what ever changes you desire.
+3. Once you have made your changes you can build them by running `docker exec dev-eard-complier-1 ./build-begs.sh`
 7. Refresh the browser to see the changes you have made.
 
 ### Testing your setup
