@@ -17,7 +17,7 @@ let correct_chr = focus_stick == stick();
 let leaf_dots = if(correct_chr,leaf("dots/content"),leaf(""));
 let leaf_text =  if(correct_chr,leaf("tracks/flagtop/main"),leaf(""));
 
-let text_start = comma_format(focus_start);
+let text_start = comma_format(focus_start+1);
 let text_end = comma_format(focus_end);
 
 red_dotted(focus_start,focus_end,text_start,text_end,leaf_dots,leaf_text);

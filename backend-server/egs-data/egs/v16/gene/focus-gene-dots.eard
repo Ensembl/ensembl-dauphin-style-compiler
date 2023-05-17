@@ -28,7 +28,7 @@ let **focus_gene = index(**gene,focus_gene_index);
 let leaf_dots = if(on_this_stick,leaf("dots/content"),leaf(""));
 let leaf_text = if(on_this_stick,leaf("tracks/flagtop/main"),leaf(""));
 
-let text_start = comma_format(focus_gene.start);
+let text_start = comma_format(focus_gene.start+1);
 let text_end = comma_format(focus_gene.end);
 
 red_dotted(focus_gene.start,focus_gene.end,text_start,text_end,leaf_dots,leaf_text);
