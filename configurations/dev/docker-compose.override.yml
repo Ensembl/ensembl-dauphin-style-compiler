@@ -81,3 +81,10 @@ services:
             - LOG_PORT=11601
         extra_hosts:
             - "host.docker.internal:host-gateway"
+
+    eard-complier:
+        image: dockerhub.ebi.ac.uk/ensembl-web/peregrine-eard:latest
+        volumes:
+            - ../../backend-server:/usr/src/app
+        working_dir: /usr/src/app
+        tty: true
