@@ -1,10 +1,5 @@
 #! /bin/bash
 
-if ! command -v eard-compiler &> /dev/null
-then
-    export PATH="$PATH:../../peregrine-eard/compiler/target/release"
-fi
-
 SRC="./egs-data/egs"
 DST="./egs-data/begs"
 
