@@ -1,0 +1,58 @@
+program "ensembl-webteam/core" "regulation" 1;
+refer "libperegrine";
+refer "libeoe";
+include "../common/track-common.eard";
+include "../common/track-style.eard";
+
+/* Setup styles */
+track_styles();
+
+style!("""
+    tracks/track/regulation/ {
+        min-height: 100;
+        priority: 990;
+        report: "track;switch-id=regulation";
+    }
+""");
+
+draw_track_name("REGULATION","name",leaf("tracks/track/regulation/title/content"));
+
+/* Just fooling around */
+print("hello world!");
+
+
+
+
+let line_paint = paint_hollow(colour!("#d0d0d0"),1);
+let leaf = leaf("tracks/track/regulation/main/background/content");
+rectangle(coord([0],[60],[0]),coord([1],[60],[0]),line_paint,[leaf,...]);
+
+
+let test_leaf = leaf("tracks/track/regulation/main/background/content");
+let paint = paint_solid(colour!("#d0d0d0"));
+
+rectangle(
+  coord([0],[0],[0]),
+  coord([1],[1],[1]),
+  paint,
+  [test_leaf, ...]
+);
+
+let test_leaf = leaf("tracks/track/regulation/main/main/content");
+rectangle(
+  coord([32357710],[5],[5]),
+  coord([32357730],[10],[10]),
+  paint,
+  [test_leaf,...]
+);
+
+
+let name_text_size = 12;
+let name_text_colour = colour!("black");
+let pen = pen(
+  "'IBM Plex Mono', sans-serif",
+  name_text_size,
+  [name_text_colour,...],
+  [colour!("white"),...]
+);
+text(coord([32357710],[20],[20]),pen,["Some text please?"],[test_leaf,...]);
