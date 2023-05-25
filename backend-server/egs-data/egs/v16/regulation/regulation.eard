@@ -13,6 +13,30 @@ style!("""
         priority: 990;
         report: "track;switch-id=regulation";
     }
+
+    tracks/track/regulation/main/main/ {
+      type: stack;
+    }
+
+    tracks/track/regulation/main/main/lanes/ {
+        type: stack;
+        priority: 1;
+    }
+
+    tracks/track/regulation/main/main/lanes/first/ {
+        min-height: 10;
+        priority: 0;
+    }
+
+    tracks/track/regulation/main/main/lanes/second/ {
+        min-height: 10;
+        priority: 1;
+    }
+
+    tracks/track/regulation/main/main/lanes/third/ {
+        min-height: 10;
+        priority: 2;
+    }
 """);
 
 draw_track_name("REGULATION","name",leaf("tracks/track/regulation/title/content"));
@@ -40,8 +64,8 @@ rectangle(
 
 let test_leaf = leaf("tracks/track/regulation/main/main/content");
 rectangle(
-  coord([32357710],[5],[5]),
-  coord([32357730],[10],[10]),
+  coord([32357725],[5],[5]),
+  coord([32357735],[10],[10]),
   paint,
   [test_leaf,...]
 );
@@ -55,4 +79,35 @@ let pen = pen(
   [name_text_colour,...],
   [colour!("white"),...]
 );
-text(coord([32357710],[20],[20]),pen,["Some text please?"],[test_leaf,...]);
+text(coord([32357725],[20],[20]),pen,["Some text please?"],[test_leaf,...]);
+
+
+
+/* Experiments with three lanes */
+
+let top_leaf = leaf("tracks/track/regulation/main/main/lanes/first/content");
+let paint = paint_solid(colour!("red"));
+rectangle(
+  coord([32357713, 32357718],[0,...],[0,...]),
+  coord([32357715, 32357721],[5,...],[0,...]),
+  paint,
+  [top_leaf,...]
+);
+
+let middle_leaf = leaf("tracks/track/regulation/main/main/lanes/second/content");
+let paint = paint_solid(colour!("green"));
+rectangle(
+  coord([32357715],[0],[0]),
+  coord([32357717],[5],[0]),
+  paint,
+  [middle_leaf,...]
+);
+
+let bottom_leaf = leaf("tracks/track/regulation/main/main/lanes/third/content");
+let paint = paint_solid(colour!("blue"));
+rectangle(
+  coord([32357717],[0],[0]),
+  coord([32357720],[5],[0]),
+  paint,
+  [bottom_leaf,...]
+);
