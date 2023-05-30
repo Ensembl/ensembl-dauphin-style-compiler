@@ -6,14 +6,6 @@ from model.chromosome import Chromosome
 from data.v16.dataalgorithm import data_algorithm
 import logging
 
-feature_type_index_map = {
-    "Promoter": 0,
-    "Enhancer": 1,
-    "Open chromatin": 2,
-    "CTCF Binding Site": 3,
-    "TF binding": 4
-}
-
 def get_regulation_data(
     data_accessor: DataAccessor,
     chrom: Chromosome,
@@ -29,14 +21,12 @@ def get_regulation_data(
         thick_starts = []
         thick_ends = []
         feature_types = []
-        feature_type_indices = []
         for (start, end, rest) in data:
             rest = rest.split("\t") # Regulation team uses tabs as separators in their bigbeds
             id = rest[0]
             thick_start = int(rest[3])
             thick_end = int(rest[4])
             feature_type = rest[9]
-            feature_type_index = feature_type_index_map[feature_type]
 
             sticks.append(chrom.name)
             starts.append(start)
@@ -45,7 +35,6 @@ def get_regulation_data(
             thick_starts.append(thick_start)
             thick_ends.append(thick_end)
             feature_types.append(feature_type)
-            feature_type_indices.append(feature_type_index)
 
     except Exception as e:
         logging.error(e)
@@ -57,7 +46,6 @@ def get_regulation_data(
         "thick_start": data_algorithm("NDZRL", thick_starts),
         "thick_end": data_algorithm("NDZRL", thick_ends),
         "feature_type": data_algorithm("SZ", feature_types),
-        "feature_type_index": data_algorithm("NDZRL", feature_type_indices),
     }
 
 

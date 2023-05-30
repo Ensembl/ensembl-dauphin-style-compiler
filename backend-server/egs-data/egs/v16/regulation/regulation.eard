@@ -42,16 +42,6 @@ style!("""
 draw_track_name("REGULATION","name",leaf("tracks/track/regulation/title/content"));
 
 
-function get_reg_feature_colours() {
-    [
-        colour!("#d90000"), // 0 = red for Promoter
-        colour!("#f8c041"), // 1 = dark-yellow for Enhancer
-        colour!("#b6c0c8"), // 2 = grey for Open chromatin
-        colour!("#327c89"), // 3 = teal for CTCF Binding Site
-        colour!("#ca80ff") // 4 = magenta for TF binding
-    ]
-}
-
 function set_reg_feature_colours(reg_feature_types) {
     let is_promoter = reg_feature_types == "Promoter";
     let is_enhancer = reg_feature_types == "Enhancer";
@@ -67,8 +57,7 @@ function set_reg_feature_colours(reg_feature_types) {
 
     let colours_seq = repeat(promoter_colour, len(reg_feature_types));
 
-    let reg_feature_colours = set(colours_seq, is_promoter, [promoter_colour, ...]);
-    let reg_feature_colours = set(reg_feature_colours, is_enhancer, [enhancer_colour, ...]);
+    let reg_feature_colours = set(colours_seq, is_enhancer, [enhancer_colour, ...]);
     let reg_feature_colours = set(reg_feature_colours, is_open_chromatin, [open_chromatin_colour, ...]);
     let reg_feature_colours = set(reg_feature_colours, is_tf_binding_site, [tf_binding_colour, ...]);
     let reg_feature_colours = set(reg_feature_colours, is_ctsf_binding_site, [ctsf_binding_site_colour, ...]);
@@ -86,8 +75,6 @@ procedure get_regulation_track_data(track_name, track_label) {
     let reg_feature.start = data_number(data,"start");
     let reg_feature.end = reg_feature.start + data_number(data,"length");
     let reg_feature.type = data_string(data,"feature_type");
-    // let reg_feature.type_number = data_number(data, "feature_type_index");
-    // let reg_feature.colour = index(get_reg_feature_colours(), reg_feature.type_number);
 
     let bottom_leaf = leaf("tracks/track/regulation/main/main/lanes/third/content");
     let reg_feature.leaf = repeat(bottom_leaf, len(reg_feature.id));
