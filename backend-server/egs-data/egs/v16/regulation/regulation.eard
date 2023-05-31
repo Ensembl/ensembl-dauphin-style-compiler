@@ -74,6 +74,8 @@ procedure get_regulation_track_data(track_name, track_label) {
     let reg_feature.stick = data_string(data,"stick");
     let reg_feature.start = data_number(data,"start");
     let reg_feature.end = reg_feature.start + data_number(data,"length");
+    let reg_feature.thick_start = data_number(data,"thick_start");
+    let reg_feature.thick_end = data_number(data,"thick_end");
     let reg_feature.type = data_string(data,"feature_type");
 
     let bottom_leaf = leaf("tracks/track/regulation/main/main/lanes/third/content");
@@ -93,14 +95,26 @@ procedure get_regulation_track_data(track_name, track_label) {
 
 let *reg_feature = get_regulation_track_data("regulation", "This is the name of the regulation track");
 
-/* Draw rectangles */
+/* Draw thinner rectangles for feature boundaries */
 let paint = paint_solid(reg_feature.colour);
 
+let core_height = 8;
+let bounds_height = 4;
+let bounds_top_offset = 2;
+
 rectangle(
-    coord(reg_feature.start, [0,...], [0,...]),
-    coord(reg_feature.end, [5,...], [0,...]),
+    coord(reg_feature.start, [bounds_top_offset,...], [0,...]),
+    coord(reg_feature.end, [bounds_top_offset + bounds_height,...], [0,...]),
     paint,
     reg_feature.leaf
 );
 
 
+/* Draw thicker rectangles for feature cores */
+
+rectangle(
+    coord(reg_feature.thick_start, [0,...], [0,...]),
+    coord(reg_feature.thick_end, [core_height,...], [0,...]),
+    paint,
+    reg_feature.leaf
+);
