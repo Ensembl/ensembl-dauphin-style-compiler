@@ -1,14 +1,21 @@
 export function regulation_zmenu(*reg_feature) {
+    // Coordinates in bed files (and used in genome browser in general) are zero-based;
+    // but the world outside of the genome browser is 1-based
+    let reg_feature_start_ens_coordinates = reg_feature.start + 1;
+    let reg_feature_end_ens_coordinates = reg_feature.end + 1;
+    let reg_thick_start_ens_coordinates = reg_feature.thick_start + 1;
+    let reg_thick_end_ens_coordinates = reg_feature.thick_end + 1;
+
     let tmpl = template_start("{0}:{1}-{2}");
     template_set(tmpl,0,reg_feature.stick);
-    template_set(tmpl,1,comma_format(reg_feature.start));
-    template_set(tmpl,2,comma_format(reg_feature.end));
+    template_set(tmpl,1,comma_format(reg_feature_start_ens_coordinates));
+    template_set(tmpl,2,comma_format(reg_feature_end_ens_coordinates));
     let bounds_location = template_end(tmpl);
 
     let tmpl = template_start("{0}:{1}-{2}");
     template_set(tmpl,0,reg_feature.stick);
-    template_set(tmpl,1,comma_format(reg_feature.thick_start));
-    template_set(tmpl,2,comma_format(reg_feature.thick_end));
+    template_set(tmpl,1,comma_format(reg_thick_start_ens_coordinates));
+    template_set(tmpl,2,comma_format(reg_thick_end_ens_coordinates));
     let core_location = template_end(tmpl);
 
     struct!(metadata_zmenu,"""
@@ -85,8 +92,8 @@ export function regulation_zmenu(*reg_feature) {
     bounds_location,
     core_location,
     reg_feature.stick,
-    reg_feature.start,
-    reg_feature.end
+    reg_feature_start_ens_coordinates,
+    reg_feature_end_ens_coordinates
   );
 
 
