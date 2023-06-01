@@ -180,12 +180,26 @@ name = ["track","variant-1000genomes","name"]
 
 [track.variant-dbsnp.general]
 include = ["general"]
-scales = [1,100,4]
+scales = [6,100,4]
 triggers = [["track","variant-dbsnp"]]
 tags = "#has-variants"
 
 [track.variant-dbsnp.settings]
 name = ["track","variant-dbsnp","name"]
+
+[track.variant-dbsnp-detail.general]
+include = ["general"]
+scales = [3,5,1]
+triggers = [["track","variant-dbsnp"]]
+tags= "#has-variants"
+
+[track.variant-dbsnp-detail.settings]
+name = ["track","variant-dbsnp","name"]
+label-snv-id = ["track","variant-dbsnp","label-snv-id"]
+label-snv-alleles = ["track","variant-dbsnp","label-snv-alleles"]
+label-other-id = ["track","variant-dbsnp","label-other-id"]
+label-other-alleles = ["track","variant-dbsnp","label-other-alleles"]
+show-extents = ["track","variant-dbsnp","show-extents"]
 
 [track.variant-clinvar.general]
 include = ["general"]

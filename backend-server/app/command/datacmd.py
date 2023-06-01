@@ -67,6 +67,7 @@ handlers = [
     ("variant-sgrp", VariantSummaryDataHandler("variant-sgrp"), 16),
     ("focus-variant", VariantSummaryDataHandler("variant"), 16),
     ("variant-labels", VariantLabelsDataHandler(), 16),
+    ("variant-labels-dbsnp", VariantLabelsDataHandler("dbsnp"), 16),
 ]
 
 

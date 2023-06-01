@@ -1,0 +1,194 @@
+program "ensembl-webteam/core" "variant-dbsnp-detail" 1;
+refer "libperegrine";
+refer "libeoe";
+include "../common/track-common.eard";
+include "../common/track-style.eard";
+include "variant-common.eard";
+include "focus-variant-zmenu.eard";
+include "variation-style.eard";
+
+/* Setup styles */
+
+track_styles();
+variation_track_styles();
+
+style!("""
+    tracks/track/variant-dbsnp/main/main/ {
+        padding-top: 0;
+        padding-bottom: 50;
+    }
+
+    tracks/track/variant-dbsnp/main/main/shore/ {
+        padding-top: 2;
+        type: overlay;
+        priority: 0;
+    }
+
+    tracks/track/variant-dbsnp/main/main/shore/under/ {
+        depth: 0;
+    }
+
+    tracks/track/variant-dbsnp/main/main/shore/over/ {
+        depth: 1;
+    }
+
+    tracks/track/variant-dbsnp/main/main/sea/ {
+        min-height: 35;
+        type: stack;
+        priority: 1;
+    }
+
+    tracks/track/variant-dbsnp/main/main/sea/shallow/ {
+        type: wall;
+        priority: 0;
+        padding-top: 4;
+        padding-bottom: 4;
+    }
+
+    tracks/track/variant-dbsnp/main/main/sea/shallow/* {
+        type: stack;
+        bump-scale: 0.6;
+        padding-top: 4;
+        padding-bottom: 4;
+    }
+
+    tracks/track/variant-dbsnp/main/main/sea/deep/ {
+        padding-top: 8;
+        type: wall;
+        priority: 1;
+    }
+
+    tracks/track/variant-dbsnp/main/main/sea/deep/* {
+        type: stack;
+        padding-top: 4;
+        padding-bottom: 4;
+    }
+""");
+
+
+/* Get variant data */
+let data = get_data(request("self()","variant-labels"));
+let v.chromosome = data_string(data,"chromosome");
+let v.start = data_number(data,"start")-1;
+let v.end = v.start + data_number(data,"length")+1;
+let v.id = data_string(data,"id");
+let v.ref = data_string(data,"ref");
+let v.alt = data_string(data,"alt");
+let v.variety = data_string(data,"variety"); //['SNV', 'indel', 'deletion', ...]
+let v.severity = data_number(data,"severity"); //[1, 5, ...]
+let v.consequence = data_string(data,"consequence"); //['upstream_gene_variant', ...]
+
+let deep = v.variety != "SNV";
+
+halt(only_warm());
+
+/* ZMenu data */
+
+let zmenu_paint = variant_zmenu(*v);
+
+/* Setup leafs */
+
+/*function focus_leaf(path) {
+    capture focus_genome_id;
+
+    // XXX need someway of detecting what CHR we are on, but that needs data.
+    leaf(path)
+}*/
+
+let leaf.bgd = leaf("tracks/track/variant-dbsnp/main/background/content");
+let leaf.letter = leaf("tracks/track/variant-dbsnp/main/letter/content");
+let leaf.trackname = leaf("tracks/track/variant-dbsnp/title/content");
+let leaf.shore_under = leaf("tracks/track/variant-dbsnp/main/main/shore/under/content");
+let leaf.shore_over = leaf("tracks/track/variant-dbsnp/main/main/shore/over/content");
+
+/* Draw shore */
+
+let base_height = 7;
+// draw colored blocks (for SNVs)
+let variant_severity_paint = paint_solid(index(variant_colours(), v.severity));
+let nw = coord(v.start, [0,...], [2,...]);
+let se = coord(v.start+1, [base_height,...], [-2,...]);
+rectangle(nw, se, variant_severity_paint, if(!deep, [leaf.shore_under,...], [leaf(""),...]));
+// draw block borders (for all base pairs)
+let (bp_start,bp_end) = bp_range();
+let position = enumerate([bp_end-bp_start+1]) + bp_start;
+let nw = coord(position, [0,...], [2,...]);
+let se = coord(position+1, [base_height,...], [-2,...]);
+let paint = paint_hollow(colour!("#999"), 0);
+rectangle(nw, se, paint, [leaf.shore_over,...]);
+
+/* Label settings */
+let label.snv_id = setting_boolean("label-snv-id",[]);
+let label.snv_alleles = setting_boolean("label-snv-alleles",[]);
+let label.other_id = setting_boolean("label-other-id",[]);
+let label.other_alleles = setting_boolean("label-other-alleles",[]);
+let label.eel = setting_boolean("show-extents",[]);
+// boolean arrays ([variant type && label setting for that variant type, ...])
+v.label_id = if(deep, [label.other_id,...], [label.snv_id,...]);
+v.label_alleles = if(deep, [label.other_alleles,...], [label.snv_alleles,...]);
+
+/* Create templates for the variant data in sea subtrack */
+
+let top_left = v.variety; // ['SNV', 'insertion', ...]
+let tmpl = template_start("{0}/{1}");
+template_set(tmpl, 0, v.ref);
+template_set(tmpl, 1, v.alt);
+let top_right = template_end(tmpl); // ['A/TTT', ...]
+let bottom_line = v.id;
+let right_offset = strlen(top_left)*6+5;
+
+/* Eels (variant extents) */
+
+let height_to_eel = if(v.label_id, [20,...], [10,...]);
+let eel_length = if(deep, v.end-v.start, [0,...]);
+let eel_v = count(eel_length);
+let position = index(v.start, eel_v) + enumerate(eel_length);
+
+let pen = pen("'IBM Plex Mono', sans-serif", 10, [colour!("#999"),...], [colour!("transparent"),...]);
+let bold_pen = pen("700 Lato, sans-serif", 10, [colour!("#999"),...], [colour!("transparent"),...]);
+
+/* Create sea leafs */
+
+// construct sea leaf paths for each variant
+let base_container = push_str("tracks/track/variant-dbsnp/main/main/sea/", if(deep, ["deep/",...], ["shallow/",...]));
+shallow_container = push_str(push_str(base_container, v.variety), v.id);
+sea_text_leaf = leaf(push_str(shallow_container, "/text/content")); // ['../sea/shallow/SNV/rs699/text/content', ...]
+deep_sea_text_leaf = if(deep, sea_text_leaf, [leaf(""),...]);
+
+/* Draw sea text (variant type, alleles, id) */
+
+let text_offset = 8;
+text(coord(v.start, [0,...], [text_offset,...]), pen, top_left, sea_text_leaf);
+text(coord(v.start, [0,...], right_offset+text_offset), bold_pen, top_right, if(v.label_alleles, sea_text_leaf, [leaf(""),...]));
+text(coord(v.start, [10,...], [text_offset,...]), pen,bottom_line, if(v.label_id, sea_text_leaf, [leaf(""),...]));
+
+/* Draw zmenus */
+
+let height = height_to_eel + if(label.eel, [10,...], [0,...]);
+let width = max(
+    strlen(top_left) + if(v.label_alleles, strlen(top_right), [0,...]) + 1,
+    if(v.label_id, strlen(bottom_line), [0,...])) * 6 + 5;
+
+rectangle(
+    coord(v.start, height_to_eel, [2,...]),
+    coord(v.end, height_to_eel+10, [-2,...]),
+    zmenu_paint, if(label.eel && deep, sea_text_leaf, [leaf(""),...])
+);
+
+rectangle(coord(v.start, [0,...], [5,...]), coord(v.start, height, width), zmenu_paint, sea_text_leaf);
+
+/* Draw sea eels (extents) */
+
+rectangle(coord(position,index(height_to_eel,eel_v),[2,...]),coord(position+1,index(height_to_eel,eel_v)+5,[-2,...]),paint_solid(colour!("#999")),if(label.eel,index(sea_text_leaf,eel_v),[leaf(""),...]));
+
+/* Draw fishing lines */
+
+let paint = paint_dotted([colour!("white"),...],[colour!("#999"),...],4,1,0.5);
+rectangle_join(coord(v.start,(height/2)-5,[1,...]),coord(v.start,[7,...],[1,...]),paint,deep_sea_text_leaf,[leaf.shore_under,...]);
+polygon(coord(v.start,height/2,[1,...]),[5,...],7,0,variant_severity_paint,deep_sea_text_leaf);
+
+/* Draw track furniture */
+
+draw_track_category(["V"],["variant-dbsnp"],[leaf.letter]);
+draw_track_name("dbSNP short variants","name",leaf.trackname);
+draw_swatch(colour!("#58a8f9"),[leaf.letter]);

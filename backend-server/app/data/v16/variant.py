@@ -110,11 +110,12 @@ def get_variant_labels(
     data_accessor: DataAccessor,
     chrom: Chromosome,
     panel: Panel,
+    filename: str,
     for_id: Optional[Tuple[str, str]],
 ) -> Response:
     if for_id is not None:
         update_panel_from_id(data_accessor, panel, for_id)
-    item = chrom.item_path("variant-labels")
+    item = chrom.item_path(filename)
     try:
         data = get_bigbed(data_accessor, item, panel.start, panel.end)
         starts = []
@@ -126,7 +127,7 @@ def get_variant_labels(
         severities = []
         consequence = []
         chromosomes = []
-        for (start, end, rest) in data:
+        for start, end, rest in data:
             rest = rest.split()
             chromosomes.append(chrom.name)
             starts.append(start)
@@ -166,10 +167,15 @@ def for_id(scope):
 
 
 class VariantLabelsDataHandler(DataHandler):
+    def __init__(self, track_id: Optional[str] = None):
+        self.filename = "variant-labels" + ("-" + track_id if track_id else "")
+
     def process_data(
         self, data_accessor: DataAccessor, panel: Panel, scope, accept
     ) -> Response:
         chrom = data_accessor.data_model.stick(data_accessor, panel.stick)
         if chrom == None:
             raise DataException("Unknown chromosome {0}".format(panel.stick))
-        return get_variant_labels(data_accessor, chrom, panel, for_id(scope))
+        return get_variant_labels(
+            data_accessor, chrom, panel, self.filename, for_id(scope)
+        )
