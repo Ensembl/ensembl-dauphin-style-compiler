@@ -406,7 +406,13 @@
         genome_browser.switch(["track", "variant-dbsnp", "name"], true);
         genome_browser.switch(["track", "variant-1000genomes"], true);
         genome_browser.switch(["track", "variant-1000genomes", "name"], true);
-        genome_browser.goto(32357606, 32357736);
+        //genome_browser.goto(32357606, 32357736);
+        genome_browser.jump("focus:variant:a7335667-93e7-11ec-a39d-005056b38ce3:rs779377781");
+        genome_browser.wait();
+        genome_browser.switch(["track", "focus", "item", "variant"], {
+          "genome_id": "a7335667-93e7-11ec-a39d-005056b38ce3",
+          "variant_id": "rs779377781"
+        });
 
         function flipper(path,go) {
             let flip = false;

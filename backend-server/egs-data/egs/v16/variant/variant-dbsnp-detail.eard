@@ -13,10 +13,6 @@ track_styles();
 variation_track_styles();
 
 style!("""
-    tracks/track/variant-dbsnp/main/main/ {
-        padding-top: 0;
-        padding-bottom: 50;
-    }
 
     tracks/track/variant-dbsnp/main/main/shore/ {
         padding-top: 2;
@@ -95,7 +91,6 @@ let zmenu_paint = variant_zmenu(*v);
     leaf(path)
 }*/
 
-let leaf.bgd = leaf("tracks/track/variant-dbsnp/main/background/content");
 let leaf.letter = leaf("tracks/track/variant-dbsnp/main/letter/content");
 let leaf.trackname = leaf("tracks/track/variant-dbsnp/title/content");
 let leaf.shore_under = leaf("tracks/track/variant-dbsnp/main/main/shore/under/content");
@@ -179,16 +174,16 @@ rectangle(coord(v.start, [0,...], [5,...]), coord(v.start, height, width), zmenu
 
 /* Draw sea eels (extents) */
 
-rectangle(coord(position,index(height_to_eel,eel_v),[2,...]),coord(position+1,index(height_to_eel,eel_v)+5,[-2,...]),paint_solid(colour!("#999")),if(label.eel,index(sea_text_leaf,eel_v),[leaf(""),...]));
+rectangle(coord(position, index(height_to_eel, eel_v), [2,...]), coord(position+1, index(height_to_eel,eel_v)+5, [-2,...]), 
+    paint_solid(colour!("#999")), if(label.eel, index(sea_text_leaf,eel_v), [leaf(""),...]));
 
 /* Draw fishing lines */
 
-let paint = paint_dotted([colour!("white"),...],[colour!("#999"),...],4,1,0.5);
-rectangle_join(coord(v.start,(height/2)-5,[1,...]),coord(v.start,[7,...],[1,...]),paint,deep_sea_text_leaf,[leaf.shore_under,...]);
-polygon(coord(v.start,height/2,[1,...]),[5,...],7,0,variant_severity_paint,deep_sea_text_leaf);
+let paint = paint_dotted([colour!("white"),...], [colour!("#999"),...], 4, 1, 0.5);
+rectangle_join(coord(v.start, (height/2)-5, [1,...]), coord(v.start, [7,...], [1,...]), paint, deep_sea_text_leaf, [leaf.shore_under,...]);
+polygon(coord(v.start, height/2, [1,...]), [5,...], 7, 0, variant_severity_paint,deep_sea_text_leaf);
 
 /* Draw track furniture */
 
-draw_track_category(["V"],["variant-dbsnp"],[leaf.letter]);
-draw_track_name("dbSNP short variants","name",leaf.trackname);
-draw_swatch(colour!("#58a8f9"),[leaf.letter]);
+draw_track_category(["V"], ["variant-dbsnp"], [leaf.letter]);
+draw_track_name("dbSNP short variants", "name", leaf.trackname);

@@ -1,11 +1,6 @@
 
 export procedure variation_track_styles() {
 style!("""
-    **/main/background/content {
-        depth: -10;
-        padding-top: 32;
-    }
-
     tracks/track/variant-1000genomes/ {
         priority: 1000;
         report: "track;switch-id=variant-1000genomes";
