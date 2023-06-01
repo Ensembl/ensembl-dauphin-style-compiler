@@ -41,73 +41,66 @@ style!("""
 
 draw_track_name("REGULATION","name",leaf("tracks/track/regulation/title/content"));
 
-/* Just fooling around */
-print("hello world!");
+
+function set_reg_feature_colours(reg_feature_types) {
+    let is_promoter = reg_feature_types == "Promoter";
+    let is_enhancer = reg_feature_types == "Enhancer";
+    let is_open_chromatin = reg_feature_types == "Open chromatin";
+    let is_ctsf_binding_site = reg_feature_types == "CTCF Binding Site";
+    let is_tf_binding_site = reg_feature_types == "TF binding";
+
+    let promoter_colour = colour!("#d90000"); // red
+    let enhancer_colour = colour!("#f8c041"); // orange
+    let open_chromatin_colour = colour!("#b6c0c8"); // grey
+    let ctsf_binding_site_colour = colour!("#327c89"); // teal
+    let tf_binding_colour = colour!("#ca80ff"); // magenta
+
+    let colours_seq = repeat(promoter_colour, len(reg_feature_types));
+
+    let reg_feature_colours = set(colours_seq, is_enhancer, [enhancer_colour, ...]);
+    let reg_feature_colours = set(reg_feature_colours, is_open_chromatin, [open_chromatin_colour, ...]);
+    let reg_feature_colours = set(reg_feature_colours, is_tf_binding_site, [tf_binding_colour, ...]);
+    let reg_feature_colours = set(reg_feature_colours, is_ctsf_binding_site, [ctsf_binding_site_colour, ...]);
+
+    reg_feature_colours
+}
 
 
+procedure get_regulation_track_data(track_name, track_label) {
+    let data = get_data(request("self()",track_name));
+    halt(only_warm());
+
+    let reg_feature.id = data_string(data,"id");
+    let reg_feature.stick = data_string(data,"stick");
+    let reg_feature.start = data_number(data,"start");
+    let reg_feature.end = reg_feature.start + data_number(data,"length");
+    let reg_feature.type = data_string(data,"feature_type");
+
+    let bottom_leaf = leaf("tracks/track/regulation/main/main/lanes/third/content");
+    let reg_feature.leaf = repeat(bottom_leaf, len(reg_feature.id));
+    let top_leaf = leaf("tracks/track/regulation/main/main/lanes/first/content");
+    let middle_leaf = leaf("tracks/track/regulation/main/main/lanes/second/content");
+    let is_top_leaf = reg_feature.type == "Promoter" || reg_feature.type == "Enhancer";
+    let is_middle_leaf = reg_feature.type == "Open chromatin" || reg_feature.type == "TF binding";
+    let reg_feature.leaf = set(reg_feature.leaf, is_top_leaf, [top_leaf,...]);
+    let reg_feature.leaf = set(reg_feature.leaf, is_middle_leaf, [middle_leaf,...]);
+
+    let reg_feature.colour = set_reg_feature_colours(reg_feature.type);
+
+    *reg_feature
+}
 
 
-let line_paint = paint_hollow(colour!("#d0d0d0"),1);
-let leaf = leaf("tracks/track/regulation/main/background/content");
-rectangle(coord([0],[60],[0]),coord([1],[60],[0]),line_paint,[leaf,...]);
+let *reg_feature = get_regulation_track_data("regulation", "This is the name of the regulation track");
 
-
-let test_leaf = leaf("tracks/track/regulation/main/background/content");
-let paint = paint_solid(colour!("#d0d0d0"));
+/* Draw rectangles */
+let paint = paint_solid(reg_feature.colour);
 
 rectangle(
-  coord([0],[0],[0]),
-  coord([1],[1],[1]),
-  paint,
-  [test_leaf, ...]
-);
-
-let test_leaf = leaf("tracks/track/regulation/main/main/content");
-rectangle(
-  coord([32357725],[5],[5]),
-  coord([32357735],[10],[10]),
-  paint,
-  [test_leaf,...]
+    coord(reg_feature.start, [0,...], [0,...]),
+    coord(reg_feature.end, [5,...], [0,...]),
+    paint,
+    reg_feature.leaf
 );
 
 
-let name_text_size = 12;
-let name_text_colour = colour!("black");
-let pen = pen(
-  "'IBM Plex Mono', sans-serif",
-  name_text_size,
-  [name_text_colour,...],
-  [colour!("white"),...]
-);
-text(coord([32357725],[20],[20]),pen,["Some text please?"],[test_leaf,...]);
-
-
-
-/* Experiments with three lanes */
-
-let top_leaf = leaf("tracks/track/regulation/main/main/lanes/first/content");
-let paint = paint_solid(colour!("red"));
-rectangle(
-  coord([32357713, 32357718],[0,...],[0,...]),
-  coord([32357715, 32357721],[5,...],[0,...]),
-  paint,
-  [top_leaf,...]
-);
-
-let middle_leaf = leaf("tracks/track/regulation/main/main/lanes/second/content");
-let paint = paint_solid(colour!("green"));
-rectangle(
-  coord([32357715],[0],[0]),
-  coord([32357717],[5],[0]),
-  paint,
-  [middle_leaf,...]
-);
-
-let bottom_leaf = leaf("tracks/track/regulation/main/main/lanes/third/content");
-let paint = paint_solid(colour!("blue"));
-rectangle(
-  coord([32357717],[0],[0]),
-  coord([32357720],[5],[0]),
-  paint,
-  [bottom_leaf,...]
-);

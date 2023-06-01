@@ -11,6 +11,7 @@ from data.v15.gene.genedata import TranscriptDataHandler15
 from data.v15.gene.genedata import GeneDataHandler15
 from data.v15.gene.genedata import GeneOverviewDataHandler15
 from data.v16.variant import VariantLabelsDataHandler, VariantSummaryDataHandler
+from data.v16.regulation import RegulationDataHandler
 from data.v16.contig import ShimmerContigDataHandler16
 from data.v16.contig import ContigDataHandler16
 from data.v16.wiggle.gc import WiggleDataHandler16
@@ -68,6 +69,7 @@ handlers = [
     ("focus-variant", VariantSummaryDataHandler("variant"), 16),
     ("variant-labels", VariantLabelsDataHandler(), 16),
     ("variant-labels-dbsnp", VariantLabelsDataHandler("dbsnp"), 16),
+    ("regulation", RegulationDataHandler(), 16),
 ]
 
 

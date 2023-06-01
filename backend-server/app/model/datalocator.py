@@ -40,6 +40,7 @@ class AccessItem(object):
         "variant-eva-summary": "variants/{genome}/variant-summary-eva.bw",
         "variant-sgrp-summary": "variants/{genome}/variant-summary-sgrp.bw",
         "variant-summary": "variants/{genome}/variant-summary.bw",
+        "regulation": "regulation/{genome}/regulatory-features.bb"
     }
 
     def __init__(self, variety: str, genome: str = None, chromosome: str = None):
