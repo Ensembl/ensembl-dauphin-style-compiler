@@ -40,9 +40,6 @@ style!("""
     }
 """);
 
-draw_track_name("REGULATION","name",leaf("tracks/track/regulation/title/content"));
-
-
 function set_reg_feature_colours(reg_feature_types) {
     let is_promoter = reg_feature_types == "Promoter";
     let is_enhancer = reg_feature_types == "Enhancer";
@@ -129,4 +126,12 @@ rectangle(
     coord(reg_feature.end, [bounds_top_offset + bounds_height,...], [0,...]),
     zmenu_paint,
     reg_feature.leaf
+);
+
+/* Draw track furniture */
+draw_track_name("REGULATION","name",leaf("tracks/track/regulation/title/content"));
+draw_track_category(
+    ["R"],
+    ["regulation"],
+    [leaf("tracks/track/regulation/main/letter/content")]
 );
