@@ -1,0 +1,102 @@
+export function regulation_zmenu(*reg_feature) {
+    // Coordinates in bed files (and used in genome browser in general) are zero-based;
+    // but the world outside of the genome browser is 1-based
+    let reg_feature_start_ens_coordinates = reg_feature.start + 1;
+    let reg_feature_end_ens_coordinates = reg_feature.end + 1;
+    let reg_thick_start_ens_coordinates = reg_feature.thick_start + 1;
+    let reg_thick_end_ens_coordinates = reg_feature.thick_end + 1;
+
+    let tmpl = template_start("{0}:{1}-{2}");
+    template_set(tmpl,0,reg_feature.stick);
+    template_set(tmpl,1,comma_format(reg_feature_start_ens_coordinates));
+    template_set(tmpl,2,comma_format(reg_feature_end_ens_coordinates));
+    let bounds_location = template_end(tmpl);
+
+    let tmpl = template_start("{0}:{1}-{2}");
+    template_set(tmpl,0,reg_feature.stick);
+    template_set(tmpl,1,comma_format(reg_thick_start_ens_coordinates));
+    template_set(tmpl,2,comma_format(reg_thick_end_ens_coordinates));
+    let core_location = template_end(tmpl);
+
+    struct!(metadata_zmenu,"""
+    {
+        "type": "zmenu",
+        "zmenu-type": "regulation"
+    }
+""");
+
+    struct!(content_zmenu,"""
+(<0,1,2,3,4,5,6>!
+      {
+        "data": [
+
+          /* First row */
+          [
+            {
+              "items": [
+                { "markup": ["light"], "text": "Regulatory feature" },
+                { "markup": [], "text": " " },
+                { "markup": ["strong"], "text": <0s> }
+              ],
+              "type": "block"
+            }
+          ],
+
+          /* Second row */
+          [
+            {
+              "items": [
+                { "markup": [], "text": <1s> }
+              ],
+              "type": "block"
+            }
+          ],
+
+          /* Third row */
+          [
+            {
+              "items": [
+                { "markup": ["light"], "text": "Core bp" },
+                { "markup": [], "text": " " },
+                { "markup": ["strong"], "text": <2s> }
+              ],
+              "type": "block"
+            }
+          ],
+
+          /* Fourth row */
+          [
+            {
+              "items": [
+                { "markup": ["light"], "text": "Bounds bp" },
+                { "markup": [], "text": " " },
+                { "markup": ["strong"], "text": <3s> }
+              ],
+              "type": "block"
+            }
+          ]
+        ],
+        "metadata": {
+          "id": <0s>,
+          "consequence": <1s>,
+          "type": "regulation",
+          "region_name": <4s>,
+          "start": <5n>,
+          "end": <6n>
+        }
+      }
+)
+""",
+    reg_feature.id,
+    reg_feature.type,
+    bounds_location,
+    core_location,
+    reg_feature.stick,
+    reg_feature_start_ens_coordinates,
+    reg_feature_end_ens_coordinates
+  );
+
+
+  let paint = paint_click(metadata_zmenu,content_zmenu,false);
+  paint
+}
