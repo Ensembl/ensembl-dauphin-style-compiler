@@ -32,14 +32,8 @@ export function regulation_zmenu(*reg_feature) {
 
           /* First row */
           [
-            {
-              "items": [
-                { "markup": ["light"], "text": "Regulatory feature" },
-                { "markup": [], "text": " " },
-                { "markup": ["strong"], "text": <0s> }
-              ],
-              "type": "block"
-            }
+            { "items": [ { "markup": ["light"], "text": "Regulatory feature" } ], "type": "block" },
+            { "items": [ { "markup": ["strong"], "text": <0s> } ], "type": "block" }
           ],
 
           /* Second row */
@@ -54,32 +48,20 @@ export function regulation_zmenu(*reg_feature) {
 
           /* Third row */
           [
-            {
-              "items": [
-                { "markup": ["light"], "text": "Core bp" },
-                { "markup": [], "text": " " },
-                { "markup": ["strong"], "text": <2s> }
-              ],
-              "type": "block"
-            }
+            { "items": [ { "markup": ["light"], "text": "Core bp" } ], "type": "block" },
+            { "items": [ { "markup": [], "text": <2s> } ], "type": "block" }
           ],
 
           /* Fourth row */
           [
-            {
-              "items": [
-                { "markup": ["light"], "text": "Bounds bp" },
-                { "markup": [], "text": " " },
-                { "markup": ["strong"], "text": <3s> }
-              ],
-              "type": "block"
-            }
+            { "items": [ { "markup": ["light"], "text": "Bounds bp" } ], "type": "block" },
+            { "items": [ { "markup": [], "text": <3s> } ], "type": "block" }
           ]
         ],
         "metadata": {
           "id": <0s>,
           "feature_type": <1s>,
-          "type": "regulation",
+          "type": "regulatory_feature",
           "region_name": <4s>,
           "start": <5n>,
           "end": <6n>,
