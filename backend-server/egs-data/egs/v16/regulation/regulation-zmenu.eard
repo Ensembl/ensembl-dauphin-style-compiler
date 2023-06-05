@@ -26,7 +26,7 @@ export function regulation_zmenu(*reg_feature) {
 """);
 
     struct!(content_zmenu,"""
-(<0,1,2,3,4,5,6>!
+(<0,1,2,3,4,5,6,7,8>!
       {
         "data": [
 
@@ -78,11 +78,13 @@ export function regulation_zmenu(*reg_feature) {
         ],
         "metadata": {
           "id": <0s>,
-          "consequence": <1s>,
+          "feature_type": <1s>,
           "type": "regulation",
           "region_name": <4s>,
           "start": <5n>,
-          "end": <6n>
+          "end": <6n>,
+          "core_start": <7n>,
+          "core_end": <8n>
         }
       }
 )
@@ -93,7 +95,9 @@ export function regulation_zmenu(*reg_feature) {
     core_location,
     reg_feature.stick,
     reg_feature_start_ens_coordinates,
-    reg_feature_end_ens_coordinates
+    reg_feature_end_ens_coordinates,
+    reg_thick_start_ens_coordinates,
+    reg_thick_end_ens_coordinates
   );
 
 
