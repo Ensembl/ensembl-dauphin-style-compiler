@@ -1,29 +1,47 @@
-export function regulation_zmenu(*reg_feature) {
-    // Coordinates in bed files (and used in genome browser in general) are zero-based;
-    // but the world outside of the genome browser is 1-based
-    let reg_feature_start_ens_coordinates = reg_feature.start + 1;
-    let reg_feature_end_ens_coordinates = reg_feature.end + 1;
-    let reg_thick_start_ens_coordinates = reg_feature.thick_start + 1;
-    let reg_thick_end_ens_coordinates = reg_feature.thick_end + 1;
-
-    let tmpl = template_start("{0}:{1}-{2}");
-    template_set(tmpl,0,reg_feature.stick);
-    template_set(tmpl,1,comma_format(reg_feature_start_ens_coordinates));
-    template_set(tmpl,2,comma_format(reg_feature_end_ens_coordinates));
-    let bounds_location = template_end(tmpl);
-
-    let tmpl = template_start("{0}:{1}-{2}");
-    template_set(tmpl,0,reg_feature.stick);
-    template_set(tmpl,1,comma_format(reg_thick_start_ens_coordinates));
-    template_set(tmpl,2,comma_format(reg_thick_end_ens_coordinates));
-    let core_location = template_end(tmpl);
-
+function get_zmenu_metadata() {
     struct!(metadata_zmenu,"""
     {
         "type": "zmenu",
         "zmenu-type": "regulation"
     }
 """);
+
+    metadata_zmenu
+}
+
+procedure with_ensembl_coordinates(*reg_feature) {
+    // Coordinates in bed files (and used in genome browser in general) are zero-based;
+    // but the world outside of the genome browser is 1-based
+    let reg_feature.ens_start = reg_feature.start + 1;
+    let reg_feature.ens_end = reg_feature.end + 1;
+    let reg_feature.ens_core_start = reg_feature.thick_start + 1;
+    let reg_feature.ens_core_end = reg_feature.thick_end + 1;
+
+    *reg_feature
+}
+
+procedure get_formatted_locations(*reg_feature) {
+    let tmpl = template_start("{0}:{1}-{2}");
+    template_set(tmpl,0,reg_feature.stick);
+    template_set(tmpl,1,comma_format(reg_feature.ens_start));
+    template_set(tmpl,2,comma_format(reg_feature.ens_end));
+    let bounds_location = template_end(tmpl);
+
+    let tmpl = template_start("{0}:{1}-{2}");
+    template_set(tmpl,0,reg_feature.stick);
+    template_set(tmpl,1,comma_format(reg_feature.ens_core_start));
+    template_set(tmpl,2,comma_format(reg_feature.ens_core_end));
+    let core_location = template_end(tmpl);
+
+    (bounds_location, core_location)
+}
+
+
+
+export function zmenu_when_bounds_different_from_core(*reg_feature) {
+    let *reg_feature = with_ensembl_coordinates(*reg_feature);
+    let (bounds_location, core_location) = get_formatted_locations(*reg_feature);
+    let zmenu_metadata = get_zmenu_metadata();
 
     struct!(content_zmenu,"""
 (<0,1,2,3,4,5,6,7,8>!
@@ -73,16 +91,97 @@ export function regulation_zmenu(*reg_feature) {
 """,
     reg_feature.id,
     reg_feature.type,
-    bounds_location,
     core_location,
+    bounds_location,
     reg_feature.stick,
-    reg_feature_start_ens_coordinates,
-    reg_feature_end_ens_coordinates,
-    reg_thick_start_ens_coordinates,
-    reg_thick_end_ens_coordinates
+    reg_feature.ens_start,
+    reg_feature.ens_end,
+    reg_feature.ens_core_start,
+    reg_feature.ens_core_end
   );
 
 
-  let paint = paint_click(metadata_zmenu,content_zmenu,false);
-  paint
+    let paint = paint_click(zmenu_metadata,content_zmenu,false);
+    paint
 }
+
+
+export function zmenu_when_bounds_same_as_core(*reg_feature) {
+    let *reg_feature = with_ensembl_coordinates(*reg_feature);
+    let (bounds_location, core_location) = get_formatted_locations(*reg_feature);
+    let zmenu_metadata = get_zmenu_metadata();
+
+        struct!(content_zmenu,"""
+(<0,1,2,3,4,5,6,7>!
+      {
+        "data": [
+
+          /* First row */
+          [
+            { "items": [ { "markup": ["light"], "text": "Regulatory feature" } ], "type": "block" },
+            { "items": [ { "markup": ["strong"], "text": <0s> } ], "type": "block" }
+          ],
+
+          /* Second row */
+          [
+            {
+              "items": [
+                { "markup": [], "text": <1s> }
+              ],
+              "type": "block"
+            }
+          ],
+
+          /* Third row */
+          [
+            { "items": [ { "markup": ["light"], "text": "Core bp" } ], "type": "block" },
+            { "items": [ { "markup": [], "text": <2s> } ], "type": "block" }
+          ]
+
+        ],
+        "metadata": {
+          "id": <0s>,
+          "feature_type": <1s>,
+          "type": "regulatory_feature",
+          "region_name": <3s>,
+          "start": <4n>,
+          "end": <5n>,
+          "core_start": <6n>,
+          "core_end": <7n>
+        }
+      }
+)
+""",
+    reg_feature.id,
+    reg_feature.type,
+    core_location,
+    reg_feature.stick,
+    reg_feature.ens_start,
+    reg_feature.ens_end,
+    reg_feature.ens_core_start,
+    reg_feature.ens_core_end
+  );
+
+
+    let paint = paint_click(zmenu_metadata,content_zmenu,false);
+    paint
+}
+
+
+
+/*
+
+export function regulation_zmenu(*reg_feature) {
+    let is_bounds_same_as_core = reg_feature.start == reg_feature.thick_start &&
+        reg_feature.end == reg_feature.thick_end;
+
+    let zmenu_paint = if(
+        is_bounds_same_as_core,
+        zmenu_when_bounds_same_as_core(*reg_feature),
+        zmenu_when_bounds_different_from_core(*reg_feature)
+    );
+
+    zmenu_paint
+}
+
+*/

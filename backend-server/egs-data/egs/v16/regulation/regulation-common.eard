@@ -1,0 +1,126 @@
+/* Get and transform data */
+function set_reg_feature_colours(reg_feature_types) {
+    let is_promoter = reg_feature_types == "Promoter";
+    let is_enhancer = reg_feature_types == "Enhancer";
+    let is_open_chromatin = reg_feature_types == "Open chromatin";
+    let is_ctsf_binding_site = reg_feature_types == "CTCF Binding Site";
+    let is_tf_binding_site = reg_feature_types == "TF binding";
+
+    let promoter_colour = colour!("#d90000"); // red
+    let enhancer_colour = colour!("#f8c041"); // dark-yellow
+    let open_chromatin_colour = colour!("#b7c0c8"); // grey
+    let ctsf_binding_site_colour = colour!("#8ef4f8"); // neon-blue
+    let tf_binding_colour = colour!("#ca81ff"); // purple
+
+    let colours_seq = repeat(promoter_colour, len(reg_feature_types));
+
+    let reg_feature_colours = set(colours_seq, is_enhancer, [enhancer_colour, ...]);
+    let reg_feature_colours = set(reg_feature_colours, is_open_chromatin, [open_chromatin_colour, ...]);
+    let reg_feature_colours = set(reg_feature_colours, is_tf_binding_site, [tf_binding_colour, ...]);
+    let reg_feature_colours = set(reg_feature_colours, is_ctsf_binding_site, [ctsf_binding_site_colour, ...]);
+
+    reg_feature_colours
+}
+
+
+export procedure get_regulation_track_data(track_name, track_label) {
+    let data = get_data(request("self()",track_name));
+
+    let reg_feature.id = data_string(data,"id");
+    let reg_feature.stick = data_string(data,"stick");
+    let reg_feature.start = data_number(data,"start");
+    let reg_feature.end = reg_feature.start + data_number(data,"length");
+    let reg_feature.thick_start = data_number(data,"thick_start");
+    let reg_feature.thick_end = data_number(data,"thick_end");
+    let reg_feature.type = data_string(data,"feature_type");
+
+    let bottom_leaf = leaf("tracks/track/regulation/main/main/lanes/third/content");
+    let reg_feature.leaf = repeat(bottom_leaf, len(reg_feature.id));
+    let top_leaf = leaf("tracks/track/regulation/main/main/lanes/first/content");
+    let middle_leaf = leaf("tracks/track/regulation/main/main/lanes/second/content");
+    let is_top_leaf = reg_feature.type == "Promoter" || reg_feature.type == "Enhancer";
+    let is_middle_leaf = reg_feature.type == "Open chromatin" || reg_feature.type == "TF binding";
+    let reg_feature.leaf = set(reg_feature.leaf, is_top_leaf, [top_leaf,...]);
+    let reg_feature.leaf = set(reg_feature.leaf, is_middle_leaf, [middle_leaf,...]);
+
+    let reg_feature.colour = set_reg_feature_colours(reg_feature.type);
+
+    *reg_feature
+}
+
+
+/* Styling */
+export procedure regulation_track_styles() {
+style!("""
+    tracks/track/regulation/ {
+        min-height: 80;
+        priority: 890;
+        report: "track;switch-id=regulation";
+    }
+
+    tracks/track/regulation/main/main/ {
+      type: stack;
+    }
+
+    tracks/track/regulation/main/main/lanes/ {
+        type: stack;
+        priority: 1;
+    }
+
+    tracks/track/regulation/main/main/lanes/first/ {
+        min-height: 10;
+        priority: 0;
+    }
+
+    tracks/track/regulation/main/main/lanes/second/ {
+        min-height: 10;
+        priority: 1;
+    }
+
+    tracks/track/regulation/main/main/lanes/third/ {
+        min-height: 10;
+        priority: 2;
+    }
+""");
+}
+
+/* Drawing code */
+
+export procedure get_shape_sizes() {
+  let core_height = 8;
+  let bounds_height = 4;
+  let bounds_top_offset = 2;
+
+  (core_height, bounds_height, bounds_top_offset)
+}
+
+export procedure draw_regulatory_features(*reg_feature) {
+  let paint = paint_solid(reg_feature.colour);
+
+  let (core_height, bounds_height, bounds_top_offset) = get_shape_sizes();
+
+  /* Draw thinner rectangles for feature boundaries */
+  rectangle(
+      coord(reg_feature.start, [bounds_top_offset,...], [0,...]),
+      coord(reg_feature.end, [bounds_top_offset + bounds_height,...], [0,...]),
+      paint,
+      reg_feature.leaf
+  );
+
+  /* Draw thicker rectangles for feature cores */
+  rectangle(
+      coord(reg_feature.thick_start, [0,...], [0,...]),
+      coord(reg_feature.thick_end, [core_height,...], [0,...]),
+      paint,
+      reg_feature.leaf
+  );
+}
+
+export procedure draw_track_furniture () {
+  draw_track_name("Regulatory annotation","name",leaf("tracks/track/regulation/title/content"));
+  draw_track_category(
+      ["R"],
+      ["regulation"],
+      [leaf("tracks/track/regulation/main/letter/content")]
+  );
+}

@@ -261,7 +261,7 @@ focus-variant = ["track","focus","item","variant"]
 #
 [track.regulation]
 include = ["general"]
-scales = [1,100,1]
+scales = [1,100,3]
 triggers = [["track","regulation"]]
 
 [track.regulation.settings]

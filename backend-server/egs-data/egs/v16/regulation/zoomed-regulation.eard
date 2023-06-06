@@ -1,4 +1,4 @@
-program "ensembl-webteam/core" "regulation" 1;
+program "ensembl-webteam/core" "zoomed-regulation" 1;
 refer "libperegrine";
 refer "libeoe";
 include "../common/track-common.eard";
@@ -12,7 +12,6 @@ regulation_track_styles();
 
 
 let *reg_feature = get_regulation_track_data("regulation", "This is the name of the regulation track");
-halt(only_warm());
 
 draw_regulatory_features(*reg_feature);
 draw_track_furniture();
@@ -26,8 +25,8 @@ let is_bounds_same_as_core = reg_feature.start == reg_feature.thick_start &&
 
 /* Zmenus for simple features — where core region is same as boundaries */
 let zmenu_paint = zmenu_when_bounds_same_as_core(*reg_feature);
-let zmenu_leaf = reg_feature.leaf;
-let zmenu_leaf = set(zmenu_leaf, !is_bounds_same_as_core, [leaf(""), ...]);
+let zmenu_leaf = repeat(leaf(""), len(reg_feature.id));
+let zmenu_leaf = set(zmenu_leaf, is_bounds_same_as_core, reg_feature.leaf);
 
 rectangle(
     coord(reg_feature.start, [bounds_top_offset,...], [0,...]),
@@ -38,8 +37,8 @@ rectangle(
 
 /* Zmenus for more complex features — where core region is inside boundaries */
 let zmenu_paint = zmenu_when_bounds_different_from_core(*reg_feature);
-let zmenu_leaf = reg_feature.leaf;
-let zmenu_leaf = set(zmenu_leaf, is_bounds_same_as_core, [leaf(""), ...]);
+let zmenu_leaf = repeat(leaf(""), len(reg_feature.id));
+let zmenu_leaf = set(zmenu_leaf, !is_bounds_same_as_core, reg_feature.leaf);
 
 rectangle(
     coord(reg_feature.start, [bounds_top_offset,...], [0,...]),
