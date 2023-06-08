@@ -48,10 +48,10 @@ function set_reg_feature_colours(reg_feature_types) {
     let is_tf_binding_site = reg_feature_types == "TF binding";
 
     let promoter_colour = colour!("#d90000"); // red
-    let enhancer_colour = colour!("#f8c041"); // orange
-    let open_chromatin_colour = colour!("#b6c0c8"); // grey
-    let ctsf_binding_site_colour = colour!("#327c89"); // teal
-    let tf_binding_colour = colour!("#ca80ff"); // magenta
+    let enhancer_colour = colour!("#f8c041"); // dark-yellow
+    let open_chromatin_colour = colour!("#b7c0c8"); // grey
+    let ctsf_binding_site_colour = colour!("#8ef4f8"); // neon-blue
+    let tf_binding_colour = colour!("#ca81ff"); // purple
 
     let colours_seq = repeat(promoter_colour, len(reg_feature_types));
 
