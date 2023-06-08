@@ -27,6 +27,7 @@ class AccessItem(object):
         "transcripts": "genes_and_transcripts/{genome}/transcripts.bb",
         "gc": "gc/{genome}/gc.bw",
         "variant-labels": "variants/{genome}/variant-labels.bb",
+        "variant-labels-dbsnp": "variants/{genome}/variant-labels-dbsnp.bb",
         "jump": "jump/{genome}/jump.ncd",
         "seqs": "seqs/{genome}/{chromosome}",
         "chrom-hashes": "common_files/{genome}/chrom.hashes.ncd",
