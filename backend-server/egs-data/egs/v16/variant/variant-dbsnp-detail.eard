@@ -84,13 +84,6 @@ let zmenu_paint = variant_zmenu(*v);
 
 /* Setup leafs */
 
-/*function focus_leaf(path) {
-    capture focus_genome_id;
-
-    // XXX need someway of detecting what CHR we are on, but that needs data.
-    leaf(path)
-}*/
-
 let leaf.letter = leaf("tracks/track/variant-dbsnp/main/letter/content");
 let leaf.trackname = leaf("tracks/track/variant-dbsnp/title/content");
 let leaf.shore_under = leaf("tracks/track/variant-dbsnp/main/main/shore/under/content");

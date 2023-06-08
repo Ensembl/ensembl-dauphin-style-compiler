@@ -189,7 +189,7 @@ name = ["track","variant-dbsnp","name"]
 
 [track.variant-dbsnp-detail.general]
 include = ["general"]
-scales = [3,5,1]
+scales = [1,5,1]
 triggers = [["track","variant-dbsnp"]]
 tags= "#has-variants"
 
@@ -239,7 +239,7 @@ name = ["track","variant-sgrp","name"]
 
 [track.focus-variant.general]
 include = ["general"]
-scales = [3,5,1]
+scales = [1,5,1]
 triggers = [["track","focus","item","variant"]]
 tags= "#has-variants"
 
