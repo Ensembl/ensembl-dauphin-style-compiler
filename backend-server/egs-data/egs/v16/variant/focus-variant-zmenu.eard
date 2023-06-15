@@ -5,11 +5,6 @@ export function variant_zmenu(*variant) {
     template_set(tmpl,2,comma_format(variant.end));
     let position = template_end(tmpl);
 
-    let tmpl = template_start("{0}/{1}");
-    template_set(tmpl,0,variant.ref);
-    template_set(tmpl,1,variant.alt);
-    let alleles = template_end(tmpl);
-
     struct!(metadata_zmenu,"""
     {
         "type": "zmenu",
@@ -85,7 +80,7 @@ export function variant_zmenu(*variant) {
     variant.consequence,
     variant.variety,
     position,
-    alleles
+    variant.alleles
   );
   let paint = paint_click(metadata_zmenu,content_zmenu,false);
   paint

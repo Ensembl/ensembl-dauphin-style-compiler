@@ -84,8 +84,7 @@ let v.chromosome = data_string(data,"chromosome");
 let v.start = data_number(data,"start")-1;
 let v.end = v.start + data_number(data,"length")+1;
 let v.id = data_string(data,"id");
-let v.ref = data_string(data,"ref");
-let v.alt = data_string(data,"alt");
+let v.alleles = data_string(data,"alleles");
 let v.variety = data_string(data,"variety");
 let v.severity = data_number(data,"severity");
 let v.consequence = data_string(data,"consequence");
@@ -144,10 +143,7 @@ v.label_alleles = if(deep,[label.other_alleles,...],[label.snv_alleles,...]);
 /* Create templates for all the variants (whether destined for sun or sea) */
 
 let top_left = v.variety;
-let tmpl = template_start("{0}/{1}");
-template_set(tmpl,0,v.ref);
-template_set(tmpl,1,v.alt);
-let top_right = template_end(tmpl);
+let top_right = v.alleles;
 let bottom_line = v.id;
 let right_offset = strlen(top_left)*6+5;
 
