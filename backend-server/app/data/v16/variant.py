@@ -122,11 +122,10 @@ def get_variant_labels(
         lengths = []
         ids = []
         varieties = []
-        refs = []
-        alts = []
         severities = []
         consequence = []
         chromosomes = []
+        alleles = []
         for start, end, rest in data:
             rest = rest.split()
             chromosomes.append(chrom.name)
@@ -134,8 +133,7 @@ def get_variant_labels(
             lengths.append(end - start)
             ids.append(rest[0])
             varieties.append(rest[1])
-            refs.append(rest[2])
-            alts.append(rest[3])
+            alleles.append(allele_sequence(rest[2], rest[3]))
             severities.append(int(rest[4]))
             consequence.append(rest[5])
     except Exception as e:
@@ -146,11 +144,17 @@ def get_variant_labels(
         "length": data_algorithm("NDZRL", lengths),
         "id": data_algorithm("SZ", ids),
         "variety": data_algorithm("SYRLZ", varieties),
-        "ref": data_algorithm("SYRLZ", refs),
-        "alt": data_algorithm("SYRLZ", alts),
+        "alleles": data_algorithm("SYRLZ", alleles),
         "severity": data_algorithm("NRL", severities),
         "consequence": data_algorithm("SYRLZ", consequence),
     }
+
+def allele_sequence(ref: str, alts: str) -> str:
+    combined_sequence = ref + '/' + alts
+    if len(combined_sequence) > 18:
+        truncated_sequence = combined_sequence[0:18] + '…'
+        return truncated_sequence
+    return combined_sequence
 
 
 def for_id(scope):
