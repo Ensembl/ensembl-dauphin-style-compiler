@@ -151,11 +151,10 @@ def get_variant_labels(
 
 def allele_sequence(ref: str, alts: str) -> str:
     combined_sequence = ref + '/' + alts
-    if len(combined_sequence) <= 18:
-        return combined_sequence
-    else:
+    if len(combined_sequence) > 18:
         truncated_sequence = combined_sequence[0:18] + '…'
         return truncated_sequence
+    return combined_sequence
 
 
 def for_id(scope):
