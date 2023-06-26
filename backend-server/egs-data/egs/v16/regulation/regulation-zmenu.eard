@@ -13,9 +13,9 @@ procedure with_ensembl_coordinates(*reg_feature) {
     // Coordinates in bed files (and used in genome browser in general) are zero-based;
     // but the world outside of the genome browser is 1-based
     let reg_feature.ens_start = reg_feature.start + 1;
-    let reg_feature.ens_end = reg_feature.end + 1;
+    let reg_feature.ens_end = reg_feature.end;
     let reg_feature.ens_core_start = reg_feature.thick_start + 1;
-    let reg_feature.ens_core_end = reg_feature.thick_end + 1;
+    let reg_feature.ens_core_end = reg_feature.thick_end;
 
     *reg_feature
 }
