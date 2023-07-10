@@ -1,4 +1,4 @@
-apiVersion: extensions/v1beta1
+apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: genome-browser-server-ingress
@@ -13,3 +13,4 @@ spec:
           serviceName: genome-browser-server-svc
           servicePort: 8000
         path: /api/data
+        pathType: Prefix 
