@@ -10,7 +10,9 @@ spec:
     http:
       paths:
       - backend:
-          serviceName: genome-browser-server-svc
-          servicePort: 8000
+          service: 
+            name: genome-browser-server-svc
+            port:
+              number: 8000
         path: /api/data
         pathType: Prefix 
