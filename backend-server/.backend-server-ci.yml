@@ -97,6 +97,41 @@ variables:
 
   needs: ["BE-Docker"]
 
+.deploy_backend-wp40:
+  extends: .base-be-deploy-rules
+  stage: deploy
+  image: dockerhub.ebi.ac.uk/ensembl-web/deploy-tools:latest
+  before_script:
+    - git clone https://gitlab.ebi.ac.uk/ensembl-web/ensembl-k8s-manifests.git
+    - git -C ensembl-k8s-manifests/ checkout k8s123-migration
+    - sed -i "s#<NFS_SERVER>#${NFS_SERVER}#g" ${BASE}/hi/patch.yaml
+    - sed -i "s#<NFS_PATH>#${NFS_PATH}#g" ${BASE}/hi/patch.yaml
+    - sed -i "s#<NFS_SERVER>#${NFS_SERVER}#g" ${BASE}/lo/patch.yaml
+    - sed -i "s#<NFS_PATH>#${NFS_PATH}#g" ${BASE}/lo/patch.yaml
+
+  script:
+    # Update hi configuration
+    - cd ${BASE}/hi
+    - kustomize edit set image DOCKER_IMAGE=${DOCKER_IMAGE}
+    - kustomize edit add label "ensembl.web.api.name":"genome-browser-server"
+    - kustomize edit set label "gbtype":"hi"
+    - kustomize edit set namesuffix -- -hi
+    - cd -
+
+    # Update lo configuration
+    - cd ${BASE}/lo
+    - kustomize edit set image DOCKER_IMAGE=${DOCKER_IMAGE}
+    - kustomize edit add label "ensembl.web.api.name":"genome-browser-server"
+    - kustomize edit set label "gbtype":"lo"
+    - kustomize edit set namesuffix -- -lo
+    - cd -
+
+    # Update hi/lo configuration
+    - kustomize build ${BASE}/hi | kubectl apply -f -
+    - kustomize build ${BASE}/lo | kubectl apply -f -
+
+  needs: ["BE-Docker"]
+  
 .deploy_backend_branches:
   extends: .base-be-deploy-rules-branches
   environment:
@@ -206,5 +241,14 @@ HL:Production:
     name : wp-hh-live
   variables:
     BASE: backend-server/k8s/overlays/production
+    NFS_SERVER: ${HL_NFS_SERVER}
+    NFS_PATH: ${HL_NFS_PATH}
+
+HL:Production:wp40:
+  extends: .deploy_backend-wp40
+  environment:
+    name: wp40-hl-prod
+  variables:
+    BASE: ensembl-k8s-manifests/genome-browser
     NFS_SERVER: ${HL_NFS_SERVER}
     NFS_PATH: ${HL_NFS_PATH}
