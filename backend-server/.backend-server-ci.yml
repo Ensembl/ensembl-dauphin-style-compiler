@@ -98,7 +98,7 @@ variables:
   needs: ["BE-Docker"]
 
 .deploy_backend-wp40:
-  extends: .base-be-deploy-rules
+  extends: .base-be-deploy-rules-branches
   stage: deploy
   image: dockerhub.ebi.ac.uk/ensembl-web/deploy-tools:latest
   before_script:
