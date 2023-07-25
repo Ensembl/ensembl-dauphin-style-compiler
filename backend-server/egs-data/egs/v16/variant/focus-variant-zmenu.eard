@@ -13,7 +13,7 @@ export function variant_zmenu(*variant) {
 """);
 
     struct!(content_zmenu,"""
-(<0,1,2,3,4>!
+(<0,1,2,3,4,5,6>!
       {
         "data": [
 
@@ -71,6 +71,8 @@ export function variant_zmenu(*variant) {
           "variety": <2s>,
           "position": <3s>,
           "alleles": <4s>,
+          "region_name": <5s>,
+          "start": <6n>,
           "type": "variant"
         }
       }
@@ -80,7 +82,9 @@ export function variant_zmenu(*variant) {
     variant.consequence,
     variant.variety,
     position,
-    variant.alleles
+    variant.alleles,
+    variant.chromosome,
+    variant.start
   );
   let paint = paint_click(metadata_zmenu,content_zmenu,false);
   paint
