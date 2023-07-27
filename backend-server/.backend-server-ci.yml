@@ -238,5 +238,5 @@ HL:Production:wp40:
     name: wp40-hl-prod
   variables:
     BASE: ensembl-k8s-manifests/genome-browser
-    NFS_SERVER: ${HL_NFS_SERVER}
-    NFS_PATH: ${HL_NFS_PATH}
+    NFS_SERVER: ${HL_NFS_SERVER_CODON}
+    NFS_PATH: ${HL_NFS_PATH_CODON}
