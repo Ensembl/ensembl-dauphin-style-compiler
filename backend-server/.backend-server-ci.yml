@@ -115,7 +115,7 @@ variables:
     - kustomize edit set image DOCKER_IMAGE=${DOCKER_IMAGE}
 
     # Update hi/lo configuration and apply
-    - kubectl apply -k ./
+    - kustomize build . | kubectl apply -f -
 
 
   needs: ["BE-Docker"]
