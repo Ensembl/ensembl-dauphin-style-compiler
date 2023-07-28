@@ -97,6 +97,29 @@ variables:
 
   needs: ["BE-Docker"]
 
+.deploy_backend-wp40:
+  extends: .base-be-deploy-rules
+  stage: deploy
+  image: dockerhub.ebi.ac.uk/ensembl-web/deploy-tools:latest
+  before_script:
+    - git clone https://gitlab.ebi.ac.uk/ensembl-web/ensembl-k8s-manifests.git
+    - git -C ensembl-k8s-manifests/ checkout k8s123-migration
+    - sed -i "s#<NFS_SERVER>#${NFS_SERVER}#g" ${BASE}/hi/nfs-deployment.patch.yaml
+    - sed -i "s#<NFS_PATH>#${NFS_PATH}#g" ${BASE}/hi/nfs-deployment.patch.yaml
+    - sed -i "s#<NFS_SERVER>#${NFS_SERVER}#g" ${BASE}/lo/nfs-deployment.patch.yaml
+    - sed -i "s#<NFS_PATH>#${NFS_PATH}#g" ${BASE}/lo/nfs-deployment.patch.yaml
+
+  script:
+    # Update docker image
+    - cd ${BASE}/deploy
+    - kustomize edit set image DOCKER_IMAGE=${DOCKER_IMAGE}
+
+    # Update hi/lo configuration and apply
+    - kustomize build . | kubectl apply -f -
+
+
+  needs: ["BE-Docker"]
+  
 .deploy_backend_branches:
   extends: .base-be-deploy-rules-branches
   environment:
@@ -208,3 +231,12 @@ HL:Production:
     BASE: backend-server/k8s/overlays/production
     NFS_SERVER: ${HL_NFS_SERVER}
     NFS_PATH: ${HL_NFS_PATH}
+
+HL:Production:wp40:
+  extends: .deploy_backend-wp40
+  environment:
+    name: wp40-hl-prod
+  variables:
+    BASE: ensembl-k8s-manifests/genome-browser
+    NFS_SERVER: ${HL_NFS_SERVER_CODON}
+    NFS_PATH: ${HL_NFS_PATH_CODON}
