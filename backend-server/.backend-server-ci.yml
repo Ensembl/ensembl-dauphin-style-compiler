@@ -103,7 +103,7 @@ variables:
   image: dockerhub.ebi.ac.uk/ensembl-web/deploy-tools:latest
   before_script:
     - git clone https://gitlab.ebi.ac.uk/ensembl-web/ensembl-k8s-manifests.git
-    - git -C ensembl-k8s-manifests/ checkout gb-k8s-migration
+    - git -C ensembl-k8s-manifests/ checkout k8s123-migration
     - sed -i "s#<NFS_SERVER>#${NFS_SERVER}#g" ${BASE}/hi/nfs-deployment.patch.yaml
     - sed -i "s#<NFS_PATH>#${NFS_PATH}#g" ${BASE}/hi/nfs-deployment.patch.yaml
     - sed -i "s#<NFS_SERVER>#${NFS_SERVER}#g" ${BASE}/lo/nfs-deployment.patch.yaml
