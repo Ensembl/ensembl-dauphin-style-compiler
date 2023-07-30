@@ -5,9 +5,6 @@ export function variant_zmenu(*variant) {
     template_set(tmpl,1,comma_format(variant_ensembl_start));
     template_set(tmpl,2,comma_format(variant.end));
     let position = template_end(tmpl);
-    print(format(variant.id));
-    print(format(variant.start));
-    print(format(variant_ensembl_start));
 
     struct!(metadata_zmenu,"""
     {
