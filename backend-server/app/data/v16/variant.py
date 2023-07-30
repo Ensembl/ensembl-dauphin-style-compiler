@@ -45,12 +45,6 @@ def get_variant_exact(
     step = int((end - start) * SCALE / length)
     if step == 0:
         step = SCALE
-
-    logging.info('HERE!!!!!')
-    logging.info(['PANEL START AND END', panel.start, panel.end])
-    logging.info(['START AND END', start, end])
-    logging.info(data)
-
     data = bytearray([round(x) for x in data])
     return {
         "values": data_algorithm("NDZRL", data),
