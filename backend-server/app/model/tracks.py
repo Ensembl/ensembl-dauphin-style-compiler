@@ -44,6 +44,9 @@ class Track:
     def add_value(self, name: str, value):
         self._values.append((name,immute(value)))
 
+    def add_setting(self, name: str, setting: List[str]):
+        self._settings.append((name, tuple(setting)))
+
     def ingest_toml(self,data,includes):
         if "include" in data:
             for inc_name in data["include"]:

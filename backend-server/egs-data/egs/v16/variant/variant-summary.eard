@@ -1,0 +1,38 @@
+program "ensembl-webteam/core" "variant-summary" 1;
+refer "libperegrine";
+refer "libeoe";
+include "../common/track-common.eard";
+include "../common/track-style.eard";
+include "variant-common.eard";
+include "variation-style.eard";
+
+/* Setup styles */
+
+track_styles();
+
+let track_id = setting_string("track_id", []);
+let track_data_id = setting_string("track_data_id", []);
+let track_name = setting_string("track_name", []);
+
+procedure variation_track_styles(track_id) {
+  let track_leaf_id = push_str("tracks/track/", track_id);
+  track_leaf_id = push_str(track_leaf_id, "/");
+
+  style(
+    track_leaf_id,
+    [
+      "priority",
+      "report"
+    ], [
+      "1000",
+      push_str("track;switch-id=", track_id)
+    ]
+  );
+}
+
+variation_track_styles(track_id);
+
+
+/* Get data */
+
+variant_summary_track(track_data_id, track_name);

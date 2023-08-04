@@ -14,7 +14,6 @@ triggers = [
     ["track","gene-other-fwd"],
     ["track","gene-other-rev"]
 ]
-
 [include.gene.settings]
 focus-gene = ["track","focus","item","gene"]
 pc-fwd-several = ["track","gene-pc-fwd","several"]
@@ -335,3 +334,12 @@ triggers = [
     ["track","expand"]
 ]
 run = "test"
+
+
+[expansion.variation]
+channel = ["ensembl","main"]
+name = "variation"
+triggers = [
+    ["track","expand-variation"]
+]
+run = "define_variation_track"
