@@ -97,7 +97,7 @@ variables:
 
   needs: ["BE-Docker"]
 
-.deploy_backend-wp40:
+.deploy_backend-newk8s:
   extends: .base-be-deploy-rules
   stage: deploy
   image: dockerhub.ebi.ac.uk/ensembl-web/deploy-tools:latest
@@ -233,7 +233,7 @@ HL:Production:
     NFS_PATH: ${HL_NFS_PATH}
 
 Production:WP40:HL:
-  extends: .deploy_backend-wp40
+  extends: .deploy_backend-newk8s
   environment:
     name: wp40-hl-prod
   variables:
@@ -242,7 +242,7 @@ Production:WP40:HL:
     NFS_PATH: ${HL_NFS_PATH_CODON}
 
 Production:WP41:HX:
-  extends: .deploy_backend-wp40
+  extends: .deploy_backend-newk8s
   environment:
     name: wp40-hl-prod
   variables:
@@ -251,7 +251,7 @@ Production:WP41:HX:
     NFS_PATH: ${HL_NFS_PATH_CODON}
 
 Staging:WP40:HL:
-  extends: .deploy_backend-wp40
+  extends: .deploy_backend-newk8s
   environment:
     name: wp40-hl-staging
   variables:
@@ -260,7 +260,7 @@ Staging:WP40:HL:
     NFS_PATH: ${HL_NFS_PATH_CODON}
 
 Internal:WP40:HL:
-  extends: .deploy_backend-wp40
+  extends: .deploy_backend-newk8s
   environment:
     name: wp40-hl-internal
   variables:
@@ -269,7 +269,7 @@ Internal:WP40:HL:
     NFS_PATH: ${HL_NFS_PATH_CODON}
 
 Dev:WP40:HL:
-  extends: .deploy_backend-wp40
+  extends: .deploy_backend-newk8s
   environment:
     name: wp40-hl-dev
   variables:
@@ -278,7 +278,7 @@ Dev:WP40:HL:
     NFS_PATH: ${HL_NFS_PATH_CODON}
 
 Dev:WP41:HX:
-  extends: .deploy_backend-wp40
+  extends: .deploy_backend-newk8s
   environment:
     name: wp41-hx-dev
   variables:
