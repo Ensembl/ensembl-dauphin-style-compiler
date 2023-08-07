@@ -232,7 +232,7 @@ HL:Production:
     NFS_SERVER: ${HL_NFS_SERVER}
     NFS_PATH: ${HL_NFS_PATH}
 
-HL:Production:wp40:
+Production:WP40:HL:
   extends: .deploy_backend-wp40
   environment:
     name: wp40-hl-prod
@@ -240,3 +240,48 @@ HL:Production:wp40:
     BASE: ensembl-k8s-manifests/genome-browser
     NFS_SERVER: ${HL_NFS_SERVER_CODON}
     NFS_PATH: ${HL_NFS_PATH_CODON}
+
+Production:WP41:HX:
+  extends: .deploy_backend-wp40
+  environment:
+    name: wp40-hl-prod
+  variables:
+    BASE: ensembl-k8s-manifests/genome-browser
+    NFS_SERVER: ${HL_NFS_SERVER_CODON}
+    NFS_PATH: ${HL_NFS_PATH_CODON}
+
+Staging:WP40:HL:
+  extends: .deploy_backend-wp40
+  environment:
+    name: wp40-hl-staging
+  variables:
+    BASE: ensembl-k8s-manifests/genome-browser
+    NFS_SERVER: ${HL_NFS_SERVER_CODON}
+    NFS_PATH: ${HL_NFS_PATH_CODON}
+
+Internal:WP40:HL:
+  extends: .deploy_backend-wp40
+  environment:
+    name: wp40-hl-internal
+  variables:
+    BASE: ensembl-k8s-manifests/genome-browser
+    NFS_SERVER: ${HL_NFS_SERVER_CODON}
+    NFS_PATH: ${HL_NFS_PATH_CODON}
+
+Dev:WP40:HL:
+  extends: .deploy_backend-wp40
+  environment:
+    name: wp40-hl-dev
+  variables:
+    BASE: ensembl-k8s-manifests/genome-browser
+    NFS_SERVER: ${HL_NFS_SERVER_CODON}
+    NFS_PATH: ${HL_NFS_PATH_CODON}
+
+Dev:WP41:HX:
+  extends: .deploy_backend-wp40
+  environment:
+    name: wp41-hx-dev
+  variables:
+    BASE: ensembl-k8s-manifests/genome-browser
+    NFS_SERVER: ${HX_NFS_SERVER_CODON}
+    NFS_PATH: ${HX_NFS_PATH_CODON}
