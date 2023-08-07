@@ -244,7 +244,7 @@ Production:WP40:HL:
 Production:WP41:HX:
   extends: .deploy_backend-newk8s
   environment:
-    name: wp40-hl-prod
+    name: wp41-hx-prod
   variables:
     BASE: ensembl-k8s-manifests/genome-browser
     NFS_SERVER: ${HL_NFS_SERVER_CODON}
@@ -271,7 +271,7 @@ Internal:WP40:HL:
 Dev:WP40:HL:
   extends: .deploy_backend-newk8s
   environment:
-    name: wp40-hl-dev
+    name: wp40-hl-development
   variables:
     BASE: ensembl-k8s-manifests/genome-browser
     NFS_SERVER: ${HL_NFS_SERVER_CODON}
@@ -280,7 +280,7 @@ Dev:WP40:HL:
 Dev:WP41:HX:
   extends: .deploy_backend-newk8s
   environment:
-    name: wp41-hx-dev
+    name: wp41-hx-development
   variables:
     BASE: ensembl-k8s-manifests/genome-browser
     NFS_SERVER: ${HX_NFS_SERVER_CODON}
