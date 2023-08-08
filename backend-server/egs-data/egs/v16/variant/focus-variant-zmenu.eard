@@ -1,7 +1,8 @@
 export function variant_zmenu(*variant) {
     let tmpl = template_start("{0}:{1}-{2}");
+    let variant_ensembl_start = variant.start + 1;
     template_set(tmpl,0,variant.chromosome);
-    template_set(tmpl,1,comma_format(variant.ens_start));
+    template_set(tmpl,1,comma_format(variant_ensembl_start));
     template_set(tmpl,2,comma_format(variant.end));
     let position = template_end(tmpl);
 
@@ -85,7 +86,7 @@ export function variant_zmenu(*variant) {
     position,
     variant.alleles,
     variant.chromosome,
-    variant.ens_start,
+    variant_ensembl_start,
     variant.end
   );
   let paint = paint_click(metadata_zmenu,content_zmenu,false);
