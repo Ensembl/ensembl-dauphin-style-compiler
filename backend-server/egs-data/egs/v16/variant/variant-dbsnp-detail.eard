@@ -65,8 +65,8 @@ style!("""
 /* Get variant data */
 let data = get_data(request("self()","variant-labels"));
 let v.chromosome = data_string(data,"chromosome");
-let v.start = data_number(data,"start")-1;
-let v.end = v.start + data_number(data,"length")+1;
+let v.start = data_number(data,"start");
+let v.end = v.start + data_number(data,"length");
 let v.id = data_string(data,"id");
 let v.alleles = data_string(data,"alleles");
 let v.variety = data_string(data,"variety"); //['SNV', 'indel', 'deletion', ...]
