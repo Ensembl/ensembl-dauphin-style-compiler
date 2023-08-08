@@ -83,7 +83,7 @@ let data = get_data(request("self()","variant-labels"));
 let v.chromosome = data_string(data,"chromosome");
 let v.start = data_number(data,"start");
 let v.ens_start = v.start + 1;
-let v.end = v.ens_start + data_number(data,"length");
+let v.end = v.start + data_number(data,"length");
 let v.id = data_string(data,"id");
 let v.alleles = data_string(data,"alleles");
 let v.variety = data_string(data,"variety");
@@ -119,8 +119,8 @@ let zmenu_paint = variant_zmenu(*v);
 let base_height = 7;
 
 let variant_severity_paint = paint_solid(index(variant_colours(),v.severity));
-let nw = coord(v.ens_start,[0,...],[2,...]);
-let se = coord(v.ens_start+1,[base_height,...],[-2,...]);
+let nw = coord(v.start,[0,...],[2,...]);
+let se = coord(v.start+1,[base_height,...],[-2,...]);
 rectangle(nw,se,variant_severity_paint,if(!deep,[leaf.shore_under,...],[leaf(""),...]));
 rectangle(nw,se,zmenu_paint,if(!deep,[leaf.shore_over,...],[leaf(""),...]));
 
@@ -154,18 +154,18 @@ let sun_delta = -(height-30);
 
 /* Eels */
 
-let eel_length = if(deep,v.end-v.ens_start,[0,...]);
+let eel_length = if(deep,v.end-v.start,[0,...]);
 let eel_v = count(eel_length);
-let position = index(v.ens_start,eel_v) + enumerate(eel_length);
+let position = index(v.start,eel_v) + enumerate(eel_length);
 
 /* Draw sun */
 
 let pen = pen("'IBM Plex Mono', sans-serif",10,[colour!("#999"),...],[colour!("transparent"),...]);
 let bold_pen = pen("700 Lato, sans-serif",10,[colour!("#999"),...],[colour!("transparent"),...]);
 let sun_leaf = if(v.id == focus_variant_id,[leaf.sun,...],[leaf(""),...]);
-text(coord(v.ens_start,sun_delta,[5,...]),pen,top_left,sun_leaf);
-text(coord(v.ens_start,sun_delta,right_offset+5),bold_pen,top_right,if(v.label_alleles,sun_leaf,[leaf(""),...]));
-text(coord(v.ens_start,sun_delta+10,[5,...]),bold_pen,bottom_line,if(v.label_id,sun_leaf,[leaf(""),...]));
+text(coord(v.start,sun_delta,[5,...]),pen,top_left,sun_leaf);
+text(coord(v.start,sun_delta,right_offset+5),bold_pen,top_right,if(v.label_alleles,sun_leaf,[leaf(""),...]));
+text(coord(v.start,sun_delta+10,[5,...]),bold_pen,bottom_line,if(v.label_id,sun_leaf,[leaf(""),...]));
 
 /* Draw sun eel */
 
@@ -180,10 +180,10 @@ rectangle(
 let width = max(
     strlen(top_left)+if(v.label_alleles,strlen(top_right),[0,...])+1,
     if(v.label_id,strlen(bottom_line),[0,...]))*6+5;
-rectangle(coord(v.ens_start,sun_delta,[5,...]),coord(v.ens_start,sun_delta+height,width),zmenu_paint,sun_leaf);
+rectangle(coord(v.start,sun_delta,[5,...]),coord(v.start,sun_delta+height,width),zmenu_paint,sun_leaf);
 
 rectangle(
-    coord(v.ens_start,sun_delta+height_to_eel,[2,...]),
+    coord(v.start,sun_delta+height_to_eel,[2,...]),
     coord(v.end,height_to_eel+sun_delta+10,[-2,...]),
     zmenu_paint,if(label.eel,sun_leaf,[leaf(""),...])
 );
@@ -201,19 +201,19 @@ deep_sea_text_leaf = if(deep,sea_text_leaf,[leaf(""),...]);
 /* Draw sea text */
 
 let text_offset = 8;
-text(coord(v.ens_start,[0,...],[text_offset,...]),pen,top_left,sea_text_leaf);
-text(coord(v.ens_start,[0,...],right_offset+text_offset),bold_pen,top_right,if(v.label_alleles,sea_text_leaf,[leaf(""),...]));
-text(coord(v.ens_start,[10,...],[text_offset,...]),pen,bottom_line,if(v.label_id,sea_text_leaf,[leaf(""),...]));
+text(coord(v.start,[0,...],[text_offset,...]),pen,top_left,sea_text_leaf);
+text(coord(v.start,[0,...],right_offset+text_offset),bold_pen,top_right,if(v.label_alleles,sea_text_leaf,[leaf(""),...]));
+text(coord(v.start,[10,...],[text_offset,...]),pen,bottom_line,if(v.label_id,sea_text_leaf,[leaf(""),...]));
 
 /* Draw sea zmenus */
 
 rectangle(
-    coord(v.ens_start,height_to_eel,[2,...]),
+    coord(v.start,height_to_eel,[2,...]),
     coord(v.end,height_to_eel+10,[-2,...]),
     zmenu_paint,if(label.eel && deep,sea_text_leaf,[leaf(""),...])
 );
 
-rectangle(coord(v.ens_start,[0,...],[5,...]),coord(v.ens_start,height,width),zmenu_paint,sea_text_leaf);
+rectangle(coord(v.start,[0,...],[5,...]),coord(v.start,height,width),zmenu_paint,sea_text_leaf);
 
 /* Draw sea eels */
 
@@ -222,8 +222,8 @@ rectangle(coord(position,index(height_to_eel,eel_v),[2,...]),coord(position+1,in
 /* Draw fishing lines */
 
 let paint = paint_dotted([colour!("white"),...],[colour!("#999"),...],4,1,0.5);
-rectangle_join(coord(v.ens_start,(height/2)-5,[1,...]),coord(v.ens_start,[7,...],[1,...]),paint,deep_sea_text_leaf,[leaf.shore_under,...]);
-polygon(coord(v.ens_start,height/2,[1,...]),[5,...],7,0,variant_severity_paint,deep_sea_text_leaf);
+rectangle_join(coord(v.start,(height/2)-5,[1,...]),coord(v.start,[7,...],[1,...]),paint,deep_sea_text_leaf,[leaf.shore_under,...]);
+polygon(coord(v.start,height/2,[1,...]),[5,...],7,0,variant_severity_paint,deep_sea_text_leaf);
 
 /* Draw track furniture */
 
