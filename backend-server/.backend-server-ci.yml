@@ -98,7 +98,7 @@ variables:
   needs: ["BE-Docker"]
 
 .deploy_backend-newk8s:
-  extends: .base-be-deploy-rules-branches
+  extends: .base-be-deploy-rules
   stage: deploy
   image: dockerhub.ebi.ac.uk/ensembl-web/deploy-tools:latest
   before_script:
