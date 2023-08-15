@@ -79,6 +79,45 @@ class AccessMethod:
         self.file = None
 
 
+class RefgetAccessMethod(AccessMethod):
+    """
+
+     Args:
+         base_url (str):
+         item (AccessItem):
+     """
+
+    def __init__(self, refget_url: str, item: AccessItem):
+        super().__init__()
+        if not refget_url.endswith("/"):
+            refget_url += "/"
+        self.item = item
+        if item.chromosome and len(item.chromosome) == 32:
+            self.url = refget_url + item.chromosome
+
+    def get(self, offset: Optional[int] = None, size: Optional[int] = None):
+        """
+
+        Args:
+            offset (:obj:'int', optional):
+            size (:obj:'int', optional):
+
+        Returns:
+            Content of the response, in bytes.
+        """
+
+        headers = {}
+        url_range = ""
+        if offset is not None:
+            headers["Range"] = "bytes={0}-{1}".format(offset, offset + size)
+            url_range = f"?start={offset}&end={offset + size}"
+
+        response = requests.get(self.url + url_range)
+        if response.status_code > 299:
+            raise RequestException("bad data")
+        return response.content
+
+
 class UrlAccessMethod(AccessMethod):
     """
 
@@ -89,6 +128,7 @@ class UrlAccessMethod(AccessMethod):
 
     def __init__(self, base_url: str, item: AccessItem):
         super().__init__()
+
         if not base_url.endswith("/"):
             base_url += "/"
         self.url = base_url + item.item_suffix()
@@ -129,6 +169,7 @@ class FileAccessMethod(AccessMethod):
 
     def __init__(self, base_path, item: AccessItem):
         super().__init__()
+        self.item = item
         if not base_path.endswith("/"):
             base_path += "/"
         self.base = base_path
@@ -175,8 +216,26 @@ class FileAccessMethod(AccessMethod):
         return NCDFileAccessor(self.file)
 
 
-class S3DataSource(object):
+class RefgetDataSource(object):
+    """
 
+    Args:
+        base_url (str):
+        item (AccessItem):
+    """
+
+    def __init__(self, data):
+        self.url = data.get("url", None)
+        self.refget_url = data.get("refget_url", None)
+        if self.url is None:
+            logging.critical("refget driver config missing url")
+
+    def resolve(self, item: AccessItem) -> Optional[AccessMethod]:
+        method = RefgetAccessMethod(refget_url=self.refget_url, item=item)
+        return method
+
+
+class S3DataSource(object):
     """
 
     Args:
@@ -184,13 +243,16 @@ class S3DataSource(object):
     """
 
     def __init__(self, data):
-
         self.url = data.get("url", None)
+        self.refget_url = data.get("refget_url", None)
         if self.url is None:
             logging.critical("S3 driver config missing url")
 
     def resolve(self, item: AccessItem) -> Optional[AccessMethod]:
-        method = UrlAccessMethod(self.url, item)
+        if item.chromosome and len(item.chromosome) == 32:
+            method = RefgetAccessMethod(refget_url=self.refget_url, item=item)
+        else:
+            method = UrlAccessMethod(self.url, item)
         return method
 
 
@@ -202,6 +264,7 @@ class FileDataSource(object):
 
     def __init__(self, data):
         self.root = data.get("root", None)
+        self.refget_url = data.get("refget_url", None)
         if self.root is None:
             logging.critical("File driver config missing root")
 
@@ -214,7 +277,10 @@ class FileDataSource(object):
         Returns:
 
         """
-        method = FileAccessMethod(self.root, item)
+        if item.chromosome and len(item.chromosome) == 32:
+            method = RefgetAccessMethod(refget_url=self.refget_url, item=item)
+        else:
+            method = FileAccessMethod(self.root, item)
         return method
 
 
