@@ -29,7 +29,7 @@ class AccessItem(object):
         "variant-labels": "variants/{genome}/variant-labels.bb",
         "variant-labels-dbsnp": "variants/{genome}/variant-labels-dbsnp.bb",
         "jump": "jump/{genome}/jump.ncd",
-        "seqs": "seqs/{genome}/{chromosome}",
+        # "seqs": "seqs/{genome}/{chromosome}",
         "chrom-hashes": "common_files/{genome}/chrom.hashes.ncd",
         "chrom-sizes": "common_files/{genome}/chrom.sizes.ncd",
         "species-list": "species.txt",
@@ -83,7 +83,7 @@ class RefgetAccessMethod(AccessMethod):
     """
 
      Args:
-         base_url (str):
+         refget_url (str):
          item (AccessItem):
      """
 
@@ -214,25 +214,6 @@ class FileAccessMethod(AccessMethod):
 
         """
         return NCDFileAccessor(self.file)
-
-
-class RefgetDataSource(object):
-    """
-
-    Args:
-        base_url (str):
-        item (AccessItem):
-    """
-
-    def __init__(self, data):
-        self.url = data.get("url", None)
-        self.refget_url = data.get("refget_url", None)
-        if self.url is None:
-            logging.critical("refget driver config missing url")
-
-    def resolve(self, item: AccessItem) -> Optional[AccessMethod]:
-        method = RefgetAccessMethod(refget_url=self.refget_url, item=item)
-        return method
 
 
 class S3DataSource(object):
