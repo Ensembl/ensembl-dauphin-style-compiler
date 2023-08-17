@@ -90,6 +90,7 @@ let v.severity = data_number(data,"severity");
 let v.consequence = data_string(data,"consequence");
 
 let deep = v.variety != "SNV";
+v.start = if(v.variety == "deletion", v.start+1, v.start);
 
 halt(only_warm());
 
