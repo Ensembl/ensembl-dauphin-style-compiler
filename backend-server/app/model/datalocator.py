@@ -14,6 +14,11 @@ Attributes:
 AccessItem = namedtuple("AccessItem", ["variety", "genome", "chromosome"])
 
 
+def is_md5(checksum):
+    if checksum and len(checksum) == 32:
+        return True
+
+
 class AccessItem(object):
     """
     Args:
@@ -92,8 +97,7 @@ class RefgetAccessMethod(AccessMethod):
         if not refget_url.endswith("/"):
             refget_url += "/"
         self.item = item
-        if item.chromosome and len(item.chromosome) == 32:
-            self.url = refget_url + item.chromosome
+        self.url = refget_url + item.chromosome
 
     def get(self, offset: Optional[int] = None, size: Optional[int] = None):
         """
@@ -230,7 +234,7 @@ class S3DataSource(object):
             logging.critical("S3 driver config missing url")
 
     def resolve(self, item: AccessItem) -> Optional[AccessMethod]:
-        if item.chromosome and len(item.chromosome) == 32:
+        if is_md5(item.chromosome):
             method = RefgetAccessMethod(refget_url=self.refget_url, item=item)
         else:
             method = UrlAccessMethod(self.url, item)
@@ -258,7 +262,7 @@ class FileDataSource(object):
         Returns:
 
         """
-        if item.chromosome and len(item.chromosome) == 32:
+        if is_md5(item.chromosome):
             method = RefgetAccessMethod(refget_url=self.refget_url, item=item)
         else:
             method = FileAccessMethod(self.root, item)
