@@ -161,12 +161,13 @@ let position = index(v.display_start,eel_v) + enumerate(eel_length);
 
 /* Draw sun */
 
-let pen = pen("'IBM Plex Mono', sans-serif",10,[colour!("#999"),...],[colour!("transparent"),...]);
-let bold_pen = pen("700 Lato, sans-serif",10,[colour!("#999"),...],[colour!("transparent"),...]);
+let type_pen = pen("'IBM Plex Mono Light', sans-serif",10,[colour!("#1b2c39"),...],[colour!("transparent"),...]);
+let allele_pen = pen("'IBM Plex Semibold', sans-serif",10,[colour!("#1b2c39"),...],[colour!("transparent"),...]);
+let id_pen = pen("'IBM Plex Semibold', sans-serif",10,[colour!("#1b2c39"),...],[colour!("transparent"),...]);
 let sun_leaf = if(v.id == focus_variant_id,[leaf.sun,...],[leaf(""),...]);
-text(coord(v.display_start,sun_delta,[5,...]),pen,top_left,sun_leaf);
-text(coord(v.display_start,sun_delta,right_offset+5),bold_pen,top_right,if(v.label_alleles,sun_leaf,[leaf(""),...]));
-text(coord(v.display_start,sun_delta+10,[5,...]),bold_pen,bottom_line,if(v.label_id,sun_leaf,[leaf(""),...]));
+text(coord(v.display_start,sun_delta,[5,...]),type_pen,top_left,sun_leaf);
+text(coord(v.display_start,sun_delta,right_offset+5),allele_pen,top_right,if(v.label_alleles,sun_leaf,[leaf(""),...]));
+text(coord(v.display_start,sun_delta+10,[5,...]),id_pen,bottom_line,if(v.label_id,sun_leaf,[leaf(""),...]));
 
 /* Draw sun zmenu */
 
@@ -194,9 +195,9 @@ deep_sea_text_leaf = if(deep,sea_text_leaf,[leaf(""),...]);
 /* Draw sea text (variant type, alleles, id) */
 
 let text_offset = 8;
-text(coord(v.display_start,[0,...],[text_offset,...]),pen,top_left,sea_text_leaf);
-text(coord(v.display_start,[0,...],right_offset+text_offset),bold_pen,top_right,if(v.label_alleles,sea_text_leaf,[leaf(""),...]));
-text(coord(v.display_start,[10,...],[text_offset,...]),pen,bottom_line,if(v.label_id,sea_text_leaf,[leaf(""),...]));
+text(coord(v.display_start,[0,...],[text_offset,...]),type_pen,top_left,sea_text_leaf);
+text(coord(v.display_start,[0,...],right_offset+text_offset),allele_pen,top_right,if(v.label_alleles,sea_text_leaf,[leaf(""),...]));
+text(coord(v.display_start,[10,...],[text_offset,...]),id_pen,bottom_line,if(v.label_id,sea_text_leaf,[leaf(""),...]));
 
 /* Draw sea zmenus */
 
