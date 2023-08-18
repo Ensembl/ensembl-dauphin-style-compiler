@@ -1,9 +1,5 @@
-[source.apple]
-driver = "file"
-root = "/usr/data/newsite/dev/genome_browser/s3-data"
-max_version = 13
-
 [source.banana]
 driver = "file"
 root = "/usr/data/newsite/dev/genome_browser/7"
+refget_url="http://ensembl-refget-proxy-svc:8083/api/sequence/"
 min_version = 14
