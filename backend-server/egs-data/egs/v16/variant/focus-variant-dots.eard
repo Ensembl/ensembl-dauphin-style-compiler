@@ -27,16 +27,17 @@ let v.chromosome = data_string(data,"chromosome");
 let v.start = data_number(data,"start");
 let v.end = v.start + data_number(data,"length");
 let v.id = data_string(data,"id");
+let v.variety = data_string(data,"variety");
 
 let fv_pos = position(item_id == v.id);
 let fv_index = index(fv_pos,0);
 let **fv = index(**v,fv_index);
+let anchor_bp = fv.variety == "deletion" || fv.variety == "indel";
+fv.start = if(anchor_bp, fv.start+1, fv.start);
 
 let focus_stick = join(":",[genome_id,fv.chromosome]);
 
 let correct_chr = focus_stick == stick();
-
-let text_start = comma_format(fv.start);
 
 let active = correct_chr && len(fv_pos) > 0;
 
