@@ -115,9 +115,9 @@ let leaf.sun = focus_leaf("tracks/track/focus-variant/main/main/sun/content");
 
 let zmenu_paint = variant_zmenu(*v);
 
-/* Draw shore */
+/* Draw shore (bp blocks) */
 
-let base_height = 7;
+let base_height = 7; //block height
 // draw colored blocks (for SNVs)
 let variant_severity_paint = paint_solid(index(variant_colours(),v.severity));
 let nw = coord(v.display_start,[0,...],[2,...]);
@@ -144,10 +144,10 @@ v.label_alleles = if(deep,[label.other_alleles,...],[label.snv_alleles,...]);
 
 /* Create templates for all the variants (whether destined for sun or sea) */
 
-let top_left = v.variety;
-let top_right = v.alleles;
-let bottom_line = v.id;
-let right_offset = strlen(top_left)*6+5;
+let top_left_text = v.variety;
+let top_right_text = v.alleles;
+let bottom_text = v.id;
+let right_offset = strlen(top_left_text)*6+5;
 
 let height_to_eel = if(v.label_id,[20,...],[10,...]);
 let height = height_to_eel + if(label.eel,[10,...],[0,...]);
@@ -161,19 +161,19 @@ let position = index(v.display_start,eel_v) + enumerate(eel_length);
 
 /* Draw sun */
 
-let type_pen = pen("'IBM Plex Mono Light', sans-serif",10,[colour!("#1b2c39"),...],[colour!("transparent"),...]);
-let allele_pen = pen("'IBM Plex Semibold', sans-serif",10,[colour!("#1b2c39"),...],[colour!("transparent"),...]);
-let id_pen = pen("'IBM Plex Semibold', sans-serif",10,[colour!("#1b2c39"),...],[colour!("transparent"),...]);
+let tl_pen = pen("'IBM Plex Mono Light', sans-serif",10,[colour!("#1b2c39"),...],[colour!("transparent"),...]);
+let tr_pen = pen("'IBM Plex Semibold', sans-serif",11,[colour!("#1b2c39"),...],[colour!("transparent"),...]);
+let bottom_pen = pen("'IBM Plex Semibold', sans-serif",10,[colour!("#1b2c39"),...],[colour!("transparent"),...]);
 let sun_leaf = if(v.id == focus_variant_id,[leaf.sun,...],[leaf(""),...]);
-text(coord(v.display_start,sun_delta,[5,...]),type_pen,top_left,sun_leaf);
-text(coord(v.display_start,sun_delta,right_offset+5),allele_pen,top_right,if(v.label_alleles,sun_leaf,[leaf(""),...]));
-text(coord(v.display_start,sun_delta+10,[5,...]),id_pen,bottom_line,if(v.label_id,sun_leaf,[leaf(""),...]));
+text(coord(v.display_start,sun_delta,[5,...]),tl_pen,top_left_text,sun_leaf);
+text(coord(v.display_start,sun_delta,right_offset+5),tr_pen,top_right_text,if(v.label_alleles,sun_leaf,[leaf(""),...]));
+text(coord(v.display_start,sun_delta+10,[5,...]),bottom_pen,bottom_text,if(v.label_id,sun_leaf,[leaf(""),...]));
 
 /* Draw sun zmenu */
 
 let width = max(
-    strlen(top_left)+if(v.label_alleles,strlen(top_right),[0,...])+1,
-    if(v.label_id,strlen(bottom_line),[0,...]))*6+5;
+    strlen(top_left_text)+if(v.label_alleles,strlen(top_right_text),[0,...])+1,
+    if(v.label_id,strlen(bottom_text),[0,...]))*6+5;
 rectangle(coord(v.display_start,sun_delta,[5,...]),coord(v.display_start,sun_delta+height,width),zmenu_paint,sun_leaf);
 
 rectangle(
@@ -195,9 +195,9 @@ deep_sea_text_leaf = if(deep,sea_text_leaf,[leaf(""),...]);
 /* Draw sea text (variant type, alleles, id) */
 
 let text_offset = 8;
-text(coord(v.display_start,[0,...],[text_offset,...]),type_pen,top_left,sea_text_leaf);
-text(coord(v.display_start,[0,...],right_offset+text_offset),allele_pen,top_right,if(v.label_alleles,sea_text_leaf,[leaf(""),...]));
-text(coord(v.display_start,[10,...],[text_offset,...]),id_pen,bottom_line,if(v.label_id,sea_text_leaf,[leaf(""),...]));
+text(coord(v.display_start,[0,...],[text_offset,...]),tl_pen,top_left_text,sea_text_leaf);
+text(coord(v.display_start,[0,...],right_offset+text_offset),tr_pen,top_right_text,if(v.label_alleles,sea_text_leaf,[leaf(""),...]));
+text(coord(v.display_start,[10,...],[text_offset,...]),bottom_pen,bottom_text,if(v.label_id,sea_text_leaf,[leaf(""),...]));
 
 /* Draw sea zmenus */
 
