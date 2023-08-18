@@ -32,8 +32,8 @@ let v.variety = data_string(data,"variety");
 let fv_pos = position(item_id == v.id);
 let fv_index = index(fv_pos,0);
 let **fv = index(**v,fv_index);
-let anchor_bp = fv.variety == "deletion" || fv.variety == "indel";
-fv.start = if(anchor_bp, fv.start+1, fv.start);
+let has_anchor_bp = fv.variety == "deletion" || fv.variety == "indel";
+let fv.display_start = if(has_anchor_bp, fv.start+1, fv.start);
 
 let focus_stick = join(":",[genome_id,fv.chromosome]);
 
@@ -43,6 +43,6 @@ let active = correct_chr && len(fv_pos) > 0;
 
 let leaf_dots = if(active,leaf("dots/content"),leaf(""));
 
-red_dotted(fv.start,fv.end,"","",leaf_dots,leaf(""));
+red_dotted(fv.display_start,fv.end,"","",leaf_dots,leaf(""));
 let paint = paint_metadata("variant-id",[fv.id],[eoe_string(fv.id)]);
 rectangle(coord([0],[0],[0]),coord([1],[16],[0]),paint,[if(active,leaf("tracks/track/focus-variant/main/background/content"),leaf(""))]);
