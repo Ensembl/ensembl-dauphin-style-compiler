@@ -85,9 +85,9 @@ let v.start = data_number(data,"start");
 let v.end = v.start + data_number(data,"length");
 let v.id = data_string(data,"id");
 let v.alleles = data_string(data,"alleles");
-let v.variety = data_string(data,"variety");
-let v.severity = data_number(data,"severity");
-let v.consequence = data_string(data,"consequence");
+let v.variety = data_string(data,"variety");  //['SNV', 'indel', 'deletion', ...]
+let v.severity = data_number(data,"severity");  //[1, 5, ...]
+let v.consequence = data_string(data,"consequence"); //['upstream_gene_variant', ...]
 
 let deep = v.variety != "SNV";
 let has_anchor_bp = v.variety == "deletion" || v.variety == "indel";
@@ -118,13 +118,13 @@ let zmenu_paint = variant_zmenu(*v);
 /* Draw shore */
 
 let base_height = 7;
-
+// draw colored blocks (for SNVs)
 let variant_severity_paint = paint_solid(index(variant_colours(),v.severity));
 let nw = coord(v.display_start,[0,...],[2,...]);
 let se = coord(v.display_start+1,[base_height,...],[-2,...]);
 rectangle(nw,se,variant_severity_paint,if(!deep,[leaf.shore_under,...],[leaf(""),...]));
 rectangle(nw,se,zmenu_paint,if(!deep,[leaf.shore_over,...],[leaf(""),...]));
-
+// draw block borders (for all base pairs)
 let (bp_start,bp_end) = bp_range();
 let position = enumerate([bp_end-bp_start+1]) + bp_start;
 let nw = coord(position,[0,...],[2,...]);
@@ -153,7 +153,7 @@ let height_to_eel = if(v.label_id,[20,...],[10,...]);
 let height = height_to_eel + if(label.eel,[10,...],[0,...]);
 let sun_delta = -(height-30);
 
-/* Eels */
+/* Eels (variant extents) */
 
 let eel_length = if(deep,v.end-v.display_start,[0,...]);
 let eel_v = count(eel_length);
@@ -167,14 +167,6 @@ let sun_leaf = if(v.id == focus_variant_id,[leaf.sun,...],[leaf(""),...]);
 text(coord(v.display_start,sun_delta,[5,...]),pen,top_left,sun_leaf);
 text(coord(v.display_start,sun_delta,right_offset+5),bold_pen,top_right,if(v.label_alleles,sun_leaf,[leaf(""),...]));
 text(coord(v.display_start,sun_delta+10,[5,...]),bold_pen,bottom_line,if(v.label_id,sun_leaf,[leaf(""),...]));
-
-/* Draw sun eel */
-
-rectangle(
-    coord(position,index(height_to_eel+sun_delta,eel_v),[2,...]),
-    coord(position+1,index(height_to_eel+sun_delta,eel_v)+5,[-2,...]),
-    paint_solid(colour!("#999")),if(label.eel,index(sun_leaf,eel_v),[leaf(""),...])
-);
 
 /* Draw sun zmenu */
 
@@ -193,13 +185,13 @@ rectangle(
 
 let base_container = push_str("tracks/track/focus-variant/main/main/sea/",if(deep,["deep/",...],["shallow/",...]));
 shallow_container = push_str(push_str(base_container,v.variety),v.id);
-sea_text_leaf = leaf(push_str(shallow_container,"/text/content"));
+sea_text_leaf = leaf(push_str(shallow_container,"/text/content")); // ['../sea/shallow/SNV/rs699/text/content', ...]
 sea_text_leaf = set(sea_text_leaf,v.id==focus_variant_id,[leaf(""),...]); // remove focus from sea
 sea_over_leaf = leaf(push_str(shallow_container,"/over/content"));
 sea_over_leaf = set(sea_text_leaf,v.id==focus_variant_id,[leaf(""),...]); // remove focus from sea
 deep_sea_text_leaf = if(deep,sea_text_leaf,[leaf(""),...]);
 
-/* Draw sea text */
+/* Draw sea text (variant type, alleles, id) */
 
 let text_offset = 8;
 text(coord(v.display_start,[0,...],[text_offset,...]),pen,top_left,sea_text_leaf);
@@ -216,7 +208,7 @@ rectangle(
 
 rectangle(coord(v.display_start,[0,...],[5,...]),coord(v.display_start,height,width),zmenu_paint,sea_text_leaf);
 
-/* Draw sea eels */
+/* Draw sea eels (extents) */
 
 rectangle(coord(position,index(height_to_eel,eel_v),[2,...]),coord(position+1,index(height_to_eel,eel_v)+5,[-2,...]),paint_solid(colour!("#999")),if(label.eel,index(sea_text_leaf,eel_v),[leaf(""),...]));
 
