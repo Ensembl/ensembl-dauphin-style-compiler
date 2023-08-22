@@ -204,9 +204,9 @@ rectangle(
 let base_container = push_str("tracks/track/focus-variant/main/main/sea/", if(deep, ["deep/",...], ["shallow/",...]));
 shallow_container = push_str(push_str(base_container, v.variety), v.id);
 sea_text_leaf = leaf(push_str(shallow_container, "/text/content")); // ['../sea/shallow/SNV/rs699/text/content', ...]
-sea_text_leaf = set(sea_text_leaf, is_focus_v || !deep, [leaf(""),...]); // remove focus and SNVs from sea
+sea_text_leaf = set(sea_text_leaf, is_focus_v, [leaf(""),...]); // remove focus from sea
 sea_over_leaf = leaf(push_str(shallow_container, "/over/content"));
-sea_over_leaf = set(sea_text_leaf, is_focus_v || !deep, [leaf(""),...]); // remove focus and SNVs from sea
+sea_over_leaf = set(sea_text_leaf, is_focus_v, [leaf(""),...]); // remove focus from sea
 deep_sea_text_leaf = if(deep, sea_text_leaf, [leaf(""),...]);
 
 /* Draw sea text (variant type, alleles, id) */
