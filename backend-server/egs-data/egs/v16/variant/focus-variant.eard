@@ -144,14 +144,19 @@ v.label_alleles = if(deep,[label.other_alleles,...],[label.snv_alleles,...]);
 
 /* Create templates for all the variants (whether destined for sun or sea) */
 
+function text_width(char_count){
+    char_count*6+5
+}
+
 let top_left_text = v.variety;
 let top_right_text = v.alleles;
 let bottom_text = v.id;
-let right_offset = strlen(top_left_text)*6+5;
+let right_offset = text_width(strlen(top_left_text));
 
+let is_focus_v = v.id == focus_variant_id;
 let height_to_eel = if(v.label_id,[20,...],[10,...]);
-let height = height_to_eel + if(label.eel,[10,...],[0,...]);
-let sun_delta = -(height-30);
+let height = height_to_eel + if(label.eel && is_focus_v,[10,...],[0,...]);
+let sun_delta = -(height-30); // top edge of focus variant text
 
 /* Eels (variant extents) */
 
@@ -161,19 +166,21 @@ let position = index(v.display_start,eel_v) + enumerate(eel_length);
 
 /* Draw sun */
 
-let tl_pen = pen("'IBM Plex Mono Light', sans-serif",10,[colour!("#1b2c39"),...],[colour!("transparent"),...]);
-let tr_pen = pen("'IBM Plex Semibold', sans-serif",11,[colour!("#1b2c39"),...],[colour!("transparent"),...]);
-let bottom_pen = pen("'IBM Plex Semibold', sans-serif",10,[colour!("#1b2c39"),...],[colour!("transparent"),...]);
-let sun_leaf = if(v.id == focus_variant_id,[leaf.sun,...],[leaf(""),...]);
+let tl_pen = pen("200 IBM Plex Mono, monospace",10,[colour!("#1b2c39"),...],[colour!("transparent"),...]); //Light
+let tr_pen = pen("600 IBM Plex Mono', monospace",11,[colour!("#1b2c39"),...],[colour!("transparent"),...]); //Semibold
+let bottom_pen = pen("600 IBM Plex Mono, monospace",10,[colour!("#1b2c39"),...],[colour!("transparent"),...]);
+let sun_leaf = if(is_focus_v,[leaf.sun,...],[leaf(""),...]);
+let top_lineh = 13; //top edge of second text line
 text(coord(v.display_start,sun_delta,[5,...]),tl_pen,top_left_text,sun_leaf);
 text(coord(v.display_start,sun_delta,right_offset+5),tr_pen,top_right_text,if(v.label_alleles,sun_leaf,[leaf(""),...]));
-text(coord(v.display_start,sun_delta+10,[5,...]),bottom_pen,bottom_text,if(v.label_id,sun_leaf,[leaf(""),...]));
+text(coord(v.display_start,sun_delta+top_lineh,[5,...]),bottom_pen,bottom_text,if(v.label_id,sun_leaf,[leaf(""),...]));
 
 /* Draw sun zmenu */
 
-let width = max(
+let width = text_width(max(
     strlen(top_left_text)+if(v.label_alleles,strlen(top_right_text),[0,...])+1,
-    if(v.label_id,strlen(bottom_text),[0,...]))*6+5;
+    if(v.label_id,strlen(bottom_text),[0,...])));
+
 rectangle(coord(v.display_start,sun_delta,[5,...]),coord(v.display_start,sun_delta+height,width),zmenu_paint,sun_leaf);
 
 rectangle(

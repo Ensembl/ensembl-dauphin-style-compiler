@@ -4,7 +4,7 @@
     <meta content="text/html;charset=utf-8" http-equiv="Content-Type"/>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;600;700&family=Lato:wght@700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css"/>
   </head>
   <body>
@@ -24,7 +24,10 @@
         -->
         <div>
           <button id="clock-button">clock</button>
-          <button id="jump-variant">focus variant</button>
+          <button id="jump-snv">focus SNV</button>
+          <button id="jump-ins">focus ins</button>
+          <button id="jump-del">focus del</button>
+          <button id="jump-indel">focus indel</button>
           <button id="jump-brca2">jump brca2</button>
           <button id="jump-fry">jump fry</button>
           <button id="jump-wheat">jump wheat</button>
@@ -105,6 +108,8 @@
           genome_browser.switch(["track","focus","enabled-transcripts"],Object.keys(shown_transcripts));
         }
 
+        /* Helper functions */ 
+
         function toggle_track(track_name) {
           let cur = tracks_on[track_name];
           if(cur!==true && cur!==false) { cur = true; }
@@ -127,7 +132,32 @@
           else genome_browser.switch(["track", track_name, setting], value);
           if(setting == "several") genome_browser.switch(["track", "focus", "enabled-transcripts"], null);
         }
+
+        function delay(t, v) {
+          return new Promise(resolve => setTimeout(resolve, t, v));
+        }
+
+        function jump_variant(rsid, chr, loc) {
+          genome_browser.set_stick("a7335667-93e7-11ec-a39d-005056b38ce3:" + chr);
+          genome_browser.goto(loc - 25, loc + 25);
+          genome_browser.wait();
+          genome_browser.switch(["track", "focus", "item", "variant"], {
+            "genome_id": "a7335667-93e7-11ec-a39d-005056b38ce3",
+            "variant_id": rsid
+          });
+        }
+
+        function flipper(path) {
+          let flip = false;
+          let out = function () {
+            genome_browser.switch(path, flip);
+            flip = !flip;
+          };
+          return out;
+        }
         
+        /* Construct tracks table */
+
         let all_tracks = {};
         let current_span = document.getElementById("current");
         let target_span = document.getElementById("target");
@@ -259,114 +289,9 @@
             zmenu_data_el.innerText = JSON.stringify(zmenu_data);
           }
         });
-        function delay(t, v) {
-          return new Promise(resolve => setTimeout(resolve, t, v));
-        }
-        genome_browser.add_jsapi_channel("test",{
-          callbacks: {
-            jump: function(location) {
-              return delay(100).then(() => {
-                let parts = location.split(":");
-                let stick = parts.slice(1,parts.length-1).join(":");
-                if(parts.length < 3 || parts[0] != "region") { return null; }
-                let start_end = parts[parts.length-1].split("-");
-                if(start_end.length < 2) { return null; }
-                return {
-                  "stick": stick,
-                  "left": parseInt(start_end[0]),
-                  "right": parseInt(start_end[1])
-                };
-              })
-            },
-            data: function(source,stick,scale,index,scope) {
-              console.log("data "+source+" "+stick+" "+scale+" "+index+" "+scope);
-              return {
-                "data": {
-                  "start": [86200000,86400000],
-                  "end": [86300000,86500000]
-                }
-              };
-            },
-            small_values: function(namespace,column) {
-              return {};
-            },
-            stickinfo: function(stick) {
-              return delay(100).then(() => {
-                console.log("stick "+stick);
-                return {};
-              })
-            },
-            boot: function() {
-              return delay(100).then(() => {
-                console.log("booting inside",this);
-                let expansions = [
-                   {
-                     "name": "js-expansion",
-                     "backend_namespace": this.backend_namespace,
-                     "triggers": [
-                       ["track","user"]
-                     ]
-                   }
-                ];
-                let tracks = [
-                   {
-                    "program": ["special","test",1],
-                    "tags": "",
-                    "triggers": [
-                      ["track","user2"]
-                    ],
-                    "settings": {
-                      "green": ["setting","green"]
-                    },
-                    "values": {
-                      "red": 100.0,
-                      "blue": 0.0
-                    },
-                    "scale_start": 0,
-                    "scale_end": 60,
-                    "scale_step": 1
-                   }
-                  ];
-                return { expansions, tracks };
-              });
-            },
-            expand: function(name,step) {
-              return delay(100).then(() => {
-                if(name == "js-expansion") {
-                  let tracks = [
-                   {
-                    "program": ["ensembl-webteam/core","test-with-data",1],
-                    "tags": "",
-                    "triggers": [
-                      ["track","user",step]
-                    ],
-                    "settings": {
-                      "green": ["settings","green"]
-                    },
-                    "values": {
-                      "red": parseInt(step),
-                      "blue": 100.0
-                    },
-                    "scale_start": 0,
-                    "scale_end": 60,
-                    "scale_step": 1
-                    }
-                  ];
-                  console.log("expand",name,step);
-                  return { tracks };
-                } else {
-                  return {};
-                }
-              });
-            },
-            program: function(group,name,version) {
-              console.log("program",group,name,version);
-              return {};
-            }
-          }
-        });
 
         /* Set startup view/location */
+
         genome_browser.switch(["ruler"], true);
         genome_browser.switch(["ruler", "one_based"], true);
         genome_browser.switch(["track", "focus"], true);
@@ -384,36 +309,18 @@
         genome_browser.switch(["track", "variant-dbsnp", "name"], true);
         //genome_browser.switch(["track", "variant-1000genomes"], true);
         //genome_browser.switch(["track", "variant-1000genomes", "name"], true);
-        genome_browser.set_stick("a7335667-93e7-11ec-a39d-005056b38ce3:1");
-        genome_browser.goto(230710023, 230710073);
-        genome_browser.wait();
-        genome_browser.switch(["track", "focus", "item", "variant"], {
-          "genome_id": "a7335667-93e7-11ec-a39d-005056b38ce3",
-          "variant_id": "rs699"
-        });
-
-        function flipper(path) {
-          let flip = false;
-          let out = function() {
-              genome_browser.switch(path, flip);
-              flip=!flip;
-          };
-          return out;
-        }
+        jump_variant("rs699", 1, 230710048);
 
         /* Add actions to sidebar buttons/inputs */
         //document.getElementById("bigger").onclick = flipper(["settings","bigger"]);
         //document.getElementById("id-labels").onclick = flipper(["track","gene-pc-fwd","label","id"]);
 
-        document.getElementById("jump-variant").onclick = function () {
-          genome_browser.set_stick("a7335667-93e7-11ec-a39d-005056b38ce3:1");
-          genome_browser.goto(230710023, 230710073);
-          genome_browser.wait();
-          genome_browser.switch(["track", "focus", "item", "variant"], {
-            "genome_id": "a7335667-93e7-11ec-a39d-005056b38ce3",
-            "variant_id": "rs699"
-          });
-        };
+        document.getElementById("jump-snv").onclick = jump_variant.bind(this, "rs699", 1, 230710048);
+        document.getElementById("jump-del").onclick = jump_variant.bind(this, "rs1557469781", 1, 1176408);
+        document.getElementById("jump-del").onclick = jump_variant.bind(this, "rs1557469781", 1, 1176408);
+        document.getElementById("jump-indel").onclick = jump_variant.bind(this, "rs199681827", 1, 46401);
+        document.getElementById("jump-ins").onclick = jump_variant.bind(this, "rs1639760668", 1, 47376);
+
         document.getElementById("jump-brca2").onclick = function() {
           genome_browser.jump("focus:a7335667-93e7-11ec-a39d-005056b38ce3:ENSG00000139618");
           genome_browser.wait();
@@ -486,6 +393,111 @@
             },10);
           }
         };
+
+        /* Expansion track test code */
+        genome_browser.add_jsapi_channel("test", {
+          callbacks: {
+            jump: function (location) {
+              return delay(100).then(() => {
+                let parts = location.split(":");
+                let stick = parts.slice(1, parts.length - 1).join(":");
+                if (parts.length < 3 || parts[0] != "region") { return null; }
+                let start_end = parts[parts.length - 1].split("-");
+                if (start_end.length < 2) { return null; }
+                return {
+                  "stick": stick,
+                  "left": parseInt(start_end[0]),
+                  "right": parseInt(start_end[1])
+                };
+              })
+            },
+            data: function (source, stick, scale, index, scope) {
+              console.log("data " + source + " " + stick + " " + scale + " " + index + " " + scope);
+              return {
+                "data": {
+                  "start": [86200000, 86400000],
+                  "end": [86300000, 86500000]
+                }
+              };
+            },
+            small_values: function (namespace, column) {
+              return {};
+            },
+            stickinfo: function (stick) {
+              return delay(100).then(() => {
+                console.log("stick " + stick);
+                return {};
+              })
+            },
+            boot: function () {
+              return delay(100).then(() => {
+                console.log("booting inside", this);
+                let expansions = [
+                  {
+                    "name": "js-expansion",
+                    "backend_namespace": this.backend_namespace,
+                    "triggers": [
+                      ["track", "user"]
+                    ]
+                  }
+                ];
+                let tracks = [
+                  {
+                    "program": ["special", "test", 1],
+                    "tags": "",
+                    "triggers": [
+                      ["track", "user2"]
+                    ],
+                    "settings": {
+                      "green": ["setting", "green"]
+                    },
+                    "values": {
+                      "red": 100.0,
+                      "blue": 0.0
+                    },
+                    "scale_start": 0,
+                    "scale_end": 60,
+                    "scale_step": 1
+                  }
+                ];
+                return { expansions, tracks };
+              });
+            },
+            expand: function (name, step) {
+              return delay(100).then(() => {
+                if (name == "js-expansion") {
+                  let tracks = [
+                    {
+                      "program": ["ensembl-webteam/core", "test-with-data", 1],
+                      "tags": "",
+                      "triggers": [
+                        ["track", "user", step]
+                      ],
+                      "settings": {
+                        "green": ["settings", "green"]
+                      },
+                      "values": {
+                        "red": parseInt(step),
+                        "blue": 100.0
+                      },
+                      "scale_start": 0,
+                      "scale_end": 60,
+                      "scale_step": 1
+                    }
+                  ];
+                  console.log("expand", name, step);
+                  return { tracks };
+                } else {
+                  return {};
+                }
+              });
+            },
+            program: function (group, name, version) {
+              console.log("program", group, name, version);
+              return {};
+            }
+          }
+        });
       });
     </script>
   </body>

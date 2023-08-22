@@ -1,9 +1,4 @@
 [source.apple]
 driver = "s3"
-url="http://nginx/upload-20210917/"
-max_version = 13
-
-[source.banana]
-driver = "s3"
-url="http://nginx/upload-20220829/"
+url = "http://nginx/upload-20220829/"
 min_version = 14
