@@ -13,12 +13,12 @@ track_styles();
 style!("""
         tracks/track/focus-variant/ {
             priority: -900;
-            padding-top: 60;
+            padding-top: 50;
             report: "track;switch-id=focus;!variant-id";
         }
 
         tracks/track/focus-variant/main/main/sun/ {
-            min-height: 36;
+            min-height: 46;
             padding-bottom: 21;
             padding-top: -40;
             type: overlay;
@@ -40,7 +40,7 @@ style!("""
         }
 
         tracks/track/focus-variant/main/main/sea/ {
-            min-height: 35;
+            min-height: 45;
             type: stack;
             priority: 1;
         }
@@ -48,14 +48,14 @@ style!("""
         tracks/track/focus-variant/main/main/sea/shallow/ {
             type: wall;
             priority: 0;
-            padding-top: 4;
+            padding-top: 8;
             padding-bottom: 4;
         }
 
         tracks/track/focus-variant/main/main/sea/shallow/* {
             type: stack;
             bump-scale: 0.6;
-            padding-top: 4;
+            padding-top: 8;
             padding-bottom: 4;
         }
 
@@ -120,19 +120,20 @@ let zmenu_paint = variant_zmenu(*v);
 
 /* Draw shore (bp blocks) */
 
-let base_height = 7; //block height
+let base_height = 6; //block height
+let base_gap = 1; //block gap width
 // draw colored blocks (for SNVs)
 let variant_severity_paint = paint_solid(index(variant_colours(),v.severity));
-let nw = coord(v.display_start,[0,...],[2,...]);
-let se = coord(v.display_start+1,[base_height,...],[-2,...]);
+let nw = coord(v.display_start,[0,...],[base_gap/2,...]);
+let se = coord(v.display_start+1,[base_height,...],[-base_gap/2,...]);
 rectangle(nw,se,variant_severity_paint,if(!deep,[leaf.shore_under,...],[leaf(""),...]));
 rectangle(nw,se,zmenu_paint,if(!deep,[leaf.shore_over,...],[leaf(""),...]));
 // draw block borders (for all base pairs)
 let (bp_start,bp_end) = bp_range();
 let position = enumerate([bp_end-bp_start+1]) + bp_start;
-let nw = coord(position,[0,...],[2,...]);
-let se = coord(position+1,[base_height,...],[-2,...]);
-let paint = paint_hollow(colour!("#999"),0);
+let nw = coord(position,[0,...],[base_gap/2,...]);
+let se = coord(position+1,[base_height,...],[-base_gap/2,...]);
+let paint = paint_hollow(colour!("#d4d9de"),0);
 rectangle(nw,se,paint,[leaf.shore_over,...]);
 
 /* Label settings */
@@ -162,7 +163,7 @@ let top_padding = 10;
 let top_lineh = 13;
 let bottom_lineh = 13; 
 let height_to_eel = if(v.label_id, [top_padding+top_lineh,...], [top_padding,...]);
-let height = height_to_eel + if(label.eel && !is_focus_v, [bottom_lineh,...], [0,...]);
+let height = height_to_eel + if(label.eel && !is_focus_v, [0,...], [0,...]);
 let sun_delta = -(height-(top_padding+top_lineh+bottom_lineh)); // top edge of focus variant text
 
 /* Eels (variant extents) */
@@ -181,7 +182,8 @@ text(coord(v.display_start, sun_delta, [text_offset,...]), tl_pen, top_left_text
 text(coord(v.display_start, sun_delta-1, right_offset+text_offset), tr_pen, top_right_text, if(v.label_alleles, sun_leaf, [leaf(""),...]));
 text(coord(v.display_start, sun_delta+top_lineh, [text_offset,...]),bottom_pen,bottom_text, if(v.label_id, sun_leaf, [leaf(""),...]));
 // Draw focus variant dot
-polygon(coord(v.display_start, sun_delta+(top_lineh/2)-3, [1,...]), [5,...], 13, 0, variant_severity_paint, if(deep, sun_leaf, [leaf(""),...]));
+let dot_size = 4;
+polygon(coord(v.display_start, sun_delta+(top_lineh/2)-3, [1,...]), [dot_size,...], 13, 0, variant_severity_paint, if(deep, sun_leaf, [leaf(""),...]));
 
 /* Draw sun zmenu */
 
@@ -202,9 +204,9 @@ rectangle(
 let base_container = push_str("tracks/track/focus-variant/main/main/sea/", if(deep, ["deep/",...], ["shallow/",...]));
 shallow_container = push_str(push_str(base_container, v.variety), v.id);
 sea_text_leaf = leaf(push_str(shallow_container, "/text/content")); // ['../sea/shallow/SNV/rs699/text/content', ...]
-sea_text_leaf = set(sea_text_leaf, is_focus_v, [leaf(""),...]); // remove focus from sea
+sea_text_leaf = set(sea_text_leaf, is_focus_v || !deep, [leaf(""),...]); // remove focus and SNVs from sea
 sea_over_leaf = leaf(push_str(shallow_container, "/over/content"));
-sea_over_leaf = set(sea_text_leaf, is_focus_v, [leaf(""),...]); // remove focus from sea
+sea_over_leaf = set(sea_text_leaf, is_focus_v || !deep, [leaf(""),...]); // remove focus and SNVs from sea
 deep_sea_text_leaf = if(deep, sea_text_leaf, [leaf(""),...]);
 
 /* Draw sea text (variant type, alleles, id) */
@@ -225,13 +227,16 @@ rectangle(coord(v.display_start,[0,...],[5,...]),coord(v.display_start,height,wi
 
 /* Draw sea eels (extents) */
 
-rectangle(coord(position,index(height_to_eel,eel_v),[2,...]),coord(position+1,index(height_to_eel,eel_v)+5,[-2,...]),paint_solid(colour!("#999")),if(label.eel,index(sea_text_leaf,eel_v),[leaf(""),...]));
+let eel_h = 3;
+height_to_eel = height_to_eel + [5,...];
+rectangle(coord(position, index(height_to_eel,eel_v), [base_gap/2,...]), coord(position+1, index(height_to_eel,eel_v)+eel_h, [-base_gap/2,...]), paint_solid(colour!("#999")), if(label.eel, index(sea_text_leaf,eel_v), [leaf(""),...]));
 
 /* Draw fishing lines */
 
+let height_to_dot = [(top_lineh/2)-1,...];
 let paint = paint_dotted([colour!("white"),...], [colour!("#999"),...], 4, 1, 0.5);
-rectangle_join(coord(v.display_start, (height/2)-5, [1,...]), coord(v.display_start, [7,...], [1,...]), paint, deep_sea_text_leaf, [leaf.shore_under,...]);
-polygon(coord(v.display_start, height/2, [1,...]), [5,...], 13, 0, variant_severity_paint, deep_sea_text_leaf);
+rectangle_join(coord(v.display_start, height_to_dot-dot_size, [1,...]), coord(v.display_start, [7,...], [1,...]), paint, deep_sea_text_leaf, [leaf.shore_under,...]);
+polygon(coord(v.display_start, height_to_dot, [1,...]), [dot_size,...], 13, 0, variant_severity_paint, deep_sea_text_leaf);
 
 /* Draw track furniture */
 
