@@ -13,11 +13,14 @@ track_styles();
 style!("""
         tracks/track/focus-variant/ {
             priority: -900;
+            padding-top: 60;
             report: "track;switch-id=focus;!variant-id";
         }
 
         tracks/track/focus-variant/main/main/sun/ {
-            min-height: 35;
+            min-height: 36;
+            padding-bottom: 21;
+            padding-top: -40;
             type: overlay;
             priority: -1;
         }
@@ -152,11 +155,15 @@ let top_left_text = v.variety;
 let top_right_text = v.alleles;
 let bottom_text = v.id;
 let right_offset = text_width(strlen(top_left_text));
+let text_offset = 8;
 
 let is_focus_v = v.id == focus_variant_id;
-let height_to_eel = if(v.label_id,[20,...],[10,...]);
-let height = height_to_eel + if(label.eel && is_focus_v,[10,...],[0,...]);
-let sun_delta = -(height-30); // top edge of focus variant text
+let top_padding = 10;
+let top_lineh = 13;
+let bottom_lineh = 13; 
+let height_to_eel = if(v.label_id, [top_padding+top_lineh,...], [top_padding,...]);
+let height = height_to_eel + if(label.eel && !is_focus_v, [bottom_lineh,...], [0,...]);
+let sun_delta = -(height-(top_padding+top_lineh+bottom_lineh)); // top edge of focus variant text
 
 /* Eels (variant extents) */
 
@@ -166,14 +173,13 @@ let position = index(v.display_start,eel_v) + enumerate(eel_length);
 
 /* Draw sun */
 
-let tl_pen = pen("200 IBM Plex Mono, monospace",10,[colour!("#1b2c39"),...],[colour!("transparent"),...]); //Light
-let tr_pen = pen("600 IBM Plex Mono', monospace",11,[colour!("#1b2c39"),...],[colour!("transparent"),...]); //Semibold
-let bottom_pen = pen("600 IBM Plex Mono, monospace",10,[colour!("#1b2c39"),...],[colour!("transparent"),...]);
-let sun_leaf = if(is_focus_v,[leaf.sun,...],[leaf(""),...]);
-let top_lineh = 13; //top edge of second text line
-text(coord(v.display_start,sun_delta,[5,...]),tl_pen,top_left_text,sun_leaf);
-text(coord(v.display_start,sun_delta,right_offset+5),tr_pen,top_right_text,if(v.label_alleles,sun_leaf,[leaf(""),...]));
-text(coord(v.display_start,sun_delta+top_lineh,[5,...]),bottom_pen,bottom_text,if(v.label_id,sun_leaf,[leaf(""),...]));
+let tl_pen = pen("200 'IBM Plex Mono', monospace", 10, [colour!("#1b2c39"),...], [colour!("transparent"),...]); //Light
+let tr_pen = pen("600 'IBM Plex Mono', monospace", 11, [colour!("#1b2c39"),...], [colour!("transparent"),...]); //Semibold
+let bottom_pen = pen("600 'IBM Plex Mono', monospace", 10, [colour!("#1b2c39"),...], [colour!("transparent"),...]);
+let sun_leaf = if(is_focus_v, [leaf.sun,...], [leaf(""),...]);
+text(coord(v.display_start, sun_delta, [text_offset,...]), tl_pen, top_left_text, sun_leaf);
+text(coord(v.display_start, sun_delta-1, right_offset+text_offset), tr_pen, top_right_text, if(v.label_alleles, sun_leaf, [leaf(""),...]));
+text(coord(v.display_start, sun_delta+top_lineh, [text_offset,...]),bottom_pen,bottom_text, if(v.label_id, sun_leaf, [leaf(""),...]));
 
 /* Draw sun zmenu */
 
@@ -191,20 +197,19 @@ rectangle(
 
 /* Create sea leafs */
 
-let base_container = push_str("tracks/track/focus-variant/main/main/sea/",if(deep,["deep/",...],["shallow/",...]));
-shallow_container = push_str(push_str(base_container,v.variety),v.id);
-sea_text_leaf = leaf(push_str(shallow_container,"/text/content")); // ['../sea/shallow/SNV/rs699/text/content', ...]
-sea_text_leaf = set(sea_text_leaf,v.id==focus_variant_id,[leaf(""),...]); // remove focus from sea
-sea_over_leaf = leaf(push_str(shallow_container,"/over/content"));
-sea_over_leaf = set(sea_text_leaf,v.id==focus_variant_id,[leaf(""),...]); // remove focus from sea
-deep_sea_text_leaf = if(deep,sea_text_leaf,[leaf(""),...]);
+let base_container = push_str("tracks/track/focus-variant/main/main/sea/", if(deep, ["deep/",...], ["shallow/",...]));
+shallow_container = push_str(push_str(base_container, v.variety), v.id);
+sea_text_leaf = leaf(push_str(shallow_container, "/text/content")); // ['../sea/shallow/SNV/rs699/text/content', ...]
+sea_text_leaf = set(sea_text_leaf, is_focus_v, [leaf(""),...]); // remove focus from sea
+sea_over_leaf = leaf(push_str(shallow_container, "/over/content"));
+sea_over_leaf = set(sea_text_leaf, is_focus_v, [leaf(""),...]); // remove focus from sea
+deep_sea_text_leaf = if(deep, sea_text_leaf, [leaf(""),...]);
 
 /* Draw sea text (variant type, alleles, id) */
 
-let text_offset = 8;
-text(coord(v.display_start,[0,...],[text_offset,...]),tl_pen,top_left_text,sea_text_leaf);
-text(coord(v.display_start,[0,...],right_offset+text_offset),tr_pen,top_right_text,if(v.label_alleles,sea_text_leaf,[leaf(""),...]));
-text(coord(v.display_start,[10,...],[text_offset,...]),bottom_pen,bottom_text,if(v.label_id,sea_text_leaf,[leaf(""),...]));
+text(coord(v.display_start, [0,...], [text_offset,...]), tl_pen, top_left_text, sea_text_leaf);
+text(coord(v.display_start, [0,...], right_offset+text_offset), tr_pen, top_right_text, if(v.label_alleles, sea_text_leaf, [leaf(""),...]));
+text(coord(v.display_start, [top_lineh,...], [text_offset,...]), bottom_pen, bottom_text, if(v.label_id, sea_text_leaf, [leaf(""),...]));
 
 /* Draw sea zmenus */
 
