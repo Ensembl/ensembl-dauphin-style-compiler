@@ -180,6 +180,8 @@ let sun_leaf = if(is_focus_v, [leaf.sun,...], [leaf(""),...]);
 text(coord(v.display_start, sun_delta, [text_offset,...]), tl_pen, top_left_text, sun_leaf);
 text(coord(v.display_start, sun_delta-1, right_offset+text_offset), tr_pen, top_right_text, if(v.label_alleles, sun_leaf, [leaf(""),...]));
 text(coord(v.display_start, sun_delta+top_lineh, [text_offset,...]),bottom_pen,bottom_text, if(v.label_id, sun_leaf, [leaf(""),...]));
+// Draw focus variant dot
+polygon(coord(v.display_start, sun_delta+(top_lineh/2)-3, [1,...]), [5,...], 13, 0, variant_severity_paint, if(deep, sun_leaf, [leaf(""),...]));
 
 /* Draw sun zmenu */
 
@@ -227,12 +229,12 @@ rectangle(coord(position,index(height_to_eel,eel_v),[2,...]),coord(position+1,in
 
 /* Draw fishing lines */
 
-let paint = paint_dotted([colour!("white"),...],[colour!("#999"),...],4,1,0.5);
-rectangle_join(coord(v.display_start,(height/2)-5,[1,...]),coord(v.display_start,[7,...],[1,...]),paint,deep_sea_text_leaf,[leaf.shore_under,...]);
-polygon(coord(v.display_start,height/2,[1,...]),[5,...],7,0,variant_severity_paint,deep_sea_text_leaf);
+let paint = paint_dotted([colour!("white"),...], [colour!("#999"),...], 4, 1, 0.5);
+rectangle_join(coord(v.display_start, (height/2)-5, [1,...]), coord(v.display_start, [7,...], [1,...]), paint, deep_sea_text_leaf, [leaf.shore_under,...]);
+polygon(coord(v.display_start, height/2, [1,...]), [5,...], 13, 0, variant_severity_paint, deep_sea_text_leaf);
 
 /* Draw track furniture */
 
-draw_track_category(["V"],["focus-variant"],[leaf.letter]);
-draw_track_name(focus_variant_id,"name",leaf.trackname);
-draw_swatch(colour!("#58a8f9"),[leaf.letter]);
+draw_track_category(["V"], ["focus-variant"], [leaf.letter]);
+draw_track_name(focus_variant_id, "name", leaf.trackname);
+draw_swatch(colour!("#58a8f9"), [leaf.letter]);
