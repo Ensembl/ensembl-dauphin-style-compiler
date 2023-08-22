@@ -13,13 +13,13 @@ track_styles();
 style!("""
         tracks/track/focus-variant/ {
             priority: -900;
-            padding-top: 50;
+            padding-top: 60;
             report: "track;switch-id=focus;!variant-id";
         }
 
         tracks/track/focus-variant/main/main/sun/ {
             min-height: 46;
-            padding-bottom: 21;
+            padding-bottom: 11;
             padding-top: -40;
             type: overlay;
             priority: -1;
@@ -174,7 +174,7 @@ let position = index(v.display_start,eel_v) + enumerate(eel_length);
 
 /* Draw sun */
 
-let tl_pen = pen("200 'IBM Plex Mono', monospace", 10, [colour!("#1b2c39"),...], [colour!("transparent"),...]); //Light
+let tl_pen = pen("300 'IBM Plex Mono', monospace", 10, [colour!("#1b2c39"),...], [colour!("transparent"),...]); //Light
 let tr_pen = pen("600 'IBM Plex Mono', monospace", 11, [colour!("#1b2c39"),...], [colour!("transparent"),...]); //Semibold
 let bottom_pen = pen("600 'IBM Plex Mono', monospace", 10, [colour!("#1b2c39"),...], [colour!("transparent"),...]);
 let sun_leaf = if(is_focus_v, [leaf.sun,...], [leaf(""),...]);
