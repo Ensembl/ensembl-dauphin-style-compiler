@@ -178,60 +178,6 @@ HX:Dev:
     NFS_SERVER: ${HX_NFS_SERVER}
     NFS_PATH: ${HX_NFS_PATH}
 
-HX:Staging:
-  extends: .deploy_backend
-  environment:
-    name : wp-hx-staging
-  variables:
-    BASE: backend-server/k8s/overlays/staging
-    NFS_SERVER: ${HX_NFS_SERVER}
-    NFS_PATH: ${HX_NFS_PATH}
-    
-HL:Staging:
-  extends: .deploy_backend
-  environment:
-    name : wp-hh-staging
-  variables:
-    BASE: backend-server/k8s/overlays/staging
-    NFS_SERVER: ${HL_NFS_SERVER}
-    NFS_PATH: ${HL_NFS_PATH}
-
-HX:Internal:
-  extends: .deploy_backend
-  environment:
-    name : wp-hx-internal
-  variables:
-    BASE: backend-server/k8s/overlays/internal
-    NFS_SERVER: ${HX_NFS_SERVER}
-    NFS_PATH: ${HX_NFS_PATH}
-
-HL:Internal:
-  extends: .deploy_backend
-  environment:
-    name : wp-hh-internal
-  variables:
-    BASE: backend-server/k8s/overlays/internal
-    NFS_SERVER: ${HL_NFS_SERVER}
-    NFS_PATH: ${HL_NFS_PATH}
-
-HX:Production:
-  extends: .deploy_backend
-  environment:
-    name : wp-hx-live
-  variables:
-    BASE: backend-server/k8s/overlays/production
-    NFS_SERVER: ${HX_NFS_SERVER}
-    NFS_PATH: ${HX_NFS_PATH}
-
-HL:Production:
-  extends: .deploy_backend
-  environment:
-    name : wp-hh-live
-  variables:
-    BASE: backend-server/k8s/overlays/production
-    NFS_SERVER: ${HL_NFS_SERVER}
-    NFS_PATH: ${HL_NFS_PATH}
-
 Production:WP40:HL:
   extends: .deploy_backend-newk8s
   environment:

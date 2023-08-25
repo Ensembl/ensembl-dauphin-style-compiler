@@ -1,6 +1,6 @@
 [source.apple]
 driver = "s3"
-url = "http://nginx/upload-20220829/"
+refget_url="http://ensembl-refget-proxy-svc:8083/api/sequence/"
 min_version = 14
 
 [redirect.data]
