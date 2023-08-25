@@ -41,7 +41,7 @@ style!("""
         tracks/track/focus-variant/main/main/sea/ {
             type: stack;
             priority: 1;
-            min-height: 20;
+            min-height: 60;
         }
 
         tracks/track/focus-variant/main/main/sea/shallow/ {
