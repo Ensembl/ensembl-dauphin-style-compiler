@@ -13,13 +13,13 @@ track_styles();
 style!("""
         tracks/track/focus-variant/ {
             priority: -900;
-            padding-top: 50;
+            padding-top: 30;
             report: "track;switch-id=focus;!variant-id";
         }
 
         tracks/track/focus-variant/main/main/sun/ {
-            min-height: 60;
-            padding-top: -55;
+            min-height: 50;
+            padding-top: -45;
             type: overlay;
             priority: -1;
         }
