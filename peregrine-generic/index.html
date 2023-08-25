@@ -309,17 +309,16 @@
         genome_browser.switch(["track", "variant-dbsnp", "name"], true);
         //genome_browser.switch(["track", "variant-1000genomes"], true);
         //genome_browser.switch(["track", "variant-1000genomes", "name"], true);
-        jump_variant("rs699", 1, 230710048);
+        jump_variant("rs1557469781", 1, 1176408);
 
         /* Add actions to sidebar buttons/inputs */
         //document.getElementById("bigger").onclick = flipper(["settings","bigger"]);
         //document.getElementById("id-labels").onclick = flipper(["track","gene-pc-fwd","label","id"]);
 
         document.getElementById("jump-snv").onclick = jump_variant.bind(this, "rs699", 1, 230710048);
-        document.getElementById("jump-del").onclick = jump_variant.bind(this, "rs1557469781", 1, 1176408);
+        document.getElementById("jump-ins").onclick = jump_variant.bind(this, "rs1639760668", 1, 47376);
         document.getElementById("jump-del").onclick = jump_variant.bind(this, "rs1557469781", 1, 1176408);
         document.getElementById("jump-indel").onclick = jump_variant.bind(this, "rs199681827", 1, 46401);
-        document.getElementById("jump-ins").onclick = jump_variant.bind(this, "rs1639760668", 1, 47376);
 
         document.getElementById("jump-brca2").onclick = function() {
           genome_browser.jump("focus:a7335667-93e7-11ec-a39d-005056b38ce3:ENSG00000139618");
