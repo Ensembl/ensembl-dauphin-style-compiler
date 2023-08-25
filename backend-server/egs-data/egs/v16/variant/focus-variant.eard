@@ -41,7 +41,7 @@ style!("""
         tracks/track/focus-variant/main/main/sea/ {
             type: stack;
             priority: 1;
-            min-height: 60;
+            min-height: 80;
         }
 
         tracks/track/focus-variant/main/main/sea/shallow/ {
@@ -151,10 +151,9 @@ let right_offset = text_width(strlen(top_left_text));
 let text_offset = 8;
 
 let is_focus_v = v.id == focus_variant_id;
-let d = 2; //rendering delta from intended pixel values
-let top_line_height = 13-d;
-let bottom_line_height = 13-d;
-let eel_line_height = 13-d;
+let top_line_height = 13;
+let bottom_line_height = 13;
+let eel_line_height = 13;
 let height_to_eel = if(v.label_id || is_focus_v, [top_line_height+bottom_line_height,...], [top_line_height,...]); //total text height
 let height = height_to_eel + if(label.eel && !is_focus_v, [eel_line_height,...], [0,...]); //text + eel (extent) height
 let sun_delta = -(height-(top_line_height+bottom_line_height+eel_line_height)); // top edge of focus variant text
