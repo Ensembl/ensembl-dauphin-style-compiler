@@ -74,6 +74,8 @@ let v.severity = data_number(data,"severity"); //[1, 5, ...]
 let v.consequence = data_string(data,"consequence"); //['upstream_gene_variant', ...]
 
 let deep = v.variety != "SNV";
+let has_anchor_bp = v.variety == "deletion" || v.variety == "indel";
+let v.display_start = if(has_anchor_bp, v.start+1, v.start);
 
 halt(only_warm());
 
@@ -93,8 +95,8 @@ let leaf.shore_over = leaf("tracks/track/variant-dbsnp/main/main/shore/over/cont
 let base_height = 7;
 // draw colored blocks (for SNVs)
 let variant_severity_paint = paint_solid(index(variant_colours(), v.severity));
-let nw = coord(v.start, [0,...], [2,...]);
-let se = coord(v.start+1, [base_height,...], [-2,...]);
+let nw = coord(v.display_start, [0,...], [2,...]);
+let se = coord(v.display_start+1, [base_height,...], [-2,...]);
 rectangle(nw, se, variant_severity_paint, if(!deep, [leaf.shore_under,...], [leaf(""),...]));
 // draw block borders (for all base pairs)
 let (bp_start,bp_end) = bp_range();
@@ -124,9 +126,9 @@ let right_offset = strlen(top_left)*6+5;
 /* Eels (variant extents) */
 
 let height_to_eel = if(v.label_id, [20,...], [10,...]);
-let eel_length = if(deep, v.end-v.start, [0,...]);
+let eel_length = if(deep, v.end-v.display_start, [0,...]);
 let eel_v = count(eel_length);
-let position = index(v.start, eel_v) + enumerate(eel_length);
+let position = index(v.display_start, eel_v) + enumerate(eel_length);
 
 let pen = pen("'IBM Plex Mono', sans-serif", 10, [colour!("#999"),...], [colour!("transparent"),...]);
 let bold_pen = pen("700 Lato, sans-serif", 10, [colour!("#999"),...], [colour!("transparent"),...]);
@@ -142,9 +144,9 @@ deep_sea_text_leaf = if(deep, sea_text_leaf, [leaf(""),...]);
 /* Draw sea text (variant type, alleles, id) */
 
 let text_offset = 8;
-text(coord(v.start, [0,...], [text_offset,...]), pen, top_left, sea_text_leaf);
-text(coord(v.start, [0,...], right_offset+text_offset), bold_pen, top_right, if(v.label_alleles, sea_text_leaf, [leaf(""),...]));
-text(coord(v.start, [10,...], [text_offset,...]), pen,bottom_line, if(v.label_id, sea_text_leaf, [leaf(""),...]));
+text(coord(v.display_start, [0,...], [text_offset,...]), pen, top_left, sea_text_leaf);
+text(coord(v.display_start, [0,...], right_offset+text_offset), bold_pen, top_right, if(v.label_alleles, sea_text_leaf, [leaf(""),...]));
+text(coord(v.display_start, [10,...], [text_offset,...]), pen,bottom_line, if(v.label_id, sea_text_leaf, [leaf(""),...]));
 
 /* Draw zmenus */
 
@@ -154,12 +156,12 @@ let width = max(
     if(v.label_id, strlen(bottom_line), [0,...])) * 6 + 5;
 
 rectangle(
-    coord(v.start, height_to_eel, [2,...]),
+    coord(v.display_start, height_to_eel, [2,...]),
     coord(v.end, height_to_eel+10, [-2,...]),
     zmenu_paint, if(label.eel && deep, sea_text_leaf, [leaf(""),...])
 );
 
-rectangle(coord(v.start, [0,...], [5,...]), coord(v.start, height, width), zmenu_paint, sea_text_leaf);
+rectangle(coord(v.display_start, [0,...], [5,...]), coord(v.display_start, height, width), zmenu_paint, sea_text_leaf);
 
 /* Draw sea eels (extents) */
 
@@ -169,8 +171,8 @@ rectangle(coord(position, index(height_to_eel, eel_v), [2,...]), coord(position+
 /* Draw fishing lines */
 
 let paint = paint_dotted([colour!("white"),...], [colour!("#999"),...], 4, 1, 0.5);
-rectangle_join(coord(v.start, (height/2)-5, [1,...]), coord(v.start, [7,...], [1,...]), paint, deep_sea_text_leaf, [leaf.shore_under,...]);
-polygon(coord(v.start, height/2, [1,...]), [5,...], 7, 0, variant_severity_paint,deep_sea_text_leaf);
+rectangle_join(coord(v.display_start, (height/2)-5, [1,...]), coord(v.display_start, [7,...], [1,...]), paint, deep_sea_text_leaf, [leaf.shore_under,...]);
+polygon(coord(v.display_start, height/2, [1,...]), [5,...], 7, 0, variant_severity_paint,deep_sea_text_leaf);
 
 /* Draw track furniture */
 

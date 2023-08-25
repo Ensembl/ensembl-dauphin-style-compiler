@@ -13,11 +13,13 @@ track_styles();
 style!("""
         tracks/track/focus-variant/ {
             priority: -900;
+            padding-top: 50;
             report: "track;switch-id=focus;!variant-id";
         }
 
         tracks/track/focus-variant/main/main/sun/ {
-            min-height: 35;
+            min-height: 50;
+            padding-top: -45;
             type: overlay;
             priority: -1;
         }
@@ -37,7 +39,6 @@ style!("""
         }
 
         tracks/track/focus-variant/main/main/sea/ {
-            min-height: 35;
             type: stack;
             priority: 1;
         }
@@ -45,31 +46,24 @@ style!("""
         tracks/track/focus-variant/main/main/sea/shallow/ {
             type: wall;
             priority: 0;
-            padding-top: 4;
+            padding-top: 8;
             padding-bottom: 4;
         }
 
         tracks/track/focus-variant/main/main/sea/shallow/* {
             type: stack;
             bump-scale: 0.6;
-            padding-top: 4;
+            padding-top: 8;
             padding-bottom: 4;
         }
 
         tracks/track/focus-variant/main/main/sea/deep/ {
-            padding-top: 8;
             type: wall;
             priority: 1;
         }
 
         tracks/track/focus-variant/main/main/sea/deep/* {
             type: stack;
-            padding-top: 4;
-            padding-bottom: 4;
-        }
-
-        tracks/track/focus-variant/main/main/sea/*/over {
-            depth: 2;
         }
 """);
 
@@ -77,7 +71,7 @@ style!("""
 
 let (focus_genome_id,focus_variant_id) = focus_variant_settings();
 
-/* Get data data */
+/* Get data */
 
 let data = get_data(request("self()","variant-labels"));
 let v.chromosome = data_string(data,"chromosome");
@@ -85,11 +79,13 @@ let v.start = data_number(data,"start");
 let v.end = v.start + data_number(data,"length");
 let v.id = data_string(data,"id");
 let v.alleles = data_string(data,"alleles");
-let v.variety = data_string(data,"variety");
-let v.severity = data_number(data,"severity");
-let v.consequence = data_string(data,"consequence");
+let v.variety = data_string(data,"variety");  //['SNV', 'indel', 'deletion', ...]
+let v.severity = data_number(data,"severity");  //[1, 5, ...]
+let v.consequence = data_string(data,"consequence"); //['upstream_gene_variant', ...]
 
 let deep = v.variety != "SNV";
+let has_anchor_bp = v.variety == "deletion" || v.variety == "indel";
+let v.display_start = if(has_anchor_bp, v.start+1, v.start);
 
 halt(only_warm());
 
@@ -113,22 +109,23 @@ let leaf.sun = focus_leaf("tracks/track/focus-variant/main/main/sun/content");
 
 let zmenu_paint = variant_zmenu(*v);
 
-/* Draw shore */
+/* Draw shore (bp blocks) */
 
-let base_height = 7;
-
+let base_height = 6; //block height
+let base_gap = 1; //block gap width
+// draw colored blocks (for SNVs)
 let variant_severity_paint = paint_solid(index(variant_colours(),v.severity));
-let nw = coord(v.start,[0,...],[2,...]);
-let se = coord(v.start+1,[base_height,...],[-2,...]);
-rectangle(nw,se,variant_severity_paint,if(!deep,[leaf.shore_under,...],[leaf(""),...]));
-rectangle(nw,se,zmenu_paint,if(!deep,[leaf.shore_over,...],[leaf(""),...]));
-
+let nw = coord(v.display_start, [0,...], [base_gap/2,...]);
+let se = coord(v.display_start+1, [base_height,...], [-base_gap/2,...]);
+rectangle(nw, se, variant_severity_paint, if(!deep, [leaf.shore_under,...], [leaf(""),...]));
+rectangle(nw, se, zmenu_paint, if(!deep, [leaf.shore_over,...], [leaf(""),...]));
+// draw block borders (for all base pairs)
 let (bp_start,bp_end) = bp_range();
 let position = enumerate([bp_end-bp_start+1]) + bp_start;
-let nw = coord(position,[0,...],[2,...]);
-let se = coord(position+1,[base_height,...],[-2,...]);
-let paint = paint_hollow(colour!("#999"),0);
-rectangle(nw,se,paint,[leaf.shore_over,...]);
+let nw = coord(position,[0,...], [base_gap/2,...]);
+let se = coord(position+1,[base_height,...], [-base_gap/2,...]);
+let paint = paint_hollow(colour!("#d4d9de"),0);
+rectangle(nw, se, paint, [leaf.shore_over,...]);
 
 /* Label settings */
 let label.snv_id = setting_boolean("label-snv-id",[]);
@@ -137,95 +134,123 @@ let label.other_id = setting_boolean("label-other-id",[]);
 let label.other_alleles = setting_boolean("label-other-alleles",[]);
 let label.eel = setting_boolean("show-extents",[]);
 
-v.label_id = if(deep,[label.other_id,...],[label.snv_id,...]);
-v.label_alleles = if(deep,[label.other_alleles,...],[label.snv_alleles,...]);
+v.label_id = if(deep, [label.other_id,...], [label.snv_id,...]);
+v.label_alleles = if(deep, [label.other_alleles,...], [label.snv_alleles,...]);
 
 /* Create templates for all the variants (whether destined for sun or sea) */
 
-let top_left = v.variety;
-let top_right = v.alleles;
-let bottom_line = v.id;
-let right_offset = strlen(top_left)*6+5;
+function text_width(char_count){
+    char_count*6+5
+}
 
-let height_to_eel = if(v.label_id,[20,...],[10,...]);
-let height = height_to_eel + if(label.eel,[10,...],[0,...]);
-let sun_delta = -(height-30);
+let top_left_text = v.variety;
+let top_right_text = v.alleles;
+let bottom_text = v.id;
+let right_offset = text_width(strlen(top_left_text));
+let text_offset = 8;
 
-/* Eels */
+let is_focus_v = v.id == focus_variant_id;
+let top_line_height = 15;
+let bottom_line_height = 13;
+let eel_line_height = 13;
+let height_to_eel = if(v.label_id || is_focus_v, [top_line_height+bottom_line_height,...], [top_line_height,...]); //total text height
+let height = height_to_eel + if(label.eel && !is_focus_v, [eel_line_height,...], [0,...]); //text + eel (extent) height
+let sun_delta = -(height-(top_line_height+bottom_line_height+eel_line_height)); // top edge of focus variant text
 
-let eel_length = if(deep,v.end-v.start,[0,...]);
-let eel_v = count(eel_length);
-let position = index(v.start,eel_v) + enumerate(eel_length);
+/* Draw sun (above the bp blocks) */
 
-/* Draw sun */
-
-let pen = pen("'IBM Plex Mono', sans-serif",10,[colour!("#999"),...],[colour!("transparent"),...]);
-let bold_pen = pen("700 Lato, sans-serif",10,[colour!("#999"),...],[colour!("transparent"),...]);
-let sun_leaf = if(v.id == focus_variant_id,[leaf.sun,...],[leaf(""),...]);
-text(coord(v.start,sun_delta,[5,...]),pen,top_left,sun_leaf);
-text(coord(v.start,sun_delta,right_offset+5),bold_pen,top_right,if(v.label_alleles,sun_leaf,[leaf(""),...]));
-text(coord(v.start,sun_delta+10,[5,...]),bold_pen,bottom_line,if(v.label_id,sun_leaf,[leaf(""),...]));
-
-/* Draw sun eel */
-
-rectangle(
-    coord(position,index(height_to_eel+sun_delta,eel_v),[2,...]),
-    coord(position+1,index(height_to_eel+sun_delta,eel_v)+5,[-2,...]),
-    paint_solid(colour!("#999")),if(label.eel,index(sun_leaf,eel_v),[leaf(""),...])
+let tl_pen = pen("300 'IBM Plex Mono', monospace", 10, [colour!("#1b2c39"),...], [colour!("transparent"),...]); //Light
+let tr_pen = pen("600 'IBM Plex Mono', monospace", 11, [colour!("#1b2c39"),...], [colour!("transparent"),...]); //Semibold
+let bottom_pen = pen("600 'IBM Plex Mono', monospace", 10, [colour!("#1b2c39"),...], [colour!("transparent"),...]);
+let sun_leaf = if(is_focus_v, [leaf.sun,...], [leaf(""),...]);
+text(coord(v.display_start, sun_delta, [text_offset,...]), tl_pen, top_left_text, sun_leaf);
+text(coord(v.display_start, sun_delta-1, right_offset+text_offset), tr_pen, top_right_text, if(v.label_alleles, sun_leaf, [leaf(""),...]));
+text(coord(v.display_start, sun_delta+top_line_height, [text_offset,...]), bottom_pen, bottom_text, if(v.label_id || is_focus_v, sun_leaf, [leaf(""),...]));
+// Draw focus variant dot
+let dot_size = 3; //radius
+let dot_smoothness = 13; //nr of corners
+let height_to_dot = [(top_line_height/2)-(dot_size/2),...];
+polygon(
+    coord(v.display_start, sun_delta+height_to_dot, [1,...]),
+    [dot_size,...], dot_smoothness, 0,
+    variant_severity_paint,
+    if(deep, sun_leaf, [leaf(""),...])
 );
 
 /* Draw sun zmenu */
 
-let width = max(
-    strlen(top_left)+if(v.label_alleles,strlen(top_right),[0,...])+1,
-    if(v.label_id,strlen(bottom_line),[0,...]))*6+5;
-rectangle(coord(v.start,sun_delta,[5,...]),coord(v.start,sun_delta+height,width),zmenu_paint,sun_leaf);
+let width = text_width(max(
+    strlen(top_left_text)+if(v.label_alleles,strlen(top_right_text),[0,...])+1,
+    if(v.label_id,strlen(bottom_text),[0,...])));
 
 rectangle(
-    coord(v.start,sun_delta+height_to_eel,[2,...]),
-    coord(v.end,height_to_eel+sun_delta+10,[-2,...]),
-    zmenu_paint,if(label.eel,sun_leaf,[leaf(""),...])
+    coord(v.display_start, sun_delta, [5,...]),
+    coord(v.display_start,sun_delta+height,width),
+    zmenu_paint,
+    sun_leaf
 );
 
-/* Create sea leafs */
+rectangle(
+    coord(v.display_start,sun_delta+height_to_eel,[2,...]),
+    coord(v.end,height_to_eel+sun_delta+10,[-2,...]),
+    zmenu_paint,
+    if(label.eel, sun_leaf, [leaf(""),...])
+);
 
-let base_container = push_str("tracks/track/focus-variant/main/main/sea/",if(deep,["deep/",...],["shallow/",...]));
-shallow_container = push_str(push_str(base_container,v.variety),v.id);
-sea_text_leaf = leaf(push_str(shallow_container,"/text/content"));
-sea_text_leaf = set(sea_text_leaf,v.id==focus_variant_id,[leaf(""),...]); // remove focus from sea
-sea_over_leaf = leaf(push_str(shallow_container,"/over/content"));
-sea_over_leaf = set(sea_text_leaf,v.id==focus_variant_id,[leaf(""),...]); // remove focus from sea
-deep_sea_text_leaf = if(deep,sea_text_leaf,[leaf(""),...]);
+/* Create sea leafs (below the bp blocks) */
 
-/* Draw sea text */
+let base_container = push_str("tracks/track/focus-variant/main/main/sea/", if(deep, ["deep/",...], ["shallow/",...]));
+shallow_container = push_str(push_str(base_container, v.variety), v.id);
+sea_text_leaf = leaf(push_str(shallow_container, "/text/content")); // ['../sea/shallow/SNV/rs699/text/content', '../deep/indel/rs..', ...]
+sea_text_leaf = set(sea_text_leaf, is_focus_v || !deep, [leaf(""),...]); // remove text for focus variant and SNVs from sea
+deep_sea_text_leaf = if(deep, sea_text_leaf, [leaf(""),...]);
 
-let text_offset = 8;
-text(coord(v.start,[0,...],[text_offset,...]),pen,top_left,sea_text_leaf);
-text(coord(v.start,[0,...],right_offset+text_offset),bold_pen,top_right,if(v.label_alleles,sea_text_leaf,[leaf(""),...]));
-text(coord(v.start,[10,...],[text_offset,...]),pen,bottom_line,if(v.label_id,sea_text_leaf,[leaf(""),...]));
+/* Draw sea text (variant type, alleles, id) */
+
+text(coord(v.display_start, [0,...], [text_offset,...]), tl_pen, top_left_text, sea_text_leaf);
+text(coord(v.display_start, [0,...], right_offset+text_offset), tr_pen, top_right_text, if(v.label_alleles, sea_text_leaf, [leaf(""),...]));
+text(coord(v.display_start, [top_line_height,...], [text_offset,...]), bottom_pen, bottom_text, if(v.label_id, sea_text_leaf, [leaf(""),...]));
 
 /* Draw sea zmenus */
 
 rectangle(
-    coord(v.start,height_to_eel,[2,...]),
+    coord(v.display_start,height_to_eel,[2,...]),
     coord(v.end,height_to_eel+10,[-2,...]),
     zmenu_paint,if(label.eel && deep,sea_text_leaf,[leaf(""),...])
 );
 
-rectangle(coord(v.start,[0,...],[5,...]),coord(v.start,height,width),zmenu_paint,sea_text_leaf);
+rectangle(coord(v.display_start,[0,...],[5,...]),coord(v.display_start,height,width),zmenu_paint,sea_text_leaf);
 
-/* Draw sea eels */
+/* Draw sea eels (extents) */
 
-rectangle(coord(position,index(height_to_eel,eel_v),[2,...]),coord(position+1,index(height_to_eel,eel_v)+5,[-2,...]),paint_solid(colour!("#999")),if(label.eel,index(sea_text_leaf,eel_v),[leaf(""),...]));
+let eel_length = if(deep,v.end-v.display_start,[0,...]);
+let eel_v = count(eel_length);
+let position = index(v.display_start,eel_v) + enumerate(eel_length);
+let eel_h = 3;
+rectangle(
+    coord(position, index(height_to_eel,eel_v), [base_gap/2,...]),
+    coord(position+1, index(height_to_eel,eel_v)+eel_h, [-base_gap/2,...]),
+    paint_solid(colour!("#999")),
+    if(label.eel, index(sea_text_leaf,eel_v), [leaf(""),...])
+);
 
 /* Draw fishing lines */
 
-let paint = paint_dotted([colour!("white"),...],[colour!("#999"),...],4,1,0.5);
-rectangle_join(coord(v.start,(height/2)-5,[1,...]),coord(v.start,[7,...],[1,...]),paint,deep_sea_text_leaf,[leaf.shore_under,...]);
-polygon(coord(v.start,height/2,[1,...]),[5,...],7,0,variant_severity_paint,deep_sea_text_leaf);
+let paint = paint_dotted([colour!("white"),...], [colour!("#999"),...], 4, 1, 0.5);
+let fish_line_h = height_to_dot-(dot_size/2)-2;
+rectangle_join(
+    coord(v.display_start, fish_line_h, [1,...]),
+    coord(v.display_start, [7,...], [1,...]),
+    paint, deep_sea_text_leaf, [leaf.shore_under,...]
+);
+polygon(
+    coord(v.display_start, height_to_dot, [1,...]),
+    [dot_size,...], dot_smoothness, 0,
+    variant_severity_paint, deep_sea_text_leaf
+);
 
 /* Draw track furniture */
 
-draw_track_category(["V"],["focus-variant"],[leaf.letter]);
-draw_track_name(focus_variant_id,"name",leaf.trackname);
-draw_swatch(colour!("#58a8f9"),[leaf.letter]);
+draw_track_category(["V"], ["focus-variant"], [leaf.letter]);
+draw_track_name(focus_variant_id, "name", leaf.trackname);
+draw_swatch(colour!("#58a8f9"), [leaf.letter]);
