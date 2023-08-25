@@ -13,7 +13,7 @@ track_styles();
 style!("""
         tracks/track/focus-variant/ {
             priority: -900;
-            padding-top: 30;
+            padding-top: 40;
             report: "track;switch-id=focus;!variant-id";
         }
 
