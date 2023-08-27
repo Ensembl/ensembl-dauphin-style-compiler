@@ -69,6 +69,7 @@ handlers = [
     ("focus-variant", VariantSummaryDataHandler("variant"), 16),
     ("variant-labels", VariantLabelsDataHandler(), 16),
     ("variant-labels-dbsnp", VariantLabelsDataHandler("dbsnp"), 16),
+    ("variant-labels-1000genomes", VariantLabelsDataHandler("1000genomes"), 16),
     ("regulation", RegulationDataHandler(), 16),
 ]
 

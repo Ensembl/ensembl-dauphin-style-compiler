@@ -13,8 +13,10 @@ track_styles();
 let track_id = setting_string("track_id", []);
 let track_data_id = setting_string("track_data_id", []);
 let track_name = setting_string("track_name", []);
+let track_display_order = setting_string("display_order", []);
 
 procedure variation_track_styles(track_id) {
+  capture track_display_order;
   let track_leaf_id = push_str("tracks/track/", track_id);
   track_leaf_id = push_str(track_leaf_id, "/");
 
@@ -24,7 +26,7 @@ procedure variation_track_styles(track_id) {
       "priority",
       "report"
     ], [
-      "1000",
+      track_display_order,
       push_str("track;switch-id=", track_id)
     ]
   );

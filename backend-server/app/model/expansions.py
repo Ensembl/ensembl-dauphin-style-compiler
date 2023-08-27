@@ -17,35 +17,57 @@ class Expansions:
         return tracks
 
     def define_variation_track(self, track_id):
-        track_summary_name = f"variant-summary-{track_id}"
-        track_details_name = f"variant-zoomed-{track_id}"
+        track_data = variation_tracks_map[track_id]
+
+        # While for the client, there is only one id for a track,
+        # usually there are in fact several tracks associated with an id reported by the client;
+        # so here, we are creating artificial (but still unique) ids to register these tracks in a track registry
+        track_summary_registry_id = f"variant-summary-{track_id}"
+        track_details_registry_id = f"variant-zoomed-{track_id}"
+
+        # here we are declaring different programs to be run at different scales 
         track_summary_view = Track(track_id, program_group="ensembl-webteam/core", program_name='variant-summary', program_version=1 ,scales=[6,100,4])
         track_details_view = Track(track_id, program_group="ensembl-webteam/core", program_name='variant-zoomed', program_version=1 ,scales=[1,5,1])
 
-        # FIXME: remove variant-dbsnp below
-
         # define common settings
         for track in [track_summary_view, track_details_view]:
-            track.add_trigger(["track", "expand-variation", track_id])
-            track.add_setting("name", ["track","variant-dbsnp","name"])
-            track.add_setting("rank", ["track","variant-dbsnp","rank"])
-            track.add_value("track_id", track_id)
-            track.add_value("track_name", f"Track name for {track_id}")
+            track.add_trigger(["track", "expand-variation", track_id]) # to turn a track on/off
+            track.add_setting("name", ["track", "expand-variation", track_id, "name"]) # toggle track name on/off
+            # track.add_setting("rank", ["track", "expand-variation", track_id, "rank"]) # setting to determine track order
+            track.add_value("track_id", track_id) # will be required for defining the track "leaf" in the tree of tracks
+            track.add_value("track_name", track_data['track-name']) # inject track name into the track program
+            track.add_value("display_order", track_data['display-order']) # temporary, probably
 
         # define summary view settings
-        track_summary_view.add_value("track_data_id", "variant-dbsnp")
+        track_summary_view.add_value("track_data_id", track_data['summary-data-id'])
 
         # define zoomed-in view settings
-        track_details_view.add_value("track_data_id", "variant-labels-dbsnp")
-        track_details_view.add_setting("label-snv-id", ["track","variant-dbsnp","label-snv-id"])
-        track_details_view.add_setting("label-snv-alleles", ["track","variant-dbsnp","label-snv-alleles"])
-        track_details_view.add_setting("label-other-id", ["track","variant-dbsnp","label-other-id"])
-        track_details_view.add_setting("label-other-alleles", ["track","variant-dbsnp","label-other-alleles"])
-        track_details_view.add_setting("show-extents", ["track","variant-dbsnp","show-extents"])
+        track_details_view.add_value("track_data_id", track_data['zoomed-data-id'])
+        track_details_view.add_setting("label-snv-id", ["track", "expand-variation", track_id, "label-snv-id"])
+        track_details_view.add_setting("label-snv-alleles", ["track", "expand-variation", track_id, "label-snv-alleles"])
+        track_details_view.add_setting("label-other-id", ["track", "expand-variation", track_id, "label-other-id"])
+        track_details_view.add_setting("label-other-alleles", ["track", "expand-variation", track_id, "label-other-alleles"])
+        track_details_view.add_setting("show-extents", ["track", "expand-variation", track_id, "show-extents"])
 
         # register tracks
         tracks = Tracks()
-        tracks.add_track(track_summary_name, track_summary_view)
-        tracks.add_track(track_details_name, track_details_view)
+        tracks.add_track(track_summary_registry_id, track_summary_view)
+        tracks.add_track(track_details_registry_id, track_details_view)
 
         return tracks
+
+
+variation_tracks_map = {
+    'variant-dbsnp': {
+        'zoomed-data-id': 'variant-labels-dbsnp',
+        'summary-data-id': 'variant-dbsnp',
+        'track-name': 'Track name for dbsnp',
+        'display-order': '1001'
+    },
+    'variant-1000genomes': {
+        'zoomed-data-id': 'variant-labels-1000genomes',
+        'summary-data-id': 'variant-1000genomes',
+        'track-name': 'Track name for 1000genomes',
+        'display-order': '1000'
+    }
+}

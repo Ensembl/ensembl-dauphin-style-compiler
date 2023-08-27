@@ -14,6 +14,7 @@ track_styles();
 let track_id = setting_string("track_id", []);
 let track_data_id = setting_string("track_data_id", []);
 let track_name = setting_string("track_name", []);
+let track_display_order = setting_string("display_order", []);
 
 let track_leaf_id = push_str("tracks/track/", track_id);
 track_leaf_id = push_str(track_leaf_id, "/");
@@ -28,8 +29,7 @@ let track_main_sea_deep_all_leaf_id = push_str(track_main_sea_leaf_id, "*");
 
 
 print("VARIANT ZOOMED");
-print(track_id);
-print(track_name);
+print(track_display_order);
 
 
 style(
@@ -38,7 +38,7 @@ style(
     "priority",
     "report"
   ], [
-    "1000",
+    track_display_order,
     push_str("track;switch-id=", track_id)
   ]
 );
