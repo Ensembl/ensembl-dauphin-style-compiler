@@ -155,17 +155,6 @@ text(coord(v.display_start, [top_line_height,...], [text_offset,...]), bottom_pe
 
 /* Draw sea zmenus */
 
-rectangle(
-    coord(v.display_start,height_to_eel,[2,...]),
-    coord(v.end,height_to_eel+10,[-2,...]),
-    zmenu_paint,if(label.eel && deep,sea_text_leaf,[leaf(""),...])
-);
-
-rectangle(coord(v.display_start,[0,...],[5,...]),coord(v.display_start,height,width),zmenu_paint,sea_text_leaf);
-
-/* Draw zmenus */
-
-
 let width = text_width(max(
     strlen(top_left_text)+if(v.label_alleles,strlen(top_right_text),[0,...])+1,
     if(v.label_id,strlen(bottom_text),[0,...])));
