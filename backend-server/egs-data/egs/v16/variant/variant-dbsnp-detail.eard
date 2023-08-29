@@ -176,7 +176,7 @@ let eel_h = 3;
 rectangle(
     coord(position, index(height_to_eel,eel_v), [base_gap/2,...]),
     coord(position+1, index(height_to_eel,eel_v)+eel_h, [-base_gap/2,...]),
-    paint_solid(colour!("#999")),
+    paint_solid(colour!("#6f8190")),
     if(label.eel, index(sea_text_leaf,eel_v), [leaf(""),...])
 );
 
