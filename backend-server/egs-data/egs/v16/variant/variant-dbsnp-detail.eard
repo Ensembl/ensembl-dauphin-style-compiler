@@ -37,8 +37,6 @@ style!("""
     tracks/track/variant-dbsnp/main/main/sea/shallow/ {
         type: wall;
         priority: 0;
-        padding-top: 4;
-        padding-bottom: 4;
     }
 
     tracks/track/variant-dbsnp/main/main/sea/shallow/* {
@@ -139,12 +137,13 @@ let tl_pen = pen("300 'IBM Plex Mono', monospace", 10, [colour!("#1b2c39"),...],
 let tr_pen = pen("600 'IBM Plex Mono', monospace", 11, [colour!("#1b2c39"),...], [colour!("transparent"),...]); //Semibold
 let bottom_pen = pen("600 'IBM Plex Mono', monospace", 10, [colour!("#1b2c39"),...], [colour!("transparent"),...]);
 
-/* Create sea leafs */
+/* Create sea leafs (below bp blocks) */
 
 // construct sea leaf paths for each variant
 let base_container = push_str("tracks/track/variant-dbsnp/main/main/sea/", if(deep, ["deep/",...], ["shallow/",...]));
 shallow_container = push_str(push_str(base_container, v.variety), v.id);
 sea_text_leaf = leaf(push_str(shallow_container, "/text/content")); // ['../sea/shallow/SNV/rs699/text/content', ...]
+sea_text_leaf = set(sea_text_leaf, !deep, [leaf(""),...]); // move SNVs text to bin
 deep_sea_text_leaf = if(deep, sea_text_leaf, [leaf(""),...]);
 
 /* Draw sea text (variant type, alleles, id) */
@@ -185,9 +184,9 @@ rectangle(
 
 let dot_size = 3; //radius
 let dot_smoothness = 13; //nr of corners
-let height_to_dot = [(top_line_height/2)-(dot_size/2),...];
+let height_to_dot = [(top_line_height/2)-(dot_size/2)-1,...];
 let line_paint = paint_dotted([colour!("white"),...], [colour!("#999"),...], 4, 1, 0.5);
-let fish_line_h = height_to_dot-(dot_size/2)-2;
+let fish_line_h = height_to_dot-(dot_size/2)-1;
 
 rectangle_join(
     coord(v.display_start, fish_line_h, [1,...]),
