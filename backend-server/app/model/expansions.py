@@ -18,6 +18,7 @@ class Expansions:
 
     def define_variation_track(self, track_id):
         track_data = variation_tracks_map[track_id]
+        track_data_ids = create_variant_track_data_ids(track_id)
 
         # While for the client, there is only one id for a track,
         # usually there are in fact several tracks associated with an id reported by the client;
@@ -39,10 +40,10 @@ class Expansions:
             track.add_value("display_order", track_data['display-order']) # temporary, probably
 
         # define summary view settings
-        track_summary_view.add_value("track_data_id", track_data['summary-data-id'])
+        track_summary_view.add_value("track_data_id", track_data_ids['summary-data-id'])
 
         # define zoomed-in view settings
-        track_details_view.add_value("track_data_id", track_data['zoomed-data-id'])
+        track_details_view.add_value("track_data_id", track_data_ids['zoomed-data-id'])
         track_details_view.add_setting("label-snv-id", ["track", "expand-variation", track_id, "label-snv-id"])
         track_details_view.add_setting("label-snv-alleles", ["track", "expand-variation", track_id, "label-snv-alleles"])
         track_details_view.add_setting("label-other-id", ["track", "expand-variation", track_id, "label-other-id"])
@@ -59,15 +60,27 @@ class Expansions:
 
 variation_tracks_map = {
     'variant-dbsnp': {
-        'zoomed-data-id': 'variant-labels-dbsnp',
-        'summary-data-id': 'variant-dbsnp',
         'track-name': 'Track name for dbsnp',
         'display-order': '1001'
     },
     'variant-1000genomes': {
-        'zoomed-data-id': 'variant-labels-1000genomes',
-        'summary-data-id': 'variant-1000genomes',
         'track-name': 'Track name for 1000genomes',
         'display-order': '1000'
     }
 }
+
+def create_variant_track_data_ids(track_id):
+    """
+    So far, the convention we are using for variant track ids
+    is as follows:
+    - Summary program requests data using the same id as provided in track API (e.g. variant-dbsnp)
+        -  VariantSummaryDataHandler adds a suffix "-summary" to the track id
+    - Zoomed-in program requests data with an id that has the word "labels" inserted between
+        the word "variant" and the rest of the id
+    """
+    id_parts = track_id.split('-')
+    id_parts = [id_parts[0], 'labels', *id_parts[1:]] # injject the word "labels" into the id
+    return {
+        'zoomed-data-id': '-'.join(id_parts),
+        'summary-data-id': track_id
+    }
