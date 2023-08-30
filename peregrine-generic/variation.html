@@ -84,14 +84,23 @@
         }
 
         function toggle_track(track_name) {
+          console.log('track_name', track_name);
           let cur = tracks_on[track_name];
           if(cur!==true && cur!==false) { cur = true; }
           let value = !cur;
           tracks_on[track_name] = value;
           if(value) {
-            genome_browser.switch(["track",track_name],true);
+            if (track_name.startsWith('variant')) {
+              genome_browser.switch(["track", 'expand-variation', track_name],true);
+            } else {
+              genome_browser.switch(["track",track_name],true);
+            }
           } else {
-            genome_browser.switch(["track",track_name],false);
+            if (track_name.startsWith('variant')) {
+              genome_browser.switch(["track", 'expand-variation', track_name],false);
+            } else {
+              genome_browser.switch(["track",track_name],false);
+            }
           }
         }
         function toggle_label(track_name) {
