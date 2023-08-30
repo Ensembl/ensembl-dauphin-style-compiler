@@ -6,6 +6,7 @@ DST="./egs-data/begs"
 eard-compiler \
     -c $SRC/v16/other/framing.eard -c $SRC/v16/other/gc.eard -c $SRC/v16/other/contig.eard \
     -c $SRC/v16/other/zoomed-seq.eard -c $SRC/v16/variant/variant-1000genomes.eard \
+    -c $SRC/v16/variant/variant-summary.eard -c $SRC/v16/variant/variant-zoomed.eard \
     -c $SRC/v16/variant/variant-dbsnp.eard -c $SRC/v16/variant/variant-eva.eard -c $SRC/v16/variant/variant-sgrp.eard \
     -c $SRC/v16/variant/variant-clinvar.eard -c $SRC/v16/variant/variant-gwas.eard -c $SRC/v16/variant/variant-dbsnp-detail.eard\
     -c $SRC/v16/other/ruler.eard -c $SRC/v16/gene/gene-overview.eard -c $SRC/v16/gene/gene.eard \
