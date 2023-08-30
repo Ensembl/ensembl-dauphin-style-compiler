@@ -60,11 +60,11 @@ class Expansions:
 
 variation_tracks_map = {
     'variant-dbsnp': {
-        'track-name': 'Track name for dbsnp',
+        'track-name': 'dbSNP short variants',
         'display-order': '1001'
     },
     'variant-1000genomes': {
-        'track-name': 'Track name for 1000genomes',
+        'track-name': '1000 Genomes short variants',
         'display-order': '1000'
     }
 }
