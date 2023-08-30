@@ -28,10 +28,6 @@ let track_main_sea_deep_leaf_id = push_str(track_main_sea_leaf_id, "deep/");
 let track_main_sea_deep_all_leaf_id = push_str(track_main_sea_leaf_id, "*");
 
 
-print("VARIANT ZOOMED");
-print(track_display_order);
-
-
 style(
   track_leaf_id,
   [
