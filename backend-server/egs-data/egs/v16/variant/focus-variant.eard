@@ -13,13 +13,20 @@ track_styles();
 style!("""
         tracks/track/focus-variant/ {
             priority: -900;
-            padding-top: 50;
             report: "track;switch-id=focus;!variant-id";
         }
 
+        tracks/track/focus-variant/main/letter/ {
+            padding-top: 30;
+        }
+
+        tracks/track/focus-variant/title/ {
+            padding-top: 53;
+            padding-bottom:-28;
+        }
+
         tracks/track/focus-variant/main/main/sun/ {
-            min-height: 50;
-            padding-top: -45;
+            min-height: 35;
             type: overlay;
             priority: -1;
         }
@@ -40,30 +47,32 @@ style!("""
 
         tracks/track/focus-variant/main/main/sea/ {
             type: stack;
+            min-height: 35;
             priority: 1;
         }
 
         tracks/track/focus-variant/main/main/sea/shallow/ {
             type: wall;
             priority: 0;
-            padding-top: 8;
-            padding-bottom: 4;
         }
 
         tracks/track/focus-variant/main/main/sea/shallow/* {
             type: stack;
             bump-scale: 0.6;
-            padding-top: 8;
+            padding-top: 4;
             padding-bottom: 4;
         }
 
         tracks/track/focus-variant/main/main/sea/deep/ {
             type: wall;
             priority: 1;
+            padding-top: 14;
         }
 
         tracks/track/focus-variant/main/main/sea/deep/* {
             type: stack;
+            padding-top: 4;
+            padding-bottom: 4;
         }
 """);
 
@@ -150,12 +159,13 @@ let right_offset = text_width(strlen(top_left_text));
 let text_offset = 8;
 
 let is_focus_v = v.id == focus_variant_id;
-let top_line_height = 15;
+let top_line_height = 13;
 let bottom_line_height = 13;
 let eel_line_height = 13;
+let sun_bottom_padding = 19;
 let height_to_eel = if(v.label_id || is_focus_v, [top_line_height+bottom_line_height,...], [top_line_height,...]); //total text height
 let height = height_to_eel + if(label.eel && !is_focus_v, [eel_line_height,...], [0,...]); //text + eel (extent) height
-let sun_delta = -(height-(top_line_height+bottom_line_height+eel_line_height)); // top edge of focus variant text
+let sun_delta = -(height-(top_line_height+bottom_line_height+eel_line_height))-sun_bottom_padding; // top edge of focus variant text
 
 /* Draw sun (above the bp blocks) */
 
@@ -230,7 +240,7 @@ let eel_h = 3;
 rectangle(
     coord(position, index(height_to_eel,eel_v), [base_gap/2,...]),
     coord(position+1, index(height_to_eel,eel_v)+eel_h, [-base_gap/2,...]),
-    paint_solid(colour!("#999")),
+    paint_solid(colour!("#6f8190")),
     if(label.eel, index(sea_text_leaf,eel_v), [leaf(""),...])
 );
 
