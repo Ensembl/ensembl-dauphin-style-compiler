@@ -86,15 +86,11 @@ style(
   track_main_sea_shallow_leaf_id,
   [
     "type",
-    "priority",
-    "padding-top",
-    "padding-bottom"
+    "priority"
   ],
   [
     "wall",
-    "0",
-    "4",
-    "4"
+    "0"
   ]
 );
 style(
