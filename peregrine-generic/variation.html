@@ -84,7 +84,6 @@
         }
 
         function toggle_track(track_name) {
-          console.log('track_name', track_name);
           let cur = tracks_on[track_name];
           if(cur!==true && cur!==false) { cur = true; }
           let value = !cur;
@@ -235,7 +234,6 @@
         genome_browser.switch(["track","gc","name"],true);
         genome_browser.switch(["track","contig"],true);
         genome_browser.switch(["track","contig","name"],true);
-        genome_browser.switch(["track","expand-variation"],true); // <-- NOTE THIS. DOES THIS MEAN WE HAVE TO EXPLICITLY ENABLE THE EXPANSION NODE?
         genome_browser.switch(["ruler"],true);
         genome_browser.switch(["ruler","one_based"],true);
 
