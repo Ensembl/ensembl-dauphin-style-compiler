@@ -226,7 +226,6 @@ let bottom_pen = pen("600 'IBM Plex Mono', monospace", 10, [colour!("#1b2c39"),.
 let base_container = push_str(track_main_sea_leaf_id, if(deep, ["deep/",...], ["shallow/",...]));
 shallow_container = push_str(push_str(base_container, v.variety), v.id);
 sea_text_leaf = leaf(push_str(shallow_container, "/text/content")); // ['../sea/shallow/SNV/rs699/text/content', ...]
-sea_text_leaf = set(sea_text_leaf, !deep, [leaf(""),...]); // move SNVs text to bin
 deep_sea_text_leaf = if(deep, sea_text_leaf, [leaf(""),...]);
 
 /* Draw sea text (variant type, alleles, id) */
