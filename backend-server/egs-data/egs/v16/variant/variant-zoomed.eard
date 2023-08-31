@@ -18,6 +18,8 @@ let track_display_order = setting_string("display_order", []);
 
 let track_leaf_id = push_str("tracks/track/", track_id);
 track_leaf_id = push_str(track_leaf_id, "/");
+let track_title_leaf_id = push_str(track_leaf_id, "title/");
+let track_main_letter_leaf_id = push_str(track_leaf_id, "main/letter/");
 let track_main_shore_leaf_id = push_str(track_leaf_id, "main/main/shore/");
 let track_main_shore_under_leaf_id = push_str(track_main_shore_leaf_id, "under/");
 let track_main_shore_over_leaf_id = push_str(track_main_shore_leaf_id, "over/");
@@ -36,6 +38,24 @@ style(
   ], [
     track_display_order,
     push_str("track;switch-id=", track_id)
+  ]
+);
+style(
+  track_title_leaf_id,
+  [
+    "padding-top",
+    "padding-bottom"
+  ], [
+    "0",
+    "7"
+  ]
+);
+style(
+  track_main_letter_leaf_id,
+  [
+    "padding-top"
+  ], [
+    "-5"
   ]
 );
 style(
@@ -86,11 +106,13 @@ style(
   track_main_sea_shallow_leaf_id,
   [
     "type",
-    "priority"
+    "priority",
+    "padding-top"
   ],
   [
     "wall",
-    "0"
+    "0",
+    "8"
   ]
 );
 style(
