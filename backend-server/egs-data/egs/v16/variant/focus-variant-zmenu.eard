@@ -1,9 +1,43 @@
+/*
+A NOTE ON INSERTIONS
+
+You will notice in the function below that insertions are treated differently
+than any other variants. The reason for this is as follows.
+
+According to the conventions of the bed format, the location of a zero-length features
+is represented with a start coordinate being equal to the end coordinate
+(because, length = end - start, or 0). Here is what an FAQ from UCSC says on the subject:
+
+"chromStart and chromEnd can be identical, creating a feature of length 0,
+commonly used for insertions. For example, use chromStart=0, chromEnd=0
+to represent an insertion before the first nucleotide of a chromosome."
+
+Notice in the quote above that an insertion is represented by a nucleotide
+right after it. This is different from how we represent insertions
+at Ensembl, where we mark the position of the anchoring nucleotide
+as the one immediately before the insertion.
+
+Thus, to report the coordinate of an insertion, we follow the following logic:
+- We take the end coordinate of the variant in the bed file.
+- Remembering that the bed format is end-exclusive, we move to the nucleotide
+at location end - 1. This is the anchoring nucleotide according to Ensembl conventions
+(the one immediately the left of the insertion).
+- We translate the start coordinate of that nucleotide from bed to Ensembl
+coordinate system by adding 1, i.e.: variant.end - 1 + 1,
+which results in the same number as simply variant.end.
+- This we send to the client as the start coordinate of the insertion,
+- The end coordinate sent to the client is the same as the start.
+*/
+
+
 export function variant_zmenu(*variant) {
-    let tmpl = template_start("{0}:{1}-{2}");
-    let variant_ensembl_start = variant.start + 1;
+    let tmpl = template_start("{0}:{1}");
+
+    // see the explainer note above
+    let variant_ensembl_start = if(variant.variety == "insertion", variant.start, variant.start + 1);
+
     template_set(tmpl,0,variant.chromosome);
     template_set(tmpl,1,comma_format(variant_ensembl_start));
-    template_set(tmpl,2,comma_format(variant.end));
     let position = template_end(tmpl);
 
     struct!(metadata_zmenu,"""
