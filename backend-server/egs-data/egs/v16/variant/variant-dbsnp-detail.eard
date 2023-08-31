@@ -46,6 +46,7 @@ style!("""
     tracks/track/variant-dbsnp/main/main/sea/shallow/ {
         type: wall;
         priority: 0;
+        padding-top: 8;
     }
 
     tracks/track/variant-dbsnp/main/main/sea/shallow/* {
@@ -56,7 +57,7 @@ style!("""
     }
 
     tracks/track/variant-dbsnp/main/main/sea/deep/ {
-        padding-top: 12;
+        padding-top: 8;
         type: wall;
         priority: 1;
     }

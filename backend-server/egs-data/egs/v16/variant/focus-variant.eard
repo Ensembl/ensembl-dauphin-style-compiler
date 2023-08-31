@@ -54,6 +54,7 @@ style!("""
         tracks/track/focus-variant/main/main/sea/shallow/ {
             type: wall;
             priority: 0;
+            padding-top: 8;
         }
 
         tracks/track/focus-variant/main/main/sea/shallow/* {
@@ -66,7 +67,7 @@ style!("""
         tracks/track/focus-variant/main/main/sea/deep/ {
             type: wall;
             priority: 1;
-            padding-top: 14;
+            padding-top: 8;
         }
 
         tracks/track/focus-variant/main/main/sea/deep/* {
