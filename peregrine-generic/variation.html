@@ -4,7 +4,7 @@
     <meta content="text/html;charset=utf-8" http-equiv="Content-Type"/>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;600;700&family=Lato:wght@700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css"/>
   </head>
   <body>
@@ -241,9 +241,22 @@
 
 
         genome_browser.switch(["track", "expand-variation", "variant-dbsnp"],true);
-        genome_browser.switch(["track", "expand-variation", "variant-1000genomes"],true);
-        genome_browser.goto(31915000, 31970000);
+        genome_browser.switch(["track", "expand-variation", "variant-dbsnp", "name"], true);
+        genome_browser.switch(["track", "expand-variation", "variant-dbsnp", "label-snv-id"], true);
+        genome_browser.switch(["track", "expand-variation", "variant-dbsnp", "label-snv-alleles"], true);
+        genome_browser.switch(["track", "expand-variation", "variant-dbsnp", "label-other-id"], true);
+        genome_browser.switch(["track", "expand-variation", "variant-dbsnp", "label-other-alleles"], true);
+        genome_browser.switch(["track", "expand-variation", "variant-dbsnp", "show-extents"], true);
 
+        genome_browser.switch(["track", "expand-variation", "variant-1000genomes"],true);
+        genome_browser.switch(["track", "expand-variation", "variant-1000genomes", "name"], true);
+
+        genome_browser.goto(31946192, 31946248);
+
+
+        // try this location for broken view
+        // genome_browser.set_stick("a7335667-93e7-11ec-a39d-005056b38ce3:1");
+        // genome_browser.goto(230710017, 230710064);
       });
     </script>
   </body>
