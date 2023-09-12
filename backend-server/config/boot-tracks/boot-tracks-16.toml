@@ -295,7 +295,7 @@ shimmer = true
 
 [track.contig.general]
 include = ["general"]
-scales = [7,25,3]
+scales = [7,100,3]
 triggers = [["track","contig"]]
 
 [track.contig.settings]
