@@ -35,8 +35,8 @@
           <button id="focus-region">focus region</button>
           <button id="unload">unload</button>
           <button id="toggle-all-tr">toggle all tr</button>
-          <button id="expand1">expand1</button>
-          <button id="expand2">expand2</button>
+          <button id="tab1">tab1</button>
+          <button id="tab2">tab2</button>
         </div>
         <div class="payload">current: <span id="current"></span></div>
         <div class="payload">target: <span id="target"></span></div>
@@ -71,7 +71,7 @@
     <script type="module">
       import { GenomeBrowser, default as init } from './pkg/peregrine_generic.js';
       init().then(function() {
-        let genome_browser = new GenomeBrowser();
+        let genome_browser = window.gb = new GenomeBrowser();
         genome_browser.go({
           //backend_url: "http://52.56.215.72:3333/api/data",
           //backend_url: "http://staging-2020.ensembl.org/api/browser/data",
@@ -96,6 +96,8 @@
         var on_by_default = {"label":true, "name":true}; 
         var tracks_on = {};
 
+        /* Helper functions */
+
         function toggle_all_tr() {
           for(const tr in seen_transcripts) {
             if(tr_off) {
@@ -106,9 +108,7 @@
           }
           tr_off = !tr_off;
           genome_browser.switch(["track","focus","enabled-transcripts"],Object.keys(shown_transcripts));
-        }
-
-        /* Helper functions */ 
+        } 
 
         function toggle_track(track_name) {
           let cur = tracks_on[track_name];
@@ -145,6 +145,27 @@
             "genome_id": "a7335667-93e7-11ec-a39d-005056b38ce3",
             "variant_id": rsid
           });
+        }
+
+        function init_track(track_ids) { //enable "built-in" track(s)
+          if(typeof(track_ids) == "string") track_ids = [track_ids];
+          track_ids.forEach(track_id => {
+            genome_browser.switch(["track", track_id], true);
+            genome_browser.switch(["track", track_id, "name"], true);
+            genome_browser.switch(["track", track_id, "label"], true); //used for some tracks
+            if(track_id == "focus") genome_browser.switch(["track", "focus", "item"], true);
+          });
+        }
+
+        function init_variant_track(track_id) { //enable expansion (variant) tracks
+          genome_browser.switch(["track", "expand-variation"], true);
+          genome_browser.switch(["track", "expand-variation", track_id], true);
+          genome_browser.switch(["track", "expand-variation", track_id, "name"], true);
+          genome_browser.switch(["track", "expand-variation", track_id, "label-snv-id"], true);
+          genome_browser.switch(["track", "expand-variation", track_id, "label-snv-alleles"], true);
+          genome_browser.switch(["track", "expand-variation", track_id, "label-other-id"], true);
+          genome_browser.switch(["track", "expand-variation", track_id, "label-other-alleles"], true);
+          genome_browser.switch(["track", "expand-variation", track_id, "show-extents"], true);
         }
 
         function flipper(path) {
@@ -290,28 +311,8 @@
           }
         });
 
-        /* Set startup view/location */
+        /* Add listeners to interface buttons */
 
-        genome_browser.switch(["ruler"], true);
-        genome_browser.switch(["ruler", "one_based"], true);
-        genome_browser.switch(["track", "focus"], true);
-        genome_browser.switch(["track", "focus", "item"], true);
-        genome_browser.switch(["track", "focus", "name"], true);
-        genome_browser.switch(["track", "focus", "label"], true);
-        genome_browser.switch(["track", "gene-pc-fwd"], true);     
-        genome_browser.switch(["track", "gene-pc-fwd", "label"], true);
-        genome_browser.switch(["track", "gene-pc-fwd", "name"], true);
-        genome_browser.switch(["track", "contig"], true);
-        genome_browser.switch(["track", "contig", "name"], true);
-        genome_browser.switch(["track", "gc"], true);
-        genome_browser.switch(["track", "gc", "name"], true);
-        genome_browser.switch(["track", "variant-dbsnp"], true);
-        genome_browser.switch(["track", "variant-dbsnp", "name"], true);
-        //genome_browser.switch(["track", "variant-1000genomes"], true);
-        //genome_browser.switch(["track", "variant-1000genomes", "name"], true);
-        jump_variant("rs1557469781", 1, 1176408);
-
-        /* Add actions to sidebar buttons/inputs */
         //document.getElementById("bigger").onclick = flipper(["settings","bigger"]);
         //document.getElementById("id-labels").onclick = flipper(["track","gene-pc-fwd","label","id"]);
 
@@ -365,18 +366,11 @@
           // genome_browser.set_stick("a7335667-93e7-11ec-a39d-005056b38ce3:4");
           // genome_browser.goto(32300000,32420000);
         };
-        document.getElementById("expand1").onclick = function() {
+        document.getElementById("tab1").onclick = function() {
           genome_browser.switch(["settings","tab-selected"],"G");
-          //genome_browser.switch(["track","expand","ff0099"],true);
         };
-        document.getElementById("expand2").onclick = function() {
+        document.getElementById("tab2").onclick = function() {
           genome_browser.switch(["settings","tab-selected"],"V");
-          /*
-          genome_browser.switch(["settings"],true);
-          genome_browser.switch(["settings","green"],50);
-          genome_browser.switch(["track","user"],true);
-          genome_browser.switch(["track","user","78"],true);
-          */
         };
         document.getElementById("unload").onclick = function() {
           document.getElementById("browser").remove();
@@ -393,111 +387,16 @@
             },10);
           }
         };
+      
+        /* Set initial tracks/settings */
 
-        /* Expansion track test code */
-        genome_browser.add_jsapi_channel("test", {
-          callbacks: {
-            jump: function (location) {
-              return delay(100).then(() => {
-                let parts = location.split(":");
-                let stick = parts.slice(1, parts.length - 1).join(":");
-                if (parts.length < 3 || parts[0] != "region") { return null; }
-                let start_end = parts[parts.length - 1].split("-");
-                if (start_end.length < 2) { return null; }
-                return {
-                  "stick": stick,
-                  "left": parseInt(start_end[0]),
-                  "right": parseInt(start_end[1])
-                };
-              })
-            },
-            data: function (source, stick, scale, index, scope) {
-              console.log("data " + source + " " + stick + " " + scale + " " + index + " " + scope);
-              return {
-                "data": {
-                  "start": [86200000, 86400000],
-                  "end": [86300000, 86500000]
-                }
-              };
-            },
-            small_values: function (namespace, column) {
-              return {};
-            },
-            stickinfo: function (stick) {
-              return delay(100).then(() => {
-                console.log("stick " + stick);
-                return {};
-              })
-            },
-            boot: function () {
-              return delay(100).then(() => {
-                console.log("booting inside", this);
-                let expansions = [
-                  {
-                    "name": "js-expansion",
-                    "backend_namespace": this.backend_namespace,
-                    "triggers": [
-                      ["track", "user"]
-                    ]
-                  }
-                ];
-                let tracks = [
-                  {
-                    "program": ["special", "test", 1],
-                    "tags": "",
-                    "triggers": [
-                      ["track", "user2"]
-                    ],
-                    "settings": {
-                      "green": ["setting", "green"]
-                    },
-                    "values": {
-                      "red": 100.0,
-                      "blue": 0.0
-                    },
-                    "scale_start": 0,
-                    "scale_end": 60,
-                    "scale_step": 1
-                  }
-                ];
-                return { expansions, tracks };
-              });
-            },
-            expand: function (name, step) {
-              return delay(100).then(() => {
-                if (name == "js-expansion") {
-                  let tracks = [
-                    {
-                      "program": ["ensembl-webteam/core", "test-with-data", 1],
-                      "tags": "",
-                      "triggers": [
-                        ["track", "user", step]
-                      ],
-                      "settings": {
-                        "green": ["settings", "green"]
-                      },
-                      "values": {
-                        "red": parseInt(step),
-                        "blue": 100.0
-                      },
-                      "scale_start": 0,
-                      "scale_end": 60,
-                      "scale_step": 1
-                    }
-                  ];
-                  console.log("expand", name, step);
-                  return { tracks };
-                } else {
-                  return {};
-                }
-              });
-            },
-            program: function (group, name, version) {
-              console.log("program", group, name, version);
-              return {};
-            }
-          }
-        });
+        genome_browser.switch(["ruler"], true);
+        genome_browser.switch(["ruler", "one_based"], true);
+        genome_browser.switch(["track", "focus"], true);
+        init_track(["gene-pc-forward","contig","gc","regulation","focus"]);
+        init_variant_track("5406535e-b21a-45a6-b9d6-75482353206f");
+        jump_variant("rs1557469781", 1, 1176408);
+        
       });
     </script>
   </body>
