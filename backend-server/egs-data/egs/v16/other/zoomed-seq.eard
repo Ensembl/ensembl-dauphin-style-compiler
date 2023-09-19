@@ -36,12 +36,11 @@ let seq_letter_rev = index(sequence_rev,letter_offset); // letters to draw (reve
 /* Draw the letters */
 
 let base_pen = pen("'IBM Plex Mono', sans-serif",10,[colour!("#6f8190"),...],[colour!("transparent"),...]);
-let letters_leaf = leaf("tracks/track/contig/main/main/content");
-let base_paint = paint_hollow(colour!("#6f8190"),1);
+let letters_leaf = leaf("tracks/track/contig/main/main/content"); 
 let base_height = 10;
 
 procedure draw_base(position,letters,offset) {
-    capture base_pen, letters_leaf, base_paint, base_height;
+    capture base_pen, letters_leaf, base_height;
 
     let text_coord = coord(position+0.5,[offset+1,...],[-3.5,...]);
     text(text_coord,base_pen,letters,[letters_leaf,...]);
