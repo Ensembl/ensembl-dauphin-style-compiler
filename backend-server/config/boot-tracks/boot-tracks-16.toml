@@ -295,28 +295,17 @@ shimmer = true
 
 [track.contig.general]
 include = ["general"]
-scales = [9,25,3]
+scales = [7,100,3]
 triggers = [["track","contig"]]
 
 [track.contig.settings]
 name = ["track","contig","name"]
 
-[track.sequence-no-letters.general]
-include = ["general"]
-program_name = "zoomed-seq"
-scales = [7,8,2]
-triggers = [["track","contig"]]
-
-[track.sequence-no-letters.settings]
-name = ["track","contig","name"]
-
-[track.sequence-no-letters.values]
-scale-no-letters = true
 
 [track.sequence.general]
 include = ["general"]
 program_name = "zoomed-seq"
-scales = [0,6,3]
+scales = [0,6,2]
 triggers = [["track","contig"]]
 
 [track.sequence.settings]
