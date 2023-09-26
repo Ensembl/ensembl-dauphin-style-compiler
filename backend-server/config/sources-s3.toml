@@ -5,4 +5,4 @@ refget_url = "https://beta.ensembl.org/api/refget/sequence/"
 min_version = 16
 
 [apis]
-track_api = "https://beta.ensembl.org/api/tracks/"
+track_api = "https://beta.ensembl.org/api/tracks"

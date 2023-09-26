@@ -11,4 +11,4 @@ upstream = "http://52.56.215.72:3333/api/data"
 upstream = "http://52.56.215.72:3333/api/data"
 
 [apis]
-track_api = "https://beta.ensembl.org/api/tracks/"
+track_api = "https://beta.ensembl.org/api/tracks"
