@@ -1,5 +1,8 @@
 [source.apple]
 driver = "s3"
-url="http://nginx/upload-20220829/"
-refget_url="https://beta.ensembl.org/api/refget/sequence/"
-min_version = 14
+url = "http://nginx/upload-20220829/"
+refget_url = "https://beta.ensembl.org/api/refget/sequence/"
+min_version = 16
+
+[apis]
+track_api = "https://beta.ensembl.org/api/tracks/"
