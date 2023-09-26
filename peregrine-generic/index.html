@@ -147,7 +147,7 @@
           });
         }
 
-        function init_track(track_ids) { //enable "built-in" track(s)
+        function init_tracks(track_ids) { //enable "built-in" track(s)
           if(typeof(track_ids) == "string") track_ids = [track_ids];
           track_ids.forEach(track_id => {
             genome_browser.switch(["track", track_id], true);
@@ -393,7 +393,7 @@
         genome_browser.switch(["ruler"], true);
         genome_browser.switch(["ruler", "one_based"], true);
         genome_browser.switch(["track", "focus"], true);
-        init_track(["gene-pc-forward","contig","gc","regulation","focus"]);
+        init_tracks(["gene-pc-forward","contig","gc","regulation","focus"]);
         init_variant_track("5406535e-b21a-45a6-b9d6-75482353206f");
         jump_variant("rs1557469781", 1, 1176408);
         

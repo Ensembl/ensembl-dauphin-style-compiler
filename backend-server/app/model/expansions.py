@@ -30,7 +30,6 @@ class Expansions:
         if resp.status_code != requests.codes.ok:
             raise Exception(f"Track API request failed for track '{track_id}': {resp.reason}")
         track_data = resp.json()
-        print(track_data)
         if("track_id" not in track_data or track_data["track_id"] != track_id):
             raise Exception(f"Track {track_id} not found in Track API payload: {track_data}")
         #Temporary hack until TrackAPI integrated for datafile location
@@ -51,7 +50,7 @@ class Expansions:
         for track in [track_summary_view, track_details_view]:
             track.add_trigger(["track", "expand-variation", track_id]) # to turn a track on/off
             track.add_setting("name", ["track", "expand-variation", track_id, "name"]) # toggle track name on/off
-            track.add_setting("display_order", ["track", "expand-variation", track_id, "display_order"]) # set track order
+            #track.add_setting("rank", ["track", "expand-variation", track_id, "display_order"]) # set track order
             track.add_value("track_id", track_id) # will be required for defining the track "leaf" in the tree of tracks
             track.add_value("track_name", track_data['label']) # inject track name into the track program
             track.add_value("display_order", track_data['display_order']) # initial track order
