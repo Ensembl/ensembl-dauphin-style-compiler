@@ -1,7 +1,7 @@
 [source.apple]
 driver = "s3"
 url = "http://nginx/upload-20220829/"
-refget_url = "https://beta.ensembl.org/api/refget/sequence/"
+refget_url = "https://staging-2020.ensembl.org/api/refget/sequence/"
 min_version = 16
 
 [redirect.data]
@@ -11,4 +11,4 @@ upstream = "http://52.56.215.72:3333/api/data"
 upstream = "http://52.56.215.72:3333/api/data"
 
 [apis]
-track_api = "https://beta.ensembl.org/api/tracks"
+track_api = "https://staging-2020.ensembl.org/api/tracks"
