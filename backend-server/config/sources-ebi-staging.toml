@@ -1,5 +1,8 @@
-[source.banana]
+[source.apple]
 driver = "file"
 root = "/usr/data/newsite/staging/genome_browser/7"
-refget_url="http://ensembl-refget-proxy-svc:8083/api/sequence/"
-min_version = 14
+refget_url = "http://ensembl-refget-proxy-svc:8083/api/sequence/"
+min_version = 16
+
+[apis]
+track_api = "http://ensembl-track-api-svc:8012"
