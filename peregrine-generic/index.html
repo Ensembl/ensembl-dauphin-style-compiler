@@ -116,6 +116,8 @@
           let value = !cur;
           tracks_on[track_name] = value;
           let track_path = ["track"];
+          // hack: uuid track id => assume variation track
+          // todo: add this info to GB track list payload
           if(track_name.length == 36) track_path.push("expand-variation");
           track_path.push(track_name);
           genome_browser.switch(track_path, value);
