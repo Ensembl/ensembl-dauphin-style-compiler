@@ -1,15 +1,15 @@
 from __future__ import annotations
+from tokenize import Number
+from typing import Any, Dict, List, Optional
+import time, zlib, cbor2
 
-import zlib, cbor2
+from .coremodel import Handler, Panel
+from .response import Response
+from .datasources import DataAccessor
+from .exceptionres import DataException
+from util.influx import ResponseMetrics
+from model.version import Version
 
-from data.v15.variant import VariantDataHandler15
-from data.v15.contig import ShimmerContigDataHandler15
-from data.v15.contig import ContigDataHandler15
-from data.v15.wiggle.gc import WiggleDataHandler15
-from data.v15.sequence import ZoomedSeqDataHandler15
-from data.v15.gene.genedata import TranscriptDataHandler15
-from data.v15.gene.genedata import GeneDataHandler15
-from data.v15.gene.genedata import GeneOverviewDataHandler15
 from data.v16.variant import VariantLabelsDataHandler, VariantSummaryDataHandler
 from data.v16.regulation import RegulationDataHandler
 from data.v16.contig import ShimmerContigDataHandler16
@@ -19,38 +19,7 @@ from data.v16.sequence import ZoomedSeqDataHandler16
 from data.v16.gene.genedata import TranscriptDataHandler16
 from data.v16.gene.genedata import GeneDataHandler16
 from data.v16.gene.genedata import GeneOverviewDataHandler16
-from tokenize import Number
-from typing import Any, Dict, List, Optional
-import time
-from .coremodel import Handler, Panel
-from .response import Response
-from .datasources import DataAccessor
-from .exceptionres import DataException
-
-from data.old.genedata8 import (
-    GeneDataHandler8,
-    GeneOverviewDataHandler8,
-    TranscriptDataHandler8,
-    GeneLocationHandler8,
-)
-from data.old.gc import WiggleDataHandler
-from data.old.variant import VariantDataHandler
-from data.old.sequence8 import ZoomedSeqDataHandler8
-from data.old.contig import ContigDataHandler, ShimmerContigDataHandler
-
-from data.v14.gene.genedata import (
-    GeneDataHandler,
-    GeneOverviewDataHandler,
-    TranscriptDataHandler,
-)
-from data.v14.wiggle.gc import WiggleDataHandler2
-from data.v14.variant import VariantDataHandler2
-from data.v14.sequence import ZoomedSeqDataHandler
-from data.v14.contig import ContigDataHandler2, ShimmerContigDataHandler2
-
 from data.focusjump import FocusJumpHandler
-from util.influx import ResponseMetrics
-from model.version import Version
 
 handlers = [
     ("gene-overview", GeneOverviewDataHandler16(), 16),
@@ -60,16 +29,8 @@ handlers = [
     ("gc", WiggleDataHandler16(), 16),
     ("contig", ContigDataHandler16(), 16),
     ("shimmer-contig", ShimmerContigDataHandler16(), 16),
-    ("variant-1000genomes", VariantSummaryDataHandler("variant-1000genomes"), 16),
-    ("variant-dbsnp", VariantSummaryDataHandler("variant-dbsnp"), 16),
-    ("variant-clinvar", VariantSummaryDataHandler("variant-clinvar"), 16),
-    ("variant-gwas", VariantSummaryDataHandler("variant-gwas"), 16),
-    ("variant-eva", VariantSummaryDataHandler("variant-eva"), 16),
-    ("variant-sgrp", VariantSummaryDataHandler("variant-sgrp"), 16),
-    ("focus-variant", VariantSummaryDataHandler("variant"), 16),
-    ("variant-labels", VariantLabelsDataHandler(), 16),
-    ("variant-labels-dbsnp", VariantLabelsDataHandler("dbsnp"), 16),
-    ("variant-labels-1000genomes", VariantLabelsDataHandler("1000genomes"), 16),
+    ("variant-summary", VariantSummaryDataHandler(), 16),
+    ("variant-details", VariantLabelsDataHandler(), 16),
     ("regulation", RegulationDataHandler(), 16),
 ]
 
@@ -88,7 +49,7 @@ def make_handlers_for_version(version_wanted: Number) -> Dict[str, DataHandler]:
             line = (line[0], line[1], 0)
         (name, handler, version) = line
         old_version = versions.get(name, -1)
-        # If not too new for what we're building and newere than anything so far, record it.
+        # If not too new for what we're building and newer than anything so far, record it.
         if version <= version_wanted and version > old_version:
             out[name] = handler
             versions[name] = version
@@ -117,11 +78,7 @@ class DataHandler(Handler):
         metrics: ResponseMetrics,
         version: Version,
     ) -> Response:
-        if version.get_egs() < 14:
-            (channel, name, panel, scope) = payload
-            accept = ""
-        else:
-            (channel, name, panel, scope, accept) = payload
+        (channel, name, panel, scope, accept) = payload
         panel = Panel(panel)
         out = data_accessor.cache.get_data(
             [channel, name, panel.dumps(), scope, accept], version
@@ -132,17 +89,14 @@ class DataHandler(Handler):
             return out
         handler = self.get_handler(name, version)
         if handler == None:
-            return Response(1, "Unknown data endpoint {0}".format(name))
+            return Response(1, f"Unknown data endpoint: {name}")
         start = time.time()
         try:
-            if version.get_egs() < 14:
-                out = handler.process_data(data_accessor, panel, scope)
-            else:
-                data = handler.process_data(data_accessor, panel, scope, accept)
-                invariant = data.pop("__invariant", False)
-                out = Response(
-                    5, {"data": compress_payload(data), "__invariant": invariant}
-                )
+            data = handler.process_data(data_accessor, panel, scope, accept)
+            invariant = data.pop("__invariant", False)
+            out = Response(
+                5, {"data": compress_payload(data), "__invariant": invariant}
+            )
         except DataException as e:
             out = e.to_response()
         time_taken_ms = (time.time() - start) * 1000.0

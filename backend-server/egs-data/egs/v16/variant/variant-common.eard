@@ -5,8 +5,8 @@ export procedure focus_variant_settings() {
     )    
 }
 
-function summary_leaf(track_name,suffix) {
-    leaf(join("/",["tracks/track",track_name,suffix]))
+function summary_leaf(track_id, suffix) {
+    leaf(join("/", ["tracks/track",track_id,suffix]))
 }
 
 export function variant_colours() {
@@ -20,16 +20,18 @@ export function variant_colours() {
     ]
 }
 
-export procedure variant_summary_track(track_name,track_label) {
-    let data = get_data(request("self()",track_name));
+export procedure variant_summary_track(track_id, track_label, track_datafile) {
+    let req = request("self()", "variant-summary");
+    scope(req, "datafile", track_datafile);
+    let data = get_data(req);
     halt(only_warm());
 
-    let values = data_number(data,"values");
-    let x_range = data_number(data,"range");
+    let values = data_number(data, "values");
+    let x_range = data_number(data, "range");
 
-    let start = index(x_range,0);
-    let end = index(x_range,1);
-    let step = index(x_range,2) / 4000; // 4000 is multiple for precision applied in BE variant endpoint. (named SCALE there). Yuk!
+    let start = index(x_range, 0);
+    let end = index(x_range, 1);
+    let step = index(x_range, 2) / 4000; // 4000 is multiple for precision applied in BE variant endpoint. (named SCALE there). Yuk!
 
     let pos_start = enumerate([len(values)]) * step + start;
     let pos_end = pos_start + step;
@@ -37,11 +39,11 @@ export procedure variant_summary_track(track_name,track_label) {
     let colours = variant_colours();
 
     let paint = paint_solid(index(colours,values));
-    let leaf = summary_leaf(track_name,"main/main/content");
-    rectangle(coord(pos_start,[0,...],[-1,...]),coord(pos_end,[5,...],[1,...]),paint,[leaf,...]);
+    let leaf = summary_leaf(track_id, "main/main/content");
+    rectangle(coord(pos_start,[0,...],[-1,...]), coord(pos_end,[5,...],[1,...]), paint, [leaf,...]);
 
     /* draw track furniture */
 
-    draw_track_name(track_label,"name",summary_leaf(track_name,"title/content"));
-    draw_track_category(["V"],[track_name],[summary_leaf(track_name,"main/letter/content")]);
+    draw_track_name(track_label, "name", summary_leaf(track_id,"title/content"));
+    draw_track_category(["V"], [track_id], [summary_leaf(track_id,"main/letter/content")]);
 }

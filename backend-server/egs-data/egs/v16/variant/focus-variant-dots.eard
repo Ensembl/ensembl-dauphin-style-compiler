@@ -18,9 +18,10 @@ style!("""
 let genome_id = setting_string("focus-variant",["genome_id"]);
 let item_id = setting_string("focus-variant",["variant_id"]);
 
-let req = request("self()","variant-labels");
-scope(req,"id",item_id);
-scope(req,"genome",genome_id);
+let req = request("self()", "variant-details");
+scope(req, "id", item_id);
+scope(req, "genome", genome_id);
+scope(req, "datafile", "variant-details.bb");
 let data = get_data(req);
 
 let v.chromosome = data_string(data,"chromosome");

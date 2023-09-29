@@ -27,5 +27,5 @@ let (focus_genome_id,focus_variant_id) = focus_variant_settings();
 
 /* Get data */
 
-variant_summary_track("focus-variant",focus_variant_id);
+variant_summary_track("focus-variant", focus_variant_id, "variant-summary.bw");
 draw_swatch(colour!("#58a8f9"),[leaf("tracks/track/focus-variant/main/letter/content")]);

@@ -4,14 +4,13 @@ refer "libeoe";
 include "../common/track-common.eard";
 include "../common/track-style.eard";
 include "variant-common.eard";
-include "variation-style.eard";
 
 /* Setup styles */
 
 track_styles();
 
 let track_id = setting_string("track_id", []);
-let track_data_id = setting_string("track_data_id", []);
+let track_datafile = setting_string("datafile", []);
 let track_name = setting_string("track_name", []);
 let track_display_order = setting_string("display_order", []);
 
@@ -34,7 +33,5 @@ procedure variation_track_styles(track_id) {
 
 variation_track_styles(track_id);
 
-
-/* Get data */
-
-variant_summary_track(track_data_id, track_name);
+// Get data, draw the track
+variant_summary_track(track_id, track_name, track_datafile);

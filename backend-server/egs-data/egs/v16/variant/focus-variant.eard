@@ -83,7 +83,9 @@ let (focus_genome_id,focus_variant_id) = focus_variant_settings();
 
 /* Get data */
 
-let data = get_data(request("self()","variant-labels"));
+let req = request("self()", "variant-details");
+scope(req, "datafile", "variant-details.bb");
+let data = get_data(req);
 let v.chromosome = data_string(data,"chromosome");
 let v.start = data_number(data,"start");
 let v.end = v.start + data_number(data,"length");
