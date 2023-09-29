@@ -1,18 +1,10 @@
 import logging
 from typing import Any, Optional
 import toml
-from collections import namedtuple
 from core.config import SOURCES_TOML
 from core.exceptions import RequestException
 import requests
 from ncd import NCDFileAccessor, NCDHttpAccessor
-
-"""
-Attributes:
-    AccessItem (namedtuple):
-"""
-AccessItem = namedtuple("AccessItem", ["variety", "genome", "chromosome"])
-
 
 def is_md5(checksum):
     if checksum and len(checksum) == 32:
@@ -20,32 +12,26 @@ def is_md5(checksum):
 
 
 class AccessItem(object):
-    """
+    """ Class for accessing:
+        - datasource pointer: (file or URL suffix) for a data type (variety).
+        - properties: variety, (genome id), (chromosome)
+        - stick string
+
     Args:
-            variety (str):
-            genome (str):
-            chromosome (str):
+        variety (str): type of data requested
+        genome (str): genome ID (optional for some varieties)
+        chromosome (str): chromosome (optional for some varieties)
     """
 
     variety_map = {
         "contigs": "contigs/{genome}/contigs.bb",
         "transcripts": "genes_and_transcripts/{genome}/transcripts.bb",
         "gc": "gc/{genome}/gc.bw",
-        "variant-labels": "variants/{genome}/variant-labels.bb",
-        "variant-labels-dbsnp": "variants/{genome}/variant-labels-dbsnp.bb",
-        "variant-labels-1000genomes": "variants/{genome}/variant-labels-1000genomes.bb",
         "jump": "jump/{genome}/jump.ncd",
         # "seqs": "seqs/{genome}/{chromosome}",
         "chrom-hashes": "common_files/{genome}/chrom.hashes.ncd",
         "chrom-sizes": "common_files/{genome}/chrom.sizes.ncd",
         "species-list": "species.txt",
-        "variant-1000genomes-summary": "variants/{genome}/variant-summary-1000genomes.bw",
-        "variant-dbsnp-summary": "variants/{genome}/variant-summary-dbsnp.bw",
-        "variant-clinvar-summary": "variants/{genome}/variant-summary-clinvar.bw",
-        "variant-gwas-summary": "variants/{genome}/variant-summary-gwas.bw",
-        "variant-eva-summary": "variants/{genome}/variant-summary-eva.bw",
-        "variant-sgrp-summary": "variants/{genome}/variant-summary-sgrp.bw",
-        "variant-summary": "variants/{genome}/variant-summary.bw",
         "regulation": "regulation/{genome}/regulatory-features.bb"
     }
 
@@ -55,24 +41,24 @@ class AccessItem(object):
         self.chromosome: str = chromosome
 
     def item_suffix(self) -> str:
-        """
+        """Returns the file/URL for a particular variety (usually a track type)
 
         Returns:
-            variety string.
+            str: file/URL path suffix
 
         """
-        if self.variety in AccessItem.variety_map:
+        if self.variety in AccessItem.variety_map: # map variety name to a file/url path
             return AccessItem.variety_map[self.variety].format(
                 genome=self.genome, chromosome=self.chromosome
             )
         else:
-            raise RequestException("unknown variety '{}'".format(self.variety))
+            return f"{self.genome}/{self.variety}" # variety = filename in genome dir
 
     def stick(self) -> str:
-        """
+        """Returns stick string (e.g. "homo_sapiens_GCA_000001405_28:4")
 
         Returns:
-            str:
+            str: stick
         """
         return ":".join([self.genome, self.chromosome]).replace(".", "_")
 
@@ -245,7 +231,7 @@ class S3DataSource(object):
 class FileDataSource(object):
     """
     Args:
-        data ():
+        data (): datasources config from sources-<env>.toml
     """
 
     def __init__(self, data):
@@ -380,7 +366,7 @@ class DataSourceResolver:
             item (AccessItem):
 
         Returns:
-
+            (S3/File)Datasource.resolve -> (File/URL/Refget)AccessMethod 
         """
         pattern = tuple([item.variety, item.genome, item.chromosome])
         if pattern in self._paths:

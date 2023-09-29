@@ -5,14 +5,13 @@ include "../common/track-common.eard";
 include "../common/track-style.eard";
 include "variant-common.eard";
 include "focus-variant-zmenu.eard";
-include "variation-style.eard";
 
 /* Setup styles */
 
 track_styles();
 
 let track_id = setting_string("track_id", []);
-let track_data_id = setting_string("track_data_id", []);
+let track_datafile = setting_string("datafile", []);
 let track_name = setting_string("track_name", []);
 let track_display_order = setting_string("display_order", []);
 
@@ -161,7 +160,11 @@ style(
 
 
 /* Get variant data */
-let data = get_data(request("self()", track_data_id));
+let req = request("self()", "variant-details");
+scope(req, "datafile", track_datafile);
+let data = get_data(req);
+halt(only_warm());
+
 let v.chromosome = data_string(data,"chromosome");
 let v.start = data_number(data,"start");
 let v.end = v.start + data_number(data,"length");

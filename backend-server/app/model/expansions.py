@@ -32,59 +32,35 @@ class Expansions:
         track_data = resp.json()
         if("track_id" not in track_data or track_data["track_id"] != track_id):
             raise Exception(f"Track {track_id} not found in Track API payload: {track_data}")
-        #Temporary hack until TrackAPI integrated for datafile location
-        track_source = track_data["label"].split()[0].lower()
-        track_data_ids = create_variant_track_data_ids(f"variant-{track_source}")
 
-        # While for the client, there is only one id for a track,
-        # usually there are in fact several tracks associated with an id reported by the client;
-        # so here, we are creating artificial (but still unique) ids to register these tracks in a track registry
-        track_summary_registry_id = f"variant-summary-{track_id}"
-        track_details_registry_id = f"variant-zoomed-{track_id}"
-
-        # here we are declaring different programs to be run at different scales 
+        # For a single track ID from client, we set up two internal tracks (for zoomed-out & zoomed-in view)
+        # declare different programs to be run at different scales 
         track_summary_view = Track(track_id, program_group="ensembl-webteam/core", program_name='variant-summary', program_version=1 ,scales=[6,100,4])
         track_details_view = Track(track_id, program_group="ensembl-webteam/core", program_name='variant-zoomed', program_version=1 ,scales=[1,5,1])
 
-        # define common settings
+        # define common settings for both tracks
         for track in [track_summary_view, track_details_view]:
             track.add_trigger(["track", "expand-variation", track_id]) # to turn a track on/off
             track.add_setting("name", ["track", "expand-variation", track_id, "name"]) # toggle track name on/off
             #track.add_setting("rank", ["track", "expand-variation", track_id, "display_order"]) # set track order
             track.add_value("track_id", track_id) # will be required for defining the track "leaf" in the tree of tracks
-            track.add_value("track_name", track_data['label']) # inject track name into the track program
-            track.add_value("display_order", track_data['display_order']) # initial track order
+            track.add_value("track_name", track_data['label']) # value to inject track name into the track program
+            track.add_value("display_order", track_data['display_order']) # initial track order for the track program
 
-        # define summary view settings
-        track_summary_view.add_value("track_data_id", track_data_ids['summary-data-id'])
+        # define a value for zoomed-out track (datafile location)
+        track_summary_view.add_value("datafile", track_data['datafiles']['summary'])
 
-        # define zoomed-in view settings
-        track_details_view.add_value("track_data_id", track_data_ids['zoomed-data-id'])
+        # define settings/values for zoomed-in track
+        track_details_view.add_value("datafile", track_data['datafiles']['details'])
         track_details_view.add_setting("label-snv-id", ["track", "expand-variation", track_id, "label-snv-id"])
         track_details_view.add_setting("label-snv-alleles", ["track", "expand-variation", track_id, "label-snv-alleles"])
         track_details_view.add_setting("label-other-id", ["track", "expand-variation", track_id, "label-other-id"])
         track_details_view.add_setting("label-other-alleles", ["track", "expand-variation", track_id, "label-other-alleles"])
         track_details_view.add_setting("show-extents", ["track", "expand-variation", track_id, "show-extents"])
 
-        # register tracks
+        # register tracks (with custom registry IDs)
         tracks = Tracks()
-        tracks.add_track(track_summary_registry_id, track_summary_view)
-        tracks.add_track(track_details_registry_id, track_details_view)
+        tracks.add_track(f"{track_id}-summary", track_summary_view)
+        tracks.add_track(f"{track_id}-detailed", track_details_view)
 
         return tracks
-
-def create_variant_track_data_ids(track_id):
-    """
-    So far, the convention we are using for variant track ids
-    is as follows:
-    - Summary program requests data using the same id as provided in track API (e.g. variant-dbsnp)
-        -  VariantSummaryDataHandler adds a suffix "-summary" to the track id
-    - Zoomed-in program requests data with an id that has the word "labels" inserted between
-        the word "variant" and the rest of the id
-    """
-    id_parts = track_id.split('-')
-    id_parts = [id_parts[0], 'labels', *id_parts[1:]] # inject the word "labels" into the id
-    return {
-        'zoomed-data-id': '-'.join(id_parts),
-        'summary-data-id': track_id
-    }
