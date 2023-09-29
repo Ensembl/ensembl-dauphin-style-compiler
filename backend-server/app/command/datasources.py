@@ -11,7 +11,6 @@ def all_boot_tracks():
     out = {}
     with open(BOOT_TRACKS_TOML) as f:
         toml_file = toml.loads(f.read())
-        logging.warn(toml_file)
         for (version,file) in toml_file["versions"].items():
             path = os.path.join(os.path.dirname(BOOT_TRACKS_TOML),file)
             out[int(version)] = Tracks(path)

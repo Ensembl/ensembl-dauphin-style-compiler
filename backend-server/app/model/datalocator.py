@@ -47,7 +47,6 @@ class AccessItem(object):
             str: file/URL path suffix
 
         """
-        logging.warn(f"variety: {self.variety}")
         if self.variety in AccessItem.variety_map: # map variety name to a file/url path
             return AccessItem.variety_map[self.variety].format(
                 genome=self.genome, chromosome=self.chromosome
@@ -279,8 +278,6 @@ class DataSourceResolver:
         self._redirect = {}
         self._blacklist = set()
         self._load(SOURCES_TOML, version)
-        print(f"paths: {self._paths}")
-        logging.warn(f"redirect: {self._redirect}")
 
     def _add_here(self, path, data):
         """
@@ -372,7 +369,6 @@ class DataSourceResolver:
             (S3/File)Datasource.resolve -> (File/URL/Refget)AccessMethod 
         """
         pattern = tuple([item.variety, item.genome, item.chromosome])
-        logging.warn(f"accessitem pattern: {pattern}")
         if pattern in self._paths:
             return self._paths[pattern].resolve(item)
 

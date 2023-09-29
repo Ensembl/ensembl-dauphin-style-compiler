@@ -78,7 +78,6 @@ def get_variant_labels(
 ) -> Response:
     access_item = chrom.item_path(filename)
     try:
-        logging.warn(f"get_variant_labels: {filename}=>{access_item.item_suffix()} {panel.start} {panel.end}")
         data = get_bigbed(data_accessor, access_item, panel.start, panel.end)
         starts = []
         lengths = []

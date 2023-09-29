@@ -1,9 +1,0 @@
-[input.default]
-default_source_type = "get"
-name = "metadata"
-
-[tangle.range]
-name = ""
-start = "start"
-end = "end"
-store_end = true
