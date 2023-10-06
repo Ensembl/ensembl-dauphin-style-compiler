@@ -75,7 +75,7 @@
         genome_browser.go({
           //backend_url: "http://52.56.215.72:3333/api/data",
           //backend_url: "http://staging-2020.ensembl.org/api/browser/data",
-          backend_url: "http://localhost:3333/api/data http://localhost:3334/api/data",
+          backend_url: "http://localhost:3333/api/data",
           target_element_id: 'browser',
           'keys.debug-action': "Require(drag)-Click[2] Hold[3] HoldDrag[4] DoubleClick[7] 1[1] 2[2] 3[3] 4[4] 5[5] 6[6] 7[7] 8[8] 9[9] 0[0]",
           'keys.pixels-left': 'Shift-A[100] Alt-a[1000]',
@@ -144,7 +144,8 @@
           genome_browser.wait();
           genome_browser.switch(["track", "focus", "item", "variant"], {
             "genome_id": "a7335667-93e7-11ec-a39d-005056b38ce3",
-            "variant_id": rsid
+            "variant_id": rsid,
+            "start": loc
           });
         }
 
