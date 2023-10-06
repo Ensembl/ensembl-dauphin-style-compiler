@@ -74,7 +74,8 @@ def get_variant_labels(
     chrom: Chromosome,
     panel: Panel,
     filename: str,
-    start: Optional[str]
+    start: Optional[str],
+    id: Optional[str]
 ) -> Response:
     access_item = chrom.item_path(filename)
     try:
@@ -135,5 +136,5 @@ class VariantLabelsDataHandler(DataHandler):
         if chrom == None:
             raise DataException(f"Unknown chromosome: {panel.stick}")
         return get_variant_labels(
-            data_accessor, chrom, panel, get_scope(scope,"datafile"), get_scope(scope,"start")
+            data_accessor, chrom, panel, get_scope(scope,"datafile"), get_scope(scope,"start"), get_scope(scope,"id")
         )
