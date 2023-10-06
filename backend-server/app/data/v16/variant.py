@@ -80,8 +80,8 @@ def get_variant_labels(
     access_item = chrom.item_path(filename)
     try:
         if start:
-            panel.start = int(start)
-            panel.end = panel.start + 100
+            panel.start = int(start)-50
+            panel.end = panel.start+150
         data = get_bigbed(data_accessor, access_item, panel.start, panel.end)
         starts = []
         lengths = []
