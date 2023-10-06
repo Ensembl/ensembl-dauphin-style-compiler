@@ -1,13 +1,11 @@
 import logging
-from typing import Optional, Tuple
-from model.datalocator import AccessItem
+from typing import Optional
 from command.coremodel import DataHandler, Panel, DataAccessor
 from command.response import Response
 from command.exceptionres import DataException
 from model.bigbed import get_bigwig_stats, get_bigwig, get_bigbed
 from model.chromosome import Chromosome
 from data.v16.dataalgorithm import data_algorithm
-from ncd import NCDRead
 
 SCALE = 4000
 
@@ -70,14 +68,20 @@ class VariantSummaryDataHandler(DataHandler):
             raise DataException(f"Unknown chromosome: {panel.stick}")
         return get_variant(data_accessor, chrom, panel, scope.get("datafile")[0])
 
+
 def get_variant_labels(
     data_accessor: DataAccessor,
     chrom: Chromosome,
     panel: Panel,
     filename: str,
+    start: Optional[str],
+    id: Optional[str]
 ) -> Response:
     access_item = chrom.item_path(filename)
     try:
+        if start:
+            panel.start = int(start)-50
+            panel.end = panel.start+150
         data = get_bigbed(data_accessor, access_item, panel.start, panel.end)
         starts = []
         lengths = []
@@ -110,6 +114,7 @@ def get_variant_labels(
         "consequence": data_algorithm("SYRLZ", consequence),
     }
 
+
 def allele_sequence(ref: str, alts: str) -> str:
     combined_sequence = ref + ' ' + alts
     if len(combined_sequence) > 18:
@@ -117,6 +122,11 @@ def allele_sequence(ref: str, alts: str) -> str:
         return truncated_sequence
     return combined_sequence
 
+def get_scope(scope, key:str) -> str:
+    val = scope.get(key)
+    if val is None or len(val) == 0:
+        return None
+    return val[0]
 
 class VariantLabelsDataHandler(DataHandler):
     def process_data(
@@ -126,5 +136,5 @@ class VariantLabelsDataHandler(DataHandler):
         if chrom == None:
             raise DataException(f"Unknown chromosome: {panel.stick}")
         return get_variant_labels(
-            data_accessor, chrom, panel, scope.get("datafile")[0]
+            data_accessor, chrom, panel, get_scope(scope,"datafile"), get_scope(scope,"start"), get_scope(scope,"id")
         )
