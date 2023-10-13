@@ -24,13 +24,13 @@ class AccessItem(object):
     """
 
     variety_map = {
-        "contigs": "contigs/{genome}/contigs.bb",
-        "transcripts": "genes_and_transcripts/{genome}/transcripts.bb",
-        "gc": "gc/{genome}/gc.bw",
-        "jump": "jump/{genome}/jump.ncd",
+        "contigs": "{genome}/contigs.bb",
+        "transcripts": "{genome}/transcripts.bb",
+        "gc": "{genome}/gc.bw",
+        "jump": "{genome}/jump.ncd",
         # "seqs": "seqs/{genome}/{chromosome}",
-        "chrom-hashes": "common_files/{genome}/chrom.hashes.ncd",
-        "chrom-sizes": "common_files/{genome}/chrom.sizes.ncd",
+        "chrom-hashes": "{genome}/chrom.hashes.ncd",
+        "chrom-sizes": "{genome}/chrom.sizes.ncd",
         "species-list": "species.txt",
         "regulation": "regulation/{genome}/regulatory-features.bb"
     }
