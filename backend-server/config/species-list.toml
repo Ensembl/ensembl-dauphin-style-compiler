@@ -57,7 +57,7 @@ other_names = [
 ]
 
 [species.ecoli]
-path = "escherichia_coli_str_k_12_substr_mg1655_gca_000005845_GCA_000005845_2"
+path = "a73351f7-93e7-11ec-a39d-005056b38ce3"
 best_name = "a73351f7-93e7-11ec-a39d-005056b38ce3"
 other_names = [
     "escherichia_coli_str_k_12_substr_mg1655_gca_000005845_GCA_000005845_2",
