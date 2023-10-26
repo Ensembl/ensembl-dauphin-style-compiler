@@ -31,8 +31,8 @@ class AccessItem(object):
         # "seqs": "seqs/{genome}/{chromosome}",
         "chrom-hashes": "{genome}/chrom.hashes.ncd",
         "chrom-sizes": "{genome}/chrom.sizes.ncd",
-        "species-list": "species.txt",
-        "regulation": "regulation/{genome}/regulatory-features.bb"
+        # "species-list": "species.txt",
+        "regulation": "{genome}/regulatory-features.bb"
     }
 
     def __init__(self, variety: str, genome: str = None, chromosome: str = None):
