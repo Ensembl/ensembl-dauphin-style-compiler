@@ -2,7 +2,7 @@ import logging, toml
 from .species import Species
 from util.string import split_all
 from model.datalocator import AccessItem
-from core.config import SPECIESLIST_TOML
+from core.config import SPECIESLIST
 from core.exceptions import RequestException
 
 """
@@ -54,21 +54,13 @@ class DataModel(object):
         return None
 
     def _load_species(self):
-        with open(SPECIESLIST_TOML) as f:
-            species_list = toml.loads(f.read())
-            for species_name in species_list["species"]:
-                species_conf = species_list["species"][species_name]
-                print(species_conf)
-                all_names = list(species_conf["other_names"])
-                all_names.append(species_conf["best_name"])
-                tags = set(species_conf.get("tags",[]))
-                try:
-                    species_object = Species(species_conf["path"],species_conf['best_name'],all_names,tags)
-                    self._species[species_object.wire_id] = species_object
-                    for alias_prefix in all_names:
-                        self._species_aliases[alias_prefix] = species_object.wire_id
-                except:
-                    logging.error("Species {0} failed to configure. Skipping!".format(species_name))
+        with open(SPECIESLIST) as f:
+            for line in f:
+                uuid = line.strip()
+                if uuid.length != 36:
+                    continue
+                self._species[uuid] = Species(uuid,uuid,[uuid],[]) #path, best_name, all_names, tags
+                self._species_aliases[uuid] = uuid
 
     def split_total_wire_id(self, total_wire_id: str):
         # we know that we split on a colon, but which one? We go from longest to shortest, trying
