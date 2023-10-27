@@ -39,7 +39,7 @@ variables:
 
 .base-be-deploy-rules-branches:
   rules:
-    - if: '$CI_DEPLOY_FREEZE == null && ( $CI_COMMIT_BRANCH != "master" || $CI_COMMIT_BRANCH != "staging" )'
+    - if: '$CI_COMMIT_BRANCH != "master" || $CI_COMMIT_BRANCH != "staging"'
       changes:
         - backend-server/**/*
       when: on_success
