@@ -120,7 +120,7 @@
             zmenu_data_el.innerText = `(${zmenu_data.x},${zmenu_data.y}) ${JSON.stringify(zmenu_data.content)}`;
           }
         });
-        genome_browser.set_stick("homo_sapiens_GCA_000001405_27:1");
+        genome_browser.set_stick("a7335667-93e7-11ec-a39d-005056b38ce3:1");
         genome_browser.set_switch(["track","focus"]);
         genome_browser.set_switch(["track","focus","label"]);
         genome_browser.set_switch(["track","gene-pc-fwd"]);
@@ -154,13 +154,13 @@
         document.getElementById("id-labels").onclick = flipper(["track","gene-pc-fwd","label","id"],false);
 
         document.getElementById("jump-brca2").onclick = function() {
-          genome_browser.jump("focus:homo_sapiens_GCA_000001405_27:ENSG00000139618");
+          genome_browser.jump("focus:a7335667-93e7-11ec-a39d-005056b38ce3:ENSG00000139618");
           genome_browser.wait();
           genome_browser.set_switch(["focus","gene"]);
           genome_browser.set_switch(["focus","gene","ENSG00000139618"]);
         };
         document.getElementById("jump-fry").onclick = function() {
-          genome_browser.jump("focus:homo_sapiens_GCA_000001405_27:ENSG00000073910");
+          genome_browser.jump("focus:a7335667-93e7-11ec-a39d-005056b38ce3:ENSG00000073910");
           genome_browser.wait();
           genome_browser.set_switch(["focus","gene"]);
           genome_browser.set_switch(["focus","gene","ENSG00000073910"]);

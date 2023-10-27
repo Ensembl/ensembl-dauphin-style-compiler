@@ -32,12 +32,8 @@ class DataModel(object):
                 return self._species[species_name].chromosome(data_accessor, alias)
         return None
 
-    def species(self, alias):
-        species_name = self._species_aliases.get(alias)
-        if species_name is not None:
-            return self._species[species_name]
-        else:
-            return None        
+    def species(self, alias): # return Species() instance or None
+        return self._species.get(alias)
 
     def canonical_genome_id(self, alias):
         for (prefix, chr) in split_all(":", alias):
