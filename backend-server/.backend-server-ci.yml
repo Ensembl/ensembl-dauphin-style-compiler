@@ -23,11 +23,8 @@ variables:
 
 .base-be-rules:
   rules:
-    - if: '$CI_DEPLOY_FREEZE == null'
-      changes:
-        - backend-server/**/*
-      when: on_success
-    - when: never
+    changes:
+      - backend-server/**/*
 
 .base-be-deploy-rules:
   rules:
