@@ -23,7 +23,7 @@ variables:
 
 .base-be-rules:
   rules:
-    changes:
+    - changes:
       - backend-server/**/*
 
 .base-be-deploy-rules:
