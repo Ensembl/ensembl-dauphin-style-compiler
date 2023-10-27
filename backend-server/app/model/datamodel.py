@@ -57,7 +57,7 @@ class DataModel(object):
         with open(SPECIESLIST) as f:
             for line in f:
                 uuid = line.strip()
-                if uuid.length != 36:
+                if len(uuid) != 36:
                     continue
                 self._species[uuid] = Species(uuid,uuid,[uuid],[]) #path, best_name, all_names, tags
                 self._species_aliases[uuid] = uuid
