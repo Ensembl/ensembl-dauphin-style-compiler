@@ -59,7 +59,7 @@ class DataModel(object):
                 uuid = line.strip()
                 if len(uuid) != 36:
                     continue
-                self._species[uuid] = Species(uuid,uuid,[uuid],[]) #path, best_name, all_names, tags
+                self._species[uuid] = Species(uuid)
                 self._species_aliases[uuid] = uuid
 
     def split_total_wire_id(self, total_wire_id: str):

@@ -12,15 +12,11 @@ class Species(object):
     Args:
         genome_id ():
     """
-    def __init__(self, genome_id, best_name, names, tags):
-        self.genome_id = genome_id
-        self.genome_path = self.genome_id
-        self.wire_id = self.genome_id
+    def __init__(self, genome_id):
+        self.genome_id = self.genome_path = self.wire_id = self.best_name = genome_id
         self.chromosomes = {}
-        self.best_name = best_name
-        self._names = names
-        self._tags = tags
-        self.alias_prefixes = [self.wire_id]
+        self._names = self.alias_prefixes = [genome_id]
+        self._tags = []
 
     def item_path(self, variety):
         """
