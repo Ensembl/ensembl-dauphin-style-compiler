@@ -1,6 +1,6 @@
 [source.apple]
 driver = "file"
-root = "/usr/data/newsite/live/genome_browser/7"
+root = "/usr/data/newsite/live/genome_browser/8"
 refget_url = "http://ensembl-refget-proxy-svc:8083/api/sequence/"
 min_version = 16
 

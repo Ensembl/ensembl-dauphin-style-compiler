@@ -15,7 +15,7 @@ class Species(object):
     def __init__(self, genome_id, best_name, names, tags):
         self.genome_id = genome_id
         self.genome_path = self.genome_id
-        self.wire_id = re.sub(r'\W', '_', self.genome_id)
+        self.wire_id = self.genome_id
         self.chromosomes = {}
         self.best_name = best_name
         self._names = names
