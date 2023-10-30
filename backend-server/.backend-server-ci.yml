@@ -31,15 +31,15 @@ variables:
 
 .base-be-deploy-rules:
   rules:
-    - if: '$CI_DEPLOY_FREEZE == null && $CI_COMMIT_BRANCH == "master"'
+    - if: '$CI_DEPLOY_FREEZE == null && $CI_COMMIT_BRANCH == "manual-deploy"'
       changes:
         - backend-server/**/*
       when: on_success
-    - when: never
+    - when: manual
 
 .base-be-deploy-rules-branches:
   rules:
-    - if: '$CI_DEPLOY_FREEZE == null && ( $CI_COMMIT_BRANCH != "master" || $CI_COMMIT_BRANCH != "staging" )'
+    - if: '$CI_DEPLOY_FREEZE == null && ( $CI_COMMIT_BRANCH != "master" || $CI_COMMIT_BRANCH != "staging" || $CI_COMMIT_BRANCH != "manual-deploy" )'
       changes:
         - backend-server/**/*
       when: on_success
