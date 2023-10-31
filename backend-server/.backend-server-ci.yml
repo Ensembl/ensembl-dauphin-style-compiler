@@ -31,7 +31,7 @@ variables:
     - if: '$CI_DEPLOY_FREEZE == null && $CI_COMMIT_BRANCH == "master"'
       changes:
         - backend-server/**/*
-      when: on_success
+      when: manual
     - when: never
 
 .base-be-deploy-rules-branches:
