@@ -15,7 +15,7 @@ class Species(object):
     def __init__(self, genome_id):
         self.genome_id = self.genome_path = self.wire_id = self.best_name = genome_id
         self.chromosomes = {}
-        self._names = self.alias_prefixes = [genome_id]
+        self._names = [genome_id]
         self._tags = []
 
     def item_path(self, variety):

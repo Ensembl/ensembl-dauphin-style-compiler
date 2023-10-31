@@ -1,7 +1,5 @@
-import logging, toml
 from .species import Species
 from util.string import split_all
-from model.datalocator import AccessItem
 from core.config import SPECIESLIST
 from core.exceptions import RequestException
 
@@ -15,8 +13,8 @@ class DataModel(object):
         data_accessor ():
     """
     def __init__(self):
-        self._species = {}
-        self._species_aliases = {}
+        self._species = {} # Species instances
+        self._species_aliases = {} # uuids
         self._load_species()
 
     def stick(self, data_accessor, alias):
@@ -25,15 +23,14 @@ class DataModel(object):
             raise RequestException("cannot find stick")
         return out
 
-    def try_stick(self, data_accessor, alias):
-        for (prefix, _) in split_all(":", alias):
-            species_name = self._species_aliases.get(prefix)
-            if species_name is not None:
-                return self._species[species_name].chromosome(data_accessor, alias)
+    def try_stick(self, data_accessor, stick_id):
+        uuid = self.canonical_genome_id(stick_id)
+        if uuid is not None:
+            return self._species[uuid].chromosome(data_accessor, stick_id)
         return None
 
-    def species(self, alias): # return Species() instance or None
-        return self._species.get(alias)
+    def species(self, uuid): # return Species() instance or None
+        return self._species.get(uuid)
 
     def canonical_genome_id(self, alias):
         for (prefix, chr) in split_all(":", alias):
