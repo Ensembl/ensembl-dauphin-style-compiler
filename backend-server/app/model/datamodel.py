@@ -1,8 +1,6 @@
-import logging, toml
 from .species import Species
 from util.string import split_all
-from model.datalocator import AccessItem
-from core.config import SPECIESLIST_TOML
+from core.config import SPECIESLIST
 from core.exceptions import RequestException
 
 """
@@ -15,8 +13,8 @@ class DataModel(object):
         data_accessor ():
     """
     def __init__(self):
-        self._species = {}
-        self._species_aliases = {}
+        self._species = {} # Species instances
+        self._species_aliases = {} # uuids
         self._load_species()
 
     def stick(self, data_accessor, alias):
@@ -25,19 +23,14 @@ class DataModel(object):
             raise RequestException("cannot find stick")
         return out
 
-    def try_stick(self, data_accessor, alias):
-        for (prefix, _) in split_all(":", alias):
-            species_name = self._species_aliases.get(prefix)
-            if species_name is not None:
-                return self._species[species_name].chromosome(data_accessor, alias)
+    def try_stick(self, data_accessor, stick_id):
+        uuid = self.canonical_genome_id(stick_id)
+        if uuid is not None:
+            return self._species[uuid].chromosome(data_accessor, stick_id)
         return None
 
-    def species(self, alias):
-        species_name = self._species_aliases.get(alias)
-        if species_name is not None:
-            return self._species[species_name]
-        else:
-            return None        
+    def species(self, uuid): # return Species() instance or None
+        return self._species.get(uuid)
 
     def canonical_genome_id(self, alias):
         for (prefix, chr) in split_all(":", alias):
@@ -54,21 +47,13 @@ class DataModel(object):
         return None
 
     def _load_species(self):
-        with open(SPECIESLIST_TOML) as f:
-            species_list = toml.loads(f.read())
-            for species_name in species_list["species"]:
-                species_conf = species_list["species"][species_name]
-                print(species_conf)
-                all_names = list(species_conf["other_names"])
-                all_names.append(species_conf["best_name"])
-                tags = set(species_conf.get("tags",[]))
-                try:
-                    species_object = Species(species_conf["path"],species_conf['best_name'],all_names,tags)
-                    self._species[species_object.wire_id] = species_object
-                    for alias_prefix in all_names:
-                        self._species_aliases[alias_prefix] = species_object.wire_id
-                except:
-                    logging.error("Species {0} failed to configure. Skipping!".format(species_name))
+        with open(SPECIESLIST) as f:
+            for line in f:
+                uuid = line.strip()
+                if len(uuid) != 36:
+                    continue
+                self._species[uuid] = Species(uuid)
+                self._species_aliases[uuid] = uuid
 
     def split_total_wire_id(self, total_wire_id: str):
         # we know that we split on a colon, but which one? We go from longest to shortest, trying
