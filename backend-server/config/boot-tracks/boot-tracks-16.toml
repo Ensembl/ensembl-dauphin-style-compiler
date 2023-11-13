@@ -168,79 +168,10 @@ name = ["track","gc","name"]
 # Variants
 #
 
-[track.variant-1000genomes.general]
-include = ["general"]
-scales = [1,100,4]
-triggers = [["track","variant-1000genomes"]]
-tags= "#has-variants"
-
-[track.variant-1000genomes.settings]
-name = ["track","variant-1000genomes","name"]
-
-[track.variant-dbsnp.general]
-include = ["general"]
-scales = [6,100,4]
-triggers = [["track","variant-dbsnp"]]
-tags = "#has-variants"
-
-[track.variant-dbsnp.settings]
-name = ["track","variant-dbsnp","name"]
-
-[track.variant-dbsnp-detail.general]
-include = ["general"]
-scales = [1,5,1]
-triggers = [["track","variant-dbsnp"]]
-tags= "#has-variants"
-
-[track.variant-dbsnp-detail.settings]
-name = ["track","variant-dbsnp","name"]
-label-snv-id = ["track","variant-dbsnp","label-snv-id"]
-label-snv-alleles = ["track","variant-dbsnp","label-snv-alleles"]
-label-other-id = ["track","variant-dbsnp","label-other-id"]
-label-other-alleles = ["track","variant-dbsnp","label-other-alleles"]
-show-extents = ["track","variant-dbsnp","show-extents"]
-
-[track.variant-clinvar.general]
-include = ["general"]
-scales = [1,100,4]
-triggers = [["track","variant-clinvar"]]
-tags = "#has-variants"
-
-[track.variant-clinvar.settings]
-name = ["track","variant-clinvar","name"]
-
-[track.variant-gwas.general]
-include = ["general"]
-scales = [1,100,4]
-triggers = [["track","variant-gwas"]]
-tags = "#has-variants"
-
-[track.variant-gwas.settings]
-name = ["track","variant-gwas","name"]
-
-[track.variant-eva.general]
-include = ["general"]
-scales = [1,100,4]
-triggers = [["track","variant-eva"]]
-tags = "#has-variants"
-
-[track.variant-eva.settings]
-name = ["track","variant-eva","name"]
-
-[track.variant-sgrp.general]
-include = ["general"]
-scales = [1,100,4]
-triggers = [["track","variant-sgrp"]]
-tags = "#has-variants"
-
-[track.variant-sgrp.settings]
-name = ["track","variant-sgrp","name"]
-
 [track.focus-variant.general]
 include = ["general"]
 scales = [1,5,1]
 triggers = [["track","focus","item","variant"]]
-tags= "#has-variants"
 
 [track.focus-variant.settings]
 focus-variant = ["track","focus","item","variant"]
@@ -255,7 +186,6 @@ show-extents = ["track","focus","variant","show-extents"]
 include = ["general"]
 scales = [6,100,4]
 triggers = [["track","focus","item","variant"]]
-tags= "#has-variants"
 
 [track.focus-variant-summary.settings]
 focus-variant = ["track","focus","item","variant"]
