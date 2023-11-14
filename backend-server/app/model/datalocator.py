@@ -105,7 +105,7 @@ class RefgetAccessMethod(AccessMethod):
 
         response = requests.get(self.url + url_range)
         if response.status_code > 299:
-            raise RequestException("bad data")
+            raise RequestException(f"Refget error: {self.url+url_range} => {response.status_code}: {response.text}")
         return response.content
 
 
