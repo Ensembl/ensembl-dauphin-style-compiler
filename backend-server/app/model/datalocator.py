@@ -55,12 +55,12 @@ class AccessItem(object):
             return f"{self.genome}/{self.variety}" # variety = filename in genome dir
 
     def stick(self) -> str:
-        """Returns stick string (e.g. "homo_sapiens_GCA_000001405_28:4")
+        """Returns stick string (e.g. "a7335667-93e7-11ec-a39d-005056b38ce3:4")
 
         Returns:
             str: stick
         """
-        return ":".join([self.genome, self.chromosome]).replace(".", "_")
+        return ":".join([self.genome, self.chromosome])
 
 
 class AccessMethod:
