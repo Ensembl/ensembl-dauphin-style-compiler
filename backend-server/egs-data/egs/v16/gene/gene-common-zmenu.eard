@@ -8,8 +8,17 @@ struct!(variety_zmenu,"""
 /* Gene ZMenu payload */
 
 function gene_zmenu(*gene) {
+  let parts = split_start(":", gene.stick);
+  let region_name = split_get(parts, 1);
+
+  let gene_location_template = template_start("{0}:{1}-{2}");
+  template_set(gene_location_template, 0, region_name);
+  template_set(gene_location_template, 1, comma_format(gene.start));
+  template_set(gene_location_template, 2, comma_format(gene.end));
+  let gene_location = template_end(gene_location_template);
+
 struct!(gene_zmenu,"""
-(<0,1,2,3,4,5,6,7,8,9>!
+(<0,1,2,3,4,5,6,7,8,9,10>!
       {
         "data": [
           /* First row: gene symbol */
@@ -33,6 +42,13 @@ struct!(gene_zmenu,"""
           /* Fourth row: strand and location */
           [
             { "items": [ { "markup": [ "light" ], "text": <4s> } ], "type": "block" },
+          ],
+
+          [
+            {
+              "items": [{ "markup": ["light"], "text": <10s> }],
+              "type": "block"
+            }
           ],
 
           /* Fourth row: strand and location */
@@ -69,7 +85,8 @@ struct!(gene_zmenu,"""
         index(["gene-other-rev","gene-pc-rev","gene-other-fwd","gene-pc-fwd","focus"],gene.leaf_index),
         small_value("gene-biotype","label",gene.biotype),
         gene.all_tr_count,
-        if(gene.all_tr_count > 1,["transcripts",...],["transcript",...])
+        if(gene.all_tr_count > 1,["transcripts",...],["transcript",...]),
+        gene_location
     );
     gene_zmenu
 }
@@ -77,6 +94,16 @@ struct!(gene_zmenu,"""
 /* Transcript ZMenu payload when using designated transcript (ie at gene scale) */
 
 function gene_tr_zmenu(*gene) {
+  let parts = split_start(":", gene.stick);
+  let region_name = split_get(parts, 1);
+  print(format(region_name));
+
+  let gene_location_template = template_start("{0}:{1}-{2}");
+  template_set(gene_location_template, 0, region_name);
+  template_set(gene_location_template, 1, comma_format(gene.start));
+  template_set(gene_location_template, 2, comma_format(gene.end));
+  let gene_location = template_end(gene_location_template);
+
 struct!(gene_tr_zmenu,"""
 (<0,1,2,3,4,5,6,7,8>!
       {
@@ -110,7 +137,13 @@ struct!(gene_tr_zmenu,"""
               "items": [{ "markup": ["light"], "text": <3s> }],
               "type": "block"
             }
-          ]
+          ],
+          [
+            {
+              "items": [{ "markup": ["light"], "text": <8s> }],
+              "type": "block"
+            }
+          ],
         ],
         "metadata": {
           "designation": <1s>,
@@ -132,14 +165,25 @@ struct!(gene_tr_zmenu,"""
       gene.desigtr_unversioned,
       gene.id_versioned,
       index(["gene-other-rev","gene-pc-rev","gene-other-fwd","gene-pc-fwd","focus"],gene.leaf_index),
-      small_value("gene-biotype","label",gene.biotype)
+      small_value("gene-biotype","label",gene.biotype),
+      gene_location
   );
   gene_tr_zmenu
 }
 
 function tr_zmenu(*tr_gene,*tr) {
+  let parts = split_start(":", tr_gene.stick);
+  let region_name = index(split_get(parts, 1), 0);
+  print(format(region_name));
+
+  let transcript_location_template = template_start("{0}:{1}-{2}");
+  template_set(transcript_location_template, 0, [region_name]);
+  template_set(transcript_location_template, 1, comma_format(tr.start));
+  template_set(transcript_location_template, 2, comma_format(tr.end));
+  let transcript_location = template_end(transcript_location_template);
+
 struct!(tr_zmenu,"""
-(<0,1,2,3,4,5,6,7,8>!
+(<0,1,2,3,4,5,6,7,8,9>!
       {
         "data": [
 
@@ -170,6 +214,12 @@ struct!(tr_zmenu,"""
               "items": [{ "markup": ["light"], "text": <3s> }],
               "type": "block"
             }
+          ],
+          [
+            {
+              "items": [{ "markup": ["light"], "text": <9s> }],
+              "type": "block"
+            }
           ]
         ],
         "metadata": {
@@ -193,7 +243,8 @@ struct!(tr_zmenu,"""
     tr_gene.id_versioned,
     index(["gene-other-rev","gene-pc-rev","gene-other-fwd","gene-pc-fwd","focus"],tr.leaf_index),
     small_value("designation","label",tr.designation),
-    small_value("tr-biotype","label",tr.biotype)
+    small_value("tr-biotype","label",tr.biotype),
+    transcript_location
   );
   tr_zmenu
 }
