@@ -116,6 +116,8 @@ unprocessed_pseudogene="unprocessed pseudogene"
 vault_rna="vault RNA"
 
 [designation.label]
-mane_select="MANE select"
+mane_select="MANE Select"
+mane_plus_clinical="MANE Plus Clinical"
 mane="MANE"
 normal=""
+canonical="Ensembl canonical"
