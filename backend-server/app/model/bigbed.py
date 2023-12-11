@@ -38,7 +38,8 @@ def _get_bigbed_data(path, chrom, start, end):
             _bigbeds[path] = pyBigWig.open(path)
         bb = _bigbeds[path]
         out = bb.entries(chrom.name, start, end) or []
-    except (RuntimeError, OverflowError):
+    except (RuntimeError, OverflowError) as e:
+        print(f"Error reading BigBed from {path}: {e}")
         out = []
     return out
 
@@ -80,6 +81,7 @@ def _get_bigwig_stats_data(path, chrom, start, end, consolidation="mean", nBins=
         bw = _bigwigs[path]
         out = bw.stats(chrom.name, start, end, nBins=nBins, type=consolidation) or []
     except (RuntimeError, OverflowError, RequestException) as e:
+        print(f"Error reading BigWig from {path}: {e}")
         out = []
     return out, start, end
 
@@ -113,6 +115,7 @@ def _get_bigwig_data(path, chrom, start, end):
         bw = _bigwigs[path]
         out = bw.values(chrom.name, start, end) or []
     except (RuntimeError, OverflowError, RequestException) as e:
+        print(f"Error reading BigWig from {path}: {e}")
         out = []
     return out, start, end
 

@@ -325,20 +325,18 @@
         document.getElementById("jump-ins").onclick = jump_variant.bind(this, "rs1639760668", 1, 47376);
 
         document.getElementById("jump-brca2").onclick = function() {
-          genome_browser.jump("focus:a7335667-93e7-11ec-a39d-005056b38ce3:ENSG00000139618");
-          genome_browser.wait();
-          genome_browser.switch(["track","focus","item","gene"],{ 
-            "genome_id": "homo_sapiens_GCA_000001405_28", "item_id": "ENSG00000139618" 
-          });
           genome_browser.switch(["track","focus","enabled-transcripts"],null);
+          genome_browser.switch(["track","focus","item","gene"],{ 
+            "genome_id": "a7335667-93e7-11ec-a39d-005056b38ce3", "item_id": "ENSG00000139618" 
+          });
+          genome_browser.jump("focus:gene:a7335667-93e7-11ec-a39d-005056b38ce3:ENSG00000139618");
         };
         document.getElementById("jump-fry").onclick = function() {
-          genome_browser.jump("focus:homo_sapiens_GCA_000001405_28:ENSG00000073910");
-          genome_browser.wait();
-          genome_browser.switch(["track","focus","item","gene"],{ 
-            "genome_id": "homo_sapiens_GCA_000001405_28", "item_id": "ENSG00000073910" 
-          });
           genome_browser.switch(["track","focus","enabled-transcripts"],null);
+          genome_browser.switch(["track","focus","item","gene"],{ 
+            "genome_id": "a7335667-93e7-11ec-a39d-005056b38ce3", "item_id": "ENSG00000073910" 
+          });
+          genome_browser.jump("focus:gene:a7335667-93e7-11ec-a39d-005056b38ce3:ENSG00000073910");
         };
         document.getElementById("jump-wheat").onclick = function() {
           genome_browser.switch(["track","focus","enabled-transcripts"],null);
@@ -394,11 +392,11 @@
 
         genome_browser.switch(["ruler"], true);
         genome_browser.switch(["ruler", "one_based"], true);
-        genome_browser.switch(["track", "focus"], true);
         init_tracks(["gene-pc-forward","contig","gc","regulation","focus"]);
         init_variant_track("0adabdbc-e0a5-487d-a712-98e6127712f2");
         jump_variant("rs1557469781", 1, 1176408);
-        
+        //genome_browser.set_stick("a7335667-93e7-11ec-a39d-005056b38ce3:13");
+        //genome_browser.goto(159980000,160000500);
       });
     </script>
   </body>

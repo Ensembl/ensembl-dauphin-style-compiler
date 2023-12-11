@@ -1,5 +1,4 @@
-import os.path
-
+import math
 from command.coremodel import DataHandler, Panel, DataAccessor
 from command.response import Response
 from model.bigbed import get_bigwig_stats, get_bigwig
@@ -29,8 +28,7 @@ def _get_gc(data_accessor: DataAccessor, chrom: Chromosome, panel: Panel) -> Res
         (data, start, end) = get_bigwig(data_accessor, item, panel.start, panel.end)
     else:
         (data, start, end) = get_bigwig_stats(data_accessor, item, panel.start, panel.end)
-
-    data = [1.0 if x is None else x for x in data]
+    data = [1.0 if x is None or math.isnan(x) else x for x in data]
     data = bytearray([round(x / SCALE) for x in data])
     return {
         "values": data_algorithm("NDZRL",data),
