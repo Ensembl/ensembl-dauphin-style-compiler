@@ -5,11 +5,23 @@ struct!(variety_zmenu,"""
     }
 """);
 
+function build_formatted_location(region_name, start, end) {
+  let location_template = template_start("{0}:{1}-{2}");
+  template_set(location_template, 0, region_name);
+  template_set(location_template, 1, comma_format(start));
+  template_set(location_template, 2, comma_format(end));
+  let formatted_location = template_end(location_template);
+  formatted_location
+}
+
+
 /* Gene ZMenu payload */
 
 function gene_zmenu(*gene) {
+  let gene_location = build_formatted_location(gene.region_name, gene.start, gene.end);
+
 struct!(gene_zmenu,"""
-(<0,1,2,3,4,5,6,7,8,9>!
+(<0,1,2,3,4,5,6,7,8,9,10>!
       {
         "data": [
           /* First row: gene symbol */
@@ -33,6 +45,13 @@ struct!(gene_zmenu,"""
           /* Fourth row: strand and location */
           [
             { "items": [ { "markup": [ "light" ], "text": <4s> } ], "type": "block" },
+          ],
+
+          [
+            {
+              "items": [{ "markup": ["light"], "text": <10s> }],
+              "type": "block"
+            }
           ],
 
           /* Fourth row: strand and location */
@@ -67,9 +86,10 @@ struct!(gene_zmenu,"""
         gene.strand_string,
         gene.id_unversioned,
         index(["gene-other-rev","gene-pc-rev","gene-other-fwd","gene-pc-fwd","focus"],gene.leaf_index),
-        small_value("gene-biotype","label",gene.biotype),
+        gene.biotype,
         gene.all_tr_count,
-        if(gene.all_tr_count > 1,["transcripts",...],["transcript",...])
+        if(gene.all_tr_count > 1,["transcripts",...],["transcript",...]),
+        gene_location
     );
     gene_zmenu
 }
@@ -77,8 +97,10 @@ struct!(gene_zmenu,"""
 /* Transcript ZMenu payload when using designated transcript (ie at gene scale) */
 
 function gene_tr_zmenu(*gene) {
+  let gene_location = build_formatted_location(gene.region_name, gene.start, gene.end);
+
 struct!(gene_tr_zmenu,"""
-(<0,1,2,3,4,5,6,7,8>!
+(<0,1,2,3,4,5,6,7,8,9>!
       {
         "data": [
 
@@ -94,7 +116,7 @@ struct!(gene_tr_zmenu,"""
               "type": "block"
             },
             {
-              "items": [{ "markup": ["light"], "text": <1s> }],
+              "items": [{ "markup": ["light"], "text": <9s> }],
               "type": "block"
             }
           ],
@@ -110,7 +132,13 @@ struct!(gene_tr_zmenu,"""
               "items": [{ "markup": ["light"], "text": <3s> }],
               "type": "block"
             }
-          ]
+          ],
+          [
+            {
+              "items": [{ "markup": ["light"], "text": <8s> }],
+              "type": "block"
+            }
+          ],
         ],
         "metadata": {
           "designation": <1s>,
@@ -132,14 +160,18 @@ struct!(gene_tr_zmenu,"""
       gene.desigtr_unversioned,
       gene.id_versioned,
       index(["gene-other-rev","gene-pc-rev","gene-other-fwd","gene-pc-fwd","focus"],gene.leaf_index),
-      small_value("gene-biotype","label",gene.biotype)
+      gene.biotype,
+      gene_location,
+      small_value("designation", "label", gene.designation)
   );
   gene_tr_zmenu
 }
 
 function tr_zmenu(*tr_gene,*tr) {
+  let transcript_location = build_formatted_location(tr_gene.region_name, tr.start, tr.end);
+
 struct!(tr_zmenu,"""
-(<0,1,2,3,4,5,6,7,8>!
+(<0,1,2,3,4,5,6,7,8,9>!
       {
         "data": [
 
@@ -170,6 +202,12 @@ struct!(tr_zmenu,"""
               "items": [{ "markup": ["light"], "text": <3s> }],
               "type": "block"
             }
+          ],
+          [
+            {
+              "items": [{ "markup": ["light"], "text": <9s> }],
+              "type": "block"
+            }
           ]
         ],
         "metadata": {
@@ -193,7 +231,8 @@ struct!(tr_zmenu,"""
     tr_gene.id_versioned,
     index(["gene-other-rev","gene-pc-rev","gene-other-fwd","gene-pc-fwd","focus"],tr.leaf_index),
     small_value("designation","label",tr.designation),
-    small_value("tr-biotype","label",tr.biotype)
+    tr.biotype,
+    transcript_location
   );
   tr_zmenu
 }

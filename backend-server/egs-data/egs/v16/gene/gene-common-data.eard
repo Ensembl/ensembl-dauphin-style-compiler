@@ -158,6 +158,16 @@ procedure extract_gene_data(data) {
     let gene.desigtr_designation = data_string(data,"designated_transcript_designations");
     let gene.strand_string = if(gene.strand>0,["forward strand",...],["reverse strand",...]);
     let gene.all_tr_count = data_number(data,"all_transcript_counts");
+
+    let gene_stick_parts = split_start(":", gene.stick); // a stick is formatted as genome_id:region_name
+    let region_name = index(split_get(gene_stick_parts, 1), 0);
+
+    // There are more gene names than there are sticks in this data -
+    // probably because all genes have the same stick; so there is only one stick in the response.
+    // For further use, we want to have the same number of gene region_name elements in gene sequence
+    // as there are gene names.
+    let gene.region_name = repeat(region_name, len(gene.name));
+
     *gene
 }
 
