@@ -28,10 +28,8 @@ class AccessItem(object):
         "transcripts": "{genome}/transcripts.bb",
         "gc": "{genome}/gc.bw",
         "jump": "{genome}/jump.ncd",
-        # "seqs": "seqs/{genome}/{chromosome}",
         "chrom-hashes": "{genome}/chrom.hashes.ncd",
         "chrom-sizes": "{genome}/chrom.sizes.ncd",
-        # "species-list": "species.txt",
         "regulation": "{genome}/regulatory-features.bb"
     }
 

@@ -48,6 +48,7 @@ TANGLE_OVERVIEW_WITH_IDS = TANGLE_FACTORY.make_from_tomlfile(OV_TANGLE_PATH,["id
 
 def get_approx_location(data_accessor: DataAccessor, genome: str, id):
     # replace with canonical form for focus lookup
+    print(f"get_approx_location: {genome}")
     genome = data_accessor.data_model.canonical_genome_id(genome)
     if genome != None:
         species = data_accessor.data_model.species(genome)
@@ -103,6 +104,7 @@ def extract_gene_data(data_accessor: DataAccessor, panel: Panel, include_exons: 
     out = tangle.run2({},{ "tr_bigbed": lines },**accept_to_tangling_config(accept))
     # Needed for focus which may be returning data about another stick (which is needed because
     # of transcript reporting to UI)
+    print(f"extract_gene_data panel.stick: {panel.stick}")
     stick = data_accessor.data_model.best_stick_id(panel.stick)
     out["stick"] = ("SZ",[stick])
     # flag as invariant if by id

@@ -52,6 +52,7 @@ class Species(object):
         return hash_data.decode("utf-8").split("\t")
 
     def split_total_wire_id(self, total_wire_id: str):
+        print(f"split_total_wire_id: {total_wire_id}")
         for name in self._names:
             if total_wire_id.startswith(name+":"):
                 return (name,total_wire_id[len(name)+1:])
@@ -69,6 +70,7 @@ class Species(object):
         Returns:
 
         """
+        print(f"_load_chromosome: {total_wire_id}")
         (_, wire_id) = self.split_total_wire_id(total_wire_id)
         hash_value = self._load_ncd(data_accessor, "chrom-hashes", wire_id, missing_ok=True)
         if hash_value is not None:
