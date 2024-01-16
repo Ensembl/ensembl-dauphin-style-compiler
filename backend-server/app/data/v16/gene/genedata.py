@@ -46,20 +46,18 @@ OV_TANGLE_PATH = os.path.join(os.path.dirname(__file__),"overview-tangle.toml")
 TANGLE_OVERVIEW = TANGLE_FACTORY.make_from_tomlfile(OV_TANGLE_PATH,[],processor)
 TANGLE_OVERVIEW_WITH_IDS = TANGLE_FACTORY.make_from_tomlfile(OV_TANGLE_PATH,["ids"],processor)
 
-def get_approx_location(data_accessor: DataAccessor, genome: str, id):
-    # replace with canonical form for focus lookup
-    print(f"get_approx_location: {genome}")
-    genome = data_accessor.data_model.canonical_genome_id(genome)
-    if genome != None:
-        species = data_accessor.data_model.species(genome)
-        key = "focus:gene:{}:{}".format(genome,id)
-        accessor = data_accessor.resolver.get(AccessItem("jump",species.genome_id))
+def get_approx_location(data_accessor: DataAccessor, genome_id: str, id: str):
+    print(f"get_approx_location: {genome_id}, {id}")
+    species = data_accessor.data_model.species(genome_id)
+    if species != None:
+        key = "focus:gene:{}:{}".format(genome_id,id)
+        accessor = data_accessor.resolver.get(AccessItem("jump",genome_id))
         jump_ncd = NCDRead(accessor.ncd())
         value = jump_ncd.get(key.encode("utf-8"))
         if value != None:
             parts = value.decode('utf-8').split("\t")
             if len(parts) == 3:
-                on_stick = "{}:{}".format(genome,parts[0])
+                on_stick = "{}:{}".format(genome_id,parts[0])
                 return (on_stick,int(parts[1]),int(parts[2]))
     return (None,None,None)
 
@@ -102,11 +100,7 @@ def extract_gene_data(data_accessor: DataAccessor, panel: Panel, include_exons: 
     data = get_bigbed(data_accessor,item,panel.start,panel.end)
     lines = extract_data_for_lines(data,for_id,expanded)
     out = tangle.run2({},{ "tr_bigbed": lines },**accept_to_tangling_config(accept))
-    # Needed for focus which may be returning data about another stick (which is needed because
-    # of transcript reporting to UI)
-    print(f"extract_gene_data panel.stick: {panel.stick}")
-    stick = data_accessor.data_model.best_stick_id(panel.stick)
-    out["stick"] = ("SZ",[stick])
+    out["stick"] = ("SZ",[panel.stick])
     # flag as invariant if by id
     out = { k: data_algorithm(v[0],v[1]) for (k,v) in out.items() }
     if for_id is not None:

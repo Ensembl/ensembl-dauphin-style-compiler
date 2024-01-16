@@ -34,14 +34,6 @@ class DataModel(object):
         # Returns Species() instance or None
         return self._species.get(genome_id)
 
-    def canonical_genome_id(self, alias):
-        print(f"canonical_genome_id IN: {alias}")
-        for (prefix, chr) in split_all(":", alias):
-            if prefix in self._species:
-                print(f"canonical_genome_id OUT: {prefix}")
-                return prefix
-        return None
-
     def best_stick_id(self, alias):
         print(f"best_stick_id IN: {alias}")
         for (prefix, chr) in split_all(":", alias):
