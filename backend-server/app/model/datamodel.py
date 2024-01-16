@@ -34,14 +34,6 @@ class DataModel(object):
         # Returns Species() instance or None
         return self._species.get(genome_id)
 
-    def best_stick_id(self, alias):
-        print(f"best_stick_id IN: {alias}")
-        for (prefix, chr) in split_all(":", alias):
-            if prefix in self._species:
-                print("best_stick_id OUT: {0}".format(self._species[prefix].best_name+chr))
-                return self._species[prefix].best_name+chr
-        return None
-
     def split_wire_id(self, wire_id: str):
         parts = wire_id.split(":")
         for id in parts:

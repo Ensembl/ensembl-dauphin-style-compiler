@@ -13,7 +13,7 @@ class Species(object):
         genome_id ():
     """
     def __init__(self, genome_id):
-        self.genome_id = self.genome_path = self.wire_id = self.best_name = genome_id
+        self.genome_id = genome_id
         self.chromosomes = {}
         self._tags = []
 
