@@ -3,21 +3,6 @@ import os.path
 from model.datalocator import AccessItem
 
 
-def chrless(x):
-    """
-
-    Args:
-        x ():
-
-    Returns:
-        list
-    """
-    if x.startswith("chr"):
-        return x[3:]
-    else:
-        return x
-
-
 class Chromosome(object):
     """
 
@@ -37,7 +22,6 @@ class Chromosome(object):
         self.stick_name = "{0}:{1}".format(
             species.genome_id, self.name
         )
-        self.wire_id = chrless(self.name)
 
     def item_path(self, variety):
         """
