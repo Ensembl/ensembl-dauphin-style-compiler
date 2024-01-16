@@ -8,12 +8,6 @@ from model.datalocator import AccessItem
 from ncd import NCDRead
 from model.version import Version
 
-"""
-Attributes:
-    PREFIX (str):
-"""
-
-PREFIX = "focus:"
 
 class FocusJumpHandler:
     """
@@ -42,10 +36,12 @@ class FocusJumpHandler:
         """
         # We need to extract something which at least maps to a genome UUID from the chromosome
         # and use that to choose the file and lookup within it.
-        if location.startswith(PREFIX):
-            (sp_obj,good_id) = data_accessor.data_model.split_total_wire_id(location[len(PREFIX):])
+        if location.startswith('focus:'):
+            print(f"FocusJumpHandler IN (location): {location}")
+            (sp_obj,good_id) = data_accessor.data_model.split_wire_id(location[len('focus:'):])
             self._ensure_ncd(data_accessor,sp_obj)
             lookup_key = "focus:{}".format(good_id)
+            print(f"FocusJumpHandler (good_id, lookup_key): {good_id}, {lookup_key}")
             cached = data_accessor.cache.get_jump(lookup_key,version)
             if cached is not None:
                 return cached

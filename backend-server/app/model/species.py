@@ -15,7 +15,6 @@ class Species(object):
     def __init__(self, genome_id):
         self.genome_id = self.genome_path = self.wire_id = self.best_name = genome_id
         self.chromosomes = {}
-        self._names = [genome_id]
         self._tags = []
 
     def item_path(self, variety):
@@ -51,40 +50,30 @@ class Species(object):
                 raise RequestException("cannot find hash '{}'".format(wire_id))
         return hash_data.decode("utf-8").split("\t")
 
-    def split_total_wire_id(self, total_wire_id: str):
-        print(f"split_total_wire_id: {total_wire_id}")
-        for name in self._names:
-            if total_wire_id.startswith(name+":"):
-                return (name,total_wire_id[len(name)+1:])
-            elif total_wire_id == name:
-                return (name,"")
-        raise RequestException("cannot split id")
-
-    def _load_chromosome(self, data_accessor, total_wire_id):
+    def _load_chromosome(self, data_accessor, wire_id:str):
         """
 
         Args:
             data_accessor ():
-            total_wire_id ():
+            wire_id (str): stick (genome_uuid:chr)
 
         Returns:
 
         """
-        print(f"_load_chromosome: {total_wire_id}")
-        (_, wire_id) = self.split_total_wire_id(total_wire_id)
-        hash_value = self._load_ncd(data_accessor, "chrom-hashes", wire_id, missing_ok=True)
+        (genome,chr) = wire_id.split(':')
+        hash_value = self._load_ncd(data_accessor, "chrom-hashes", chr, missing_ok=True)
         if hash_value is not None:
-            size = int(self._load_ncd(data_accessor, "chrom-sizes", wire_id)[0])
-            return Chromosome(wire_id, size, hash_value[0], self,self._tags)
+            size = int(self._load_ncd(data_accessor, "chrom-sizes", chr)[0])
+            return Chromosome(chr, size, hash_value[0], self, self._tags)
         else:
             return None
 
-    def chromosome(self, data_accessor, wire_id):
+    def chromosome(self, data_accessor, wire_id: str):
         """
 
         Args:
             data_accessor ():
-            wire_id ():
+            wire_id (str): stick (genome_uuid:chr)
 
         Returns:
             chromosome():
