@@ -1,6 +1,5 @@
 from uuid import UUID
 from .species import Species
-from util.string import split_all
 from core.exceptions import RequestException
 
 """
