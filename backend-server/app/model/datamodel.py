@@ -33,11 +33,3 @@ class DataModel(object):
     def species(self, genome_id:str):
         # Returns Species() instance or None
         return self._species.get(genome_id)
-
-    def split_wire_id(self, wire_id: str):
-        parts = wire_id.split(":")
-        for id in parts:
-            if id in self._species:
-                species = self._species[id]
-                return (species, wire_id)
-        raise RequestException("cannot split id")

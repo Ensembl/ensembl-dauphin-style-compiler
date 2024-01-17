@@ -28,13 +28,13 @@ class Species(object):
         """
         return AccessItem(variety, self.genome_id)
 
-    def _load_ncd(self, data_accessor, variety, wire_id, missing_ok = False):
+    def _load_ncd(self, data_accessor, variety, chr, missing_ok = False):
         """
 
         Args:
             data_accessor ():
             variety ():
-            wire_id ():
+            chr ():
 
         Returns:
 
@@ -42,25 +42,25 @@ class Species(object):
         item = AccessItem(variety, self.genome_id)
         accessor = data_accessor.resolver.get(item)
         hash_reader = NCDRead(accessor.ncd())
-        hash_data = hash_reader.get(wire_id.encode("utf-8"))
+        hash_data = hash_reader.get(chr.encode("utf-8"))
         if hash_data == None:
             if missing_ok:
                 return None
             else:
-                raise RequestException("cannot find hash '{}'".format(wire_id))
+                raise RequestException("cannot find hash '{}'".format(chr))
         return hash_data.decode("utf-8").split("\t")
 
-    def _load_chromosome(self, data_accessor, wire_id:str):
+    def _load_chromosome(self, data_accessor, stick: str):
         """
 
         Args:
             data_accessor ():
-            wire_id (str): stick (genome_uuid:chr)
+            stick (str): <genome_uuid>:<chr>
 
         Returns:
 
         """
-        (genome,chr) = wire_id.split(':')
+        (genome,chr) = stick.split(':')
         hash_value = self._load_ncd(data_accessor, "chrom-hashes", chr, missing_ok=True)
         if hash_value is not None:
             size = int(self._load_ncd(data_accessor, "chrom-sizes", chr)[0])
@@ -68,17 +68,17 @@ class Species(object):
         else:
             return None
 
-    def chromosome(self, data_accessor, wire_id: str):
+    def chromosome(self, data_accessor, stick: str):
         """
 
         Args:
             data_accessor ():
-            wire_id (str): stick (genome_uuid:chr)
+            stick (str): stick <genome_uuid>:<chr>
 
         Returns:
             chromosome():
 
         """
-        if not (wire_id in self.chromosomes):
-            self.chromosomes[wire_id] = self._load_chromosome(data_accessor, wire_id)
-        return self.chromosomes.get(wire_id)
+        if not (stick in self.chromosomes):
+            self.chromosomes[stick] = self._load_chromosome(data_accessor, stick)
+        return self.chromosomes.get(stick)
