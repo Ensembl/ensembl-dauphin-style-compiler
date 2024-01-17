@@ -30,5 +30,7 @@ class DataModel(object):
         return self._species[genome_id].chromosome(data_accessor, stick_id)
 
     def species(self, genome_id:str):
-        # Returns Species() instance or None
-        return self._species.get(genome_id)
+        if genome_id in self._species:
+            return self._species[genome_id]
+        else:
+            raise RequestException(f"Unknown genome id: {genome_id}")

@@ -1,10 +1,5 @@
-import logging
-import dbm
-import os.path
-
 from model.species import Species
 from command.coremodel import DataAccessor
-from model.datalocator import AccessItem
 from ncd import NCDRead
 from model.version import Version
 
