@@ -5,6 +5,7 @@ from core.exceptions import RequestException
 """
 Converts a stick id to a Chromosome() object which includes means of access for the data.
 The main tasks are resolving species IDs and determining data-sets based on versioning.
+New Species() objects (and genome UUIDs) are added to the cache as they are requested.
 """
 class DataModel(object):
     """
@@ -19,18 +20,16 @@ class DataModel(object):
     # Returns: Chromosome instance
     def stick(self, data_accessor, stick_id:str):
         genome_id = stick_id.split(":")[0]
-        # Handle genome UUIDs. New UUIDs are fed from StickHandler requests.
+        species = self.species(genome_id)
+        return species.chromosome(data_accessor, stick_id)
+
+    def species(self, genome_id:str):
         if genome_id not in self._species:
             try:
                 UUID(genome_id)
             except ValueError:
-                raise RequestException(f"Unexpected genome id format: {genome_id}")
+                raise RequestException(
+                    f"Unexpected genome id format: {genome_id}")
             self._species[genome_id] = Species(genome_id)
-        
-        return self._species[genome_id].chromosome(data_accessor, stick_id)
 
-    def species(self, genome_id:str):
-        if genome_id in self._species:
-            return self._species[genome_id]
-        else:
-            raise RequestException(f"Unknown genome id: {genome_id}")
+        return self._species[genome_id]
