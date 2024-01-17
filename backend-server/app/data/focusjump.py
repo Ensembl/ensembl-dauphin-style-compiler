@@ -39,11 +39,9 @@ class FocusJumpHandler:
             sp_obj = data_accessor.data_model.species(lookup.split(':')[2])
             self._ensure_ncd(data_accessor, sp_obj)
             cached = data_accessor.cache.get_jump(lookup,version)
-            print(f"FocusJumpHandler (cached): {cached}")
             if cached is not None:
                 return cached
             value = self._ncd_files[sp_obj.genome_id].get(lookup.encode("utf-8"))
-            print(f"FocusJumpHandler (value): {value}")
             if value is not None:
                 parts = value.decode("utf-8").split("\t")
                 out = (sp_obj.genome_id + ":" + parts[0], int(float(parts[1])), int(float(parts[2])))

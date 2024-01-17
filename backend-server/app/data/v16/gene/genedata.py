@@ -47,7 +47,6 @@ TANGLE_OVERVIEW = TANGLE_FACTORY.make_from_tomlfile(OV_TANGLE_PATH,[],processor)
 TANGLE_OVERVIEW_WITH_IDS = TANGLE_FACTORY.make_from_tomlfile(OV_TANGLE_PATH,["ids"],processor)
 
 def get_approx_location(data_accessor: DataAccessor, genome_id: str, id: str):
-    print(f"get_approx_location: {genome_id}, {id}")
     species = data_accessor.data_model.species(genome_id)
     if species != None:
         key = "focus:gene:{}:{}".format(genome_id,id)
