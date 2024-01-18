@@ -74,7 +74,7 @@ class ProgramHandler(Handler):
 class StickHandler(Handler):
     def process(self, data_accessor: DataAccessor, channel: Any, payload: Any, metrics: ResponseMetrics, version: Version) -> Response:
         (stick_name,) = payload
-        chromosome = data_accessor.data_model.try_stick(data_accessor,stick_name)
+        chromosome = data_accessor.data_model.stick(data_accessor,stick_name)
         if chromosome == None:
             return Response(3,{
                 "error": "Unknown stick {0}".format(stick_name)
@@ -86,17 +86,6 @@ class StickHandler(Handler):
                 "topology": 0 if chromosome.topology == "linear" else 1,
                 "tags": [t for t in chromosome.tags]
             })
-
-# doesn't exist v15 onwards
-class StickAuthorityHandler(Handler):
-    def process(self, data_accessor: DataAccessor, channel: Any, payload: Any, metrics: ResponseMetrics, version: Version) -> Response:
-        try:
-            sa_start_prog = data_accessor.begs_files.authority_startup_program(version)
-            sa_lookup_prog = data_accessor.begs_files.authority_lookup_program(version)
-            sa_jump_prog = data_accessor.begs_files.authority_jump_program(version)
-            return Response(4,[channel,sa_start_prog,sa_lookup_prog,sa_jump_prog])
-        except UnknownVersionException as e:
-            return Response(1,e)
 
 class ExpansionHandler(Handler):
     def __init__(self, expansions) -> None:

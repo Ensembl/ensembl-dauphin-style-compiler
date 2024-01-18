@@ -31,7 +31,6 @@
           <button id="jump-brca2">jump brca2</button>
           <button id="jump-fry">jump fry</button>
           <button id="jump-wheat">jump wheat</button>
-          <button id="jump-ecoli">jump ecoli</button>
           <button id="focus-region">focus region</button>
           <button id="unload">unload</button>
           <button id="toggle-all-tr">toggle all tr</button>
@@ -345,15 +344,7 @@
             "item_id": "TraesCS3D02G273600"
           });
           genome_browser.wait();
-          genome_browser.jump("focus:a73357ab-93e7-11ec-a39d-005056b38ce3:TraesCS3D02G273600");
-        };
-        document.getElementById("jump-ecoli").onclick = function() {
-          genome_browser.jump("focus:escherichia_coli_str_k_12_substr_mg1655_gca_000005845_GCA_000005845_2:b2614");
-          genome_browser.wait();
-          genome_browser.switch(["track","focus","enabled-transcripts"],null);
-          genome_browser.switch(["track","focus","item","gene"],{
-            "genome_id": "escherichia_coli_str_k_12_substr_mg1655_gca_000005845_GCA_000005845_2", "item_id": "b2614"
-          });
+          genome_browser.jump("focus:gene:a73357ab-93e7-11ec-a39d-005056b38ce3:TraesCS3D02G273600");
         };
         document.getElementById("toggle-all-tr").onclick = toggle_all_tr;
         document.getElementById("focus-region").onclick = function() {

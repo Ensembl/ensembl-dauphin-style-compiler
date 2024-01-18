@@ -13,9 +13,8 @@ class Species(object):
         genome_id ():
     """
     def __init__(self, genome_id):
-        self.genome_id = self.genome_path = self.wire_id = self.best_name = genome_id
+        self.genome_id = genome_id
         self.chromosomes = {}
-        self._names = [genome_id]
         self._tags = []
 
     def item_path(self, variety):
@@ -29,13 +28,13 @@ class Species(object):
         """
         return AccessItem(variety, self.genome_id)
 
-    def _load_ncd(self, data_accessor, variety, wire_id, missing_ok = False):
+    def _load_ncd(self, data_accessor, variety, chr, missing_ok = False):
         """
 
         Args:
             data_accessor ():
             variety ():
-            wire_id ():
+            chr ():
 
         Returns:
 
@@ -43,51 +42,43 @@ class Species(object):
         item = AccessItem(variety, self.genome_id)
         accessor = data_accessor.resolver.get(item)
         hash_reader = NCDRead(accessor.ncd())
-        hash_data = hash_reader.get(wire_id.encode("utf-8"))
+        hash_data = hash_reader.get(chr.encode("utf-8"))
         if hash_data == None:
             if missing_ok:
                 return None
             else:
-                raise RequestException("cannot find hash '{}'".format(wire_id))
+                raise RequestException("cannot find hash '{}'".format(chr))
         return hash_data.decode("utf-8").split("\t")
 
-    def split_total_wire_id(self, total_wire_id: str):
-        for name in self._names:
-            if total_wire_id.startswith(name+":"):
-                return (name,total_wire_id[len(name)+1:])
-            elif total_wire_id == name:
-                return (name,"")
-        raise RequestException("cannot split id")
-
-    def _load_chromosome(self, data_accessor, total_wire_id):
+    def _load_chromosome(self, data_accessor, stick: str):
         """
 
         Args:
             data_accessor ():
-            total_wire_id ():
+            stick (str): <genome_uuid>:<chr>
 
         Returns:
 
         """
-        (_, wire_id) = self.split_total_wire_id(total_wire_id)
-        hash_value = self._load_ncd(data_accessor, "chrom-hashes", wire_id, missing_ok=True)
+        (genome,chr) = stick.split(':')
+        hash_value = self._load_ncd(data_accessor, "chrom-hashes", chr, missing_ok=True)
         if hash_value is not None:
-            size = int(self._load_ncd(data_accessor, "chrom-sizes", wire_id)[0])
-            return Chromosome(wire_id, size, hash_value[0], self,self._tags)
+            size = int(self._load_ncd(data_accessor, "chrom-sizes", chr)[0])
+            return Chromosome(chr, size, hash_value[0], self, self._tags)
         else:
             return None
 
-    def chromosome(self, data_accessor, wire_id):
+    def chromosome(self, data_accessor, stick: str):
         """
 
         Args:
             data_accessor ():
-            wire_id ():
+            stick (str): stick <genome_uuid>:<chr>
 
         Returns:
             chromosome():
 
         """
-        if not (wire_id in self.chromosomes):
-            self.chromosomes[wire_id] = self._load_chromosome(data_accessor, wire_id)
-        return self.chromosomes.get(wire_id)
+        if not (stick in self.chromosomes):
+            self.chromosomes[stick] = self._load_chromosome(data_accessor, stick)
+        return self.chromosomes.get(stick)

@@ -40,15 +40,6 @@ class OldVersionedBegsFiles(object):
         with open(path) as f:
             toml_file = toml.loads(f.read())
         self.boot_program = toml_file["core"].get("boot",None)
-        stick_authority = toml_file.get("stick-authority")
-        if stick_authority != None:
-            self.authority_startup_program = stick_authority.get("startup",None)
-            self.authority_lookup_program = stick_authority.get("lookup",None)
-            self.authority_jump_program = stick_authority.get("jump",None)
-        else:
-            self.authority_startup_program = None
-            self.authority_lookup_program = None
-            self.authority_jump_program = None
         self._bundles = {}
         self.name_to_bundle_name = {}
         self.name_to_bundle = {}
@@ -260,15 +251,3 @@ class BegsFiles(object):
 
     def add_bundle(self, bundle_name: str, version: Version) -> Any:
         return self._bundle(version).add_bundle(bundle_name)
-
-    # There is no authority_lookup_program from v15 on
-    def authority_startup_program(self, version: Version):
-        return self._bundle(version).authority_startup_program
-
-    # There is no authority_lookup_program from v15 on
-    def authority_lookup_program(self, version: Version):
-        return self._bundle(version).authority_lookup_program
-
-    # There is no authority_jump_program from v15 on
-    def authority_jump_program(self, version: Version):
-        return self._bundle(version).authority_jump_program
