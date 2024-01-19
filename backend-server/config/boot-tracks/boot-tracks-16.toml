@@ -246,15 +246,6 @@ name = ["track","contig","name"]
 # Expansions
 #
 
-[expansion.test]
-channel = ["ensembl","main"]
-name = "test"
-triggers = [
-    ["track","expand"]
-]
-run = "test"
-
-
 [expansion.variation]
 channel = ["ensembl","main"]
 name = "variation"
