@@ -92,7 +92,7 @@ let v.end = v.start + data_number(data,"length");
 let v.id = data_string(data,"id");
 let v.alleles = data_string(data,"alleles");
 let v.variety = data_string(data,"variety");  //['SNV', 'indel', 'deletion', ...]
-let v.severity = data_number(data,"severity");  //[1, 5, ...]
+let v.group = data_number(data,"group");  //[1, 5, ...]
 let v.consequence = data_string(data,"consequence"); //['upstream_gene_variant', ...]
 
 let deep = v.variety != "SNV";
@@ -126,10 +126,10 @@ let zmenu_paint = variant_zmenu(*v);
 let base_height = 6; //block height
 let base_gap = 1; //block gap width
 // draw colored blocks (for SNVs)
-let variant_severity_paint = paint_solid(index(variant_colours(),v.severity));
+let variant_group_paint = paint_solid(index(variant_colours(),v.group));
 let nw = coord(v.display_start, [0,...], [base_gap/2,...]);
 let se = coord(v.display_start+1, [base_height,...], [-base_gap/2,...]);
-rectangle(nw, se, variant_severity_paint, if(!deep, [leaf.shore_under,...], [leaf(""),...]));
+rectangle(nw, se, variant_group_paint, if(!deep, [leaf.shore_under,...], [leaf(""),...]));
 rectangle(nw, se, zmenu_paint, if(!deep, [leaf.shore_over,...], [leaf(""),...]));
 // draw block borders (for all base pairs)
 let (bp_start,bp_end) = bp_range();
@@ -186,7 +186,7 @@ let height_to_dot = [(top_line_height/2)-(dot_size/2),...];
 polygon(
     coord(v.display_start, sun_delta+height_to_dot, [1,...]),
     [dot_size,...], dot_smoothness, 0,
-    variant_severity_paint,
+    variant_group_paint,
     if(deep, sun_leaf, [leaf(""),...])
 );
 
@@ -259,7 +259,7 @@ rectangle_join(
 polygon(
     coord(v.display_start, height_to_dot, [1,...]),
     [dot_size,...], dot_smoothness, 0,
-    variant_severity_paint, deep_sea_text_leaf
+    variant_group_paint, deep_sea_text_leaf
 );
 
 /* Draw track furniture */

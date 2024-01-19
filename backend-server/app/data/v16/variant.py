@@ -87,7 +87,7 @@ def get_variant_labels(
         lengths = []
         ids = []
         varieties = []
-        severities = []
+        groups = []
         consequence = []
         chromosomes = []
         alleles = []
@@ -99,7 +99,7 @@ def get_variant_labels(
             ids.append(rest[0])
             varieties.append(rest[1])
             alleles.append(allele_sequence(rest[2], rest[3]))
-            severities.append(int(rest[4]))
+            groups.append(int(rest[4]))
             consequence.append(rest[5])
     except Exception as e:
         logging.error(e)
@@ -110,7 +110,7 @@ def get_variant_labels(
         "id": data_algorithm("SZ", ids),
         "variety": data_algorithm("SYRLZ", varieties),
         "alleles": data_algorithm("SYRLZ", alleles),
-        "severity": data_algorithm("NRL", severities),
+        "group": data_algorithm("NRL", groups),
         "consequence": data_algorithm("SYRLZ", consequence),
     }
 
@@ -122,7 +122,7 @@ def allele_sequence(ref: str, alts: str) -> str:
         return truncated_sequence
     return combined_sequence
 
-def get_scope(scope, key:str) -> str:
+def get_scope(scope, key:str) -> str | None:
     val = scope.get(key)
     if val is None or len(val) == 0:
         return None

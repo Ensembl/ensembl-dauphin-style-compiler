@@ -171,7 +171,7 @@ let v.end = v.start + data_number(data,"length");
 let v.id = data_string(data,"id");
 let v.alleles = data_string(data,"alleles");
 let v.variety = data_string(data,"variety"); //['SNV', 'indel', 'deletion', ...]
-let v.severity = data_number(data,"severity"); //[1, 5, ...]
+let v.group = data_number(data,"group"); //[1, 5, ...]
 let v.consequence = data_string(data,"consequence"); //['upstream_gene_variant', ...]
 
 let deep = v.variety != "SNV";
@@ -197,7 +197,7 @@ let base_height = 6; // block height
 let base_gap = 1; // block gap width
 
 // draw coloured blocks to represent SNVs
-let variant_paint = paint_solid(index(variant_colours(), v.severity));
+let variant_paint = paint_solid(index(variant_colours(), v.group));
 let nw = coord(v.display_start, [0,...], [base_gap/2,...]);
 let se = coord(v.display_start+1, [base_height,...], [-base_gap/2,...]);
 rectangle(nw, se, variant_paint, if(!deep, [leaf.shore_under,...], [leaf(""),...]));
