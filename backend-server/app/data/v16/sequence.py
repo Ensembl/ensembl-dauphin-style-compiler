@@ -26,7 +26,7 @@ def sequence_blocks8(out: Dict[str, bytes], data_accessor: DataAccessor, chrom: 
 
 class ZoomedSeqDataHandler16(DataHandler):
     def process_data(self, data_accessor: DataAccessor, panel: Panel, scope) -> Response:
-        chrom = data_accessor.data_model.stick(data_accessor, panel.stick)
+        chrom = data_accessor.data_model.stick(panel.stick)
         if chrom == None:
             raise DataException(1, "Unknown chromosome {0}".format(panel.stick))
         out = {}

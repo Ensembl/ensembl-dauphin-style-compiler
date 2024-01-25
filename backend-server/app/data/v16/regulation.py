@@ -54,7 +54,7 @@ class RegulationDataHandler(DataHandler):
     def process_data(
         self, data_accessor: DataAccessor, panel: Panel, scope
     ) -> Response:
-        chrom = data_accessor.data_model.stick(data_accessor, panel.stick)
+        chrom = data_accessor.data_model.stick(panel.stick)
         if chrom == None:
             raise DataException("Unknown chromosome {0}".format(panel.stick))
         return get_regulation_data(data_accessor, chrom, panel)

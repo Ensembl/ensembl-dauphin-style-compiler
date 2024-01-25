@@ -89,7 +89,7 @@ def extract_gene_data(data_accessor: DataAccessor, panel: Panel, include_exons: 
     # fix location
     if for_id is not None:
         update_panel_from_id(data_accessor,panel,for_id)
-    chrom = data_accessor.data_model.stick(data_accessor,panel.stick)
+    chrom = data_accessor.data_model.stick(panel.stick)
     if chrom == None:
         raise DataException("Unknown chromosome {0}".format(panel.stick))
     # get the data
@@ -137,7 +137,7 @@ class GeneDataHandler16(DataHandler):
 
 class GeneOverviewDataHandler16(DataHandler):
     def process_data(self, data_accessor: DataAccessor, panel: Panel, scope) -> Response:
-        chrom = data_accessor.data_model.stick(data_accessor,panel.stick)
+        chrom = data_accessor.data_model.stick(panel.stick)
         if chrom == None:
             return Response(1,"Unknown chromosome {0}".format(panel.stick))
         return extract_gene_overview_data(data_accessor,chrom,panel.start,panel.end,False,accept)

@@ -67,7 +67,7 @@ class ProgramHandler(Handler):
 class StickHandler(Handler):
     def process(self, data_accessor: DataAccessor, channel, payload, metrics: ResponseMetrics, version: Version) -> Response:
         (stick_name,) = payload
-        chromosome = data_accessor.data_model.stick(data_accessor,stick_name)
+        chromosome = data_accessor.data_model.stick(stick_name)
         if chromosome == None:
             return Response(3,{
                 "error": "Unknown stick {0}".format(stick_name)

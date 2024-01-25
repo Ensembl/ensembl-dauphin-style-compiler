@@ -20,7 +20,7 @@ class Panel(object):
         self.end = (1<<self.scale)*(self.index+1)
     
     def get_chrom(self, data_accessor: DataAccessor) -> Chromosome:
-        chrom = data_accessor.data_model.stick(data_accessor, self.stick)
+        chrom = data_accessor.data_model.stick(self.stick)
         if chrom == None:
             raise DataException(f"Unknown chromosome: {self.stick}")
         return chrom

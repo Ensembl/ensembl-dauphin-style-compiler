@@ -17,7 +17,7 @@ class DataModel(object):
 
     # Args: stick string (<genome_uuid>:<chr>)
     # Returns: Chromosome instance
-    def stick(self, data_accessor, stick_id:str):
+    def stick(self, stick_id:str):
         genome_id = stick_id.split(":")[0]
         species = self.species(genome_id)
         return species.chromosome(self._data_accessor, stick_id)

@@ -63,7 +63,7 @@ class VariantSummaryDataHandler(DataHandler):
     def process_data(
         self, data_accessor: DataAccessor, panel: Panel, scope
     ) -> Response:
-        chrom = data_accessor.data_model.stick(data_accessor, panel.stick)
+        chrom = data_accessor.data_model.stick(panel.stick)
         if chrom == None:
             raise DataException(f"Unknown chromosome: {panel.stick}")
         return get_variant(data_accessor, chrom, panel, scope.get("datafile")[0])
@@ -132,7 +132,7 @@ class VariantLabelsDataHandler(DataHandler):
     def process_data(
         self, data_accessor: DataAccessor, panel: Panel, scope
     ) -> Response:
-        chrom = data_accessor.data_model.stick(data_accessor, panel.stick)
+        chrom = data_accessor.data_model.stick(panel.stick)
         if chrom == None:
             raise DataException(f"Unknown chromosome: {panel.stick}")
         return get_variant_labels(
