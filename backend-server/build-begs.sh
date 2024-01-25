@@ -13,6 +13,7 @@ eard-compiler \
     -c $SRC/v16/gene/focus-transcript.eard -c $SRC/v16/gene/zoomed-transcript.eard \
     -c $SRC/v16/gene/focus-zoomed-transcript.eard -c $SRC/v16/other/focus-region.eard \
     -c $SRC/v16/variant/focus-variant.eard -c $SRC/v16/variant/focus-variant-summary.eard \
+    -c $SRC/v16/other/compara-details.eard -c $SRC/v16/other/compara-summary.eard \
     -c $SRC/v16/variant/focus-variant-dots.eard \
     -c $SRC/v16/regulation/regulation.eard \
     -o $DST/render16.eardo

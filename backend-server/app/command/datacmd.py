@@ -1,6 +1,4 @@
 from __future__ import annotations
-from tokenize import Number
-from typing import Any, Dict, List, Optional
 import time, zlib, cbor2
 
 from .coremodel import Handler, Panel
@@ -9,29 +7,31 @@ from .datasources import DataAccessor
 from .exceptionres import DataException
 from util.influx import ResponseMetrics
 from model.version import Version
-
 from data.v16.variant import VariantLabelsDataHandler, VariantSummaryDataHandler
 from data.v16.regulation import RegulationDataHandler
 from data.v16.contig import ShimmerContigDataHandler16
 from data.v16.contig import ContigDataHandler16
-from data.v16.wiggle.gc import WiggleDataHandler16
+from data.v16.wiggle import GCWiggleDataHandler, ComparaWiggleDataHandler
 from data.v16.sequence import ZoomedSeqDataHandler16
 from data.v16.gene.genedata import TranscriptDataHandler16
 from data.v16.gene.genedata import GeneDataHandler16
 from data.v16.gene.genedata import GeneOverviewDataHandler16
 from data.focusjump import FocusJumpHandler
+from data.v16.compara import ComparaDataHandler
 
 handlers = [
     ("gene-overview", GeneOverviewDataHandler16(), 16),
     ("gene", GeneDataHandler16(), 16),
     ("transcript", TranscriptDataHandler16(), 16),
     ("zoomed-seq", ZoomedSeqDataHandler16(), 16),
-    ("gc", WiggleDataHandler16(), 16),
+    ("gc", GCWiggleDataHandler(), 16),
     ("contig", ContigDataHandler16(), 16),
     ("shimmer-contig", ShimmerContigDataHandler16(), 16),
     ("variant-summary", VariantSummaryDataHandler(), 16),
     ("variant-details", VariantLabelsDataHandler(), 16),
     ("regulation", RegulationDataHandler(), 16),
+    ("compara-summary", ComparaWiggleDataHandler(), 16),
+    ("compara-details", ComparaDataHandler(), 16),
 ]
 
 
@@ -40,9 +40,9 @@ def compress_payload(data):
     return zlib.compress(data)
 
 
-def make_handlers_for_version(version_wanted: Number) -> Dict[str, DataHandler]:
+def make_handlers_for_version(version_wanted: int) -> dict[str, DataHandler]:
     out = {}
-    versions = {}
+    versions: dict[str, int] = {}
     for line in handlers:
         # Add dummy "version zero" where version not specified and then extract
         if len(line) == 2:
@@ -61,22 +61,15 @@ class DataHandler(Handler):
         max_minver = max(
             x[2] if len(x) > 2 else 0 for x in handlers
         )  # Largest minimum version specified in any handler
-        self.handlers: List[Dict[str, DataHandler]] = [
+        self.handlers: list[dict[str, DataHandler]] = [
             make_handlers_for_version(i) for i in range(max_minver + 1)
         ]
 
-    def get_handler(self, name: str, version: Number) -> DataHandler:
-        return self.handlers[min(version.get_egs(), len(self.handlers) - 1)].get(
-            name, None
-        )
+    def get_handler(self, name: str, version: Version) -> DataHandler:
+        return self.handlers[min(version.get_egs(), len(self.handlers) - 1)].get(name, None)
 
     def process(
-        self,
-        data_accessor: DataAccessor,
-        channel: Any,
-        payload: Any,
-        metrics: ResponseMetrics,
-        version: Version,
+        self, data_accessor: DataAccessor, channel, payload, metrics: ResponseMetrics, version: Version
     ) -> Response:
         (channel, name, panel, scope, accept) = payload
         panel = Panel(panel)
@@ -92,7 +85,7 @@ class DataHandler(Handler):
             return Response(1, f"Unknown data endpoint: {name}")
         start = time.time()
         try:
-            data = handler.process_data(data_accessor, panel, scope, accept)
+            data = handler.process_data(data_accessor, panel, scope)
             invariant = data.pop("__invariant", False)
             out = Response(
                 5, {"data": compress_payload(data), "__invariant": invariant}
@@ -109,7 +102,7 @@ class DataHandler(Handler):
         )
         return out
 
-    def remote_prefix(self, payload: Any) -> Optional[List[str]]:
+    def remote_prefix(self, payload) -> list[str] | None:
         return ["data", payload[1], payload[2][0]]
 
 
@@ -118,12 +111,7 @@ class JumpHandler(Handler):
         self.handlers = [FocusJumpHandler()]
 
     def process(
-        self,
-        data_accessor: DataAccessor,
-        channel: Any,
-        payload: Any,
-        metrics: ResponseMetrics,
-        version: Version,
+        self, data_accessor: DataAccessor, channel, payload, metrics: ResponseMetrics, version: Version,
     ) -> Response:
         (location,) = payload
         for handler in self.handlers:
@@ -134,5 +122,5 @@ class JumpHandler(Handler):
                 )
         return Response(6, {"no": True})
 
-    def remote_prefix(self, payload: Any) -> Optional[List[str]]:
+    def remote_prefix(self, payload) -> list[str]:
         return ["jump"]

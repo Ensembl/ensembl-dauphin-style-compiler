@@ -26,7 +26,7 @@ class Expansions:
     # Add a settings to a track object
     def _add_settings(self, track: Track, data: dict, settings: list=[]) -> None:
         for setting in settings:
-            track.add_setting(setting, data['trigger'] + setting)
+            track.add_setting(setting, data['trigger']+[setting])
 
     # Create a track object from track metadata
     def _create_track(self, data: dict, program_name: str, scales: list|None=None, settings: list=[]) -> Track:
@@ -37,7 +37,7 @@ class Expansions:
         track.add_value("track_id", data['track_id']) # will be required for defining the track "leaf" in the tree of tracks
         track.add_value("track_name", data['label']) # value to inject track name into the track program
         track.add_value("display_order", data['display_order']) # initial track order for the track program
-        track.add_value("datafile", data['datafiles'][data["datafiles"].keys()[0]])
+        track.add_value("datafile", next(iter(data['datafiles'].values())))
         # add settings/switches
         settings.append("name") # switch to toggle track name on/off
         self._add_settings(track, data, settings)
@@ -54,7 +54,10 @@ class Expansions:
             tracks.add_track(f"{track_id}-{zoom_level}", track)
         return tracks
 
-    # Called on boot time from boot-tracks.toml file
+    # Functions for registering expansion tracks. Called on boot time from boot-tracks.toml config
     def define_variation_track(self, track_id: str) -> Tracks:
         details_track_settings = ["label-snv-id", "label-snv-alleles", "label-other-id", "label-other-alleles", "show-extents"]
         return self._create_track_set(track_id, "variant", settings={"details": details_track_settings})
+    
+    def define_compara_track(self, track_id: str) -> Tracks:
+        return self._create_track_set(track_id, "compara")

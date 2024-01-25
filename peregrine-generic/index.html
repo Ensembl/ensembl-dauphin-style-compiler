@@ -169,6 +169,13 @@
           genome_browser.switch(["track", "expand-variation", track_id, "show-extents"], true);
         }
 
+        function init_compara_track(track_id) {
+          genome_browser.switch(["track", "expand-compara"], true);
+          genome_browser.switch(["track", "expand-compara", track_id], true);
+          genome_browser.switch(["track", "expand-compara", track_id, "name"], true);
+          genome_browser.switch(["track", "expand-compara", track_id, "label"], true);
+        }
+
         function flipper(path) {
           let flip = false;
           let out = function () {
@@ -384,10 +391,11 @@
         genome_browser.switch(["ruler"], true);
         genome_browser.switch(["ruler", "one_based"], true);
         init_tracks(["gene-pc-forward","contig","gc","regulation","focus"]);
-        init_variant_track("0adabdbc-e0a5-487d-a712-98e6127712f2");
-        jump_variant("rs1557469781", 1, 1176408);
-        //genome_browser.set_stick("a7335667-93e7-11ec-a39d-005056b38ce3:13");
-        //genome_browser.goto(159980000,160000500);
+        init_compara_track("8a2ff262-9554-4f03-91af-d4b2ad17fb50");
+        //init_variant_track("0adabdbc-e0a5-487d-a712-98e6127712f2");
+        //jump_variant("rs1557469781", 1, 1176408);
+        genome_browser.set_stick("a7335667-93e7-11ec-a39d-005056b38ce3:13");
+        genome_browser.goto(159980000,160000500);
       });
     </script>
   </body>

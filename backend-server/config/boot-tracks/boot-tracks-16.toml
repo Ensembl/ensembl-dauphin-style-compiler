@@ -253,3 +253,11 @@ triggers = [
     ["track","expand-variation"]
 ]
 run = "define_variation_track"
+
+[expansion.compara]
+channel = ["ensembl","main"]
+name = "compara"
+triggers = [
+    ["track","expand-compara"]
+]
+run = "define_compara_track"
