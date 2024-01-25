@@ -6,32 +6,12 @@ include "../common/track-style.eard";
 include "variant-common.eard";
 
 /* Setup styles */
-
-track_styles();
-
 let track_id = setting_string("track_id", []);
-let track_datafile = setting_string("datafile", []);
-let track_name = setting_string("track_name", []);
 let track_display_order = setting_string("display_order", []);
-
-procedure variation_track_styles(track_id) {
-  capture track_display_order;
-  let track_leaf_id = push_str("tracks/track/", track_id);
-  track_leaf_id = push_str(track_leaf_id, "/");
-
-  style(
-    track_leaf_id,
-    [
-      "priority",
-      "report"
-    ], [
-      track_display_order,
-      push_str("track;switch-id=", track_id)
-    ]
-  );
-}
-
-variation_track_styles(track_id);
+track_styles();
+new_track_style(track_id, track_display_order);
 
 // Get data, draw the track
+let track_datafile = setting_string("datafile", []);
+let track_name = setting_string("track_name", []);
 variant_summary_track(track_id, track_name, track_datafile);

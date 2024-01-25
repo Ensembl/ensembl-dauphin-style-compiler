@@ -1,12 +1,8 @@
 import random
-from typing import List, Tuple
-
-from data.v16.dataalgorithm import data_algorithm
+from .dataalgorithm import data_algorithm
 from command.coremodel import DataHandler, Panel, DataAccessor
 from command.response import Response
 from model.bigbed import get_bigbed
-from model.chromosome import Chromosome
-from command.exceptionres import DataException
 
 DOMINO_COUNT = 200
 """
@@ -26,12 +22,14 @@ Attributes:
 """
 
 
-def shimmer_push(out_positions: List[List[int]], out_sense: List[bool], start: int, end: int, sense: bool):
+def shimmer_push(
+        out_positions: list[list[int]], out_sense: list[bool], start: int, end: int, sense: bool
+    ) -> None:
     """
 
     Args:
-        out_positions (List[List[int]]):
-        out_sense (List[bool]):
+        out_positions (list[list[int]]):
+        out_sense (list[bool]):
         start (int):
         end (int):
         sense (bool):
@@ -46,13 +44,14 @@ def shimmer_push(out_positions: List[List[int]], out_sense: List[bool], start: i
         out_sense.append(sense)
 
 
-def shimmer(positions: List[Tuple[int]], sense: List[bool], start: int, end: int) -> Tuple[
-    List[Tuple[int, int]], List[int]]:
+def shimmer(
+        positions: list[tuple[int]], sense: list[bool], start: int, end: int
+    ) -> tuple[list[tuple[int, int]], list[int]]:
     """
 
     Args:
-        positions (List[Tuple[int]]):
-        sense (List[bool]):
+        positions (list[tuple[int]]):
+        sense (list[bool]):
         start (int):
         end (int):
 
@@ -83,8 +82,8 @@ def shimmer(positions: List[Tuple[int]], sense: List[bool], start: int, end: int
     return out_position, out_sense
 
 
-def get_contig(data_accessor: DataAccessor, chrom: Chromosome, panel: Panel, do_shimmer: bool) -> Response:
-    item = chrom.item_path("contigs")
+def get_contig(data_accessor: DataAccessor, panel: Panel, do_shimmer: bool) -> dict:
+    item = panel.get_chrom(data_accessor).item_path("contigs")
     data = get_bigbed(data_accessor, item, panel.start, panel.end)
     positions = []
     senses = []
@@ -102,7 +101,7 @@ def get_contig(data_accessor: DataAccessor, chrom: Chromosome, panel: Panel, do_
     }
 
 class ContigDataHandler16(DataHandler):
-    def process_data(self, data_accessor: DataAccessor, panel: Panel, scope, accept) -> Response:
+    def process_data(self, data_accessor: DataAccessor, panel: Panel, scope) -> dict:
         """
 
         Args:
@@ -113,13 +112,10 @@ class ContigDataHandler16(DataHandler):
         Returns:
 
         """
-        chrom = data_accessor.data_model.stick(data_accessor,panel.stick)
-        if chrom == None:
-            raise DataException("Unknown chromosome {0}".format(panel.stick))
-        return get_contig(data_accessor,chrom,panel,False)
+        return get_contig(data_accessor,panel,False)
 
 class ShimmerContigDataHandler16(DataHandler):
-    def process_data(self, data_accessor: DataAccessor, panel: Panel, scope, accept) -> Response:
+    def process_data(self, data_accessor: DataAccessor, panel: Panel, scope) -> dict:
         """
 
         Args:
@@ -130,7 +126,4 @@ class ShimmerContigDataHandler16(DataHandler):
         Returns:
 
         """
-        chrom = data_accessor.data_model.stick(data_accessor,panel.stick)
-        if chrom == None:
-            raise DataException("Unknown chromosome {0}".format(panel.stick))
-        return get_contig(data_accessor,chrom,panel,True)
+        return get_contig(data_accessor,panel,True)

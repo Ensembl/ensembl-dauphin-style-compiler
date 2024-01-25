@@ -90,3 +90,7 @@ export procedure red_dotted(pos_start,pos_end,text_start,text_end,dots_leaf,text
     rectangle(coord([pos_start],[-1,...],[1,...]),coord([pos_start],[0,...],[1,...]),paint,[dots_leaf,...]);
     rectangle(coord([pos_end],[-1,...],[-1,...]),coord([pos_end],[0,...],[-1,...]),paint,[end_dots_leaf,...]);
 }
+
+export function track_leaf(track_id, suffix) {
+    leaf(join("/", ["tracks/track",track_id,suffix]))
+}

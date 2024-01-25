@@ -128,15 +128,15 @@ def for_id(scope):
         return None
 
 class TranscriptDataHandler16(DataHandler):
-    def process_data(self, data_accessor: DataAccessor, panel: Panel, scope, accept) -> Response:
+    def process_data(self, data_accessor: DataAccessor, panel: Panel, scope) -> Response:
         return extract_gene_data(data_accessor,panel,True,for_id(scope),scope.get("expanded"),accept)
 
 class GeneDataHandler16(DataHandler):
-    def process_data(self, data_accessor: DataAccessor, panel: Panel, scope, accept) -> Response:
+    def process_data(self, data_accessor: DataAccessor, panel: Panel, scope) -> Response:
         return extract_gene_data(data_accessor,panel,False,for_id(scope),scope.get("expanded"),accept)
 
 class GeneOverviewDataHandler16(DataHandler):
-    def process_data(self, data_accessor: DataAccessor, panel: Panel,scope, accept) -> Response:
+    def process_data(self, data_accessor: DataAccessor, panel: Panel, scope) -> Response:
         chrom = data_accessor.data_model.stick(data_accessor,panel.stick)
         if chrom == None:
             return Response(1,"Unknown chromosome {0}".format(panel.stick))

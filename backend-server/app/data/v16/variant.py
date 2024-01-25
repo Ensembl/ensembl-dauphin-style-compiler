@@ -61,7 +61,7 @@ def get_variant(
 
 class VariantSummaryDataHandler(DataHandler):
     def process_data(
-        self, data_accessor: DataAccessor, panel: Panel, scope, accept
+        self, data_accessor: DataAccessor, panel: Panel, scope
     ) -> Response:
         chrom = data_accessor.data_model.stick(data_accessor, panel.stick)
         if chrom == None:
@@ -130,7 +130,7 @@ def get_scope(scope, key:str) -> str | None:
 
 class VariantLabelsDataHandler(DataHandler):
     def process_data(
-        self, data_accessor: DataAccessor, panel: Panel, scope, accept
+        self, data_accessor: DataAccessor, panel: Panel, scope
     ) -> Response:
         chrom = data_accessor.data_model.stick(data_accessor, panel.stick)
         if chrom == None:

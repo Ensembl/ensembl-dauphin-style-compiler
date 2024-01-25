@@ -67,3 +67,19 @@ export procedure track_styles() {
 
     """); 
 }
+
+export procedure new_track_style(track_id, display_order) {
+  let leaf_path = push_str("tracks/track/", track_id);
+  leaf_path = push_str(leaf_path, "/");
+
+  style(
+    leaf_path,
+    [
+      "priority",
+      "report"
+    ], [
+      display_order,
+      push_str("track;switch-id=", track_id)
+    ]
+  );
+}
