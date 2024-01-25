@@ -223,6 +223,19 @@ Dev:WP40:HL:
     NFS_SERVER: ${HL_NFS_SERVER_CODON}
     NFS_PATH: ${HL_NFS_PATH_CODON}
 
+Dev:WP51:HL:
+  extends: .deploy_backend-newk8s
+  environment:
+    name: wp51-hl-development
+  variables:
+    BASE: ensembl-k8s-manifests/genome-browser
+    NFS_SERVER: ${HL_NFS_SERVER_CODON}
+    NFS_PATH: ${HL_NFS_PATH_CODON}
+  rules:
+    - if: '$CI_DEPLOY_FREEZE == null && $CI_COMMIT_BRANCH == "review-on-newk8s"'
+      changes:
+        - backend-server/**/*
+
 Dev:WP41:HX:
   extends: .deploy_backend-newk8s
   environment:
