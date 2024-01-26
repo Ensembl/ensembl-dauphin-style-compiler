@@ -163,18 +163,18 @@ impl GenomeBrowser {
          */
         let tmpl_true = StructValue::new_boolean(true);
         self.api.switch(&["track"],tmpl_true.clone());
-        self.api.switch(&["track","focus","variant"],tmpl_true.clone());
-        self.api.switch(&["track","focus"],tmpl_true.clone());
-        self.api.switch(&["track","focus","item"],tmpl_true.clone());
         self.api.switch(&["focus"],tmpl_true.clone());
         self.api.switch(&["settings"],tmpl_true.clone());
-        self.api.switch(&["ruler"],tmpl_true.clone());
-        self.api.switch(&["ruler","one_based"],tmpl_true.clone());
-        self.api.switch(&["track", "expand-variation"],tmpl_true.clone()); // <-- enable the expansion node for variation tracks
-        self.api.radio_switch(&["focus"],true);
+        self.api.radio_switch(&["focus"],true); // make this a radio switch (only one focus at a time)
         self.api.radio_switch(&["focus","gene"],true);
         self.api.radio_switch(&["track","focus","item"],true);
-
+        self.api.switch(&["track","focus"],tmpl_true.clone());
+        self.api.switch(&["track","focus","variant"],tmpl_true.clone());
+        self.api.switch(&["track","focus","item"],tmpl_true.clone());
+        self.api.switch(&["ruler"],tmpl_true.clone());
+        self.api.switch(&["ruler","one_based"],tmpl_true.clone());
+        self.api.switch(&["track", "expand-variation"],tmpl_true.clone()); // enable expansion node tracks
+        self.api.switch(&["track", "expand-compara"],tmpl_true.clone());
         Ok(())
     }
 
