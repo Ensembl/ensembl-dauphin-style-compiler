@@ -111,14 +111,10 @@ def extract_gene_overview_data(data_accessor: DataAccessor, panel: Panel, with_i
     return out
 
 def for_id(scope):
-    genome_id = scope.get("genome")
-    if genome_id is not None and len(genome_id) == 0:
-        genome_id = None
-    obj_id = scope.get("id")
-    if obj_id is not None and len(obj_id) == 0:
-        obj_id = None
-    if genome_id is not None and obj_id is not None:
-        return (genome_id[0],obj_id[0])
+    genome_id = scope.get("genome",[""])[0]
+    obj_id = scope.get("id",[""])[0]
+    if genome_id and obj_id:
+        return (genome_id,obj_id)
     else:
         return None
 
