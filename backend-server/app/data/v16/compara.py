@@ -17,7 +17,7 @@ def get_compara_details(
         ends.append(end)
         names.append(name)
         scores.append(int(float(score)))
-        
+
     return {
         "start": data_algorithm("NDZRL", starts),
         "end": data_algorithm("NDZRL", ends),
@@ -34,11 +34,11 @@ class ComparaDataHandler(DataHandler):
     Args:
         data_accessor (DataAccessor): The means of accessing data
         panel (Panel): The panel (ie genomic location, scale) we want
-        scope: extra scope args (here: datafile name)
+        scope: extra scope args (here used for datafile name)
 
     Returns: A data dict (payload for Response object)
     """
     def process_data(
-        self, data_accessor: DataAccessor, panel: Panel, scope
+        self, data_accessor: DataAccessor, panel: Panel, scope: dict, accept: str
     ) -> dict[str,bytearray]:
         return get_compara_details(data_accessor, panel, self.get_datafile(scope))

@@ -52,7 +52,7 @@ def get_regulation_data(
 
 class RegulationDataHandler(DataHandler):
     def process_data(
-        self, data_accessor: DataAccessor, panel: Panel, scope
+        self, data_accessor: DataAccessor, panel: Panel, scope: dict, accept: str
     ) -> Response:
         chrom = data_accessor.data_model.stick(panel.stick)
         if chrom == None:

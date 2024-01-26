@@ -85,7 +85,7 @@ class DataHandler(Handler):
             return Response(1, f"Unknown data endpoint: {name}")
         start = time.time()
         try:
-            data = handler.process_data(data_accessor, panel, scope)
+            data = handler.process_data(data_accessor, panel, scope, accept)
             invariant = data.pop("__invariant", False)
             out = Response(
                 5, {"data": compress_payload(data), "__invariant": invariant}

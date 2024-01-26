@@ -26,14 +26,17 @@ class Panel(object):
         return chrom
 
     def dumps(self):
-        return cbor2.dumps([self.stick,self.scale,self.index])
+        return cbor2.dumps([self.stick, self.scale, self.index])
 
 class DataHandler:
+    def get_scope(self, scope, key:str) -> str | None:
+        return scope.get(key, [None])[0]
+
     def get_datafile(self, scope) -> str:
-        filename = scope.get("datafile",[""])[0]
+        filename = self.get_scope(scope, "datafile")
         if not filename:
             raise DataException("No datafile specified")
         return filename
 
-    def process_data(self, data_accessor: DataAccessor, panel: Panel, scope) -> dict:
+    def process_data(self, data_accessor: DataAccessor, panel: Panel, scope: dict, accept: str) -> dict:
         raise NotImplementedError("override process_data!")

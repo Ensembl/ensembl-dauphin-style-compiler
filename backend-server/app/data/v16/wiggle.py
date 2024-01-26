@@ -34,7 +34,7 @@ def get_wiggle_data(
 
 
 class GCWiggleDataHandler(DataHandler):
-    def process_data(self, data_accessor: DataAccessor, panel: Panel, scope) -> dict:
+    def process_data(self, data_accessor: DataAccessor, panel: Panel, scope, accept: str) -> dict:
         """
         Handle a request for GC% wiggle data.
 
@@ -53,5 +53,5 @@ class ComparaWiggleDataHandler(DataHandler):
         Handle a request for Compara wiggle data (conservation scores).
         Signature as per GCDataHandler.process_data() above.
     """
-    def process_data(self, data_accessor: DataAccessor, panel: Panel, scope) -> dict:
+    def process_data(self, data_accessor: DataAccessor, panel: Panel, scope, accept: str) -> dict:
         return get_wiggle_data(data_accessor, panel, self.get_datafile(scope), 5, 10)

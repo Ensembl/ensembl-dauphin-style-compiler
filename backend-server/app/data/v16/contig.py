@@ -101,7 +101,7 @@ def get_contig(data_accessor: DataAccessor, panel: Panel, do_shimmer: bool) -> d
     }
 
 class ContigDataHandler16(DataHandler):
-    def process_data(self, data_accessor: DataAccessor, panel: Panel, scope) -> dict:
+    def process_data(self, data_accessor: DataAccessor, panel: Panel, scope: dict, accept: str) -> dict:
         """
 
         Args:
@@ -112,10 +112,10 @@ class ContigDataHandler16(DataHandler):
         Returns:
 
         """
-        return get_contig(data_accessor,panel,False)
+        return get_contig(data_accessor, panel, False)
 
 class ShimmerContigDataHandler16(DataHandler):
-    def process_data(self, data_accessor: DataAccessor, panel: Panel, scope) -> dict:
+    def process_data(self, data_accessor: DataAccessor, panel: Panel, scope: dict, accept: str) -> dict:
         """
 
         Args:
@@ -126,4 +126,4 @@ class ShimmerContigDataHandler16(DataHandler):
         Returns:
 
         """
-        return get_contig(data_accessor,panel,True)
+        return get_contig(data_accessor, panel, True)
