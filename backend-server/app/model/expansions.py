@@ -60,4 +60,4 @@ class Expansions:
         return self._create_track_set(track_id, "variant", settings={"details": details_track_settings})
     
     def define_compara_track(self, track_id: str) -> Tracks:
-        return self._create_track_set(track_id, "compara")
+        return self._create_track_set(track_id, "compara", scales={"summary": [17, 100, 4], "details": [1, 16, 1]})
