@@ -9,6 +9,7 @@ let track_id = setting_string("track_id", []);
 let track_display_order = setting_string("display_order", []);
 track_styles();
 new_track_style(track_id, track_display_order);
+//style(join("/",["tracks/track",track_id]), ["min-height"], ["32"]);
 
 /* get data */
 let track_datafile = setting_string("datafile", []);
@@ -20,14 +21,14 @@ halt(only_warm());
 /* process data and draw wiggle */
 let values = data_number(data,"values") / 25; //range 0..25=>0..1
 let x_range = data_number(data,"range"); //[startpos,endpos]
-let graph = graph_type(32, colour!("#d04848")); //red
+let graph = graph_type(32, colour!("#d04848")); //graph(height,colour)
 let leaf = track_leaf(track_id, "main/main/content");
 wiggle(index(x_range,0), index(x_range,1), graph, values, [true,...], leaf);
 
 /* draw horizontal baseline */
 let line_paint = paint_hollow(colour!("#d0d0d0"),1);
-let leaf = track_leaf(track_id,"/main/background/content");
-rectangle(coord([0],[16],[0]), coord([1],[16],[0]), line_paint, [leaf,...]);
+let bg_leaf = track_leaf(track_id,"main/background/content");
+rectangle(coord([0],[16],[0]), coord([1],[16],[0]), line_paint, [bg_leaf,...]);
 
 /* draw track furniture */
 let track_name = setting_string("track_name", []);
