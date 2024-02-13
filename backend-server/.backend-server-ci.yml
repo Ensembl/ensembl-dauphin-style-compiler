@@ -67,7 +67,7 @@ variables:
 .deploy_backend:
   extends: .base-be-deploy-rules
   stage: deploy
-  image: dockerhub.ebi.ac.uk/ensembl-web/deploy-tools:0.4
+  image: dockerhub.ebi.ac.uk/ensembl-web/deploy-tools:latest
   before_script:
     - sed -i "s#<NFS_SERVER>#${NFS_SERVER}#g" ${BASE}/hi/patch.yaml
     - sed -i "s#<NFS_PATH>#${NFS_PATH}#g" ${BASE}/hi/patch.yaml
@@ -125,7 +125,7 @@ variables:
   environment:
     name : wp-hx-dev
   stage: deploy
-  image: dockerhub.ebi.ac.uk/ensembl-web/deploy-tools:0.4
+  image: dockerhub.ebi.ac.uk/ensembl-web/deploy-tools:latest
   variables:
     BASE: backend-server/k8s/overlays/review
     NFS_SERVER: ${HX_NFS_SERVER}
