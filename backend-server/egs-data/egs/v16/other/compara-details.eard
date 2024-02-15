@@ -28,4 +28,4 @@ rectangle(coord(start,[8,...],[0,...]), coord(end,[16,...],[0,...]), paint, [lea
 /* draw track furniture */
 let track_name = setting_string("track_name", []);
 draw_track_name(track_name, "name", track_leaf(track_id,"title/content"));
-draw_track_category(["C"], [track_id], [track_leaf(track_id,"main/letter/content")]);
+draw_track_category(["G"], [track_id], [track_leaf(track_id,"main/letter/content")]);

@@ -9,7 +9,6 @@ let track_id = setting_string("track_id", []);
 let track_display_order = setting_string("display_order", []);
 track_styles();
 new_track_style(track_id, track_display_order);
-//style(join("/",["tracks/track",track_id]), ["min-height"], ["32"]);
 
 /* get data */
 let track_datafile = setting_string("datafile", []);
@@ -33,4 +32,4 @@ rectangle(coord([0],[16],[0]), coord([1],[16],[0]), line_paint, [bg_leaf,...]);
 /* draw track furniture */
 let track_name = setting_string("track_name", []);
 draw_track_name(track_name, "name", track_leaf(track_id,"title/content"));
-draw_track_category(["C"], [track_id], [track_leaf(track_id,"main/letter/content")]);
+draw_track_category(["G"], [track_id], [track_leaf(track_id,"main/letter/content")]);
