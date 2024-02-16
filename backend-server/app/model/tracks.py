@@ -1,5 +1,5 @@
 import logging, os.path
-from typing import List, Optional, Set
+from typing import Optional
 from model.serialutil import build_map, immute, increase, remute
 import cbor2, toml
 
@@ -35,7 +35,7 @@ class Track:
         self._values = []
         self._settings = []
 
-    def add_trigger(self, path: List[str]):
+    def add_trigger(self, path: list[str]):
         self._triggers.append(tuple(path))
 
     def add_tag(self, tag: str):
@@ -44,7 +44,7 @@ class Track:
     def add_value(self, name: str, value):
         self._values.append((name,immute(value)))
 
-    def add_setting(self, name: str, setting: List[str]):
+    def add_setting(self, name: str, setting: list[str]):
         self._settings.append((name, tuple(setting)))
 
     def ingest_toml(self,data,includes):
@@ -117,7 +117,7 @@ class Expansion:
     def callback(self):
         return self._run
 
-    def _collect(self) -> Set:
+    def _collect(self) -> tuple[set[str], set[str|None]]:
         return (set(self._triggers),set([self._channel]))
 
     def _dump_for_wire(self, dumper):

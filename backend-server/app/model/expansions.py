@@ -24,20 +24,24 @@ class Expansions:
         return track_data
     
     # Add a settings to a track object
-    def _add_settings(self, track: Track, data: dict, settings: list=[]) -> None:
+    def _add_settings(self, track: Track, data: dict, settings: list[str]=[]) -> None:
         for setting in settings:
             track.add_setting(setting, data['trigger']+[setting])
 
     # Create a track object from track metadata
-    def _create_track(self, data: dict, program_name: str, scales: list|None=None, settings: list=[]) -> Track:
+    def _create_track(self, data: dict, program_name: str='', scales: list[int]=[0,100,3], settings: list[str]=[]) -> Track:
         # declare a program to be run (with optional trigger zoom levels)
-        track = Track(data['track_id'], program_group="ensembl-webteam/core", program_name=program_name, program_version=1, scales=scales)
+        try:
+            filekey = list(data['datafiles'].keys()).pop()
+        except IndexError:
+            raise Exception(f"No datafiles found for track {data['track_id']}")
+        track = Track(data['track_id'], program_group="ensembl-webteam/core", program_name=program_name or filekey, program_version=1, scales=scales)
         # add values from track metadata
         track.add_trigger(data['trigger']) # to turn a track on/off
         track.add_value("track_id", data['track_id']) # will be required for defining the track "leaf" in the tree of tracks
         track.add_value("track_name", data['label']) # value to inject track name into the track program
         track.add_value("display_order", data['display_order']) # initial track order for the track program
-        track.add_value("datafile", next(iter(data['datafiles'].values())))
+        track.add_value("datafile", data['datafiles'][filekey])
         # add settings/switches
         settings.append("name") # switch to toggle track name on/off
         self._add_settings(track, data, settings)
@@ -53,11 +57,14 @@ class Expansions:
             track.add_value("datafile", track_data['datafiles'][zoom_level])
             tracks.add_track(f"{track_id}-{zoom_level}", track)
         return tracks
-
+    
     # Functions for registering expansion tracks. Called on boot time from boot-tracks.toml config
-    def define_variation_track(self, track_id: str) -> Tracks:
+    def register_track(self, track_id: str) -> Tracks:
+        track = self._create_track(data=self._get_track_data(track_id))
+        tracks = Tracks()
+        tracks.add_track(track_id, track)
+        return tracks
+   
+    def register_variation_track(self, track_id: str) -> Tracks:
         details_track_settings = ["label-snv-id", "label-snv-alleles", "label-other-id", "label-other-alleles", "show-extents"]
         return self._create_track_set(track_id, "variant", settings={"details": details_track_settings})
-    
-    def define_compara_track(self, track_id: str) -> Tracks:
-        return self._create_track_set(track_id, "compara", scales={"summary": [17, 100, 4], "details": [1, 16, 1]})

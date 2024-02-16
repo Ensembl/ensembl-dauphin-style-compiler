@@ -30,8 +30,8 @@ handlers = [
     ("variant-summary", VariantSummaryDataHandler(), 16),
     ("variant-details", VariantLabelsDataHandler(), 16),
     ("regulation", RegulationDataHandler(), 16),
-    ("compara-summary", ComparaWiggleDataHandler(), 16),
-    ("compara-details", ComparaDataHandler(), 16),
+    ("compara-scores", ComparaWiggleDataHandler(), 16),
+    ("compara-elements", ComparaDataHandler(), 16),
 ]
 
 

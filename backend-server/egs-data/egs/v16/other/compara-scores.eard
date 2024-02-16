@@ -1,4 +1,4 @@
-program "ensembl-webteam/core" "compara-details" 1;
+program "ensembl-webteam/core" "compara-scores" 1;
 refer "libperegrine";
 refer "libeoe";
 include "../common/track-common.eard";
@@ -12,18 +12,22 @@ new_track_style(track_id, track_display_order);
 
 /* get data */
 let track_datafile = setting_string("datafile", []);
-let req = request("self()","compara-details");
+let req = request("self()","compara-scores");
 scope(req, "datafile", track_datafile);
 let data = get_data(req);
 halt(only_warm());
 
-let start = data_number(data,"start");
-let end = data_number(data,"end");
+/* process data and draw wiggle */
+let values = data_number(data,"values") / 25; //range 0..25=>0..1
+let x_range = data_number(data,"range"); //[startpos,endpos]
+let graph = graph_type(32, colour!("#d04848")); //graph(height,colour)
+let leaf = track_leaf(track_id, "main/main/content");
+wiggle(index(x_range,0), index(x_range,1), graph, values, [true,...], leaf);
 
-/* draw rectangles */
-let paint = paint_solid(colour!("#d04848")); // red
-let leaf = track_leaf(track_id,"main/main/content");
-rectangle(coord(start,[8,...],[0,...]), coord(end,[16,...],[0,...]), paint, [leaf,...]);
+/* draw horizontal baseline */
+let line_paint = paint_hollow(colour!("#d0d0d0"),1);
+let bg_leaf = track_leaf(track_id,"main/background/content");
+rectangle(coord([0],[16],[0]), coord([1],[16],[0]), line_paint, [bg_leaf,...]);
 
 /* draw track furniture */
 let track_name = setting_string("track_name", []);
