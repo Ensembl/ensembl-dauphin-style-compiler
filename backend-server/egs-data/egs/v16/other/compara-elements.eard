@@ -21,7 +21,7 @@ let start = data_number(data,"start");
 let end = data_number(data,"end");
 
 /* draw rectangles */
-let paint = paint_solid(colour!("#d04848")); // red
+let paint = paint_solid(colour!("#47d147")); // green
 let leaf = track_leaf(track_id,"main/main/content");
 rectangle(coord(start,[8,...],[0,...]), coord(end,[16,...],[0,...]), paint, [leaf,...]);
 
