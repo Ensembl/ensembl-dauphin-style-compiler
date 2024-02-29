@@ -1,10 +1,11 @@
-from .datasources import DataAccessor
-from .exceptionres import DataException
-from model.chromosome import Chromosome
-from .response import Response
-from util.influx import ResponseMetrics
-from model.version import Version
 import cbor2
+
+from command.datasources import DataAccessor
+from command.exceptionres import DataException
+from command.response import Response
+from model.chromosome import Chromosome
+from model.version import Version
+from util.influx import ResponseMetrics
 
 class Handler:
     def process(self, data_accessor: DataAccessor, channel,  payload, metrics: ResponseMetrics, version: Version) -> Response:

@@ -5,15 +5,11 @@ This is a setup for publishing Ensembl genome browser (see the parent directory)
 - Rust
 - The `wasm-pack` library
 
+**To install:**
+- https://www.rust-lang.org/tools/install
+- `curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh`
+
 See the Dockerfile in the parent directory for more details about the setup for the Rust build.
-
-Installation in MacOS:
-
-```sh
-brew install rustup
-rustup-init
-curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
-```
 
 ## Details
 - The script (see `package.json` > `scripts:build`) visits the parent directory, builds the Rust code into webassembly using `wasm-pack`, and copies the build output into a temporary directory in the current directory.

@@ -1,7 +1,7 @@
 import random
-from .dataalgorithm import data_algorithm
+
 from command.coremodel import DataHandler, Panel, DataAccessor
-from command.response import Response
+from data.v16.dataalgorithm import data_algorithm
 from model.bigbed import get_bigbed
 
 DOMINO_COUNT = 200

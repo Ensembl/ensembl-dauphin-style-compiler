@@ -1,6 +1,6 @@
 from command.coremodel import DataHandler, Panel, DataAccessor
+from data.v16.dataalgorithm import data_algorithm
 from model.bigbed import get_bigbed
-from .dataalgorithm import data_algorithm
 
 def get_compara_details(
         data_accessor: DataAccessor, panel: Panel, filename: str

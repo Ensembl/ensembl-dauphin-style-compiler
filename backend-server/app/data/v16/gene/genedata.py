@@ -1,13 +1,15 @@
 import os.path
-from command.coremodel import DataHandler, Panel, DataAccessor
-from model.bigbed import get_bigbed
-from model.transcriptfile import TranscriptFileLine
-from .transcriptorder import sort_data_by_transcript_priority
-from .transcriptfilter import filter_lines_by_criteria
-from tangle.tangle import TangleFactory
-from model.datalocator import AccessItem
-from data.v16.dataalgorithm import data_algorithm
+
 from ncd import NCDRead
+
+from command.coremodel import DataHandler, Panel, DataAccessor
+from data.v16.dataalgorithm import data_algorithm
+from data.v16.gene.transcriptfilter import filter_lines_by_criteria
+from data.v16.gene.transcriptorder import sort_data_by_transcript_priority
+from model.bigbed import get_bigbed
+from model.datalocator import AccessItem
+from model.transcriptfile import TranscriptFileLine
+from tangle.tangle import TangleFactory
 
 # We might be asked for very zoomed-in views even when zoomed out for example if we are zoomed
 # in and want info on a whole transcipt object. Even in this case we don't want to emit very big
@@ -15,7 +17,16 @@ from ncd import NCDRead
 MAX_SEQ_SCALE = 10
 
 def accept_to_tangling_config(accept:str) -> dict[str,bool]:
-    # accept = "dump"|"uncompressed"|"release"(default)
+    """Converts the accept parameter (from incoming requests) to a tangle config (for outgoing requests)
+
+    Args:
+        accept (str): param from incoming requests.
+        Possible values: "dump"|"uncompressed"|"release" (default)
+
+    Returns:
+        dict[str,bool]: config for data tangler
+    """
+
     compress = True
     to_bytes = True
     if accept == "dump":
@@ -91,7 +102,7 @@ def extract_gene_data(
     item = chrom.item_path("transcripts")
     # serialize the data
     tangle = TANGLE_EXON if include_exons else TANGLE_NO_EXON
-    data = get_bigbed(data_accessor, item,panel.start, panel.end)
+    data = get_bigbed(data_accessor, item, panel.start, panel.end)
     lines = extract_data_for_lines(data,for_id, expanded)
     out = tangle.run2({},{ "tr_bigbed": lines },**accept_to_tangling_config(accept))
     out["stick"] = ("SZ",[panel.stick])

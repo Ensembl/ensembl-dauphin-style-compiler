@@ -1,5 +1,6 @@
 import requests
 import toml
+
 from model.tracks import Track, Tracks
 from core.config import SOURCES_TOML
 
@@ -48,12 +49,12 @@ class Expansions:
         return track
     
     # Create a pair of tracks for zoomed-in/zoomed-out views
-    def _create_track_set(self, track_id: str, name: str, scales:dict={}, settings:dict={}) -> Tracks:
+    def _create_track_set(self, track_id: str, name: str, scales:dict|None=None, settings:dict={}) -> Tracks:
         track_data = self._get_track_data(track_id)
         scales = scales or {"summary": [6, 100, 4], "details": [1, 5, 1]}
         tracks = Tracks()
         for zoom_level in ['summary', 'details']:
-            track = self._create_track(data=track_data, program_name=name+'-'+zoom_level, scales=scales.get(zoom_level), settings=settings.get(zoom_level,[]))
+            track = self._create_track(data=track_data, program_name=name+'-'+zoom_level, scales=scales.get(zoom_level,[]), settings=settings.get(zoom_level,[]))
             track.add_value("datafile", track_data['datafiles'][zoom_level])
             tracks.add_track(f"{track_id}-{zoom_level}", track)
         return tracks
