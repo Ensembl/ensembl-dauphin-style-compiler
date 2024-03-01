@@ -46,6 +46,7 @@ class Expansions:
         # add settings/switches
         settings.append("name") # switch to toggle track name on/off
         self._add_settings(track, data, settings)
+        track.add_setting("tab-selected", ["settings", "tab-selected"])
         return track
     
     # Create a pair of tracks for zoomed-in/zoomed-out views
