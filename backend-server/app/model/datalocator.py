@@ -19,21 +19,21 @@ class AccessItem(object):
 
     Args:
         variety (str): type of data requested
-        genome (str): genome ID (optional for some varieties)
-        chromosome (str): chromosome (optional for some varieties)
+        genome (str): genome ID
+        chromosome (str): chromosome name or hash (used for refget)
     """
 
     variety_map = {
-        "contigs": "{genome}/contigs.bb",
-        "transcripts": "{genome}/transcripts.bb",
-        "gc": "{genome}/gc.bw",
-        "jump": "{genome}/jump.ncd",
-        "chrom-hashes": "{genome}/chrom.hashes.ncd",
-        "chrom-sizes": "{genome}/chrom.sizes.ncd",
-        "regulation": "{genome}/regulatory-features.bb"
+        "contigs": "contigs.bb",
+        "transcripts": "transcripts.bb",
+        "gc": "gc.bw",
+        "jump": "jump.ncd",
+        "chrom-hashes": "chrom.hashes.ncd",
+        "chrom-sizes": "chrom.sizes.ncd",
+        "regulation": "regulatory-features.bb"
     }
 
-    def __init__(self, variety: str, genome: str = None, chromosome: str = None):
+    def __init__(self, variety: str, genome, chromosome: str = ""):
         self.variety: str = variety
         self.genome: str = genome
         self.chromosome: str = chromosome
@@ -45,12 +45,7 @@ class AccessItem(object):
             str: file/URL path suffix
 
         """
-        if self.variety in AccessItem.variety_map: # map variety name to a file/url path
-            return AccessItem.variety_map[self.variety].format(
-                genome=self.genome, chromosome=self.chromosome
-            )
-        else:
-            return f"{self.genome}/{self.variety}" # variety = filename in genome dir
+        return f"{self.genome}/{self.variety_map.get(self.variety, self.variety)}"
 
     def stick(self) -> str:
         """Returns stick string (e.g. "a7335667-93e7-11ec-a39d-005056b38ce3:4")

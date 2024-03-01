@@ -5,10 +5,6 @@ export procedure focus_variant_settings() {
     )    
 }
 
-function summary_leaf(track_id, suffix) {
-    leaf(join("/", ["tracks/track",track_id,suffix]))
-}
-
 export function variant_colours() {
     [
         colour!("#fff"),    // 0 = white
@@ -39,11 +35,11 @@ export procedure variant_summary_track(track_id, track_label, track_datafile) {
     let colours = variant_colours();
 
     let paint = paint_solid(index(colours,values));
-    let leaf = summary_leaf(track_id, "main/main/content");
+    let leaf = track_leaf(track_id, "main/main/content");
     rectangle(coord(pos_start,[0,...],[-1,...]), coord(pos_end,[5,...],[1,...]), paint, [leaf,...]);
 
     /* draw track furniture */
 
-    draw_track_name(track_label, "name", summary_leaf(track_id,"title/content"));
-    draw_track_category(["V"], [track_id], [summary_leaf(track_id,"main/letter/content")]);
+    draw_track_name(track_label, "name", track_leaf(track_id,"title/content"));
+    draw_track_category(["V"], [track_id], [track_leaf(track_id,"main/letter/content")]);
 }

@@ -1,16 +1,15 @@
+import logging
 from command.coremodel import DataHandler, Panel, DataAccessor
-from command.response import Response
 from command.exceptionres import DataException
+from data.v16.dataalgorithm import data_algorithm
 from model.bigbed import get_bigbed
 from model.chromosome import Chromosome
-from data.v16.dataalgorithm import data_algorithm
-import logging
 
 def get_regulation_data(
     data_accessor: DataAccessor,
     chrom: Chromosome,
     panel: Panel,
-) -> Response:
+) -> dict:
     try:
         item = chrom.item_path("regulation")
         data = get_bigbed(data_accessor, item, panel.start, panel.end)
@@ -52,9 +51,9 @@ def get_regulation_data(
 
 class RegulationDataHandler(DataHandler):
     def process_data(
-        self, data_accessor: DataAccessor, panel: Panel, scope, accept
-    ) -> Response:
-        chrom = data_accessor.data_model.stick(data_accessor, panel.stick)
+        self, data_accessor: DataAccessor, panel: Panel, scope: dict, accept: str
+    ) -> dict:
+        chrom = data_accessor.data_model.stick(panel.stick)
         if chrom == None:
             raise DataException("Unknown chromosome {0}".format(panel.stick))
         return get_regulation_data(data_accessor, chrom, panel)

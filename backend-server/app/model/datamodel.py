@@ -1,7 +1,6 @@
 from uuid import UUID
 from .species import Species
 from core.exceptions import RequestException
-
 """
 Converts a stick id to a Chromosome() object which includes means of access for the data.
 The main tasks are resolving species IDs and determining data-sets based on versioning.
@@ -12,16 +11,16 @@ class DataModel(object):
     Args:
         data_accessor ():
     """
-    def __init__(self):
-        # genome UUIDs => Species obj. cache
-        self._species = {}
+    def __init__(self, data_accessor) -> None:
+        self._species: dict[str, Species] = {}
+        self._data_accessor = data_accessor
 
     # Args: stick string (<genome_uuid>:<chr>)
     # Returns: Chromosome instance
-    def stick(self, data_accessor, stick_id:str):
+    def stick(self, stick_id:str):
         genome_id = stick_id.split(":")[0]
         species = self.species(genome_id)
-        return species.chromosome(data_accessor, stick_id)
+        return species.chromosome(self._data_accessor, stick_id)
 
     def species(self, genome_id:str):
         if genome_id not in self._species:

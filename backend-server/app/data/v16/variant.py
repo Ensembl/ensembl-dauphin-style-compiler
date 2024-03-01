@@ -1,19 +1,16 @@
 import logging
-from typing import Optional
 from command.coremodel import DataHandler, Panel, DataAccessor
 from command.response import Response
-from command.exceptionres import DataException
 from model.bigbed import get_bigwig_stats, get_bigwig, get_bigbed
-from model.chromosome import Chromosome
+from model.datalocator import AccessItem
 from data.v16.dataalgorithm import data_algorithm
 
 SCALE = 4000
 
 
 def get_variant_stats(
-    data_accessor: DataAccessor, chrom: Chromosome, panel: Panel, filename: str
-) -> Response:
-    access_item = chrom.item_path(filename)
+    data_accessor: DataAccessor, access_item: AccessItem, panel: Panel
+) -> dict[str, bytearray]:
     (data, start, end) = get_bigwig_stats(
         data_accessor, access_item, panel.start, panel.end, "max", nBins=500
     )
@@ -32,9 +29,8 @@ def get_variant_stats(
 
 
 def get_variant_exact(
-    data_accessor: DataAccessor, chrom: Chromosome, panel: Panel, filename: str
-) -> Response:
-    access_item = chrom.item_path(filename)
+    data_accessor: DataAccessor, access_item: AccessItem, panel: Panel
+) -> dict[str, bytearray]:
     (data, start, end) = get_bigwig(data_accessor, access_item, panel.start, panel.end)
     data = [0.0 if x is None else x for x in data]
     length = len(data)
@@ -51,32 +47,26 @@ def get_variant_exact(
 
 
 def get_variant(
-    data_accessor: DataAccessor, chrom: Chromosome, panel: Panel, filename: str
-) -> Response:
+    data_accessor: DataAccessor, panel: Panel, filename: str
+) -> dict:
+    item = panel.get_chrom(data_accessor).item_path(filename)
     if panel.end - panel.start > 1000:
-        return get_variant_stats(data_accessor, chrom, panel, filename)
+        return get_variant_stats(data_accessor, item, panel)
     else:
-        return get_variant_exact(data_accessor, chrom, panel, filename)
+        return get_variant_exact(data_accessor, item, panel)
 
 
 class VariantSummaryDataHandler(DataHandler):
     def process_data(
-        self, data_accessor: DataAccessor, panel: Panel, scope, accept
-    ) -> Response:
-        chrom = data_accessor.data_model.stick(data_accessor, panel.stick)
-        if chrom == None:
-            raise DataException(f"Unknown chromosome: {panel.stick}")
-        return get_variant(data_accessor, chrom, panel, scope.get("datafile")[0])
+        self, data_accessor: DataAccessor, panel: Panel, scope: dict, accept: str
+    ) -> dict:
+        return get_variant(data_accessor, panel, self.get_datafile(scope))
 
 
 def get_variant_labels(
-    data_accessor: DataAccessor,
-    chrom: Chromosome,
-    panel: Panel,
-    filename: str,
-    start: Optional[str],
-    id: Optional[str]
-) -> Response:
+    data_accessor: DataAccessor, panel: Panel, filename: str, start: str | None=None, id: str | None=None
+) -> dict[str, bytearray]:
+    chrom = panel.get_chrom(data_accessor)
     access_item = chrom.item_path(filename)
     try:
         if start: # only start is needed to fetch the variant
@@ -122,19 +112,10 @@ def allele_sequence(ref: str, alts: str) -> str:
         return truncated_sequence
     return combined_sequence
 
-def get_scope(scope, key:str) -> str | None:
-    val = scope.get(key)
-    if val is None or len(val) == 0:
-        return None
-    return val[0]
-
 class VariantLabelsDataHandler(DataHandler):
     def process_data(
-        self, data_accessor: DataAccessor, panel: Panel, scope, accept
-    ) -> Response:
-        chrom = data_accessor.data_model.stick(data_accessor, panel.stick)
-        if chrom == None:
-            raise DataException(f"Unknown chromosome: {panel.stick}")
+        self, data_accessor: DataAccessor, panel: Panel, scope: dict, accept: str
+    ) -> dict:
         return get_variant_labels(
-            data_accessor, chrom, panel, get_scope(scope,"datafile"), get_scope(scope,"start"), get_scope(scope,"id")
+            data_accessor, panel, self.get_datafile(scope), self.get_scope(scope,"start"), self.get_scope(scope,"id")
         )

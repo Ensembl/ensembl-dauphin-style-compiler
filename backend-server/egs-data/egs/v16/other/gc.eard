@@ -7,13 +7,7 @@ include "../common/track-style.eard";
 /* Setup styles */
 
 track_styles();
-
-style!("""
-    tracks/track/gc/ {
-        priority: 900;
-        report: "track;switch-id=gc";
-    }
-""");
+new_track_style("gc","900");
 
 /* get data */
 

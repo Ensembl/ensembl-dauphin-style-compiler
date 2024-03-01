@@ -1,24 +1,18 @@
-import logging
-from model.tracks import Tracks
-from typing import List
-import toml
-import os.path
-from core.config import ASSETS_TOML, BOOT_TRACKS_TOML, METRIC_FILE, ASSETS_DIR
-from typing import Any, Callable, Optional
+from core.config import ASSETS_TOML, ASSETS_DIR
 from .coremodel import Handler
 from .response import Response
 from .datasources import DataAccessor
-import datetime
-from urllib.parse import urlparse
 from util.influx import ResponseMetrics
 from model.version import Version
 from command.begs import UnknownVersionException
+import os.path
+import toml
 
 class ErrorHandler(Handler):
     def __init__(self, message: str):
         self.message = message
 
-    def process(self, data_accessor: DataAccessor, channel: Any, payload: Any, metrics: ResponseMetrics) -> Response:
+    def process(self, data_accessor: DataAccessor, channel, payload, metrics: ResponseMetrics, version: Version) -> Response:
         return Response(1,self.message)
 
 def load_assets(chrome: bool):
@@ -35,7 +29,7 @@ def load_assets(chrome: bool):
     return assets
 
 class BootstrapHandler(Handler):
-    def process(self, data_accessor: DataAccessor, channel: Any, payload: Any, metrics: ResponseMetrics, version: Version) -> Response:
+    def process(self, data_accessor: DataAccessor, channel, payload, metrics: ResponseMetrics, version: Version) -> Response:
         try:
             r = Response(0,{
                 "namespace":  channel,
@@ -51,12 +45,11 @@ class BootstrapHandler(Handler):
         r.add_tracks(data_accessor.boot_tracks[version.get_egs()])
         return r
 
-    def remote_prefix(self, payload: Any) -> Optional[List[str]]:
+    def remote_prefix(self, payload) -> list[str]:
         return ["boot"]
 
 class ProgramHandler(Handler):
-    def process(self, data_accessor: DataAccessor, channel: Any, payload: Any, metrics: ResponseMetrics, version: Version) -> Response:
-        logging.warn("ProgramHandler {}".format(payload))
+    def process(self, data_accessor: DataAccessor, channel, payload, metrics: ResponseMetrics, version: Version) -> Response:
         (prog_set,name,prog_version) = payload
         eardo = []
         try:
@@ -68,13 +61,13 @@ class ProgramHandler(Handler):
             r.add_eardo(eardo)
         return r
 
-    def remote_prefix(self, payload: Any) -> Optional[List[str]]:
+    def remote_prefix(self, payload) -> list[str]:
         return ["program"]
 
 class StickHandler(Handler):
-    def process(self, data_accessor: DataAccessor, channel: Any, payload: Any, metrics: ResponseMetrics, version: Version) -> Response:
+    def process(self, data_accessor: DataAccessor, channel, payload, metrics: ResponseMetrics, version: Version) -> Response:
         (stick_name,) = payload
-        chromosome = data_accessor.data_model.stick(data_accessor,stick_name)
+        chromosome = data_accessor.data_model.stick(stick_name)
         if chromosome == None:
             return Response(3,{
                 "error": "Unknown stick {0}".format(stick_name)
@@ -100,7 +93,7 @@ class ExpansionHandler(Handler):
         else:
             return None
 
-    def process(self, data_accessor: DataAccessor, channel: Any, payload: Any, metrics: ResponseMetrics, version: Version) -> Response:
+    def process(self, data_accessor: DataAccessor, channel, payload, metrics: ResponseMetrics, version: Version) -> Response:
         try:
             r = Response(7,[])
             (name,step) = payload

@@ -246,19 +246,18 @@ name = ["track","contig","name"]
 # Expansions
 #
 
-[expansion.test]
-channel = ["ensembl","main"]
-name = "test"
-triggers = [
-    ["track","expand"]
-]
-run = "test"
-
-
 [expansion.variation]
 channel = ["ensembl","main"]
 name = "variation"
 triggers = [
     ["track","expand-variation"]
 ]
-run = "define_variation_track"
+run = "register_variation_track"
+
+[expansion.compara]
+channel = ["ensembl","main"]
+name = "compara"
+triggers = [
+    ["track","expand-compara"]
+]
+run = "register_track"
