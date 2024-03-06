@@ -3,6 +3,7 @@ refer "libperegrine";
 refer "libeoe";
 include "../common/track-common.eard";
 include "../common/track-style.eard";
+include "compara-zmenu.eard";
 
 /* setup styles */
 let track_id = setting_string("track_id", []);
@@ -17,13 +18,23 @@ scope(req, "datafile", track_datafile);
 let data = get_data(req);
 halt(only_warm());
 
-let start = data_number(data,"start");
-let end = data_number(data,"end");
+let el.chr = data_string(data,"chr");
+let el.start = data_number(data,"start");
+let el.length = data_number(data,"length");
+let el.end = el.start + el.length;
+let el.id = data_string(data,"id");
+let el.score = data_number(data,"score");
+let el.pvalue = data_number(data,"pvalue");
 
-/* draw rectangles */
+/* draw boxes (constrained elements) */
 let paint = paint_solid(colour!("#47d147")); // green
 let leaf = track_leaf(track_id,"main/main/content");
-rectangle(coord(start,[8,...],[0,...]), coord(end,[16,...],[0,...]), paint, [leaf,...]);
+let nw = coord(el.start, [8,...], [0,...]);
+let se = coord(el.end, [16,...], [0,...]);
+rectangle(nw, se, paint, [leaf,...]);
+/* draw zmenu click target boxes */
+let zmenu_paint = constr_element_zmenu(*el);
+rectangle(nw, se, zmenu_paint, [leaf,...]);
 
 /* draw track furniture */
 let track_name = setting_string("track_name", []);

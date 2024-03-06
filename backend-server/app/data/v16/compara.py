@@ -5,24 +5,30 @@ from model.bigbed import get_bigbed
 def get_compara_details(
         data_accessor: DataAccessor, panel: Panel, filename: str
     ) -> dict[str,bytearray]:
-    item = panel.get_chrom(data_accessor).item_path(filename)
-    data = get_bigbed(data_accessor, item, panel.start, panel.end)
+    chrom = panel.get_chrom(data_accessor)
+    data = get_bigbed(data_accessor, chrom.item_path(filename), panel.start, panel.end)
+    chrs = []
     starts = []
-    ends = []
-    names = []
+    lengths = []
+    ids = []
     scores = []
+    pvalues = []
     for (start, end, rest) in data:
         (name, score, pvalue) = rest.split("\t")
+        chrs.append(chrom.name)
         starts.append(start)
-        ends.append(end)
-        names.append(name)
+        lengths.append(end - start)
+        ids.append(name)
         scores.append(int(float(score)))
+        pvalues.append(int(float(pvalue)))
 
     return {
+        "chr": data_algorithm("SZ", chrs),
         "start": data_algorithm("NDZRL", starts),
-        "end": data_algorithm("NDZRL", ends),
-        "name": data_algorithm("SZ", names),
-        "score": data_algorithm("NDZRL", scores),
+        "length": data_algorithm("NDZRL", lengths),
+        "id": data_algorithm("SZ", ids),
+        "score": data_algorithm("NZRL", scores),
+        "pvalue": data_algorithm("NZRL", pvalues),
     }
 
 

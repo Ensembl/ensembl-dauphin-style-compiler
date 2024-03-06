@@ -1,0 +1,80 @@
+export function constr_element_zmenu(*element) {
+  // Format the location string for each constrained element
+  let start_pos = element.start + 1; //to 1-based coordinate
+  let tmpl = template_start("{0}:{1}-{2}");
+  template_set(tmpl, 0, element.chr);
+  template_set(tmpl, 1, comma_format(start_pos));
+  template_set(tmpl, 2, comma_format(element.end));
+  let location = template_end(tmpl);
+
+  struct!(zmenu_metadata,
+  """{
+    "type": "zmenu",
+    "zmenu-type": "compara"
+  }""");
+  
+  struct!(zmenu_content,
+  """
+  (<0,1,2,3,4,5,6>!{
+    "data": [
+      /* First row */
+      [{
+        "items": [
+          { "markup": ["light"], "text": "Name" },
+          { "markup": [], "text": " " },
+          { "markup": ["strong"], "text": <0s> }
+        ],
+        "type": "block"
+      }],
+      /* Second row */
+      [{
+        "items": [
+          {"markup": ["light"], "text": "Location"},
+          {"markup": [], "text": " "},
+          {"markup": ["strong"], "text": <1s>}
+        ],
+        "type": "block"
+      }],
+      /* Third row */
+      [{
+        "items": [
+          {"markup": ["light"], "text": "Score"},
+          {"markup": [], "text": " "},
+          {"markup": ["strong"], "text": <2s>}
+        ],
+        "type": "block"
+      }],
+      /* Fourth row */
+      [{
+        "items": [
+          {"markup": ["light"], "text": "P-value"},
+          {"markup": [], "text": " "},
+          {"markup": ["strong"], "text": <3s>}
+        ],
+        "type": "block"
+      }]
+    ],
+    "metadata": {
+      "id": <0s>,
+      "location": <1s>,
+      "score": <2n>,
+      "pvalue": <3n>,
+      "region_name": <4s>,
+      "start": <5n>,
+      "end": <6n>,
+      "type": "compara"
+    }
+  })
+  """,
+  element.id,
+  location,
+  element.score,
+  element.pvalue,
+  element.chr,
+  start_pos,
+  element.end
+  );
+
+  let zmenu_paint = paint_click(zmenu_metadata, zmenu_content, false);
+  zmenu_paint //return value
+}
