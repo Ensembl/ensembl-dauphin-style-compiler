@@ -261,3 +261,11 @@ triggers = [
     ["track","expand-compara"]
 ]
 run = "register_track"
+
+[expansion.repeats]
+channel = ["ensembl","main"]
+name = "repeats"
+triggers = [
+    ["track","expand-repeats"]
+]
+run = "register_track"
