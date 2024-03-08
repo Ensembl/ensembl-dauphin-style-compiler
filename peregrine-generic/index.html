@@ -169,11 +169,11 @@
           genome_browser.switch(["track", "expand-variation", track_id, "show-extents"], true);
         }
 
-        function init_compara_track(track_id) {
-          genome_browser.switch(["track", "expand-compara"], true);
-          genome_browser.switch(["track", "expand-compara", track_id], true);
-          genome_browser.switch(["track", "expand-compara", track_id, "name"], true);
-          genome_browser.switch(["track", "expand-compara", track_id, "label"], true);
+        function init_expansion_track(track_id, track_type) {
+          genome_browser.switch(["track", "expand-"+track_type], true);
+          genome_browser.switch(["track", "expand-"+track_type, track_id], true);
+          genome_browser.switch(["track", "expand-"+track_type, track_id, "name"], true);
+          genome_browser.switch(["track", "expand-"+track_type, track_id, "label"], true);
         }
 
         function flipper(path) {
@@ -391,8 +391,9 @@
         genome_browser.switch(["ruler"], true);
         genome_browser.switch(["ruler", "one_based"], true);
         init_tracks(["gene-pc-fwd","contig","gc","regulation","focus"]);
-        init_compara_track("f0e133b0-6093-4c5f-9082-6b286be9cfe9");
-        init_compara_track("f0523241-6ff0-4867-a169-2eb40024bf04");
+        init_expansion_track("c3fcd957-7f38-4b9c-8735-8740757be0b4", "compara");
+        init_expansion_track("50c81bb0-4fc6-4082-a099-70fb9b82a352", "compara");
+        init_expansion_track("7f17280c-6cdf-4d4b-84e7-364411143338", "tssp");
         //init_variant_track("0adabdbc-e0a5-487d-a712-98e6127712f2");
         //jump_variant("rs1557469781", 1, 1176408);
         genome_browser.set_stick("a7335667-93e7-11ec-a39d-005056b38ce3:13");

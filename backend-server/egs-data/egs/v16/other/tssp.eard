@@ -1,0 +1,31 @@
+program "ensembl-webteam/core" "tssp" 1;
+refer "libperegrine";
+refer "libeoe";
+include "../common/track-common.eard";
+include "../common/track-style.eard";
+
+/* setup styles */
+let track_id = setting_string("track_id", []);
+let track_display_order = setting_string("display_order", []);
+track_styles();
+new_track_style(track_id, track_display_order);
+
+/* get data */
+let track_datafile = setting_string("datafile", []);
+let req = request("self()","tssp");
+scope(req, "datafile", track_datafile);
+let data = get_data(req);
+halt(only_warm());
+
+let start = data_number(data,"start");
+let end = data_number(data,"end");
+
+/* draw rectangles */
+let paint = paint_solid(colour!("#333"));
+let leaf = track_leaf(track_id,"main/main/content");
+rectangle(coord(start,[8,...],[0,...]), coord(end,[16,...],[0,...]), paint, [leaf,...]);
+
+/* draw track furniture */
+let track_name = setting_string("track_name", []);
+draw_track_name(track_name, "name", track_leaf(track_id,"title/content"));
+draw_track_category(["G"], [track_id], [track_leaf(track_id,"main/letter/content")]);

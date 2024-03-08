@@ -1,6 +1,6 @@
 {
   "name": "@ensembl/ensembl-genome-browser",
-  "version": "0.6.8",
+  "version": "0.6.9",
   "description": "Ensembl genome browser",
   "main": "dist/bundle-cjs.cjs",
   "module": "dist/peregrine_ensembl.js",

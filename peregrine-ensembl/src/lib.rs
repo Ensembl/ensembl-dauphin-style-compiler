@@ -175,6 +175,8 @@ impl GenomeBrowser {
         self.api.switch(&["ruler","one_based"],tmpl_true.clone());
         self.api.switch(&["track", "expand-variation"],tmpl_true.clone()); // enable expansion node tracks
         self.api.switch(&["track", "expand-compara"],tmpl_true.clone());
+        self.api.switch(&["track", "expand-repeats"],tmpl_true.clone());
+        self.api.switch(&["track", "expand-tssp"],tmpl_true.clone());
         Ok(())
     }
 

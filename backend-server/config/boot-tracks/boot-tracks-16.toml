@@ -261,3 +261,11 @@ triggers = [
     ["track","expand-compara"]
 ]
 run = "register_track"
+
+[expansion.tssp]
+channel = ["ensembl","main"]
+name = "tssp"
+triggers = [
+    ["track","expand-tssp"]
+]
+run = "register_track"
