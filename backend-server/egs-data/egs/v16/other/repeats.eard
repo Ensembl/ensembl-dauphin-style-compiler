@@ -4,11 +4,39 @@ refer "libeoe";
 include "../common/track-common.eard";
 include "../common/track-style.eard";
 
+
+
 /* setup styles */
 let track_id = setting_string("track_id", []);
 let track_display_order = setting_string("display_order", []);
 track_styles();
 new_track_style(track_id, track_display_order);
+
+style!("""
+    tracks/track/expand-repeats/main/main/ {
+      type: stack;
+    }
+
+    tracks/track/expand-repeats/main/main/lanes/ {
+        type: stack;
+        priority: 1;
+    }
+
+    tracks/track/expand-repeats/main/main/lanes/first/ {
+        min-height: 10;
+        priority: 0;
+    }
+
+    tracks/track/expand-repeats/main/main/lanes/second/ {
+        min-height: 10;
+        priority: 1;
+    }
+
+    tracks/track/expand-repeats/main/main/lanes/third/ {
+        min-height: 10;
+        priority: 2;
+    }
+""");
 
 /* get data (e.g. from bigbed) from the api*/
 let track_datafile = setting_string("datafile", []);
@@ -19,11 +47,37 @@ halt(only_warm());
 
 let start = data_number(data,"start");
 let end = data_number(data,"end");
+let analyses = data_string(data,"analyses");
+
+
+/* Get and transform data */
+let is_dust = analyses == "dust";
+let is_trf = analyses == "trf";
+let is_repbase = analyses == "repbase";
+
+let dust_colour = colour!("#888888");
+let trf_colour = colour!("#42cdff");
+let repbase_colours = colour!("#ff8142");
+
+let colours_seq = repeat(dust_colour, len(analyses));
+let colours_seq = set(colours_seq, is_trf, [trf_colour, ...]);
+// let colours_seq = set(colours_seq, is_repeatmaster_repbase, [repeatrepbase_colour, ...]);
+let colours_seq = set(colours_seq, is_repbase, [repbase_colours, ...]);
+
+
+/* set lanes(leaves) */
+let dust_leaf = track_leaf(track_id, "main/main/lanes/first/content");
+let trf_leaf = track_leaf(track_id, "main/main/lanes/second/content");
+let repbase_leaf = track_leaf(track_id, "main/main/lanes/third/content");
+
+let lane_leafs = repeat(dust_leaf, len(analyses));
+let lane_leafs = set(lane_leafs, is_trf, [trf_leaf,...]);
+let lane_leafs = set(lane_leafs, is_repbase, [repbase_leaf,...]);
 
 /* draw rectangles */
-let paint = paint_solid(colour!("#777")); // green
+let paint = paint_solid(colours_seq); // green
 let leaf = track_leaf(track_id,"main/main/content");
-rectangle(coord(start,[8,...],[0,...]), coord(end,[16,...],[0,...]), paint, [leaf,...]);
+rectangle(coord(start,[8,...],[0,...]), coord(end,[16,...],[0,...]), paint, lane_leafs);
 
 /* draw track furniture */
 let track_name = setting_string("track_name", []);
