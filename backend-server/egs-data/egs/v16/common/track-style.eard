@@ -68,18 +68,11 @@ export procedure track_styles() {
     """); 
 }
 
-export procedure new_track_style(track_id, display_order) {
-  let leaf_path = push_str("tracks/track/", track_id);
-  leaf_path = push_str(leaf_path, "/");
+export procedure set_track_style(track_id, path_suffix, style_names, style_values) {
+  let leaf_path = join("/", ["tracks/track", track_id, path_suffix]);
+  style(leaf_path, style_names, style_values);
+}
 
-  style(
-    leaf_path,
-    [
-      "priority",
-      "report"
-    ], [
-      display_order,
-      push_str("track;switch-id=", track_id)
-    ]
-  );
+export procedure new_track_style(track_id, display_order) {
+  set_track_style(track_id, "", ["priority", "report"], [display_order, push_str("track;switch-id=", track_id)]);
 }
