@@ -6,7 +6,9 @@ stages:
 variables:
   DOCKER_IMAGE: ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}
   DOCKER_TLS_CERTDIR: ""
-  BASE: backend-server/k8s/base
+  BASE: ensembl-k8s-manifests/genome-browser
+  NFS_SERVER: ${HL_NFS_SERVER_CODON}
+  NFS_PATH: ${HL_NFS_PATH_CODON}
 
 .build-eardo:
   stage: build-eardo
@@ -64,8 +66,7 @@ variables:
 
   needs: ["BE-eardo"]
 
-.deploy_backend:
-  extends: .base-be-deploy-rules
+.deploy_backend_base:
   stage: deploy
   image: dockerhub.ebi.ac.uk/ensembl-web/deploy-tools:latest
   before_script:
@@ -85,6 +86,16 @@ variables:
     - kustomize build . | kubectl apply -f -
 
   needs: ["BE-Docker"]
+
+.deploy_backend:
+  extends:
+    - .deploy_backend_base
+    - .base-be-deploy-rules
+
+.deploy_backend_review:
+  extends:
+    - .deploy_backend_base
+    - .base-be-deploy-rules-branches
 
 BE-eardo:
   extends: .build-eardo
@@ -136,4 +147,26 @@ Dev:WP51:HL:
     BASE: ensembl-k8s-manifests/genome-browser
     NFS_SERVER: ${HL_NFS_SERVER_CODON}
     NFS_PATH: ${HL_NFS_PATH_CODON}
+
+Review:WP51:HL:
+  extends: .deploy_backend_review
+  on_stop: StopReview:WP51:HL
+  environment:
+    name: wp51-hl-development
+    url: http://$CI_COMMIT_REF_SLUG.review.ensembl.org
+    kubernetes:
+      namespace: ${CI_COMMIT_REF_SLUG}
+  before_script:
+    - kubectl create namespace ${CI_COMMIT_REF_SLUG}
+
+StopReview:WP51:HL:
+  environment:
+    name: wp51-hl-development
+    action: stop
+    kubernetes:
+      namespace: ${CI_COMMIT_REF_SLUG}
+  when: manual
+  allow_failure: true
+  script:
+    - kubectl delete namespace ${CI_COMMIT_REF_SLUG}
 
