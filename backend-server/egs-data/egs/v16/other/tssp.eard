@@ -19,9 +19,22 @@ halt(only_warm());
 
 let start = data_number(data,"start");
 let end = data_number(data,"end");
+let analysis_type = data_string(data,"analysis");
+
+let is_cpg = analysis_type == "cpg";
+let is_tss = analysis_type == "eponine";
+let is_trna = analysis_type == "trnascan";
+
+let cpg_colour = colour!("#ffc0cb"); // pink
+let tss_colour = colour!("#00ff00"); // green
+let trna_colour = colour!("#ff0000"); // red
+
+let colours_seq = repeat(cpg_colour, len(analysis_type));
+let colours_seq = set(colours_seq, is_tss, [tss_colour, ...]);
+let colours_seq = set(colours_seq, is_trna, [trna_colour, ...]);
 
 /* draw rectangles */
-let paint = paint_solid(colour!("#333"));
+let paint = paint_solid(colours_seq);
 let leaf = track_leaf(track_id,"main/main/content");
 rectangle(coord(start,[8,...],[0,...]), coord(end,[16,...],[0,...]), paint, [leaf,...]);
 
