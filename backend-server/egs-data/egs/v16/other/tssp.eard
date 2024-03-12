@@ -10,10 +10,9 @@ let track_display_order = setting_string("display_order", []);
 track_styles();
 new_track_style(track_id, track_display_order);
 set_track_style(track_id, "main/main/", ["type"], ["stack"]);
-set_track_style(track_id, "main/main/lanes/", ["type", "priority"], ["stack", "1"]);
-set_track_style(track_id, "main/main/lanes/first/", ["min-height", "priority"], ["10", "0"]);
-set_track_style(track_id, "main/main/lanes/second/", ["min-height", "priority"], ["10", "1"]);
-set_track_style(track_id, "main/main/lanes/third/", ["min-height", "priority"], ["10", "2"]);
+set_track_style(track_id, "main/main/first", ["min-height", "priority"], ["10", "0"]);
+set_track_style(track_id, "main/main/second", ["min-height", "priority"], ["10", "1"]);
+set_track_style(track_id, "main/main/third", ["min-height", "priority"], ["10", "2"]);
 
 /* get data */
 let track_datafile = setting_string("datafile", []);
@@ -40,16 +39,15 @@ let colours_seq = set(colours_seq, is_tss, [tss_colour, ...]);
 let colours_seq = set(colours_seq, is_trna, [trna_colour, ...]);
 
 /* set lanes */
-let top_leaf = track_leaf(track_id,"main/main/lanes/first/content");
-let middle_leaf = track_leaf(track_id,"main/main/lanes/second/content");
-let bottom_leaf = track_leaf(track_id,"main/main/lanes/third/content");
+let top_leaf = track_leaf(track_id, "main/main/first");
+let middle_leaf = track_leaf(track_id, "main/main/second");
+let bottom_leaf = track_leaf(track_id, "main/main/third");
 let lane_leafs = repeat(top_leaf, len(analysis_type));
-let lane_leafs = set(lane_leafs, analysis_type=="eponine", [middle_leaf,...]);
-let lane_leafs = set(lane_leafs, analysis_type=="trnascan", [bottom_leaf,...]);
+let lane_leafs = set(lane_leafs, is_tss, [middle_leaf,...]);
+let lane_leafs = set(lane_leafs, is_trna, [bottom_leaf,...]);
 
 /* draw rectangles */
 let paint = paint_solid(colours_seq);
-let leaf = track_leaf(track_id,"main/main/content");
 rectangle(coord(start,[8,...],[0,...]), coord(end,[16,...],[0,...]), paint, lane_leafs);
 
 /* draw track furniture */
