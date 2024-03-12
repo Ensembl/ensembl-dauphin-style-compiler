@@ -31,8 +31,6 @@ def get_repeat_details(
         "repeatClasses": data_algorithm("SZ", repeatClasses),
     }
 
-
-
 class RepeatsDataHandler(DataHandler):
     """
     Handle a request for compara bigbed data (conserved elements).
