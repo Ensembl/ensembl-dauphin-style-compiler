@@ -134,7 +134,7 @@ Review:WP51:HL:
       namespace: ${CI_COMMIT_REF_SLUG}
   before_script:
     # Create review namespace and remove existing review GB ingress
-    - kubectl create namespace ${CI_COMMIT_REF_SLUG} --dry-run=client -o yaml | kubectl apply -f -
+    - kubectl create namespace ${CI_COMMIT_REF_SLUG} --dry-run=client -o yaml | kubectl apply -f - || true
     - kubectl -n ensembl-dev delete ingress genome-browser-server-ingress-hi-${CI_COMMIT_REF_SLUG} || true
     - kubectl -n ensembl-dev delete ingress genome-browser-server-ingress-lo-${CI_COMMIT_REF_SLUG} || true
   script:
