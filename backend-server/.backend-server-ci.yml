@@ -140,6 +140,7 @@ Review:WP51:HL:
     - kubectl -n ensembl-dev delete ingress genome-browser-server-ingress-lo-${CI_COMMIT_REF_SLUG} || true
 
 StopReview:WP51:HL:
+  stage: deploy
   environment:
     name: wp51-hl-development
     action: stop
