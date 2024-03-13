@@ -137,10 +137,10 @@ Review:WP51:HL:
     - kubectl create namespace ${CI_COMMIT_REF_SLUG} --dry-run=client -o yaml | kubectl apply -f -
     - kubectl -n ensembl-dev delete ingress genome-browser-server-ingress-hi-${CI_COMMIT_REF_SLUG} || true
     - kubectl -n ensembl-dev delete ingress genome-browser-server-ingress-lo-${CI_COMMIT_REF_SLUG} || true
-  after_script:
+  script:
     # Update hi/lo review ingress manifests and apply in review namespace
-    - pwd
-    - ls
+    - !reference [.deploy_backend_review, script] # Include the script from the parent job
+    - cd ../../
     - cp review-setup/ingress-host.patch.yaml ./
     - sed -i "s#<HOST>#${CI_COMMIT_REF_SLUG}.review.ensembl.org#g" ingress-host.patch.yaml
     - cp genome-browser/review/hi/*.yaml ./
