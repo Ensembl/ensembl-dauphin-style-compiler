@@ -128,10 +128,10 @@ Dev:WP51:HL:
 
 Review:WP51:HL:
   extends: .deploy_backend_review
-  on_stop: StopReview:WP51:HL
   environment:
     name: wp51-hl-development
     url: http://$CI_COMMIT_REF_SLUG.review.ensembl.org
+    on_stop: StopReview:WP51:HL
     kubernetes:
       namespace: ${CI_COMMIT_REF_SLUG}
   before_script:
@@ -145,6 +145,8 @@ StopReview:WP51:HL:
     action: stop
     kubernetes:
       namespace: ${CI_COMMIT_REF_SLUG}
+  variables:
+    GIT_STRATEGY: none # Don't clone the repository
   when: manual
   allow_failure: true
   script:
