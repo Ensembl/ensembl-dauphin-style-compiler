@@ -130,8 +130,6 @@ Review:WP51:HL:
   extends: .deploy_backend_review
   environment:
     name: wp51-hl-development
-    url: http://$CI_COMMIT_REF_SLUG.review.ensembl.org
-    on_stop: StopReview:WP51:HL
     kubernetes:
       namespace: ${CI_COMMIT_REF_SLUG}
   before_script:
@@ -148,18 +146,4 @@ Review:WP51:HL:
     - kustomize build ./ | kubectl apply -f -
     - cp genome-browser/review/lo/*.yaml ./
     - kustomize build ./ | kubectl apply -f -
-
-StopReview:WP51:HL:
-  stage: deploy
-  environment:
-    name: wp51-hl-development
-    action: stop
-    kubernetes:
-      namespace: ensembl-dev
-  variables:
-    GIT_STRATEGY: none # Don't clone the repository
-  when: manual
-  allow_failure: true
-  script:
-    - kubectl delete namespace ${CI_COMMIT_REF_SLUG}
 
