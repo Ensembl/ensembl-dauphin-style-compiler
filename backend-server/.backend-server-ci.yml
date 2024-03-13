@@ -154,6 +154,8 @@ SetupReview:WP51:HL:
     - kubectl apply -f genome-browser/memcached/configmap.yaml
     - kubectl apply -f genome-browser/memcached/deployment.yaml
     - kubectl apply -f genome-browser/memcached/service.yaml
+    - kubeclt apply -f genome-browser/review/sources-toml-configmap.yaml
+    - kubeclt apply -f genome-browser/review/secrets.yaml
     - cp genome-browser/review/hi/svc/*.yaml ./ # kustomize restrictions workaround
     - kubectl apply -k .
     - cp genome-browser/review/lo/svc/*.yaml ./
