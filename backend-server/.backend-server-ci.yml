@@ -140,6 +140,8 @@ Review:WP51:HL:
   after_script:
     # Update hi/lo review ingress manifests and apply in review namespace
     - cd ../..
+    - pwd
+    - ls
     - cp review-setup/ingress-host.patch.yaml ./
     - sed -i "s#<HOST>#${CI_COMMIT_REF_SLUG}.review.ensembl.org#g" ingress-host.patch.yaml
     - cp genome-browser/review/hi/*.yaml ./
