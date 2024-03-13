@@ -134,11 +134,15 @@ Review:WP51:HL:
       namespace: ${CI_COMMIT_REF_SLUG}
 
 SetupReview:WP51:HL:
-  extends: .base-be-deploy-rules-branches
+  stage: setup
   environment:
     name: wp51-hl-development
     kubernetes:
       namespace: ${CI_COMMIT_REF_SLUG}
+  rules: # Run only when a new branch is created
+    - if: $CI_PIPELINE_SOURCE == "push" && 
+          $CI_COMMIT_BEFORE_SHA == "0000000000000000000000000000000000000000"
+      when: always
   before_script:
     # Create review namespace and remove existing review GB ingress
     - kubectl -n ensembl-dev create namespace ${CI_COMMIT_REF_SLUG} || true
