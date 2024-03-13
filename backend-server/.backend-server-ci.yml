@@ -139,7 +139,6 @@ Review:WP51:HL:
     - kubectl -n ensembl-dev delete ingress genome-browser-server-ingress-lo-${CI_COMMIT_REF_SLUG} || true
   after_script:
     # Update hi/lo review ingress manifests and apply in review namespace
-    - cd ../..
     - pwd
     - ls
     - cp review-setup/ingress-host.patch.yaml ./
