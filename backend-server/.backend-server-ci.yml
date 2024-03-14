@@ -1,7 +1,7 @@
 stages:
+  - setup
   - build-eardo
   - build
-  - setup
   - deploy
 
 variables:
@@ -143,19 +143,17 @@ SetupReview:WP51:HL:
     - when: never
   before_script:
     # Create review namespace and remove existing review GB ingress
-    - kubectl -n ensembl-dev create namespace ${CI_COMMIT_REF_SLUG} || true
+    - kubectl create namespace ${CI_COMMIT_REF_SLUG} || true
     - kubectl -n ensembl-dev delete ingress genome-browser-server-ingress-hi-${CI_COMMIT_REF_SLUG} || true
     - kubectl -n ensembl-dev delete ingress genome-browser-server-ingress-lo-${CI_COMMIT_REF_SLUG} || true
   script:
     # Download kustomize manifests and update nfs server/path
     - git clone --depth 1 --branch k8s123-migration-gb https://gitlab.ebi.ac.uk/ensembl-web/ensembl-k8s-manifests.git
-    # Prepare/apply memcached, gb hi/lo service and ingress manifests
+    # Prepare/apply secrets, configmap, hi/lo service and ingress manifests
     - cd ensembl-k8s-manifests
-    - kubectl apply -f genome-browser/memcached/configmap.yaml
-    - kubectl apply -f genome-browser/memcached/deployment.yaml
-    - kubectl apply -f genome-browser/memcached/service.yaml
     - kubectl apply -f genome-browser/review/sources-toml-configmap.yaml
-    - kubectl apply -f genome-browser/base/secrets.yaml
+    - sed -i "s#<CM_PREFIX>#${CI_COMMIT_REF_SLUG}#g" genome-browser/review/secrets.yaml
+    - kubectl apply -f genome-browser/review/secrets.yaml
     - cp genome-browser/review/hi/svc/*.yaml ./ # kustomize restrictions workaround
     - kubectl apply -k .
     - cp genome-browser/review/lo/svc/*.yaml ./
