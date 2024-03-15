@@ -78,7 +78,6 @@ variables:
     # Update docker image
     - cd ${BASE}/deploy
     - kustomize edit set image DOCKER_IMAGE=${DOCKER_IMAGE}
-    - kustomize edit set namespace ${CI_COMMIT_REF_SLUG}
     # Build hi/lo deployment/configmap manifests and apply
     - kubectl apply -k .
 
@@ -127,6 +126,8 @@ Review:WP51:HL:
   extends: .deploy_backend_review
   environment:
     name: wp51-hl-development
+    kubernetes:
+      namespace: ${CI_COMMIT_REF_SLUG}
 
 SetupReview:WP51:HL:
   stage: setup
@@ -141,8 +142,8 @@ SetupReview:WP51:HL:
       when: on_success
     - when: never
   before_script:
-    # Create review namespace and remove existing review GB ingress
-    - kubectl create namespace ${CI_COMMIT_REF_SLUG} || true
+    # Check for review namespace and remove ingress for default gb backend
+    - kubectl get namespace ${CI_COMMIT_REF_SLUG} # Cancels the job/pipeline if namespace not found
     - kubectl -n ensembl-dev delete ingress genome-browser-server-ingress-hi-${CI_COMMIT_REF_SLUG} || true
     - kubectl -n ensembl-dev delete ingress genome-browser-server-ingress-lo-${CI_COMMIT_REF_SLUG} || true
   script:
