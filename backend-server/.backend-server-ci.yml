@@ -1,4 +1,5 @@
 stages:
+  - setup
   - build-eardo
   - build
   - deploy
@@ -6,7 +7,9 @@ stages:
 variables:
   DOCKER_IMAGE: ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}
   DOCKER_TLS_CERTDIR: ""
-  BASE: backend-server/k8s/base
+  BASE: ensembl-k8s-manifests/genome-browser
+  NFS_SERVER: ${HL_NFS_SERVER_CODON}
+  NFS_PATH: ${HL_NFS_PATH_CODON}
 
 .build-eardo:
   stage: build-eardo
@@ -62,29 +65,31 @@ variables:
     - docker rmi ${DOCKER_IMAGE}
     - docker logout $CI_REGISTRY
 
-  needs: ["BE-eardo"]
-
-.deploy_backend:
-  extends: .base-be-deploy-rules
+.deploy_backend_base:
   stage: deploy
   image: dockerhub.ebi.ac.uk/ensembl-web/deploy-tools:latest
-  before_script:
-    - git clone https://gitlab.ebi.ac.uk/ensembl-web/ensembl-k8s-manifests.git
-    - git -C ensembl-k8s-manifests/ checkout k8s123-migration
+  script:
+    # Download kustomize manifests and update nfs server/path
+    - git clone --depth 1 --branch k8s123-migration https://gitlab.ebi.ac.uk/ensembl-web/ensembl-k8s-manifests.git
     - sed -i "s#<NFS_SERVER>#${NFS_SERVER}#g" ${BASE}/hi/nfs-deployment.patch.yaml
     - sed -i "s#<NFS_PATH>#${NFS_PATH}#g" ${BASE}/hi/nfs-deployment.patch.yaml
     - sed -i "s#<NFS_SERVER>#${NFS_SERVER}#g" ${BASE}/lo/nfs-deployment.patch.yaml
     - sed -i "s#<NFS_PATH>#${NFS_PATH}#g" ${BASE}/lo/nfs-deployment.patch.yaml
-
-  script:
     # Update docker image
     - cd ${BASE}/deploy
     - kustomize edit set image DOCKER_IMAGE=${DOCKER_IMAGE}
+    # Build hi/lo deployment/configmap manifests and apply
+    - kubectl apply -k .
 
-    # Update hi/lo configuration and apply
-    - kustomize build . | kubectl apply -f -
+.deploy_backend:
+  extends:
+    - .deploy_backend_base
+    - .base-be-deploy-rules
 
-  needs: ["BE-Docker"]
+.deploy_backend_review:
+  extends:
+    - .deploy_backend_base
+    - .base-be-deploy-rules-branches
 
 BE-eardo:
   extends: .build-eardo
@@ -96,44 +101,66 @@ Production:WP40:HL:
   extends: .deploy_backend
   environment:
     name: wp40-hl-prod
-  variables:
-    BASE: ensembl-k8s-manifests/genome-browser
-    NFS_SERVER: ${HL_NFS_SERVER_CODON}
-    NFS_PATH: ${HL_NFS_PATH_CODON}
 
 Production:WP41:HX:
   extends: .deploy_backend
   environment:
     name: wp41-hx-prod
-  variables:
-    BASE: ensembl-k8s-manifests/genome-browser
-    NFS_SERVER: ${HL_NFS_SERVER_CODON}
-    NFS_PATH: ${HL_NFS_PATH_CODON}
 
 Staging:WP40:HL:
   extends: .deploy_backend
   environment:
     name: wp40-hl-staging
-  variables:
-    BASE: ensembl-k8s-manifests/genome-browser
-    NFS_SERVER: ${HL_NFS_SERVER_CODON}
-    NFS_PATH: ${HL_NFS_PATH_CODON}
 
 Internal:WP40:HL:
   extends: .deploy_backend
   environment:
     name: wp40-hl-internal
-  variables:
-    BASE: ensembl-k8s-manifests/genome-browser
-    NFS_SERVER: ${HL_NFS_SERVER_CODON}
-    NFS_PATH: ${HL_NFS_PATH_CODON}
 
 Dev:WP51:HL:
   extends: .deploy_backend
   environment:
     name: wp51-hl-development
-  variables:
-    BASE: ensembl-k8s-manifests/genome-browser
-    NFS_SERVER: ${HL_NFS_SERVER_CODON}
-    NFS_PATH: ${HL_NFS_PATH_CODON}
 
+Review:WP51:HL:
+  extends: .deploy_backend_review
+  environment:
+    name: wp51-hl-development
+    kubernetes:
+      namespace: ${CI_COMMIT_REF_SLUG}
+
+SetupReview:WP51:HL:
+  stage: setup
+  image: dockerhub.ebi.ac.uk/ensembl-web/deploy-tools:latest
+  environment:
+    name: wp51-hl-development
+    kubernetes:
+      namespace: ${CI_COMMIT_REF_SLUG}
+  rules: # Run only when a new branch is created
+    - if: $CI_PIPELINE_SOURCE == "push" && 
+          $CI_COMMIT_BEFORE_SHA == "0000000000000000000000000000000000000000"
+      when: on_success
+    - when: never
+  before_script:
+    # Check for review namespace and remove ingress for default gb backend
+    - kubectl get namespace ${CI_COMMIT_REF_SLUG} # Cancels the job/pipeline if namespace not found
+    - kubectl -n ensembl-dev delete ingress genome-browser-server-ingress-hi-${CI_COMMIT_REF_SLUG} || true
+    - kubectl -n ensembl-dev delete ingress genome-browser-server-ingress-lo-${CI_COMMIT_REF_SLUG} || true
+  script:
+    # Download kustomize manifests and update nfs server/path
+    - git clone --depth 1 --branch k8s123-migration https://gitlab.ebi.ac.uk/ensembl-web/ensembl-k8s-manifests.git
+    # Prepare/apply secrets, configmap, hi/lo service and ingress manifests
+    - cd ensembl-k8s-manifests
+    - kubectl apply -f genome-browser/review/sources-toml-configmap.yaml
+    - sed -i "s#<MC_PREFIX>#${CI_COMMIT_REF_SLUG}#g" genome-browser/review/secrets.yaml
+    - kubectl apply -f genome-browser/review/secrets.yaml
+    - cp genome-browser/review/hi/svc/*.yaml ./ # kustomize restrictions workaround
+    - kubectl apply -k .
+    - cp genome-browser/review/lo/svc/*.yaml ./
+    - kubectl apply -k .
+    - cp review-setup/ingress-host.patch.yaml ./
+    - sed -i "s#<HOST>#${CI_COMMIT_REF_SLUG}.review.ensembl.org#g" ingress-host.patch.yaml
+    - cp genome-browser/review/hi/*.yaml ./
+    - kubectl apply -k .
+    - cp genome-browser/review/lo/*.yaml ./
+    - kubectl apply -k .
