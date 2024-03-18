@@ -100,7 +100,6 @@ class ExpansionHandler(Handler):
             callable = self._get(data_accessor,channel,name,version)
             if callable is not None:
                 tracks = callable(step)
-            if tracks is not None:
                 r.add_tracks(tracks)
             return r
         except UnknownVersionException as e:

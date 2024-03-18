@@ -1,0 +1,65 @@
+export function feature_zmenu(*element) {
+  // Format the location string for each feature
+  let start_pos = element.start + 1; //to 1-based coordinate
+  let tmpl = template_start("{0}:{1}-{2}");
+  template_set(tmpl, 0, element.chr);
+  template_set(tmpl, 1, comma_format(start_pos));
+  template_set(tmpl, 2, comma_format(element.end));
+  let location = template_end(tmpl);
+
+  struct!(zmenu_metadata,
+  """{
+    "type": "zmenu",
+    "zmenu-type": "feature"
+  }""");
+  
+  struct!(zmenu_content,
+  """
+  (<0,1,2,3>!{
+    "data": [
+      /* First row */
+      [{
+        "items": [
+          {"markup": ["light"], "text": <0s>}
+        ],
+        "type": "block"
+      }],
+      /* Second row */
+      [{
+        "items": [
+          {"markup": ["light"], "text": "Location"},
+          {"markup": [], "text": " "},
+          {"markup": ["strong"], "text": <1s>},
+          {"markup": ["light"], "text": "("},
+          {"markup": ["light"], "text": <2s>},
+          {"markup": ["light"], "text": ")"}
+        ],
+        "type": "block"
+      }],
+      /* Third row */
+      [{
+        "items": [
+          {"markup": ["light"], "text": "Score"},
+          {"markup": [], "text": " "},
+          {"markup": ["strong"], "text": <3n>}
+        ],
+        "type": "block"
+      }]
+    ],
+    "metadata": {
+      "type": <0s>,
+      "location": <1s>,
+      "strand": <2s>,
+      "score": <3n>
+    }
+  })
+  """,
+  element.analysis,
+  location,
+  element.strand,
+  element.score
+  );
+
+  let zmenu_paint = paint_click(zmenu_metadata, zmenu_content, false);
+  zmenu_paint //return value
+}

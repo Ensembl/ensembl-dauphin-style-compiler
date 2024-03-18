@@ -2,6 +2,7 @@ refer "libperegrine";
 refer "libeoe";
 include "../common/track-common.eard";
 include "../common/track-style.eard";
+include "feature-zmenu.eard";
 
 // Draw a track of simple features
 // feature_type: 'eponine'/'cpg'/'trnascan'
@@ -19,23 +20,33 @@ export procedure draw_feature_track(feature_type){
   let data = get_data(req);
   halt(only_warm());
 
-  let start = data_number(data,"start");
-  let end = data_number(data,"end");
-  let analysis = data_string(data,"analysis");
+  let f.chr = data_string(data,"chr");
+  let f.start = data_number(data,"start");
+  let f.end = data_number(data,"end");
+  let f.strand = data_string(data,"strand");
+  let f.analysis = data_string(data,"analysis");
+  let f.score = data_number(data,"score");
 
   /* assign colours */
   let tss_colour = colour!("#00ff00"); // green
   let cpg_colour = colour!("#ffc0cb"); // pink
   let trna_colour = colour!("#ff0000"); // red
 
-  let colours = set(repeat(tss_colour, len(analysis)), analysis=="cpg", [cpg_colour, ...]);
-  let colours = set(colours, analysis=="trnascan", [trna_colour, ...]);
-  /* assign target leafs */
-  let leafs = set(repeat(leaf(""), len(analysis)), analysis==feature_type, [track_leaf(track_id,"main/main/content"), ...]);
+  let colours = set(repeat(tss_colour, len(f.analysis)), f.analysis=="cpg", [cpg_colour, ...]);
+  let colours = set(colours, f.analysis=="trnascan", [trna_colour, ...]);
 
-  /* draw rectangles */
+  /* assign target leaf */
+  let leafs = set(repeat(leaf(""), len(f.analysis)), f.analysis==feature_type, [track_leaf(track_id,"main/main/content"), ...]);
+
+  /* draw features */
   let paint = paint_solid(colours);
-  rectangle(coord(start,[8,...],[0,...]), coord(end,[16,...],[0,...]), paint, leafs);
+  let nw = coord(f.start, [8,...], [0,...]);
+  let se = coord(f.end, [16,...], [0,...]);
+  rectangle(nw, se, paint, leafs);
+
+  /* draw zmenu click targets */
+  let zmenu_paint = feature_zmenu(*f);
+  rectangle(nw, se, zmenu_paint, leafs);
 
   /* draw track furniture */
   let track_name = setting_string("track_name", []);
