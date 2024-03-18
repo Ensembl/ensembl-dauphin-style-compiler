@@ -70,7 +70,7 @@ variables:
   image: dockerhub.ebi.ac.uk/ensembl-web/deploy-tools:latest
   script:
     # Download kustomize manifests and update nfs server/path
-    - git clone --depth 1 --branch k8s123-migration-gb https://gitlab.ebi.ac.uk/ensembl-web/ensembl-k8s-manifests.git
+    - git clone --depth 1 --branch k8s123-migration https://gitlab.ebi.ac.uk/ensembl-web/ensembl-k8s-manifests.git
     - sed -i "s#<NFS_SERVER>#${NFS_SERVER}#g" ${BASE}/hi/nfs-deployment.patch.yaml
     - sed -i "s#<NFS_PATH>#${NFS_PATH}#g" ${BASE}/hi/nfs-deployment.patch.yaml
     - sed -i "s#<NFS_SERVER>#${NFS_SERVER}#g" ${BASE}/lo/nfs-deployment.patch.yaml
@@ -148,7 +148,7 @@ SetupReview:WP51:HL:
     - kubectl -n ensembl-dev delete ingress genome-browser-server-ingress-lo-${CI_COMMIT_REF_SLUG} || true
   script:
     # Download kustomize manifests and update nfs server/path
-    - git clone --depth 1 --branch k8s123-migration-gb https://gitlab.ebi.ac.uk/ensembl-web/ensembl-k8s-manifests.git
+    - git clone --depth 1 --branch k8s123-migration https://gitlab.ebi.ac.uk/ensembl-web/ensembl-k8s-manifests.git
     # Prepare/apply secrets, configmap, hi/lo service and ingress manifests
     - cd ensembl-k8s-manifests
     - kubectl apply -f genome-browser/review/sources-toml-configmap.yaml
