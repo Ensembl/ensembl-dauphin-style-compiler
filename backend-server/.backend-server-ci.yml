@@ -152,7 +152,7 @@ SetupReview:WP51:HL:
     # Prepare/apply secrets, configmap, hi/lo service and ingress manifests
     - cd ensembl-k8s-manifests
     - kubectl apply -f genome-browser/review/sources-toml-configmap.yaml
-    - sed -i "s#<CM_PREFIX>#${CI_COMMIT_REF_SLUG}#g" genome-browser/review/secrets.yaml
+    - sed -i "s#<MC_PREFIX>#${CI_COMMIT_REF_SLUG}#g" genome-browser/review/secrets.yaml
     - kubectl apply -f genome-browser/review/secrets.yaml
     - cp genome-browser/review/hi/svc/*.yaml ./ # kustomize restrictions workaround
     - kubectl apply -k .
