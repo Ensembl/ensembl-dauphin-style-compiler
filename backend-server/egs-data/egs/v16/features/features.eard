@@ -1,0 +1,44 @@
+refer "libperegrine";
+refer "libeoe";
+include "../common/track-common.eard";
+include "../common/track-style.eard";
+
+// Draw a track of simple features
+// feature_type: 'eponine'/'cpg'/'trnascan'
+export procedure draw_feature_track(feature_type){
+  /* setup styles */
+  let track_id = setting_string("track_id", []);
+  let track_display_order = setting_string("display_order", []);
+  track_styles();
+  new_track_style(track_id, track_display_order);
+
+  /* get data */
+  let track_datafile = setting_string("datafile", []);
+  let req = request("self()","features");
+  scope(req, "datafile", track_datafile);
+  let data = get_data(req);
+  halt(only_warm());
+
+  let start = data_number(data,"start");
+  let end = data_number(data,"end");
+  let analysis = data_string(data,"analysis");
+
+  /* assign colours */
+  let tss_colour = colour!("#00ff00"); // green
+  let cpg_colour = colour!("#ffc0cb"); // pink
+  let trna_colour = colour!("#ff0000"); // red
+
+  let colours = set(repeat(tss_colour, len(analysis)), analysis=="cpg", [cpg_colour, ...]);
+  let colours = set(colours, analysis=="trnascan", [trna_colour, ...]);
+  /* assign target leafs */
+  let leafs = set(repeat(leaf(""), len(analysis)), analysis==feature_type, [track_leaf(track_id,"main/main/content"), ...]);
+
+  /* draw rectangles */
+  let paint = paint_solid(colours);
+  rectangle(coord(start,[8,...],[0,...]), coord(end,[16,...],[0,...]), paint, leafs);
+
+  /* draw track furniture */
+  let track_name = setting_string("track_name", []);
+  draw_track_name(track_name, "name", track_leaf(track_id,"title/content"));
+  draw_track_category(["G"], [track_id], [track_leaf(track_id,"main/letter/content")]);
+}

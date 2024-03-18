@@ -1,0 +1,5 @@
+program "ensembl-webteam/core" "trna" 1;
+include "features.eard";
+
+// Draw tRNA features track
+draw_feature_track("trnascan");

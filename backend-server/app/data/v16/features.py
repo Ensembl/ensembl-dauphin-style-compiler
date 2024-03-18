@@ -3,7 +3,7 @@ from data.v16.dataalgorithm import data_algorithm
 from model.bigbed import get_bigbed
 
 
-def get_tssp_details(
+def get_features(
     data_accessor: DataAccessor, panel: Panel, filename: str
 ) -> dict[str, bytearray]:
     item = panel.get_chrom(data_accessor).item_path(filename)
@@ -31,7 +31,7 @@ def get_tssp_details(
     }
 
 
-class TsspDataHandler(DataHandler):
+class FeaturesDataHandler(DataHandler):
     """
     Handle a request for compara bigbed data (conserved elements).
 
@@ -46,4 +46,4 @@ class TsspDataHandler(DataHandler):
     def process_data(
         self, data_accessor: DataAccessor, panel: Panel, scope: dict, accept: str
     ) -> dict[str, bytearray]:
-        return get_tssp_details(data_accessor, panel, self.get_datafile(scope))
+        return get_features(data_accessor, panel, self.get_datafile(scope))
