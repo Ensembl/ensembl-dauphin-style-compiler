@@ -1,5 +1,5 @@
 program "ensembl-webteam/core" "tssp" 1;
-include "features.eard";
+include "simple-features.eard";
 
 // Draw TSSP features track
 draw_feature_track("eponine");

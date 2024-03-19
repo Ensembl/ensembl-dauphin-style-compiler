@@ -34,9 +34,9 @@ def get_features(
     }
 
 
-class FeaturesDataHandler(DataHandler):
+class SimpleFeaturesDataHandler(DataHandler):
     """
-    Handle a request for compara bigbed data (conserved elements).
+    Handle a request for fetching data (simple features) from bigbed file.
 
     Args:
         data_accessor (DataAccessor): The means of accessing data
