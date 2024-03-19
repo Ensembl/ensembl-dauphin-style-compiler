@@ -1,0 +1,62 @@
+program "ensembl-webteam/core" "repeats" 1;
+refer "libperegrine";
+refer "libeoe";
+include "../common/track-common.eard";
+include "../common/track-style.eard";
+
+
+
+/* setup styles */
+let track_id = setting_string("track_id", []);
+let track_display_order = setting_string("display_order", []);
+track_styles();
+new_track_style(track_id, track_display_order);
+
+set_track_style(track_id, "main/main/", ["type"], ["stack"]);
+set_track_style(track_id, "main/main/first", ["min-height", "priority"], ["10", "0"]);
+set_track_style(track_id, "main/main/second", ["min-height", "priority"], ["10", "1"]);
+set_track_style(track_id, "main/main/third", ["min-height", "priority"], ["10", "2"]);
+
+/* get data (e.g. from bigbed) from the api*/
+let track_datafile = setting_string("datafile", []);
+let req = request("self()","repeats");
+scope(req, "datafile", track_datafile);
+let data = get_data(req);
+halt(only_warm());
+
+let start = data_number(data,"start");
+let end = data_number(data,"end");
+let analysis = data_string(data,"analysis");
+
+/* Get and transform data */
+let is_dust = analysis == "dust";
+let is_trf = analysis == "trf";
+let is_repbase = analysis == "repeatmask_repbase_mammals";
+
+let dust_colour = colour!("#708090"); // slate grey
+let trf_colour = colour!("#928e85"); // grey
+let repbase_colours = colour!("#a9a9a9"); // dark grey
+
+let colours_seq = repeat(dust_colour, len(analysis));
+let colours_seq = set(colours_seq, is_trf, [trf_colour, ...]);
+let colours_seq = set(colours_seq, is_repbase, [repbase_colours, ...]);
+
+
+/* set lanes */
+let dust_leaf = track_leaf(track_id, "main/main/first");
+let trf_leaf = track_leaf(track_id, "main/main/second");
+let repbase_leaf = track_leaf(track_id, "main/main/third");
+
+let lane_leafs = repeat(dust_leaf, len(analysis));
+let lane_leafs = set(lane_leafs, is_trf, [trf_leaf,...]);
+let lane_leafs = set(lane_leafs, is_repbase, [repbase_leaf,...]);
+
+/* draw rectangles */
+let paint = paint_solid(colours_seq);
+let leaf = track_leaf(track_id,"main/main/content");
+rectangle(coord(start,[8,...],[0,...]), coord(end,[16,...],[0,...]), paint, lane_leafs);
+
+/* draw track furniture */
+let track_name = setting_string("track_name", []);
+draw_track_name(track_name, "name", track_leaf(track_id,"title/content"));
+draw_track_category(["G"], [track_id], [track_leaf(track_id,"main/letter/content")]);

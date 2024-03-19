@@ -1,71 +1,71 @@
 export procedure track_styles() {
-    style!("""
+  style!("""
 
-    dots/ {
-        system: tracking-window;
-        depth: 56;
-    }
+  dots/ {
+    system: tracking-window;
+    depth: 56;
+  }
 
-    tracks/ {
-        padding-top: 16;
-        priority: 1;
-        depth: 0;
-    }
+  tracks/ {
+    padding-top: 16;
+    priority: 1;
+    depth: 0;
+  }
 
-    tracks/flagtop/ {
-        min-height: 32;
-        priority: 0;
-        system: tracking;
-    }
+  tracks/flagtop/ {
+    min-height: 32;
+    priority: 0;
+    system: tracking;
+  }
 
-    tracks/track/ {
-        min-height: 100;
-        priority: 1;
-    }
+  tracks/track/ {
+    min-height: 100;
+    priority: 1;
+  }
 
-    tracks/track/*/ {
-        padding-top: 8;
-        padding-bottom: 8;
-        height-adjust: tracking;
-    }
+  tracks/track/*/ {
+    padding-top: 8;
+    padding-bottom: 8;
+    height-adjust: tracking;
+  }
 
-    tracks/track/*/title/ {
-        system: content;
-        type: overlay;
-        indent: left;
-        padding-top: 2;
-        padding-bottom: 10;
-        priority: -1000;
-    }
+  tracks/track/*/title/ {
+    system: content;
+    type: overlay;
+    indent: left;
+    padding-top: 2;
+    padding-bottom: 10;
+    priority: -1000;
+  }
 
-    tracks/track/*/main/ {
-        type: overlay;
-        priority: 0;
-    }
+  tracks/track/*/main/ {
+    type: overlay;
+    priority: 0;
+  }
 
-    tracks/track/*/main/letter/ {
-        system: content;
-        bump-height: none;
-        indent: datum(pad-left);
-        depth: 60;
-    }
-    
-    tracks/track/*/title/letter/ {
-        system: content;
-        indent: datum(pad-left);
-        depth: 60;
-    }
+  tracks/track/*/main/letter/ {
+    system: content;
+    bump-height: none;
+    indent: datum(pad-left);
+    depth: 60;
+  }
 
-    tracks/track/*/main/main/ {
-        system: tracking;
-        priority: 1000;
-    }
+  tracks/track/*/title/letter/ {
+    system: content;
+    indent: datum(pad-left);
+    depth: 60;
+  }
 
-    tracks/track/*/main/background/ {
-        system: content;
-    }
+  tracks/track/*/main/main/ {
+    system: tracking;
+    priority: 1000;
+  }
 
-    """); 
+  tracks/track/*/main/background/ {
+    system: content;
+  }
+
+  """);
 }
 
 export procedure set_track_style(track_id, path_suffix, style_names, style_values) {
