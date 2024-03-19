@@ -1,0 +1,121 @@
+refer "libperegrine";
+refer "libeoe";
+include "../common/track-common.eard";
+include "../common/track-style.eard";
+
+// Build the zmenu (paint_click with payload) for a feature block
+function feature_zmenu(*element) {
+  // Format the location string for each feature
+  let start_pos = element.start + 1; //to 1-based coordinate
+  let tmpl = template_start("{0}:{1}-{2}");
+  template_set(tmpl, 0, element.chr);
+  template_set(tmpl, 1, comma_format(start_pos));
+  template_set(tmpl, 2, comma_format(element.end));
+  let location = template_end(tmpl);
+
+  struct!(zmenu_metadata,
+  """{
+    "type": "zmenu",
+    "zmenu-type": "feature"
+  }""");
+  
+  struct!(zmenu_content,
+  """
+  (<0,1,2,3>!{
+    "data": [
+      /* First row */
+      [{
+        "items": [
+          {"markup": ["light"], "text": <0s>}
+        ],
+        "type": "block"
+      }],
+      /* Second row */
+      [{
+        "items": [
+          {"markup": ["light"], "text": "Location"},
+          {"markup": [], "text": " "},
+          {"markup": ["strong"], "text": <1s>},
+          {"markup": ["light"], "text": "("},
+          {"markup": ["light"], "text": <2s>},
+          {"markup": ["light"], "text": ")"}
+        ],
+        "type": "block"
+      }],
+      /* Third row */
+      [{
+        "items": [
+          {"markup": ["light"], "text": "Score"},
+          {"markup": [], "text": " "},
+          {"markup": ["strong"], "text": <3n>}
+        ],
+        "type": "block"
+      }]
+    ],
+    "metadata": {
+      "type": <0s>,
+      "location": <1s>,
+      "strand": <2s>,
+      "score": <3n>
+    }
+  })
+  """,
+  element.analysis,
+  location,
+  element.strand,
+  element.score
+  );
+
+  paint_click(zmenu_metadata, zmenu_content, false) //returns this
+}
+
+
+// Draw a track of simple features
+// feature_type: 'eponine'/'cpg'/'trnascan'
+export procedure draw_feature_track(feature_type){
+  /* setup styles */
+  let track_id = setting_string("track_id", []);
+  let track_display_order = setting_string("display_order", []);
+  track_styles();
+  new_track_style(track_id, track_display_order);
+
+  /* get data */
+  let track_datafile = setting_string("datafile", []);
+  let req = request("self()","features");
+  scope(req, "datafile", track_datafile);
+  let data = get_data(req);
+  halt(only_warm());
+
+  let f.chr = data_string(data,"chr");
+  let f.start = data_number(data,"start");
+  let f.end = data_number(data,"end");
+  let f.strand = data_string(data,"strand");
+  let f.analysis = data_string(data,"analysis");
+  let f.score = data_number(data,"score");
+
+  /* assign colours */
+  let tss_colour = colour!("#00ff00"); // green
+  let cpg_colour = colour!("#ffc0cb"); // pink
+  let trna_colour = colour!("#ff0000"); // red
+
+  let colours = set(repeat(tss_colour, len(f.analysis)), f.analysis=="cpg", [cpg_colour, ...]);
+  let colours = set(colours, f.analysis=="trnascan", [trna_colour, ...]);
+
+  /* assign target leaf */
+  let leafs = set(repeat(leaf(""), len(f.analysis)), f.analysis==feature_type, [track_leaf(track_id,"main/main/content"), ...]);
+
+  /* draw features */
+  let paint = paint_solid(colours);
+  let nw = coord(f.start, [8,...], [0,...]);
+  let se = coord(f.end, [16,...], [0,...]);
+  rectangle(nw, se, paint, leafs);
+
+  /* draw zmenu click targets */
+  let zmenu_paint = feature_zmenu(*f);
+  rectangle(nw, se, zmenu_paint, leafs);
+
+  /* draw track furniture */
+  let track_name = setting_string("track_name", []);
+  draw_track_name(track_name, "name", track_leaf(track_id,"title/content"));
+  draw_track_category(["G"], [track_id], [track_leaf(track_id,"main/letter/content")]);
+}
