@@ -1,0 +1,5 @@
+program "ensembl-webteam/core" "cpg" 1;
+include "simple-features.eard";
+
+// Draw CpG features track
+draw_feature_track("cpg");

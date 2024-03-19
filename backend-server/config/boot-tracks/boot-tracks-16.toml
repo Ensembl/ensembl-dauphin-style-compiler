@@ -254,10 +254,10 @@ triggers = [
 ]
 run = "register_variation_track"
 
-[expansion.compara]
+[expansion.general]
 channel = ["ensembl","main"]
-name = "compara"
+name = "general"
 triggers = [
-    ["track","expand-compara"]
+    ["track","expand"]
 ]
 run = "register_track"

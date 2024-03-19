@@ -16,4 +16,5 @@ eard-compiler \
     -c $SRC/v16/other/compara-elements.eard -c $SRC/v16/other/compara-scores.eard \
     -c $SRC/v16/variant/focus-variant-dots.eard \
     -c $SRC/v16/regulation/regulation.eard \
+    -c $SRC/v16/simple-features/tssp.eard -c $SRC/v16/simple-features/cpg.eard -c $SRC/v16/simple-features/trna.eard \
     -o $DST/render16.eardo

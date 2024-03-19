@@ -23,6 +23,7 @@ In order to publish a new package to the registry:
 - Make sure that the version of the package you are about to publish [has not been published already](https://gitlab.ebi.ac.uk/ensembl-web/package-registry/-/packages). If it has, then update the version in `package.json`.
 - Get the access token from the vault, where it is stored under the key `package-publish-token`
 - Use this token to run the following command: `PUBLISH_TOKEN=<access_token> npm publish`
+- Update the genome browser package version in [ensembl-client](https://github.com/Ensembl/ensembl-client) (edit `package.json` and run `npm install` to sync it with `package-lock.json`) 
 
 ## Custom builds
 - To build the genome browser in a chatty mode, when it logs what it's doing to the browser console, build the webassembly (in the parent directory) with the following command: `RUSTFLAGS="--cfg console_noisy" wasm-pack build --target web --release`. Such a build may be useful for debugging communication between the genome browser and the browser chrome.
