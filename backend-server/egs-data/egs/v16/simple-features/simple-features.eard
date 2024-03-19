@@ -81,7 +81,7 @@ export procedure draw_feature_track(feature_type){
 
   /* get data */
   let track_datafile = setting_string("datafile", []);
-  let req = request("self()","features");
+  let req = request("self()","simple-features");
   scope(req, "datafile", track_datafile);
   let data = get_data(req);
   halt(only_warm());
