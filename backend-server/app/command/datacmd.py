@@ -18,6 +18,8 @@ from data.v16.gene.genedata import GeneDataHandler16
 from data.v16.gene.genedata import GeneOverviewDataHandler16
 from data.focusjump import FocusJumpHandler
 from data.v16.compara import ComparaDataHandler
+from data.v16.repeats import RepeatsDataHandler
+from data.v16.simplefeatures import SimpleFeaturesDataHandler
 
 handlers = [
     ("gene-overview", GeneOverviewDataHandler16(), 16),
@@ -32,6 +34,8 @@ handlers = [
     ("regulation", RegulationDataHandler(), 16),
     ("compara-scores", ComparaWiggleDataHandler(), 16),
     ("compara-elements", ComparaDataHandler(), 16),
+    ("repeats", RepeatsDataHandler(), 16),
+    ("simple-features", SimpleFeaturesDataHandler(), 16),
 ]
 
 
