@@ -11,24 +11,24 @@ def get_repeat_details(
     ends = []
     strands = []
     analyses = []
-    repeatNames = []
-    repeatClasses = []
+    names = []
+    types = []
     for (start, end, rest) in data:
-        (strand, analysis, repeatName, repeatClass) = rest.split("\t")
+        (strand, analysis, name, type) = rest.split("\t")
         starts.append(start)
         ends.append(end)
         strands.append(strand)
         analyses.append(analysis)
-        repeatNames.append(repeatName)
-        repeatClasses.append(repeatClass)
+        names.append(name)
+        types.append(type)
 
     return {
         "start": data_algorithm("NDZRL", starts),
         "end": data_algorithm("NDZRL", ends),
         "strand": data_algorithm("SZ", strands),
-        "analyses": data_algorithm("SZ", analyses),
-        "repeatNames": data_algorithm("SZ", repeatNames),
-        "repeatClasses": data_algorithm("SZ", repeatClasses),
+        "analysis": data_algorithm("SZ", analyses),
+        "name": data_algorithm("SZ", names),
+        "type": data_algorithm("SZ", types),
     }
 
 class RepeatsDataHandler(DataHandler):
