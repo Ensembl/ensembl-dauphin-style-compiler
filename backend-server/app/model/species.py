@@ -12,6 +12,7 @@ class Species(object):
     Args:
         genome_id ():
     """
+
     def __init__(self, genome_id):
         self.genome_id = genome_id
         self.chromosomes = {}
@@ -28,7 +29,18 @@ class Species(object):
         """
         return AccessItem(variety, self.genome_id)
 
-    def _load_ncd(self, data_accessor, variety, chr, missing_ok = False):
+    def _load_metadata(self, data_accessor, variety, chr, missing_ok=False):
+        item = AccessItem(variety, genome=self.genome_id, chromosome=chr)
+        checksum = data_accessor.resolver.get(item).get_checksum()
+        if not checksum:
+            if missing_ok:
+                return None
+            else:
+                raise RequestException("cannot find checksum '{}'".format(chr))
+        return checksum
+        pass
+
+    def _load_ncd(self, data_accessor, variety, chr, missing_ok=False):
         """
 
         Args:
@@ -39,11 +51,11 @@ class Species(object):
         Returns:
 
         """
-        item = AccessItem(variety, self.genome_id)
+        item = AccessItem(variety, genome=self.genome_id)
         accessor = data_accessor.resolver.get(item)
         hash_reader = NCDRead(accessor.ncd())
         hash_data = hash_reader.get(chr.encode("utf-8"))
-        if hash_data == None:
+        if not hash_data:
             if missing_ok:
                 return None
             else:
@@ -60,11 +72,11 @@ class Species(object):
         Returns:
 
         """
-        (genome,chr) = stick.split(':')
-        hash_value = self._load_ncd(data_accessor, "chrom-hashes", chr, missing_ok=True)
+        (genome, chr) = stick.split(':')
+        hash_value = self._load_metadata(data_accessor, "chrom-hashes", chr, missing_ok=True)
         if hash_value is not None:
             size = int(self._load_ncd(data_accessor, "chrom-sizes", chr)[0])
-            return Chromosome(chr, size, hash_value[0], self, self._tags)
+            return Chromosome(chr, size, hash_value, self, self._tags)
         else:
             return None
 
