@@ -6,6 +6,7 @@ from core.exceptions import RequestException
 import requests
 from ncd import NCDFileAccessor, NCDHttpAccessor
 
+
 def is_md5(checksum):
     if checksum and len(checksum) == 32:
         return True
@@ -62,6 +63,7 @@ class AccessMethod:
     def __init__(self):
         self.url = None
         self.file = None
+        self.refget_url = None
 
 
 class RefgetAccessMethod(AccessMethod):
@@ -95,11 +97,39 @@ class RefgetAccessMethod(AccessMethod):
         if offset is not None:
             headers["Range"] = "bytes={0}-{1}".format(offset, offset + size)
             url_range = f"?start={offset}&end={offset + size}"
-
         response = requests.get(self.url + url_range)
         if response.status_code > 299:
-            raise RequestException(f"Refget error: {self.url+url_range} => {response.status_code}: {response.text}")
+            raise RequestException(f"Refget error: {self.url + url_range} => {response.status_code}: {response.text}")
         return response.content
+
+
+class MetadataAccessMethod(AccessMethod):
+    """
+
+     Args:
+         metadata_url (str):
+         item (AccessItem):
+     """
+
+    def __init__(self, metadata_url: str, item: AccessItem):
+        super().__init__()
+        if not metadata_url.endswith("/"):
+            metadata_url += "/"
+        self.item = item
+        self.url = metadata_url
+
+    def get_checksum(self):
+        """
+
+        Args:
+        Returns:
+            Content of the response, in string.
+        """
+        checksum_url = self.url + "genome/" + self.item.genome + "/checksum/" + self.item.chromosome
+        response = requests.get(checksum_url)
+        if response.status_code > 299:
+            return None
+        return response.text
 
 
 class UrlAccessMethod(AccessMethod):
@@ -210,12 +240,15 @@ class S3DataSource(object):
     def __init__(self, data):
         self.url = data.get("url", None)
         self.refget_url = data.get("refget_url", None)
+        self.metadata_url = data.get("metadata_url", None)
         if self.url is None:
             logging.critical("S3 driver config missing url")
 
     def resolve(self, item: AccessItem) -> Optional[AccessMethod]:
         if is_md5(item.chromosome):
             method = RefgetAccessMethod(refget_url=self.refget_url, item=item)
+        elif item.variety == "chrom-hashes":
+            method = MetadataAccessMethod(metadata_url=self.metadata_url, item=item)
         else:
             method = UrlAccessMethod(self.url, item)
         return method
@@ -230,6 +263,7 @@ class FileDataSource(object):
     def __init__(self, data):
         self.root = data.get("root", None)
         self.refget_url = data.get("refget_url", None)
+        self.metadata_url = data.get("metadata_url", None)
         if self.root is None:
             logging.critical("File driver config missing root")
 
@@ -244,6 +278,8 @@ class FileDataSource(object):
         """
         if is_md5(item.chromosome):
             method = RefgetAccessMethod(refget_url=self.refget_url, item=item)
+        elif item.variety == "chrom-hashes":
+            method = MetadataAccessMethod(metadata_url=self.metadata_url, item=item)
         else:
             method = FileAccessMethod(self.root, item)
         return method
