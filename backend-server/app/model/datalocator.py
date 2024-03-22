@@ -63,7 +63,6 @@ class AccessMethod:
     def __init__(self):
         self.url = None
         self.file = None
-        self.refget_url = None
 
 
 class RefgetAccessMethod(AccessMethod):
