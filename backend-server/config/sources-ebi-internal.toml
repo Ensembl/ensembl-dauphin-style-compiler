@@ -2,6 +2,7 @@
 driver = "file"
 root = "/usr/data/newsite/internal/genome_browser/8"
 refget_url = "http://ensembl-refget-proxy-svc:8083/api/sequence/"
+metadata_url = "http://metadata-api-svc:8014/api/metadata/"
 min_version = 16
 
 [apis]

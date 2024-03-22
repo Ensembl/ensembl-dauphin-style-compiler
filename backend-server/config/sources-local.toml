@@ -2,6 +2,7 @@
 driver = "s3"
 url = "http://nginx/upload-20220829/"
 refget_url = "https://staging-2020.ensembl.org/api/refget/sequence/"
+metadata_url = "https://internal-2020.ensembl.org/api/metadata/"
 min_version = 16
 
 [redirect.data]
