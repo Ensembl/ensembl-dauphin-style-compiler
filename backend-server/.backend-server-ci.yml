@@ -100,7 +100,7 @@ BE-eardo:
 BE-Docker:
   extends: .build_backend
 
-Production:WP40:HL:
+Prod:
   extends: .deploy_backend
   environment:
     name: production
@@ -108,15 +108,15 @@ Production:WP40:HL:
     AGENT: ${PROD_AGENT}
     NS: ${PROS_NS}
 
-Production:WP41:HX:
+Fallback:
   extends: .deploy_backend
   environment:
-    name: production
+    name: fallback
   variables:
-    AGENT: ${PROD_AGENT}
-    NS: ${PROS_NS}
+    AGENT: ${FALLBACK_AGENT}
+    NS: ${FALLBACK_NS}
 
-Staging:WP40:HL:
+Staging:
   extends: .deploy_backend
   environment:
     name: staging
@@ -124,7 +124,7 @@ Staging:WP40:HL:
     AGENT: ${STAGING_AGENT}
     NS: ${STAGING_NS}
 
-Internal:WP40:HL:
+Internal:
   extends: .deploy_backend
   environment:
     name: internal
@@ -132,7 +132,7 @@ Internal:WP40:HL:
     AGENT: ${INTERNAL_AGENT}
     NS: ${INTERNAL_NS}
 
-Dev:WP51:HL:
+Dev:
   extends: .deploy_backend
   environment:
     name: development
@@ -140,7 +140,7 @@ Dev:WP51:HL:
     AGENT: ${DEV_AGENT}
     NS: ${DEV_NS}
 
-Review:WP51:HL:
+Review:
   extends: .deploy_backend_review
   environment:
     name: development
@@ -148,7 +148,7 @@ Review:WP51:HL:
     AGENT: ${REVIEW_AGENT}
     NS: ${CI_COMMIT_REF_SLUG}
 
-SetupReview:WP51:HL:
+Review:Setup:
   stage: setup
   image: dockerhub.ebi.ac.uk/ensembl-web/deploy-tools:latest
   environment:
@@ -162,11 +162,13 @@ SetupReview:WP51:HL:
       when: on_success
     - when: never
   before_script:
+    - kubectl config use-context ${AGENT}
     # Check for review namespace and remove ingress for default gb backend
-    - kubectl get namespace ${CI_COMMIT_REF_SLUG} # Cancels the job/pipeline if namespace not found
+    - kubectl get namespace ${CI_COMMIT_REF_SLUG} # Cancel the pipeline if namespace not yet created (by ens-client)
     - kubectl -n ensembl-dev delete ingress genome-browser-server-ingress-hi-${CI_COMMIT_REF_SLUG} || true
     - kubectl -n ensembl-dev delete ingress genome-browser-server-ingress-lo-${CI_COMMIT_REF_SLUG} || true
   script:
+    - kubectl config set-context --current --namespace=${NS}
     # Download kustomize manifests and update nfs server/path
     - git clone --depth 1 --branch k8s123-migration https://gitlab.ebi.ac.uk/ensembl-web/ensembl-k8s-manifests.git
     # Prepare/apply secrets, configmap, hi/lo service and ingress manifests
