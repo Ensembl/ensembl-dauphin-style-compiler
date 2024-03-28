@@ -68,6 +68,9 @@ variables:
 .deploy_backend_base:
   stage: deploy
   image: dockerhub.ebi.ac.uk/ensembl-web/deploy-tools:latest
+  before_script:
+    - kubectl config use-context ${AGENT}
+    - kubectl config set-context --current --namespace=${NS} 
   script:
     # Download kustomize manifests and update nfs server/path
     - git clone --depth 1 --branch k8s123-migration https://gitlab.ebi.ac.uk/ensembl-web/ensembl-k8s-manifests.git
@@ -100,42 +103,59 @@ BE-Docker:
 Production:WP40:HL:
   extends: .deploy_backend
   environment:
-    name: wp40-hl-prod
+    name: production
+  variables:
+    AGENT: ${PROD_AGENT}
+    NS: ${PROS_NS}
 
 Production:WP41:HX:
   extends: .deploy_backend
   environment:
-    name: wp41-hx-prod
+    name: production
+  variables:
+    AGENT: ${PROD_AGENT}
+    NS: ${PROS_NS}
 
 Staging:WP40:HL:
   extends: .deploy_backend
   environment:
-    name: wp40-hl-staging
+    name: staging
+  variables:
+    AGENT: ${STAGING_AGENT}
+    NS: ${STAGING_NS}
 
 Internal:WP40:HL:
   extends: .deploy_backend
   environment:
-    name: wp40-hl-internal
+    name: internal
+  variables:
+    AGENT: ${INTERNAL_AGENT}
+    NS: ${INTERNAL_NS}
 
 Dev:WP51:HL:
   extends: .deploy_backend
   environment:
-    name: wp51-hl-development
+    name: development
+  variables:
+    AGENT: ${DEV_AGENT}
+    NS: ${DEV_NS}
 
 Review:WP51:HL:
   extends: .deploy_backend_review
   environment:
-    name: wp51-hl-development
-    kubernetes:
-      namespace: ${CI_COMMIT_REF_SLUG}
+    name: development
+  variables:
+    AGENT: ${REVIEW_AGENT}
+    NS: ${CI_COMMIT_REF_SLUG}
 
 SetupReview:WP51:HL:
   stage: setup
   image: dockerhub.ebi.ac.uk/ensembl-web/deploy-tools:latest
   environment:
-    name: wp51-hl-development
-    kubernetes:
-      namespace: ${CI_COMMIT_REF_SLUG}
+    name: development
+  variables:
+    AGENT: ${REVIEW_AGENT}
+    NS: ${CI_COMMIT_REF_SLUG}
   rules: # Run only when a new branch is created
     - if: $CI_PIPELINE_SOURCE == "push" && 
           $CI_COMMIT_BEFORE_SHA == "0000000000000000000000000000000000000000"
