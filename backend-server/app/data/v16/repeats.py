@@ -5,8 +5,9 @@ from model.bigbed import get_bigbed
 def get_repeat_details(
         data_accessor: DataAccessor, panel: Panel, filename: str
     ) -> dict[str,bytearray]:
-    item = panel.get_chrom(data_accessor).item_path(filename)
-    data = get_bigbed(data_accessor, item, panel.start, panel.end)
+    chrom = panel.get_chrom(data_accessor)
+    data = get_bigbed(data_accessor, chrom.item_path(filename), panel.start, panel.end)
+    chrs = []
     starts = []
     ends = []
     strands = []
@@ -15,6 +16,7 @@ def get_repeat_details(
     types = []
     for (start, end, rest) in data:
         (strand, analysis, name, type) = rest.split("\t")
+        chrs.append(chrom.name)
         starts.append(start)
         ends.append(end)
         strands.append(strand)
@@ -23,6 +25,7 @@ def get_repeat_details(
         types.append(type)
 
     return {
+        "chr": data_algorithm("SZ", chrs),
         "start": data_algorithm("NDZRL", starts),
         "end": data_algorithm("NDZRL", ends),
         "strand": data_algorithm("SZ", strands),
