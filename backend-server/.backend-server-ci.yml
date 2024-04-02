@@ -154,7 +154,7 @@ Review:Setup:
   environment:
     name: development
   variables:
-    AGENT: ${REVIEW_AGENT}
+    AGENT: ${DEV_AGENT}
     NS: ${CI_COMMIT_REF_SLUG}
   rules: # Run only when a new branch is created
     - if: $CI_PIPELINE_SOURCE == "push" && 
@@ -164,24 +164,24 @@ Review:Setup:
   before_script:
     - kubectl config use-context ${AGENT}
     # Check for review namespace and remove ingress for default gb backend
-    - kubectl get namespace ${CI_COMMIT_REF_SLUG} # Cancel the pipeline if namespace not yet created (by ens-client)
-    - kubectl -n ensembl-dev delete ingress genome-browser-server-ingress-hi-${CI_COMMIT_REF_SLUG} || true
-    - kubectl -n ensembl-dev delete ingress genome-browser-server-ingress-lo-${CI_COMMIT_REF_SLUG} || true
-  script:
+    - kubectl get namespace ${NS} # Cancel the pipeline if namespace not yet created (by ens-client)
+    - kubectl -n ensembl-dev delete ingress genome-browser-server-ingress-hi-${NS} || true
+    - kubectl -n ensembl-dev delete ingress genome-browser-server-ingress-lo-${NS} || true
     - kubectl config set-context --current --namespace=${NS}
+  script:
     # Download kustomize manifests and update nfs server/path
     - git clone --depth 1 --branch k8s123-migration https://gitlab.ebi.ac.uk/ensembl-web/ensembl-k8s-manifests.git
     # Prepare/apply secrets, configmap, hi/lo service and ingress manifests
     - cd ensembl-k8s-manifests
     - kubectl apply -f genome-browser/review/sources-toml-configmap.yaml
-    - sed -i "s#<MC_PREFIX>#${CI_COMMIT_REF_SLUG}#g" genome-browser/review/secrets.yaml
+    - sed -i "s#<MC_PREFIX>#${NS}#g" genome-browser/review/secrets.yaml
     - kubectl apply -f genome-browser/review/secrets.yaml
     - cp genome-browser/review/hi/svc/*.yaml ./ # kustomize restrictions workaround
     - kubectl apply -k .
     - cp genome-browser/review/lo/svc/*.yaml ./
     - kubectl apply -k .
     - cp review-setup/ingress-host.patch.yaml ./
-    - sed -i "s#<HOST>#${CI_COMMIT_REF_SLUG}.review.ensembl.org#g" ingress-host.patch.yaml
+    - sed -i "s#<HOST>#${NS}.review.ensembl.org#g" ingress-host.patch.yaml
     - cp genome-browser/review/hi/*.yaml ./
     - kubectl apply -k .
     - cp genome-browser/review/lo/*.yaml ./
