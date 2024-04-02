@@ -154,7 +154,7 @@ Review:Setup:
   environment:
     name: development
   variables:
-    AGENT: ${REVIEW_AGENT}
+    AGENT: ${DEV_AGENT}
     NS: ${CI_COMMIT_REF_SLUG}
   rules: # Run only when a new branch is created
     - if: $CI_PIPELINE_SOURCE == "push" && 
