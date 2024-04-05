@@ -36,6 +36,8 @@ class Expansions:
             filekey = list(data['datafiles'].keys()).pop()
         except IndexError:
             raise Exception(f"No datafiles found for track {data['track_id']}")
+        if data["label"] == "Repeat elements":
+            scales = [1, 5, 1]
         track = Track(data['track_id'], program_group="ensembl-webteam/core", program_name=program_name or filekey, program_version=1, scales=scales)
         # add values from track metadata
         track.add_trigger(data['trigger']) # to turn a track on/off
