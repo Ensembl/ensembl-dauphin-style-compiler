@@ -164,7 +164,7 @@ Review:Setup:
   before_script:
     - kubectl config use-context ${AGENT}
     # Check for review namespace and remove ingress for default GB backend
-    - kubectl get namespace ${NS} || echo "Please create '${NS}' branch in ensembl-client and restart this pipeline" && exit 1
+    - kubectl get namespace ${NS} || (echo "Please create '${NS}' branch in ensembl-client and restart this pipeline" && exit 1)
     - kubectl -n ensembl-dev delete ingress genome-browser-server-ingress-hi-${NS} || true
     - kubectl -n ensembl-dev delete ingress genome-browser-server-ingress-lo-${NS} || true
     - kubectl config set-context --current --namespace=${NS}
