@@ -3,7 +3,7 @@ refer "libperegrine";
 refer "libeoe";
 include "../common/track-common.eard";
 include "../common/track-style.eard";
-
+include "repeats-zmenu.eard";
 
 
 /* setup styles */
@@ -24,20 +24,23 @@ scope(req, "datafile", track_datafile);
 let data = get_data(req);
 halt(only_warm());
 
-let start = data_number(data,"start");
-let end = data_number(data,"end");
-let analysis = data_string(data,"analysis");
+let rep.chr = data_string(data,"chr");
+let rep.start = data_number(data,"start");
+let rep.end = data_number(data,"end");
+let rep.analysis = data_string(data,"analysis");
+let rep.name = data_string(data,"name");
+let rep.type = data_string(data,"type");
 
 /* Get and transform data */
-let is_dust = analysis == "dust";
-let is_trf = analysis == "trf";
-let is_repbase = analysis == "repeatmask_repbase_mammals";
+let is_dust = rep.analysis == "dust";
+let is_trf = rep.analysis == "trf";
+let is_repbase = rep.analysis == "repeatmask_repbase_mammals";
 
 let dust_colour = colour!("#708090"); // slate grey
 let trf_colour = colour!("#928e85"); // grey
 let repbase_colours = colour!("#a9a9a9"); // dark grey
 
-let colours_seq = repeat(dust_colour, len(analysis));
+let colours_seq = repeat(dust_colour, len(rep.analysis));
 let colours_seq = set(colours_seq, is_trf, [trf_colour, ...]);
 let colours_seq = set(colours_seq, is_repbase, [repbase_colours, ...]);
 
@@ -47,14 +50,20 @@ let dust_leaf = track_leaf(track_id, "main/main/first");
 let trf_leaf = track_leaf(track_id, "main/main/second");
 let repbase_leaf = track_leaf(track_id, "main/main/third");
 
-let lane_leafs = repeat(dust_leaf, len(analysis));
+let lane_leafs = repeat(dust_leaf, len(rep.analysis));
 let lane_leafs = set(lane_leafs, is_trf, [trf_leaf,...]);
 let lane_leafs = set(lane_leafs, is_repbase, [repbase_leaf,...]);
 
 /* draw rectangles */
 let paint = paint_solid(colours_seq);
 let leaf = track_leaf(track_id,"main/main/content");
-rectangle(coord(start,[8,...],[0,...]), coord(end,[16,...],[0,...]), paint, lane_leafs);
+
+let nw = coord(rep.start, [8,...], [0,...]);
+let se = coord(rep.end, [16,...], [0,...]);
+rectangle(nw, se, paint, [leaf,...]);
+/* draw zmenu click target boxes */
+let zmenu_paint = constr_element_zmenu(*rep);
+rectangle(nw, se, zmenu_paint, [leaf,...]);
 
 /* draw track furniture */
 let track_name = setting_string("track_name", []);
