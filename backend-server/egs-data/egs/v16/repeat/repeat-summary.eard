@@ -1,0 +1,28 @@
+program "ensembl-webteam/core" "repeat-summary" 1;
+refer "libperegrine";
+refer "libeoe";
+include "../common/track-common.eard";
+include "../common/track-style.eard";
+
+/* setup styles */
+let track_id = setting_string("track_id", []);
+let track_display_order = setting_string("display_order", []);
+track_styles();
+new_track_style(track_id, track_display_order);
+style!("""
+    **/main/background/content {
+        depth: -10;
+        padding-top: 36;
+    }
+""");
+
+/* draw background */
+let num_chevrons = 40;
+let chevron_spacing = enumerate([num_chevrons]) / num_chevrons;
+let leaf = track_leaf(track_id,"main/background/content");
+image(coord(chevron_spacing,[2,...],[0,...]),["chevron-right",...],[leaf,...]);
+
+/* draw track furniture */
+let track_name = setting_string("track_name", []);
+draw_track_name(track_name, "name", track_leaf(track_id,"title/content"));
+draw_track_category(["G"], [track_id], [track_leaf(track_id,"main/letter/content")]);

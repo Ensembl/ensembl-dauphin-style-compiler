@@ -387,19 +387,26 @@
         };
       
         /* Set initial tracks/settings */
-
         genome_browser.switch(["ruler"], true);
         genome_browser.switch(["ruler", "one_based"], true);
-        init_tracks(["gene-pc-fwd","contig","gc","regulation","focus"]);
-        //init_variant_track("0adabdbc-e0a5-487d-a712-98e6127712f2");
-        //init_expansion_track("f0f9a3b7-4114-4446-a658-3472b724c593"); //tssp
-        //init_expansion_track("b926e118-9b5c-444c-8003-ec25a35ddcab"); //cpg
-        //jump_variant("rs1557469781", 1, 1176408);
-        genome_browser.set_stick("a7335667-93e7-11ec-a39d-005056b38ce3:13");
-        //genome_browser.goto(159980000,160000500);
-        //jump_variant("rs1557469781", 1, 1176408);
-        genome_browser.jump("focus:gene:a7335667-93e7-11ec-a39d-005056b38ce3:ENSG00000139618");
+        init_tracks(["gene-pc-fwd","contig","gc","focus"]);
         genome_browser.switch(["settings","tab-selected"],"G");
+
+        //Human
+        //init_variant_track("0adabdbc-e0a5-487d-a712-98e6127712f2");
+        //jump_variant("rs1557469781", 1, 1176408);
+        //goto: location
+        //genome_browser.set_stick("a7335667-93e7-11ec-a39d-005056b38ce3:13");
+        //genome_browser.goto(159980000,160000500);
+        //goto: variant
+        //jump_variant("rs1557469781", 1, 1176408);
+        //goto: gene
+        genome_browser.jump("focus:gene:a7335667-93e7-11ec-a39d-005056b38ce3:ENSG00000139618");
+
+        //Pig
+        //init_expansion_track("83090e95-2586-451c-bf3c-8ffc50068e2b"); //repeats
+        //genome_browser.set_stick("da38d82b-df50-419b-af74-886463b7bfa3:14");
+        //genome_browser.goto(10150673, 10329385);
       });
     </script>
   </body>

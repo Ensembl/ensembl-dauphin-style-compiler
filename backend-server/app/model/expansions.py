@@ -36,8 +36,6 @@ class Expansions:
             filekey = list(data['datafiles'].keys()).pop()
         except IndexError:
             raise Exception(f"No datafiles found for track {data['track_id']}")
-        if data["label"] == "Repeat elements":
-            scales = [1, 5, 1]
         track = Track(data['track_id'], program_group="ensembl-webteam/core", program_name=program_name or filekey, program_version=1, scales=scales)
         # add values from track metadata
         track.add_trigger(data['trigger']) # to turn a track on/off
@@ -58,13 +56,17 @@ class Expansions:
         tracks = Tracks()
         for zoom_level in ['summary', 'details']:
             track = self._create_track(data=track_data, program_name=name+'-'+zoom_level, scales=scales.get(zoom_level,[]), settings=settings.get(zoom_level,[]))
-            track.add_value("datafile", track_data['datafiles'][zoom_level])
+            if(zoom_level in track_data["datafiles"]):
+                track.add_value("datafile", track_data["datafiles"][zoom_level])
             tracks.add_track(f"{track_id}-{zoom_level}", track)
         return tracks
     
     # Functions for registering expansion tracks. Called on boot time from boot-tracks.toml config
     def register_track(self, track_id: str) -> Tracks:
-        track = self._create_track(data=self._get_track_data(track_id))
+        data = self._get_track_data(track_id)
+        if(data["label"] == "Repeat elements"):
+            return self._create_track_set(track_id, "repeat")
+        track = self._create_track(data)
         tracks = Tracks()
         tracks.add_track(track_id, track)
         return tracks

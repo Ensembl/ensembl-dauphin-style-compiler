@@ -1,9 +1,9 @@
-program "ensembl-webteam/core" "repeats" 1;
+program "ensembl-webteam/core" "repeat-details" 1;
 refer "libperegrine";
 refer "libeoe";
 include "../common/track-common.eard";
 include "../common/track-style.eard";
-include "repeats-zmenu.eard";
+include "repeat-zmenu.eard";
 
 
 /* setup styles */
@@ -11,6 +11,12 @@ let track_id = setting_string("track_id", []);
 let track_display_order = setting_string("display_order", []);
 track_styles();
 new_track_style(track_id, track_display_order);
+style!("""
+    **/main/background/content {
+        depth: -10;
+        padding-top: 36;
+    }
+""");
 
 set_track_style(track_id, "main/main/", ["type"], ["stack"]);
 set_track_style(track_id, "main/main/first", ["min-height", "priority"], ["10", "0"]);
@@ -64,6 +70,12 @@ rectangle(nw, se, paint, [leaf,...]);
 /* draw zmenu click target boxes */
 let zmenu_paint = constr_element_zmenu(*rep);
 rectangle(nw, se, zmenu_paint, [leaf,...]);
+
+/* draw background */
+let num_chevrons = 40;
+let chevron_spacing = enumerate([num_chevrons]) / num_chevrons;
+let leaf = track_leaf(track_id,"main/background/content");
+image(coord(chevron_spacing,[2,...],[0,...]),["chevron-right",...],[leaf,...]);
 
 /* draw track furniture */
 let track_name = setting_string("track_name", []);
