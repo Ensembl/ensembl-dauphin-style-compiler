@@ -65,7 +65,7 @@ class Expansions:
     def register_track(self, track_id: str) -> Tracks:
         data = self._get_track_data(track_id)
         if(data["label"] == "Repeat elements"):
-            return self._create_track_set(track_id, "repeat", scales={"summary": [11, 100, 10], "details": [1, 10, 2]})
+            return self._create_track_set(track_id, "repeat", scales={"summary": [17, 100, 4], "details": [1, 16, 4]})
         track = self._create_track(data)
         tracks = Tracks()
         tracks.add_track(track_id, track)
