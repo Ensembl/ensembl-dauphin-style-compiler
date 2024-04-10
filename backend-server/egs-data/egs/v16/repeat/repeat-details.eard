@@ -1,9 +1,9 @@
-program "ensembl-webteam/core" "repeats" 1;
+program "ensembl-webteam/core" "repeat-details" 1;
 refer "libperegrine";
 refer "libeoe";
 include "../common/track-common.eard";
 include "../common/track-style.eard";
-include "repeats-zmenu.eard";
+include "repeat-zmenu.eard";
 
 
 /* setup styles */
