@@ -1,0 +1,5 @@
+program "ensembl-webteam/core" "dust" 1;
+include "repeat-details.eard";
+
+// Draw a track for one type of repeats
+draw_repeats_track("dust");
