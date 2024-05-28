@@ -41,29 +41,18 @@ function feature_zmenu(*element) {
           {"markup": ["light"], "text": ")"}
         ],
         "type": "block"
-      }],
-      /* Third row */
-      [{
-        "items": [
-          {"markup": ["light"], "text": "Score"},
-          {"markup": [], "text": " "},
-          {"markup": ["strong"], "text": <3n>}
-        ],
-        "type": "block"
       }]
     ],
     "metadata": {
       "type": <0s>,
       "location": <1s>,
-      "strand": <2s>,
-      "score": <3n>
+      "strand": <2s>
     }
   })
   """,
   element.analysis,
   location,
-  element.strand,
-  element.score
+  element.strand
   );
 
   paint_click(zmenu_metadata, zmenu_content, false) //returns this
