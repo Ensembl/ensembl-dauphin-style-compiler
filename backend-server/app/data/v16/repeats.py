@@ -13,14 +13,16 @@ def get_repeat_details(
     strands = []
     analyses = []
     names = []
+    classes = []
     types = []
     for (start, end, rest) in data:
-        (strand, analysis, name, type) = rest.split("\t")
+        (strand, analysis, name, repclass, type) = rest.split("\t")
         chrs.append(chrom.name)
         starts.append(start)
         ends.append(end)
         strands.append(strand)
         analyses.append(analysis)
+        classes.append(repclass)
         names.append(name)
         types.append(type)
 
@@ -31,6 +33,7 @@ def get_repeat_details(
         "strand": data_algorithm("SZ", strands),
         "analysis": data_algorithm("SZ", analyses),
         "name": data_algorithm("SZ", names),
+        "class": data_algorithm("SZ", classes),
         "type": data_algorithm("SZ", types),
     }
 

@@ -13,16 +13,14 @@ def get_features(
     ends = []
     strands = []
     analyses = []
-    scores = []
 
     for (start, end, rest) in data:
-        (strand, analysis, score) = rest.split("\t")
+        (strand, analysis) = rest.split("\t")
         chrs.append(chrom.name)
         starts.append(start)
         ends.append(end)
         strands.append(strand)
         analyses.append(analysis)
-        scores.append(int(float(score)))
 
     return {
         "chr": data_algorithm("SZ", chrs),
@@ -30,7 +28,6 @@ def get_features(
         "end": data_algorithm("NDZRL", ends),
         "strand": data_algorithm("SZ", strands),
         "analysis": data_algorithm("SZ", analyses),
-        "score": data_algorithm("NZRL", scores),
     }
 
 
