@@ -63,6 +63,7 @@ let info_leaf = track_leaf(track_id,"main/letter/content");
 draw_track_category(["G"], [track_id], [info_leaf]);
 
 /* draw scales on the left hand side near label "G"*/
-let pen = pen("'Lato', sans-serif",10,[colour!("#666"),...],[colour!("transparent"),...]);
-text(coord([0],[-5],[40]),pen,["25"],[info_leaf]); // position at the top of the track
-text(coord([0],[24],[40]),pen,[" 0 "],[info_leaf]); // position at the bottom of the track
+let pen = pen("'Lato', sans-serif",8,[colour!("#666"),...],[colour!("transparent"),...]);
+text(coord([0],[-5],[40]),pen,["10"],[info_leaf]); // position at the top of the track
+text(coord([0],[12],[40]),pen,[" 0 "],[info_leaf]); // position at the bottom of the track
+text(coord([0],[30],[40]),pen,["-10 "],[info_leaf]); // position at the bottom of the track
