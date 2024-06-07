@@ -29,7 +29,6 @@ def get_wiggle_data( data_accessor: DataAccessor, panel: Panel, data_file: str, 
             x = round((x-data_range[0])*scale)
             x = max(0, min(25, x))
         data[i] = x
-
     return {
         "values": data_algorithm("NDZRL", bytearray(data)),
         "range": data_algorithm("NRL", [start, end])

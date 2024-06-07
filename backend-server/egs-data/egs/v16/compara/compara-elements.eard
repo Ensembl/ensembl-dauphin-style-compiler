@@ -33,8 +33,8 @@ let nw = coord(el.start, [8,...], [0,...]);
 let se = coord(el.end, [16,...], [0,...]);
 rectangle(nw, se, paint, [leaf,...]);
 /* draw zmenu click target boxes */
-let zmenu_paint = constr_element_zmenu(*el);
-rectangle(nw, se, zmenu_paint, [leaf,...]);
+let constr_element_zmenu_paint = constr_element_zmenu(*el);
+rectangle(nw, se, constr_element_zmenu_paint, [leaf,...]);
 
 /* draw track furniture */
 let track_name = setting_string("track_name", []);
