@@ -21,33 +21,34 @@ halt(only_warm());
 /* process data and draw wiggle */
 let conservation_scores = data_number(data,"values");
 let values = conservation_scores / 25; //range 0..25=>0..1
-let x_range = data_number(data,"range"); //[startpos,endpos]
-
+let x_range = data_number(data,"range"); //[start_pos,end_pos]
+let start_pos = index(x_range, 0);
+let end_pos = index(x_range, 1);
 
 let outlier_colour = colour!("#fc0303"); // red
 let normal_colour = colour!("#47d147"); // green
 
 let normal_graph = graph_type(32, normal_colour); //graph(height,colour)
-// let graph = graph_type(32, colour!("#47d147")); //graph(height,colour)
 let leaf = track_leaf(track_id, "main/main/content");
-wiggle(index(x_range,0), index(x_range,1), normal_graph, values, [true,...], leaf);
+wiggle(start_pos, end_pos, normal_graph, values, [true,...], leaf);
 
 let is_min = values == 0;
 let is_max = values == 1;
 
 let outlier_graph = graph_type(32, outlier_colour); //graph(height,colour)
-wiggle(index(x_range,0), index(x_range,1), outlier_graph, values, is_min || is_max, leaf);
+wiggle(start_pos, end_pos, outlier_graph, values, is_min || is_max, leaf);
 
 /* Zmenu - Passes scores and positions as arguments */
 
 // e.g. x_range = [32354272, 32354288]
 // We are creating an array of positions from 32354272..32354288 using the enumerate function
 // e.g. values = [8, 8, 15, 13, 9, 10, 11, 11, 11, 13, 11, 14, 12, 8, 12, 14]
-let positions = enumerate([len(values)]) + index(x_range,0);
+let positions = enumerate([len(values)]) + start_pos;
 
 let conservation_score_zmenu_paint = conservation_score_zmenu(conservation_scores, positions);
+// Draw zmenu hotspot boxes (at each position in positions list) with a height of 32px (track height) and width of 1 bp.
 let nw = coord(positions, [0,...], [0,...]);
-let se = coord(positions + 1, [32,...], [0,...]); // Thinking that y=32 as height of the track and x is 1 base pair
+let se = coord(positions + 1, [32,...], [0,...]);
 rectangle(nw, se, conservation_score_zmenu_paint, [leaf,...]);
 
 /* draw horizontal baseline */
