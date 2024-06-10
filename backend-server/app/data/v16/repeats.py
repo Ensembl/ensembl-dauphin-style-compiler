@@ -7,20 +7,22 @@ def get_repeat_details(
     ) -> dict[str,bytearray]:
     chrom = panel.get_chrom(data_accessor)
     data = get_bigbed(data_accessor, chrom.item_path(filename), panel.start, panel.end)
-    chrs = []
+    chrs = [chrom.name] * len(data)
     starts = []
     ends = []
     strands = []
     analyses = []
     names = []
+    classes = []
     types = []
+
     for (start, end, rest) in data:
-        (strand, analysis, name, type) = rest.split("\t")
-        chrs.append(chrom.name)
+        (strand, analysis, name, repclass, type) = rest.split("\t")
         starts.append(start)
         ends.append(end)
         strands.append(strand)
         analyses.append(analysis)
+        classes.append(repclass)
         names.append(name)
         types.append(type)
 
@@ -31,6 +33,7 @@ def get_repeat_details(
         "strand": data_algorithm("SZ", strands),
         "analysis": data_algorithm("SZ", analyses),
         "name": data_algorithm("SZ", names),
+        "class": data_algorithm("SZ", classes),
         "type": data_algorithm("SZ", types),
     }
 

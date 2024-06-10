@@ -8,21 +8,18 @@ def get_features(
 ) -> dict[str, bytearray]:
     chrom = panel.get_chrom(data_accessor)
     data = get_bigbed(data_accessor, chrom.item_path(filename), panel.start, panel.end)
-    chrs = []
+    chrs = [chrom.name] * len(data)
     starts = []
     ends = []
     strands = []
     analyses = []
-    scores = []
 
     for (start, end, rest) in data:
-        (strand, analysis, score) = rest.split("\t")
-        chrs.append(chrom.name)
+        (strand, analysis) = rest.split("\t")
         starts.append(start)
         ends.append(end)
         strands.append(strand)
         analyses.append(analysis)
-        scores.append(int(float(score)))
 
     return {
         "chr": data_algorithm("SZ", chrs),
@@ -30,7 +27,6 @@ def get_features(
         "end": data_algorithm("NDZRL", ends),
         "strand": data_algorithm("SZ", strands),
         "analysis": data_algorithm("SZ", analyses),
-        "score": data_algorithm("NZRL", scores),
     }
 
 

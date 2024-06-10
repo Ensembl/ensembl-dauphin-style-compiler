@@ -80,7 +80,6 @@ export procedure draw_feature_track(feature_type){
   let f.end = data_number(data,"end");
   let f.strand = data_string(data,"strand");
   let f.analysis = data_string(data,"analysis");
-  let f.score = data_number(data,"score");
 
   /* assign colours */
   let tss_colour = colour!("#00ff00"); // green
