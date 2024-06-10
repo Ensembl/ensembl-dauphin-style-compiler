@@ -25,7 +25,7 @@ let x_range = data_number(data,"range"); //[start_pos,end_pos]
 let start_pos = index(x_range, 0);
 let end_pos = index(x_range, 1);
 
-let outlier_colour = colour!("#fc0303"); // red
+let outlier_colour = colour!("#B7C0C8"); // grey
 let normal_colour = colour!("#47d147"); // green
 
 let normal_graph = graph_type(32, normal_colour); //graph(height,colour)
