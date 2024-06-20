@@ -19,13 +19,15 @@ let data = get_data(req);
 halt(only_warm());
 
 /* process data and draw wiggle */
-let conservation_scores = data_number(data,"values");
-let values = conservation_scores / 25; //range 0..25=>0..1
+let normalized_values = data_number(data,"normalized_values");
+let conservation_scores = data_string(data,"conservation_scores");
+let overflow_flag = data_number(data,"overflow_flag");
+let values = normalized_values / 25; //range 0..25=>0..1
 let x_range = data_number(data,"range"); //[start_pos,end_pos]
 let start_pos = index(x_range, 0);
 let end_pos = index(x_range, 1);
 
-let outlier_colour = colour!("#B7C0C8"); // grey
+let outlier_colour = colour!("#FF00FF"); // grey
 let normal_colour = colour!("#47d147"); // green
 
 let normal_graph = graph_type(32, normal_colour); //graph(height,colour)
@@ -37,7 +39,7 @@ let is_max = values == 1;
 
 let outlier_graph = graph_type(32, outlier_colour); //graph(height,colour)
 // arguments: start_pos, end_pos, graph_type, y_values, include_values_bool, target_leaf)
-wiggle(start_pos, end_pos, outlier_graph, values, is_min || is_max, leaf);
+wiggle(start_pos, end_pos, outlier_graph, values, overflow_flag == 1, leaf);
 
 /* Zmenu - Passes scores and positions as arguments */
 

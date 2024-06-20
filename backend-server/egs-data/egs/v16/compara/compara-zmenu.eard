@@ -105,14 +105,14 @@ export function conservation_score_zmenu(conservation_scores, positions) {
           "items": [
             {"markup": ["light"], "text": "Conservation score"},
             {"markup": [], "text": " "},
-            {"markup": ["strong"], "text": <1n>}
+            {"markup": ["strong"], "text": <1s>}
           ],
           "type": "block"
         }]
       ],
       "metadata": {
         "position": <0n>,
-        "score": <1n>,
+        "score": <1s>,
       }
     })
     """,
