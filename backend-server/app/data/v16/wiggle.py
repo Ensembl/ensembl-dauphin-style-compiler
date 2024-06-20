@@ -29,16 +29,17 @@ def get_wiggle_data( data_accessor: DataAccessor, panel: Panel, data_file: str, 
     for i, x in enumerate(data):
         if x is None or math.isnan(x):
             x = 0
-            overflow_flag.append(0)
-            scores.append("{:.2f}".format(x))
-        else:
-            scores.append("{:.2f}".format(x))
-            x = round((x-data_range[0])*scale)
-            unbound_x = x
-            x_x.append(x)
-            x = max(0, min(25, x)) # 0-25
-            overflow_flag.append(1 if x != unbound_x else 0) # unbounds
+
+        # store scores before normalization
+        scores.append("{:.2f}".format(x))
+
+        # normalize x
+        x = round((x-data_range[0])*scale)
+        unbound_x = x
+        x = max(0, min(25, x)) # 0-25
+        overflow_flag.append(1 if x != unbound_x else 0) # unbounds
         normalized_data.append(x)
+
     return {
         "normalized_values": data_algorithm("NDZRL", bytearray(normalized_data)),
         "conservation_scores": data_algorithm("SZ", scores),
