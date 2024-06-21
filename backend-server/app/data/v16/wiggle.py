@@ -25,6 +25,7 @@ def get_wiggle_data( data_accessor: DataAccessor, panel: Panel, data_file: str, 
     normalized_data = []
     scores = []
     x_x = []
+
     scale = 25/(data_range[1]-data_range[0])
     for i, x in enumerate(data):
         if x is None or math.isnan(x):
@@ -44,7 +45,7 @@ def get_wiggle_data( data_accessor: DataAccessor, panel: Panel, data_file: str, 
         "normalized_values": data_algorithm("NDZRL", bytearray(normalized_data)),
         "conservation_scores": data_algorithm("SZ", scores),
         "overflow_flag": data_algorithm("NDZRL", overflow_flag),
-        "range": data_algorithm("NRL", [start, end])
+        "range": data_algorithm("NRL", [start+1, end+1])
     }
 
 
