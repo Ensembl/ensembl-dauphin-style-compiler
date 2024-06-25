@@ -21,7 +21,7 @@ halt(only_warm());
 /* process data and draw wiggle */
 let normalized_values = data_number(data,"normalized_values");
 let conservation_scores = data_string(data,"conservation_scores");
-let overflow_flag = data_number(data,"overflow_flag");
+let overflow_flags = data_number(data,"overflow_flags");
 let values = normalized_values / 25; //range 0..25=>0..1
 let x_range = data_number(data,"range"); //[start_pos,end_pos]
 let start_pos = index(x_range, 0);
@@ -39,7 +39,10 @@ let is_max = values == 1;
 
 let outlier_graph = graph_type(32, outlier_colour); //graph(height,colour)
 // arguments: start_pos, end_pos, graph_type, y_values, include_values_bool, target_leaf)
-wiggle(start_pos, end_pos, outlier_graph, values, overflow_flag == 1, leaf);
+wiggle(start_pos, end_pos, outlier_graph, values, overflow_flags == 1, leaf);
+
+let undefined_graph = graph_type(32, "#ffffff"); //graph(height,colour)
+wiggle(start_pos, end_pos, undefined_graph, values, conservation_scores == "0", leaf);
 
 /* Zmenu - Passes scores and positions as arguments */
 

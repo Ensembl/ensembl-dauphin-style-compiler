@@ -11,7 +11,8 @@ from data.v16.variant import VariantLabelsDataHandler, VariantSummaryDataHandler
 from data.v16.regulation import RegulationDataHandler
 from data.v16.contig import ShimmerContigDataHandler16
 from data.v16.contig import ContigDataHandler16
-from data.v16.wiggle import GCWiggleDataHandler, ComparaWiggleDataHandler
+from data.v16.gc import GCWiggleDataHandler
+from data.v16.conservation_scores import ConservationScoresWiggleDataHandler
 from data.v16.sequence import ZoomedSeqDataHandler16
 from data.v16.gene.genedata import TranscriptDataHandler16
 from data.v16.gene.genedata import GeneDataHandler16
@@ -32,7 +33,7 @@ handlers = [
     ("variant-summary", VariantSummaryDataHandler(), 16),
     ("variant-details", VariantLabelsDataHandler(), 16),
     ("regulation", RegulationDataHandler(), 16),
-    ("compara-scores", ComparaWiggleDataHandler(), 16),
+    ("compara-scores", ConservationScoresWiggleDataHandler(), 16),
     ("compara-elements", ComparaDataHandler(), 16),
     ("repeats", RepeatsDataHandler(), 16),
     ("simple-features", SimpleFeaturesDataHandler(), 16),
