@@ -78,3 +78,48 @@ export function constr_element_zmenu(*element) {
   let zmenu_paint = paint_click(zmenu_metadata, zmenu_content, false);
   zmenu_paint //return value
 }
+
+export function conservation_score_zmenu(conservation_scores, positions) {
+
+  struct!(zmenu_metadata,
+    """{
+      "type": "zmenu",
+      "zmenu-type": "conservation-scores"
+    }""");
+  
+  struct!(zmenu_content,
+    """
+    (<0,1>!{
+      "data": [
+        /* First row */
+        [{
+          "items": [
+            { "markup": ["light"], "text": "Position" },
+            { "markup": [], "text": " " },
+            { "markup": ["strong"], "text": <0n> }
+          ],
+          "type": "block"
+        }],
+        /* Second row */
+        [{
+          "items": [
+            {"markup": ["light"], "text": "Conservation score"},
+            {"markup": [], "text": " "},
+            {"markup": ["strong"], "text": <1s>}
+          ],
+          "type": "block"
+        }]
+      ],
+      "metadata": {
+        "position": <0n>,
+        "score": <1s>,
+      }
+    })
+    """,
+    positions,
+    conservation_scores
+  );
+
+  let zmenu_paint = paint_click(zmenu_metadata, zmenu_content, false);
+  zmenu_paint //return value
+}

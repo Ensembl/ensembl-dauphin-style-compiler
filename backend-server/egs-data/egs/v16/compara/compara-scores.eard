@@ -3,6 +3,7 @@ refer "libperegrine";
 refer "libeoe";
 include "../common/track-common.eard";
 include "../common/track-style.eard";
+include "compara-zmenu.eard";
 
 /* setup styles */
 let track_id = setting_string("track_id", []);
@@ -18,11 +19,38 @@ let data = get_data(req);
 halt(only_warm());
 
 /* process data and draw wiggle */
-let values = data_number(data,"values") / 25; //range 0..25=>0..1
-let x_range = data_number(data,"range"); //[startpos,endpos]
-let graph = graph_type(32, colour!("#47d147")); //graph(height,colour)
+let normalized_values = data_number(data,"normalized_values");
+let conservation_scores = data_string(data,"conservation_scores");
+let overflow_flags = data_number(data,"overflow_flags");
+let values = normalized_values / 25; //range 0..25=>0..1
+let x_range = data_number(data,"range"); //[start_pos,end_pos]
+let start_pos = index(x_range, 0);
+let end_pos = index(x_range, 1);
+
+let outlier_colour = colour!("#B7C0C8"); // grey
+let normal_colour = colour!("#47d147"); // green
+
+let normal_graph = graph_type(32, normal_colour); //graph(height,colour)
 let leaf = track_leaf(track_id, "main/main/content");
-wiggle(index(x_range,0), index(x_range,1), graph, values, [true,...], leaf);
+wiggle(start_pos, end_pos, normal_graph, values, [true,...], leaf);
+
+let is_min = values == 0;
+let is_max = values == 1;
+
+let outlier_graph = graph_type(32, outlier_colour); //graph(height,colour)
+// arguments: start_pos, end_pos, graph_type, y_values, include_values_bool, target_leaf)
+wiggle(start_pos, end_pos, outlier_graph, values, overflow_flags == 1, leaf);
+
+/* Zmenu - Passes scores and positions as arguments */
+// e.g. x_range = [32354272, 32354288]
+// We are creating a list of positions for the score values (using start_pos from x_range and length of values; the content of values is not relevant here).
+let positions = enumerate([len(values)]) + start_pos;
+
+let conservation_score_zmenu_paint = conservation_score_zmenu(conservation_scores, positions + 1); // adjusting zmenu position to 1 based
+// Draw zmenu hotspot boxes (at each position in positions list) with a height of 32px (track height) and width of 1 bp.
+let nw = coord(positions, [0,...], [0,...]);
+let se = coord(positions + 1, [32,...], [0,...]);
+rectangle(nw, se, conservation_score_zmenu_paint, [leaf,...]);
 
 /* draw horizontal baseline */
 let line_paint = paint_hollow(colour!("#d0d0d0"),1);
@@ -32,4 +60,12 @@ rectangle(coord([0],[16],[0]), coord([1],[16],[0]), line_paint, [bg_leaf,...]);
 /* draw track furniture */
 let track_name = setting_string("track_name", []);
 draw_track_name(track_name, "name", track_leaf(track_id,"title/content"));
-draw_track_category(["G"], [track_id], [track_leaf(track_id,"main/letter/content")]);
+
+let info_leaf = track_leaf(track_id,"main/letter/content");
+draw_track_category(["G"], [track_id], [info_leaf]);
+
+/* draw scales on the left hand side near label "G"*/
+let pen = pen("400 IBM Plex Mono, sans-serif",8,[colour!("#666"),...],[colour!("transparent"),...]);
+text(coord([0],[-5],[35]),pen,["+10"],[info_leaf]); // top scale
+text(coord([0],[12],[35]),pen,[" 0"],[info_leaf]); // middle scale
+text(coord([0],[30],[35]),pen,["-10"],[info_leaf]); // bottom scale

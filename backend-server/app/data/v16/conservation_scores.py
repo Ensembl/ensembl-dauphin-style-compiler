@@ -4,7 +4,7 @@ from command.coremodel import DataHandler, Panel, DataAccessor
 from data.v16.dataalgorithm import data_algorithm
 from model.bigbed import get_bigwig_stats, get_bigwig
 
-def get_wiggle_data( data_accessor: DataAccessor, panel: Panel, data_file: str, data_range: tuple[int,int]=(0,100)) -> dict:
+def get_wiggle_data_for_conservation_scores( data_accessor: DataAccessor, panel: Panel, data_file: str, data_range: tuple[int,int]=(0,100)) -> dict:
     """
     Use the DataAccessor provided to access the wiggle data for a given location.
 
@@ -21,40 +21,36 @@ def get_wiggle_data( data_accessor: DataAccessor, panel: Panel, data_file: str, 
         (data, start, end) = get_bigwig_stats(data_accessor, item, panel.start, panel.end)
     
     # clean & normalize input data range for eard (0..25)
+    overflow_flags = []
+    normalized_data = []
+    scores = []
+
     scale = 25/(data_range[1]-data_range[0])
     for i, x in enumerate(data):
         if x is None or math.isnan(x):
             x = 0
-        else:
-            x = round((x-data_range[0])*scale)
-            x = max(0, min(25, x))
-        data[i] = x
+
+        # store scores before normalization
+        scores.append("{:.2f}".format(x))
+
+        # normalize x
+        x = round((x-data_range[0])*scale)
+        unbound_x = x
+        x = max(0, min(25, x)) # 0-25
+        overflow_flags.append(1 if x != unbound_x else 0) # outliers flag to grey out
+        normalized_data.append(x)
 
     return {
-        "values": data_algorithm("NDZRL", bytearray(data)),
+        "normalized_values": data_algorithm("NDZRL", bytearray(normalized_data)),
+        "conservation_scores": data_algorithm("SZ", scores),
+        "overflow_flags": data_algorithm("NDZRL", overflow_flags),
         "range": data_algorithm("NRL", [start, end])
     }
 
-
-class GCWiggleDataHandler(DataHandler):
-    def process_data(self, data_accessor: DataAccessor, panel: Panel, scope, accept: str) -> dict:
-        """
-        Handle a request for GC% wiggle data.
-
-        Args:
-            data_accessor (DataAccessor): The means of accessing data
-            panel (Panel): The panel (ie genomic location, scale) we want
-            scope: extra scope args (e.g. datafile name)
-
-        Returns: A data dict (payload for Response object)
-        """
-
-        return get_wiggle_data(data_accessor, panel, "gc", (0,100))
-    
-class ComparaWiggleDataHandler(DataHandler):
+class ConservationScoresWiggleDataHandler(DataHandler):
     """
         Handle a request for Compara wiggle data (conservation scores).
         Signature as per GCDataHandler.process_data() above.
     """
     def process_data(self, data_accessor: DataAccessor, panel: Panel, scope, accept: str) -> dict:
-        return get_wiggle_data(data_accessor, panel, self.get_datafile(scope), (-10,10))
+        return get_wiggle_data_for_conservation_scores(data_accessor, panel, self.get_datafile(scope), (-10,10))
