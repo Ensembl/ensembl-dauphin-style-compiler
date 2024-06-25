@@ -41,11 +41,7 @@ let outlier_graph = graph_type(32, outlier_colour); //graph(height,colour)
 // arguments: start_pos, end_pos, graph_type, y_values, include_values_bool, target_leaf)
 wiggle(start_pos, end_pos, outlier_graph, values, overflow_flags == 1, leaf);
 
-let undefined_graph = graph_type(32, "#ffffff"); //graph(height,colour)
-wiggle(start_pos, end_pos, undefined_graph, values, conservation_scores == "0", leaf);
-
 /* Zmenu - Passes scores and positions as arguments */
-
 // e.g. x_range = [32354272, 32354288]
 // We are creating a list of positions for the score values (using start_pos from x_range and length of values; the content of values is not relevant here).
 let positions = enumerate([len(values)]) + start_pos;
