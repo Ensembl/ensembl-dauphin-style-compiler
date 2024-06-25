@@ -21,7 +21,7 @@ def get_wiggle_data_for_conservation_scores( data_accessor: DataAccessor, panel:
         (data, start, end) = get_bigwig_stats(data_accessor, item, panel.start, panel.end)
     
     # clean & normalize input data range for eard (0..25)
-    overflow_flag = []
+    overflow_flags = []
     normalized_data = []
     scores = []
 
@@ -37,13 +37,13 @@ def get_wiggle_data_for_conservation_scores( data_accessor: DataAccessor, panel:
         x = round((x-data_range[0])*scale)
         unbound_x = x
         x = max(0, min(25, x)) # 0-25
-        overflow_flag.append(1 if x != unbound_x else 0) # outliers flag to grey out
+        overflow_flags.append(1 if x != unbound_x else 0) # outliers flag to grey out
         normalized_data.append(x)
 
     return {
         "normalized_values": data_algorithm("NDZRL", bytearray(normalized_data)),
         "conservation_scores": data_algorithm("SZ", scores),
-        "overflow_flag": data_algorithm("NDZRL", overflow_flag),
+        "overflow_flags": data_algorithm("NDZRL", overflow_flags),
         "range": data_algorithm("NRL", [start+1, end+1])
     }
 
