@@ -46,7 +46,7 @@ wiggle(start_pos, end_pos, outlier_graph, values, overflow_flags == 1, leaf);
 // We are creating a list of positions for the score values (using start_pos from x_range and length of values; the content of values is not relevant here).
 let positions = enumerate([len(values)]) + start_pos;
 
-let conservation_score_zmenu_paint = conservation_score_zmenu(conservation_scores, positions);
+let conservation_score_zmenu_paint = conservation_score_zmenu(conservation_scores, positions + 1); // adjusting zmenu position to 1 based
 // Draw zmenu hotspot boxes (at each position in positions list) with a height of 32px (track height) and width of 1 bp.
 let nw = coord(positions, [0,...], [0,...]);
 let se = coord(positions + 1, [32,...], [0,...]);

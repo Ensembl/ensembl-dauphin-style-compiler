@@ -44,7 +44,7 @@ def get_wiggle_data_for_conservation_scores( data_accessor: DataAccessor, panel:
         "normalized_values": data_algorithm("NDZRL", bytearray(normalized_data)),
         "conservation_scores": data_algorithm("SZ", scores),
         "overflow_flags": data_algorithm("NDZRL", overflow_flags),
-        "range": data_algorithm("NRL", [start+1, end+1])
+        "range": data_algorithm("NRL", [start, end])
     }
 
 class ConservationScoresWiggleDataHandler(DataHandler):
