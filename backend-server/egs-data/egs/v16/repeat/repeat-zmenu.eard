@@ -1,10 +1,10 @@
-export function constr_element_zmenu(*element) {
-  // Format the location string for each constrained element
-  let start_pos = element.start + 1; //to 1-based coordinate
+export function repeat_zmenu(*repeat) {
+  // Format the location string for each repeat element
+  let start_pos = repeat.start + 1; //to 1-based coordinate
   let tmpl = template_start("{0}:{1}-{2}");
-  template_set(tmpl, 0, element.chr);
+  template_set(tmpl, 0, repeat.chr);
   template_set(tmpl, 1, comma_format(start_pos));
-  template_set(tmpl, 2, comma_format(element.end));
+  template_set(tmpl, 2, comma_format(repeat.end));
   let location = template_end(tmpl);
 
   struct!(zmenu_metadata,
@@ -59,10 +59,10 @@ export function constr_element_zmenu(*element) {
     }
   })
   """,
-  element.name,
+  repeat.name,
   location,
-  element.analysis,
-  element.type
+  repeat.analysis,
+  repeat.type
   );
 
   let zmenu_paint = paint_click(zmenu_metadata, zmenu_content, false);
