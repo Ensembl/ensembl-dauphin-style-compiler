@@ -24,7 +24,7 @@ class Expansions:
             raise Exception(f"Track {track_id} not found in Track API payload: {track_data}")
         return track_data
     
-    # Add a settings to a track object
+    # Add settings (switches) to a track object
     def _add_settings(self, track: Track, data: dict, settings: list[str]=[]) -> None:
         for setting in settings:
             track.add_setting(setting, data['trigger']+[setting])
@@ -64,8 +64,6 @@ class Expansions:
     # Functions for registering expansion tracks. Called on boot time from boot-tracks.toml config
     def register_track(self, track_id: str) -> Tracks:
         data = self._get_track_data(track_id)
-        if(data["label"] == "Repeat elements"):
-            return self._create_track_set(track_id, "repeat", scales={"summary": [17, 100, 4], "details": [1, 16, 4]})
         track = self._create_track(data)
         tracks = Tracks()
         tracks.add_track(track_id, track)

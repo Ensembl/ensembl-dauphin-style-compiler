@@ -1,5 +1,0 @@
-program "ensembl-webteam/core" "repbase" 1;
-include "repeat-details.eard";
-
-// Draw a track for one type of repeats
-draw_repeats_track("repbase");
