@@ -24,51 +24,60 @@ class Expansions:
             raise Exception(f"Track {track_id} not found in Track API payload: {track_data}")
         return track_data
     
-    # Add settings (switches) to a track object
-    def _add_settings(self, track: Track, data: dict, settings: list[str]=[]) -> None:
-        for setting in settings:
-            track.add_setting(setting, data['trigger']+[setting])
+    # Add setting switches to a track object
+    def _add_settings(self, track: Track, data: dict, switches: list[str]=[]) -> None:
+        for switch in switches:
+            track.add_setting(switch, data['trigger']+[switch])
 
     # Create a track object from track metadata
-    def _create_track(self, data: dict, program_name: str='', scales: list[int]=[0,100,3], settings: list[str]=[]) -> Track:
-        # declare a program to be run (with optional trigger zoom levels)
-        try:
-            filekey = list(data['datafiles'].keys()).pop()
-        except IndexError:
-            raise Exception(f"No datafiles found for track {data['track_id']}")
-        track = Track(data['track_id'], program_group="ensembl-webteam/core", program_name=program_name or filekey, program_version=1, scales=scales)
-        # add values from track metadata
+    def _create_track(self, data: dict, program: str) -> Track:
+        settings = data['settings'][program]
+        track = Track(data['track_id'], program_group="ensembl-webteam/core", program_name=program, program_version=1, scales=settings["scales"])
+        # add values to the track from the metadata
         track.add_trigger(data['trigger']) # to turn a track on/off
         track.add_value("track_id", data['track_id']) # will be required for defining the track "leaf" in the tree of tracks
         track.add_value("track_name", data['label']) # value to inject track name into the track program
         track.add_value("display_order", data['display_order']) # initial track order for the track program
-        track.add_value("datafile", data['datafiles'][filekey])
-        # add settings/switches
-        settings.append("name") # switch to toggle track name on/off
-        self._add_settings(track, data, settings)
-        track.add_setting("tab-selected", ["settings", "tab-selected"])
+        track.add_value("datafile", data['datafiles'][program])
+        # add setting switches 
+        switches = settings.get("switches", [])
+        switches.append("name")  # switch to toggle track name on/off
+        self._add_settings(track, data, switches)
+        track.add_setting("tab-selected", ["settings", "tab-selected"]) # global setting to track the selected tab
         return track
     
-    # Create a pair of tracks for zoomed-in/zoomed-out views
-    def _create_track_set(self, track_id: str, name: str, scales:dict|None=None, settings:dict={}) -> Tracks:
-        track_data = self._get_track_data(track_id)
-        scales = scales or {"summary": [6, 100, 4], "details": [1, 5, 1]}
+    # Create a track set (consisting of a single track, or a pair for zoomed-in/zoomed-out views)
+    def _create_track_set(self, data:dict) -> Tracks:
+        track_id = data["track_id"]
+        if not len(data["datafiles"]):
+            raise Exception(f"No datafiles found for track {track_id}")
+        if "settings" not in data:
+            data["settings"] = {}
         tracks = Tracks()
-        for zoom_level in ['summary', 'details']:
-            track = self._create_track(data=track_data, program_name=name+'-'+zoom_level, scales=scales.get(zoom_level,[]), settings=settings.get(zoom_level,[]))
-            if(zoom_level in track_data["datafiles"]):
-                track.add_value("datafile", track_data["datafiles"][zoom_level])
-            tracks.add_track(f"{track_id}-{zoom_level}", track)
+        # each datafile is tied to an Eard program
+        for program in data["datafiles"].keys():
+            if program not in data["settings"]:
+                data["settings"][program] = {}
+            # set default track scales (min, max, step) if not defined in metadata
+            if "scales" not in data["settings"][program]:
+                data["settings"][program]["scales"] = [6, 100, 4] if program.endswith("summary") else [1, 5, 1] if program.endswith("details") else [0, 100, 3]
+            track = self._create_track(data, program)
+            tracks.add_track(f"{track_id}-{program}", track)
         return tracks
     
-    # Functions for registering expansion tracks. Called on boot time from boot-tracks.toml config
+    # Functions for registering expansion tracks (defined in boot-tracks.toml config)
     def register_track(self, track_id: str) -> Tracks:
         data = self._get_track_data(track_id)
-        track = self._create_track(data)
-        tracks = Tracks()
-        tracks.add_track(track_id, track)
-        return tracks
-   
+        return self._create_track_set(data)
+
+    # Special case for variation tracks (until migrated to generic expansion track)
     def register_variation_track(self, track_id: str) -> Tracks:
-        details_track_settings = ["label-snv-id", "label-snv-alleles", "label-other-id", "label-other-alleles", "show-extents"]
-        return self._create_track_set(track_id, "variant", settings={"details": details_track_settings})
+        data = self._get_track_data(track_id)
+        # stub for upcoming Track API changes
+        data["datafiles"]["variant-details"] = data["datafiles"].pop("details")
+        data["datafiles"]["variant-summary"] = data["datafiles"].pop("summary")
+        data["settings"] = {}
+        data["settings"]["variant-details"] = {}
+        data["settings"]["variant-details"]["switches"] = ["label-snv-id",
+            "label-snv-alleles", "label-other-id", "label-other-alleles", "show-extents"]
+        return self._create_track_set(data)
