@@ -48,11 +48,6 @@ class Expansions:
     
     # Create a track set (consisting of a single track, or a pair for zoomed-in/zoomed-out views)
     def _create_track_set(self, data:dict) -> Tracks:
-        track_id = data["track_id"]
-        if not len(data["datafiles"]):
-            raise Exception(f"No datafiles found for track {track_id}")
-        if "settings" not in data:
-            data["settings"] = {}
         tracks = Tracks()
         # each datafile is tied to an Eard program
         for program in data["datafiles"].keys():
@@ -60,14 +55,22 @@ class Expansions:
                 data["settings"][program] = {}
             # set default track scales (min, max, step) if not defined in metadata
             if "scales" not in data["settings"][program]:
-                data["settings"][program]["scales"] = [6, 100, 4] if program.endswith("summary") else [1, 5, 1] if program.endswith("details") else [0, 100, 3]
+                data["settings"][program]["scales"] = [5, 100, 4] if program.endswith("summary") else [1, 4, 1] if program.endswith("details") else [0, 100, 3]
             track = self._create_track(data, program)
-            tracks.add_track(f"{track_id}-{program}", track)
+            tracks.add_track(f"{data['track_id']}-{program}", track)
         return tracks
     
     # Functions for registering expansion tracks (defined in boot-tracks.toml config)
     def register_track(self, track_id: str) -> Tracks:
         data = self._get_track_data(track_id)
+        if not len(data["datafiles"]):
+            raise Exception(f"No datafiles found for track {track_id}")
+        if "settings" not in data:
+            data["settings"] = {}
+        if(list(data["datafiles"].keys())[0].startswith("repeat")): # plug in scales (until Track API is updated)
+            data["settings"]["repeat-details"] = data["settings"]["repeat-summary"] = {}
+            data["settings"]["repeat-details"]["scales"] = [1, 7, 1]
+            data["settings"]["repeat-summary"]["scales"] = [8, 100, 4]
         return self._create_track_set(data)
 
     # Special case for variation tracks (until migrated to generic expansion track)
