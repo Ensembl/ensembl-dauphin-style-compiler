@@ -6,19 +6,16 @@ include "../common/track-style.eard";
 include "repeat-zmenu.eard";
 
 
-/* setup styles */
+// Setup styles
 let track_id = setting_string("track_id", []);
 let track_display_order = setting_string("display_order", []);
 track_styles();
 new_track_style(track_id, track_display_order);
+set_track_style(track_id, "", ["min-height"], ["40"]);
 
-set_track_style(track_id, "main/main/", ["type"], ["stack"]);
-set_track_style(track_id, "main/main/first", ["min-height", "priority"], ["10", "0"]);
-set_track_style(track_id, "main/main/second", ["min-height", "priority"], ["10", "1"]);
-set_track_style(track_id, "main/main/third", ["min-height", "priority"], ["10", "2"]);
-
-/* get data (e.g. from bigbed) from the api*/
+// Get data
 let track_datafile = setting_string("datafile", []);
+let track_name = setting_string("track_name", []);
 let req = request("self()","repeats");
 scope(req, "datafile", track_datafile);
 let data = get_data(req);
@@ -31,41 +28,19 @@ let rep.analysis = data_string(data,"analysis");
 let rep.name = data_string(data,"name");
 let rep.type = data_string(data,"type");
 
-/* Get and transform data */
-let is_dust = rep.analysis == "dust";
-let is_trf = rep.analysis == "trf";
-let is_repbase = rep.analysis == "repeatmask_repbase_mammals";
-
-let dust_colour = colour!("#708090"); // slate grey
-let trf_colour = colour!("#928e85"); // grey
-let repbase_colours = colour!("#a9a9a9"); // dark grey
-
-let colours_seq = repeat(dust_colour, len(rep.analysis));
-let colours_seq = set(colours_seq, is_trf, [trf_colour, ...]);
-let colours_seq = set(colours_seq, is_repbase, [repbase_colours, ...]);
-
-
-/* set lanes */
-let dust_leaf = track_leaf(track_id, "main/main/first");
-let trf_leaf = track_leaf(track_id, "main/main/second");
-let repbase_leaf = track_leaf(track_id, "main/main/third");
-
-let lane_leafs = repeat(dust_leaf, len(rep.analysis));
-let lane_leafs = set(lane_leafs, is_trf, [trf_leaf,...]);
-let lane_leafs = set(lane_leafs, is_repbase, [repbase_leaf,...]);
-
-/* draw rectangles */
-let paint = paint_solid(colours_seq);
+// Draw some rectangles
 let leaf = track_leaf(track_id,"main/main/content");
-
+let colour = colour!("#708090"); // slate grey
+let paint = paint_solid(colour);
 let nw = coord(rep.start, [8,...], [0,...]);
 let se = coord(rep.end, [16,...], [0,...]);
 rectangle(nw, se, paint, [leaf,...]);
-/* draw zmenu click target boxes */
-let zmenu_paint = constr_element_zmenu(*rep);
+
+// Draw zmenu click targets
+let zmenu_paint = repeat_zmenu(*rep);
 rectangle(nw, se, zmenu_paint, [leaf,...]);
 
-/* draw track furniture */
+// Draw track furniture
 let track_name = setting_string("track_name", []);
 draw_track_name(track_name, "name", track_leaf(track_id,"title/content"));
 draw_track_category(["G"], [track_id], [track_leaf(track_id,"main/letter/content")]);
