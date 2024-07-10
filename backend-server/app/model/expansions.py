@@ -53,9 +53,14 @@ class Expansions:
         for program in data["datafiles"].keys():
             if program not in data["settings"]:
                 data["settings"][program] = {}
-            # set default track scales (min, max, step) if not defined in metadata
+            # use default track scales (min, max, step) if not defined in Track API
             if "scales" not in data["settings"][program]:
-                data["settings"][program]["scales"] = [5, 100, 4] if program.endswith("summary") else [1, 4, 1] if program.endswith("details") else [0, 100, 3]
+                if program.endswith("summary"):
+                    data["settings"][program]["scales"] = [5, 100, 4]
+                elif program.endswith("details"):
+                    data["settings"][program]["scales"] = [1, 4, 1]
+                else:
+                    data["settings"][program]["scales"] = [0, 100, 3]
             track = self._create_track(data, program)
             tracks.add_track(f"{data['track_id']}-{program}", track)
         return tracks
@@ -68,8 +73,9 @@ class Expansions:
         if "settings" not in data:
             data["settings"] = {}
         if(list(data["datafiles"].keys())[0].startswith("repeat")): # plug in scales (until Track API is updated)
-            data["settings"]["repeat-details"] = data["settings"]["repeat-summary"] = {}
-            data["settings"]["repeat-details"]["scales"] = [1, 7, 1]
+            data["settings"]["repeat-details"] = {}
+            data["settings"]["repeat-summary"] = {}
+            data["settings"]["repeat-details"]["scales"] = [1, 7, 2]
             data["settings"]["repeat-summary"]["scales"] = [8, 100, 4]
         return self._create_track_set(data)
 
