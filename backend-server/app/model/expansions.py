@@ -75,8 +75,8 @@ class Expansions:
         if(list(data["datafiles"].keys())[0].startswith("repeat")): # plug in scales (until Track API is updated)
             data["settings"]["repeat-details"] = {}
             data["settings"]["repeat-summary"] = {}
-            data["settings"]["repeat-details"]["scales"] = [1, 7, 2]
-            data["settings"]["repeat-summary"]["scales"] = [8, 100, 4]
+            data["settings"]["repeat-details"]["scales"] = [1, 8, 2]
+            data["settings"]["repeat-summary"]["scales"] = [9, 100, 4]
         return self._create_track_set(data)
 
     # Special case for variation tracks (until migrated to generic expansion track)
