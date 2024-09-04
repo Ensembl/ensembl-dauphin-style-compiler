@@ -70,23 +70,4 @@ class Expansions:
         data = self._get_track_data(track_id)
         if not len(data["datafiles"]):
             raise Exception(f"No datafiles found for track {track_id}")
-        if "settings" not in data:
-            data["settings"] = {}
-        if(list(data["datafiles"].keys())[0].startswith("repeat")): # plug in scales (until Track API is updated)
-            data["settings"]["repeat-details"] = {}
-            data["settings"]["repeat-summary"] = {}
-            data["settings"]["repeat-details"]["scales"] = [1, 8, 2]
-            data["settings"]["repeat-summary"]["scales"] = [9, 100, 4]
-        return self._create_track_set(data)
-
-    # Special case for variation tracks (until migrated to generic expansion track)
-    def register_variation_track(self, track_id: str) -> Tracks:
-        data = self._get_track_data(track_id)
-        # stub for upcoming Track API changes
-        data["datafiles"]["variant-details"] = data["datafiles"].pop("details")
-        data["datafiles"]["variant-summary"] = data["datafiles"].pop("summary")
-        data["settings"] = {}
-        data["settings"]["variant-details"] = {}
-        data["settings"]["variant-details"]["switches"] = ["label-snv-id",
-            "label-snv-alleles", "label-other-id", "label-other-alleles", "show-extents"]
         return self._create_track_set(data)
