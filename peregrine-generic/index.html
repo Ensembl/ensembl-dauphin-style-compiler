@@ -115,9 +115,8 @@
           let value = !cur;
           tracks_on[track_name] = value;
           let track_path = ["track"];
-          // hack: uuid track id => assume variation track
-          // todo: add this info to GB track list payload
-          if(track_name.length == 36) track_path.push("expand-variation");
+          // hack: uuid track id => assume expansion track
+          if(track_name.length == 36) track_path.push("expand");
           track_path.push(track_name);
           genome_browser.switch(track_path, value);
         }
@@ -159,18 +158,16 @@
         }
 
         function init_variant_track(track_id) { //enable expansion (variant) tracks
-          genome_browser.switch(["track", "expand-variation"], true);
-          genome_browser.switch(["track", "expand-variation", track_id], true);
-          genome_browser.switch(["track", "expand-variation", track_id, "name"], true);
-          genome_browser.switch(["track", "expand-variation", track_id, "label-snv-id"], true);
-          genome_browser.switch(["track", "expand-variation", track_id, "label-snv-alleles"], true);
-          genome_browser.switch(["track", "expand-variation", track_id, "label-other-id"], true);
-          genome_browser.switch(["track", "expand-variation", track_id, "label-other-alleles"], true);
-          genome_browser.switch(["track", "expand-variation", track_id, "show-extents"], true);
+          genome_browser.switch(["track", "expand", track_id], true);
+          genome_browser.switch(["track", "expand", track_id, "name"], true);
+          genome_browser.switch(["track", "expand", track_id, "label-snv-id"], true);
+          genome_browser.switch(["track", "expand", track_id, "label-snv-alleles"], true);
+          genome_browser.switch(["track", "expand", track_id, "label-other-id"], true);
+          genome_browser.switch(["track", "expand", track_id, "label-other-alleles"], true);
+          genome_browser.switch(["track", "expand", track_id, "show-extents"], true);
         }
 
         function init_expansion_track(track_id) {
-          genome_browser.switch(["track", "expand"], true);
           genome_browser.switch(["track", "expand", track_id], true);
           genome_browser.switch(["track", "expand", track_id, "name"], true);
           genome_browser.switch(["track", "expand", track_id, "label"], true);

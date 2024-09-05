@@ -241,19 +241,7 @@ triggers = [["track","contig"]]
 [track.sequence.settings]
 name = ["track","contig","name"]
 
-
-#
-# Expansions
-#
-
-[expansion.variation]
-channel = ["ensembl","main"]
-name = "variation"
-triggers = [
-    ["track","expand-variation"]
-]
-run = "register_variation_track"
-
+# Expansion tracks (variation, repeats etc.)
 [expansion.general]
 channel = ["ensembl","main"]
 name = "general"
