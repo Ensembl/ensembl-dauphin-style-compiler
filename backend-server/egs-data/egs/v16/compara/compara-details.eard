@@ -1,4 +1,4 @@
-program "ensembl-webteam/core" "compara-elements" 1;
+program "ensembl-webteam/core" "compara-details" 1;
 refer "libperegrine";
 refer "libeoe";
 include "../common/track-common.eard";
