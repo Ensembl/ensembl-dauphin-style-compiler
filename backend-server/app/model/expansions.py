@@ -56,9 +56,9 @@ class Expansions:
             # use default track scales (min, max, step) if not defined in Track API
             if "scales" not in data["settings"][program]:
                 if program.endswith("summary"):
-                    data["settings"][program]["scales"] = [5, 100, 4]
+                    data["settings"][program]["scales"] = [6, 100, 4]
                 elif program.endswith("details"):
-                    data["settings"][program]["scales"] = [1, 4, 1]
+                    data["settings"][program]["scales"] = [1, 5, 1]
                 else:
                     data["settings"][program]["scales"] = [0, 100, 3]
             track = self._create_track(data, program)
@@ -69,5 +69,5 @@ class Expansions:
     def register_track(self, track_id: str) -> Tracks:
         data = self._get_track_data(track_id)
         if not len(data["datafiles"]):
-            raise Exception(f"No datafiles found for track {track_id}")
+            raise Exception(f"No datafiles defined for track {track_id}")
         return self._create_track_set(data)
