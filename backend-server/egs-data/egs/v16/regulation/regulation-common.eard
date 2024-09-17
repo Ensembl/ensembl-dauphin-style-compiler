@@ -54,7 +54,7 @@ export procedure regulation_track_styles() {
 style!("""
     tracks/track/regulation/ {
         min-height: 80;
-        priority: 890;
+        priority: 300;
         report: "track;switch-id=regulation";
     }
 

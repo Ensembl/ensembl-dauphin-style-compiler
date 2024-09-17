@@ -7,7 +7,7 @@ include "../common/track-style.eard";
 /* Setup styles */
 
 track_styles();
-new_track_style("gc","900");
+new_track_style("gc","200");
 
 /* get data */
 
