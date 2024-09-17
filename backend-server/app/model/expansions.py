@@ -50,15 +50,19 @@ class Expansions:
     def _create_track_set(self, data:dict) -> Tracks:
         tracks = Tracks()
         # each datafile is tied to an Eard program
-        for program in data["datafiles"].keys():
+        programs = data["datafiles"].keys()
+        for program in programs:
             if program not in data["settings"]:
                 data["settings"][program] = {}
-            # use default track scales (min, max, step) if not defined in Track API
+            # set default track scales (min, max, step) when not defined in Track API
             if "scales" not in data["settings"][program]:
-                if program.endswith("summary"):
-                    data["settings"][program]["scales"] = [6, 100, 4]
-                elif program.endswith("details"):
-                    data["settings"][program]["scales"] = [3, 5, 1]
+                if len(programs) == 2:
+                    if program.endswith("summary"):
+                        data["settings"][program]["scales"] = [6, 100, 4]
+                    elif program.endswith("details"):
+                        data["settings"][program]["scales"] = [3, 5, 1]
+                    else:
+                        raise Exception(f"Unexpected program name: {program}")
                 else:
                     data["settings"][program]["scales"] = [0, 100, 3]
             track = self._create_track(data, program)

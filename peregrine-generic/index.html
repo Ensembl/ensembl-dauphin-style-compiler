@@ -385,11 +385,12 @@
         /* Set initial tracks/settings */
         genome_browser.switch(["ruler"], true);
         genome_browser.switch(["ruler", "one_based"], true);
-        init_tracks(["gene-pc-fwd","contig","gc","focus"]); //remove tracks for faster sandbox
+        init_tracks(["gene-pc-fwd","gc","focus"]); //remove tracks for faster sandbox
         genome_browser.switch(["settings","tab-selected"],"G");
 
         //Human
-        init_variant_track("9ae6b320-851f-4512-9547-a78f0b2d1148"); //variants track in dev-2020
+        init_expansion_track("2a280f46-55c0-489c-9c93-c6a645d654a5");
+        init_expansion_track("b5981e33-8eda-440c-a71d-d96b5c5c045c");
         //jump_variant("rs1557469781", 1, 1176408);
         //goto: location
         //genome_browser.set_stick("a7335667-93e7-11ec-a39d-005056b38ce3:13");
