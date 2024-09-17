@@ -21,38 +21,24 @@ function feature_zmenu(*element) {
   
   struct!(zmenu_content,
   """
-  (<0,1,2,3>!{
+  (<0>!{
     "data": [
       /* First row */
       [{
         "items": [
-          {"markup": ["light"], "text": <0s>}
-        ],
-        "type": "block"
-      }],
-      /* Second row */
-      [{
-        "items": [
           {"markup": ["light"], "text": "Location"},
           {"markup": [], "text": " "},
-          {"markup": ["strong"], "text": <1s>},
-          {"markup": ["light"], "text": "("},
-          {"markup": ["light"], "text": <2s>},
-          {"markup": ["light"], "text": ")"}
+          {"markup": ["strong"], "text": <0s>}
         ],
         "type": "block"
       }]
     ],
     "metadata": {
-      "type": <0s>,
-      "location": <1s>,
-      "strand": <2s>
+      "location": <0s>
     }
   })
   """,
-  element.analysis,
-  location,
-  element.strand
+  location
   );
 
   paint_click(zmenu_metadata, zmenu_content, false) //returns this
