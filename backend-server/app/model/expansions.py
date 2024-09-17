@@ -58,7 +58,7 @@ class Expansions:
                 if program.endswith("summary"):
                     data["settings"][program]["scales"] = [6, 100, 4]
                 elif program.endswith("details"):
-                    data["settings"][program]["scales"] = [1, 5, 1]
+                    data["settings"][program]["scales"] = [3, 5, 1]
                 else:
                     data["settings"][program]["scales"] = [0, 100, 3]
             track = self._create_track(data, program)

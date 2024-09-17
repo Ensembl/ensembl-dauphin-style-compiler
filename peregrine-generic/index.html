@@ -157,20 +157,19 @@
           });
         }
 
-        function init_variant_track(track_id) { //enable expansion (variant) tracks
+        function init_expansion_track(track_id) {
           genome_browser.switch(["track", "expand", track_id], true);
           genome_browser.switch(["track", "expand", track_id, "name"], true);
+          genome_browser.switch(["track", "expand", track_id, "label"], true);
+        }
+
+        function init_variant_track(track_id) { //turn on all variant track switches
+          init_expansion_track(track_id);
           genome_browser.switch(["track", "expand", track_id, "label-snv-id"], true);
           genome_browser.switch(["track", "expand", track_id, "label-snv-alleles"], true);
           genome_browser.switch(["track", "expand", track_id, "label-other-id"], true);
           genome_browser.switch(["track", "expand", track_id, "label-other-alleles"], true);
           genome_browser.switch(["track", "expand", track_id, "show-extents"], true);
-        }
-
-        function init_expansion_track(track_id) {
-          genome_browser.switch(["track", "expand", track_id], true);
-          genome_browser.switch(["track", "expand", track_id, "name"], true);
-          genome_browser.switch(["track", "expand", track_id, "label"], true);
         }
 
         function flipper(path) {
@@ -386,11 +385,11 @@
         /* Set initial tracks/settings */
         genome_browser.switch(["ruler"], true);
         genome_browser.switch(["ruler", "one_based"], true);
-        init_tracks(["gene-pc-fwd","contig","gc","focus"]);
+        init_tracks(["gene-pc-fwd","contig","gc","focus"]); //remove tracks for faster sandbox
         genome_browser.switch(["settings","tab-selected"],"G");
 
         //Human
-        //init_variant_track("0adabdbc-e0a5-487d-a712-98e6127712f2");
+        init_variant_track("9ae6b320-851f-4512-9547-a78f0b2d1148"); //variants track in dev-2020
         //jump_variant("rs1557469781", 1, 1176408);
         //goto: location
         //genome_browser.set_stick("a7335667-93e7-11ec-a39d-005056b38ce3:13");
