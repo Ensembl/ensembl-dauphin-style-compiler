@@ -178,8 +178,6 @@ let deep = v.variety != "SNV";
 let has_anchor_bp = v.variety == "deletion" || v.variety == "indel";
 let v.display_start = if(has_anchor_bp, v.start+1, v.start);
 
-halt(only_warm());
-
 /* ZMenu data */
 
 let zmenu_paint = variant_zmenu(*v);
