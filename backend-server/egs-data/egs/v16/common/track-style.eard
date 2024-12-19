@@ -19,7 +19,7 @@ export procedure track_styles() {
   }
 
   tracks/track/ {
-    min-height: 100;
+    min-height: 80;
     priority: 1;
   }
 

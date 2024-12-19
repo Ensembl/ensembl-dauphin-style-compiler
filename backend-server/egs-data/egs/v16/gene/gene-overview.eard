@@ -18,6 +18,7 @@ style!("""
 
     **/main/main/*/ {
         type: overlay;
+        padding-top: 10;
     }
 
     **/main/main/*/blocks/ {
