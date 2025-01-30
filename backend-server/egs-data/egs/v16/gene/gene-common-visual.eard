@@ -3,25 +3,29 @@ export procedure gene_styles() {
         tracks/track/gene-other-rev/ {
             priority: 110;
             report: "track;switch-id=gene-other-rev;has-labels=true";
-            min-height: 92;
+            min-height: 80;
         }
 
         tracks/track/gene-pc-rev/ {
             priority: 100;
             report: "track;switch-id=gene-pc-rev;has-labels=true";
-            min-height: 92;
+            min-height: 80;
         }
 
         tracks/track/gene-other-fwd/ {
             priority: -100;
             report: "track;switch-id=gene-other-fwd;has-labels=true";
-            min-height: 92;
+            min-height: 80;
         }
 
         tracks/track/gene-pc-fwd/ {
             priority: -110;
             report: "track;switch-id=gene-pc-fwd;has-labels=true";
-            min-height: 92;
+            min-height: 80;
+        }
+
+        tracks/track/gene-pc-fwd/main/main/content/* {
+            padding-top: 32;
         }
     """);
 }
