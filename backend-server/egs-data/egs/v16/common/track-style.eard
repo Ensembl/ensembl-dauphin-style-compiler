@@ -2,24 +2,24 @@ export procedure track_styles() {
   style!("""
 
   dots/ {
-    system: tracking-window; # scrollable, bp units, vert. attached to viewport
+    system: tracking-window; # x-scrollable, bp position units, y-attached to viewport
     depth: 56; # z-index (-128..128)
   }
 
-  tracks/ {
+  tracks/ {  # child containers in main tracks container
     padding-top: 16;
-    priority: 1; # stacking order
+    priority: 1; # vertical stacking order (of sibling containers)
     depth: 0;
   }
 
   tracks/flagtop/ {
     min-height: 32;
     priority: 0;
-    system: tracking; # scrollable, bp units
+    system: tracking; # x-scrollable, position in bp
   }
 
   tracks/track/ {
-    min-height: 80;
+    padding-top: 10;
     priority: 1;
   }
 
@@ -45,7 +45,7 @@ export procedure track_styles() {
   tracks/track/*/main/letter/ {
     system: content;
     bump-height: none;
-    indent: datum(pad-left); # variable pad-left={system:left, depth:57}
+    indent: datum(pad-left); # variable (see framing.eard)
     depth: 60;
   }
 
