@@ -191,4 +191,9 @@ export procedure draw_all_lozenges(*tr,*tr_gene,*leaf_tr,last_tr,pitch,focus,all
     let setting_value = set(lozenge_gene.id_versioned,lozenge_all_shown,["",...]);
     let setting = paint_setting("expanded",lozenge_gene.id_versioned,eoe_string(setting_value),false);
     running_rectangle(coord(lozenge_gene.start,y,[0,...]),coord(lozenge_gene.start,y+12,[20,...]),lozenge_gene.end,setting,leaf_lozenge.over_leaf);
+    polygon(
+        coord(lozenge_gene.start, y+10, [-10,...]),
+        [20,...], 13, 0,
+        paint, leaf_lozenge.text_leaf
+    );
 }

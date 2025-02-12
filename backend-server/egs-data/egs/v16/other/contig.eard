@@ -10,8 +10,6 @@ track_styles();
 
 style!("""
     tracks/track/contig/ {
-        min-height: 50;
-        priority: 0;
         report: "track;switch-id=contig";
     }
 

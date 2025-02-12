@@ -23,10 +23,6 @@ export procedure gene_styles() {
             report: "track;switch-id=gene-pc-fwd;has-labels=true";
             min-height: 80;
         }
-
-        tracks/track/gene-pc-fwd/main/main/content/* {
-            padding-top: 32;
-        }
     """);
 }
 
