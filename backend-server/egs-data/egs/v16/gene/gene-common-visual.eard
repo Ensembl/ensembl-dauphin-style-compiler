@@ -5,11 +5,17 @@ export procedure gene_styles() {
             report: "track;switch-id=gene-other-rev;has-labels=true";
             min-height: 80;
         }
+        tracks/track/gene-other-rev/main/main/ {
+            padding-top: 5;
+        }
 
         tracks/track/gene-pc-rev/ {
             priority: 100;
             report: "track;switch-id=gene-pc-rev;has-labels=true";
             min-height: 80;
+        }
+        tracks/track/gene-pc-rev/main/main/ {
+            padding-top: 5;
         }
 
         tracks/track/gene-other-fwd/ {
@@ -17,11 +23,17 @@ export procedure gene_styles() {
             report: "track;switch-id=gene-other-fwd;has-labels=true";
             min-height: 80;
         }
+        tracks/track/gene-other-fwd/main/main/ {
+            padding-top: 5;
+        }
 
         tracks/track/gene-pc-fwd/ {
             priority: -110;
             report: "track;switch-id=gene-pc-fwd;has-labels=true";
             min-height: 80;
+        }
+        tracks/track/gene-pc-fwd/main/main/ {
+            padding-top: 5;
         }
     """);
 }
