@@ -17,10 +17,6 @@ style!("""
         type: bumper;
     }
 
-    **/main/main/*/ {
-        type: overlay;
-    }
-
     **/main/main/*/blocks/ {
         depth: 4;
     }
@@ -38,6 +34,10 @@ style!("""
     tracks/track/focus/ {
         priority: -900;
         report: "track;switch-id=focus;has-labels=true;!transcripts-shown;!all-transcripts;!id;!transcripts-suppressed";
+    }
+
+    tracks/track/focus/main/main/focus/blocks/ {
+        padding-top: 10;
     }
 """);
 

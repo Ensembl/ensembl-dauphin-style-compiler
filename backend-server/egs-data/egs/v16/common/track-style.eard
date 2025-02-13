@@ -57,8 +57,13 @@ export procedure track_styles() {
 
   tracks/track/*/main/main/ {
     system: tracking;
+    type: overlay;
     priority: 1000; # bottom of stack (of sibling containers)
   }
+
+  tracks/track/*/main/main/*/ {
+    type: overlay;
+    }
 
   tracks/track/*/main/background/ {
     system: content;

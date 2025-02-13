@@ -13,22 +13,13 @@ track_styles();
 gene_styles();
 
 style!("""
-    **/main/main/ {
-        type: bumper;
-    }
-
-    **/main/main/*/ {
-        type: overlay;
-    }
-
     **/main/main/*/blocks/ {
         depth: 4;
     }
 
     **/main/main/*/text/ {
         bump-width: none;
-        system: tracking-special;
-        padding-top: 10;
+        system: tracking-special; # for gene labels (sticks to window edge within gene bounds)
     }
 
     **/main/background/content {

@@ -12,15 +12,6 @@ track_styles();
 gene_styles();
 
 style!("""
-    **/main/main/ {
-        type: overlay;
-    }
-
-    **/main/main/*/ {
-        type: overlay;
-        padding-top: 10;
-    }
-
     **/main/main/*/blocks/ {
         depth: 4;
     }
