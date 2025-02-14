@@ -31,6 +31,10 @@ export procedure gene_styles() {
         tracks/track/gene-pc-fwd/main/main/ {
             padding-top: 5;
         }
+
+        tracks/track/focus/main/main/ {
+            padding-top: 5;
+        }
     """);
 }
 
