@@ -61,7 +61,7 @@ let gene.text_leaf = set(gene.text_leaf,gene.is_focus,[leaf(""),...]);
 let paint = make_gene_paint(*gene);
 rectangle(coord(gene.start,[0,...],[-0.5,...]),coord(gene.end,[5,...],[0.5,...]),paint,gene.block_leaf);
 
-let pen = pen("'IBM Plex Mono', sans-serif",11,[colour!("#1b2c39"),...],[colour!("transparent"),...]);
+let pen = pen("'IBM Plex Mono', sans-serif",15,[colour!("#1b2c39"),...],[colour!("transparent"),...]);
 running_text(coord(gene.start,[8,...],[0,...]),coord(gene.end,[8,...],[0,...]),pen,gene.name,gene.text_leaf);
 
 /* ZMenus */
