@@ -53,7 +53,6 @@ export procedure get_regulation_track_data(track_name, track_label) {
 export procedure regulation_track_styles() {
 style!("""
     tracks/track/regulation/ {
-        min-height: 80;
         priority: 300;
         report: "track;switch-id=regulation";
     }

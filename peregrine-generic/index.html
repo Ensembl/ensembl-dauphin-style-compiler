@@ -385,20 +385,20 @@
         /* Set initial tracks & settings */
         genome_browser.switch(["ruler"], true);
         genome_browser.switch(["ruler", "one_based"], true);
-        init_tracks(["gene-pc-fwd","gene-pc-rev","contig"]); //tracks with static triggers
+        init_tracks(["gene-pc-fwd","gene-pc-rev","contig","gc","focus"]); //tracks with static triggers
         genome_browser.switch(["settings","tab-selected"],"G");
 
         //Human
         //expansion tracks (track IDs from staging track API)
         init_expansion_track("f74534e7-1421-45c4-ba3b-30085475d5f8"); //trf
-        init_expansion_track("d3c13017-9f70-4d64-87a2-51cb20f042d4"); //
+        init_expansion_track("d3c13017-9f70-4d64-87a2-51cb20f042d4"); //variation
         //goto: location
         genome_browser.set_stick("a7335667-93e7-11ec-a39d-005056b38ce3:13");
         genome_browser.goto(159980000,160000500);
         //goto: variant
         //jump_variant("rs1557469781", 1, 1176408);
         //goto: gene
-        //genome_browser.jump("focus:gene:a7335667-93e7-11ec-a39d-005056b38ce3:ENSG00000139618");
+        genome_browser.jump("focus:gene:a7335667-93e7-11ec-a39d-005056b38ce3:ENSG00000139618");
 
         //Pig
         //init_expansion_track("83090e95-2586-451c-bf3c-8ffc50068e2b"); //repeats

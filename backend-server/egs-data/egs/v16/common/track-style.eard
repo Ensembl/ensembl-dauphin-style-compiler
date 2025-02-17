@@ -78,5 +78,9 @@ export procedure set_track_style(track_id, path_suffix, style_names, style_value
 }
 
 export procedure new_track_style(track_id, display_order) {
-  set_track_style(track_id, "", ["priority", "report"], [display_order, push_str("track;switch-id=", track_id)]);
+  set_track_style(
+    track_id, "", 
+    ["priority", "report"], 
+    [display_order, push_str("track;switch-id=", track_id)]
+  );
 }
