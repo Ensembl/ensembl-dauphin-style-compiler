@@ -28,132 +28,56 @@ let track_main_sea_shallow_all_leaf_id = push_str(track_main_sea_shallow_leaf_id
 let track_main_sea_deep_leaf_id = push_str(track_main_sea_leaf_id, "deep/");
 let track_main_sea_deep_all_leaf_id = push_str(track_main_sea_leaf_id, "*");
 
-
-style(
-  track_leaf_id,
-  [
-    "priority",
-    "report"
-  ], [
-    track_display_order,
-    push_str("track;switch-id=", track_id)
-  ]
-);
+new_track_style(track_id, track_display_order);
 style(
   track_title_leaf_id,
-  [
-    "padding-top",
-    "padding-bottom"
-  ], [
-    "0",
-    "7"
-  ]
+  ["padding-top", "padding-bottom"],
+  ["0", "7"]
 );
 style(
   track_main_letter_leaf_id,
-  [
-    "padding-top"
-  ], [
-    "-5"
-  ]
+  ["padding-top"],
+  ["-5"]
 );
 style(
   track_main_shore_leaf_id,
-  [
-    "padding-top",
-    "type",
-    "priority"
-  ],
-  [
-    "2",
-    "overlay",
-    "0"
-  ]
+  ["padding-top", "type", "priority"],
+  ["2", "overlay", "0"]
 );
 style(
   track_main_shore_under_leaf_id,
-  [
-    "depth"
-  ],
-  [
-    "0"
-  ]
+  ["depth"],
+  ["0"]
 );
 style(
   track_main_shore_over_leaf_id,
-  [
-    "depth"
-  ],
-  [
-    "1"
-  ]
+  ["depth"],
+  ["1"]
 );
 style(
   track_main_sea_leaf_id,
-  [
-    "min-height",
-    "type",
-    "priority"
-  ],
-  [
-    "35",
-    "stack",
-    "1"
-  ]
+  ["min-height", "type", "priority"],
+  ["35", "stack", "1"]
 );
 style(
   track_main_sea_shallow_leaf_id,
-  [
-    "type",
-    "priority",
-    "padding-top"
-  ],
-  [
-    "wall",
-    "0",
-    "8"
-  ]
+  ["type", "priority", "padding-top"],
+  ["wall", "0", "8"]
 );
 style(
   track_main_sea_shallow_all_leaf_id,
-  [
-    "type",
-    "bump-scale",
-    "padding-top",
-    "padding-bottom"
-  ],
-  [
-    "stack",
-    "0.6",
-    "4",
-    "4"
-  ]
+  ["type", "bump-scale", "padding-top", "padding-bottom"],
+  ["stack", "0.6", "4", "4"]
 );
 style(
   track_main_sea_deep_leaf_id,
-  [
-    "type",
-    "priority",
-    "padding-top"
-  ],
-  [
-    "wall",
-    "1",
-    "8"
-  ]
+  ["type", "priority", "padding-top"],
+  ["wall", "1", "8"]
 );
 style(
   track_main_sea_deep_all_leaf_id,
-  [
-    "type",
-    "padding-top",
-    "padding-bottom"
-  ],
-  [
-    "stack",
-    "4",
-    "4"
-  ]
+  ["type", "padding-top", "padding-bottom"],
+  ["stack", "4", "4"]
 );
 
 

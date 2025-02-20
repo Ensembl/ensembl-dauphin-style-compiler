@@ -2,40 +2,39 @@ export procedure track_styles() {
   style!("""
 
   dots/ {
-    system: tracking-window;
-    depth: 56;
+    system: tracking-window; # x-scrollable, bp position units, y-attached to viewport
+    depth: 56; # z-index (-128..128)
   }
 
   tracks/ {
     padding-top: 16;
-    priority: 1;
+    priority: 1; # vertical stacking order (of sibling containers)
     depth: 0;
   }
 
   tracks/flagtop/ {
     min-height: 32;
     priority: 0;
-    system: tracking;
+    system: tracking; # x-scrollable, position in bp
   }
 
   tracks/track/ {
-    min-height: 100;
+    padding-top: 10;
     priority: 1;
   }
 
-  tracks/track/*/ {
-    padding-top: 8;
-    padding-bottom: 8;
+  tracks/track/*/ { # track root container
+    min-height: 80;
     height-adjust: tracking;
   }
 
-  tracks/track/*/title/ {
-    system: content;
-    type: overlay;
+  tracks/track/*/title/ { # track name container
+    system: content; # stays on screen, position 0..1
+    type: overlay; # draws over other track elements
     indent: left;
     padding-top: 2;
     padding-bottom: 10;
-    priority: -1000;
+    priority: -1000; # top of stack
   }
 
   tracks/track/*/main/ {
@@ -43,26 +42,38 @@ export procedure track_styles() {
     priority: 0;
   }
 
-  tracks/track/*/main/letter/ {
+  tracks/track/*/main/letter/ { # track category container
     system: content;
     bump-height: none;
-    indent: datum(pad-left);
+    indent: datum(pad-left); # a variable (defined in framing.eard)
     depth: 60;
   }
 
-  tracks/track/*/title/letter/ {
-    system: content;
-    indent: datum(pad-left);
-    depth: 60;
-  }
+  #tracks/track/*/title/letter/ { # not used
+  #  system: content;
+  #  indent: datum(pad-left);
+  #  depth: 60;
+  #}
 
-  tracks/track/*/main/main/ {
+  tracks/track/*/main/main/ { # track foreground content
     system: tracking;
-    priority: 1000;
+    type: overlay;
+    priority: 1000; # draw at the bottom (of sibling containers)
+  }
+
+  tracks/track/*/main/main/*/ {
+    type: overlay;
   }
 
   tracks/track/*/main/background/ {
     system: content;
+  }
+
+  tracks/track/gc/main/main/ {
+    padding-top: -7;
+  }
+  tracks/track/gc/main/background/ {
+    padding-top: -7;
   }
 
   """);
@@ -74,5 +85,9 @@ export procedure set_track_style(track_id, path_suffix, style_names, style_value
 }
 
 export procedure new_track_style(track_id, display_order) {
-  set_track_style(track_id, "", ["priority", "report"], [display_order, push_str("track;switch-id=", track_id)]);
+  set_track_style(
+    track_id, "", 
+    ["priority", "report"], 
+    [display_order, push_str("track;switch-id=", track_id)]
+  );
 }

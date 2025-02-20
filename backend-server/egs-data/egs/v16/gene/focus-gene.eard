@@ -17,10 +17,6 @@ style!("""
         type: bumper;
     }
 
-    **/main/main/*/ {
-        type: overlay;
-    }
-
     **/main/main/*/blocks/ {
         depth: 4;
     }
@@ -77,7 +73,7 @@ gene.leaf_index = repeat(4,len(gene.start));
 let paint = paint_solid(colour!("#229afc"));
 rectangle(coord(gene.start,[0,...],[-0.5,...]),coord(gene.end,[5,...],[0.5,...]),paint,[leaf.main,...]);
 
-let pen = pen("'IBM Plex Mono', sans-serif",10,[colour!("#6f8190"),...],[colour!("transparent"),...]);
+let pen = pen("'IBM Plex Mono', sans-serif",11,[colour!("#1b2c39"),...],[colour!("transparent"),...]);
 running_text(coord(gene.start,[8,...],[0,...]),coord(gene.end,[8,...],[0,...]),pen,gene.name,[leaf.text,...]);
 
 /* ZMenus */

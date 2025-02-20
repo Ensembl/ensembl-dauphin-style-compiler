@@ -13,21 +13,13 @@ track_styles();
 gene_styles();
 
 style!("""
-    **/main/main/ {
-        type: bumper;
-    }
-
-    **/main/main/*/ {
-        type: overlay;
-    }
-
     **/main/main/*/blocks/ {
         depth: 4;
     }
 
     **/main/main/*/text/ {
         bump-width: none;
-        system: tracking-special;
+        system: tracking-special; # for gene labels (sticks to window edge within gene bounds)
     }
 
     **/main/background/content {
@@ -69,7 +61,7 @@ let gene.text_leaf = set(gene.text_leaf,gene.is_focus,[leaf(""),...]);
 let paint = make_gene_paint(*gene);
 rectangle(coord(gene.start,[0,...],[-0.5,...]),coord(gene.end,[5,...],[0.5,...]),paint,gene.block_leaf);
 
-let pen = pen("'IBM Plex Mono', sans-serif",10,[colour!("#6f8190"),...],[colour!("transparent"),...]);
+let pen = pen("'IBM Plex Mono', sans-serif",15,[colour!("#1b2c39"),...],[colour!("transparent"),...]);
 running_text(coord(gene.start,[8,...],[0,...]),coord(gene.end,[8,...],[0,...]),pen,gene.name,gene.text_leaf);
 
 /* ZMenus */

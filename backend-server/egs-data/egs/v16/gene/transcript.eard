@@ -89,7 +89,7 @@ rectangle(coord(thick_exon.start,y+2,[0,...]),coord(thick_exon.end,y+8,[0,...]),
 
 let text = tr_label_text(*gene,*tr_gene,*tr,last_tr,enabled_gene_labels(),enabled_transcript_labels());
 let y = tr.position_in_gene * 20;
-let pen = pen("'IBM Plex Mono', sans-serif",10,[colour!("#6f81ff"),...],[colour!("transparent"),...]);
+let pen = pen("'IBM Plex Mono', sans-serif",11,[colour!("#1b2c39"),...],[colour!("transparent"),...]);
 running_text(coord(tr_gene.start,y+10,[0,...]),coord(tr_gene.end,y+10,[0,...]),pen,text,leaf_tr.text_leaf);
 
 /* Draw zmenus */
