@@ -6,7 +6,7 @@ export procedure track_styles() {
     depth: 56; # z-index (-128..128)
   }
 
-  tracks/ {  # child containers in main tracks container
+  tracks/ {
     padding-top: 16;
     priority: 1; # vertical stacking order (of sibling containers)
     depth: 0;
@@ -23,13 +23,13 @@ export procedure track_styles() {
     priority: 1;
   }
 
-  tracks/track/*/ {
+  tracks/track/*/ { # track root container
     min-height: 80;
     height-adjust: tracking;
   }
 
-  tracks/track/*/title/ {
-    system: content; # stays in place, position 0..1
+  tracks/track/*/title/ { # track name container
+    system: content; # stays on screen, position 0..1
     type: overlay; # draws over other track elements
     indent: left;
     padding-top: 2;
@@ -42,31 +42,38 @@ export procedure track_styles() {
     priority: 0;
   }
 
-  tracks/track/*/main/letter/ {
+  tracks/track/*/main/letter/ { # track category container
     system: content;
     bump-height: none;
-    indent: datum(pad-left); # variable (see framing.eard)
+    indent: datum(pad-left); # a variable (defined in framing.eard)
     depth: 60;
   }
 
-  tracks/track/*/title/letter/ {
-    system: content;
-    indent: datum(pad-left);
-    depth: 60;
-  }
+  #tracks/track/*/title/letter/ { # not used
+  #  system: content;
+  #  indent: datum(pad-left);
+  #  depth: 60;
+  #}
 
-  tracks/track/*/main/main/ {
+  tracks/track/*/main/main/ { # track foreground content
     system: tracking;
     type: overlay;
-    priority: 1000; # bottom of stack (of sibling containers)
+    priority: 1000; # draw at the bottom (of sibling containers)
   }
 
   tracks/track/*/main/main/*/ {
     type: overlay;
-    }
+  }
 
   tracks/track/*/main/background/ {
     system: content;
+  }
+
+  tracks/track/gc/main/main/ {
+    padding-top: -7;
+  }
+  tracks/track/gc/main/background/ {
+    padding-top: -7;
   }
 
   """);
