@@ -1,6 +1,6 @@
 [source.apple]
 driver = "s3"
-url = "http://ensembl-2020-gb-flatfiles.s3.eu-west-2.amazonaws.com/upload-2023-10-19/"
+url = "http://ensembl-2020-gb-flatfiles.s3.eu-west-2.amazonaws.com/beta-6/"
 refget_url = "https://dev-2020.ensembl.org/api/refget/sequence/"
 metadata_url = "https://dev-2020.ensembl.org/api/metadata/"
 
