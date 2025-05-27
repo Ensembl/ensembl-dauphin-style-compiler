@@ -1,6 +1,6 @@
-use std::{rc::Rc};
-use peregrine_toolkit::{puzzle::{derived, DelayedSetter, compose, StaticValue, promise_delayed, cache_constant_rc, short_memoized_rc, compose_slice_vec }};
-use crate::{allotment::{core::{allotmentname::{AllotmentName}}, collision::{bumprequest::{BumpRequestSetBuilder, BumpRequest, BumpRequestSet}, algorithmbuilder::BumpResponses}, layout::{layouttree::{ContainerOrLeaf}, layoutcontext::LayoutContext, contentsize::ContentSize}}};
+use std::rc::Rc;
+use peregrine_toolkit::puzzle::{derived, DelayedSetter, compose, StaticValue, promise_delayed, cache_constant_rc, short_memoized_rc, compose_slice_vec };
+use crate::allotment::{core::{allotmentname::AllotmentName, collision::bumprequest::{BumpRequestSetBuilder, BumpRequest, BumpRequestSet}, algorithmbuilder::BumpResponses}, layout::{layouttree::ContainerOrLeaf, layoutcontext::LayoutContext, contentsize::ContentSize}};
 use super::container::ContainerSpecifics;
 
 #[derive(Clone)]

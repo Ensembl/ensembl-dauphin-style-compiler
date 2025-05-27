@@ -1,4 +1,4 @@
-use std::{sync::Arc, hash::{Hash, Hasher, BuildHasher}, collections::{hash_map::{DefaultHasher}, HashMap}, fmt};
+use std::{sync::Arc, hash::{Hash, Hasher, BuildHasher}, collections::{hash_map::DefaultHasher, HashMap}, fmt};
 
 #[derive(Clone)]
 pub struct AllotmentName {

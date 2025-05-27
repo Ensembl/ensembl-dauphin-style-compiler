@@ -69,7 +69,7 @@ mod api {
     pub use agentstore::AgentStore;
     pub use api::{ PeregrineIntegration, CarriageSpeed, TrainIdentity };
     pub use self::pgcore::{ PeregrineCore, MessageSender, PeregrineCoreBase };
-    pub use queue::{ PeregrineApiQueue };
+    pub use queue::PeregrineApiQueue;
     pub use instanceinfo::InstanceInformation;
 }
 
@@ -129,7 +129,7 @@ mod shapeload {
     mod resultstore;
     pub(crate) mod programname;
 
-    pub use self::datastore::{ DataStore };
+    pub use self::datastore::DataStore;
     pub use self::shaperequest::{ Region, ShapeRequest };
     pub use self::loadshapes::LoadMode;
     pub use self::resultstore::{ ShapeStore, RunReport };
@@ -196,7 +196,7 @@ mod run {
     pub mod pgdauphin;
     pub use self::pgcommander::Commander;
     pub use self::pgcommander::{ PgCommander, PgCommanderTaskSpec, add_task, complete_task, async_complete_task };
-    pub use self::pgdauphin::{ PgDauphin };
+    pub use self::pgdauphin::PgDauphin;
 }
 
 mod shape {
@@ -268,8 +268,8 @@ mod train {
 
     pub(crate) mod graphics;
 
-    pub use model::carriageextent::{ CarriageExtent };
-    pub use drawing::drawingcarriage::{ DrawingCarriage };
+    pub use model::carriageextent::CarriageExtent;
+    pub use drawing::drawingcarriage::DrawingCarriage;
 }
 
 mod util {
@@ -294,7 +294,7 @@ pub use self::allotment::leafs::auxleaf::AuxLeaf;
 pub use self::globals::{ allotmentmetadata::GlobalAllotmentMetadata, playingfield::PlayingField };
 pub use self::api::{ PeregrineCore, PeregrineCoreBase, PeregrineIntegration, PeregrineApiQueue, TrainIdentity, CarriageSpeed, AgentStore, InstanceInformation };
 pub use self::core::{ Asset, Assets, PgdPeregrineConfig, ConfigKey, Stick, StickId, StickTopology, Scale, Viewport, ProgramModel, ProgramSetting };
-pub use self::core::channel::accessorresolver::{ AccessorResolver };
+pub use self::core::channel::accessorresolver::AccessorResolver;
 pub use self::core::channel::backendnamespace::BackendNamespace;
 pub use self::core::dataalgorithm::DataAlgorithm;
 pub use self::core::channel::channelintegration::{ ChannelIntegration, ChannelSender, ChannelResponse, TrivialChannelResponse, ChannelMessageDecoder, null_payload };
@@ -302,7 +302,7 @@ pub use self::index::{ StickStore, SmallValuesStore };
 pub use self::core::program::programbundle::{ SuppliedBundle, UnpackedSuppliedBundle };
 pub use self::shapeload::{ Region, ShapeStore, DataStore, ShapeRequest, LoadMode, RunReport };
 pub use self::run::{ PgCommander, PgCommanderTaskSpec, PgDauphin, Commander, add_task, complete_task, async_complete_task };
-pub use self::request::core::maxirequest::{ MaxiRequest };
+pub use self::request::core::maxirequest::MaxiRequest;
 pub use self::request::core::maxiresponse::{ MaxiResponse, MaxiResponseDeserialize };
 pub use self::request::core::minirequest::{ MiniRequest, MiniRequestAttempt };
 pub use self::request::core::miniresponse::MiniResponse;
@@ -314,8 +314,8 @@ pub use self::shape::{
     Pen, Plotter, ShapeDemerge, SettingMode,
     ProgramShapesBuilder, RequestedShapesContainer, AttachmentPoint
 };
-pub use self::core::coordsystem::{ CoordinateSystem };
-pub use self::switch::switches::{ Switches };
+pub use self::core::coordsystem::CoordinateSystem;
+pub use self::switch::switches::Switches;
 pub use self::switch::track::Track;
 pub use self::train::{ DrawingCarriage, CarriageExtent };
 pub use self::util::{ CountingPromise, DataMessage, Builder };
@@ -342,10 +342,10 @@ pub use self::request::minirequests::jumpreq::JumpReq;
 pub use self::request::minirequests::jumpres::{ JumpLocation, JumpRes };
 pub use self::request::minirequests::datareq::DataRequest;
 pub use self::request::minirequests::datares::{ DataRes, DataResponse };
-pub use self::request::minirequests::expandreq::{ ExpandReq };
-pub use self::request::minirequests::expandres::{ ExpandRes };
-pub use self::request::minirequests::programreq::{ ProgramReq };
-pub use self::request::minirequests::programres::{ ProgramRes };
+pub use self::request::minirequests::expandreq::ExpandReq;
+pub use self::request::minirequests::expandres::ExpandRes;
+pub use self::request::minirequests::programreq::ProgramReq;
+pub use self::request::minirequests::programres::ProgramRes;
 pub use self::hotspots::hotspots::{ 
     HotspotResult, HotspotResultVariety, HotspotGroupEntry, SingleHotspotEntry, SpecialClick,
     SingleHotspotResult
