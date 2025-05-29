@@ -1,29 +1,25 @@
 /* Get and transform data */
 function set_reg_feature_colours(reg_feature_types) {
-    let is_promoter = reg_feature_types == "Promoter";
-    let is_enhancer = reg_feature_types == "Enhancer";
-    let is_open_chromatin = reg_feature_types == "Open chromatin";
-    let is_ctsf_binding_site = reg_feature_types == "CTCF Binding Site";
-    let is_tf_binding_site = reg_feature_types == "TF binding";
+    let is_promoter = reg_feature_types == "promoter";
+    let is_enhancer = reg_feature_types == "enhancer";
+    let is_open_chromatin = reg_feature_types == "open chromatin region";
+    let is_ctsf_binding_site = reg_feature_types == "CTCF binding site";
 
     let promoter_colour = colour!("#d90000"); // red
     let enhancer_colour = colour!("#f8c041"); // dark-yellow
     let open_chromatin_colour = colour!("#b7c0c8"); // grey
     let ctsf_binding_site_colour = colour!("#8ef4f8"); // neon-blue
-    let tf_binding_colour = colour!("#ca81ff"); // purple
 
     let colours_seq = repeat(promoter_colour, len(reg_feature_types));
-
     let reg_feature_colours = set(colours_seq, is_enhancer, [enhancer_colour, ...]);
     let reg_feature_colours = set(reg_feature_colours, is_open_chromatin, [open_chromatin_colour, ...]);
-    let reg_feature_colours = set(reg_feature_colours, is_tf_binding_site, [tf_binding_colour, ...]);
     let reg_feature_colours = set(reg_feature_colours, is_ctsf_binding_site, [ctsf_binding_site_colour, ...]);
 
     reg_feature_colours
 }
 
 
-export procedure get_regulation_track_data(track_name, track_label) {
+export procedure get_regulation_track_data(track_name) {
     let data = get_data(request("self()",track_name));
 
     let reg_feature.id = data_string(data,"id");
@@ -34,14 +30,12 @@ export procedure get_regulation_track_data(track_name, track_label) {
     let reg_feature.thick_end = data_number(data,"thick_end");
     let reg_feature.type = data_string(data,"feature_type");
 
-    let bottom_leaf = leaf("tracks/track/regulation/main/main/lanes/third/content");
-    let reg_feature.leaf = repeat(bottom_leaf, len(reg_feature.id));
     let top_leaf = leaf("tracks/track/regulation/main/main/lanes/first/content");
-    let middle_leaf = leaf("tracks/track/regulation/main/main/lanes/second/content");
-    let is_top_leaf = reg_feature.type == "Promoter" || reg_feature.type == "Enhancer";
-    let is_middle_leaf = reg_feature.type == "Open chromatin" || reg_feature.type == "TF binding";
-    let reg_feature.leaf = set(reg_feature.leaf, is_top_leaf, [top_leaf,...]);
-    let reg_feature.leaf = set(reg_feature.leaf, is_middle_leaf, [middle_leaf,...]);
+    let bottom_leaf = leaf("tracks/track/regulation/main/main/lanes/second/content");
+    let is_top_leaf = reg_feature.type == "open chromatin region" || reg_feature.type == "promoter" || reg_feature.type == "enhancer";
+    let is_bottom_leaf = reg_feature.type == "CTCF binding site";
+    let reg_feature.leaf = repeat(top_leaf, len(reg_feature.id));
+    let reg_feature.leaf = set(reg_feature.leaf, is_bottom_leaf, [bottom_leaf,...]);
 
     let reg_feature.colour = set_reg_feature_colours(reg_feature.type);
 
@@ -75,11 +69,6 @@ style!("""
     tracks/track/regulation/main/main/lanes/second/ {
         min-height: 10;
         priority: 1;
-    }
-
-    tracks/track/regulation/main/main/lanes/third/ {
-        min-height: 10;
-        priority: 2;
     }
 """);
 }

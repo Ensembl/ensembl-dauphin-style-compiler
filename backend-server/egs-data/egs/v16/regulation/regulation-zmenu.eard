@@ -66,13 +66,13 @@ export function zmenu_when_bounds_different_from_core(*reg_feature) {
 
           /* Third row */
           [
-            { "items": [ { "markup": ["light"], "text": "Core bp" } ], "type": "block" },
+            { "items": [ { "markup": ["light"], "text": "Core" } ], "type": "block" },
             { "items": [ { "markup": [], "text": <2s> } ], "type": "block" }
           ],
 
           /* Fourth row */
           [
-            { "items": [ { "markup": ["light"], "text": "Bounds bp" } ], "type": "block" },
+            { "items": [ { "markup": ["light"], "text": "Extended" } ], "type": "block" },
             { "items": [ { "markup": [], "text": <3s> } ], "type": "block" }
           ]
         ],
