@@ -60,8 +60,7 @@ export function zmenu_when_bounds_different_from_core(*reg_feature) {
               "items": [
                 { "items": [ { "markup": ["light"], "text": "Feature type" } ], "type": "block" },
                 { "items": [ { "markup": ["strong"], "text": <1s> } ], "type": "block" }
-              ],
-              "type": "block"
+              ]
             }
           ],
 
