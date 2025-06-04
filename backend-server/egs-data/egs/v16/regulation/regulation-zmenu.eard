@@ -56,12 +56,8 @@ export function zmenu_when_bounds_different_from_core(*reg_feature) {
 
           /* Second row */
           [
-            {
-              "items": [
-                { "items": [ { "markup": ["light"], "text": "Feature type" } ], "type": "block" },
-                { "items": [ { "markup": ["strong"], "text": <1s> } ], "type": "block" }
-              ]
-            }
+            { "items": [ { "markup": ["light"], "text": "Feature type" } ], "type": "block" },
+            { "items": [ { "markup": ["strong"], "text": <1s> } ], "type": "block" }
           ],
 
           /* Third row */
