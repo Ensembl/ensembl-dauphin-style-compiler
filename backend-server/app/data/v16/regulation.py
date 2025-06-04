@@ -25,7 +25,7 @@ def get_regulation_data(
             id = rest[0]
             thick_start = int(rest[3])
             thick_end = int(rest[4])
-            feature_type = rest[9]
+            feature_type = rest[6]
 
             sticks.append(chrom.name)
             starts.append(start)

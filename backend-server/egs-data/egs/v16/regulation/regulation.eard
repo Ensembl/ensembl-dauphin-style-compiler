@@ -11,7 +11,7 @@ track_styles();
 regulation_track_styles();
 
 
-let *reg_feature = get_regulation_track_data("regulation", "This is the name of the regulation track");
+let *reg_feature = get_regulation_track_data("regulation");
 halt(only_warm());
 
 draw_regulatory_features(*reg_feature);
