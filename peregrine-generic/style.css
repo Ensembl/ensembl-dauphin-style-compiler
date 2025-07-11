@@ -8,15 +8,11 @@ body {
     height: 100vh;
     display: grid;
     gap: 5px;
-    grid-template: "header header" "viewport sidebar" "footer footer";
+    grid-template: "viewport1 sidebar1" "viewport2 sidebar2";
     grid-template-columns: 1fr min-content;
-    grid-template-rows: min-content 1fr min-content;
+    grid-template-rows: 1fr 1fr;
     background: rgb(169, 201, 169);
     color: rgb(26, 39, 26);
-}
-
-.header {
-    grid-area: header;
 }
 
 .sidebar {
@@ -24,8 +20,15 @@ body {
     min-width: 300px;
     padding: 5px;
     gap: 5px;
-    grid-area: sidebar;
     overflow-y: scroll;
+}
+
+.sidebar.upper {
+    grid-area: sidebar1;
+}
+
+.sidebar.lower {
+    grid-area: sidebar2;
 }
 
 .payload {
@@ -33,27 +36,18 @@ body {
 }
 
 .viewport {
-    grid-area: viewport;
     position: relative;
     height: 100%;
     overflow-y: auto;
     overflow-x: hidden;
 }
 
-.footer {
-    grid-area: footer;
+.viewport.upper {
+    grid-area: viewport1;
 }
 
-input {
-    display: inline;
-}
-
-button {
-    margin: 1px;
-    padding: 2px 6px;
-    border: 1px solid #888;
-    border-radius: 5px;
-    cursor: pointer;
+.viewport.lower {
+    grid-area: viewport2;
 }
 
 table {
@@ -72,10 +66,4 @@ a {
     color: #444;
     text-decoration: none;
     cursor: pointer;
-}
-
-a.lbl {
-    display: block;
-    letter-spacing: -12px;
-    width: 16px;
 }

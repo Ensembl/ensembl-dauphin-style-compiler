@@ -10,110 +10,68 @@
   <body>
   </script>
     <div class="grid" id="grid">
-      <div class="header" id="header">
+      <div class="viewport upper" id="browser-upper">
       </div>
-      <div class="viewport" id="browser">
+      <div class="viewport lower" id="browser-lower">
       </div>
-      <div class="sidebar" id="sidebar">
-        <div id="clock" style="font-size: 60px"></div>
-        <!--
-        <div>
-          bigger text <input id="bigger" type="checkbox"><br> 
-          labels <input id="id-labels" type="checkbox">
-        </div>
-        -->
-        <div>
-          <button id="clock-button">clock</button>
-          <button id="jump-snv">focus SNV</button>
-          <button id="jump-ins">focus ins</button>
-          <button id="jump-del">focus del</button>
-          <button id="jump-indel">focus indel</button>
-          <button id="jump-brca2">jump brca2</button>
-          <button id="jump-fry">jump fry</button>
-          <button id="jump-wheat">jump wheat</button>
-          <button id="focus-region">focus region</button>
-          <button id="unload">unload</button>
-          <button id="toggle-all-tr">toggle all tr</button>
-          <button id="tab1">tab G</button>
-          <button id="tab2">tab V</button>
-        </div>
-        <div class="payload">current: <span id="current"></span></div>
-        <div class="payload">target: <span id="target"></span></div>
+      <div class="sidebar upper" id="sidebar-gb1">
+        <div class="payload">position: <span id="position-gb1"></span></div>
         <table>
           <thead>
             <tr>
               <th>track id</th>
               <th>offset</th>
               <th>size</th>
-              <th colspan="4">on/off</th>
+              <th>on/off</th>
             </tr>
           </thead>
-          <tbody id="track-metadata">
+          <tbody id="track-metadata-gb1">
           </tbody>
         </table>
+      </div>
+      <div class="sidebar lower" id="sidebar-gb2">
+        <div class="payload">position: <span id="position-gb2"></span></div>
         <table>
           <thead>
             <tr>
-              <th>id</th>
-              <th>state</th>
-              <th>actions</th>
+              <th>track id</th>
+              <th>offset</th>
+              <th>size</th>
+              <th>on/off</th>
             </tr>
           </thead>
-          <tbody id="focus-transcripts">            
+          <tbody id="track-metadata-gb2">
           </tbody>
         </table>
-        <div id="zmenu-click" class="payload" style="font-size: 10px"></div>
-      </div>
-      <div class="footer" id="footer">
       </div>
     </div>
     <script type="module">
       import { GenomeBrowser, default as init } from './pkg/peregrine_generic.js';
+      let gb = window.gb = {};
+
       init().then(function() {
-        let genome_browser = window.gb = new GenomeBrowser();
-        genome_browser.go({
-          //backend_url: "http://52.56.215.72:3333/api/data",
+        gb.gb1 = new GenomeBrowser();
+        gb.gb1.go({
           //backend_url: "http://staging-2020.ensembl.org/api/browser/data",
           backend_url: "http://localhost:3333/api/data http://localhost:3334/api/data",
-          target_element_id: 'browser',
-          'keys.debug-action': "Require(drag)-Click[2] Hold[3] HoldDrag[4] DoubleClick[7] 1[1] 2[2] 3[3] 4[4] 5[5] 6[6] 7[7] 8[8] 9[9] 0[0]",
-          'keys.pixels-left': 'Shift-A[100] Alt-a[1000]',
-          'keys.pixels-right': "MirrorRunningDrag Shift-D[100] Alt-d[1000]",
-          'keys.pixels-in': "Shift-W[100]",
-          'keys.pixels-out': "Shift-S[100] Wheel",
-          "keys.pull-left": "a ArrowLeft",
-          "keys.pull-right": "d ArrowRight",
-          "keys.pull-in": "w ArrowUp",
-          "keys.pull-out": "s ArrowDown",
-          "zoom.goto.rho": "1.41",
-          "zoom.goto.v": "0.003",
+          target_element_id: 'browser-upper'
         });
-        var seen_transcripts = {};
-        var shown_transcripts = {};
-        var tr_off = false;
-        var track_settings = {};
-        var on_by_default = {"label":true, "name":true}; 
-        var tracks_on = {};
+        gb.gb2 = new GenomeBrowser();
+        gb.gb2.go({
+          backend_url: "http://localhost:3333/api/data http://localhost:3334/api/data",
+          target_element_id: 'browser-lower'
+        });
+
+        gb.gb1.tracks_on = {};
+        gb.gb2.tracks_on = {};
 
         /* Helper functions */
 
-        function toggle_all_tr() {
-          for(const tr in seen_transcripts) {
-            if(tr_off) {
-              shown_transcripts[tr] = 1;
-            } else {
-              delete shown_transcripts[tr];
-            }
-          }
-          tr_off = !tr_off;
-          genome_browser.switch(["track","focus","enabled-transcripts"],Object.keys(shown_transcripts));
-        } 
-
-        function toggle_track(track_name) {
-          let cur = tracks_on[track_name];
+        function toggle_track(genome_browser, track_name) {
+          let cur = genome_browser.tracks_on[track_name];
           if(cur!==true && cur!==false) { cur = true; }
           let value = !cur;
-          tracks_on[track_name] = value;
+          genome_browser.tracks_on[track_name] = value;
           let track_path = ["track"];
           // hack: uuid track id => assume expansion track
           if(track_name.length == 36) track_path.push("expand");
@@ -121,33 +79,11 @@
           genome_browser.switch(track_path, value);
         }
 
-        function toggle_setting(track_name, setting, suffix) {
-          if(!(track_name in track_settings)) track_settings[track_name] = {};
-          if(!(setting in track_settings[track_name])) track_settings[track_name][setting] = on_by_default[setting] || false;
-          let cur = track_settings[track_name][setting];
-          let value = !cur;
-          track_settings[track_name][setting] = value;
-          if(suffix) genome_browser.switch(["track", track_name, suffix, setting], value);
-          else genome_browser.switch(["track", track_name, setting], value);
-          if(setting == "several") genome_browser.switch(["track", "focus", "enabled-transcripts"], null);
-        }
-
         function delay(t, v) {
           return new Promise(resolve => setTimeout(resolve, t, v));
         }
 
-        function jump_variant(rsid, chr, loc) {
-          genome_browser.set_stick("a7335667-93e7-11ec-a39d-005056b38ce3:" + chr);
-          genome_browser.goto(loc - 25, loc + 25);
-          genome_browser.wait();
-          genome_browser.switch(["track", "focus", "item", "variant"], {
-            "genome_id": "a7335667-93e7-11ec-a39d-005056b38ce3",
-            "variant_id": rsid,
-            "start": loc
-          });
-        }
-
-        function init_tracks(track_ids) { //enable "built-in" track(s)
+        function init_tracks(genome_browser, track_ids) { //enable "built-in" track(s)
           if(typeof(track_ids) == "string") track_ids = [track_ids];
           track_ids.forEach(track_id => {
             genome_browser.switch(["track", track_id], true);
@@ -157,108 +93,45 @@
           });
         }
 
-        function init_expansion_track(track_id) {
+        function init_expansion_track(genome_browser, track_id) {
           genome_browser.switch(["track", "expand", track_id], true);
           genome_browser.switch(["track", "expand", track_id, "name"], true);
           genome_browser.switch(["track", "expand", track_id, "label"], true);
         }
 
-        function init_variant_track(track_id) { //turn on all variant track switches
-          init_expansion_track(track_id);
+        function init_variant_track(genome_browser, track_id) { //turn on all variant track switches
+          init_expansion_track(genome_browser, track_id);
           genome_browser.switch(["track", "expand", track_id, "label-snv-id"], true);
           genome_browser.switch(["track", "expand", track_id, "label-snv-alleles"], true);
           genome_browser.switch(["track", "expand", track_id, "label-other-id"], true);
           genome_browser.switch(["track", "expand", track_id, "label-other-alleles"], true);
           genome_browser.switch(["track", "expand", track_id, "show-extents"], true);
         }
-
-        function flipper(path) {
-          let flip = false;
-          let out = function () {
-            genome_browser.switch(path, flip);
-            flip = !flip;
-          };
-          return out;
-        }
         
         /* Construct tracks table */
-
-        let all_tracks = {};
-        let current_span = document.getElementById("current");
-        let target_span = document.getElementById("target");
-        genome_browser.set_message_reporter(function(kind,...more) {
-          if(kind=="error") {
-              console.error(more[0]);
-          } else if(kind=="current_position") {
-            let currentPosition = more[0];
-              current_span.innerText = `${currentPosition.stick}:${currentPosition.start}-${currentPosition.end}`;
-          } else if(kind=="target_position") {
-              let targetPosition = more[0];
-              target_span.innerText = `${targetPosition.stick}:${targetPosition.start}-${targetPosition.end}`;
-          } else if(kind=="endstops") {
-              console.log("endstops: " + more[0])
-          } else if(kind=="track_summary") {
-            let tbody = document.getElementById("track-metadata");
-            for(const track of more[0].summary) {
+        for(const name of Object.keys(gb)){
+          break;
+          genome_browser = gb[name];
+          let all_tracks = genome_browser.all_tracks = {};
+          let position_span = document.getElementById("position-" + name);
+          genome_browser.set_message_reporter(function(kind,...more) {
+            if(kind=="error") {
+              console.error(name + " gb error:", more[0]);
+            } else if(kind=="current_position") {
+              let currentPosition = more[0];
+              position_span.innerText = `${currentPosition.stick}:${currentPosition.start}-${currentPosition.end}`;
+            } else if(kind=="endstops") {
+              console.log(name + " endstops: " + more[0])
+            } else if(kind=="track_summary") {
+              let tbody = document.getElementById("track-metadata-" + name);
+              for(const track of more[0].summary) {
                 if(track.type != "track") { continue; } /* don't care */
                 all_tracks[track["switch-id"]] = track;
-            }
-            tbody.innerHTML = "";
-            for(const track_name in all_tracks) {
+              }
+              tbody.innerHTML = "";
+              for(const track_name in all_tracks) {
                 let track = all_tracks[track_name];
                 if(track.type != "track") { continue; } /* don't care */
-                if('all-transcripts' in track) {
-                  let all = track['all-transcripts'];
-                  let new_seen_transcripts = {};
-                  for(let i=0;i<all.length;i++) {
-                    new_seen_transcripts[all[i]] = 1;
-                  }
-                  let pruned = false;
-                  for(const old_seen in seen_transcripts) {
-                    if(!new_seen_transcripts[old_seen]) { pruned = true; }
-                  }
-                  if(pruned) {
-                    genome_browser.switch(["track","focus","enabled-transcripts"],null);
-                  }
-                  seen_transcripts = new_seen_transcripts;
-                  if('transcripts-shown' in track) {
-                    let shown = track['transcripts-shown'];
-                    shown_transcripts = {};
-                    for(const trid of shown) {
-                      if(seen_transcripts[trid]) {
-                        shown_transcripts[trid] = 1;
-                      }
-                    }
-                  }
-                  let trbody = document.getElementById("focus-transcripts");
-                  trbody.innerHTML = "";
-                  for(var trid of Object.keys(seen_transcripts)) {
-                    let trtr = document.createElement("tr");
-                    let trtd1 = document.createElement("td");
-                    trtd1.innerHTML = trid;
-                    let trtd2 = document.createElement("td");
-                    let text = "off";
-                    let action_text = "turn on";
-                    if(shown_transcripts[trid]) { text = "on"; action_text = "turn off"; }
-                    trtd2.innerHTML = text;
-                    let trtd3 = document.createElement("td");
-                    trtd3.innerHTML = "<a href=\"#\">"+action_text+"</a>";
-                    let click_trid = trid;
-                    trtd3.onclick = function() {
-                      if(shown_transcripts[click_trid]) {
-                        delete shown_transcripts[click_trid];
-                      } else {
-                        shown_transcripts[click_trid] = 1;
-                      }
-                      genome_browser.switch(["track","focus","enabled-transcripts"],Object.keys(shown_transcripts));
-                      console.log("sending "+Object.keys(shown_transcripts));
-                    };
-                    trtr.append(trtd1);
-                    trtr.append(trtd2);
-                    trtr.append(trtd3);
-                    trbody.append(trtr);
-                  }
-                }
                 let tr = document.createElement("tr");
                 let data = [track["switch-id"],track.offset,track.height];
                 for(const text of data) {
@@ -266,142 +139,44 @@
                   td.innerText = text;
                   tr.appendChild(td);
                 }
-                let td1 = document.createElement("td");
-                td1.innerHTML = "<a title='Toggle track'>👁️</a>";
-                td1.onclick = function() { toggle_track(track['switch-id']) };
-                let td2 = document.createElement("td");
-                td2.innerHTML = "<a title='Toggle track name' class='lbl'>🏷️n</a>";
-                td2.onclick = function () { toggle_setting(track['switch-id'], "name") };
-                let td3 = document.createElement("td");
-                let td4 = document.createElement("td");
-                let td5 = document.createElement("td");
-                console.log(track);
-                if(track["has-labels"]) { //true for gene tracks (set in eard style string)
-                  td3.innerHTML = "<a title='Toggle gene label' class='lbl'>🏷️g</a>";
-                  td3.onclick = function() { toggle_setting(track['switch-id'], "label") };
-                  td4.innerHTML = "<a title='Toggle transcript label' class='lbl'>🏷️t</a>";
-                  td4.onclick = function() { toggle_setting(track['switch-id'], "transcript-label") };
-                  td5.innerHTML = "<a title='Toggle multiple transcripts'>≣</a>";
-                  td5.onclick = function() { toggle_setting(track['switch-id'], "several") };
-                }
-                else if(track["switch-id"] == "focus" || track["switch-id"].startsWith("variant")){
-                  let suffix = track["switch-id"] == "focus"? "variant" : "";
-                  td3.innerHTML = "<a title='Toggle variant ID' class='lbl'>🏷️i</a>";
-                  td3.onclick = function () {
-                    toggle_setting(track['switch-id'], "label-snv-id", suffix);
-                    toggle_setting(track['switch-id'], "label-other-id", suffix);
-                  };
-                  td4.innerHTML = "<a title='Toggle variant alleles' class='lbl'>🏷️a</a>";
-                  td4.onclick = function () {
-                    toggle_setting(track['switch-id'], "label-snv-alleles", suffix);
-                    toggle_setting(track['switch-id'], "label-other-alleles", suffix);
-                  };
-                  td5.innerHTML = "<a title='Toggle extents'>⋯</a>";
-                  td5.onclick = function () { toggle_setting(track['switch-id'], "show-extents", suffix) };
-                }
-                tr.append(td1, td2, td3, td4, td5);
+                let td = document.createElement("td");
+                td.innerHTML = "<a title='Toggle track'>👁️</a>";
+                td.onclick = function() { toggle_track(gb, track['switch-id']) };
+                tr.append(td);
                 tbody.appendChild(tr);
               }
-          } else if(kind=="hotspot") {
-            let zmenu_data_el = document.getElementById("zmenu-click");
-            if(more[0].variety[0].type == "lozenge") {
-              let obj = more[0].content[0];
-              if(obj.focus) {
-                tr_all(!obj.currently_all);
-              }
             }
-            let zmenu_data = more[0];
-            zmenu_data_el.innerText = JSON.stringify(zmenu_data);
-          }
-        });
-
-        /* Add listeners to interface buttons */
-
-        //document.getElementById("bigger").onclick = flipper(["settings","bigger"]);
-        //document.getElementById("id-labels").onclick = flipper(["track","gene-pc-fwd","label","id"]);
-
-        document.getElementById("jump-snv").onclick = jump_variant.bind(this, "rs699", 1, 230710048);
-        document.getElementById("jump-del").onclick = jump_variant.bind(this, "rs1557469781", 1, 1176408);
-        document.getElementById("jump-del").onclick = jump_variant.bind(this, "rs1557469781", 1, 1176408);
-        document.getElementById("jump-indel").onclick = jump_variant.bind(this, "rs199681827", 1, 46401);
-        document.getElementById("jump-ins").onclick = jump_variant.bind(this, "rs1639760668", 1, 47376);
-
-        document.getElementById("jump-brca2").onclick = function() {
-          genome_browser.switch(["track","focus","enabled-transcripts"],null);
-          genome_browser.switch(["track","focus","item","gene"],{ 
-            "genome_id": "a7335667-93e7-11ec-a39d-005056b38ce3", "item_id": "ENSG00000139618" 
           });
-          genome_browser.jump("focus:gene:a7335667-93e7-11ec-a39d-005056b38ce3:ENSG00000139618");
-        };
-        document.getElementById("jump-fry").onclick = function() {
-          genome_browser.switch(["track","focus","enabled-transcripts"],null);
-          genome_browser.switch(["track","focus","item","gene"],{ 
-            "genome_id": "a7335667-93e7-11ec-a39d-005056b38ce3", "item_id": "ENSG00000073910" 
-          });
-          genome_browser.jump("focus:gene:a7335667-93e7-11ec-a39d-005056b38ce3:ENSG00000073910");
-        };
-        document.getElementById("jump-wheat").onclick = function() {
-          genome_browser.switch(["track","focus","enabled-transcripts"],null);
-          genome_browser.switch(["track","focus","item","gene"],{ 
-            "genome_id": "a73357ab-93e7-11ec-a39d-005056b38ce3", 
-            "item_id": "TraesCS3D02G273600"
-          });
-          genome_browser.wait();
-          genome_browser.jump("focus:gene:a73357ab-93e7-11ec-a39d-005056b38ce3:TraesCS3D02G273600");
-        };
-        document.getElementById("toggle-all-tr").onclick = toggle_all_tr;
-        document.getElementById("focus-region").onclick = function() {
-          genome_browser.switch(["track","focus","item","location"],{
-            "genome_id": "a7335667-93e7-11ec-a39d-005056b38ce3",
-            "region_name": "4",
-            "start": 32272495,
-            "end": 32442859
-          });
-          // genome_browser.set_stick("a7335667-93e7-11ec-a39d-005056b38ce3:4");
-          // genome_browser.goto(32300000,32420000);
-        };
-        document.getElementById("tab1").onclick = function() {
-          genome_browser.switch(["settings","tab-selected"],"G");
-        };
-        document.getElementById("tab2").onclick = function() {
-          genome_browser.switch(["settings","tab-selected"],"V");
-        };
-        document.getElementById("unload").onclick = function() {
-          document.getElementById("browser").remove();
-        };
-        document.getElementById("clock-button").onclick = function() {
-          let clock = document.getElementById("clock");
-          if(window.clock_interval){
-            window.clearInterval(window.clock_interval);
-            clock.innerHTML = window.clock_interval = "";
-          } else {
-            window.clock_interval = window.setInterval(function() { 
-              let out = new Date().toISOString();
-              clock.innerHTML = out.substr(out.length-7).substr(0,5);
-            },10);
-          }
-        };
+        }
+
+        
       
         /* Set initial tracks/settings */
-        genome_browser.switch(["ruler"], true);
-        genome_browser.switch(["ruler", "one_based"], true);
-        init_tracks(["gene-pc-fwd","gc","regulation","focus"]);
-        genome_browser.switch(["settings","tab-selected"],"G");
+        gb.gb1.switch(["ruler"], true);
+        gb.gb1.switch(["ruler", "one_based"], true);
+        init_tracks(gb.gb1, ["gene-pc-fwd","gc","focus"]);
+        gb.gb1.switch(["settings","tab-selected"], "G");
+        init_expansion_track(gb.gb1, "d3c13017-9f70-4d64-87a2-51cb20f042d4"); //variation track
+        gb.gb1.jump("focus:gene:a7335667-93e7-11ec-a39d-005056b38ce3:ENSG00000139618"); //BRCA2
+
+        gb.gb1.switch(["ruler"], true);
+        gb.gb1.switch(["ruler", "one_based"], true);
+        init_tracks(gb.gb2, ["gene-pc-fwd","gc"]);
+        gb.gb2.set_stick("a7335667-93e7-11ec-a39d-005056b38ce3:13");
+        gb.gb2.goto(159980000,160000500);
 
         //Human
         //Check track ID: curl "https://staging-2020.ensembl.org/api/tracks/track_categories/a7335667-93e7-11ec-a39d-005056b38ce3"
         // | jq -r '.track_categories[].track_list[] | select(.label == "dbSNP short variants") | .track_id'
         //Check datafiles: https://eu-west-2.console.aws.amazon.com/s3/buckets/ensembl-2020-gb-flatfiles?prefix=a7335667-93e7-11ec-a39d-005056b38ce3%2F
-        init_expansion_track("d3c13017-9f70-4d64-87a2-51cb20f042d4"); //variation track
         //jump_variant("rs1557469781", 1, 1176408);
-        //goto: location
+        //goto: position
         //genome_browser.set_stick("a7335667-93e7-11ec-a39d-005056b38ce3:13");
         //genome_browser.goto(159980000,160000500);
         //goto: variant
         //jump_variant("rs1557469781", 1, 1176408);
         //goto: gene
-        genome_browser.jump("focus:gene:a7335667-93e7-11ec-a39d-005056b38ce3:ENSG00000139618"); //BRCA2
-
+        //genome_browser2.jump("focus:gene:a7335667-93e7-11ec-a39d-005056b38ce3:ENSG00000139618"); //BRCA2
         //Pig
         //init_expansion_track("83090e95-2586-451c-bf3c-8ffc50068e2b"); //repeats
         //genome_browser.set_stick("da38d82b-df50-419b-af74-886463b7bfa3:14");
