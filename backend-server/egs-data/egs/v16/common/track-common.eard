@@ -45,6 +45,9 @@ export procedure draw_track_category(category,track_ids,leafs) {
 
     let count = len(leafs);
     let enough_zeros = repeat(0,count);
+    // Don't draw categories when no space for it (track padding disabled)
+    let no_padding = setting_boolean("no-padding",[]);
+    let leafs = if(no_padding,repeat(leaf(""),count),leafs);
 
     /* Draw the label itself */
     let pen = pen("'Lato', sans-serif",cat_text_size,[cat_text_colour,...],[colour!("transparent"),...]);

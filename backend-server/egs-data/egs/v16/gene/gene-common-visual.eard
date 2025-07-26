@@ -92,10 +92,11 @@ export procedure draw_focus_track_chevrons(strand,*leaf) {
 }
 
 export procedure draw_sidebar_chevrons(*leaf) {
-    image(coord([0],[0],[24]),["chevron-dark-left",...],[index(leaf.letter,0),...]);
-    image(coord([0],[0],[24]),["chevron-dark-left",...],[index(leaf.letter,1),...]);
-    image(coord([0],[0],[24]),["chevron-dark-right",...],[index(leaf.letter,2),...]);
-    image(coord([0],[0],[24]),["chevron-dark-right",...],[index(leaf.letter,3),...]);
+    let no_padding = setting_boolean("no-padding",[]);
+    image(coord([0],[0],[24]),["chevron-dark-left",...],if(no_padding,[leaf(""),...],[index(leaf.letter,0),...]));
+    image(coord([0],[0],[24]),["chevron-dark-left",...],if(no_padding,[leaf(""),...],[index(leaf.letter,1),...]));
+    image(coord([0],[0],[24]),["chevron-dark-right",...],if(no_padding,[leaf(""),...],[index(leaf.letter,2),...]));
+    image(coord([0],[0],[24]),["chevron-dark-right",...],if(no_padding,[leaf(""),...],[index(leaf.letter,3),...]));
 }
 
 export procedure draw_focus_sidebar_chevrons(strand,*leaf) {
