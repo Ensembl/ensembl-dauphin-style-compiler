@@ -385,7 +385,7 @@
         /* Set initial tracks/settings */
         genome_browser.switch(["ruler"], true);
         genome_browser.switch(["ruler", "one_based"], true);
-        //genome_browser.switch(["track", "no-left-padding"], true);
+        //genome_browser.switch(["settings", "no-padding"], true); //disable left/right side margins
         init_tracks(["gene-pc-fwd","regulation","focus"]);
         genome_browser.switch(["settings","tab-selected"],"G");
 
@@ -393,7 +393,7 @@
         //Check track ID: curl "https://staging-2020.ensembl.org/api/tracks/track_categories/a7335667-93e7-11ec-a39d-005056b38ce3"
         // | jq -r '.track_categories[].track_list[] | select(.label == "dbSNP short variants") | .track_id'
         //Check datafiles: https://eu-west-2.console.aws.amazon.com/s3/buckets/ensembl-2020-gb-flatfiles?prefix=a7335667-93e7-11ec-a39d-005056b38ce3%2F
-        //init_expansion_track("d3c13017-9f70-4d64-87a2-51cb20f042d4"); //variation track
+        //init_expansion_track("d3c13017-9f70-4d64-87a2-51cb20f042d4"); //variation track (update track ID)
         //jump_variant("rs1557469781", 1, 1176408);
         //goto: location
         //genome_browser.set_stick("a7335667-93e7-11ec-a39d-005056b38ce3:13");
