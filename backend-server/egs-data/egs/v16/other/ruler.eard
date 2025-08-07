@@ -80,14 +80,15 @@ rectangle(coord([0],[0],[0]),coord([1],[16],[0]),bgd_paint,[ruler_under_leaf,...
 rectangle(coord([0],[-1],[0]),coord([1],[-16],[0]),bgd_paint,[ruler_under_leaf,...]);
 
 /* Draw fiddly bp rectangle */
+let no_padding = setting_boolean("no-padding",[]); // no space for it when padding disabled
 /* ... top ruler */
-rectangle(coord([0],[0],[48]),coord([0],[16],[48]),paint,[ruler_over_leaf,...]); // sep, vert
-rectangle(coord([0],[16],[0]),coord([0],[16],[48]),paint,[ruler_over_leaf,...]); // sep, horiz
-text(coord([0],[2],[4]),pen,["bp"],[ruler_over_leaf]);
+rectangle(coord([0],[0],[48]),coord([0],[16],[48]),paint,if(no_padding,[leaf(""),...],[ruler_over_leaf,...])); // sep, vert
+rectangle(coord([0],[16],[0]),coord([0],[16],[48]),paint,if(no_padding,[leaf(""),...],[ruler_over_leaf,...])); // sep, horiz
+text(coord([0],[2],[4]),pen,["bp"],if(no_padding,[leaf(""),...],[ruler_over_leaf]));
 /* ... bottom ruler */
-rectangle(coord([0],[-1],[48]),coord([0],[-16],[48]),paint,[ruler_over_leaf,...]); // sep, vert
-rectangle(coord([0],[-16],[0]),coord([0],[-16],[48]),paint,[ruler_over_leaf,...]); // sep, horiz
-text(coord([0],[-14],[4]),pen,["bp"],[ruler_over_leaf]);
+rectangle(coord([0],[-1],[48]),coord([0],[-16],[48]),paint,if(no_padding,[leaf(""),...],[ruler_over_leaf,...])); // sep, vert
+rectangle(coord([0],[-16],[0]),coord([0],[-16],[48]),paint,if(no_padding,[leaf(""),...],[ruler_over_leaf,...])); // sep, horiz
+text(coord([0],[-14],[4]),pen,["bp"],if(no_padding,[leaf(""),...],[ruler_over_leaf]));
 
 /* Draw numbers */
 text(coord(markings,[2,...],[4,...]),pen,numbers,[ruler_bp_leaf,...]);

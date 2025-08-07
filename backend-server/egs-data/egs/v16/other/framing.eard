@@ -2,8 +2,9 @@ program "ensembl-webteam/core" "framing" 1;
 refer "libperegrine";
 refer "libeoe";
 
-let pad_left = leaf("pad-left/content");
-let pad_right = leaf("pad-right/content");
+let no_padding = setting_boolean("no-padding", []);
+let pad_left = if(no_padding, leaf(""), leaf("pad-left/content")); 
+let pad_right = if(no_padding, leaf(""), leaf("pad-right/content"));
 
 style!("""
     pad-left/ {

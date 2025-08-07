@@ -4,3 +4,4 @@ program_version = 1
 
 [include.general.settings]
 tab-selected = ["settings","tab-selected"]
+no-padding = ["settings","no-padding"]
