@@ -1,0 +1,70 @@
+program "ensembl-webteam/core" "sv-gene" 1;
+refer "libperegrine";
+refer "libeoe";
+include "../common/track-common.eard";
+include "../common/track-style.eard";
+include "gene-common-data.eard";
+include "gene-common-zmenu.eard";
+
+/* Set styles */
+
+track_styles();
+
+style!("""
+    tracks/track/sv-gene/ {
+        min-height: 92;
+        priority: 100;
+        report: "track;switch-id=sv-gene";
+    }
+
+    **/main/main/ {
+        type: bumper;
+    }
+
+    **/main/main/*/ {
+        type: overlay;
+    }
+
+    **/main/main/*/blocks/ {
+        depth: 4;
+    }
+
+    **/main/main/*/text/ {
+        bump-width: none;
+        system: tracking-special;
+    }
+
+    **/main/background/content {
+        depth: -10;
+        padding-top: 32;
+    }
+""");
+
+/* Get data */
+
+let *gene = get_gene_data();
+
+halt(only_warm());
+
+/* Allocate leafs */
+
+let leaf_base = push_str("tracks/track/sv-gene/main/main/",gene.id_versioned);
+let block_leaf = leaf(push_str(leaf_base,"/blocks/content"));
+let text_leaf = leaf(push_str(leaf_base,"/text/content"));
+let bg_leaf = leaf("tracks/track/sv-gene/main/background/content");
+
+/* Draw gene blocks and labels */
+
+let paint = paint_solid(colour!("#279afc"));
+rectangle(coord(gene.start,[0,...],[-0.5,...]), coord(gene.end,[5,...],[0.5,...]), paint, block_leaf);
+
+let pen = pen("'IBM Plex Mono', sans-serif", 10, [colour!("#6f8190"),...], [colour!("transparent"),...]);
+running_text(coord(gene.start,[8,...],[0,...]), coord(gene.end,[8,...],[0,...]), pen, gene.name, text_leaf);
+
+/* Draw horizontal dotted line */
+let line_paint = paint_dotted([colour!("white"),...],[colour!("#999"),...],4,1,0.5);
+rectangle(coord([0],[0],[0.5]), coord([1],[0],[0.5]), line_paint, [bg_leaf,...]);
+
+/* ZMenus */
+
+//emit_gene_zmenu(*gene);

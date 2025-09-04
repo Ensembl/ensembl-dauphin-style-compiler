@@ -117,6 +117,12 @@ include=["focus-gene","general"]
 [track.focus-zoomed-transcript-no-letters.values]
 scale-no-letters = true
 
+[track.sv-gene]
+program_name = "sv-gene"
+scales = [6,100,6]
+include=["general"]
+triggers = [["track","sv-gene"]]
+
 #
 # Frame
 #
