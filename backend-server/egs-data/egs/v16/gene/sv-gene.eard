@@ -12,7 +12,7 @@ track_styles();
 
 style!("""
     tracks/track/sv-gene/ {
-        min-height: 92;
+        min-height: 40;
         priority: 10;
         report: "track;switch-id=sv-gene";
     }
@@ -21,29 +21,23 @@ style!("""
         type: stack;
     }
 
-    tracks/track/sv-gene/main/main/fwd {
-        type: stack;
+    tracks/track/sv-gene/main/main/fwd/ {
         min-height: 15;
         priority: 0;
-    }
-    
-    tracks/track/sv-gene/main/main/fwd/ {
         type: bumper;
     }
 
-    tracks/track/sv-gene/main/main/line {
-        type: stack;
+    tracks/track/sv-gene/main/main/line/ {
         min-height: 5;
+        padding-top: 2;
+        padding-bottom: 2;
         priority: 1;
-    }
-
-    tracks/track/sv-gene/main/main/rev {
-        type: stack;
-        min-height: 15;
-        priority: 2;
+        system: content;
     }
 
     tracks/track/sv-gene/main/main/rev/ {
+        min-height: 15;
+        priority: 2;
         type: bumper;
     }
 
@@ -74,7 +68,7 @@ leaf_base = set(leaf_base, gene.strand == 0, ["tracks/track/sv-gene/main/main/re
 leaf_base = push_str(leaf_base, gene.id_versioned);
 let block_leaf = leaf(push_str(leaf_base, "blocks/content"));
 let text_leaf = leaf(push_str(leaf_base, "text/content"));
-let bg_leaf = leaf("tracks/track/sv-gene/main/main/line/content");
+let bg_leaf = leaf("tracks/track/sv-gene/main/main/line/background/content");
 
 /* Draw gene blocks and labels */
 
