@@ -13,30 +13,51 @@ track_styles();
 style!("""
     tracks/track/sv-gene/ {
         min-height: 92;
-        priority: 100;
+        priority: 10;
         report: "track;switch-id=sv-gene";
     }
 
-    **/main/main/ {
+    tracks/track/sv-gene/main/main/ {
+        type: stack;
+    }
+
+    tracks/track/sv-gene/main/main/fwd {
+        type: stack;
+        min-height: 15;
+        priority: 0;
+    }
+    
+    tracks/track/sv-gene/main/main/fwd/ {
         type: bumper;
     }
 
-    **/main/main/*/ {
+    tracks/track/sv-gene/main/main/line {
+        type: stack;
+        min-height: 5;
+        priority: 1;
+    }
+
+    tracks/track/sv-gene/main/main/rev {
+        type: stack;
+        min-height: 15;
+        priority: 2;
+    }
+
+    tracks/track/sv-gene/main/main/rev/ {
+        type: bumper;
+    }
+
+    tracks/track/sv-gene/main/main/*/*/ {
         type: overlay;
     }
 
-    **/main/main/*/blocks/ {
+    tracks/track/sv-gene/main/main/**/blocks/ {
         depth: 4;
     }
 
-    **/main/main/*/text/ {
+    tracks/track/sv-gene/main/main/**/text/ {
         bump-width: none;
         system: tracking-special;
-    }
-
-    **/main/background/content {
-        depth: -10;
-        padding-top: 32;
     }
 """);
 
@@ -48,10 +69,12 @@ halt(only_warm());
 
 /* Allocate leafs */
 
-let leaf_base = push_str("tracks/track/sv-gene/main/main/",gene.id_versioned);
-let block_leaf = leaf(push_str(leaf_base,"/blocks/content"));
-let text_leaf = leaf(push_str(leaf_base,"/text/content"));
-let bg_leaf = leaf("tracks/track/sv-gene/main/background/content");
+let leaf_base = repeat("tracks/track/sv-gene/main/main/fwd/", len(gene.name));
+leaf_base = set(leaf_base, gene.strand == 0, ["tracks/track/sv-gene/main/main/rev/",...]);
+leaf_base = push_str(leaf_base, gene.id_versioned);
+let block_leaf = leaf(push_str(leaf_base, "blocks/content"));
+let text_leaf = leaf(push_str(leaf_base, "text/content"));
+let bg_leaf = leaf("tracks/track/sv-gene/main/main/line/content");
 
 /* Draw gene blocks and labels */
 
@@ -63,7 +86,7 @@ running_text(coord(gene.start,[8,...],[0,...]), coord(gene.end,[8,...],[0,...]),
 
 /* Draw horizontal dotted line */
 let line_paint = paint_dotted([colour!("white"),...],[colour!("#999"),...],4,1,0.5);
-rectangle(coord([0],[0],[0.5]), coord([1],[0],[0.5]), line_paint, [bg_leaf,...]);
+rectangle(coord([0],[0],[0.5]), coord([1],[0],[0.5]), line_paint, [bg_leaf]);
 
 /* ZMenus */
 
