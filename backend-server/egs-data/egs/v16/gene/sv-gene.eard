@@ -83,5 +83,6 @@ let line_paint = paint_dotted([colour!("white"),...],[colour!("#999"),...],4,1,0
 rectangle(coord([0],[0],[0.5]), coord([1],[0],[0.5]), line_paint, [bg_leaf]);
 
 /* ZMenus */
-
-//emit_gene_zmenu(*gene);
+gene.block_leaf = block_leaf;
+gene.leaf_index = repeat(5, len(gene.name));
+emit_gene_zmenu(*gene);
