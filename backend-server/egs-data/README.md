@@ -1,13 +1,14 @@
-# Eard files quick reference
+# Eard code quick reference
 
 Overview of common commands/values used in the eard programs to help with building genome browser tracks.
+Eard syntax highlighter for VScode can be found [here](https://github.com/Ensembl/peregrine-eard/tree/main/eard-file-extension) ([installation](https://github.com/Ensembl/peregrine-eard/blob/main/eard-file-extension/vsc-extension-quickstart.md#install-your-extension)).
 Also see [`registering-new-track.md`](/doc/registering-new-track.md)
 
 ## Styling system meta-language
 
 Properties/values used in the style blocks in `style!("...")` macros (or `style()` calls).
 Style blocks override previously set fields for matching container paths.
-Base styles for all tracks are defined in [`track-style.eard`](egs/v16/common/track-style.eard).
+Base styles for all tracks are defined in [`track-style.eard`](egs/v16/common/track-style.eard)
 
 ### Container properties
 Parsed in [`containerstyle.rs`](/peregrine-data/src/allotment/style/containerstyle.rs)
@@ -32,7 +33,7 @@ Parsed in [`containerstyle.rs`](/peregrine-data/src/allotment/style/containersty
 - `set-datum`:
   - `<identifier>`: records the container’s width (used for side padding, see below)
 - `height-adjust`:
-  - `tracking`: container height responds to tracking-space scaling logic
+  - `tracking`: height of container changes with content (for scrolling tracks)
 - `report`:
   - `<string>`: attach metadata to track container (sent to client-side when the track is enabled)
 
@@ -56,7 +57,7 @@ From [`leafstyle.rs`](/peregrine-data/src/allotment/style/leafstyle.rs)
 ### Coordinates & leafs
 See [`shape.rs`](/libperegrine/src/shape.rs)
 
-- `coord(position[int], x_delta[int], y_delta[int])`: registers a coordinate handle (point in canvas)
+- `coord(position[int|float], x_delta[int], y_delta[int])`: registers a coordinate handle (point in canvas)
   - `position`: genomic position (or `0..1` if `window`/`content` coordinate system)
   - `x_delta`/`y_delta`: shift the coordinate `<int>` pixels from `position`
 - `leaf(path_str)`: creates a leaf (binds styles with matching paths)
