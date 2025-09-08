@@ -7,6 +7,7 @@ Also see [`registering-new-track.md`](/doc/registering-new-track.md)
 
 Properties/values used in the style blocks in `style!("...")` macros (or `style()` calls).
 Style blocks override previously set fields for matching container paths.
+Base styles for all tracks are defined in [`track-style.eard`](egs/v16/common/track-style.eard).
 
 ### Container properties
 Parsed in [`containerstyle.rs`](/peregrine-data/src/allotment/style/containerstyle.rs)
@@ -55,48 +56,48 @@ From [`leafstyle.rs`](/peregrine-data/src/allotment/style/leafstyle.rs)
 ### Coordinates & leafs
 See [`shape.rs`](/libperegrine/src/shape.rs)
 
-- `coord([position], [x_delta], [y_delta])`: registers a coordinate handle (point in canvas)
+- `coord(position[int], x_delta[int], y_delta[int])`: registers a coordinate handle (point in canvas)
   - `position`: genomic position (or `0..1` if `window`/`content` coordinate system)
-  - `x_delta`/`y_delta`: shift coordinate `<int>` pixels from position
-- `leaf("path/to/leaf")`: creates a leaf (binds styles with matching paths)
-- `empty([nw_coord], [se_coord], [leafs])`: reserves layout area without drawing (leaf anchoring)
+  - `x_delta`/`y_delta`: shift the coordinate `<int>` pixels from `position`
+- `leaf(path_str)`: creates a leaf (binds styles with matching paths)
+- `empty(nw_coord[], se_coord[], leaf)`: reserves layout area without drawing (leaf anchoring)
 
 ### Colour & paint
 See [`paint.rs`](/libperegrine/src/paint.rs)
 
 - `colour!("#rgb")` / `colour!("name")`: registers a colour handle
-- `paint_solid(colour_handle)`: registers paint for filled blocks
-- `paint_hollow(colour_handle, width)`: paint for hollow blocks
-  - with pixel `width` stroke line
+- `paint_solid(colour)`: registers paint for filled blocks
+- `paint_hollow(colour, stroke_width)`: paint for hollow blocks (stroke line width in pixels)
 - `paint_dotted(colour_a, colour_b, length, width, prop)`: paint for dashed/dotted lines
-  - `length`: dash length for each colour
-  - `width`: line width
-  - `prop`: proportion (e.g 0.5) for pattern repeat/blend
-- `paint_special("name", bool)`: used for maypole line
-- `paint_metadata(key, [values], [templates])`:
+  - `length`: dash length for each colour (px)
+  - `width`: line width (px)
+  - `prop`: proportion (e.g `0.5`) for pattern repeat/blend
+- `paint_special(name_str, bool)`: used for ruler maypole line (name = "maypole")
+- `paint_metadata(key, values[], eoe_templates[])`:
   - binds metadata to a shape (used for focus tracks)
-- `paint_setting(key, [values], [templates], hover_bool)`:
+- `paint_setting(key, values[], eoe_templates[], hover_bool)`:
   - clickable hotspot to toggle a setting (used for transcript lozenges)
 - `zmenu(variety_template, payload_template, hover_bool)`:
   - clickable hotspot for zmenu (sends zmenu payload to the client)
-- `graph_type(height, colour_handle)`:
-  - Plotter definition for wiggles (bar/line style with vertical scale).
-- `pen(font_name, size, fgd_colour(s), bgd_colour(s))`:
-  - Text pen; negative `size` attaches from right (mirroring).
-  - Foreground/background colours can be single or sequences.
+- `graph_type(height, colour)`: parameters for wiggle graph
+- `pen(font_str, size_int, fgd_colours[], bgd_colours[])`: paint handle for text
+  - negative `size` attaches from right (mirroring)
 
 ### Shapes
 
-- `rectangle(nw_coord, se_coord, paint, leafs)`: draws a filled or stroked block
-- `rectangle_join(nw, se, paint, leafs_a, leafs_b)`:
-  - joint drawing to extra leafs (used for variant fishing lines)
-- `running_rectangle(nw, se, end_bp, paint, leafs)`:
-  - draws a block that stays on screen until `end_pos` visible (used for transcript lozenges)
-- `wiggle(bp_left, bp_right, graph_type, [values], [full_values_bool], leaf)`:
+- `rectangle(nw_coord, se_coord, paint, leafs[])`: draws a filled or stroked block
+- `rectangle_join(nw_coord, se_coord, paint, leafs_a[], leafs_b[])`:
+  - joint drawing to extra leafs (used for variant track fishing lines)
+- `running_rectangle(nw_coord, se_coord, end_bp, paint, leafs[])`:
+  - draws a block that stays on screen until `end_bp` is visible (used for transcript lozenges)
+- `wiggle(start_bp, end_bp, graph_type, y_values[float], include_values[bool], leaf)`:
   - draws a wiggle plot (used for gc track)
-- `text(coords, pen, string_or_sequence, leafs)`:
-  - Places static text at coordinate origin (extent from pen metrics).
+- `text(coords, pen, text[str], leafs[])`: draws a static text
 - `running_text(nw_coord, se_coord, pen, strings, leafs)`:
   - used for gene labels (sticks with gene block until scrolled out of screen)
 - `image(coords, image_name, leafs)`:
   - draws an image (from `backend-server/assets` dir), used for chevrons
+
+## Built-ins
+
+See [peregrine-eard](https://github.com/Ensembl/peregrine-eard/blob/main/docs/library-ref-source.txt) doc to reference built-in functions and operators (e.g. `print()`,`len()`, `eoe` templates).
