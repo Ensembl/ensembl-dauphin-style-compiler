@@ -5,84 +5,28 @@ include "../common/track-common.eard";
 include "../common/track-style.eard";
 include "gene-common-data.eard";
 include "gene-common-zmenu.eard";
+include "sv-common.eard";
 
 /* Set styles */
-
 track_styles();
-
-style!("""
-    tracks/track/sv-gene/ {
-        min-height: 40;
-        priority: 10;
-        report: "track;switch-id=sv-gene";
-    }
-
-    tracks/track/sv-gene/main/main/ {
-        type: stack;
-    }
-
-    tracks/track/sv-gene/main/main/fwd/ {
-        min-height: 15;
-        priority: 0;
-        type: bumper;
-    }
-
-    tracks/track/sv-gene/main/main/line/ {
-        min-height: 5;
-        padding-top: 2;
-        padding-bottom: 2;
-        priority: 1;
-        system: content;
-    }
-
-    tracks/track/sv-gene/main/main/rev/ {
-        min-height: 15;
-        priority: 2;
-        type: bumper;
-    }
-
-    tracks/track/sv-gene/main/main/*/*/ {
-        type: overlay;
-    }
-
-    tracks/track/sv-gene/main/main/**/blocks/ {
-        depth: 4;
-    }
-
-    tracks/track/sv-gene/main/main/**/text/ {
-        bump-width: none;
-        system: tracking-special;
-    }
-""");
+sv_gene_styles();
 
 /* Get data */
-
 let *gene = get_gene_data();
-
 halt(only_warm());
 
 /* Allocate leafs */
-
-let leaf_base = repeat("tracks/track/sv-gene/main/main/fwd/", len(gene.name));
-leaf_base = set(leaf_base, gene.strand == 0, ["tracks/track/sv-gene/main/main/rev/",...]);
-leaf_base = push_str(leaf_base, gene.id_versioned);
-let block_leaf = leaf(push_str(leaf_base, "blocks/content"));
-let text_leaf = leaf(push_str(leaf_base, "text/content"));
-let bg_leaf = leaf("tracks/track/sv-gene/main/main/line/background/content");
+let *leafs = sv_gene_leafs(*gene);
 
 /* Draw gene blocks and labels */
-
 let paint = paint_solid(colour!("#279afc"));
-rectangle(coord(gene.start,[0,...],[-0.5,...]), coord(gene.end,[5,...],[0.5,...]), paint, block_leaf);
+rectangle(coord(gene.start,[0,...],[-0.5,...]), coord(gene.end,[5,...],[0.5,...]), paint, leafs.blocks);
 
-let pen = pen("'IBM Plex Mono', sans-serif", 10, [colour!("#6f8190"),...], [colour!("transparent"),...]);
-running_text(coord(gene.start,[8,...],[0,...]), coord(gene.end,[8,...],[0,...]), pen, gene.name, text_leaf);
-
-/* Draw horizontal dotted line */
+/* Draw strand divider line */
 let line_paint = paint_dotted([colour!("white"),...],[colour!("#999"),...],4,1,0.5);
-rectangle(coord([0],[0],[0.5]), coord([1],[0],[0.5]), line_paint, [bg_leaf]);
+rectangle(coord([0],[0],[0.5]), coord([1],[0],[0.5]), line_paint, [leafs.bg]);
 
-/* ZMenus */
-gene.block_leaf = block_leaf;
+/* Draw zmenu hotspots */
+gene.block_leaf = leafs.blocks;
 gene.leaf_index = repeat(5, len(gene.name));
 emit_gene_zmenu(*gene);

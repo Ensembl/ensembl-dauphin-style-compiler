@@ -1,0 +1,65 @@
+program "ensembl-webteam/core" "sv-transcript" 1;
+refer "libperegrine";
+refer "libeoe";
+include "../common/track-common.eard";
+include "../common/track-style.eard";
+include "gene-common-data.eard";
+include "gene-common-zmenu.eard";
+include "gene-common-visual.eard";
+include "transcript-common.eard";
+include "sv-common.eard";
+
+/* Set styles */
+track_styles();
+sv_gene_styles();
+sv_transcript_styles();
+
+/* Get data */
+let (*gene, *tr, *exon) = get_transcript_data([]);
+let gene.leaf_index = repeat(5, len(gene.start));
+let tr.leaf_index = repeat(5, len(tr.start));
+halt(only_warm());
+
+/* Setup leaves */
+let **tr_gene = index(**gene, tr.index_of_gene);
+let shown_tr = tr.position_in_gene == 0; // only show the first transcript (see transcriptorder.py)
+let *leafs = sv_transcript_leafs(*gene, *tr, shown_tr);
+let base_col = colour!("#279afc"); // blue
+
+/* Draw dotted lines between gene start/end and transcript start/end */
+let *dots = calc_outside_of_tr(*tr_gene, *tr, *leafs);
+let paint = paint_dotted([colour!("white"),...], [base_col,...], 4, 0, 0.5);
+rectangle(coord(dots.start,[5,...],[0,...]), coord(dots.end,[5,...],[0,...]), paint, dots.leaf);
+
+/* Draw solid lines and their endstops */
+let paint = paint_solid(base_col);
+rectangle(coord(tr.start,[5,...],[0,...]), coord(tr.end,[6,...],[0,...]), paint, leafs.under_leaf);
+
+let paint = paint_hollow(index(gene_colours(), tr_gene.leaf_index), 1);
+rectangle(coord(tr_gene.start,[2,...],[0,...]), coord(tr_gene.start,[8,...],[0,...]), paint, leafs.under_leaf);
+rectangle(coord(tr_gene.end,[2,...],[0,...]), coord(tr_gene.end,[8,...],[0,...]), paint, leafs.under_leaf);
+
+/* Draw hollow and blanking exons */
+let **exon_tr = index(**tr, exon.index_of_tr);
+let **leaf_exon_tr = index(**leafs, exon.index_of_tr);
+
+let paint = paint_hollow(base_col, 1);
+rectangle(coord(exon.start,[2,...],[0,...]), coord(exon.end,[8,...],[0,...]), paint, leaf_exon_tr.over_leaf);
+let paint = paint_solid(colour!("white"));
+rectangle(coord(exon.start,[2,...],[0,...]), coord(exon.end,[8,...],[0,...]), paint, leaf_exon_tr.blanking_leaf);
+
+/* Draw solid exons */
+let *thick_exon = generate_thick_exons(*tr, *exon_tr, *exon);
+let **thick_exon_tr = index(**exon_tr, thick_exon.index_of_exon);
+let thick_exon.far_over_leaf = index(leaf_exon_tr.far_over_leaf, thick_exon.index_of_exon);
+
+let paint = paint_solid(base_col);
+rectangle(coord(thick_exon.start,[2,...],[0,...]), coord(thick_exon.end,[8,...],[0,...]), paint, thick_exon.far_over_leaf);
+
+/* Draw strand divider line */
+let bg_leaf = leaf("tracks/track/sv-gene/main/main/line/background/content");
+let line_paint = paint_dotted([colour!("white"),...],[colour!("#999"),...],4,1,0.5);
+rectangle(coord([0],[0],[0.5]), coord([1],[0],[0.5]), line_paint, [bg_leaf]);
+
+/* Draw zmenu hotspots */
+emit_tr_zmenu(*tr_gene, *tr, *leafs, 20);
