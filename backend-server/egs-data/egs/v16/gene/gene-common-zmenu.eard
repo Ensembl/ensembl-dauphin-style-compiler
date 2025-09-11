@@ -85,7 +85,7 @@ struct!(gene_zmenu,"""
         gene.biotype,
         gene.strand_string,
         gene.id_unversioned,
-        index(["gene-other-rev","gene-pc-rev","gene-other-fwd","gene-pc-fwd","focus"],gene.leaf_index),
+        index(["gene-other-rev","gene-pc-rev","gene-other-fwd","gene-pc-fwd","focus","sv-gene"],gene.leaf_index),
         gene.biotype,
         gene.all_tr_count,
         if(gene.all_tr_count > 1,["transcripts",...],["transcript",...]),
@@ -159,7 +159,7 @@ struct!(gene_tr_zmenu,"""
       gene.strand_string,
       gene.desigtr_unversioned,
       gene.id_versioned,
-      index(["gene-other-rev","gene-pc-rev","gene-other-fwd","gene-pc-fwd","focus"],gene.leaf_index),
+      index(["gene-other-rev","gene-pc-rev","gene-other-fwd","gene-pc-fwd","focus","sv-gene"],gene.leaf_index),
       gene.biotype,
       gene_location,
       small_value("designation", "label", gene.designation)
@@ -229,7 +229,7 @@ struct!(tr_zmenu,"""
     tr_gene.strand_string,
     tr.id_unversioned,
     tr_gene.id_versioned,
-    index(["gene-other-rev","gene-pc-rev","gene-other-fwd","gene-pc-fwd","focus"],tr.leaf_index),
+    index(["gene-other-rev","gene-pc-rev","gene-other-fwd","gene-pc-fwd","focus","sv-gene"],tr.leaf_index),
     small_value("designation","label",tr.designation),
     tr.biotype,
     transcript_location

@@ -1,0 +1,84 @@
+export procedure sv_gene_styles() {
+  style!("""
+    tracks/track/sv-gene/ {
+      min-height: 40;
+      priority: 10;
+      report: "track;switch-id=sv-gene";
+    }
+
+    tracks/track/sv-gene/main/main/ {
+      type: stack;
+    }
+
+    tracks/track/sv-gene/main/main/fwd/ {
+      min-height: 15;
+      priority: 0;
+      type: bumper;
+    }
+
+    tracks/track/sv-gene/main/main/line/ {
+      min-height: 5;
+      padding-top: 2;
+      padding-bottom: 2;
+      priority: 1;
+      system: content;
+    }
+
+    tracks/track/sv-gene/main/main/rev/ {
+      min-height: 15;
+      priority: 2;
+      type: bumper;
+    }
+
+    tracks/track/sv-gene/main/main/*/*/ {
+      type: overlay;
+    }
+
+    tracks/track/sv-gene/main/main/**/blocks/ {
+      depth: 4;
+    }
+""");
+}
+
+export procedure sv_transcript_styles() {
+  style!("""
+    tracks/track/sv-gene/main/main/**/diagram/          { type: overlay; }
+    tracks/track/sv-gene/main/main/**/diagram/far-under { depth: -3; }
+    tracks/track/sv-gene/main/main/**/diagram/under     { depth: -2; }
+    tracks/track/sv-gene/main/main/**/diagram/blanking  { depth:  1; }
+    tracks/track/sv-gene/main/main/**/diagram/over      { depth:  2; }
+    tracks/track/sv-gene/main/main/**/diagram/far-over  { depth:  3; }
+""");
+}
+
+procedure sv_gene_leaf_base(*gene) {
+  let base = repeat("tracks/track/sv-gene/main/main/fwd/", len(gene.name));
+  base = set(base, gene.strand == 0, ["tracks/track/sv-gene/main/main/rev/", ...]);
+  push_str(base, gene.id_versioned)
+}
+
+export procedure sv_gene_leafs(*gene) {
+  let base = sv_gene_leaf_base(*gene);
+  let leafs.blocks = leaf(push_str(base, "blocks/content"));
+  let leafs.bg = leaf("tracks/track/sv-gene/main/main/line/background/content");
+  *leafs
+}
+
+export procedure sv_transcript_leafs(*gene, *tr, shown_tr) {
+  let base = sv_gene_leaf_base(*gene);
+  let base = index(base, tr.index_of_gene);
+
+  let leafs.far_under_leaf = leaf(push_str(base, "/diagram/far-under"));
+  let leafs.under_leaf     = leaf(push_str(base, "/diagram/under"));
+  let leafs.over_leaf      = leaf(push_str(base, "/diagram/over"));
+  let leafs.far_over_leaf  = leaf(push_str(base, "/diagram/far-over"));
+  let leafs.blanking_leaf  = leaf(push_str(base, "/diagram/blanking"));
+
+  let leafs.far_under_leaf = set(leafs.far_under_leaf, !shown_tr, [leaf(""), ...]);
+  let leafs.under_leaf     = set(leafs.under_leaf,     !shown_tr, [leaf(""), ...]);
+  let leafs.over_leaf      = set(leafs.over_leaf,      !shown_tr, [leaf(""), ...]);
+  let leafs.far_over_leaf  = set(leafs.far_over_leaf,  !shown_tr, [leaf(""), ...]);
+  let leafs.blanking_leaf  = set(leafs.blanking_leaf,  !shown_tr, [leaf(""), ...]);
+
+  *leafs
+}
