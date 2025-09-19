@@ -39,11 +39,13 @@ class Expansions:
         track.add_value("track_name", data['label']) # value to inject track name into the track program
         track.add_value("display_order", data['display_order']) # initial track order for the track program
         track.add_value("datafile", data['datafiles'][program])
-        # add setting switches 
+        # add track-specific setting switches 
         switches = settings.get("switches", [])
-        switches.append("name")  # switch to toggle track name on/off
+        switches.append("name")  # toggle track name on/off
         self._add_settings(track, data, switches)
-        track.add_setting("tab-selected", ["settings", "tab-selected"]) # global setting to track the selected tab
+        # add global settings
+        track.add_setting("no-padding", ["settings", "no-padding"]) # track side margins
+        track.add_setting("tab-selected", ["settings", "tab-selected"]) # selected track category
         return track
     
     # Create a track set (consisting of a single track, or a pair for zoomed-in/zoomed-out views)
