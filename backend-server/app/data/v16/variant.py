@@ -4,7 +4,6 @@ from command.response import Response
 from model.bigbed import get_bigwig_stats, get_bigwig, get_bigbed
 from model.datalocator import AccessItem
 from data.v16.dataalgorithm import data_algorithm
-import math
 
 SCALE = 4000
 
