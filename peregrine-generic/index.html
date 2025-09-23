@@ -98,7 +98,7 @@
         /* Helper functions */
 
         function is_uuid(s) {
-          return s.length == 36 && s[8] == '-' && s[13] == '-' && s[18] == '-' && s[23] == '-';
+          return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
         }
 
         function toggle_all_tr() {
