@@ -72,9 +72,9 @@
       init().then(function() {
         let genome_browser = window.gb = new GenomeBrowser();
         genome_browser.go({
-          //backend_url: "http://52.56.215.72:3333/api/data",
-          //backend_url: "http://staging-2020.ensembl.org/api/browser/data",
-          backend_url: "http://localhost:3333/api/data http://localhost:3334/api/data",
+          //backend_url: "http://52.56.215.72:3333/api/data", //aws
+          //backend_url: "https://staging-2020.ensembl.org/api/browser/data", //staging
+          backend_url: "http://localhost:3333/api/data http://localhost:3334/api/data", //local
           target_element_id: 'browser',
           'keys.debug-action': "Require(drag)-Click[2] Hold[3] HoldDrag[4] DoubleClick[7] 1[1] 2[2] 3[3] 4[4] 5[5] 6[6] 7[7] 8[8] 9[9] 0[0]",
           'keys.pixels-left': 'Shift-A[100] Alt-a[1000]',
@@ -97,6 +97,10 @@
 
         /* Helper functions */
 
+        function is_uuid(s) {
+          return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
+        }
+
         function toggle_all_tr() {
           for(const tr in seen_transcripts) {
             if(tr_off) {
@@ -115,8 +119,7 @@
           let value = !cur;
           tracks_on[track_name] = value;
           let track_path = ["track"];
-          // hack: uuid track id => assume expansion track
-          if(track_name.length == 36) track_path.push("expand");
+          if(is_uuid(track_name)) track_path.push("expand");
           track_path.push(track_name);
           genome_browser.switch(track_path, value);
         }
@@ -150,26 +153,19 @@
         function init_tracks(track_ids) { //enable "built-in" track(s)
           if(typeof(track_ids) == "string") track_ids = [track_ids];
           track_ids.forEach(track_id => {
-            genome_browser.switch(["track", track_id], true);
-            genome_browser.switch(["track", track_id, "name"], true);
-            genome_browser.switch(["track", track_id, "label"], true); //used for some tracks
+            const base = is_uuid(track_id)? ["track","expand"] : ["track"];
+            genome_browser.switch([...base, track_id], true);
+            genome_browser.switch([...base, track_id, "name"], true);
+            genome_browser.switch([...base, track_id, "label"], true); //used for some tracks
             if(track_id == "focus") genome_browser.switch(["track", "focus", "item"], true);
           });
         }
 
-        function init_expansion_track(track_id) {
-          genome_browser.switch(["track", "expand", track_id], true);
-          genome_browser.switch(["track", "expand", track_id, "name"], true);
-          genome_browser.switch(["track", "expand", track_id, "label"], true);
-        }
-
         function init_variant_track(track_id) { //turn on all variant track switches
-          init_expansion_track(track_id);
-          genome_browser.switch(["track", "expand", track_id, "label-snv-id"], true);
-          genome_browser.switch(["track", "expand", track_id, "label-snv-alleles"], true);
-          genome_browser.switch(["track", "expand", track_id, "label-other-id"], true);
-          genome_browser.switch(["track", "expand", track_id, "label-other-alleles"], true);
-          genome_browser.switch(["track", "expand", track_id, "show-extents"], true);
+          init_tracks(track_id);
+          for(const setting of ["label-snv-id","label-snv-alleles","label-other-id","label-other-alleles","show-extents"]) {
+            genome_browser.switch(["track", "expand", track_id, setting], true);
+          }
         }
 
         function flipper(path) {
@@ -382,18 +378,15 @@
           }
         };
       
-        /* Set initial tracks/settings */
+        /* Set initial tracks and settings */
         genome_browser.switch(["ruler"], true);
         genome_browser.switch(["ruler", "one_based"], true);
+        genome_browser.switch(["settings","tab-selected"], "G");
         //genome_browser.switch(["settings", "no-padding"], true); //disable left/right side margins
-        init_tracks(["sv-gene","regulation","focus"]);
-        genome_browser.switch(["settings","tab-selected"],"G");
+        init_tracks(["gene-pc-fwd","regulation","focus","d3c13017-9f70-4d64-87a2-51cb20f042d4"]);
+        // Check track UUIDs: https://staging-2020.ensembl.org/api/tracks/track_categories/a7335667-93e7-11ec-a39d-005056b38ce3
 
         //Human
-        //Check track ID: curl "https://staging-2020.ensembl.org/api/tracks/track_categories/a7335667-93e7-11ec-a39d-005056b38ce3"
-        // | jq -r '.track_categories[].track_list[] | select(.label == "dbSNP short variants") | .track_id'
-        //Check datafiles: https://eu-west-2.console.aws.amazon.com/s3/buckets/ensembl-2020-gb-flatfiles?prefix=a7335667-93e7-11ec-a39d-005056b38ce3%2F
-        //init_expansion_track("d3c13017-9f70-4d64-87a2-51cb20f042d4"); //variation track (update track ID)
         //jump_variant("rs1557469781", 1, 1176408);
         //goto: location
         //genome_browser.set_stick("a7335667-93e7-11ec-a39d-005056b38ce3:13");
@@ -404,7 +397,7 @@
         genome_browser.jump("focus:gene:a7335667-93e7-11ec-a39d-005056b38ce3:ENSG00000139618"); //BRCA2
 
         //Pig
-        //init_expansion_track("83090e95-2586-451c-bf3c-8ffc50068e2b"); //repeats
+        //init_tracks("fc33bc3c-f30b-4059-b003-012a4898186c"); //repeat elements
         //genome_browser.set_stick("da38d82b-df50-419b-af74-886463b7bfa3:14");
         //genome_browser.goto(10150673, 10329385);
       });

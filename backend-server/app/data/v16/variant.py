@@ -39,7 +39,11 @@ def get_variant_exact(
     step = int((end - start) * SCALE / length)
     if step == 0:
         step = SCALE
-    data = bytearray([round(x) for x in data])
+    try:
+        data = bytearray([round(x) for x in data])
+    except ValueError as e:
+        logging.error(f"Unexpected data in {access_item.item_suffix()}: {e}")
+        data = bytearray([0]*length)
     return {
         "values": data_algorithm("NDZRL", data),
         "range": data_algorithm("NRL", [start, end, step]),
