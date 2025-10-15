@@ -52,7 +52,7 @@ export procedure sv_transcript_styles() {
 }
 
 procedure sv_gene_leaf_base(*gene) {
-  let base = repeat("tracks/track/sv-gene/main/main/fwd/", len(gene.name));
+  let base = repeat("tracks/track/sv-gene/main/main/fwd/", len(gene.start));
   base = set(base, gene.strand == 0, ["tracks/track/sv-gene/main/main/rev/", ...]);
   push_str(base, gene.id_versioned)
 }

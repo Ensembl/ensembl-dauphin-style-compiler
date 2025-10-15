@@ -119,7 +119,13 @@ scale-no-letters = true
 
 [track.sv-gene]
 program_name = "sv-gene"
-scales = [19,100,6]
+scales = [19,22,4]
+include=["general"]
+triggers = [["track","sv-gene"]]
+
+[track.sv-gene-overview]
+program_name = "sv-gene-overview"
+scales = [23,100,6]
 include=["general"]
 triggers = [["track","sv-gene"]]
 

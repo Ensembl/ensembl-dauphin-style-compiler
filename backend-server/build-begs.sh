@@ -17,5 +17,5 @@ eard-compiler \
     -c $SRC/compara/compara-summary.eard -c $SRC/compara/compara-details.eard \
     -c $SRC/repeat/repeat-summary.eard -c $SRC/repeat/repeat-details.eard \
     -c $SRC/simple-features/tssp.eard -c $SRC/simple-features/cpg.eard -c $SRC/simple-features/trna.eard \
-    -c $SRC/gene/sv-gene.eard -c $SRC/gene/sv-transcript.eard \
+    -c $SRC/gene/sv-gene.eard -c $SRC/gene/sv-gene-overview.eard -c $SRC/gene/sv-transcript.eard \
     -o $DST/render16.eardo
