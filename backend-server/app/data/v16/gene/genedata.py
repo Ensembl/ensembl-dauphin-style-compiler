@@ -139,4 +139,4 @@ class GeneDataHandler16(DataHandler):
 
 class GeneOverviewDataHandler16(DataHandler):
     def process_data(self, data_accessor: DataAccessor, panel: Panel, scope: dict, accept:str) -> dict:
-        return extract_gene_overview_data(data_accessor, panel, False, accept)
+        return extract_gene_overview_data(data_accessor, panel, scope.get("with_ids",[False])[0], accept)
