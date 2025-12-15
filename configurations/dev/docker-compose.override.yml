@@ -1,6 +1,6 @@
 # REMEMBER to create a .env in this idrectory containing your settings. env.sample is a good starting point.
 
-version: "3"
+version: "3.0"
 services:
     #
     # New settings for core services
