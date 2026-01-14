@@ -2,7 +2,11 @@
 # 2. beyond that transcripts get a value which is maximised
 
 def _transcript_value(line):
-    # ENSWBSITES-1695
+    # use display rank if available (not -1)
+    if line.rank > 0:
+        return (1000 - line.rank, 0, 0, 0)
+
+    # fallback to default ordering (ENSWBSITES-1695)
     # designation
     designation = line.transcript_designation.lower()
     if designation == 'mane_select' or designation == "canonical":
@@ -27,8 +31,8 @@ def _transcript_value(line):
         biotype_value = 0
     #
     translation_length = line.translation_length
-    transctipt_length = sum(line.block_sizes)
-    return (designation_value,biotype_value,int(translation_length),transctipt_length)
+    transcript_length = sum(line.block_sizes)
+    return (designation_value,biotype_value,int(translation_length),transcript_length)
 
 def _sort_gene_transcripts(transcripts):
     return sorted(transcripts,key=_transcript_value,reverse=True)
