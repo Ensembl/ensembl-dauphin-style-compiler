@@ -24,7 +24,7 @@ import base64
     string unversionedGeneId;       "Primary identifier for gene without version suffix (if any)"
     string unversionedTranscriptId; "Primary identifier for transcript without version suffix (if any)"
     uint translationLength;         "Translation length in aa"
-    uint rank;                      "Transcript rank for ordering. 1 is the highest rank, -1 for no rank."
+    int rank;                      "Transcript rank for ordering. 1 is the highest rank, -1 for no rank."
     )
 """
 
