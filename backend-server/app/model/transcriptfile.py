@@ -21,9 +21,11 @@ import base64
     string geneName;                "Name of the gene"
     lstring base64GeneDescription;  "Gene description (UTF-8) encoded as base64. Set to - if unknown"
     string geneBiotype;             "Gene biotype"
-    string unversionedGeneId;
-    string unversionedTranscriptId;
-    uint translationLength;
+    string unversionedGeneId;       "Primary identifier for gene without version suffix (if any)"
+    string unversionedTranscriptId; "Primary identifier for transcript without version suffix (if any)"
+    uint translationLength;         "Translation length in aa"
+    int rank;                      "Transcript rank for ordering. 1 is the highest rank, -1 for no rank."
+    )
 """
 
 class TranscriptFileLine(object):
@@ -35,14 +37,14 @@ class TranscriptFileLine(object):
     def __init__(self, data):
         (self.gene_start, self.gene_end, rest) = data
         rest = rest.split("\t")
-        rest += [None] * (18-len(rest))
+        rest += [None] * (19-len(rest))
         (
             self.transcript_id, self.strand, self.thick_start, self.thick_end,
             self.block_count, block_sizes, block_starts, self.transcript_start,
             self.transcript_end, self.transcript_biotype, self.transcript_designation,
             self.gene_id, self.gene_name, base64_gene_description, self.gene_biotype,
             self.unversioned_gene_id, self.unversioned_transcript_id,
-            self.translation_length
+            self.translation_length, self.rank
         ) = rest
         self.block_sizes = [int(x) for x in block_sizes.split(",") if len(x)]
         self.block_starts = [int(x) for x in block_starts.split(",") if len(x)]
@@ -50,4 +52,5 @@ class TranscriptFileLine(object):
         self.transcript_end = int(self.transcript_end)
         self.thick_start = int(self.thick_start)
         self.thick_end = int(self.thick_end)
+        self.rank = int(self.rank) if self.rank is not None else -1
         self.gene_description = base64.decodebytes(base64_gene_description.encode("ascii")).decode("utf8")

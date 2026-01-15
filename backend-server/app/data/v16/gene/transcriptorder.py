@@ -1,8 +1,10 @@
 # 1. we must keep genes in order of appearance to avoid corrupting gene data
 # 2. beyond that transcripts get a value which is maximised
+# 3. we cap the number of transcripts to show per gene
+MAX_TRANSCRIPTS_PER_GENE = 100
 
 def _transcript_value(line):
-    # ENSWBSITES-1695
+    # default transcript ordering logic (ENSWBSITES-1695)
     # designation
     designation = line.transcript_designation.lower()
     if designation == 'mane_select' or designation == "canonical":
@@ -27,11 +29,15 @@ def _transcript_value(line):
         biotype_value = 0
     #
     translation_length = line.translation_length
-    transctipt_length = sum(line.block_sizes)
-    return (designation_value,biotype_value,int(translation_length),transctipt_length)
+    transcript_length = sum(line.block_sizes)
+    return (designation_value,biotype_value,int(translation_length),transcript_length)
 
 def _sort_gene_transcripts(transcripts):
-    return sorted(transcripts,key=_transcript_value,reverse=True)
+    # use transcript rank if present (assumes all or none have a rank)
+    if transcripts and transcripts[0].rank != -1:
+        return sorted(transcripts, key=lambda tr: tr.rank)
+    # otherwise use default ordering
+    return sorted(transcripts, key=_transcript_value, reverse=True)
 
 def sort_data_by_transcript_priority(data):
     gene_data = {}
@@ -43,6 +49,6 @@ def sort_data_by_transcript_priority(data):
         gene_data[line.gene_id].append(line)
     out = []
     for gene in gene_order:
-        for line in _sort_gene_transcripts(gene_data[gene]):
+        for line in _sort_gene_transcripts(gene_data[gene])[:MAX_TRANSCRIPTS_PER_GENE]:
             out.append(line)
     return out
