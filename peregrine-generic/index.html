@@ -29,7 +29,7 @@
           <button id="jump-del">focus del</button>
           <button id="jump-indel">focus indel</button>
           <button id="jump-brca2">jump brca2</button>
-          <button id="jump-fry">jump fry</button>
+          <button id="jump-mapk10">jump mapk10</button>
           <button id="jump-wheat">jump wheat</button>
           <button id="focus-region">focus region</button>
           <button id="unload">unload</button>
@@ -329,12 +329,12 @@
           });
           genome_browser.jump("focus:gene:a7335667-93e7-11ec-a39d-005056b38ce3:ENSG00000139618");
         };
-        document.getElementById("jump-fry").onclick = function() {
+        document.getElementById("jump-mapk10").onclick = function() {
           genome_browser.switch(["track","focus","enabled-transcripts"],null);
           genome_browser.switch(["track","focus","item","gene"],{ 
-            "genome_id": "a7335667-93e7-11ec-a39d-005056b38ce3", "item_id": "ENSG00000073910" 
+            "genome_id": "a7335667-93e7-11ec-a39d-005056b38ce3", "item_id": "ENSG00000109339" 
           });
-          genome_browser.jump("focus:gene:a7335667-93e7-11ec-a39d-005056b38ce3:ENSG00000073910");
+          genome_browser.jump("focus:gene:a7335667-93e7-11ec-a39d-005056b38ce3:ENSG00000109339");
         };
         document.getElementById("jump-wheat").onclick = function() {
           genome_browser.switch(["track","focus","enabled-transcripts"],null);

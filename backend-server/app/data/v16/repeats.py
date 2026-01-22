@@ -1,6 +1,7 @@
 from command.coremodel import DataHandler, Panel, DataAccessor
 from data.v16.dataalgorithm import data_algorithm
 from model.bigbed import get_bigbed
+from data.v16.variant import get_variant
 
 def get_repeat_details(
         data_accessor: DataAccessor, panel: Panel, filename: str
@@ -39,7 +40,7 @@ def get_repeat_details(
 
 class RepeatsDataHandler(DataHandler):
     """
-    Handle a request for compara bigbed data (conserved elements).
+    Handle a request for repeat elements data.
 
     Args:
         data_accessor (DataAccessor): The means of accessing data
@@ -52,3 +53,20 @@ class RepeatsDataHandler(DataHandler):
         self, data_accessor: DataAccessor, panel: Panel, scope: dict, accept: str
     ) -> dict[str,bytearray]:
         return get_repeat_details(data_accessor, panel, self.get_datafile(scope))
+
+class RepeatSummaryDataHandler(DataHandler):
+    """
+    Handle a request for repeats summary data.
+
+    Args:
+        data_accessor (DataAccessor): The means of accessing data
+        panel (Panel): Requested genomic location and scale
+        scope: extra scope args (here used for datafile name)
+    
+    Returns: A data dict (values, range) for Response object
+    """
+    def process_data(
+        self, data_accessor: DataAccessor, panel: Panel, scope: dict, accept: str
+    ) -> dict[str,bytearray]:
+        # Reuse variants bigwig data formatter
+        return get_variant(data_accessor, panel, self.get_datafile(scope))

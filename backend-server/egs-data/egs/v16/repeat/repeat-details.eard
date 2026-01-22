@@ -16,7 +16,7 @@ set_track_style(track_id, "", ["min-height"], ["40"]);
 // Get data
 let track_datafile = setting_string("datafile", []);
 let track_name = setting_string("track_name", []);
-let req = request("self()","repeats");
+let req = request("self()","repeat-elements");
 scope(req, "datafile", track_datafile);
 let data = get_data(req);
 halt(only_warm());
