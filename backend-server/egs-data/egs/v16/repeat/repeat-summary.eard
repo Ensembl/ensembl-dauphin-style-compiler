@@ -28,7 +28,7 @@ let step = index(x_range, 2) / 4000;
 let pos_start = enumerate([len(values)]) * step + start;
 let pos_end = pos_start + step;
 
-let colours = [ colour!("#fff"), colour!("#708090") ]; // white-grey banding
+let colours = [ colour!("#e9e7e7"), colour!("#708090") ]; // white-grey banding
 let paint = paint_solid(index(colours,values));
 let leaf = track_leaf(track_id, "main/main/content");
 rectangle(coord(pos_start,[0,...],[-1,...]), coord(pos_end,[5,...],[1,...]), paint, [leaf,...]);
