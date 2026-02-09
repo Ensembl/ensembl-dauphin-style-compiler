@@ -19,6 +19,7 @@ RUN mkdir /usr/src/app
 COPY requirements.txt /usr/src/app/
 COPY requirements2.txt /usr/src/app/
 
+RUN pip3 install --no-cache-dir --upgrade pip setuptools wheel
 RUN pip3 install --no-cache-dir -r /usr/src/app/requirements.txt
 RUN pip3 install --no-cache-dir -r /usr/src/app/requirements2.txt
 
