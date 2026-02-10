@@ -2,7 +2,7 @@ from command.coremodel import DataHandler, Panel, DataAccessor
 from data.v16.dataalgorithm import data_algorithm
 from model.bigbed import get_bigbed, get_bigwig_stats
 
-SCALE = 4000
+SCALE = 1000
 
 def get_repeat_details(
         data_accessor: DataAccessor, panel: Panel, filename: str
@@ -89,11 +89,11 @@ class RepeatSummaryDataHandler(DataHandler):
     def process_data(
         self, data_accessor: DataAccessor, panel: Panel, scope: dict, accept: str
     ) -> dict[str,bytearray]:
-        # Reuse variants bigwig data formatter
         filename = self.get_scope(scope, "datafile")
+        # placeholder empty data for tracks without bigwig datafile
         if not filename:
             return {
                 "values": data_algorithm("NDZRL", []),
-                "range": data_algorithm("NRL", [panel.start, panel.end, 4000]),
+                "range": data_algorithm("NRL", [panel.start, panel.end, SCALE]),
             }
         return get_repeat_density(data_accessor, panel, filename)
