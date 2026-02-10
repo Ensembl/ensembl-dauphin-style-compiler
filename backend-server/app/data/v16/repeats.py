@@ -1,7 +1,8 @@
 from command.coremodel import DataHandler, Panel, DataAccessor
 from data.v16.dataalgorithm import data_algorithm
-from model.bigbed import get_bigbed
-from data.v16.variant import get_variant
+from model.bigbed import get_bigbed, get_bigwig_stats
+
+SCALE = 4000
 
 def get_repeat_details(
         data_accessor: DataAccessor, panel: Panel, filename: str
@@ -36,6 +37,26 @@ def get_repeat_details(
         "name": data_algorithm("SZ", names),
         "class": data_algorithm("SZ", classes),
         "type": data_algorithm("SZ", types),
+    }
+
+def get_repeat_density(
+        data_accessor: DataAccessor, panel: Panel, filename: str
+    ) -> dict[str, bytearray]:
+    item = panel.get_chrom(data_accessor).item_path(filename)
+    (data, start, end) = get_bigwig_stats(
+        data_accessor, item, panel.start, panel.end, consolidation="mean", nBins=500
+    )
+    data = [0.0 if x is None else x for x in data]
+    length = len(data)
+    if length == 0:
+        length = 1
+    step = int((end - start) * SCALE / length)
+    if step == 0:
+        step = SCALE
+    scaled = bytearray([min(255, max(0, round(x * 255))) for x in data])
+    return {
+        "values": data_algorithm("NDZRL", scaled),
+        "range": data_algorithm("NRL", [start, end, step]),
     }
 
 class RepeatsDataHandler(DataHandler):
@@ -75,4 +96,4 @@ class RepeatSummaryDataHandler(DataHandler):
                 "values": data_algorithm("NDZRL", []),
                 "range": data_algorithm("NRL", [panel.start, panel.end, 4000]),
             }
-        return get_variant(data_accessor, panel, filename)
+        return get_repeat_density(data_accessor, panel, filename)
