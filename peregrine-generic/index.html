@@ -383,18 +383,18 @@
         genome_browser.switch(["ruler", "one_based"], true);
         genome_browser.switch(["settings","tab-selected"], "G");
         //genome_browser.switch(["settings", "no-padding"], true); //disable left/right side margins
-        init_tracks(["gene-pc-fwd","regulation","focus","d3c13017-9f70-4d64-87a2-51cb20f042d4"]);
+        init_tracks(["gene-pc-fwd","gc","focus","1e1c38f0-bb15-45d0-8a8f-e315336ea812","c9d34923-bb73-4f91-983a-c3a31a78f6de"]);
         // Check track UUIDs: https://staging-2020.ensembl.org/api/tracks/track_categories/a7335667-93e7-11ec-a39d-005056b38ce3
 
         //Human
         //jump_variant("rs1557469781", 1, 1176408);
         //goto: location
-        //genome_browser.set_stick("a7335667-93e7-11ec-a39d-005056b38ce3:13");
-        //genome_browser.goto(159980000,160000500);
+        genome_browser.set_stick("27be510b-c431-434c-a6f5-158d8c138507:JAHEPP020000008.1");
+        genome_browser.goto(22056994,22509220);
         //goto: variant
         //jump_variant("rs1557469781", 1, 1176408);
         //goto: gene
-        genome_browser.jump("focus:gene:a7335667-93e7-11ec-a39d-005056b38ce3:ENSG00000139618"); //BRCA2
+        //genome_browser.jump("focus:gene:a7335667-93e7-11ec-a39d-005056b38ce3:ENSG00000139618"); //BRCA2
 
         //Pig
         //init_tracks("fc33bc3c-f30b-4059-b003-012a4898186c"); //repeat elements

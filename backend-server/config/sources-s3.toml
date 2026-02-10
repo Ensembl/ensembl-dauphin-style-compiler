@@ -7,4 +7,4 @@ metadata_url = "https://staging-2020.ensembl.org/api/metadata/"
 min_version = 16
 
 [apis]
-track_api = "https://staging-2020.ensembl.org/api/tracks"
+track_api = "https://dev-2020.ensembl.org/api/tracks"
