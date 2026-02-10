@@ -69,4 +69,10 @@ class RepeatSummaryDataHandler(DataHandler):
         self, data_accessor: DataAccessor, panel: Panel, scope: dict, accept: str
     ) -> dict[str,bytearray]:
         # Reuse variants bigwig data formatter
-        return get_variant(data_accessor, panel, self.get_datafile(scope))
+        filename = self.get_scope(scope, "datafile")
+        if not filename:
+            return {
+                "values": data_algorithm("NDZRL", []),
+                "range": data_algorithm("NRL", [panel.start, panel.end, 4000]),
+            }
+        return get_variant(data_accessor, panel, filename)
