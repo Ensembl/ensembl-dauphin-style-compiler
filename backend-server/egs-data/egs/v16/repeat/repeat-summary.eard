@@ -37,9 +37,9 @@ let colours = [
 let value_bins = if(values>150, [2,...], if(values>10, [1,...], [0,...]));
 let paint = paint_solid(index(colours, value_bins));
 let leaf = track_leaf(track_id, "main/main/content");
-rectangle(coord(pos_start, [8,...], [-1,...]), coord(pos_end, [16,...], [15,...]), paint, [leaf,...]);
+rectangle(coord(pos_start, [6,...], [0,...]), coord(pos_end, [14,...], [0,...]), paint, [leaf,...]);
 
 // Draw track furniture
-let track_name = setting_string("track_name", []);
+let track_name = join(" ", [setting_string("track_name", []), setting_string("additional_info", [])]);
 draw_track_name(track_name, "name", track_leaf(track_id,"title/content"));
 draw_track_category(["G"], [track_id], [track_leaf(track_id,"main/letter/content")]);

@@ -36,7 +36,8 @@ class Expansions:
         # add values to the track from the metadata
         track.add_trigger(data['trigger']) # to turn a track on/off
         track.add_value("track_id", data['track_id']) # will be required for defining the track "leaf" in the tree of tracks
-        track.add_value("track_name", data['label']) # value to inject track name into the track program
+        track.add_value("track_name", data['label']) # for drawing track labels in eard programs
+        track.add_value("additional_info", data.get("additional_info", "")) # make optional info value available for eard programs 
         track.add_value("display_order", data['display_order']) # initial track order for the track program
         track.add_value("datafile", data['datafiles'][program])
         # add track-specific setting switches 

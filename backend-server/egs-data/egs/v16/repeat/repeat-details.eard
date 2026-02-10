@@ -32,8 +32,8 @@ let rep.type = data_string(data,"type");
 let leaf = track_leaf(track_id,"main/main/content");
 let colour = colour!("#708090"); // slate grey
 let paint = paint_solid(colour);
-let nw = coord(rep.start, [8,...], [0,...]);
-let se = coord(rep.end, [16,...], [0,...]);
+let nw = coord(rep.start, [6,...], [0,...]);
+let se = coord(rep.end, [14,...], [0,...]);
 rectangle(nw, se, paint, [leaf,...]);
 
 // Draw zmenu click targets
@@ -41,6 +41,6 @@ let zmenu_paint = repeat_zmenu(*rep);
 rectangle(nw, se, zmenu_paint, [leaf,...]);
 
 // Draw track furniture
-let track_name = setting_string("track_name", []);
+let track_name = join(" ", [setting_string("track_name", []), setting_string("additional_info", [])]);
 draw_track_name(track_name, "name", track_leaf(track_id,"title/content"));
 draw_track_category(["G"], [track_id], [track_leaf(track_id,"main/letter/content")]);
