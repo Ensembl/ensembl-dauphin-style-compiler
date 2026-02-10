@@ -1,18 +1,25 @@
 # syntax=docker/dockerfile:1
-FROM python:3.10 AS build
+FROM python:3.10-bullseye AS build
 
 LABEL maintainer="ensembl-webteam@ebi.ac.uk"
 
 ENV PYTHONUNBUFFERED TRUE
 
 RUN apt-get update
-RUN apt-get install -y libcurl4 libcurl4-openssl-dev memcached git
+RUN apt-get install -y \
+	python3-distutils \
+	build-essential \
+	libcurl4 \
+	libcurl4-openssl-dev \
+	memcached \
+	git
 
 RUN rm -rf /usr/src/app
 RUN mkdir /usr/src/app
 COPY requirements.txt /usr/src/app/
 COPY requirements2.txt /usr/src/app/
 
+RUN pip3 install --no-cache-dir --upgrade pip setuptools wheel
 RUN pip3 install --no-cache-dir -r /usr/src/app/requirements.txt
 RUN pip3 install --no-cache-dir -r /usr/src/app/requirements2.txt
 
