@@ -52,9 +52,12 @@ rectangle(coord(exon.start,[2,...],[0,...]), coord(exon.end,[8,...],[0,...]), pa
 let *thick_exon = generate_thick_exons(*tr, *exon_tr, *exon);
 let **thick_exon_tr = index(**exon_tr, thick_exon.index_of_exon);
 let thick_exon.far_over_leaf = index(leaf_exon_tr.far_over_leaf, thick_exon.index_of_exon);
-
 let paint = paint_solid(base_col);
 rectangle(coord(thick_exon.start,[2,...],[0,...]), coord(thick_exon.end,[8,...],[0,...]), paint, thick_exon.far_over_leaf);
+
+/* Draw gene labels */
+let pen = pen("'IBM Plex Mono', sans-serif", 10, [colour!("#6f8190"),...], [colour!("transparent"),...]);
+running_text(coord(tr_gene.start,[11,...],[0,...]), coord(tr_gene.end,[11,...],[0,...]), pen, tr_gene.name, leafs.under_leaf);
 
 /* Draw strand divider line */
 let bg_leaf = leaf("tracks/track/sv-gene/main/main/line/background/content");
