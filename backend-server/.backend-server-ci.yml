@@ -24,7 +24,7 @@ variables:
     paths:
       - backend-server/egs-data/begs/render16.eardo
 
-.base-be-rules:
+.be-build-rules:
   rules:
     - if: '$CI_DEPLOY_FREEZE == null'
       changes:
@@ -32,7 +32,7 @@ variables:
       when: on_success
     - when: never
 
-.base-be-deploy-rules:
+.be-deploy-rules-live:
   rules:
     - if: '$CI_DEPLOY_FREEZE == null && $CI_COMMIT_BRANCH == "master"'
       changes:
@@ -40,16 +40,24 @@ variables:
       when: manual
     - when: never
 
-.base-be-deploy-rules-branches:
+.be-deploy-rules-test:
   rules:
-    - if: '$CI_DEPLOY_FREEZE == null && ( $CI_COMMIT_BRANCH != "master" || $CI_COMMIT_BRANCH != "staging" )'
+    - if: '$CI_DEPLOY_FREEZE == null && $CI_COMMIT_BRANCH == "master"'
+      changes:
+        - backend-server/**/*
+      when: on_success
+    - when: never
+
+.be-deploy-rules-review:
+  rules:
+    - if: '$CI_DEPLOY_FREEZE == null && $CI_COMMIT_BRANCH != "master"'
       changes:
         - backend-server/**/*
       when: on_success
     - when: never
 
 .build_backend:
-  extends: .base-be-rules
+  extends: .be-build-rules
   stage: build
   image: docker
   services:
@@ -84,15 +92,20 @@ variables:
     # Build hi/lo deployment/configmap manifests and apply
     - kubectl apply -k .
 
-.deploy_backend:
+.deploy_backend_live:
   extends:
     - .deploy_backend_base
-    - .base-be-deploy-rules
+    - .be-deploy-rules-live
+
+.deploy_backend_test:
+  extends:
+    - .deploy_backend_base
+    - .be-deploy-rules-test
 
 .deploy_backend_review:
   extends:
     - .deploy_backend_base
-    - .base-be-deploy-rules-branches
+    - .be-deploy-rules-review
 
 BE-eardo:
   extends: .build-eardo
@@ -101,7 +114,7 @@ BE-Docker:
   extends: .build_backend
 
 Prod:
-  extends: .deploy_backend
+  extends: .deploy_backend_live
   environment:
     name: production
   variables:
@@ -109,7 +122,7 @@ Prod:
     NS: ${PROD_NS}
 
 Fallback:
-  extends: .deploy_backend
+  extends: .deploy_backend_live
   environment:
     name: fallback
   variables:
@@ -117,23 +130,15 @@ Fallback:
     NS: ${FALLBACK_NS}
 
 Staging:
-  extends: .deploy_backend
+  extends: .deploy_backend_test
   environment:
     name: staging
   variables:
     AGENT: ${STAGING_AGENT}
     NS: ${STAGING_NS}
 
-Internal:
-  extends: .deploy_backend
-  environment:
-    name: internal
-  variables:
-    AGENT: ${INTERNAL_AGENT}
-    NS: ${INTERNAL_NS}
-
 Dev:
-  extends: .deploy_backend
+  extends: .deploy_backend_test
   environment:
     name: development
   variables:
