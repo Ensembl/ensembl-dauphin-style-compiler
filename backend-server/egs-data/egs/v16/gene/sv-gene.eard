@@ -22,7 +22,7 @@ let *leafs = sv_gene_leafs(*gene);
 let paint = paint_solid(colour!("#279afc"));
 rectangle(coord(gene.start,[0,...],[-0.5,...]), coord(gene.end,[5,...],[0.5,...]), paint, leafs.blocks);
 let pen = pen("'IBM Plex Mono', sans-serif", 10, [colour!("#6f8190"),...], [colour!("transparent"),...]);
-running_text(coord(gene.start, [8,...], [0,...]), coord(gene.end,[8,...],[0,...]), pen, gene.name, leafs.blocks);
+running_text(coord(gene.start, [8,...], [0,...]), coord(gene.end,[8,...],[0,...]), pen, gene.name, leafs.text);
 
 /* Draw strand divider line */
 let line_paint = paint_dotted([colour!("white"),...],[colour!("#999"),...],4,1,0.5);
