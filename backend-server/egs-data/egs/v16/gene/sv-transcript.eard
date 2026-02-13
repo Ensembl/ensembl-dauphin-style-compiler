@@ -57,7 +57,7 @@ rectangle(coord(thick_exon.start,[2,...],[0,...]), coord(thick_exon.end,[8,...],
 
 /* Draw gene labels */
 let pen = pen("'IBM Plex Mono', sans-serif", 10, [colour!("#6f8190"),...], [colour!("transparent"),...]);
-running_text(coord(tr_gene.start,[11,...],[0,...]), coord(tr_gene.end,[11,...],[0,...]), pen, tr_gene.name, leafs.under_leaf);
+running_text(coord(tr_gene.start,[11,...],[0,...]), coord(tr_gene.end,[11,...],[0,...]), pen, tr_gene.name, leafs.text);
 
 /* Draw strand divider line */
 let bg_leaf = leaf("tracks/track/sv-gene/main/main/line/background/content");
