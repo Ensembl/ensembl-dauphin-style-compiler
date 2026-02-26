@@ -36,6 +36,7 @@ handlers = [
     ("compara-scores", ConservationScoresWiggleDataHandler(), 16),
     ("compara-elements", ComparaDataHandler(), 16),
     ("repeat-elements", RepeatsDataHandler(), 16),
+    ("sv-elements", RepeatsDataHandler(), 16),
     ("repeat-summary", RepeatSummaryDataHandler(), 16),
     ("simple-features", SimpleFeaturesDataHandler(), 16),
 ]

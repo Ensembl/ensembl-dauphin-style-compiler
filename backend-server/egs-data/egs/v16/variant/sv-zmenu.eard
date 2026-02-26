@@ -1,0 +1,70 @@
+export function sv_zmenu(*sv) {
+  // Format the location string for each structural variant
+  let start_pos = sv.start + 1; //to 1-based coordinate
+  let tmpl = template_start("{0}:{1}-{2}");
+  template_set(tmpl, 0, sv.chr);
+  template_set(tmpl, 1, comma_format(start_pos));
+  template_set(tmpl, 2, comma_format(sv.end));
+  let location = template_end(tmpl);
+
+  struct!(zmenu_metadata,
+  """{
+    "type": "zmenu",
+    "zmenu-type": "sv"
+  }""");
+
+  struct!(zmenu_content,
+  """
+  (<0,1,2,3>!{
+    "data": [
+      /* First row */
+      [{
+        "items": [
+          { "markup": ["light"], "text": "Name" },
+          { "markup": [], "text": " " },
+          { "markup": ["strong"], "text": <0s> }
+        ],
+        "type": "block"
+      }],
+      /* Second row */
+      [{
+        "items": [
+          {"markup": ["light"], "text": "Location"},
+          {"markup": [], "text": " "},
+          {"markup": ["strong"], "text": <1s>}
+        ],
+        "type": "block"
+      }],
+      /* Third row */
+      [{
+        "items": [
+          {"markup": ["light"], "text": "Analysis"},
+          {"markup": [], "text": " "},
+          {"markup": ["strong"], "text": <2s>}
+        ],
+        "type": "block"
+      }],
+      /* Fourth row */
+      [{
+        "items": [
+          {"markup": ["light"], "text": "Type"},
+          {"markup": [], "text": " "},
+          {"markup": ["strong"], "text": <3s>}
+        ],
+        "type": "block"
+      }]
+    ],
+    "metadata": {
+      "type": "structural-variants"
+    }
+  })
+  """,
+  sv.name,
+  location,
+  sv.analysis,
+  sv.type
+  );
+
+  let zmenu_paint = paint_click(zmenu_metadata, zmenu_content, false);
+  zmenu_paint //return value
+}

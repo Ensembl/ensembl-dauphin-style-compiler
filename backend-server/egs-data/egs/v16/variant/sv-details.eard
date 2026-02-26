@@ -1,0 +1,45 @@
+program "ensembl-webteam/core" "sv-details" 1;
+refer "libperegrine";
+refer "libeoe";
+include "../common/track-common.eard";
+include "../common/track-style.eard";
+include "sv-zmenu.eard";
+
+// Setup styles
+let track_id = setting_string("track_id", []);
+let track_display_order = setting_string("display_order", []);
+track_styles();
+new_track_style(track_id, track_display_order);
+set_track_style(track_id, "", ["min-height"], ["40"]);
+
+// Get data
+let track_datafile = setting_string("datafile", []);
+let track_name = setting_string("track_name", []);
+let req = request("self()","sv-elements");
+scope(req, "datafile", track_datafile);
+let data = get_data(req);
+halt(only_warm());
+
+let sv.chr = data_string(data,"chr");
+let sv.start = data_number(data,"start");
+let sv.end = data_number(data,"end");
+let sv.analysis = data_string(data,"analysis");
+let sv.name = data_string(data,"name");
+let sv.type = data_string(data,"type");
+
+// Draw some rectangles
+let leaf = track_leaf(track_id,"main/main/content");
+let colour = colour!("#708090"); // slate grey
+let paint = paint_solid(colour);
+let nw = coord(sv.start, [6,...], [0,...]);
+let se = coord(sv.end, [14,...], [0,...]);
+rectangle(nw, se, paint, [leaf,...]);
+
+// Draw zmenu click targets
+let zmenu_paint = sv_zmenu(*sv);
+rectangle(nw, se, zmenu_paint, [leaf,...]);
+
+// Draw track furniture
+let track_name = join(" ", [setting_string("track_name", []), setting_string("additional_info", [])]);
+draw_track_name(track_name, "name", track_leaf(track_id,"title/content"));
+draw_track_category(["V"], [track_id], [track_leaf(track_id,"main/letter/content")]);
