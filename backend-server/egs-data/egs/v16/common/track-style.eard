@@ -24,6 +24,7 @@ export procedure track_styles() {
   }
 
   tracks/track/*/ {
+    min-height: 40;
     padding-top: 8;
     padding-bottom: 8;
     height-adjust: tracking;
@@ -73,6 +74,7 @@ export procedure set_track_style(track_id, path_suffix, style_names, style_value
   style(leaf_path, style_names, style_values);
 }
 
-export procedure new_track_style(track_id, display_order) {
-  set_track_style(track_id, "", ["priority", "report"], [display_order, push_str("track;switch-id=", track_id)]);
+export procedure setup_track(track_id, track_display_order) {
+  track_styles();
+  set_track_style(track_id, "", ["priority", "report"], [track_display_order, push_str("track;switch-id=", track_id)]);
 }

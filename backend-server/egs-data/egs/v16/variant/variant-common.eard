@@ -39,7 +39,5 @@ export procedure variant_summary_track(track_id, track_label, track_datafile) {
     rectangle(coord(pos_start,[0,...],[-1,...]), coord(pos_end,[5,...],[1,...]), paint, [leaf,...]);
 
     /* draw track furniture */
-
-    draw_track_name(track_label, "name", track_leaf(track_id,"title/content"));
-    draw_track_category(["V"], [track_id], [track_leaf(track_id,"main/letter/content")]);
+    draw_track_furniture(track_id, track_label, "V");
 }

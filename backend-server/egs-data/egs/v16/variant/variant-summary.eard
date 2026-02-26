@@ -8,8 +8,7 @@ include "variant-common.eard";
 /* Setup styles */
 let track_id = setting_string("track_id", []);
 let track_display_order = setting_string("display_order", []);
-track_styles();
-new_track_style(track_id, track_display_order);
+setup_track(track_id, track_display_order);
 
 // Get data, draw the track
 let track_datafile = setting_string("datafile", []);
