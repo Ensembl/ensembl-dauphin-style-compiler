@@ -3,7 +3,7 @@ refer "libperegrine";
 refer "libeoe";
 include "../common/track-common.eard";
 include "../common/track-style.eard";
-include "sv-zmenu.eard";
+include "variant-zmenu.eard";
 
 // Setup styles
 let track_id = setting_string("track_id", []);
@@ -13,23 +13,33 @@ setup_track(track_id, track_display_order);
 // Get data
 let track_datafile = setting_string("datafile", []);
 let track_name = setting_string("track_name", []);
-let req = request("self()", "sv-elements");
+let req = request("self()", "sv-details");
 scope(req, "datafile", track_datafile);
 let data = get_data(req);
 halt(only_warm());
 
-let sv.chr = data_string(data, "chr");
-let sv.start = data_number(data, "start");
-let sv.end = data_number(data, "end");
-let sv.analysis = data_string(data, "analysis");
-let sv.name = data_string(data, "name");
-let sv.type = data_string(data, "type");
+let sv.chromosome = data_string(data,"chromosome");
+let sv.start = data_number(data,"start");
+let sv.end = sv.start + data_number(data,"length");
+let sv.id = data_string(data,"id");
+let sv.alleles = data_string(data,"alleles");
+let sv.variety = data_string(data,"variety"); //['CNV', 'insertion', 'deletion', ...]
+let sv.group = data_number(data,"group"); //[1, 3, 5, ... ]
+let sv.consequence = data_string(data,"consequence"); //['intergenic_variant', ...]
+let sv.extent = data_number(data,"extent");
 
 // Draw some rectangles
-let colour = colour!("#708090"); // slate grey
-let zmenu_paint = sv_zmenu(*sv);
+let colours = [
+  colour!("#fff"),    // 0 = white (empty)
+  colour!("#eb768a"), // 1 = dark-pink (loss)
+  colour!("#333333"), // 2 = dark-grey (CNV)
+  colour!("#84fa3a"), // 3 = lime (gain)
+  colour!("#f8a030"), // 4 = orange (inversion)
+  colour!("#cccccc")  // 5 = light-grey (complex)
+];
+let colour = index(colours, sv.group);
+let zmenu_paint = variant_zmenu(*sv);
 draw_rectangles(track_id, sv.start, sv.end, 6, 14, colour, zmenu_paint);
 
 // Draw track furniture
-let track_name = join(" ", [setting_string("track_name", []), setting_string("additional_info", [])]);
-draw_track_furniture(track_id, track_name, "V");
+draw_track_furniture(track_id, setting_string("track_name", []), "V");

@@ -7,7 +7,7 @@ from .datasources import DataAccessor
 from .exceptionres import DataException
 from util.influx import ResponseMetrics
 from model.version import Version
-from data.v16.variant import VariantLabelsDataHandler, VariantSummaryDataHandler
+from data.v16.variant import VariantLabelsDataHandler, VariantSummaryDataHandler, StructuralVariantLabelsDataHandler
 from data.v16.regulation import RegulationDataHandler
 from data.v16.contig import ShimmerContigDataHandler16
 from data.v16.contig import ContigDataHandler16
@@ -32,11 +32,11 @@ handlers = [
     ("shimmer-contig", ShimmerContigDataHandler16(), 16),
     ("variant-summary", VariantSummaryDataHandler(), 16),
     ("variant-details", VariantLabelsDataHandler(), 16),
+    ("sv-details", StructuralVariantLabelsDataHandler(), 16),
     ("regulation", RegulationDataHandler(), 16),
     ("compara-scores", ConservationScoresWiggleDataHandler(), 16),
     ("compara-elements", ComparaDataHandler(), 16),
     ("repeat-elements", RepeatsDataHandler(), 16),
-    ("sv-elements", RepeatsDataHandler(), 16),
     ("repeat-summary", RepeatSummaryDataHandler(), 16),
     ("simple-features", SimpleFeaturesDataHandler(), 16),
 ]

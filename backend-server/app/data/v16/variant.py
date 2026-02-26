@@ -68,22 +68,27 @@ class VariantSummaryDataHandler(DataHandler):
 
 
 def get_variant_labels(
-    data_accessor: DataAccessor, panel: Panel, filename: str, start: str | None=None
+    data_accessor: DataAccessor, panel: Panel, filename: str, start: str | None=None, sv: bool=False
 ) -> dict[str, bytearray]:
     try:
         if start: # only start is needed to fetch the variant
             panel.start = int(start)-1
             panel.end = panel.start+2
+        meta_fields = ["chr", "start", "end", "id", "variety", "ref", "alt", "group", "consequence"]
+        if sv:
+            meta_fields += ["extent"]
         fields = get_bigbed_fields(
             data_accessor, panel, filename,
-            ["id", "variety", "ref", "alt", "group", "consequence"]
+            meta_fields
         )
         lengths = [end - start for start, end in zip(fields["start"], fields["end"])]
         alleles = [allele_sequence(ref, alt) for ref, alt in zip(fields["ref"], fields["alt"])]
         groups = [int(group) for group in fields["group"]]
+        if sv:
+            groups = [max(0, group-10) for group in groups] # shift down to 0-5 for track coloring
     except Exception as e:
         logging.error(e)
-    return {
+    payload = {
         "chromosome": data_algorithm("SZ", fields["chr"]),
         "start": data_algorithm("NDZRL", fields["start"]),
         "length": data_algorithm("NDZRL", lengths),
@@ -93,6 +98,10 @@ def get_variant_labels(
         "group": data_algorithm("NRL", groups),
         "consequence": data_algorithm("SYRLZ", fields["consequence"]),
     }
+    if sv:
+        extent = [int(extent) for extent in fields["extent"]]
+        payload["extent"] = data_algorithm("NDZRL", extent)
+    return payload
 
 
 def allele_sequence(ref: str, alts: str) -> str:
@@ -108,4 +117,12 @@ class VariantLabelsDataHandler(DataHandler):
     ) -> dict:
         return get_variant_labels(
             data_accessor, panel, self.get_datafile(scope), self.get_scope(scope,"start")
+        )
+
+class StructuralVariantLabelsDataHandler(DataHandler):
+    def process_data(
+        self, data_accessor: DataAccessor, panel: Panel, scope: dict, accept: str
+    ) -> dict:
+        return get_variant_labels(
+            data_accessor, panel, self.get_datafile(scope), self.get_scope(scope,"start"), True
         )
