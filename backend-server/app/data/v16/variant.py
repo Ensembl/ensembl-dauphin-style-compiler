@@ -1,7 +1,7 @@
 import logging
 from command.coremodel import DataHandler, Panel, DataAccessor
 from command.response import Response
-from model.bigbed import get_bigwig_stats, get_bigwig, get_bigbed
+from model.bigbed import get_bigwig_stats, get_bigwig, get_bigbed_fields
 from model.datalocator import AccessItem
 from data.v16.dataalgorithm import data_algorithm
 
@@ -67,46 +67,46 @@ class VariantSummaryDataHandler(DataHandler):
         return get_variant(data_accessor, panel, self.get_datafile(scope))
 
 
+class StructuralVariantSummaryDataHandler(DataHandler):
+    def process_data(
+        self, data_accessor: DataAccessor, panel: Panel, scope: dict, accept: str
+    ) -> dict:
+        return get_variant(data_accessor, panel, self.get_datafile(scope))
+
+
 def get_variant_labels(
-    data_accessor: DataAccessor, panel: Panel, filename: str, start: str | None=None, id: str | None=None
+    data_accessor: DataAccessor, panel: Panel, filename: str, start: str | None=None, sv: bool=False
 ) -> dict[str, bytearray]:
-    chrom = panel.get_chrom(data_accessor)
-    access_item = chrom.item_path(filename)
     try:
         if start: # only start is needed to fetch the variant
             panel.start = int(start)-1
             panel.end = panel.start+2
-        data = get_bigbed(data_accessor, access_item, panel.start, panel.end)
-        starts = []
-        lengths = []
-        ids = []
-        varieties = []
-        groups = []
-        consequence = []
-        chromosomes = []
-        alleles = []
-        for start, end, rest in data:
-            rest = rest.split()
-            chromosomes.append(chrom.name)
-            starts.append(start)
-            lengths.append(end - start)
-            ids.append(rest[0])
-            varieties.append(rest[1])
-            alleles.append(allele_sequence(rest[2], rest[3]))
-            groups.append(int(rest[4]))
-            consequence.append(rest[5])
+        meta_fields = ["id", "variety", "ref", "alt", "group", "consequence"]
+        if sv:
+            meta_fields += ["extent"]
+        fields = get_bigbed_fields(
+            data_accessor, panel, filename,
+            meta_fields
+        )
+        lengths = [end - start for start, end in zip(fields["start"], fields["end"])]
+        alleles = [allele_sequence(ref, alt) for ref, alt in zip(fields["ref"], fields["alt"])]
+        groups = [int(group) for group in fields["group"]]
     except Exception as e:
         logging.error(e)
-    return {
-        "chromosome": data_algorithm("SZ", chromosomes),
-        "start": data_algorithm("NDZRL", starts),
+    payload = {
+        "chromosome": data_algorithm("SZ", fields["chr"]),
+        "start": data_algorithm("NDZRL", fields["start"]),
         "length": data_algorithm("NDZRL", lengths),
-        "id": data_algorithm("SZ", ids),
-        "variety": data_algorithm("SYRLZ", varieties),
+        "id": data_algorithm("SZ", fields["id"]),
+        "variety": data_algorithm("SYRLZ", fields["variety"]),
         "alleles": data_algorithm("SYRLZ", alleles),
         "group": data_algorithm("NRL", groups),
-        "consequence": data_algorithm("SYRLZ", consequence),
+        "consequence": data_algorithm("SYRLZ", fields["consequence"]),
     }
+    if sv:
+        extent = [int(extent) for extent in fields["extent"]]
+        payload["extent"] = data_algorithm("NDZRL", extent)
+    return payload
 
 
 def allele_sequence(ref: str, alts: str) -> str:
@@ -116,10 +116,20 @@ def allele_sequence(ref: str, alts: str) -> str:
         return truncated_sequence
     return combined_sequence
 
+
 class VariantLabelsDataHandler(DataHandler):
     def process_data(
         self, data_accessor: DataAccessor, panel: Panel, scope: dict, accept: str
     ) -> dict:
         return get_variant_labels(
-            data_accessor, panel, self.get_datafile(scope), self.get_scope(scope,"start"), self.get_scope(scope,"id")
+            data_accessor, panel, self.get_datafile(scope), self.get_scope(scope,"start")
+        )
+
+
+class StructuralVariantLabelsDataHandler(DataHandler):
+    def process_data(
+        self, data_accessor: DataAccessor, panel: Panel, scope: dict, accept: str
+    ) -> dict:
+        return get_variant_labels(
+            data_accessor, panel, self.get_datafile(scope), self.get_scope(scope,"start"), True
         )

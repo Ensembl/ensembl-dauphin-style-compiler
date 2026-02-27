@@ -8,8 +8,7 @@ include "compara-zmenu.eard";
 /* setup styles */
 let track_id = setting_string("track_id", []);
 let track_display_order = setting_string("display_order", []);
-track_styles();
-new_track_style(track_id, track_display_order);
+setup_track(track_id, track_display_order);
 
 /* get data */
 let track_datafile = setting_string("datafile", []);
@@ -27,16 +26,10 @@ let el.score = data_number(data,"score");
 let el.pvalue = data_number(data,"pvalue");
 
 /* draw boxes (constrained elements) */
-let paint = paint_solid(colour!("#47d147")); // green
-let leaf = track_leaf(track_id,"main/main/content");
-let nw = coord(el.start, [8,...], [0,...]);
-let se = coord(el.end, [16,...], [0,...]);
-rectangle(nw, se, paint, [leaf,...]);
-/* draw zmenu click target boxes */
+let colour = colour!("#47d147"); // green
 let constr_element_zmenu_paint = constr_element_zmenu(*el);
-rectangle(nw, se, constr_element_zmenu_paint, [leaf,...]);
+draw_rectangles(track_id, el.start, el.end, 8, 16, colour, constr_element_zmenu_paint);
 
 /* draw track furniture */
 let track_name = setting_string("track_name", []);
-draw_track_name(track_name, "name", track_leaf(track_id,"title/content"));
-draw_track_category(["G"], [track_id], [track_leaf(track_id,"main/letter/content")]);
+draw_track_furniture(track_id, track_name, "G");

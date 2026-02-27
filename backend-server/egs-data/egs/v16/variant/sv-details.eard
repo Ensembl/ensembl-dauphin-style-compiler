@@ -1,0 +1,40 @@
+program "ensembl-webteam/core" "sv-details" 1;
+refer "libperegrine";
+refer "libeoe";
+include "../common/track-common.eard";
+include "../common/track-style.eard";
+include "variant-common.eard";
+include "variant-zmenu.eard";
+
+// Setup styles
+let track_id = setting_string("track_id", []);
+let track_display_order = setting_string("display_order", []);
+setup_track(track_id, track_display_order);
+
+// Get data
+let track_datafile = setting_string("datafile", []);
+let track_name = setting_string("track_name", []);
+let req = request("self()", "sv-details");
+scope(req, "datafile", track_datafile);
+let data = get_data(req);
+halt(only_warm());
+
+let sv.chromosome = data_string(data,"chromosome");
+let sv.start = data_number(data,"start");
+let sv.end = sv.start + data_number(data,"length");
+let sv.id = data_string(data,"id");
+let sv.alleles = data_string(data,"alleles");
+let sv.variety = data_string(data,"variety"); //['CNV', 'insertion', 'deletion', ...]
+let sv.group = data_number(data,"group") - 10; //[1, 3, 5, ... ]
+let sv.consequence = data_string(data,"consequence"); //['intergenic_variant', ...]
+let sv.extent = data_number(data,"extent");
+
+// Draw some rectangles
+let colours = sv_colours();
+let colour = index(colours, sv.group);
+let zmenu_paint = variant_zmenu(*sv);
+let end = if(sv.variety == "insertion", sv.end + 1, sv.end); // draw insertions as 1bp length for visibility
+draw_rectangles(track_id, sv.start, end, 6, 14, colour, zmenu_paint);
+
+// Draw track furniture
+draw_track_furniture(track_id, setting_string("track_name", []), "V");

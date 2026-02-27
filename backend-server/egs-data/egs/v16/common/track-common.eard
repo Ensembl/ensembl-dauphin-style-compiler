@@ -97,3 +97,17 @@ export procedure red_dotted(pos_start,pos_end,text_start,text_end,dots_leaf,text
 export function track_leaf(track_id, suffix) {
     leaf(join("/", ["tracks/track",track_id,suffix]))
 }
+
+export procedure draw_rectangles(track_id, start, end, y_start, y_end, colour, zmenu_paint) {
+  let leaf = track_leaf(track_id, "main/main/content");
+  let paint = paint_solid(colour);
+  let nw = coord(start, [y_start,...], [0,...]);
+  let se = coord(end, [y_end,...], [0,...]);
+  rectangle(nw, se, paint, [leaf,...]);
+  rectangle(nw, se, zmenu_paint, [leaf,...]);
+}
+
+export procedure draw_track_furniture(track_id, track_name, category) {
+  draw_track_name(track_name, "name", track_leaf(track_id,"title/content"));
+  draw_track_category([category], [track_id], [track_leaf(track_id,"main/letter/content")]);
+}
