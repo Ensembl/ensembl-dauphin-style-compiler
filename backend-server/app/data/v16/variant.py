@@ -67,6 +67,13 @@ class VariantSummaryDataHandler(DataHandler):
         return get_variant(data_accessor, panel, self.get_datafile(scope))
 
 
+class StructuralVariantSummaryDataHandler(DataHandler):
+    def process_data(
+        self, data_accessor: DataAccessor, panel: Panel, scope: dict, accept: str
+    ) -> dict:
+        return get_variant(data_accessor, panel, self.get_datafile(scope))
+
+
 def get_variant_labels(
     data_accessor: DataAccessor, panel: Panel, filename: str, start: str | None=None, sv: bool=False
 ) -> dict[str, bytearray]:
@@ -84,8 +91,6 @@ def get_variant_labels(
         lengths = [end - start for start, end in zip(fields["start"], fields["end"])]
         alleles = [allele_sequence(ref, alt) for ref, alt in zip(fields["ref"], fields["alt"])]
         groups = [int(group) for group in fields["group"]]
-        if sv:
-            groups = [max(0, group-10) for group in groups] # shift down to 0-5 for track coloring
     except Exception as e:
         logging.error(e)
     payload = {
@@ -111,6 +116,7 @@ def allele_sequence(ref: str, alts: str) -> str:
         return truncated_sequence
     return combined_sequence
 
+
 class VariantLabelsDataHandler(DataHandler):
     def process_data(
         self, data_accessor: DataAccessor, panel: Panel, scope: dict, accept: str
@@ -119,6 +125,7 @@ class VariantLabelsDataHandler(DataHandler):
             data_accessor, panel, self.get_datafile(scope), self.get_scope(scope,"start")
         )
 
+
 class StructuralVariantLabelsDataHandler(DataHandler):
     def process_data(
         self, data_accessor: DataAccessor, panel: Panel, scope: dict, accept: str
@@ -126,9 +133,3 @@ class StructuralVariantLabelsDataHandler(DataHandler):
         return get_variant_labels(
             data_accessor, panel, self.get_datafile(scope), self.get_scope(scope,"start"), True
         )
-
-class StructuralVariantSummaryDataHandler(DataHandler):
-    def process_data(
-        self, data_accessor: DataAccessor, panel: Panel, scope: dict, accept: str
-    ) -> dict:
-        return get_variant(data_accessor, panel, self.get_datafile(scope))

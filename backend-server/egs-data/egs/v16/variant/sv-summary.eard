@@ -18,7 +18,7 @@ scope(req, "datafile", track_datafile);
 let data = get_data(req);
 halt(only_warm());
 
-let values = data_number(data, "values");
+let values = data_number(data, "values") - 10; // shift values for colour mapping
 let x_range = data_number(data, "range");
 
 let start = index(x_range, 0);
