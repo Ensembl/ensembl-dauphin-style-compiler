@@ -16,6 +16,17 @@ export function variant_colours() {
     ]
 }
 
+export function sv_colours() {
+    [
+        colour!("#fff"),    // 0 = white (empty)
+        colour!("#eb768a"), // 1 = dark-pink (loss)
+        colour!("#333333"), // 2 = dark-grey (CNV)
+        colour!("#84fa3a"), // 3 = lime (gain)
+        colour!("#f8a030"), // 4 = orange (inversion)
+        colour!("#cccccc")  // 5 = light-grey (complex)
+    ]
+}
+
 export procedure variant_summary_track(track_id, track_label, track_datafile) {
     let req = request("self()", "variant-summary");
     scope(req, "datafile", track_datafile);

@@ -74,7 +74,7 @@ def get_variant_labels(
         if start: # only start is needed to fetch the variant
             panel.start = int(start)-1
             panel.end = panel.start+2
-        meta_fields = ["chr", "start", "end", "id", "variety", "ref", "alt", "group", "consequence"]
+        meta_fields = ["id", "variety", "ref", "alt", "group", "consequence"]
         if sv:
             meta_fields += ["extent"]
         fields = get_bigbed_fields(
@@ -126,3 +126,9 @@ class StructuralVariantLabelsDataHandler(DataHandler):
         return get_variant_labels(
             data_accessor, panel, self.get_datafile(scope), self.get_scope(scope,"start"), True
         )
+
+class StructuralVariantSummaryDataHandler(DataHandler):
+    def process_data(
+        self, data_accessor: DataAccessor, panel: Panel, scope: dict, accept: str
+    ) -> dict:
+        return get_variant(data_accessor, panel, self.get_datafile(scope))

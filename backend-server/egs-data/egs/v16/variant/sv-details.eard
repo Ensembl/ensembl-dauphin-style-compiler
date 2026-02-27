@@ -3,6 +3,7 @@ refer "libperegrine";
 refer "libeoe";
 include "../common/track-common.eard";
 include "../common/track-style.eard";
+include "variant-common.eard";
 include "variant-zmenu.eard";
 
 // Setup styles
@@ -29,14 +30,7 @@ let sv.consequence = data_string(data,"consequence"); //['intergenic_variant', .
 let sv.extent = data_number(data,"extent");
 
 // Draw some rectangles
-let colours = [
-  colour!("#fff"),    // 0 = white (empty)
-  colour!("#eb768a"), // 1 = dark-pink (loss)
-  colour!("#333333"), // 2 = dark-grey (CNV)
-  colour!("#84fa3a"), // 3 = lime (gain)
-  colour!("#f8a030"), // 4 = orange (inversion)
-  colour!("#cccccc")  // 5 = light-grey (complex)
-];
+let colours = sv_colours();
 let colour = index(colours, sv.group);
 let zmenu_paint = variant_zmenu(*sv);
 draw_rectangles(track_id, sv.start, sv.end, 6, 14, colour, zmenu_paint);
