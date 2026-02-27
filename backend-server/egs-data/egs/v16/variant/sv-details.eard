@@ -33,7 +33,8 @@ let sv.extent = data_number(data,"extent");
 let colours = sv_colours();
 let colour = index(colours, sv.group);
 let zmenu_paint = variant_zmenu(*sv);
-draw_rectangles(track_id, sv.start, sv.end, 6, 14, colour, zmenu_paint);
+let end = if(sv.variety == "insertion", sv.end + 1, sv.end); // draw insertions as 1bp length for visibility
+draw_rectangles(track_id, sv.start, end, 6, 14, colour, zmenu_paint);
 
 // Draw track furniture
 draw_track_furniture(track_id, setting_string("track_name", []), "V");
