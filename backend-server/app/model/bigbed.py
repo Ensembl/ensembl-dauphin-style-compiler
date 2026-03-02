@@ -150,16 +150,19 @@ def get_bigbed(data_accessor: DataAccessor, item: AccessItem, start: int, end: i
         raise RequestException("cannot use accessor to get data")
 
 
-def get_bigbed_fields(
-    data_accessor: DataAccessor,
-    panel: Panel,
-    filename: str,
-    rest_fields: list[str],
-) -> dict[str, list]:
+def get_bigbed_fields(data_accessor: DataAccessor, panel: Panel, filename: str, meta_fields: list[str]) -> dict[str, list]:
+    """
+    Retrieve bigbed data and split it into fields (chr/start/end + requested meta fields).
+    """
+
     chrom = panel.get_chrom(data_accessor)
     data = get_bigbed(data_accessor, chrom.item_path(filename), panel.start, panel.end)
+    # Omit meta fields not present in the bigbed file
+    if len(data):
+        first_row_meta = data[0][2].split("\t")
+        meta_fields = meta_fields[:len(first_row_meta)]
 
-    out: dict[str, list] = {field: [] for field in rest_fields}
+    out: dict[str, list] = {field: [] for field in meta_fields}
     out["chr"] = []
     out["start"] = []
     out["end"] = []
@@ -170,9 +173,8 @@ def get_bigbed_fields(
         out["end"].append(end)
 
         parts = rest.split("\t")
-        for field, idx in zip(rest_fields, range(len(rest_fields))):
-            value = parts[idx] if idx < len(parts) else ""
-            out[field].append(value)
+        for field, idx in zip(meta_fields, range(len(meta_fields))):
+            out[field].append(parts[idx])
 
     return out
 

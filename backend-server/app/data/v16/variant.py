@@ -81,10 +81,9 @@ def get_variant_labels(
         if start: # only start is needed to fetch the variant
             panel.start = int(start)-1
             panel.end = panel.start+2
-        meta_fields = ["id", "variety", "ref", "alt", "group", "consequence", "extent"]
         fields = get_bigbed_fields(
             data_accessor, panel, filename,
-            meta_fields
+            ["id", "variety", "ref", "alt", "group", "consequence", "extent"]
         )
         lengths = [end - start for start, end in zip(fields["start"], fields["end"])]
         alleles = [allele_sequence(ref, alt) for ref, alt in zip(fields["ref"], fields["alt"])]
@@ -100,8 +99,10 @@ def get_variant_labels(
         "alleles": data_algorithm("SYRLZ", alleles),
         "group": data_algorithm("NRL", groups),
         "consequence": data_algorithm("SYRLZ", fields["consequence"]),
-        "extent": data_algorithm("NDZRL", fields["extent"]), # empty for short variants, length of SV for structural variants
     }
+    if "extent" in fields:
+        extents = [int(extent) for extent in fields["extent"]]
+        payload["extent"] = data_algorithm("NRL", extents)
     return payload
 
 
