@@ -75,15 +75,13 @@ class StructuralVariantSummaryDataHandler(DataHandler):
 
 
 def get_variant_labels(
-    data_accessor: DataAccessor, panel: Panel, filename: str, start: str | None=None, sv: bool=False
+    data_accessor: DataAccessor, panel: Panel, filename: str, start: str | None=None
 ) -> dict[str, bytearray]:
     try:
         if start: # only start is needed to fetch the variant
             panel.start = int(start)-1
             panel.end = panel.start+2
-        meta_fields = ["id", "variety", "ref", "alt", "group", "consequence"]
-        if sv:
-            meta_fields += ["extent"]
+        meta_fields = ["id", "variety", "ref", "alt", "group", "consequence", "extent"]
         fields = get_bigbed_fields(
             data_accessor, panel, filename,
             meta_fields
@@ -102,10 +100,8 @@ def get_variant_labels(
         "alleles": data_algorithm("SYRLZ", alleles),
         "group": data_algorithm("NRL", groups),
         "consequence": data_algorithm("SYRLZ", fields["consequence"]),
+        "extent": data_algorithm("NDZRL", fields["extent"]), # empty for short variants, length of SV for structural variants
     }
-    if sv:
-        extent = [int(extent) for extent in fields["extent"]]
-        payload["extent"] = data_algorithm("NDZRL", extent)
     return payload
 
 
@@ -117,19 +113,10 @@ def allele_sequence(ref: str, alts: str) -> str:
     return combined_sequence
 
 
-class VariantLabelsDataHandler(DataHandler):
+class VariantDetailsDataHandler(DataHandler):
     def process_data(
         self, data_accessor: DataAccessor, panel: Panel, scope: dict, accept: str
     ) -> dict:
         return get_variant_labels(
             data_accessor, panel, self.get_datafile(scope), self.get_scope(scope,"start")
-        )
-
-
-class StructuralVariantLabelsDataHandler(DataHandler):
-    def process_data(
-        self, data_accessor: DataAccessor, panel: Panel, scope: dict, accept: str
-    ) -> dict:
-        return get_variant_labels(
-            data_accessor, panel, self.get_datafile(scope), self.get_scope(scope,"start"), True
         )
