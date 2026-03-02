@@ -67,13 +67,6 @@ class VariantSummaryDataHandler(DataHandler):
         return get_variant(data_accessor, panel, self.get_datafile(scope))
 
 
-class StructuralVariantSummaryDataHandler(DataHandler):
-    def process_data(
-        self, data_accessor: DataAccessor, panel: Panel, scope: dict, accept: str
-    ) -> dict:
-        return get_variant(data_accessor, panel, self.get_datafile(scope))
-
-
 def get_variant_labels(
     data_accessor: DataAccessor, panel: Panel, filename: str, start: str | None=None
 ) -> dict[str, bytearray]:
