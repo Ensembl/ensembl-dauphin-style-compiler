@@ -25,22 +25,14 @@ let sv.end = sv.start + data_number(data,"length");
 let sv.id = data_string(data,"id");
 let sv.alleles = data_string(data,"alleles");
 let sv.variety = data_string(data,"variety"); //['CNV', 'insertion', 'deletion', ...]
-let sv.group = data_number(data,"group") - 10; //[1, 3, 5, ... ]
+let sv.group = data_number(data,"group") - 10; //[1, 3, 5, ... ] (value shift maps group to colour index)
 let sv.consequence = data_string(data,"consequence"); //['intergenic_variant', ...]
 let sv.extent = data_number(data,"extent");
 
-// Draw SV blocks (slightly darker palette for details view)
-let colours = [
-	colour!("#ffffff"), // 0 = white (empty)
-	colour!("#cc2b4a"), // 1 = dark pink (loss)
-	colour!("#111111"), // 2 = near-black (CNV)
-	colour!("#1fae0f"), // 3 = dark green (gain)
-	colour!("#cc6b12"), // 4 = dark orange (inversion)
-	colour!("#9e9e9e")  // 5 = mid grey (complex)
-];
-let colour = index(colours, sv.group);
+// Draw SV blocks
+let colour = index(sv_colours(), sv.group);
 let zmenu_paint = variant_zmenu(*sv);
-let end = if(sv.variety == "insertion", sv.end + 1, sv.end); // draw insertions as 1bp length for visibility
+let end = if(sv.variety == "insertion", sv.end + 1, sv.end); // draw insertions as 1bp blocks
 draw_rectangles(track_id, sv.start, end, 0, 8, colour, zmenu_paint);
 
 // Draw vertical lines marking SV boundaries
