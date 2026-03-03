@@ -10,6 +10,9 @@ include "variant-zmenu.eard";
 let track_id = setting_string("track_id", []);
 let track_display_order = setting_string("display_order", []);
 setup_track(track_id, track_display_order);
+set_track_style(track_id, "main/main/*/", ["type", "padding-top", "padding-bottom"], ["bumper", "2", "2"]);
+set_track_style(track_id, "main/main/*/content/", ["type"], ["overlay"]);
+set_track_style(track_id, "main/main/*/content/line", ["depth"], ["-1"]);
 
 // Get data
 let track_datafile = setting_string("datafile", []);
@@ -32,14 +35,41 @@ let sv.extent = data_number(data,"extent");
 // Draw SV blocks
 let colour = index(sv_colours(), sv.group);
 let zmenu_paint = variant_zmenu(*sv);
-let end = if(sv.variety == "insertion", sv.end + 1, sv.end); // draw insertions as 1bp blocks
-draw_rectangles(track_id, sv.start, end, 0, 8, colour, zmenu_paint);
+let is_insertion = sv.variety == "insertion";
+let leaf_base = push_str(join("/", ["tracks/track", track_id, "main", "main/"]), sv.id);
+let block_leafs = leaf(if(!is_insertion, push_str(leaf_base, "/content/block"), ["",...])); 
+rectangle(coord(sv.start, [3,...], [0,...]), coord(sv.end, [7,...], [0,...]), paint_solid(colour), block_leafs);
+rectangle(coord(sv.start, [3,...], [0,...]), coord(sv.end, [7,...], [0,...]), zmenu_paint, block_leafs);
 
-// Draw vertical lines marking SV boundaries
-let line_paint = paint_solid(colour);
-let leaf = track_leaf(track_id, "main/main/content");
-rectangle(coord(sv.start, [-3,...], [0.5,...]), coord(sv.start, [11,...], [-0.5,...]), line_paint, [leaf,...]);
-rectangle(coord(end, [-3,...], [0.5,...]), coord(end, [11,...], [-0.5,...]), line_paint, [leaf,...]);
+// Draw vertical lines to SV boundaries
+let solid_paint = paint_solid(colour);
+rectangle(coord(sv.start, [0,...], [-0.5,...]), coord(sv.start, [9,...], [0.5,...]), solid_paint, block_leafs);
+rectangle(coord(sv.end, [0,...], [-0.5,...]), coord(sv.end, [9,...], [0.5,...]), solid_paint, block_leafs);
+
+// Draw lollipops for insertions
+let dot_size = 4;
+let dot_smoothness = 13;
+let dashed_paint = paint_dotted([colour!("white"),...], [colour!("#999"),...], 4, 1, 0.5);
+let dot_leafs = leaf(if(is_insertion, push_str(leaf_base, "/content/dot"), ["",...]));
+let line_leafs = leaf(if(is_insertion, push_str(leaf_base, "/content/line"), ["",...]));
+let anchor_leaf = track_leaf(track_id, "main/background/content");
+
+rectangle_join(
+	coord(sv.start, [2,...], [0,...]),
+	coord(sv.start, [0,...], [0,...]),
+	dashed_paint, line_leafs, [anchor_leaf,...]
+);
+polygon(
+	coord(sv.start, [6,...], [0.5,...]),
+	[dot_size,...], dot_smoothness, 0,
+	paint_solid(colour), dot_leafs
+);
+// zmenu overlay for click target
+rectangle(
+	coord(sv.start, [2,...], [-4,...]),
+	coord(sv.start, [12,...], [4,...]),
+	zmenu_paint, dot_leafs
+);
 
 // Draw track furniture
 draw_track_furniture(track_id, setting_string("track_name", []), "V");

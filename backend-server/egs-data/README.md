@@ -60,6 +60,8 @@ See [`shape.rs`](/libperegrine/src/shape.rs)
 - `coord(position[int|float], x_delta[int], y_delta[int])`: registers a coordinate handle (point in canvas)
   - `position`: genomic position (or `0..1` if `window`/`content` coordinate system)
   - `x_delta`/`y_delta`: shift the coordinate `<int>` pixels from `position`
+    
+    Note: leaf `x_delta` adjusts vertical, `y_delta` horizontal placement on screen
 - `leaf(path_str)`: creates a leaf (binds styles with matching paths)
 - `empty(nw_coord[], se_coord[], leaf)`: reserves layout area without drawing (leaf anchoring)
 
@@ -91,6 +93,8 @@ See [`paint.rs`](/libperegrine/src/paint.rs)
   - joint drawing to extra leafs (used for variant track fishing lines)
 - `running_rectangle(nw_coord, se_coord, end_bp, paint, leafs[])`:
   - draws a block that stays on screen until `end_bp` is visible (used for transcript lozenges)
+- `polygon(center_coord, radius[float], no_of_points(int), rotation_angle(float), paint, leafs[])`
+  - draws a polygon (use higher `no_of_points` for circles)
 - `wiggle(start_bp, end_bp, graph_type, y_values[float], include_values[bool], leaf)`:
   - draws a wiggle plot (used for gc track)
 - `text(coords, pen, text[str], leafs[])`: draws a static text
