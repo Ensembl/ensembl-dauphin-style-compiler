@@ -10,7 +10,7 @@ include "variant-zmenu.eard";
 let track_id = setting_string("track_id", []);
 let track_display_order = setting_string("display_order", []);
 setup_track(track_id, track_display_order);
-set_track_style(track_id, "main/main/*/", ["type", "padding-top", "padding-bottom"], ["bumper", "2", "2"]);
+set_track_style(track_id, "main/main/*/", ["type", "min-height", "padding-top", "padding-bottom"], ["bumper", "15", "5", "5"]);
 set_track_style(track_id, "main/main/*/content/", ["type"], ["overlay"]);
 set_track_style(track_id, "main/main/*/content/line", ["depth"], ["-1"]);
 
@@ -38,13 +38,13 @@ let zmenu_paint = variant_zmenu(*sv);
 let is_insertion = sv.variety == "insertion";
 let leaf_base = push_str(join("/", ["tracks/track", track_id, "main", "main/"]), sv.id);
 let block_leafs = leaf(if(!is_insertion, push_str(leaf_base, "/content/block"), ["",...])); 
-rectangle(coord(sv.start, [3,...], [0,...]), coord(sv.end, [7,...], [0,...]), paint_solid(colour), block_leafs);
-rectangle(coord(sv.start, [3,...], [0,...]), coord(sv.end, [7,...], [0,...]), zmenu_paint, block_leafs);
+rectangle(coord(sv.start, [4,...], [0,...]), coord(sv.end, [8,...], [0,...]), paint_solid(colour), block_leafs);
+rectangle(coord(sv.start, [1,...], [0,...]), coord(sv.end, [10,...], [0,...]), zmenu_paint, block_leafs);
 
 // Draw vertical lines to SV boundaries
 let solid_paint = paint_solid(colour);
-rectangle(coord(sv.start, [0,...], [-0.5,...]), coord(sv.start, [9,...], [0.5,...]), solid_paint, block_leafs);
-rectangle(coord(sv.end, [0,...], [-0.5,...]), coord(sv.end, [9,...], [0.5,...]), solid_paint, block_leafs);
+rectangle(coord(sv.start, [1,...], [0,...]), coord(sv.start, [10,...], [1,...]), solid_paint, block_leafs);
+rectangle(coord(sv.end, [1,...], [0,...]), coord(sv.end, [10,...], [1,...]), solid_paint, block_leafs);
 
 // Draw lollipops for insertions
 let dot_size = 4;
@@ -55,19 +55,19 @@ let line_leafs = leaf(if(is_insertion, push_str(leaf_base, "/content/line"), [""
 let anchor_leaf = track_leaf(track_id, "main/background/content");
 
 rectangle_join(
-	coord(sv.start, [2,...], [0,...]),
-	coord(sv.start, [0,...], [0,...]),
+	coord(sv.start, [2,...], [4,...]),
+	coord(sv.start, [0,...], [4,...]),
 	dashed_paint, line_leafs, [anchor_leaf,...]
 );
 polygon(
-	coord(sv.start, [6,...], [0.5,...]),
+	coord(sv.start, [6,...], [4.5,...]),
 	[dot_size,...], dot_smoothness, 0,
 	paint_solid(colour), dot_leafs
 );
 // zmenu overlay for click target
 rectangle(
-	coord(sv.start, [2,...], [-4,...]),
-	coord(sv.start, [12,...], [4,...]),
+	coord(sv.start, [2,...], [0,...]),
+	coord(sv.start, [12,...], [8,...]),
 	zmenu_paint, dot_leafs
 );
 
