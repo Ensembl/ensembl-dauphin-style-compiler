@@ -47,6 +47,13 @@ export function variant_zmenu(*variant) {
     }
 """);
 
+  struct!(sv_metadata_zmenu,"""
+    {
+        "type": "zmenu",
+        "zmenu-type": "regular"
+    }
+""");
+
     struct!(content_zmenu,"""
 (<0,1,2,3,4,5,6,7>!
       {
@@ -123,6 +130,6 @@ export function variant_zmenu(*variant) {
     variant_ensembl_start,
     variant.end
   );
-  let paint = paint_click(metadata_zmenu,content_zmenu,false);
+  let paint = paint_click(if(index(variant.group,0)>10, sv_metadata_zmenu, metadata_zmenu), content_zmenu, false);
   paint
 }
