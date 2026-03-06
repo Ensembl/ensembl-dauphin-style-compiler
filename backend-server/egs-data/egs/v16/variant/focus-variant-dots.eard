@@ -21,7 +21,6 @@ let item_start = setting_string("focus-variant",["start"]);
 
 let req = request("self()", "variant-details");
 scope(req, "start", item_start);
-scope(req, "id", item_id);
 scope(req, "genome", genome_id);
 scope(req, "datafile", "variant-details.bb");
 let data = get_data(req);

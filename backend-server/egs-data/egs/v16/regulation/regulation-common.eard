@@ -104,12 +104,3 @@ export procedure draw_regulatory_features(*reg_feature) {
       reg_feature.leaf
   );
 }
-
-export procedure draw_track_furniture () {
-  draw_track_name("Regulatory annotation","name",leaf("tracks/track/regulation/title/content"));
-  draw_track_category(
-      ["R"],
-      ["regulation"],
-      [leaf("tracks/track/regulation/main/letter/content")]
-  );
-}

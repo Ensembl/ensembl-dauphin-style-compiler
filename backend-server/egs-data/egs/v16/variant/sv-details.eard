@@ -1,0 +1,84 @@
+program "ensembl-webteam/core" "sv-details" 1;
+refer "libperegrine";
+refer "libeoe";
+include "../common/track-common.eard";
+include "../common/track-style.eard";
+include "variant-common.eard";
+include "variant-zmenu.eard";
+
+// Setup styles
+let track_id = setting_string("track_id", []);
+let track_display_order = setting_string("display_order", []);
+setup_track(track_id, track_display_order);
+set_track_style(track_id, "main/main/insertions/", ["type", "priority", "padding-bottom"], ["overlay", "1", "4"]);
+set_track_style(track_id, "main/main/blocks/", ["type", "priority"], ["bumper", "2"]);
+
+// Get data
+let track_datafile = setting_string("datafile", []);
+let track_name = setting_string("track_name", []);
+let req = request("self()", "sv-details");
+scope(req, "datafile", track_datafile);
+let data = get_data(req);
+halt(only_warm());
+
+let sv.chromosome = data_string(data,"chromosome");
+let sv.start = data_number(data,"start");
+let sv.end = sv.start + data_number(data,"length");
+let sv.id = data_string(data,"id");
+let sv.alleles = data_string(data,"alleles");
+let sv.variety = data_string(data,"variety"); //['CNV', 'insertion', 'deletion', ...]
+let sv.group = data_number(data,"group"); //[11, 13, 15, ... ]
+let sv.consequence = data_string(data,"consequence"); //['intergenic_variant', ...]
+let sv.extent = data_number(data,"extent");
+// create leaf IDs for collapsing duplicate SVs
+let tmpl = template_start("{0}:{1}:{2}");
+template_set(tmpl, 0, sv.variety);
+template_set(tmpl, 1, to_string(sv.start));
+template_set(tmpl, 2, to_string(sv.end));
+let sv.leaf_id = template_end(tmpl);
+
+// Draw SV blocks
+let colour = index(sv_colours(), sv.group-10);
+let zmenu_paint = variant_zmenu(*sv);
+let is_insertion = sv.variety == "insertion";
+let leaf_paths = push_str(join("/", ["tracks/track", track_id, "main/main/blocks/"]), sv.leaf_id);
+let leafs = leaf(if(!is_insertion, leaf_paths, ["",...]));
+rectangle(coord(sv.start, [6,...], [0,...]), coord(sv.end, [10,...], [0,...]), paint_solid(colour), leafs);
+rectangle(coord(sv.start, [4,...], [0,...]), coord(sv.end, [12,...], [0,...]), zmenu_paint, leafs);
+
+// Draw vertical lines to SV boundaries
+let solid_paint = paint_solid(colour);
+rectangle(coord(sv.start, [4,...], [0,...]), coord(sv.start, [12,...], [1,...]), solid_paint, leafs);
+rectangle(coord(sv.end, [4,...], [0,...]), coord(sv.end, [12,...], [1,...]), solid_paint, leafs);
+
+// Draw lollipops for insertions
+let dot_size = 3;
+let dot_smoothness = 13;
+let line_h = 12;
+let dashed_paint = paint_dotted([colour!("white"),...], [colour!("#999"),...], 4, 1, 0.5);
+let leaf_paths = push_str(join("/", ["tracks/track", track_id, "main/main/insertions/"]), sv.leaf_id);
+let leafs = leaf(if(is_insertion, leaf_paths, ["",...]));
+let bg_leaf = track_leaf(track_id, "main/background/content");
+// solid line on top of the track
+rectangle(coord([0], [0], [0]), coord([1], [1], [0]), paint_solid(colour!("#bbb")), bg_leaf);
+// dashed vertical line
+rectangle_join(
+	coord(sv.start, [line_h,...], [dot_size,...]),
+	coord(sv.start, [0,...], [dot_size,...]),
+	dashed_paint, leafs, [bg_leaf,...]
+);
+// marker dot
+polygon(
+	coord(sv.start, [line_h+dot_size,...], [dot_size+0.5,...]),
+	[dot_size,...], dot_smoothness, 0,
+	paint_solid(colour), leafs
+);
+// zmenu click target over the dot
+rectangle(
+	coord(sv.start, [line_h,...], [0,...]),
+	coord(sv.start, [line_h+(dot_size*2),...], [(dot_size*2),...]),
+	zmenu_paint, leafs
+);
+
+// Draw track furniture
+draw_track_furniture(track_id, setting_string("track_name", []), "V");

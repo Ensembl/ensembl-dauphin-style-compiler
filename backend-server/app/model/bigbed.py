@@ -2,6 +2,7 @@ import pyBigWig
 
 from model.datalocator import AccessItem
 from command.datasources import DataAccessor
+from command.coremodel import Panel
 from core.exceptions import RequestException
 
 """
@@ -147,6 +148,35 @@ def get_bigbed(data_accessor: DataAccessor, item: AccessItem, start: int, end: i
         return _get_bigbed_data(accessor.url, chromosome, start, end)
     else:
         raise RequestException("cannot use accessor to get data")
+
+
+def get_bigbed_fields(data_accessor: DataAccessor, panel: Panel, filename: str, meta_fields: list[str]) -> dict[str, list]:
+    """
+    Retrieve bigbed data and split it into fields (chr/start/end + requested meta fields).
+    """
+
+    chrom = panel.get_chrom(data_accessor)
+    data = get_bigbed(data_accessor, chrom.item_path(filename), panel.start, panel.end)
+    # Omit meta fields not present in the bigbed file
+    if len(data):
+        first_row_meta = data[0][2].split("\t")
+        meta_fields = meta_fields[:len(first_row_meta)]
+
+    out: dict[str, list] = {field: [] for field in meta_fields}
+    out["chr"] = []
+    out["start"] = []
+    out["end"] = []
+
+    for (start, end, rest) in data:
+        out["chr"].append(chrom.name)
+        out["start"].append(start)
+        out["end"].append(end)
+
+        parts = rest.split("\t")
+        for field, idx in zip(meta_fields, range(len(meta_fields))):
+            out[field].append(parts[idx])
+
+    return out
 
 
 def get_bigwig(data_accessor: DataAccessor, item: AccessItem, start: int, end: int):

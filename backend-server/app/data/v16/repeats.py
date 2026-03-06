@@ -1,42 +1,26 @@
 from command.coremodel import DataHandler, Panel, DataAccessor
 from data.v16.dataalgorithm import data_algorithm
-from model.bigbed import get_bigbed, get_bigwig_stats
+from model.bigbed import get_bigwig_stats, get_bigbed_fields
 
 SCALE = 1000
 
 def get_repeat_details(
         data_accessor: DataAccessor, panel: Panel, filename: str
     ) -> dict[str,bytearray]:
-    chrom = panel.get_chrom(data_accessor)
-    data = get_bigbed(data_accessor, chrom.item_path(filename), panel.start, panel.end)
-    chrs = [chrom.name] * len(data)
-    starts = []
-    ends = []
-    strands = []
-    analyses = []
-    names = []
-    classes = []
-    types = []
-
-    for (start, end, rest) in data:
-        (strand, analysis, name, repclass, type) = rest.split("\t")
-        starts.append(start)
-        ends.append(end)
-        strands.append(strand)
-        analyses.append(analysis)
-        classes.append(repclass)
-        names.append(name)
-        types.append(type)
+    fields = get_bigbed_fields(
+        data_accessor, panel, filename,
+        ["strand", "analysis", "name", "class", "type"],
+    )
 
     return {
-        "chr": data_algorithm("SZ", chrs),
-        "start": data_algorithm("NDZRL", starts),
-        "end": data_algorithm("NDZRL", ends),
-        "strand": data_algorithm("SZ", strands),
-        "analysis": data_algorithm("SZ", analyses),
-        "name": data_algorithm("SZ", names),
-        "class": data_algorithm("SZ", classes),
-        "type": data_algorithm("SZ", types),
+        "chr": data_algorithm("SZ", fields["chr"]),
+        "start": data_algorithm("NDZRL", fields["start"]),
+        "end": data_algorithm("NDZRL", fields["end"]),
+        "strand": data_algorithm("SZ", fields["strand"]),
+        "analysis": data_algorithm("SZ", fields["analysis"]),
+        "name": data_algorithm("SZ", fields["name"]),
+        "class": data_algorithm("SZ", fields["class"]),
+        "type": data_algorithm("SZ", fields["type"]),
     }
 
 def get_repeat_density(

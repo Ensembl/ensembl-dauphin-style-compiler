@@ -7,9 +7,7 @@ include "../common/track-style.eard";
 // Setup styles
 let track_id = setting_string("track_id", []);
 let track_display_order = setting_string("display_order", []);
-track_styles();
-new_track_style(track_id, track_display_order);
-set_track_style(track_id, "", ["min-height"], ["40"]);
+setup_track(track_id, track_display_order);
 
 // Get data
 let track_datafile = setting_string("datafile", []);
@@ -41,5 +39,4 @@ rectangle(coord(pos_start, [6,...], [0,...]), coord(pos_end, [14,...], [0,...]),
 
 // Draw track furniture
 let track_name = join(" ", [setting_string("track_name", []), setting_string("additional_info", [])]);
-draw_track_name(track_name, "name", track_leaf(track_id,"title/content"));
-draw_track_category(["G"], [track_id], [track_leaf(track_id,"main/letter/content")]);
+draw_track_furniture(track_id, track_name, "G");

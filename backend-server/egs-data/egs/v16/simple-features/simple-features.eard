@@ -51,21 +51,20 @@ export procedure draw_feature_track(feature_type){
   /* setup styles */
   let track_id = setting_string("track_id", []);
   let track_display_order = setting_string("display_order", []);
-  track_styles();
-  new_track_style(track_id, track_display_order);
+  setup_track(track_id, track_display_order);
 
   /* get data */
   let track_datafile = setting_string("datafile", []);
-  let req = request("self()","simple-features");
+  let req = request("self()", "simple-features");
   scope(req, "datafile", track_datafile);
   let data = get_data(req);
   halt(only_warm());
 
-  let f.chr = data_string(data,"chr");
-  let f.start = data_number(data,"start");
-  let f.end = data_number(data,"end");
-  let f.strand = data_string(data,"strand");
-  let f.analysis = data_string(data,"analysis");
+  let f.chr = data_string(data, "chr");
+  let f.start = data_number(data, "start");
+  let f.end = data_number(data, "end");
+  let f.strand = data_string(data, "strand");
+  let f.analysis = data_string(data, "analysis");
 
   /* assign colours */
   let tss_colour = colour!("#00ff00"); // green
@@ -90,6 +89,5 @@ export procedure draw_feature_track(feature_type){
 
   /* draw track furniture */
   let track_name = setting_string("track_name", []);
-  draw_track_name(track_name, "name", track_leaf(track_id,"title/content"));
-  draw_track_category(["G"], [track_id], [track_leaf(track_id,"main/letter/content")]);
+  draw_track_furniture(track_id, track_name, "G");
 }

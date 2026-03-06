@@ -16,6 +16,17 @@ export function variant_colours() {
     ]
 }
 
+export function sv_colours() {
+    [
+        colour!("#ffffff"), // 0 = white (no data)
+        colour!("#d90000"), // 1 = red (loss)
+        colour!("#8600af"), // 2 = purple (variable)
+        colour!("#436de2"), // 3 = blue (gain)
+        colour!("#f8c041"), // 4 = orange (inversion)
+        colour!("#000000")  // 5 = black (complex)
+    ]
+}
+
 export procedure variant_summary_track(track_id, track_label, track_datafile) {
     let req = request("self()", "variant-summary");
     scope(req, "datafile", track_datafile);
@@ -39,7 +50,5 @@ export procedure variant_summary_track(track_id, track_label, track_datafile) {
     rectangle(coord(pos_start,[0,...],[-1,...]), coord(pos_end,[5,...],[1,...]), paint, [leaf,...]);
 
     /* draw track furniture */
-
-    draw_track_name(track_label, "name", track_leaf(track_id,"title/content"));
-    draw_track_category(["V"], [track_id], [track_leaf(track_id,"main/letter/content")]);
+    draw_track_furniture(track_id, track_label, "V");
 }

@@ -8,8 +8,7 @@ include "compara-zmenu.eard";
 /* setup styles */
 let track_id = setting_string("track_id", []);
 let track_display_order = setting_string("display_order", []);
-track_styles();
-new_track_style(track_id, track_display_order);
+setup_track(track_id, track_display_order);
 
 /* get data */
 let track_datafile = setting_string("datafile", []);
@@ -59,12 +58,10 @@ rectangle(coord([0],[16],[0]), coord([1],[16],[0]), line_paint, [bg_leaf,...]);
 
 /* draw track furniture */
 let track_name = setting_string("track_name", []);
-draw_track_name(track_name, "name", track_leaf(track_id,"title/content"));
-
-let info_leaf = track_leaf(track_id,"main/letter/content");
-draw_track_category(["G"], [track_id], [info_leaf]);
+draw_track_furniture(track_id, track_name, "G");
 
 /* draw scales on the left hand side near label "G"*/
+let info_leaf = track_leaf(track_id,"main/letter/content");
 let pen = pen("400 IBM Plex Mono, sans-serif",8,[colour!("#666"),...],[colour!("transparent"),...]);
 text(coord([0],[-5],[35]),pen,["+10"],[info_leaf]); // top scale
 text(coord([0],[12],[35]),pen,[" 0"],[info_leaf]); // middle scale

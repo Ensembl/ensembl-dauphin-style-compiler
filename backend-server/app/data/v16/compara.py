@@ -1,32 +1,24 @@
 from command.coremodel import DataHandler, Panel, DataAccessor
 from data.v16.dataalgorithm import data_algorithm
-from model.bigbed import get_bigbed
+from model.bigbed import get_bigbed_fields
+
 
 def get_compara_details(
         data_accessor: DataAccessor, panel: Panel, filename: str
     ) -> dict[str,bytearray]:
-    chrom = panel.get_chrom(data_accessor)
-    data = get_bigbed(data_accessor, chrom.item_path(filename), panel.start, panel.end)
-    chrs = []
-    starts = []
-    lengths = []
-    ids = []
-    scores = []
-    pvalues = []
-    for (start, end, rest) in data:
-        (name, score, pvalue) = rest.split("\t")
-        chrs.append(chrom.name)
-        starts.append(start)
-        lengths.append(end - start)
-        ids.append(name)
-        scores.append(int(float(score)))
-        pvalues.append(int(float(pvalue)))
+    fields = get_bigbed_fields(
+        data_accessor, panel, filename,
+        ["id", "score", "pvalue"]
+    )
+    scores = [int(float(score)) for score in fields["score"]]
+    pvalues = [int(float(pvalue)) for pvalue in fields["pvalue"]]
+    lengths = [end - start for start, end in zip(fields["start"], fields["end"])]
 
     return {
-        "chr": data_algorithm("SZ", chrs),
-        "start": data_algorithm("NDZRL", starts),
+        "chr": data_algorithm("SZ", fields["chr"]),
+        "start": data_algorithm("NDZRL", fields["start"]),
         "length": data_algorithm("NDZRL", lengths),
-        "id": data_algorithm("SZ", ids),
+        "id": data_algorithm("SZ", fields["id"]),
         "score": data_algorithm("NZRL", scores),
         "pvalue": data_algorithm("NZRL", pvalues),
     }

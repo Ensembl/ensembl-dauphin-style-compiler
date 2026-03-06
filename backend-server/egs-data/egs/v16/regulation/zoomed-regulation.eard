@@ -14,7 +14,7 @@ regulation_track_styles();
 let *reg_feature = get_regulation_track_data("regulation", "This is the name of the regulation track");
 
 draw_regulatory_features(*reg_feature);
-draw_track_furniture();
+draw_track_furniture("regulation", "Regulatory annotation", "R");
 
 
 /* Draw zmenus */

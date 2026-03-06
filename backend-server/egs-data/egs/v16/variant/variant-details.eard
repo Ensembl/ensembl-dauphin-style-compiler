@@ -4,7 +4,7 @@ refer "libeoe";
 include "../common/track-common.eard";
 include "../common/track-style.eard";
 include "variant-common.eard";
-include "focus-variant-zmenu.eard";
+include "variant-zmenu.eard";
 
 /* Setup styles */
 
@@ -306,6 +306,4 @@ polygon(
 );
 
 /* Draw track furniture */
-
-draw_track_category(["V"], [track_id], [leaf.letter]);
-draw_track_name(track_name, "name", leaf.trackname);
+draw_track_furniture(track_id, track_name, "V");

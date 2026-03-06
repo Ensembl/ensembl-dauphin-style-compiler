@@ -15,7 +15,7 @@ let *reg_feature = get_regulation_track_data("regulation");
 halt(only_warm());
 
 draw_regulatory_features(*reg_feature);
-draw_track_furniture();
+draw_track_furniture("regulation", "Regulatory annotation", "R");
 
 
 /* Draw zmenus */

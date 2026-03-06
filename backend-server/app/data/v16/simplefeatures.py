@@ -1,32 +1,22 @@
 from command.coremodel import DataHandler, Panel, DataAccessor
 from data.v16.dataalgorithm import data_algorithm
-from model.bigbed import get_bigbed
+from model.bigbed import get_bigbed_fields
 
 
 def get_features(
     data_accessor: DataAccessor, panel: Panel, filename: str
 ) -> dict[str, bytearray]:
-    chrom = panel.get_chrom(data_accessor)
-    data = get_bigbed(data_accessor, chrom.item_path(filename), panel.start, panel.end)
-    chrs = [chrom.name] * len(data)
-    starts = []
-    ends = []
-    strands = []
-    analyses = []
-
-    for (start, end, rest) in data:
-        (strand, analysis) = rest.split("\t")
-        starts.append(start)
-        ends.append(end)
-        strands.append(strand)
-        analyses.append(analysis)
+    fields = get_bigbed_fields(
+        data_accessor, panel, filename,
+        ["strand", "analysis"]
+    )
 
     return {
-        "chr": data_algorithm("SZ", chrs),
-        "start": data_algorithm("NDZRL", starts),
-        "end": data_algorithm("NDZRL", ends),
-        "strand": data_algorithm("SZ", strands),
-        "analysis": data_algorithm("SZ", analyses),
+        "chr": data_algorithm("SZ", fields["chr"]),
+        "start": data_algorithm("NDZRL", fields["start"]),
+        "end": data_algorithm("NDZRL", fields["end"]),
+        "strand": data_algorithm("SZ", fields["strand"]),
+        "analysis": data_algorithm("SZ", fields["analysis"]),
     }
 
 

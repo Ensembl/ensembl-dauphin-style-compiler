@@ -4,7 +4,7 @@ refer "libeoe";
 include "../common/track-common.eard";
 include "../common/track-style.eard";
 include "variant-common.eard";
-include "focus-variant-zmenu.eard";
+include "variant-zmenu.eard";
 
 /* Setup styles */
 
