@@ -50,7 +50,7 @@ export function variant_zmenu(*variant) {
   struct!(sv_metadata_zmenu,"""
     {
         "type": "zmenu",
-        "zmenu-type": "regular"
+        "zmenu-type": "structural-variant"
     }
 """);
 
