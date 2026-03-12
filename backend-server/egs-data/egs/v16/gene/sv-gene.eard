@@ -22,7 +22,15 @@ let *leafs = sv_gene_leafs(*gene);
 let paint = paint_solid(colour!("#279afc"));
 rectangle(coord(gene.start,[0,...],[-0.5,...]), coord(gene.end,[5,...],[0.5,...]), paint, leafs.blocks);
 let pen = pen("'IBM Plex Mono', sans-serif", 10, [colour!("#6f8190"),...], [colour!("transparent"),...]);
-running_text(coord(gene.start, [8,...], [0,...]), coord(gene.end,[8,...],[0,...]), pen, gene.name, leafs.text);
+let (bp_start,bp_end) = bp_range();
+let bp_in_panel = bp_end-bp_start;
+let min_spacing = bp_in_panel/30;
+let idx = enumerate([len(gene.start)]);
+let prev_idx = set(idx, idx > 0, idx - 1);
+let prev_start = index(gene.start, prev_idx);
+let show_label = idx==0 || gene.start - prev_start > min_spacing;
+let label_leafs = set(leafs.text, !show_label, [leaf(""),...]);
+running_text(coord(gene.start, [8,...], [0,...]), coord(gene.end,[8,...],[0,...]), pen, gene.name, label_leafs);
 
 /* Draw strand divider line */
 let line_paint = paint_dotted([colour!("white"),...],[colour!("#999"),...],4,1,0.5);
