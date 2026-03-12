@@ -39,7 +39,6 @@ export procedure sv_gene_styles() {
     }
 
     tracks/track/sv-gene/main/main/**/text/ {
-      bump-width: none;
       system: tracking-special;
     }
 """);
