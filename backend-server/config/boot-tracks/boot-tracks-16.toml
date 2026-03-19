@@ -119,7 +119,7 @@ scale-no-letters = true
 
 [track.sv-transcript]
 program_name = "sv-transcript"
-scales = [0,18,6]
+scales = [3,16,6]
 triggers = [["track","sv-gene"]]
 include=["general"]
 
@@ -130,32 +130,20 @@ include=["general"]
 
 [track.sv-gene-1.general]
 include=["sv-gene","general"]
-scales = [19,19,1]
+scales = [17,19,2]
 [track.sv-gene-1.values]
-zoom-level = 19
+zoom-level = 18
 
 [track.sv-gene-2.general]
 include=["sv-gene","general"]
-scales = [20,20,1]
+scales = [20,21,2]
 [track.sv-gene-2.values]
-zoom-level = 20
-
-[track.sv-gene-3.general]
-include=["sv-gene","general"]
-scales = [21,21,1]
-[track.sv-gene-3.values]
 zoom-level = 21
-
-[track.sv-gene-4.general]
-include=["sv-gene","general"]
-scales = [22,22,1]
-[track.sv-gene-4.values]
-zoom-level = 22
 
 [track.sv-gene-overview]
 program_name = "sv-gene-overview"
 triggers = [["track","sv-gene"]]
-scales = [23,100,6]
+scales = [22,100,6]
 include=["general"]
 
 

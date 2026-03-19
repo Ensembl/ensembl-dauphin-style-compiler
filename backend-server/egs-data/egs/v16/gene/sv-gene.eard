@@ -25,16 +25,13 @@ rectangle(coord(gene.start,[0,...],[-0.5,...]), coord(gene.end,[5,...],[0.5,...]
 We can fit about 10 labels per lane in viewport (max 15-char labels, 1200px viewport)
 Convert it to bp based on the zoom level */
 let zoom_level = setting_number("zoom-level",[]);
-let label_spacing = if(zoom_level >= 22,420000, if(zoom_level >= 21,210000, if(zoom_level >= 20, 105000, 50000)));
+let label_spacing = if(zoom_level >= 21, 200000, 26000); //zoom level = 18 or 21
 // Calculate which genes can show labels given the spacing
 let idx = enumerate([len(gene.start)]);
 let prev_idx = set(idx, idx > 0, idx - 1);
-let first_start = index(gene.start, 0);
-let pos = gene.start - first_start;
-let prev_pos = index(pos, prev_idx);
+let pos = gene.start - index(gene.start, 0);
 let spacing_block = (pos - (pos % label_spacing)) / label_spacing;
-let prev_spacing_block = (prev_pos - (prev_pos % label_spacing)) / label_spacing;
-let show_label = spacing_block > prev_spacing_block && strlen(gene.name) < 15;
+let show_label = spacing_block > index(spacing_block, prev_idx) && strlen(gene.name) < 15;
 // Draw the labels
 let pen = pen("'IBM Plex Mono', sans-serif", 10, [colour!("#6f8190"),...], [colour!("white"),...]);
 running_text(coord(gene.start, [8,...], [0,...]), coord(gene.end,[8,...],[0,...]), pen, gene.name, if(show_label, leafs.text, [leaf(""),...]));
