@@ -18,11 +18,26 @@ halt(only_warm());
 /* Allocate leafs */
 let *leafs = sv_gene_leafs(*gene);
 
-/* Draw gene blocks and labels */
+/* Draw gene blocks */
 let paint = paint_solid(colour!("#279afc"));
 rectangle(coord(gene.start,[0,...],[-0.5,...]), coord(gene.end,[5,...],[0.5,...]), paint, leafs.blocks);
-let pen = pen("'IBM Plex Mono', sans-serif", 10, [colour!("#6f8190"),...], [colour!("transparent"),...]);
-running_text(coord(gene.start, [8,...], [0,...]), coord(gene.end,[8,...],[0,...]), pen, gene.name, leafs.text);
+/* Calculate spacing for gene labels
+We can fit about 10 labels per lane in viewport (max 15-char labels, 1200px viewport)
+Convert it to bp based on the zoom level */
+let zoom_level = setting_number("zoom-level",[]);
+let label_spacing = if(zoom_level >= 22,420000, if(zoom_level >= 21,210000, if(zoom_level >= 20, 105000, 50000)));
+// Calculate which genes can show labels given the spacing
+let idx = enumerate([len(gene.start)]);
+let prev_idx = set(idx, idx > 0, idx - 1);
+let first_start = index(gene.start, 0);
+let pos = gene.start - first_start;
+let prev_pos = index(pos, prev_idx);
+let spacing_block = (pos - (pos % label_spacing)) / label_spacing;
+let prev_spacing_block = (prev_pos - (prev_pos % label_spacing)) / label_spacing;
+let show_label = spacing_block > prev_spacing_block && strlen(gene.name) < 15;
+// Draw the labels
+let pen = pen("'IBM Plex Mono', sans-serif", 10, [colour!("#6f8190"),...], [colour!("white"),...]);
+running_text(coord(gene.start, [8,...], [0,...]), coord(gene.end,[8,...],[0,...]), pen, gene.name, if(show_label, leafs.text, [leaf(""),...]));
 
 /* Draw strand divider line */
 let line_paint = paint_dotted([colour!("white"),...],[colour!("#999"),...],4,1,0.5);
