@@ -105,8 +105,12 @@ export procedure calc_focus_tr_shown(*gene,*tr) {
     let shown_tr_index = find(tr.id_versioned,wanted);
     let shown_tr_index = select(shown_tr_index,shown_tr_index!=-1);
 
-    /* count them and compare to number of transcripts */
-    let out = gene.all_tr_count - len(shown_tr_index);
+    /* set booleans at drawn locations (first transcript always shown) */
+    let shown_tr = set_at(repeat(false,len(tr.start)),shown_tr_index,[true,...]);
+    let shown_tr = set_at(shown_tr,[0],[true,...]);
+
+    /* count the number transcripts to show */
+    let out = gene.all_tr_count - len(position(shown_tr));
     if(out>0,out,[-1,...])
 }
 
