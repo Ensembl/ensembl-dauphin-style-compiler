@@ -30,7 +30,7 @@ def _transcript_value(line):
     #
     translation_length = line.translation_length
     transcript_length = sum(line.block_sizes)
-    return (designation_value,biotype_value,int(translation_length),transcript_length)
+    return (designation_value,biotype_value,int(translation_length),transcript_length,line.transcript_id)
 
 def _sort_gene_transcripts(transcripts):
     # use transcript rank if present (assumes all or none have a rank)
