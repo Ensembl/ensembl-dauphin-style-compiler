@@ -1,0 +1,172 @@
+program "ensembl-webteam/core" "focus-single-transcript" 1;
+refer "libperegrine";
+refer "libeoe";
+include "../common/track-common.eard";
+include "../common/track-style.eard";
+include "gene-common-data.eard";
+include "gene-common-visual.eard";
+include "gene-common-zmenu.eard";
+include "transcript-common.eard";
+
+/* Set styles */
+
+track_styles();
+gene_styles();
+transcript_styles();
+
+style!("""
+    tracks/track/focus/ {
+        priority: -900;
+        report: "track;switch-id=focus;has-labels=true;!id";
+    }
+""");
+
+/* Get data */
+
+procedure focus_transcript_settings() {
+    (
+        setting_string("focus-transcript",["genome_id"]),
+        setting_string("focus-transcript",["item_id"])
+    )
+}
+
+procedure get_focus_single_transcript_data() {
+    let (focus_genome_id,focus_transcript_id) = focus_transcript_settings();
+
+    let req = request("self()","transcript");
+    scope(req,"id",focus_transcript_id);
+    scope(req,"genome",focus_genome_id);
+    let data = get_data(req);
+
+    let (*gene,*tr,*ex) = extract_tr_data(data);
+    (*gene,*tr,*ex)
+}
+
+procedure calc_single_focus_shown_transcripts(*tr,focus_tr_index) {
+    let wanted = setting_string_seq("enabled-transcripts",[]);
+
+    let shown_tr_index = find(tr.id_versioned,wanted);
+    let shown_tr_index = select(shown_tr_index,shown_tr_index!=-1);
+
+    let shown_tr = set_at(repeat(false,len(tr.start)),shown_tr_index,[true,...]);
+    let ghost = !index(shown_tr,focus_tr_index);
+    let shown_tr = set_at(shown_tr,[focus_tr_index],[true,...]);
+
+    let sorted_shown_tr_index = position(shown_tr);
+    let tr_position = set_at(repeat(0,len(tr.start)),sorted_shown_tr_index,enumerate([len(tr.start)]));
+
+    let last_tr = set_at(repeat(false,len(tr.start)),[max_seq(position(shown_tr))],[true,...]);
+    (shown_tr,last_tr,tr_position,ghost)
+}
+
+let enabled_track = enabled_focus_gene_track();
+let enabled_labels = enabled_track && enabled_focus_gene_labels();
+
+let (focus_genome_id,focus_transcript_id) = focus_transcript_settings();
+
+let (*gene,*tr,*exon) = get_focus_single_transcript_data();
+
+halt(only_warm());
+
+let **tr_gene = index(**gene,tr.index_of_gene);
+
+let right_chr = index(gene.stick,0)==stick();
+let focus_tr_index_positions = position(focus_transcript_id==tr.id_unversioned || focus_transcript_id==tr.id_versioned);
+let focus_tr_index = if(len(focus_tr_index_positions)>0,index(focus_tr_index_positions,0),0);
+let tr.is_focus = enumerate([len(tr.start)]) == focus_tr_index;
+
+/* Make leafs */
+
+let gene.leaf_index = repeat(0,len(gene.start));
+let tr_gene.leaf_index = repeat(0,len(tr.start));
+let tr.leaf_index = tr_gene.leaf_index;
+
+let (shown_tr,last_tr,tr.position,ghost) = calc_single_focus_shown_transcripts(*tr,focus_tr_index);
+let gene.leaf_base = make_focus_gene_leaf_base(*gene);
+let *leaf_tr = tr_focus_gene_leafs(*gene,*tr,shown_tr,right_chr);
+
+let **exon_tr = index(**tr,exon.index_of_tr);
+let **leaf_exon_tr = index(**leaf_tr,exon.index_of_tr);
+let exon_tr.is_focus = index(tr.is_focus,exon.index_of_tr);
+
+/* Draw */
+
+let ghost_blue = colour!("#bbdefc");
+let focus_blue = colour!("#279afc");
+
+function apply_ghost(ghosts) {
+    capture focus_blue, ghost_blue, ghost;
+
+    let out = repeat(focus_blue,len(ghosts));
+    set_at(out,if(ghost,position(ghosts),[]),[ghost_blue,...])
+}
+
+/* Draw solid lines (no endstops on focus tracks!) */
+
+let y = tr.position * 20;
+let paint = paint_solid(apply_ghost(tr.is_focus));
+rectangle(coord(tr.start,y+5,[0,...]),coord(tr.end,y+6,[0,...]),paint,leaf_tr.under_leaf);
+
+/* Draw dotted lines */
+
+let *dots = calc_outside_of_tr(*tr_gene,*tr,*leaf_tr);
+let **dots_tr = index(**tr,dots.tr);
+
+let y = dots_tr.position * 20;
+let paint = paint_dotted([colour!("white"),...],[colour!("#9aa7b1"),...],4,0,0.5);
+rectangle(coord(dots.start,y+5,[0,...]),coord(dots.end,y+5,[0,...]),paint,dots.leaf);
+
+/* Draw hollow and blanking exons */
+
+let y = exon_tr.position * 20;
+let paint = paint_hollow(apply_ghost(exon_tr.is_focus),1);
+rectangle(coord(exon.start,y+2,[0,...]),coord(exon.end,y+8,[0,...]),paint,leaf_exon_tr.over_leaf);
+let paint = paint_solid(colour!("white"));
+rectangle(coord(exon.start,y+2,[0,...]),coord(exon.end,y+8,[0,...]),paint,leaf_exon_tr.blanking_leaf);
+
+/* Draw solid exons */
+
+let *thick_exon = generate_thick_exons(*tr,*exon_tr,*exon);
+let **thick_exon_tr = index(**exon_tr,thick_exon.index_of_exon);
+
+let thick_exon.far_over_leaf = index(leaf_exon_tr.far_over_leaf,thick_exon.index_of_exon);
+let y = thick_exon_tr.position * 20;
+let paint = paint_solid(apply_ghost(thick_exon_tr.is_focus));
+rectangle(coord(thick_exon.start,y+2,[0,...]),coord(thick_exon.end,y+8,[0,...]),paint,thick_exon.far_over_leaf);
+
+/* Draw labels */
+
+let text = tr_label_text(*gene,*tr_gene,*tr,last_tr,enabled_focus_gene_labels(),enabled_focus_transcript_labels());
+let y = tr.position * 20;
+let pen = pen("'IBM Plex Mono', sans-serif",10,[colour!("#6f81ff"),...],[colour!("transparent"),...]);
+running_text(coord(tr_gene.start,y+10,[0,...]),coord(tr_gene.end,y+10,[0,...]),pen,text,leaf_tr.text_leaf);
+
+/* Draw zmenus */
+
+emit_focus_tr_zmenu(*tr_gene,*tr,*leaf_tr,20);
+
+/* Draw track furniture */
+
+let leaf.bgd = make_focus_gene_leaf("main/background/content",enabled_track && right_chr);
+let leaf.trackname = make_focus_gene_leaf("title/content",enabled_track && right_chr);
+let leaf.letter = make_focus_gene_leaf("main/letter/content",enabled_track && right_chr);
+
+let focus_gene_index = index(tr.index_of_gene,focus_tr_index);
+let **focus_gene = index(**gene,focus_gene_index);
+
+draw_track_category(["G"],["focus"],[leaf.letter]);
+draw_track_name(join(" ",[focus_gene.name,focus_transcript_id]),"name",leaf.trackname);
+draw_swatch(colour!("#58a8f9"),[leaf.letter]);
+
+draw_focus_track_chevrons([index(gene.strand,focus_gene_index)],*leaf);
+draw_focus_sidebar_chevrons([index(gene.strand,focus_gene_index)],*leaf);
+
+/* Metadata reports */
+
+let paint = paint_metadata("id",[""],[eoe_string(focus_transcript_id)]);
+rectangle(coord([0],[0,...],[0,...]),coord([1],[0,...],[0,...]),paint,[leaf.bgd,...]);
+
+/* Lozenges */
+
+let tr_all_shown = calc_focus_tr_shown(*gene,*tr);
+draw_all_lozenges(*tr,*tr_gene,*leaf_tr,last_tr,20,true,tr_all_shown);
