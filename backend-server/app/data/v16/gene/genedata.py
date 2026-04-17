@@ -4,7 +4,7 @@ from ncd import NCDRead
 
 from command.coremodel import DataHandler, Panel, DataAccessor
 from data.v16.dataalgorithm import data_algorithm
-from data.v16.gene.transcriptfilter import filter_lines_by_criteria
+from data.v16.gene.transcriptfilter import filter_lines_by_criteria, lines_for_transcript_id
 from data.v16.gene.transcriptorder import sort_data_by_transcript_priority
 from model.bigbed import get_bigbed
 from model.datalocator import AccessItem
@@ -55,15 +55,16 @@ TANGLE_OVERVIEW_WITH_IDS = TANGLE_FACTORY.make_from_tomlfile(OV_TANGLE_PATH,["id
 def get_approx_location(data_accessor: DataAccessor, genome_id: str, id: str):
     species = data_accessor.data_model.species(genome_id)
     if species != None:
-        key = "focus:gene:{}:{}".format(genome_id,id)
         accessor = data_accessor.resolver.get(AccessItem("jump",genome_id))
         jump_ncd = NCDRead(accessor.ncd())
-        value = jump_ncd.get(key.encode("utf-8"))
-        if value != None:
-            parts = value.decode('utf-8').split("\t")
-            if len(parts) == 3:
-                on_stick = "{}:{}".format(genome_id,parts[0])
-                return (on_stick,int(parts[1]),int(parts[2]))
+        for kind in ["transcript", "gene"]:
+            key = "focus:{}:{}:{}".format(kind,genome_id,id)
+            value = jump_ncd.get(key.encode("utf-8"))
+            if value != None:
+                parts = value.decode('utf-8').split("\t")
+                if len(parts) == 3:
+                    on_stick = "{}:{}".format(genome_id,parts[0])
+                    return (on_stick,int(parts[1]),int(parts[2]))
     return (None,None,None)
 
 # We need to return all the data for the focus gene wherever we are (except for the sequence) as
@@ -85,6 +86,13 @@ def extract_data_for_lines(data, for_id: tuple[str,str]|None, expanded: list[str
 
     # sort the data
     lines = sort_data_by_transcript_priority(lines)
+
+    # Transcript-id requests should return transcript lines directly.
+    if for_id is not None:
+        transcript_lines = lines_for_transcript_id(lines, for_id[1])
+        if len(transcript_lines) > 0:
+            return transcript_lines
+
     max_tr = 5 if for_id is None else None
 
     # filter the data
@@ -104,6 +112,7 @@ def extract_gene_data(
     tangle = TANGLE_EXON if include_exons else TANGLE_NO_EXON
     data = get_bigbed(data_accessor, item, panel.start, panel.end)
     lines = extract_data_for_lines(data,for_id, expanded)
+
     out = tangle.run2({},{ "tr_bigbed": lines },**accept_to_tangling_config(accept))
     out["stick"] = ("SZ",[panel.stick])
     # flag as invariant if by id
