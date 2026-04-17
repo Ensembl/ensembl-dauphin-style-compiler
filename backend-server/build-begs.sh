@@ -10,7 +10,7 @@ eard-compiler \
     -c $SRC/other/ruler.eard -c $SRC/gene/gene-overview.eard -c $SRC/gene/gene.eard \
     -c $SRC/gene/focus-gene.eard -c $SRC/gene/focus-gene-dots.eard \
     -c $SRC/gene/transcript.eard  -c $SRC/other/focus-region.eard \
-    -c $SRC/gene/focus-transcript.eard -c $SRC/gene/zoomed-transcript.eard \
+    -c $SRC/gene/focus-transcript.eard -c $SRC/gene/focus-single-transcript.eard -c $SRC/gene/zoomed-transcript.eard \
     -c $SRC/gene/focus-zoomed-transcript.eard -c $SRC/other/focus-region.eard \
     -c $SRC/variant/focus-variant.eard -c $SRC/variant/focus-variant-summary.eard \
     -c $SRC/variant/focus-variant-dots.eard -c $SRC/regulation/regulation.eard \
