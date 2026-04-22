@@ -8,6 +8,7 @@ from data.v16.gene.transcriptfilter import filter_lines_by_criteria, lines_for_t
 from data.v16.gene.transcriptorder import sort_data_by_transcript_priority
 from model.bigbed import get_bigbed
 from model.datalocator import AccessItem
+from model.thoas import Thoas
 from model.transcriptfile import TranscriptFileLine
 from tangle.tangle import TangleFactory
 
@@ -52,6 +53,8 @@ OV_TANGLE_PATH = os.path.join(os.path.dirname(__file__),"overview-tangle.toml")
 TANGLE_OVERVIEW = TANGLE_FACTORY.make_from_tomlfile(OV_TANGLE_PATH,[],processor)
 TANGLE_OVERVIEW_WITH_IDS = TANGLE_FACTORY.make_from_tomlfile(OV_TANGLE_PATH,["ids"],processor)
 
+THOAS = Thoas()
+
 def get_approx_location(data_accessor: DataAccessor, genome_id: str, id: str):
     species = data_accessor.data_model.species(genome_id)
     if species != None:
@@ -70,7 +73,13 @@ def get_approx_location(data_accessor: DataAccessor, genome_id: str, id: str):
 # We need to return all the data for the focus gene wherever we are (except for the sequence) as
 # transcript configuration, ordering, etc is still relevant.
 def update_panel_from_id(data_accessor: DataAccessor, panel: Panel, for_id: tuple[str,str]):
-    (stick,start,end) = get_approx_location(data_accessor,for_id[0],for_id[1])
+    # Use Thoas to test if the focus ID is a transcript and get its location, falling back to NCD (focus genes)
+    transcript_location = THOAS.get_transcript_location(for_id[0], for_id[1])
+    if transcript_location is not None:
+        (region_name, start, end) = transcript_location
+        stick = "{}:{}".format(for_id[0], region_name)
+    else:
+        (stick,start,end) = get_approx_location(data_accessor,for_id[0],for_id[1])
     if stick is not None:
         panel.stick = stick
         panel.start = start
@@ -84,14 +93,14 @@ def update_panel_from_id(data_accessor: DataAccessor, panel: Panel, for_id: tupl
 def extract_data_for_lines(data, for_id: tuple[str,str]|None, expanded: list[str]) -> list:
     lines = [ TranscriptFileLine(row) for row in data ]
 
-    # sort the data
-    lines = sort_data_by_transcript_priority(lines)
-
-    # Transcript-id requests should return transcript lines directly.
+    # For focus transcript requests (ID matches a transcript in the data), just return the data
     if for_id is not None:
         transcript_lines = lines_for_transcript_id(lines, for_id[1])
         if len(transcript_lines) > 0:
             return transcript_lines
+    
+    # sort the transcripts for all genes
+    lines = sort_data_by_transcript_priority(lines)
 
     max_tr = 5 if for_id is None else None
 

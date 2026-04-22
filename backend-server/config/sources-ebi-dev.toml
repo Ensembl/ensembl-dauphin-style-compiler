@@ -7,3 +7,4 @@ min_version = 16
 
 [apis]
 track_api = "http://ensembl-track-api-svc.ensembl-dev:8012"
+core_api = "http://graphql-core-svc:8000/"

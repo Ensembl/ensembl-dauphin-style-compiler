@@ -13,3 +13,4 @@ upstream = "http://52.56.215.72:3333/api/data"
 
 [apis]
 track_api = "https://staging-2020.ensembl.org/api/tracks"
+core_api = "https://staging-2020.ensembl.org/api/graphql/core"
