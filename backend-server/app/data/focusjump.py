@@ -25,7 +25,7 @@ class FocusJumpHandler:
 
         Args:
             data_accessor (object):
-            lookup (str): focus:[gene|variant|location]:<genome_uuid>:<id>
+            lookup (str): focus:[gene|transcript|variant|location]:<genome_uuid>:<id>
             version (Version):
 
         Returns:
@@ -33,9 +33,20 @@ class FocusJumpHandler:
         """
         if lookup.startswith('focus:') and lookup.count(':') == 3:
             (_, focus_type, genome_id, object_id) = lookup.split(':')
+
+            # focus transcripts are resolved via Thoas.
+            if focus_type == "transcript":
+                tr_location = self._thoas.get_transcript_location(genome_id, object_id)
+                if tr_location is not None:
+                    (region_name, start, end) = tr_location
+                    out = (f"{genome_id}:{region_name}", start, end)
+                    data_accessor.cache.set_jump(lookup, *out, version)
+                    return out
+            
             # extract genome uuid => jump file location
             sp_obj = data_accessor.data_model.species(genome_id)
             self._ensure_ncd(data_accessor, sp_obj)
+            # query jump file for focus genes
             cached = data_accessor.cache.get_jump(lookup,version)
             if cached is not None:
                 return cached
@@ -45,13 +56,4 @@ class FocusJumpHandler:
                 out = (sp_obj.genome_id + ":" + parts[0], int(float(parts[1])), int(float(parts[2])))
                 data_accessor.cache.set_jump(lookup, *out, version)
                 return out
-
-            # Transcript IDs are not currently indexed in jump.ncd; resolve via Thoas.
-            if focus_type == "transcript":
-                tr_location = self._thoas.get_transcript_location(genome_id, object_id)
-                if tr_location is not None:
-                    (region_name, start, end) = tr_location
-                    out = (f"{genome_id}:{region_name}", start, end)
-                    data_accessor.cache.set_jump(lookup, *out, version)
-                    return out
         return None
