@@ -113,6 +113,16 @@
           genome_browser.switch(["track","focus","enabled-transcripts"],Object.keys(shown_transcripts));
         } 
 
+        function tr_all(all_on) {
+          if(all_on) {
+            shown_transcripts = {...seen_transcripts};
+            genome_browser.switch(["track","focus","enabled-transcripts"],Object.keys(shown_transcripts));
+          } else {
+            shown_transcripts = {};
+            genome_browser.switch(["track","focus","enabled-transcripts"],null);
+          }
+        }
+
         function toggle_track(track_name) {
           let cur = tracks_on[track_name];
           if(cur!==true && cur!==false) { cur = true; }
@@ -383,18 +393,24 @@
         genome_browser.switch(["ruler", "one_based"], true);
         genome_browser.switch(["settings","tab-selected"], "G");
         //genome_browser.switch(["settings", "no-padding"], true); //disable left/right side margins
-        init_tracks(["gene-pc-fwd","regulation","focus","d3c13017-9f70-4d64-87a2-51cb20f042d4"]);
+        init_tracks(["focus","gene-pc-fwd","gene-pc-rev","gc"]);
         // Check track UUIDs: https://staging-2020.ensembl.org/api/tracks/track_categories/a7335667-93e7-11ec-a39d-005056b38ce3
 
         //Human
         //jump_variant("rs1557469781", 1, 1176408);
         //goto: location
-        //genome_browser.set_stick("a7335667-93e7-11ec-a39d-005056b38ce3:13");
-        //genome_browser.goto(159980000,160000500);
+        genome_browser.set_stick("a7335667-93e7-11ec-a39d-005056b38ce3:4");
+        //genome_browser.goto(86000000,86500000);
         //goto: variant
         //jump_variant("rs1557469781", 1, 1176408);
         //goto: gene
-        genome_browser.jump("focus:gene:a7335667-93e7-11ec-a39d-005056b38ce3:ENSG00000139618"); //BRCA2
+        //4c07817b-c7c5-463f-8624-982286bc4355   ENSG05220032026
+        genome_browser.switch(["track","focus","enabled-transcripts"],null);
+        genome_browser.switch(["track","focus","item","transcript"],{ 
+          "genome_id": "4c07817b-c7c5-463f-8624-982286bc4355", "item_id": "ENST05220120885" 
+        });
+        genome_browser.wait();
+        genome_browser.jump("focus:transcript:4c07817b-c7c5-463f-8624-982286bc4355:ENST05220120885"); //MAPK10
 
         //Pig
         //init_tracks("fc33bc3c-f30b-4059-b003-012a4898186c"); //repeat elements

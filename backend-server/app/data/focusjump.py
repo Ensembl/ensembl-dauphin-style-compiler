@@ -1,6 +1,7 @@
 from model.species import Species
 from command.coremodel import DataAccessor
 from ncd import NCDRead
+from model.thoas import Thoas
 from model.version import Version
 
 
@@ -12,6 +13,7 @@ class FocusJumpHandler:
     """
     def __init__(self):
         self._ncd_files = {}
+        self._thoas = Thoas()
 
     def _ensure_ncd(self, data_accessor: DataAccessor, sp_obj: Species):
         if sp_obj.genome_id not in self._ncd_files:
@@ -30,8 +32,9 @@ class FocusJumpHandler:
 
         """
         if lookup.startswith('focus:') and lookup.count(':') == 3:
+            (_, focus_type, genome_id, object_id) = lookup.split(':')
             # extract genome uuid => jump file location
-            sp_obj = data_accessor.data_model.species(lookup.split(':')[2])
+            sp_obj = data_accessor.data_model.species(genome_id)
             self._ensure_ncd(data_accessor, sp_obj)
             cached = data_accessor.cache.get_jump(lookup,version)
             if cached is not None:
@@ -42,4 +45,13 @@ class FocusJumpHandler:
                 out = (sp_obj.genome_id + ":" + parts[0], int(float(parts[1])), int(float(parts[2])))
                 data_accessor.cache.set_jump(lookup, *out, version)
                 return out
+
+            # Transcript IDs are not currently indexed in jump.ncd; resolve via Thoas.
+            if focus_type == "transcript":
+                tr_location = self._thoas.get_transcript_location(genome_id, object_id)
+                if tr_location is not None:
+                    (region_name, start, end) = tr_location
+                    out = (f"{genome_id}:{region_name}", start, end)
+                    data_accessor.cache.set_jump(lookup, *out, version)
+                    return out
         return None
