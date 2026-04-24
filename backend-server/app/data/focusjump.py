@@ -34,6 +34,11 @@ class FocusJumpHandler:
         if lookup.startswith('focus:') and lookup.count(':') == 3:
             (_, focus_type, genome_id, object_id) = lookup.split(':')
 
+            # check cache first
+            cached = data_accessor.cache.get_jump(lookup,version)
+            if cached is not None:
+                return cached
+
             # focus transcripts are resolved via Thoas.
             if focus_type == "transcript":
                 tr_location = self._thoas.get_transcript_location(genome_id, object_id)
@@ -43,13 +48,9 @@ class FocusJumpHandler:
                     data_accessor.cache.set_jump(lookup, *out, version)
                     return out
             
-            # extract genome uuid => jump file location
+            # focus genes are indexed in NCD files
             sp_obj = data_accessor.data_model.species(genome_id)
             self._ensure_ncd(data_accessor, sp_obj)
-            # query jump file for focus genes
-            cached = data_accessor.cache.get_jump(lookup,version)
-            if cached is not None:
-                return cached
             value = self._ncd_files[sp_obj.genome_id].get(lookup.encode("utf-8"))
             if value is not None:
                 parts = value.decode("utf-8").split("\t")
