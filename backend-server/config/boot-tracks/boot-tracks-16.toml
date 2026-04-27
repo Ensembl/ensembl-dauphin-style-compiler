@@ -100,22 +100,46 @@ include=["focus-gene","general"]
 scales = [19,66,4]
 include=["focus-gene","general"]
 
-[track.focus-transcript]
+[track.focus-gene-transcripts]
 scales = [9,18,6]
 include=["focus-gene","general"]
 
-[track.focus-zoomed-transcript-letters]
-program_name = "focus-zoomed-transcript"
+[track.focus-gene-zoomed-transcripts-letters]
+program_name = "focus-gene-zoomed-transcripts"
 scales = [0,7,8]
 include=["focus-gene","general"]
 
-[track.focus-zoomed-transcript-no-letters.general]
-program_name = "focus-zoomed-transcript"
+[track.focus-gene-zoomed-transcripts-no-letters.general]
+program_name = "focus-gene-zoomed-transcripts"
 scales = [8,8,1]
 include=["focus-gene","general"]
 
-[track.focus-zoomed-transcript-no-letters.values]
+[track.focus-gene-zoomed-transcripts-no-letters.values]
 scale-no-letters = true
+
+# focus transcript
+
+[include.focus-transcript.general]
+triggers = [
+    ["track","focus","item","transcript"]
+]
+
+[include.focus-transcript.settings]
+focus-transcript = ["track","focus","item","transcript"]
+focus = ["track","focus"]
+focus-transcript-label = ["track","focus","transcript-label"]
+name = ["track","focus","name"]
+
+[track.focus-transcript]
+scales = [19,66,4]
+include=["focus-transcript","general"]
+
+[track.focus-transcript-dots]
+scales = [1,66,1]
+include=["focus-transcript","general"]
+
+
+# gene track for SV alignments
 
 [track.sv-transcript]
 program_name = "sv-transcript"

@@ -1,8 +1,8 @@
 programs = [
     "contig.toml",
     "focus-gene.toml",
-    "focus-transcript.toml",
-    "focus-zommed-transcript.toml",
+    "focus-gene-transcripts.toml",
+    "focus-gene-zoomed-transcripts.toml",
     "framing.toml",
     "gc.toml",
     "gene-overview.toml",

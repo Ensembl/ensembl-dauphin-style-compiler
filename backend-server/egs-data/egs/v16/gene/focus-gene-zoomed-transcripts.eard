@@ -1,4 +1,4 @@
-program "ensembl-webteam/core" "focus-zoomed-transcript" 1;
+program "ensembl-webteam/core" "focus-gene-zoomed-transcripts" 1;
 refer "libperegrine";
 refer "libeoe";
 include "../common/track-common.eard";
