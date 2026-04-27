@@ -135,6 +135,7 @@ scales = [19,66,4]
 include=["focus-transcript","general"]
 
 [track.focus-transcript-dots]
+program_name = "focus-transcript-dots"
 scales = [1,66,1]
 include=["focus-transcript","general"]
 

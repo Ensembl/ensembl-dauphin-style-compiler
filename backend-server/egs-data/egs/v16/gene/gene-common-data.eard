@@ -139,6 +139,13 @@ export procedure focus_gene_settings() {
     )    
 }
 
+export procedure focus_transcript_settings() {
+    (
+        setting_string("focus-transcript",["genome_id"]),
+        setting_string("focus-transcript",["item_id"])
+    )
+}
+
 procedure extract_gene_data(data) {
     let gene.id_unversioned = data_string(data,"gene_id");
     let gene.id_version = data_string(data,"gene_id_version");

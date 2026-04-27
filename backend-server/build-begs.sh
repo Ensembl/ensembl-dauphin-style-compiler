@@ -8,7 +8,7 @@ eard-compiler \
     -c $SRC/other/zoomed-seq.eard \
     -c $SRC/variant/variant-summary.eard -c $SRC/variant/variant-details.eard \
     -c $SRC/other/ruler.eard -c $SRC/gene/gene-overview.eard -c $SRC/gene/gene.eard \
-    -c $SRC/gene/focus-gene.eard -c $SRC/gene/focus-gene-dots.eard \
+    -c $SRC/gene/focus-gene.eard -c $SRC/gene/focus-gene-dots.eard -c $SRC/gene/focus-transcript-dots.eard \
     -c $SRC/gene/transcript.eard  -c $SRC/gene/focus-transcript.eard -c $SRC/other/focus-region.eard \
     -c $SRC/gene/focus-gene-transcripts.eard -c $SRC/gene/zoomed-transcript.eard \
     -c $SRC/gene/focus-gene-zoomed-transcripts.eard -c $SRC/other/focus-region.eard \
