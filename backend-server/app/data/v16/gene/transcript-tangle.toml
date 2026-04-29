@@ -63,7 +63,6 @@ first = "gene_id"
 [tangle.all_transcript_counts]
 number = "all_transcript_counts"
 first = "gene_id"
-condition = "transcript_counts"
 
 #
 # Transcript level

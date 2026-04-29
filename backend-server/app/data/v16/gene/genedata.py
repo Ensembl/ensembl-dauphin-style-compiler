@@ -48,7 +48,6 @@ TANGLE_FACTORY = TangleFactory()
 TR_TANGLE_PATH = os.path.join(os.path.dirname(__file__),"transcript-tangle.toml")
 TANGLE_NO_EXON = TANGLE_FACTORY.make_from_tomlfile(TR_TANGLE_PATH,["transcript_counts"],processor)
 TANGLE_EXON = TANGLE_FACTORY.make_from_tomlfile(TR_TANGLE_PATH,["exon","transcript_counts"],processor)
-TANGLE_EXON_NO_COUNTS = TANGLE_FACTORY.make_from_tomlfile(TR_TANGLE_PATH,["exon"],processor)
 
 OV_TANGLE_PATH = os.path.join(os.path.dirname(__file__),"overview-tangle.toml")
 TANGLE_OVERVIEW = TANGLE_FACTORY.make_from_tomlfile(OV_TANGLE_PATH,[],processor)
@@ -91,14 +90,14 @@ def update_panel_from_id(data_accessor: DataAccessor, panel: Panel, for_id: tupl
 
 # For non-focus genes we need to make sure we include all the transcripts even ones which
 # start&end completely off-panel.
-def extract_data_for_lines(data, for_id: tuple[str,str]|None, expanded: list[str]) -> tuple[list, bool]:
+def extract_data_for_lines(data, for_id: tuple[str,str]|None, expanded: list[str]) -> list:
     lines = [ TranscriptFileLine(row) for row in data ]
 
     # For focus transcript requests (focus ID matches a transcript), just return the data
     if for_id is not None:
         transcript_lines = lines_for_transcript_id(lines, for_id[1])
         if len(transcript_lines) > 0:
-            return (transcript_lines, True)
+            return transcript_lines
     
     # sort the transcripts for all genes
     lines = sort_data_by_transcript_priority(lines)
@@ -107,7 +106,7 @@ def extract_data_for_lines(data, for_id: tuple[str,str]|None, expanded: list[str
 
     # filter the data
     lines = filter_lines_by_criteria(lines, for_id, max_tr, expanded)
-    return (lines, False)
+    return lines
 
 def extract_gene_data(
         data_accessor: DataAccessor, panel: Panel, include_exons: bool, for_id: tuple[str,str]|None, expanded: list[str], accept: str
@@ -120,9 +119,9 @@ def extract_gene_data(
     item = chrom.item_path("transcripts")
     # serialize the data
     data = get_bigbed(data_accessor, item, panel.start, panel.end)
-    lines, is_focus_transcript = extract_data_for_lines(data,for_id, expanded)
+    lines = extract_data_for_lines(data,for_id, expanded)
     if include_exons:
-        tangle = TANGLE_EXON_NO_COUNTS if is_focus_transcript else TANGLE_EXON
+        tangle = TANGLE_EXON
     else:
         tangle = TANGLE_NO_EXON
 

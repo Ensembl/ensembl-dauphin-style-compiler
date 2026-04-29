@@ -21,7 +21,7 @@ let req = request("self()","transcript");
 scope(req,"id",focus_transcript_id);
 scope(req,"genome",focus_genome_id);
 let data = get_data(req);
-let (*gene,*tr,*ex) = extract_tr_data_no_counts(data);
+let (*gene,*tr,*ex) = extract_tr_data(data);
 halt(only_warm());
 
 let on_this_stick = index(gene.stick,0) == stick();

@@ -31,7 +31,7 @@ procedure get_focus_single_transcript_data() {
     scope(req,"genome",focus_genome_id);
     let data = get_data(req);
 
-    let (*gene,*tr,*ex) = extract_tr_data_no_counts(data);
+    let (*gene,*tr,*ex) = extract_tr_data(data);
     (*gene,*tr,*ex)
 }
 
