@@ -85,7 +85,7 @@ query TranscriptLocation($genomeId: String!, $transcriptId: String!) {
         if region_name is None or start is None or end is None:
             return None
 
-        # add padding around the transcript (mirrors the jump file generation)
+        # add padding around the transcript (same in jump file data)
         padding = (end-start)/2
         start -= padding
         end += padding
