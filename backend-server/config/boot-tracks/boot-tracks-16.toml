@@ -131,7 +131,7 @@ focus-transcript-label = ["track","focus","transcript-label"]
 name = ["track","focus","name"]
 
 [track.focus-transcript]
-scales = [19,66,4]
+scales = [1,66,4]
 include=["focus-transcript","general"]
 
 [track.focus-transcript-dots]
