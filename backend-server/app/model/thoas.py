@@ -6,7 +6,7 @@ import toml
 from core.config import SOURCES_TOML
 
 
-class Thoas:
+class CoreApiClient:
     """
     Small client for fetching genomic coordinates for a transcript from Core GraphQL.
     This is used for focus transcript requests to reposition the panel and query bigbed.

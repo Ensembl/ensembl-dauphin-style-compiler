@@ -8,7 +8,7 @@ from data.v16.gene.transcriptfilter import filter_lines_by_criteria, lines_for_t
 from data.v16.gene.transcriptorder import sort_data_by_transcript_priority
 from model.bigbed import get_bigbed
 from model.datalocator import AccessItem
-from model.thoas import Thoas
+from model.thoas import CoreApiClient
 from model.transcriptfile import TranscriptFileLine
 from tangle.tangle import TangleFactory
 
@@ -53,21 +53,20 @@ OV_TANGLE_PATH = os.path.join(os.path.dirname(__file__),"overview-tangle.toml")
 TANGLE_OVERVIEW = TANGLE_FACTORY.make_from_tomlfile(OV_TANGLE_PATH,[],processor)
 TANGLE_OVERVIEW_WITH_IDS = TANGLE_FACTORY.make_from_tomlfile(OV_TANGLE_PATH,["ids"],processor)
 
-THOAS = Thoas()
+THOAS = CoreApiClient()
 
 def get_approx_location(data_accessor: DataAccessor, genome_id: str, id: str):
     species = data_accessor.data_model.species(genome_id)
     if species != None:
         accessor = data_accessor.resolver.get(AccessItem("jump",genome_id))
         jump_ncd = NCDRead(accessor.ncd())
-        for kind in ["transcript", "gene"]:
-            key = "focus:{}:{}:{}".format(kind,genome_id,id)
-            value = jump_ncd.get(key.encode("utf-8"))
-            if value != None:
-                parts = value.decode('utf-8').split("\t")
-                if len(parts) == 3:
-                    on_stick = "{}:{}".format(genome_id,parts[0])
-                    return (on_stick,int(parts[1]),int(parts[2]))
+        key = "focus:gene:{}:{}".format(genome_id, id)
+        value = jump_ncd.get(key.encode("utf-8"))
+        if value != None:
+            parts = value.decode('utf-8').split("\t")
+            if len(parts) == 3:
+                on_stick = "{}:{}".format(genome_id,parts[0])
+                return (on_stick,int(parts[1]),int(parts[2]))
     return (None,None,None)
 
 # We need to return all the data for the focus gene wherever we are (except for the sequence) as

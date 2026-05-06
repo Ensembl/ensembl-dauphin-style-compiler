@@ -1,7 +1,7 @@
 from model.species import Species
 from command.coremodel import DataAccessor
 from ncd import NCDRead
-from model.thoas import Thoas
+from model.thoas import CoreApiClient
 from model.version import Version
 
 
@@ -13,7 +13,7 @@ class FocusJumpHandler:
     """
     def __init__(self):
         self._ncd_files = {}
-        self._thoas = Thoas()
+        self._thoas = CoreApiClient()
 
     def _ensure_ncd(self, data_accessor: DataAccessor, sp_obj: Species):
         if sp_obj.genome_id not in self._ncd_files:
