@@ -38,9 +38,10 @@ query TranscriptLocation($genomeId: String!, $transcriptId: String!) {
         return toml_file.get("apis", {}).get("core_api", None)
 
     def get_transcript_location(
-        self, genome_id: str, transcript_id: str
+        self, for_id: tuple[str,str]
     ) -> tuple[str, int, int] | None:
 
+        (genome_id, transcript_id) = for_id
         if not self._core_api_url:
             return None
 
@@ -85,7 +86,7 @@ query TranscriptLocation($genomeId: String!, $transcriptId: String!) {
         if region_name is None or start is None or end is None:
             return None
 
-        # add padding around the transcript (same in jump file data)
+        # add padding around the transcript (for the viewport; same as in NCD file)
         padding = (end-start)/2
         start -= padding
         end += padding

@@ -71,11 +71,10 @@ def get_approx_location(data_accessor: DataAccessor, genome_id: str, id: str):
 
 # We need to return all the data for the focus gene wherever we are (except for the sequence) as
 # transcript configuration, ordering, etc is still relevant.
-def update_panel_from_id(data_accessor: DataAccessor, panel: Panel, for_id: tuple[str,str]):
-    # Use Thoas to test if the focus ID is a transcript and get its location, falling back to NCD (focus genes)
-    transcript_location = THOAS.get_transcript_location(for_id[0], for_id[1])
-    if transcript_location is not None:
-        (region_name, start, end) = transcript_location
+def update_panel_from_id(data_accessor: DataAccessor, panel: Panel, for_id: tuple[str,str,str]):
+    # Fetch focus transcript location from Thoas, use NCD file for focus genes
+    if for_id[2] == 'transcript':
+        (region_name, start, end) = THOAS.get_transcript_location(for_id[0], for_id[1])
         stick = "{}:{}".format(for_id[0], region_name)
     else:
         (stick,start,end) = get_approx_location(data_accessor,for_id[0],for_id[1])
@@ -89,14 +88,12 @@ def update_panel_from_id(data_accessor: DataAccessor, panel: Panel, for_id: tupl
 
 # For non-focus genes we need to make sure we include all the transcripts even ones which
 # start&end completely off-panel.
-def extract_data_for_lines(data, for_id: tuple[str,str]|None, expanded: list[str]) -> list:
+def extract_data_for_lines(data, for_id: tuple[str,str,str]|None, expanded: list[str]) -> list:
     lines = [ TranscriptFileLine(row) for row in data ]
 
-    # For focus transcript requests (focus ID matches a transcript), just return the data
-    if for_id is not None:
-        transcript_lines = lines_for_transcript_id(lines, for_id[1])
-        if len(transcript_lines) > 0:
-            return transcript_lines
+    # For focus transcript requests just return the data
+    if for_id is not None and for_id[2] == 'transcript':
+        return lines_for_transcript_id(lines, for_id[1])
     
     # sort the transcripts for all genes
     lines = sort_data_by_transcript_priority(lines)
@@ -108,7 +105,7 @@ def extract_data_for_lines(data, for_id: tuple[str,str]|None, expanded: list[str
     return lines
 
 def extract_gene_data(
-        data_accessor: DataAccessor, panel: Panel, include_exons: bool, for_id: tuple[str,str]|None, expanded: list[str], accept: str
+        data_accessor: DataAccessor, panel: Panel, include_exons: bool, for_id: tuple[str,str,str]|None, expanded: list[str], accept: str
     ) -> dict[str, bytearray]:
     # fix location
     if for_id is not None:
@@ -118,7 +115,7 @@ def extract_gene_data(
     item = chrom.item_path("transcripts")
     # serialize the data
     data = get_bigbed(data_accessor, item, panel.start, panel.end)
-    lines = extract_data_for_lines(data,for_id, expanded)
+    lines = extract_data_for_lines(data, for_id, expanded)
     if include_exons:
         tangle = TANGLE_EXON
     else:
@@ -144,8 +141,9 @@ def extract_gene_overview_data(data_accessor: DataAccessor, panel: Panel, with_i
 def for_id(scope):
     genome_id = scope.get("genome",[""])[0]
     obj_id = scope.get("id",[""])[0]
+    obj_type = scope.get("type",["gene"])[0]
     if genome_id and obj_id:
-        return (genome_id,obj_id)
+        return (genome_id,obj_id,obj_type)
     else:
         return None
 

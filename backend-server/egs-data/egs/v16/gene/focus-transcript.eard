@@ -29,6 +29,7 @@ procedure get_focus_single_transcript_data() {
     let req = request("self()","transcript");
     scope(req,"id",focus_transcript_id);
     scope(req,"genome",focus_genome_id);
+    scope(req,"type", "transcript");
     let data = get_data(req);
 
     let (*gene,*tr,*ex) = extract_tr_data(data);
@@ -54,11 +55,8 @@ let gene.leaf_index = repeat(0,len(gene.start));
 let tr_gene.leaf_index = repeat(0,len(tr.start));
 let tr.leaf_index = tr_gene.leaf_index;
 
-let shown_tr = repeat(true,len(tr.start));
-let last_tr = repeat(true,len(tr.start));
-let tr.position = repeat(0,len(tr.start));
-let gene.leaf_base = make_focus_gene_leaf_base(*gene);
-let *leaf_tr = tr_focus_gene_leafs(*gene,*tr,shown_tr,right_chr);
+let gene.leaf_base = push_str("tracks/track/focus/main/main/",gene.id_versioned);
+let *leaf_tr = tr_focus_gene_leafs(*gene,*tr,[true],right_chr);
 
 let **exon_tr = index(**tr,exon.index_of_tr);
 let **leaf_exon_tr = index(**leaf_tr,exon.index_of_tr);
@@ -69,18 +67,16 @@ let focus_blue = colour!("#279afc");
 
 /* Draw solid lines (no endstops on focus tracks!) */
 
-let y = tr.position * 20;
 let paint = paint_solid([focus_blue,...]);
-rectangle(coord(tr.start,y+5,[0,...]),coord(tr.end,y+6,[0,...]),paint,leaf_tr.under_leaf);
+rectangle(coord(tr.start,[5,...],[0,...]),coord(tr.end,[6,...],[0,...]),paint,leaf_tr.under_leaf);
 
 /* Draw dotted lines */
 
 let *dots = calc_outside_of_tr(*tr_gene,*tr,*leaf_tr);
 let **dots_tr = index(**tr,dots.tr);
 
-let y = dots_tr.position * 20;
 let paint = paint_dotted([colour!("white"),...],[colour!("#9aa7b1"),...],4,0,0.5);
-rectangle(coord(dots.start,y+5,[0,...]),coord(dots.end,y+5,[0,...]),paint,dots.leaf);
+rectangle(coord(dots.start,[5,...],[0,...]),coord(dots.end,[5,...],[0,...]),paint,dots.leaf);
 
 /* Draw hollow and blanking exons */
 
@@ -102,10 +98,9 @@ rectangle(coord(thick_exon.start,y+2,[0,...]),coord(thick_exon.end,y+8,[0,...]),
 
 /* Draw labels */
 
-let text = tr_label_text(*gene,*tr_gene,*tr,last_tr,repeat(false,1),enabled_focus_transcript_labels());
-let y = tr.position * 20;
+let text = if(enabled_focus_transcript_labels(), tr.id_versioned, ["",...]);
 let pen = pen("'IBM Plex Mono', sans-serif",10,[colour!("#6f81ff"),...],[colour!("transparent"),...]);
-running_text(coord(tr_gene.start,y+10,[0,...]),coord(tr_gene.end,y+10,[0,...]),pen,text,leaf_tr.text_leaf);
+running_text(coord(tr_gene.start,[10,...],[0,...]), coord(tr_gene.end,[10,...],[0,...]), pen, text, leaf_tr.text_leaf);
 
 /* Draw zmenus */
 
