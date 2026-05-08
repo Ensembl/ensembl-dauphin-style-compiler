@@ -28,8 +28,8 @@
           <button id="jump-ins">focus ins</button>
           <button id="jump-del">focus del</button>
           <button id="jump-indel">focus indel</button>
-          <button id="jump-brca2">jump brca2</button>
-          <button id="jump-mapk10">jump mapk10</button>
+          <button id="jump-tr">jump transcript</button>
+          <button id="jump-mapk10">jump MAPK10</button>
           <button id="jump-wheat">jump wheat</button>
           <button id="focus-region">focus region</button>
           <button id="unload">unload</button>
@@ -149,15 +149,39 @@
           return new Promise(resolve => setTimeout(resolve, t, v));
         }
 
-        function jump_variant(rsid, chr, loc) {
-          genome_browser.set_stick("a7335667-93e7-11ec-a39d-005056b38ce3:" + chr);
+        function jump_variant(rsid, chr, loc, genome_id="a7335667-93e7-11ec-a39d-005056b38ce3") {
+          genome_browser.set_stick(genome_id + ":" + chr);
           genome_browser.goto(loc - 25, loc + 25);
           genome_browser.wait();
           genome_browser.switch(["track", "focus", "item", "variant"], {
-            "genome_id": "a7335667-93e7-11ec-a39d-005056b38ce3",
+            "genome_id": genome_id,
             "variant_id": rsid,
             "start": loc
           });
+        }
+
+        function jump_gene(gene_id, genome_id="a7335667-93e7-11ec-a39d-005056b38ce3") {
+          genome_browser.switch(["track","focus","enabled-transcripts"], null);
+          genome_browser.switch(["track", "focus", "item", "gene"], {
+            "genome_id": genome_id,
+            "item_id": gene_id
+          });
+          genome_browser.wait();
+          genome_browser.jump("focus:gene:" + genome_id + ":" + gene_id);
+        }
+
+        function jump_transcript(transcript_id, genome_id="a7335667-93e7-11ec-a39d-005056b38ce3") {
+          genome_browser.switch(["track", "focus", "item", "transcript"], {
+            "genome_id": genome_id,
+            "item_id": transcript_id
+          });
+          genome_browser.wait();
+          genome_browser.jump("focus:transcript:" + genome_id + ":" + transcript_id);
+        }
+
+        function jump_location(chr, start, end, genome_id="a7335667-93e7-11ec-a39d-005056b38ce3") {
+          genome_browser.set_stick(genome_id + ":" + chr);
+          genome_browser.goto(start, end);
         }
 
         function init_tracks(track_ids) { //enable "built-in" track(s)
@@ -332,39 +356,18 @@
         document.getElementById("jump-indel").onclick = jump_variant.bind(this, "rs199681827", 1, 46401);
         document.getElementById("jump-ins").onclick = jump_variant.bind(this, "rs1639760668", 1, 47376);
 
-        document.getElementById("jump-brca2").onclick = function() {
-          genome_browser.switch(["track","focus","enabled-transcripts"],null);
-          genome_browser.switch(["track","focus","item","transcript"],{ 
-            "genome_id": "a7335667-93e7-11ec-a39d-005056b38ce3", "item_id": "ENST00000380152" 
-          });
-          genome_browser.jump("focus:transcript:a7335667-93e7-11ec-a39d-005056b38ce3:ENST00000380152");
+        document.getElementById("jump-tr").onclick = function() {
+          jump_transcript("ENST00000380152"); //BRCA2 canonical transcript
         };
         document.getElementById("jump-mapk10").onclick = function() {
-          genome_browser.switch(["track","focus","enabled-transcripts"],null);
-          genome_browser.switch(["track","focus","item","gene"],{ 
-            "genome_id": "a7335667-93e7-11ec-a39d-005056b38ce3", "item_id": "ENSG00000109339" 
-          });
-          genome_browser.jump("focus:gene:a7335667-93e7-11ec-a39d-005056b38ce3:ENSG00000109339");
+          jump_gene("ENSG00000109339"); //MAPK10 gene (100+ transcripts)
         };
         document.getElementById("jump-wheat").onclick = function() {
-          genome_browser.switch(["track","focus","enabled-transcripts"],null);
-          genome_browser.switch(["track","focus","item","gene"],{ 
-            "genome_id": "a73357ab-93e7-11ec-a39d-005056b38ce3", 
-            "item_id": "TraesCS3D02G273600"
-          });
-          genome_browser.wait();
-          genome_browser.jump("focus:gene:a73357ab-93e7-11ec-a39d-005056b38ce3:TraesCS3D02G273600");
+          jump_gene("TraesCS2A02G049300.1", "d763a0c7-9b8e-4cbd-9cbd-5a1f0b3c8c83");
         };
         document.getElementById("toggle-all-tr").onclick = toggle_all_tr;
         document.getElementById("focus-region").onclick = function() {
-          genome_browser.switch(["track","focus","item","location"],{
-            "genome_id": "a7335667-93e7-11ec-a39d-005056b38ce3",
-            "region_name": "4",
-            "start": 32272495,
-            "end": 32442859
-          });
-          // genome_browser.set_stick("a7335667-93e7-11ec-a39d-005056b38ce3:4");
-          // genome_browser.goto(32300000,32420000);
+          jump_location("4", 32272495, 32442859);
         };
         document.getElementById("tab1").onclick = function() {
           genome_browser.switch(["settings","tab-selected"],"G");
@@ -399,27 +402,17 @@
         //Human
         //jump_variant("rs1557469781", 1, 1176408);
         //goto: location
-        genome_browser.set_stick("a7335667-93e7-11ec-a39d-005056b38ce3:13");
-        //genome_browser.goto(86000000,86500000);
+        //jump_location("13", 86000000, 86500000);
         //goto: variant
         //jump_variant("rs1557469781", 1, 1176408);
         //goto: gene
-        //4c07817b-c7c5-463f-8624-982286bc4355   ENSG05220032026
-        //genome_browser.switch(["track","focus","enabled-transcripts"],null);
-        //genome_browser.switch(["track","focus","item","transcript"],{ 
-        //  "genome_id": "a7335667-93e7-11ec-a39d-005056b38ce3", "item_id": "ENST00000380152" 
-        //});
-        //genome_browser.wait();
-        genome_browser.jump("focus:transcript:a7335667-93e7-11ec-a39d-005056b38ce3:ENST00000380152");
-        genome_browser.wait();
-        genome_browser.switch(["track","focus","item","transcript"],{  //enable focus track for transcript
-          "genome_id": "a7335667-93e7-11ec-a39d-005056b38ce3", "item_id": "ENST00000380152" 
-        });
+        //jump_gene("ENSG05220032026", "4c07817b-c7c5-463f-8624-982286bc4355");
+        //goto: transcript
+        jump_transcript("ENST00000380152");
 
         //Pig
         //init_tracks("fc33bc3c-f30b-4059-b003-012a4898186c"); //repeat elements
-        //genome_browser.set_stick("da38d82b-df50-419b-af74-886463b7bfa3:14");
-        //genome_browser.goto(10150673, 10329385);
+        //jump_location("14", 10150673, 10329385, "da38d82b-df50-419b-af74-886463b7bfa3");
       });
     </script>
   </body>

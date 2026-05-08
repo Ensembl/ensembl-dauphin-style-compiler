@@ -1,3 +1,4 @@
+from turtle import st
 import logging
 
 import requests
@@ -8,7 +9,7 @@ from core.config import SOURCES_TOML
 
 class CoreApiClient:
     """
-    Small client for fetching genomic coordinates for a transcript from Core GraphQL.
+    Small client for fetching genomic coordinates for a transcript from Core GraphQL API.
     This is used for focus transcript requests to reposition the panel and query bigbed.
     """
 
@@ -39,11 +40,12 @@ query TranscriptLocation($genomeId: String!, $transcriptId: String!) {
 
     def get_transcript_location(
         self, for_id: tuple[str,str]
-    ) -> tuple[str, int, int] | None:
+    ) -> tuple[str, int, int] | tuple[None, None, None]:
 
+        empty_location = (None, None, None)
         (genome_id, transcript_id) = for_id
         if not self._core_api_url:
-            return None
+            return empty_location
 
         payload: dict[str, str | dict[str, str]] = {
             "query": self._TRANSCRIPT_LOCATION_QUERY,
@@ -59,24 +61,24 @@ query TranscriptLocation($genomeId: String!, $transcriptId: String!) {
             body = response.json()
         except Exception as e:
             self._logger.warning(
-                "Thoas transcript lookup failed for '%s' (%s): %s",
+                "Core API transcript lookup failed for '%s' (%s): %s",
                 transcript_id,
                 genome_id,
                 e,
             )
-            return None
+            return empty_location
 
         if body.get("errors"):
             self._logger.warning(
-                "Thoas transcript lookup returned GraphQL errors for '%s': %s",
+                "Core API transcript lookup returned GraphQL errors for '%s': %s",
                 transcript_id,
                 body.get("errors"),
             )
-            return None
+            return empty_location
 
         transcript = body.get("data", {}).get("transcript")
         if not transcript:
-            return None
+            return empty_location
 
         slc = transcript.get("slice", {})
         region_name = slc.get("region", {}).get("name")
@@ -84,10 +86,11 @@ query TranscriptLocation($genomeId: String!, $transcriptId: String!) {
         end = slc.get("location", {}).get("end")
 
         if region_name is None or start is None or end is None:
-            return None
+            return empty_location
 
         # add padding around the transcript (for the viewport; same as in NCD file)
         padding = (end-start)/2
         start -= padding
         end += padding
-        return (region_name, int(start), int(end))
+        stick = f"{genome_id}:{region_name}"
+        return (stick, max(0,int(start)), int(end))

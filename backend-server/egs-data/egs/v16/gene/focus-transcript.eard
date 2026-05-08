@@ -23,13 +23,11 @@ style!("""
 
 /* Get data */
 
-procedure get_focus_single_transcript_data() {
-    let (focus_genome_id,focus_transcript_id) = focus_transcript_settings();
-
+procedure get_focus_single_transcript_data(genome_id,transcript_id) {
     let req = request("self()","transcript");
-    scope(req,"id",focus_transcript_id);
-    scope(req,"genome",focus_genome_id);
-    scope(req,"type", "transcript");
+    scope(req,"id",transcript_id);
+    scope(req,"genome",genome_id);
+    scope(req,"type",["transcript"]);
     let data = get_data(req);
 
     let (*gene,*tr,*ex) = extract_tr_data(data);
@@ -40,7 +38,7 @@ let enabled_track = enabled_focus_gene_track();
 
 let (focus_genome_id,focus_transcript_id) = focus_transcript_settings();
 
-let (*gene,*tr,*exon) = get_focus_single_transcript_data();
+let (*gene,*tr,*exon) = get_focus_single_transcript_data(focus_genome_id,focus_transcript_id);
 
 halt(only_warm());
 
@@ -80,11 +78,10 @@ rectangle(coord(dots.start,[5,...],[0,...]),coord(dots.end,[5,...],[0,...]),pain
 
 /* Draw hollow and blanking exons */
 
-let y = exon_tr.position * 20;
 let paint = paint_hollow([focus_blue,...],1);
-rectangle(coord(exon.start,y+2,[0,...]),coord(exon.end,y+8,[0,...]),paint,leaf_exon_tr.over_leaf);
+rectangle(coord(exon.start,[2,...],[0,...]),coord(exon.end,[8,...],[0,...]),paint,leaf_exon_tr.over_leaf);
 let paint = paint_solid(colour!("white"));
-rectangle(coord(exon.start,y+2,[0,...]),coord(exon.end,y+8,[0,...]),paint,leaf_exon_tr.blanking_leaf);
+rectangle(coord(exon.start,[2,...],[0,...]),coord(exon.end,[8,...],[0,...]),paint,leaf_exon_tr.blanking_leaf);
 
 /* Draw solid exons */
 
@@ -92,19 +89,19 @@ let *thick_exon = generate_thick_exons(*tr,*exon_tr,*exon);
 let **thick_exon_tr = index(**exon_tr,thick_exon.index_of_exon);
 
 let thick_exon.far_over_leaf = index(leaf_exon_tr.far_over_leaf,thick_exon.index_of_exon);
-let y = thick_exon_tr.position * 20;
 let paint = paint_solid([focus_blue,...]);
-rectangle(coord(thick_exon.start,y+2,[0,...]),coord(thick_exon.end,y+8,[0,...]),paint,thick_exon.far_over_leaf);
+rectangle(coord(thick_exon.start,[2,...],[0,...]),coord(thick_exon.end,[8,...],[0,...]),paint,thick_exon.far_over_leaf);
 
 /* Draw labels */
 
-let text = if(enabled_focus_transcript_labels(), tr.id_versioned, ["",...]);
-let pen = pen("'IBM Plex Mono', sans-serif",10,[colour!("#6f81ff"),...],[colour!("transparent"),...]);
-running_text(coord(tr_gene.start,[10,...],[0,...]), coord(tr_gene.end,[10,...],[0,...]), pen, text, leaf_tr.text_leaf);
+let text = if(enabled_focus_transcript_labels(), tr.id_versioned, [""]);
+let pen = pen("'IBM Plex Mono', sans-serif",10,[colour!("#6f81ff")],[colour!("transparent")]);
+running_text(coord(tr.start,[10],[0]), coord(tr.end,[10],[0]), pen, text, leaf_tr.text_leaf);
 
 /* Draw zmenus */
 
-emit_focus_tr_zmenu(*tr_gene,*tr,*leaf_tr,20);
+tr.position = [0]; //dummy for zmenu
+emit_focus_tr_zmenu(*tr_gene,*tr,*leaf_tr,0);
 
 /* Draw track furniture */
 
@@ -116,7 +113,7 @@ let focus_gene_index = index(tr.index_of_gene,focus_tr_index);
 let **focus_gene = index(**gene,focus_gene_index);
 
 draw_track_category(["G"],["focus"],[leaf.letter]);
-draw_track_name(join(" ",[focus_gene.name,focus_transcript_id]),"name",leaf.trackname);
+draw_track_name(join(" ",[focus_transcript_id]),"name",leaf.trackname);
 draw_swatch(colour!("#58a8f9"),[leaf.letter]);
 
 draw_focus_track_chevrons([index(gene.strand,focus_gene_index)],*leaf);
@@ -125,4 +122,4 @@ draw_focus_sidebar_chevrons([index(gene.strand,focus_gene_index)],*leaf);
 /* Metadata reports */
 
 let paint = paint_metadata("id",[""],[eoe_string(focus_transcript_id)]);
-rectangle(coord([0],[0,...],[0,...]),coord([1],[0,...],[0,...]),paint,[leaf.bgd,...]);
+rectangle(coord([0],[0],[0]),coord([1],[0],[0]),paint,[leaf.bgd]);

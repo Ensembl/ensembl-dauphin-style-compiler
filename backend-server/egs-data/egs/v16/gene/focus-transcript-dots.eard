@@ -20,21 +20,18 @@ let (focus_genome_id,focus_transcript_id) = focus_transcript_settings();
 let req = request("self()","transcript");
 scope(req,"id",focus_transcript_id);
 scope(req,"genome",focus_genome_id);
+scope(req,"type",["transcript"]);
 let data = get_data(req);
 let (*gene,*tr,*ex) = extract_tr_data(data);
 halt(only_warm());
 
 let on_this_stick = index(gene.stick,0) == stick();
 
-let focus_tr_index_positions = position(focus_transcript_id==tr.id_unversioned || focus_transcript_id==tr.id_versioned);
-let focus_tr_index = if(len(focus_tr_index_positions)>0,index(focus_tr_index_positions,0),0);
-let focus_gene_index = index(tr.index_of_gene,focus_tr_index);
-let **focus_gene = index(**gene,focus_gene_index);
-
 let leaf_dots = if(on_this_stick,leaf("dots/content"),leaf(""));
 let leaf_text = if(on_this_stick,leaf("tracks/flagtop/main"),leaf(""));
 
-let text_start = comma_format(focus_gene.start+1);
-let text_end = comma_format(focus_gene.end);
+let **focus_tr = index(**tr,0);
+let text_start = comma_format(focus_tr.start+1);
+let text_end = comma_format(focus_tr.end);
 
-red_dotted(focus_gene.start,focus_gene.end,text_start,text_end,leaf_dots,leaf_text);
+red_dotted(focus_tr.start,focus_tr.end,text_start,text_end,leaf_dots,leaf_text);

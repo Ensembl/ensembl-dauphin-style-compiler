@@ -8,7 +8,7 @@ from data.v16.gene.transcriptfilter import filter_lines_by_criteria, lines_for_t
 from data.v16.gene.transcriptorder import sort_data_by_transcript_priority
 from model.bigbed import get_bigbed
 from model.datalocator import AccessItem
-from model.thoas import CoreApiClient
+from model.graphql import CoreApiClient
 from model.transcriptfile import TranscriptFileLine
 from tangle.tangle import TangleFactory
 
@@ -53,7 +53,7 @@ OV_TANGLE_PATH = os.path.join(os.path.dirname(__file__),"overview-tangle.toml")
 TANGLE_OVERVIEW = TANGLE_FACTORY.make_from_tomlfile(OV_TANGLE_PATH,[],processor)
 TANGLE_OVERVIEW_WITH_IDS = TANGLE_FACTORY.make_from_tomlfile(OV_TANGLE_PATH,["ids"],processor)
 
-THOAS = CoreApiClient()
+CORE_API = CoreApiClient()
 
 def get_approx_location(data_accessor: DataAccessor, genome_id: str, id: str):
     species = data_accessor.data_model.species(genome_id)
@@ -66,18 +66,17 @@ def get_approx_location(data_accessor: DataAccessor, genome_id: str, id: str):
             parts = value.decode('utf-8').split("\t")
             if len(parts) == 3:
                 on_stick = "{}:{}".format(genome_id,parts[0])
-                return (on_stick,int(parts[1]),int(parts[2]))
+                return (on_stick, max(0,int(parts[1])), int(parts[2]))
     return (None,None,None)
 
 # We need to return all the data for the focus gene wherever we are (except for the sequence) as
 # transcript configuration, ordering, etc is still relevant.
 def update_panel_from_id(data_accessor: DataAccessor, panel: Panel, for_id: tuple[str,str,str]):
-    # Fetch focus transcript location from Thoas, use NCD file for focus genes
+    # Fetch focus transcript location from Core API, use NCD file for focus genes
     if for_id[2] == 'transcript':
-        (region_name, start, end) = THOAS.get_transcript_location(for_id[0], for_id[1])
-        stick = "{}:{}".format(for_id[0], region_name)
+        (stick, start, end) = CORE_API.get_transcript_location((for_id[0], for_id[1]))
     else:
-        (stick,start,end) = get_approx_location(data_accessor,for_id[0],for_id[1])
+        (stick, start, end) = get_approx_location(data_accessor,for_id[0],for_id[1])
     if stick is not None:
         panel.stick = stick
         panel.start = start

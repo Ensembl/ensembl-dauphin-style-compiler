@@ -1,7 +1,7 @@
 from model.species import Species
 from command.coremodel import DataAccessor
 from ncd import NCDRead
-from model.thoas import CoreApiClient
+from model.graphql import CoreApiClient
 from model.version import Version
 
 
@@ -13,7 +13,7 @@ class FocusJumpHandler:
     """
     def __init__(self):
         self._ncd_files = {}
-        self._thoas = CoreApiClient()
+        self._core_api = CoreApiClient()
 
     def _ensure_ncd(self, data_accessor: DataAccessor, sp_obj: Species):
         if sp_obj.genome_id not in self._ncd_files:
@@ -39,14 +39,14 @@ class FocusJumpHandler:
             if cached is not None:
                 return cached
 
-            # focus transcripts are resolved via Thoas.
+            # focus transcripts are resolved via core API.
             if focus_type == "transcript":
-                tr_location = self._thoas.get_transcript_location(genome_id, object_id)
-                if tr_location is not None:
-                    (region_name, start, end) = tr_location
-                    out = (f"{genome_id}:{region_name}", start, end)
+                (stick, start, end) = self._core_api.get_transcript_location((genome_id, object_id))
+                if stick is not None:
+                    out = (stick, start, end)
                     data_accessor.cache.set_jump(lookup, *out, version)
                     return out
+                return None
             
             # focus genes are indexed in NCD files
             sp_obj = data_accessor.data_model.species(genome_id)
