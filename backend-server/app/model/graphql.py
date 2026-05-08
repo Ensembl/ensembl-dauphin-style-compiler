@@ -1,10 +1,10 @@
 import logging
-
 import requests
 import toml
 
 from core.config import SOURCES_TOML
 
+logger = logging.getLogger('CoreAPIClient')
 
 class CoreApiClient:
     """
@@ -27,9 +27,8 @@ query TranscriptLocation($genomeId: String!, $transcriptId: String!) {
   }
 }
 """
-
+    
     def __init__(self):
-        self._logger = logging.getLogger(__name__)
         self._core_api_url = self._read_toml()
 
     def _read_toml(self) -> str | None:
@@ -59,7 +58,7 @@ query TranscriptLocation($genomeId: String!, $transcriptId: String!) {
             response.raise_for_status()
             body = response.json()
         except Exception as e:
-            self._logger.warning(
+            logger.warning(
                 "Core API transcript lookup failed for '%s' (%s): %s",
                 transcript_id,
                 genome_id,
@@ -68,7 +67,7 @@ query TranscriptLocation($genomeId: String!, $transcriptId: String!) {
             return empty_location
 
         if body.get("errors"):
-            self._logger.warning(
+            logger.warning(
                 "Core API transcript lookup returned GraphQL errors for '%s': %s",
                 transcript_id,
                 body.get("errors"),

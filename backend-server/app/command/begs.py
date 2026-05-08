@@ -119,7 +119,7 @@ class OneBegsFile:
         self._program_name = None
         self._type = "begs"
         self.load_toml(toml_data)
-        logging.warn("TYPE {} = {}".format(name,self._type))
+        logging.warning("TYPE {} = {}".format(name,self._type))
         for key in ("path","specs_path","programs"):
             if not hasattr(self,"_"+key):
                 raise Exception("missing {} from program inventory for {}".format(key,name))
@@ -188,7 +188,7 @@ class ProgramInventory:
         self._boot_eardos = {}
         self._eardo = {}
         self._monitor = BegsFilesMonitor()
-        logging.warn("A file at {}".format(BEGS_CONFIG))
+        logging.warning("A file at {}".format(BEGS_CONFIG))
         with open(BEGS_CONFIG) as f:
             toml_data = toml.loads(f.read())
             for (name,data) in toml_data.get("file",{}).items():
