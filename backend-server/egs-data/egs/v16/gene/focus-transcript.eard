@@ -11,13 +11,12 @@ include "transcript-common.eard";
 /* Set styles */
 
 track_styles();
-gene_styles();
 transcript_styles();
 
 style!("""
-    tracks/track/focus/ {
+    tracks/track/focus-transcript/ {
         priority: -900;
-        report: "track;switch-id=focus;has-labels=true;!id";
+        report: "track;switch-id=focus;type=focus-transcript;!id";
     }
 """);
 
@@ -53,7 +52,7 @@ let gene.leaf_index = repeat(0,len(gene.start));
 let tr_gene.leaf_index = repeat(0,len(tr.start));
 let tr.leaf_index = tr_gene.leaf_index;
 
-let gene.leaf_base = push_str("tracks/track/focus/main/main/",gene.id_versioned);
+let gene.leaf_base = push_str("tracks/track/focus-transcript/main/main/",gene.id_versioned);
 let *leaf_tr = tr_focus_gene_leafs(*gene,*tr,[true],right_chr);
 
 let **exon_tr = index(**tr,exon.index_of_tr);

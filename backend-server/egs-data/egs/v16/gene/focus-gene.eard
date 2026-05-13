@@ -35,9 +35,9 @@ style!("""
         padding-top: 32;
     }
     
-    tracks/track/focus/ {
+    tracks/track/focus-gene/ {
         priority: -900;
-        report: "track;switch-id=focus;has-labels=true;!transcripts-shown;!all-transcripts;!id;!transcripts-suppressed";
+        report: "track;switch-id=focus;type=focus-gene;!transcripts-shown;!all-transcripts;!id;!transcripts-suppressed";
     }
 """);
 

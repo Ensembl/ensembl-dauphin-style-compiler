@@ -13,7 +13,7 @@ track_styles();
 style!("""
         tracks/track/focus-variant/ {
             priority: -900;
-            report: "track;switch-id=focus;!variant-id";
+            report: "track;switch-id=focus;type=focus-variant;!variant-id";
         }
 
         tracks/track/focus-variant/main/letter/ {

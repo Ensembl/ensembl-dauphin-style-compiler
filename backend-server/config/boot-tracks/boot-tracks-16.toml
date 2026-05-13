@@ -127,7 +127,7 @@ triggers = [
 [include.focus-transcript.settings]
 focus-transcript = ["track","focus","item","transcript"]
 focus = ["track","focus"]
-focus-transcript-label = ["track","focus","transcript-label"]
+focus-transcript-label = ["track","focus","label"]
 name = ["track","focus","name"]
 
 [track.focus-transcript]
