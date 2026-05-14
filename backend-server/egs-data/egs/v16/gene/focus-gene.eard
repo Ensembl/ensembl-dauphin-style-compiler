@@ -64,12 +64,12 @@ function focus_leaf(path) {
     if(right_chr,leaf(path),leaf(""))
 }
 
-let leaf.bgd = focus_leaf("tracks/track/focus/main/background/content");
-let leaf.text = focus_leaf(if(setting_boolean("focus-gene-label",[]),"tracks/track/focus/main/main/focus/text/content",""));
-let leaf.letter = focus_leaf("tracks/track/focus/main/letter/content");
-let leaf.trackname = focus_leaf("tracks/track/focus/title/content");
-let leaf.main = focus_leaf("tracks/track/focus/main/main/focus/blocks/content");
-gene.block_leaf = [focus_leaf("tracks/track/focus/main/main/focus/blocks/content"),...];
+let leaf.bgd = focus_leaf("tracks/track/focus-gene/main/background/content");
+let leaf.text = focus_leaf(if(setting_boolean("focus-gene-label",[]),"tracks/track/focus-gene/main/main/focus/text/content",""));
+let leaf.letter = focus_leaf("tracks/track/focus-gene/main/letter/content");
+let leaf.trackname = focus_leaf("tracks/track/focus-gene/title/content");
+let leaf.main = focus_leaf("tracks/track/focus-gene/main/main/focus/blocks/content");
+gene.block_leaf = [focus_leaf("tracks/track/focus-gene/main/main/focus/blocks/content"),...];
 gene.leaf_index = repeat(4,len(gene.start));
 
 /* Main rectangle and label */

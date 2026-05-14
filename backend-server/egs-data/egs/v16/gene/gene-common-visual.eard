@@ -49,7 +49,7 @@ export procedure make_gene_leaf_base(*gene) {
 }
 
 export procedure make_focus_gene_leaf_base(*gene) {
-    push_str("tracks/track/focus/main/main/",gene.id_versioned)
+    push_str("tracks/track/focus-gene/main/main/",gene.id_versioned)
 }
 
 export function empty_off_gene(item,enabled,*gene) {
