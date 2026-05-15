@@ -108,7 +108,7 @@ running_text(coord(tr_gene.start,y+10,[0,...]),coord(tr_gene.end,y+10,[0,...]),p
 
 /* Draw zmenus */
 
-emit_focus_tr_zmenu(*tr_gene,*tr,*leaf_tr,20);
+emit_focus_gene_zmenu(*tr_gene,*tr,*leaf_tr,20);
 
 /* Draw track furniture */
 

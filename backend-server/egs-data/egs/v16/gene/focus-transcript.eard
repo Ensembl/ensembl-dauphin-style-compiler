@@ -97,10 +97,8 @@ let text = if(enabled_focus_transcript_labels(), tr.id_versioned, [""]);
 let pen = pen("'IBM Plex Mono', sans-serif",10,[colour!("#6f81ff")],[colour!("transparent")]);
 running_text(coord(tr.start,[10],[0]), coord(tr.end,[10],[0]), pen, text, leaf_tr.text_leaf);
 
-/* Draw zmenus */
-
-tr.position = [0]; //dummy for zmenu
-emit_focus_tr_zmenu(*tr_gene,*tr,*leaf_tr,0);
+/* Draw zmenu */
+emit_focus_transcript_zmenu(*tr_gene,*tr,*leaf_tr);
 
 /* Draw track furniture */
 
