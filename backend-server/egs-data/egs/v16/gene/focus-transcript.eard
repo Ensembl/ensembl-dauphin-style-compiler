@@ -104,9 +104,9 @@ emit_focus_tr_zmenu(*tr_gene,*tr,*leaf_tr,0);
 
 /* Draw track furniture */
 
-let leaf.bgd = make_focus_gene_leaf("main/background/content",enabled_track && right_chr);
-let leaf.trackname = make_focus_gene_leaf("title/content",enabled_track && right_chr);
-let leaf.letter = make_focus_gene_leaf("main/letter/content",enabled_track && right_chr);
+let leaf.bgd = make_focus_transcript_leaf("main/background/content",enabled_track && right_chr);
+let leaf.trackname = make_focus_transcript_leaf("title/content",enabled_track && right_chr);
+let leaf.letter = make_focus_transcript_leaf("main/letter/content",enabled_track && right_chr);
 
 let focus_gene_index = index(tr.index_of_gene,focus_tr_index);
 let **focus_gene = index(**gene,focus_gene_index);

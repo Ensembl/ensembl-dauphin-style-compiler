@@ -101,6 +101,16 @@
           return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
         }
 
+        function get_track_switch_path(track_name) {
+          if(track_name == "focus-transcript") {
+            return ["track", "focus"];
+          }
+          let track_path = ["track"];
+          if(is_uuid(track_name)) track_path.push("expand");
+          track_path.push(track_name);
+          return track_path;
+        }
+
         function toggle_all_tr() {
           for(const tr in seen_transcripts) {
             if(tr_off) {
@@ -128,9 +138,7 @@
           if(cur!==true && cur!==false) { cur = true; }
           let value = !cur;
           tracks_on[track_name] = value;
-          let track_path = ["track"];
-          if(is_uuid(track_name)) track_path.push("expand");
-          track_path.push(track_name);
+          let track_path = get_track_switch_path(track_name);
           genome_browser.switch(track_path, value);
         }
 
@@ -140,8 +148,9 @@
           let cur = track_settings[track_name][setting];
           let value = !cur;
           track_settings[track_name][setting] = value;
-          if(suffix) genome_browser.switch(["track", track_name, suffix, setting], value);
-          else genome_browser.switch(["track", track_name, setting], value);
+          let track_path = get_track_switch_path(track_name);
+          if(suffix) genome_browser.switch([...track_path, suffix, setting], value);
+          else genome_browser.switch([...track_path, setting], value);
           if(setting == "several") genome_browser.switch(["track", "focus", "enabled-transcripts"], null);
         }
 
@@ -171,6 +180,7 @@
         }
 
         function jump_transcript(transcript_id, genome_id="a7335667-93e7-11ec-a39d-005056b38ce3") {
+          genome_browser.switch(["track","focus","enabled-transcripts"], null);
           genome_browser.switch(["track", "focus", "item", "transcript"], {
             "genome_id": genome_id,
             "item_id": transcript_id
@@ -228,6 +238,7 @@
           } else if(kind=="endstops") {
               console.log("endstops: " + more[0])
           } else if(kind=="track_summary") {
+            console.log(more[0]);
             let tbody = document.getElementById("track-metadata");
             for(const track of more[0].summary) {
                 if(track.type != "track") { continue; } /* don't care */
