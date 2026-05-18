@@ -238,16 +238,13 @@
           } else if(kind=="endstops") {
               console.log("endstops: " + more[0])
           } else if(kind=="track_summary") {
-            console.log(more[0]);
             let tbody = document.getElementById("track-metadata");
             for(const track of more[0].summary) {
-                if(track.type != "track") { continue; } /* don't care */
                 all_tracks[track["switch-id"]] = track;
             }
             tbody.innerHTML = "";
             for(const track_name in all_tracks) {
                 let track = all_tracks[track_name];
-                if(track.type != "track") { continue; } /* don't care */
                 if('all-transcripts' in track) {
                   let all = track['all-transcripts'];
                   let new_seen_transcripts = {};
@@ -317,7 +314,7 @@
                 let td4 = document.createElement("td");
                 let td5 = document.createElement("td");
                 console.log(track);
-                if(track["has-labels"]) { //true for gene tracks (set in eard style string)
+                if(track["switch-id"].startsWith("gene") || track["type"] == "focus-gene") {
                   td3.innerHTML = "<a title='Toggle gene label' class='lbl'>🏷️g</a>";
                   td3.onclick = function() { toggle_setting(track['switch-id'], "label") };
                   td4.innerHTML = "<a title='Toggle transcript label' class='lbl'>🏷️t</a>";
@@ -325,7 +322,11 @@
                   td5.innerHTML = "<a title='Toggle multiple transcripts'>≣</a>";
                   td5.onclick = function() { toggle_setting(track['switch-id'], "several") };
                 }
-                else if(track["switch-id"] == "focus" || track["switch-id"].startsWith("variant")){
+                else if(track["type"] == "focus-transcript") {
+                  td4.innerHTML = "<a title='Toggle transcript label' class='lbl'>🏷️t</a>";
+                  td4.onclick = function() { toggle_setting(track['switch-id'], "label") };
+                }
+                else if(track["switch-id"].startsWith("variant") || track["type"] == "focus-variant") {
                   let suffix = track["switch-id"] == "focus"? "variant" : "";
                   td3.innerHTML = "<a title='Toggle variant ID' class='lbl'>🏷️i</a>";
                   td3.onclick = function () {
@@ -417,9 +418,9 @@
         //goto: variant
         //jump_variant("rs1557469781", 1, 1176408);
         //goto: gene
-        //jump_gene("ENSG05220032026", "4c07817b-c7c5-463f-8624-982286bc4355");
+        jump_gene("ENSG05220032026", "4c07817b-c7c5-463f-8624-982286bc4355");
         //goto: transcript
-        jump_transcript("ENST00000380152");
+        //jump_transcript("ENST00000380152");
 
         //Pig
         //init_tracks("fc33bc3c-f30b-4059-b003-012a4898186c"); //repeat elements
