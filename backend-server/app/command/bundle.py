@@ -31,11 +31,11 @@ class Bundle:
             return out
 
     def reload(self):
-        logging.warn("Bundle '{0}' changed. Reloading".format(self.name))
+        logging.warning("Bundle '{0}' changed. Reloading".format(self.name))
         self._program = self.load_program(self.path,self._egs_version)
 
     def serialize(self) -> Any:
-        logging.warn(str(self._specs.serialize()))
+        logging.warning(str(self._specs.serialize()))
         if self._egs_version < 15:
             return [self.name,self._program,self._name_map]
         else:

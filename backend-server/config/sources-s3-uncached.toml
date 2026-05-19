@@ -7,3 +7,7 @@ max_version = 13
 driver = "s3"
 url = "https://ensembl-2020-gb-flatfiles.s3.eu-west-2.amazonaws.com/upload-20220829/"
 min_version = 14
+
+[apis]
+track_api = "https://staging-2020.ensembl.org/api/tracks"
+core_api = "https://staging-2020.ensembl.org/api/graphql/core"

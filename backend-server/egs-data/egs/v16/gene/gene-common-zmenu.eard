@@ -1,8 +1,15 @@
-struct!(variety_zmenu,"""
+struct!(gene_variety_zmenu,"""
     {
         "type": "zmenu",
         "zmenu-type": "gene-and-one-transcript"
     }
+""");
+
+struct!(transcript_variety_zmenu,"""
+  {
+    "type": "zmenu",
+    "zmenu-type": "transcript"
+  }
 """);
 
 function build_formatted_location(region_name, start, end) {
@@ -167,6 +174,8 @@ struct!(gene_tr_zmenu,"""
   gene_tr_zmenu
 }
 
+/* Transcript payload (bundled with gene ZMenus) */
+
 function tr_zmenu(*tr_gene,*tr) {
   let transcript_location = build_formatted_location(tr_gene.region_name, tr.start, tr.end);
 
@@ -237,36 +246,117 @@ struct!(tr_zmenu,"""
   tr_zmenu
 }
 
-export procedure emit_gene_zmenu(*gene) {
-    capture variety_zmenu;
+/* Zmenu payload for single focus transcript */
 
-    let paint_gene = paint_click(variety_zmenu,gene_zmenu(*gene),false);
+function focus_transcript_zmenu(*tr_gene,*tr) {
+  let transcript_location = build_formatted_location(tr_gene.region_name, tr.start, tr.end);
+
+struct!(focus_transcript_zmenu,"""
+(<0,1,2,3,4,5,6,7,8,9>!
+      {
+        "data": [
+
+          /* First row */
+
+          [
+            {
+              "items": [
+                { "markup": ["light"], "text": "Transcript" },
+                { "markup": [], "text": " " },
+                { "markup": ["strong"], "text": <0s> }
+              ],
+              "type": "block"
+            },
+            {
+              "items": [{ "markup": ["light"], "text": <7s> }],
+              "type": "block"
+            }
+          ],
+
+          /* Second row */
+          [
+            { "items": [ { "markup": [ "light" ], "text": "Biotype" } ], "type": "block" },
+            { "items": [ { "markup": [ ], "text": <8s> } ], "type": "block" }
+          ],
+          [
+            {
+              "items": [{ "markup": ["light"], "text": <3s> }],
+              "type": "block"
+            }
+          ],
+          [
+            {
+              "items": [{ "markup": ["light"], "text": <9s> }],
+              "type": "block"
+            }
+          ]
+        ],
+        "metadata": {
+          "versioned_id": <0s>,
+          "designation": <1s>,
+          "transcript_biotype": <2s>,
+          "strand": <3s>,
+          "unversioned_id": <4s>,
+          "gene_id": <5s>,
+          "track": <6s>,
+          "type": "transcript"
+        }
+      }
+)
+""",
+    tr.id_versioned,
+    tr.designation,
+    tr.biotype,
+    tr_gene.strand_string,
+    tr.id_unversioned,
+    tr_gene.id_versioned,
+    ["focus"],
+    small_value("designation","label",tr.designation),
+    tr.biotype,
+    transcript_location
+  );
+  focus_transcript_zmenu
+}
+
+/* Zmenu handlers */
+
+export procedure emit_gene_zmenu(*gene) {
+    capture gene_variety_zmenu;
+
+    let paint_gene = paint_click(gene_variety_zmenu,gene_zmenu(*gene),false);
     rectangle(coord(gene.start,[0,...],[0,...]),coord(gene.end,[8,...],[0,...]),paint_gene,gene.block_leaf);
 
-    let paint_tr = paint_click(variety_zmenu,gene_tr_zmenu(*gene),false);
+    let paint_tr = paint_click(gene_variety_zmenu,gene_tr_zmenu(*gene),false);
     rectangle(coord(gene.start,[0,...],[0,...]),coord(gene.end,[8,...],[0,...]),paint_tr,gene.block_leaf);
 }
 
-export procedure emit_tr_zmenu(*tr_gene,*tr,*leaf_tr,tr_sep) {
-  capture variety_zmenu;
+export procedure emit_transcript_zmenu(*tr_gene,*tr,*leaf_tr,tr_sep) {
+  capture gene_variety_zmenu;
 
   let y = tr.position_in_gene * tr_sep;
 
-  let paint_gene = paint_click(variety_zmenu,gene_zmenu(*tr_gene),false);
+  let paint_gene = paint_click(gene_variety_zmenu,gene_zmenu(*tr_gene),false);
   rectangle(coord(tr.start,y,[0,...]),coord(tr.end,y+15,[0,...]),paint_gene,leaf_tr.over_leaf);
 
-  let paint_tr = paint_click(variety_zmenu,tr_zmenu(*tr_gene,*tr),false);
+  let paint_tr = paint_click(gene_variety_zmenu,tr_zmenu(*tr_gene,*tr),false);
   rectangle(coord(tr.start,y,[0,...]),coord(tr.end,y+15,[0,...]),paint_tr,leaf_tr.over_leaf);
 }
 
-export procedure emit_focus_tr_zmenu(*tr_gene,*tr,*leaf_tr,tr_sep) {
-  capture variety_zmenu;
+export procedure emit_focus_gene_zmenu(*tr_gene,*tr,*leaf_tr,tr_sep) {
+  capture gene_variety_zmenu;
 
   let y = tr.position * tr_sep;
 
-  let paint_gene = paint_click(variety_zmenu,gene_zmenu(*tr_gene),false);
+  let paint_gene = paint_click(gene_variety_zmenu,gene_zmenu(*tr_gene),false);
   rectangle(coord(tr.start,y,[0,...]),coord(tr.end,y+15,[0,...]),paint_gene,leaf_tr.over_leaf);
 
-  let paint_tr = paint_click(variety_zmenu,tr_zmenu(*tr_gene,*tr),false);
+  let paint_tr = paint_click(gene_variety_zmenu,tr_zmenu(*tr_gene,*tr),false);
   rectangle(coord(tr.start,y,[0,...]),coord(tr.end,y+15,[0,...]),paint_tr,leaf_tr.over_leaf);
+}
+
+export procedure emit_focus_transcript_zmenu(*tr_gene,*tr,*leaf_tr) {
+  capture transcript_variety_zmenu;
+
+  let paint_tr = paint_click(transcript_variety_zmenu, focus_transcript_zmenu(*tr_gene,*tr), false);
+  rectangle(coord(tr.start,[0],[0]), coord(tr.end,[15],[0]), paint_tr, leaf_tr.over_leaf);
 }

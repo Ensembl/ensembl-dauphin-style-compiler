@@ -2,25 +2,25 @@ export procedure gene_styles() {
     style!("""
         tracks/track/gene-other-rev/ {
             priority: 110;
-            report: "track;switch-id=gene-other-rev;has-labels=true";
+            report: "type=track;switch-id=gene-other-rev";
             min-height: 92;
         }
 
         tracks/track/gene-pc-rev/ {
             priority: 100;
-            report: "track;switch-id=gene-pc-rev;has-labels=true";
+            report: "type=track;switch-id=gene-pc-rev";
             min-height: 92;
         }
 
         tracks/track/gene-other-fwd/ {
             priority: -100;
-            report: "track;switch-id=gene-other-fwd;has-labels=true";
+            report: "type=track;switch-id=gene-other-fwd";
             min-height: 92;
         }
 
         tracks/track/gene-pc-fwd/ {
             priority: -110;
-            report: "track;switch-id=gene-pc-fwd;has-labels=true";
+            report: "type=track;switch-id=gene-pc-fwd";
             min-height: 92;
         }
     """);
@@ -37,10 +37,6 @@ export procedure make_gene_leafs(suffix,enabled) {
     leaf(names)
 }
 
-export procedure make_focus_gene_leaf(suffix,enabled) {
-    leaf(if(enabled,join("/",["tracks/track/focus",suffix]),""))
-}
-
 export procedure make_gene_leaf_base(*gene) {
     let track_names = ["gene-other-rev/","gene-pc-rev/","gene-other-fwd/","gene-pc-fwd/"];
     let names = push_str("tracks/track/",index(track_names,gene.leaf_index));
@@ -49,7 +45,15 @@ export procedure make_gene_leaf_base(*gene) {
 }
 
 export procedure make_focus_gene_leaf_base(*gene) {
-    push_str("tracks/track/focus/main/main/",gene.id_versioned)
+    push_str("tracks/track/focus-gene/main/main/",gene.id_versioned)
+}
+
+export procedure make_focus_gene_leaf(suffix,enabled) {
+    leaf(if(enabled,join("/",["tracks/track/focus-gene",suffix]),""))
+}
+
+export procedure make_focus_transcript_leaf(suffix,enabled) {
+    leaf(if(enabled,join("/",["tracks/track/focus-transcript",suffix]),""))
 }
 
 export function empty_off_gene(item,enabled,*gene) {

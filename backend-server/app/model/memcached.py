@@ -1,5 +1,3 @@
-from datetime import datetime
-from types import prepare_class
 from typing import Optional, Tuple
 from core.config import MEMCACHED
 from command.response import Response
@@ -41,10 +39,10 @@ class Memcached(object):
         self._prefix = prefix
         self._available = False
         if not PYMEMCACHE_FOUND:
-            logging.warn("missing pymemcached. Cannot use memcache")
+            logging.warning("missing pymemcached. Cannot use memcache")
             return
         (host, port) = MEMCACHED.split(':', 1)
-        logging.warn("trying memcached {0}:{1}".format(host, port))
+        logging.warning("trying memcached {0}:{1}".format(host, port))
         self._client = PooledClient((host, port), max_pool_size=64)
         self._check()
 
@@ -62,9 +60,9 @@ class Memcached(object):
         except:
             pass
         if self._available:
-            logging.warn("Memcached has started. Will use.")
+            logging.warning("Memcached has started. Will use.")
         else:
-            logging.warn("No memcached. That's fine but will be slow.")
+            logging.warning("No memcached. That's fine but will be slow.")
         return self._available
 
     def _is_available(self):
@@ -107,12 +105,12 @@ class Memcached(object):
         self._available = False
         self._bump_on_restart = time.time() if bump_on_restart else None
         if bump_on_restart:
-            logging.warn("Bumping on restart as requested. Do not use in production.")
+            logging.warning("Bumping on restart as requested. Do not use in production.")
         if not PYMEMCACHE_FOUND:
-            logging.warn("missing pymemcached. Cannot use memcache")
+            logging.warning("missing pymemcached. Cannot use memcache")
             return
         (host,port) = MEMCACHED.split(':',1)
-        logging.warn("trying memcached {0}:{1}".format(host,port))
+        logging.warning("trying memcached {0}:{1}".format(host,port))
         self._client = PooledClient((host,port),max_pool_size=64)
         self._check()
 

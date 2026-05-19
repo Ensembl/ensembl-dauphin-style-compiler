@@ -44,4 +44,4 @@ def send_to_telegraf(lines):
         s.sendall(lines.encode("utf-8"))
         s.close()
     except:
-        logging.warn("discarded stats: could not contact telegraf")
+        logging.warning("discarded stats: could not contact telegraf")

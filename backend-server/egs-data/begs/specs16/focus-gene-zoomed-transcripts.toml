@@ -1,5 +1,5 @@
 set = "ensembl-webteam/core"
-name = "focus-zoomed-transcript"
+name = "focus-gene-zoomed-transcripts"
 version = 1
 description = """
 

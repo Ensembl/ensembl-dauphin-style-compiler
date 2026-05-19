@@ -2,7 +2,7 @@
 
 ## Scope
 
-This document covers the decision to have the content of the top half of the zmenus sent by the genome browser app rather than it sending identifiers and have the rest of the application derive the contents via thoas.
+This document covers the decision to have the content of the top half of the zmenus sent by the genome browser app rather than it sending identifiers and have the rest of the application derive the contents via Thoas (GraphQL API).
 
 For example, when a used clicks on a gene, a payload includes a string containing the ensembl-id, a string containing the biotype, a string containing the strand, and an arrangement of these strings for the application to render, and so on, rather than merely sending the identifier.
 

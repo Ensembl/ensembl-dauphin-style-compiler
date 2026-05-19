@@ -4,6 +4,14 @@ def unversioned(data):
     parts = data.rsplit(".",1)
     return parts[0]
 
+def lines_for_transcript_id(lines, transcript_id):
+    out = []
+    for line in lines:
+        if line.transcript_id == transcript_id or unversioned(line.transcript_id) == transcript_id:
+            line.all_transcript_counts = 1 # placeholder for the shared logic in the eard side
+            out.append(line)
+    return out
+
 def filter_lines_by_criteria(lines,for_id,max_tr,expanded):
     out = []
     num_tr_seen = collections.defaultdict(int)

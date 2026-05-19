@@ -139,6 +139,13 @@ export procedure focus_gene_settings() {
     )    
 }
 
+export procedure focus_transcript_settings() {
+    (
+        setting_string("focus-transcript",["genome_id"]),
+        setting_string("focus-transcript",["item_id"])
+    )
+}
+
 procedure extract_gene_data(data) {
     let gene.id_unversioned = data_string(data,"gene_id");
     let gene.id_version = data_string(data,"gene_id_version");
@@ -171,7 +178,7 @@ procedure extract_gene_data(data) {
     *gene
 }
 
-procedure extract_tr_data(data) {
+export procedure extract_tr_data(data) {
     let *gene = extract_gene_data(data);
 
     let tr.start = data_number(data,"transcripts_starts");
@@ -184,7 +191,6 @@ procedure extract_tr_data(data) {
     let tr.thick_start = data_number(data,"thicks_starts");
     let tr.thick_end = tr.thick_start + data_number(data,"thicks_lengths");
     let gene.tr_count = data_number(data,"transcript_counts");
-    let gene.all_tr_count = data_number(data,"all_transcript_counts");
     let tr.position_in_gene = enumerate(gene.tr_count);
     let tr.index_of_gene = count(gene.tr_count);
     let tr.count = index(gene.tr_count,tr.index_of_gene);

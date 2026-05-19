@@ -65,4 +65,4 @@ let line_paint = paint_dotted([colour!("white"),...],[colour!("#999"),...],4,1,0
 rectangle(coord([0],[0],[0.5]), coord([1],[0],[0.5]), line_paint, [bg_leaf]);
 
 /* Draw zmenu hotspots */
-emit_tr_zmenu(*tr_gene, *tr, *leafs, 20);
+emit_transcript_zmenu(*tr_gene, *tr, *leafs, 20);

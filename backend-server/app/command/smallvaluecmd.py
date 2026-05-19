@@ -22,5 +22,5 @@ class SmallValueHandler(Handler):
             r.add_values(namespace,column,values)
             return r
         except UnknownVersionException as e:
-            logging.warn(e)
+            logging.warning(e)
             return Response(1,e)
