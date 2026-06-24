@@ -21,7 +21,7 @@ version="*"
 path="../commander"
 
 [dependencies.wasm-bindgen]
-version="*"
+version=">=0.2.125"
 features = [
   'serde-serialize'
 ]
