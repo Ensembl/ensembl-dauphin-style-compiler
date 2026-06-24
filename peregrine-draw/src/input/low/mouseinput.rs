@@ -35,6 +35,7 @@ impl Finger {
 
     fn mine(&mut self, event: &PointerEvent, kind: &PointerEventKind) -> bool {
         let down = *kind == PointerEventKind::Down;
+        
         let event_id = event.pointer_id();
         if let Some(id) = self.id {
             if event_id != id {
@@ -140,6 +141,7 @@ impl MouseEventHandler {
         if let Some(kind) = reported_kind {
             self.report(&kind);
         }
+        
         event.stop_propagation();
         event.prevent_default();
     }
@@ -211,6 +213,8 @@ pub(super) fn mouse_events(config: &PgPeregrineConfig, state: &LowLevelState, gl
         handler2.wheel_event(event)
     })?);
     handles.push(EventHandle::new(canvas,"scroll", |_: &Event| {})?);
-    handles.push(EventHandle::new(canvas,"contextmenu", |_: &Event| {})?);
+    handles.push(EventHandle::new(canvas,"contextmenu", |e: &Event| {
+        e.prevent_default();
+    })?);
     Ok(handles)
 }
