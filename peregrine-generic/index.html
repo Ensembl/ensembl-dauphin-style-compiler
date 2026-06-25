@@ -39,6 +39,10 @@
         </div>
         <div class="payload">current: <span id="current"></span></div>
         <div class="payload">target: <span id="target"></span></div>
+        <div>
+          <input type="text" id="loc-input-field" placeholder="chr:start-end">
+          <button id="loc-input-field-btn">Go</button>
+        </div>
         <table>
           <thead>
             <tr>
@@ -76,17 +80,17 @@
           //backend_url: "https://staging-2020.ensembl.org/api/browser/data", //staging
           backend_url: "http://localhost:3333/api/data http://localhost:3334/api/data", //local
           target_element_id: 'browser',
-          'keys.debug-action': "Require(drag)-Click[2] Hold[3] HoldDrag[4] DoubleClick[7] 1[1] 2[2] 3[3] 4[4] 5[5] 6[6] 7[7] 8[8] 9[9] 0[0]",
-          'keys.pixels-left': 'Shift-A[100] Alt-a[1000]',
-          'keys.pixels-right': "MirrorRunningDrag Shift-D[100] Alt-d[1000]",
-          'keys.pixels-in': "Shift-W[100]",
-          'keys.pixels-out': "Shift-S[100] Wheel",
+          // 'keys.debug-action': "Require(drag)-Click[2] Hold[3] HoldDrag[4] DoubleClick[7] 1[1] 2[2] 3[3] 4[4] 5[5] 6[6] 7[7] 8[8] 9[9] 0[0]",
+          // 'keys.pixels-left': 'Shift-A[100] Alt-a[1000]',
+          // 'keys.pixels-right': "MirrorRunningDrag Shift-D[100] Alt-d[1000]",
+          // 'keys.pixels-in': "Shift-W[100]",
+          // 'keys.pixels-out': "Shift-S[100] Wheel",
           "keys.pull-left": "a ArrowLeft",
           "keys.pull-right": "d ArrowRight",
           "keys.pull-in": "w ArrowUp",
           "keys.pull-out": "s ArrowDown",
-          "zoom.goto.rho": "1.41",
-          "zoom.goto.v": "0.003",
+          // "zoom.goto.rho": "1.41",
+          // "zoom.goto.v": "0.003",
         });
         var seen_transcripts = {};
         var shown_transcripts = {};
@@ -220,6 +224,20 @@
           };
           return out;
         }
+
+        let loc_input_field = document.getElementById("loc-input-field");
+        let loc_input_field_btn = document.getElementById("loc-input-field-btn");
+
+        loc_input_field_btn.onclick = function() {
+          let val = loc_input_field.value;
+          let matches = val.match(/(\w+):(\d+)-(\d+)/);
+          if(matches) {
+            let region = matches[1];
+            let start = parseInt(matches[2]);
+            let end = parseInt(matches[3]);
+            jump_location(region, start, end);
+          }
+        }
         
         /* Construct tracks table */
 
@@ -235,6 +253,9 @@
           } else if(kind=="target_position") {
               let targetPosition = more[0];
               target_span.innerText = `${targetPosition.stick}:${targetPosition.start}-${targetPosition.end}`;
+              // stick -> genome_uuid:region
+              const region = targetPosition.stick.split(":").at(-1);
+              loc_input_field.value = `${region}:${targetPosition.start}-${targetPosition.end}`;
           } else if(kind=="endstops") {
               console.log("endstops: " + more[0])
           } else if(kind=="track_summary") {

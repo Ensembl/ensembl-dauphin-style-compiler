@@ -20,8 +20,12 @@ fn trivial_change(x_from: f64, x_to: f64, bp_from: f64, bp_to: f64) -> bool {
 fn extract_coord(stick: &mut Changed<String>, x: &mut Changed<f64>, bp: &mut Changed<f64>) -> Option<(String,f64,f64)> {
     let nothing_changed = !x.is_changed() && !bp.is_changed() && !stick.is_changed();
     if nothing_changed { return None; }
-    if let ((Some(x_from),Some(x_to)),(Some(bp_from),Some(bp_to))) = (x.peek(),bp.peek()) {
-        if trivial_change(*x_from,*x_to,*bp_from,*bp_to) { return None; }
+
+    // If region has not changed and the new location is trivial change then ignore it
+    if !stick.is_changed() {
+        if let ((Some(x_from),Some(x_to)),(Some(bp_from),Some(bp_to))) = (x.peek(),bp.peek()) {
+            if trivial_change(*x_from,*x_to,*bp_from,*bp_to) { return None; }
+        }
     }
     if let (Some(stick),Some(x),Some(bp)) = (stick.report(true),x.report(true),bp.report(true)) {
         Some((stick.clone(),*x,*bp))
