@@ -48,6 +48,15 @@ input {
     display: inline;
 }
 
+.loc-input {
+    display: flex;
+    align-self: start;
+}
+
+#loc-input-field {
+    flex: 1;
+}
+
 button {
     margin: 1px;
     padding: 2px 6px;
