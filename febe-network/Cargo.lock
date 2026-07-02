@@ -256,6 +256,7 @@ dependencies = [
  "minicbor",
  "ordered-float",
  "serde_json",
+ "wasm-bindgen",
  "web-sys",
 ]
 
