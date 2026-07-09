@@ -61,6 +61,10 @@ export function empty_off_gene(item,enabled,*gene) {
     set(item,!gene_enabled,["",...])
 }
 
+export function gene_colour() {
+    colour!("#0099ff")
+}
+
 /* furniture for non-focus tracks */
 
 let num_chevrons = 40;

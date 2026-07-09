@@ -88,7 +88,7 @@ let gene.is_focus = (
 let gene.leaf = set(gene.leaf,gene.is_focus,[leaf(""),...]);
 
 /* Draw rectangles */
-paint = paint_solid(colour!("#0099ff"));
+paint = paint_solid(gene_colour());
 rectangle(coord(gene.start,[0,...],[-0.5,...]),coord(gene.end,[5,...],[0.5,...]),paint,gene.leaf);
 
 /* Draw chevrons */

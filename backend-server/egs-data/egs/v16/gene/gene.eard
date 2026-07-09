@@ -66,7 +66,7 @@ let gene.text_leaf = set(gene.text_leaf,gene.is_focus,[leaf(""),...]);
 
 /* Draw gene blocks and labels */
 
-paint = paint_solid(colour!("#0099ff"));
+paint = paint_solid(gene_colour());
 rectangle(coord(gene.start,[0,...],[-0.5,...]),coord(gene.end,[5,...],[0.5,...]),paint,gene.block_leaf);
 
 let pen = pen("'IBM Plex Mono', sans-serif",10,[colour!("#6f8190"),...],[colour!("transparent"),...]);
