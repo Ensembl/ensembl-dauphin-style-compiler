@@ -137,7 +137,7 @@ lazy_static! {
             ConfigKeyInfo { key: PgConfigKey::MinBpPerScreen, name: "display.min-bp-per-screen", default: &PgConfigValue::Float(32.) },
             ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::DebugAction), name: "keys.debug-action", default: &PgConfigValue::StaticStr("") },
             ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PixelsLeft), name: "keys.pixels-left", default: &PgConfigValue::StaticStr("Alt-a[200]") },
-            ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PixelsRight), name: "keys.pixels-right", default: &PgConfigValue::StaticStr("MirrorRunningDrag Alt-d[200]") },
+            ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PixelsRight), name: "keys.pixels-right", default: &PgConfigValue::StaticStr("MirrorRunningDrag HorizontalWheel Alt-d[200]") },
             ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PixelsUp), name: "keys.pixels-up", default: &PgConfigValue::StaticStr("") },
             ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PixelsDown), name: "keys.pixels-down", default: &PgConfigValue::StaticStr("MirrorVerticalDrag") },
             ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PixelsIn), name: "keys.pixels-in", default: &PgConfigValue::StaticStr("Alt-w[200]") },
