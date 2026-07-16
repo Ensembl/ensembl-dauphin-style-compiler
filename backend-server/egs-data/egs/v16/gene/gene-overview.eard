@@ -71,10 +71,6 @@ let focus_gene.biotype = index(select(focus_gene.biotype,which_gene),0);
 
 let gene.leaf_index = allocate_genes_to_leaf_index(*gene);
 
-/* What colour should these genes be? */
-
-let paint = make_gene_paint(*gene);
-
 /* Calculate leafs */
 
 let leaf.bgd = make_gene_leafs("main/background/content",enabled_tracks);
@@ -92,7 +88,7 @@ let gene.is_focus = (
 let gene.leaf = set(gene.leaf,gene.is_focus,[leaf(""),...]);
 
 /* Draw rectangles */
-
+paint = paint_solid(gene_colour());
 rectangle(coord(gene.start,[0,...],[-0.5,...]),coord(gene.end,[5,...],[0.5,...]),paint,gene.leaf);
 
 /* Draw chevrons */

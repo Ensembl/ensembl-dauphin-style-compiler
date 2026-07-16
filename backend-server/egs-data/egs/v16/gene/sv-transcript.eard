@@ -35,7 +35,7 @@ rectangle(coord(dots.start,[5,...],[0,...]), coord(dots.end,[5,...],[0,...]), pa
 let paint = paint_solid(base_col);
 rectangle(coord(tr.start,[5,...],[0,...]), coord(tr.end,[6,...],[0,...]), paint, leafs.under_leaf);
 
-let paint = paint_hollow(index(gene_colours(), tr_gene.leaf_index), 1);
+let paint = paint_hollow([base_col,...], 1);
 rectangle(coord(tr_gene.start,[2,...],[0,...]), coord(tr_gene.start,[8,...],[0,...]), paint, leafs.under_leaf);
 rectangle(coord(tr_gene.end,[2,...],[0,...]), coord(tr_gene.end,[8,...],[0,...]), paint, leafs.under_leaf);
 
