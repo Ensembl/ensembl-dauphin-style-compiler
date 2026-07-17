@@ -50,6 +50,7 @@ pub(super) enum PointerAction {
     RunningHold(Modifiers,(f64,f64)),
     RunningPinch(Modifiers,ScreenPosition),
     Drag(Modifiers,(f64,f64)),
+    HorizontalWheel(Modifiers,f64),
     Wheel(Modifiers,f64,(f64,f64)),
     Click(Modifiers,(f64,f64)),
     DoubleClick(Modifiers,(f64,f64)),
@@ -70,6 +71,7 @@ impl PointerAction {
                 vec![("RunningPinch",pinch.parameters())],modifiers
             ),
             PointerAction::Drag(modifiers,amount) => (vec![("Drag",vec![amount.0,amount.1])],modifiers),
+            PointerAction::HorizontalWheel(modifiers,amount) => (vec![("HorizontalWheel",vec![*amount]),("MirrorHorizontalWheel",vec![-*amount])],modifiers),
             PointerAction::Wheel(modifiers,amount,pos) => (vec![("Wheel",vec![*amount,pos.0,pos.1]),("MirrorWheel",vec![-*amount,pos.0,pos.1])],modifiers),
             PointerAction::Click(modifiers,pos) => (vec![("Click",vec![pos.0,pos.1])],modifiers),
             PointerAction::DoubleClick(modifiers,pos) => (vec![("DoubleClick",vec![pos.0,pos.1])],modifiers),
@@ -133,7 +135,9 @@ impl Pointer {
             modifiers: lowlevel.modifiers(),
             wheel_cursor,
             wheel_monostable: Monostable::new(lowlevel.commander(), config.wheel_timeout,shutdown, move || {
-                wheel_cursor2.lock().unwrap().take();
+                if let Ok(mut cursor) = wheel_cursor2.try_lock() {
+                    cursor.take();
+                }
             })
         }
     }
@@ -168,6 +172,20 @@ impl Pointer {
         }
     }
 
+    fn set_wheel_cursor(&mut self, lowlevel: &LowLevelState, circumstance: Option<CursorCircumstance>) {
+        if let Ok(mut cursor) = self.wheel_cursor.try_lock() {
+            if let Some(circ) = circumstance {
+                match cursor.as_ref() {
+                    Some((_,current)) if current == &circ => {},
+                    _ => { *cursor = Some((lowlevel.set_cursor(&circ),circ)); }
+                };
+                self.wheel_monostable.set();
+            } else {
+                cursor.take();
+            }
+        }
+    }
+
     pub(crate) fn process_event(&mut self, config: &Arc<PointerConfig>, lowlevel: &LowLevelState, gl: &Arc<Mutex<WebGlGlobal>>, primary: (f64,f64), secondary: Option<(f64,f64)>, kind: &PointerEventKind) -> Result<(),Message> {
         match (&mut self.drag,kind) {
             (None,PointerEventKind::Down) => {
@@ -189,16 +207,14 @@ impl Pointer {
         Ok(())
     }
 
-    pub(crate) fn wheel_event(&mut self, lowlevel: &LowLevelState, position: &(f64,f64), amount: f64) {
-        let circ = if amount > 0. { CursorCircumstance::WheelPositive } else { CursorCircumstance::WheelNegative };
-        let mut cursor = self.wheel_cursor.lock().unwrap();
-        match cursor.as_ref() {
-            Some((_,x)) if x == &circ => {},
-            _ => { *cursor = Some((lowlevel.set_cursor(&circ),circ)) }
-        };
-        self.wheel_monostable.set();
-        for (kind,args) in PointerAction::Wheel(lowlevel.modifiers(),amount/10.,*position).map(lowlevel) {
-            lowlevel.send(kind,true,&args);
+    pub(crate) fn wheel_event(&mut self, lowlevel: &LowLevelState, position: &(f64,f64), delta_x: f64, delta_y: f64) {
+        if delta_x.abs() > delta_y.abs() {
+            self.set_wheel_cursor(lowlevel,None);
+            PointerAction::HorizontalWheel(lowlevel.modifiers(),delta_x).emit(lowlevel,true);
+        } else {
+            let circ = if delta_y > 0. { CursorCircumstance::WheelPositive } else { CursorCircumstance::WheelNegative };
+            self.set_wheel_cursor(lowlevel,Some(circ));
+            PointerAction::Wheel(lowlevel.modifiers(),delta_y/10.,*position).emit(lowlevel,true);
         }
     }
 }

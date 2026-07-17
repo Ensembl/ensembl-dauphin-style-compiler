@@ -146,21 +146,22 @@ impl MouseEventHandler {
         event.prevent_default();
     }
 
-    fn wheel_amount(&self, event: &WheelEvent) -> f64 {
+    fn wheel_delta(&self, event: &WheelEvent) -> (f64,f64) {
         let mode = event.delta_mode();
-        let y = event.delta_y();
         let browser_mul = match mode {
             0 => 1.,
             1 => 40.,
             _ => 800.
         };
         let config_mul = self.config.wheel_sensitivity;
-        y * browser_mul * config_mul
+        let mul = browser_mul * config_mul;
+        (event.delta_x() * mul,event.delta_y() * mul)
     }
 
     fn wheel_event(&mut self, event: &WheelEvent) {
         let position = position(&self.lowlevel,event);
-        lock!(self.state).pointer.wheel_event(&self.lowlevel,&position,self.wheel_amount(event));
+        let (delta_x,delta_y) = self.wheel_delta(event);
+        lock!(self.state).pointer.wheel_event(&self.lowlevel,&position,delta_x,delta_y);
         event.stop_propagation();
         event.prevent_default();
     }
