@@ -135,7 +135,9 @@ impl Pointer {
             modifiers: lowlevel.modifiers(),
             wheel_cursor,
             wheel_monostable: Monostable::new(lowlevel.commander(), config.wheel_timeout,shutdown, move || {
-                wheel_cursor2.lock().expect("failed to lock wheel cursor for reset").take();
+                if let Ok(mut cursor) = wheel_cursor2.try_lock() {
+                    cursor.take();
+                }
             })
         }
     }
@@ -171,15 +173,16 @@ impl Pointer {
     }
 
     fn set_wheel_cursor(&mut self, lowlevel: &LowLevelState, circumstance: Option<CursorCircumstance>) {
-        let mut cursor = self.wheel_cursor.lock().expect("failed to lock wheel cursor for update");
-        if let Some(circ) = circumstance {
-            match cursor.as_ref() {
-                Some((_,current)) if current == &circ => {},
-                _ => { *cursor = Some((lowlevel.set_cursor(&circ),circ)); }
-            };
-            self.wheel_monostable.set();
-        } else {
-            cursor.take();
+        if let Ok(mut cursor) = self.wheel_cursor.try_lock() {
+            if let Some(circ) = circumstance {
+                match cursor.as_ref() {
+                    Some((_,current)) if current == &circ => {},
+                    _ => { *cursor = Some((lowlevel.set_cursor(&circ),circ)); }
+                };
+                self.wheel_monostable.set();
+            } else {
+                cursor.take();
+            }
         }
     }
 
