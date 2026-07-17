@@ -128,6 +128,8 @@ Fallback:
   variables:
     AGENT: ${FALLBACK_AGENT}
     NS: ${FALLBACK_NS}
+    NFS_SERVER: ${HX_NFS_SERVER_CODON}
+    NFS_PATH: ${HX_NFS_PATH_CODON}
 
 Staging:
   extends: .deploy_backend_test
