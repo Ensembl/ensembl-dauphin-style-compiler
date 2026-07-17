@@ -1,13 +1,10 @@
 import os.path
 
-from ncd import NCDRead
-
 from command.coremodel import DataHandler, Panel, DataAccessor
 from data.v16.dataalgorithm import data_algorithm
 from data.v16.gene.transcriptfilter import filter_lines_by_criteria, lines_for_transcript_id
 from data.v16.gene.transcriptorder import sort_data_by_transcript_priority
 from model.bigbed import get_bigbed
-from model.datalocator import AccessItem
 from model.graphql import CoreApiClient
 from model.transcriptfile import TranscriptFileLine
 from tangle.tangle import TangleFactory
@@ -55,28 +52,15 @@ TANGLE_OVERVIEW_WITH_IDS = TANGLE_FACTORY.make_from_tomlfile(OV_TANGLE_PATH,["id
 
 CORE_API = CoreApiClient()
 
-def get_approx_location(data_accessor: DataAccessor, genome_id: str, id: str):
-    species = data_accessor.data_model.species(genome_id)
-    if species != None:
-        accessor = data_accessor.resolver.get(AccessItem("jump",genome_id))
-        jump_ncd = NCDRead(accessor.ncd())
-        key = "focus:gene:{}:{}".format(genome_id, id)
-        value = jump_ncd.get(key.encode("utf-8"))
-        if value != None:
-            parts = value.decode('utf-8').split("\t")
-            if len(parts) == 3:
-                on_stick = "{}:{}".format(genome_id,parts[0])
-                return (on_stick, max(0,int(parts[1])), int(parts[2]))
-    return (None,None,None)
-
 # We need to return all the data for the focus gene wherever we are (except for the sequence) as
 # transcript configuration, ordering, etc is still relevant.
 def update_panel_from_id(data_accessor: DataAccessor, panel: Panel, for_id: tuple[str,str,str]):
-    # Fetch focus transcript location from Core API, use NCD file for focus genes
     if for_id[2] == 'transcript':
         (stick, start, end) = CORE_API.get_transcript_location((for_id[0], for_id[1]))
+    elif for_id[2] == 'gene':
+        (stick, start, end) = CORE_API.get_gene_location((for_id[0], for_id[1]))
     else:
-        (stick, start, end) = get_approx_location(data_accessor,for_id[0],for_id[1])
+        (stick, start, end) = (None, None, None)
     if stick is not None:
         panel.stick = stick
         panel.start = start
