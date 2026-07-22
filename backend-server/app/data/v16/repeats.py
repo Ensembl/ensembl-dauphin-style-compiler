@@ -28,7 +28,7 @@ def get_repeat_density(
     ) -> dict[str, bytearray]:
     item = panel.get_chrom(data_accessor).item_path(filename)
     (data, start, end) = get_bigwig_stats(
-        data_accessor, item, panel.start, panel.end, consolidation="mean", nBins=500
+        data_accessor, item, panel.start, panel.end, consolidation="coverage", nBins=500
     )
     data = [0.0 if x is None else x for x in data]
     length = len(data)
