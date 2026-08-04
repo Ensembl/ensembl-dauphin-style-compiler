@@ -23,8 +23,8 @@ class FocusJumpHandler:
         Returns:
 
         """
-        if lookup.startswith('focus:') and lookup.count(':') == 3:
-            (_, focus_type, genome_id, object_id) = lookup.split(':')
+        if lookup.startswith('focus:') and lookup.count(':') > 2:
+            (_, focus_type, genome_id, object_id) = lookup.split(':', 3)
 
             # check cache first
             cached = data_accessor.cache.get_jump(lookup,version)
