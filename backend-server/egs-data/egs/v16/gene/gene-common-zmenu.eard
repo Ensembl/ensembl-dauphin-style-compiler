@@ -15,7 +15,7 @@ struct!(transcript_variety_zmenu,"""
 function build_formatted_location(region_name, start, end) {
   let location_template = template_start("{0}:{1}-{2}");
   template_set(location_template, 0, region_name);
-  template_set(location_template, 1, comma_format(start));
+  template_set(location_template, 1, comma_format(start+1));
   template_set(location_template, 2, comma_format(end));
   let formatted_location = template_end(location_template);
   formatted_location
