@@ -6,5 +6,5 @@ metadata_url = "http://metadata-api-svc.ensembl-dev:8014/api/metadata/"
 min_version = 16
 
 [apis]
-track_api = "http://ensembl-track-api-svc.ensembl-dev:8012"
+track_api = "http://ensembl-track-api-svc:8012"
 core_api = "http://graphql-core-svc.ensembl-dev:8000/"
