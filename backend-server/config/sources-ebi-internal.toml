@@ -1,6 +1,6 @@
 [source.apple]
 driver = "file"
-root = "/usr/data/newsite/internal/genome_browser/8"
+root = "/usr/data/newsite/internal/genome_browser/9"
 refget_url = "http://ensembl-refget-svc:8000/sequence/"
 metadata_url = "http://metadata-api-svc:8014/api/metadata/"
 min_version = 16
