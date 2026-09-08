@@ -53,7 +53,7 @@ def get_variant_exact(
 def get_variant(
     data_accessor: DataAccessor, panel: Panel, filename: str
 ) -> dict:
-    item = panel.get_chrom(data_accessor).item_path(filename)
+    item = panel.get_chrom(data_accessor).item_filepath(filename)
     if panel.end - panel.start > 1000:
         return get_variant_stats(data_accessor, item, panel)
     else:

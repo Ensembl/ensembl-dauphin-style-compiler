@@ -156,7 +156,7 @@ def get_bigbed_fields(data_accessor: DataAccessor, panel: Panel, filename: str, 
     """
 
     chrom = panel.get_chrom(data_accessor)
-    data = get_bigbed(data_accessor, chrom.item_path(filename), panel.start, panel.end)
+    data = get_bigbed(data_accessor, chrom.item_filepath(filename), panel.start, panel.end)
     # Omit meta fields not present in the bigbed file
     if len(data):
         first_row_meta = data[0][2].split("\t")

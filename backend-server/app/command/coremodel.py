@@ -4,6 +4,7 @@ from command.datasources import DataAccessor
 from command.exceptionres import DataException
 from command.response import Response
 from model.chromosome import Chromosome
+from model.datalocator import TrackFilepathError, validate_track_filepath
 from model.version import Version
 from util.influx import ResponseMetrics
 
@@ -37,7 +38,10 @@ class DataHandler:
         filename = self.get_scope(scope, "datafile")
         if not filename:
             raise DataException("No datafile specified")
-        return filename
+        try:
+            return validate_track_filepath(filename)
+        except TrackFilepathError as e:
+            raise DataException(f"Invalid datafile path: {e}") from e
 
     def process_data(self, data_accessor: DataAccessor, panel: Panel, scope: dict, accept: str) -> dict:
         raise NotImplementedError("override process_data!")

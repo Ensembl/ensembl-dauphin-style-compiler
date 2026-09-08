@@ -26,7 +26,7 @@ def get_repeat_details(
 def get_repeat_density(
         data_accessor: DataAccessor, panel: Panel, filename: str
     ) -> dict[str, bytearray]:
-    item = panel.get_chrom(data_accessor).item_path(filename)
+    item = panel.get_chrom(data_accessor).item_filepath(filename)
     (data, start, end) = get_bigwig_stats(
         data_accessor, item, panel.start, panel.end, consolidation="coverage", nBins=500
     )

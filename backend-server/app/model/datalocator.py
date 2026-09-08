@@ -1,4 +1,5 @@
 import logging
+from pathlib import PurePosixPath
 from typing import Any, Optional
 import toml
 from core.config import SOURCES_TOML
@@ -10,6 +11,31 @@ from ncd import NCDFileAccessor, NCDHttpAccessor
 def is_md5(checksum):
     if checksum and len(checksum) == 32:
         return True
+
+
+class TrackFilepathError(ValueError):
+    """Raised when Track API metadata is not safe to resolve beneath a source root."""
+
+
+def validate_track_filepath(filepath: str) -> str:
+    """Validate a Track API filepath relative to a configured datasource root.
+
+    The Track API owns the complete path below the configured root.  Keeping this
+    validation here makes the boundary explicit and lets all datasource drivers
+    use the same safe path contract.
+    """
+    if not isinstance(filepath, str) or not filepath:
+        raise TrackFilepathError("datafile path must be a non-empty string")
+    if "\x00" in filepath:
+        raise TrackFilepathError("datafile path must not contain NUL")
+    if "\\" in filepath:
+        raise TrackFilepathError("datafile path must use POSIX separators")
+
+    path = PurePosixPath(filepath)
+    parts = filepath.split("/")
+    if path.is_absolute() or any(part in ("", ".", "..") for part in parts):
+        raise TrackFilepathError("datafile path must be a non-empty relative path without traversal")
+    return filepath
 
 
 class AccessItem(object):
@@ -25,19 +51,21 @@ class AccessItem(object):
     """
 
     variety_map = {
-        "contigs": "contigs.bb",
-        "transcripts": "transcripts.bb",
-        "gc": "gc.bw",
         "jump": "jump.ncd",
         "chrom-hashes": "chrom.hashes.ncd",
         "chrom-sizes": "chrom.sizes.ncd",
-        "regulation": "regulatory-features.bb"
     }
 
-    def __init__(self, variety: str, genome, chromosome: str = ""):
+    def __init__(self, variety: str, genome, chromosome: str = "", filepath: Optional[str] = None):
         self.variety: str = variety
         self.genome: str = genome
         self.chromosome: str = chromosome
+        self.filepath: Optional[str] = filepath
+
+    @classmethod
+    def track_file(cls, filepath: str, genome, chromosome: str = ""):
+        """Build an item for a root-relative filepath supplied by Track API."""
+        return cls("track-file", genome, chromosome, validate_track_filepath(filepath))
 
     def item_suffix(self) -> str:
         """Returns the file/URL for a particular variety (usually a track type)
@@ -46,6 +74,8 @@ class AccessItem(object):
             str: file/URL path suffix
 
         """
+        if self.filepath is not None:
+            return self.filepath
         return f"{self.genome}/{self.variety_map.get(self.variety, self.variety)}"
 
     def stick(self) -> str:
@@ -245,7 +275,9 @@ class S3DataSource(object):
             logging.critical("S3 driver config missing url")
 
     def resolve(self, item: AccessItem) -> Optional[AccessMethod]:
-        if is_md5(item.chromosome):
+        if item.filepath is not None:
+            method = UrlAccessMethod(self.url, item)
+        elif is_md5(item.chromosome):
             method = RefgetAccessMethod(refget_url=self.refget_url, item=item)
         elif item.variety == "chrom-hashes":
             method = MetadataAccessMethod(metadata_url=self.metadata_url, item=item)
@@ -276,7 +308,9 @@ class FileDataSource(object):
         Returns:
 
         """
-        if is_md5(item.chromosome):
+        if item.filepath is not None:
+            method = FileAccessMethod(self.root, item)
+        elif is_md5(item.chromosome):
             method = RefgetAccessMethod(refget_url=self.refget_url, item=item)
         elif item.variety == "chrom-hashes":
             method = MetadataAccessMethod(metadata_url=self.metadata_url, item=item)

@@ -1,28 +1,18 @@
-import requests
-import toml
-
 from model.tracks import Track, Tracks
-from core.config import SOURCES_TOML
+from model.datalocator import TrackFilepathError, validate_track_filepath
+from model.trackapi import TrackApiClient
+
+
+class ExpansionMetadataError(Exception):
+    """Track API metadata cannot safely be registered as an expansion."""
 
 class Expansions:
     def __init__(self):
-        self._track_api_host = self._read_toml()
-
-    # Read the Track API hostname from sources-<env>.toml file
-    def _read_toml(self) -> str:
-        with open(SOURCES_TOML) as f:
-            toml_file = toml.loads(f.read())
-        return toml_file["apis"].get("track_api","localhost")
+        self._track_api = TrackApiClient()
     
     # Fetch track metadata from Track API
     def _get_track_data(self, track_id: str) -> dict:
-        resp = requests.get(f"{self._track_api_host}/track/{track_id}", timeout=5)
-        if resp.status_code != requests.codes.ok:
-            raise Exception(f"Track API request failed for track '{track_id}': {resp.reason}")
-        track_data = resp.json()
-        if("track_id" not in track_data or track_data["track_id"] != track_id):
-            raise Exception(f"Track {track_id} not found in Track API payload: {track_data}")
-        return track_data
+        return self._track_api.get_track(track_id)
     
     # Add setting switches to a track object
     def _add_settings(self, track: Track, data: dict, switches: list[str]=[]) -> None:
@@ -53,7 +43,16 @@ class Expansions:
     def _create_track_set(self, data:dict) -> Tracks:
         tracks = Tracks()
         # each datafile is tied to an Eard program
-        programs = data["datafiles"].keys()
+        programs = list(data["datafiles"].keys())
+        # Validate every path before creating any tracks, so a malformed response
+        # can never result in a partially registered expansion.
+        try:
+            for program in programs:
+                data["datafiles"][program] = validate_track_filepath(data["datafiles"][program])
+        except TrackFilepathError as e:
+            raise ExpansionMetadataError(
+                f"Invalid datafile path for track '{data.get('track_id', '<unknown>')}': {e}"
+            ) from e
         for program in programs:
             if program not in data["settings"]:
                 data["settings"][program] = {}
@@ -75,6 +74,6 @@ class Expansions:
     # Functions for registering expansion tracks (defined in boot-tracks.toml config)
     def register_track(self, track_id: str) -> Tracks:
         data = self._get_track_data(track_id)
-        if not len(data["datafiles"]):
-            raise Exception(f"No datafiles defined for track {track_id}")
+        if not isinstance(data.get("datafiles"), dict) or not data["datafiles"]:
+            raise ExpansionMetadataError(f"No datafiles defined for track {track_id}")
         return self._create_track_set(data)

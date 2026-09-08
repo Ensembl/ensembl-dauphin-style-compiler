@@ -88,14 +88,14 @@ def extract_data_for_lines(data, for_id: tuple[str,str,str]|None, expanded: list
     return lines
 
 def extract_gene_data(
-        data_accessor: DataAccessor, panel: Panel, include_exons: bool, for_id: tuple[str,str,str]|None, expanded: list[str], accept: str
+        data_accessor: DataAccessor, panel: Panel, filepath: str, include_exons: bool, for_id: tuple[str,str,str]|None, expanded: list[str], accept: str
     ) -> dict[str, bytearray]:
     # fix location
     if for_id is not None:
         update_panel_from_id(data_accessor, panel, for_id)
     chrom = panel.get_chrom(data_accessor)
     # get the data
-    item = chrom.item_path("transcripts")
+    item = chrom.item_filepath(filepath)
     # serialize the data
     data = get_bigbed(data_accessor, item, panel.start, panel.end)
     lines = extract_data_for_lines(data, for_id, expanded)
@@ -112,8 +112,8 @@ def extract_gene_data(
         out['__invariant'] = True
     return out
 
-def extract_gene_overview_data(data_accessor: DataAccessor, panel: Panel, with_ids: bool, accept: str) -> dict[str, bytearray]:
-    item = panel.get_chrom(data_accessor).item_path("transcripts")
+def extract_gene_overview_data(data_accessor: DataAccessor, panel: Panel, filepath: str, with_ids: bool, accept: str) -> dict[str, bytearray]:
+    item = panel.get_chrom(data_accessor).item_filepath(filepath)
     data = get_bigbed(data_accessor, item, panel.start, panel.end)
     tangle = TANGLE_OVERVIEW_WITH_IDS if with_ids else TANGLE_OVERVIEW
     lines = [ TranscriptFileLine(x) for x in data ]
@@ -132,12 +132,12 @@ def for_id(scope):
 
 class TranscriptDataHandler16(DataHandler):
     def process_data(self, data_accessor: DataAccessor, panel: Panel, scope: dict, accept:str) -> dict:
-        return extract_gene_data(data_accessor, panel, True, for_id(scope), scope.get("expanded",[]), accept)
+        return extract_gene_data(data_accessor, panel, self.get_datafile(scope), True, for_id(scope), scope.get("expanded",[]), accept)
 
 class GeneDataHandler16(DataHandler):
     def process_data(self, data_accessor: DataAccessor, panel: Panel, scope: dict, accept:str) -> dict:
-        return extract_gene_data(data_accessor, panel, False, for_id(scope), scope.get("expanded",[]), accept)
+        return extract_gene_data(data_accessor, panel, self.get_datafile(scope), False, for_id(scope), scope.get("expanded",[]), accept)
 
 class GeneOverviewDataHandler16(DataHandler):
     def process_data(self, data_accessor: DataAccessor, panel: Panel, scope: dict, accept:str) -> dict:
-        return extract_gene_overview_data(data_accessor, panel, scope.get("with_ids",[False])[0], accept)
+        return extract_gene_overview_data(data_accessor, panel, self.get_datafile(scope), scope.get("with_ids",[False])[0], accept)

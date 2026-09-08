@@ -6,6 +6,7 @@ from .response import Response
 from .datasources import DataAccessor
 from .exceptionres import DataException
 from util.influx import ResponseMetrics
+from model.trackapi import TrackApiError
 from model.version import Version
 from data.v16.variant import VariantDetailsDataHandler, VariantSummaryDataHandler
 from data.v16.regulation import RegulationDataHandler
@@ -76,11 +77,32 @@ class DataHandler(Handler):
     def get_handler(self, name: str, version: Version) -> DataHandler:
         return self.handlers[min(version.get_egs(), len(self.handlers) - 1)].get(name, None)
 
+    @staticmethod
+    def _add_static_datafile(data_accessor: DataAccessor, panel: Panel, name: str, scope: dict) -> dict:
+        # Dynamically registered tracks already carry their Track API datafile in
+        # scope. Fixed-switch and focus tracks do not, so resolve it server-side.
+        if scope.get("datafile"):
+            return scope
+        # A focus URL may move the panel to an object in another genome. Its
+        # scope is therefore authoritative when present; ordinary tracks use
+        # the active panel genome.
+        genome_id = scope.get("genome", [None])[0] or panel.get_chrom(data_accessor).genome_id
+        filepath = data_accessor.track_datafiles.datafile_for_endpoint(genome_id, name)
+        if filepath is None:
+            return scope
+        scoped = dict(scope)
+        scoped["datafile"] = [filepath]
+        return scoped
+
     def process(
         self, data_accessor: DataAccessor, channel, payload, metrics: ResponseMetrics, version: Version
     ) -> Response:
         (channel, name, panel, scope, accept) = payload
         panel = Panel(panel)
+        try:
+            scope = self._add_static_datafile(data_accessor, panel, name, scope)
+        except (DataException, TrackApiError) as e:
+            return Response(1, str(e))
         out = data_accessor.cache.get_data(
             [channel, name, panel.dumps(), scope, accept], version
         )
