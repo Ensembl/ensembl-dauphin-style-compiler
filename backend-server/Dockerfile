@@ -5,6 +5,10 @@ LABEL maintainer="ensembl-webteam@ebi.ac.uk"
 
 ENV PYTHONUNBUFFERED TRUE
 
+ENV PROMETHEUS_MULTIPROC_DIR=/tmp/prometheus-multiproc
+ENV prometheus_multiproc_dir=/tmp/prometheus-multiproc
+RUN mkdir -p /tmp/prometheus-multiproc
+
 RUN apt-get update
 RUN apt-get install -y \
 	python3-distutils \
