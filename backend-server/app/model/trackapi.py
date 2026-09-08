@@ -40,16 +40,11 @@ class TrackApiClient:
 
 
 class TrackDatafileResolver:
-    """Resolve static-browser endpoints to Track API datafiles for one genome."""
+    """Resolve boot focus-track endpoints to Track API datafiles for one genome."""
 
-    # Fixed-switch tracks are selected by their stable client trigger. Focus
-    # tracks have no Track API entry, so they reuse the first source track of
-    # the given type, by the convention supplied by Track API.
+    # Focus tracks have no Track API entry, so they reuse the first source
+    # track of the given type, by the convention supplied by Track API.
     _endpoint_sources = {
-        "gc": ("trigger", ["track", "gc"], "gc"),
-        "contig": ("trigger", ["track", "contig"], "contig"),
-        "shimmer-contig": ("trigger", ["track", "contig"], "contig"),
-        "regulation": ("trigger", ["track", "regulation"], "regulation"),
         "gene-overview": ("type", "gene", "gene"),
         "gene": ("type", "gene", "gene"),
         "transcript": ("type", "gene", "gene"),

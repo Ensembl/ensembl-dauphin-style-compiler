@@ -79,8 +79,8 @@ class DataHandler(Handler):
 
     @staticmethod
     def _add_static_datafile(data_accessor: DataAccessor, panel: Panel, name: str, scope: dict) -> dict:
-        # Dynamically registered tracks already carry their Track API datafile in
-        # scope. Fixed-switch and focus tracks do not, so resolve it server-side.
+        # Dynamically registered tracks carry their Track API datafile in scope.
+        # The remaining boot focus tracks resolve their shared source server-side.
         if scope.get("datafile"):
             return scope
         # A focus URL may move the panel to an object in another genome. Its

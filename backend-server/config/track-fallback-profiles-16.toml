@@ -1,0 +1,113 @@
+# Presentation fallbacks for Track API records which used to be boot tracks.
+# The trigger is a stable Track API identity; generated tracks always use the
+# expansion UUID switch instead.
+
+[profile.gene-pc-fwd]
+trigger = ["track", "gene-pc-fwd"]
+template = "gene"
+[profile.gene-pc-fwd.variables]
+datafile_key = "gene"
+gene_setting = "pc-fwd"
+
+[profile.gene-pc-rev]
+trigger = ["track", "gene-pc-rev"]
+template = "gene"
+[profile.gene-pc-rev.variables]
+datafile_key = "gene"
+gene_setting = "pc-rev"
+
+[profile.gene-other-fwd]
+trigger = ["track", "gene-other-fwd"]
+template = "gene"
+[profile.gene-other-fwd.variables]
+datafile_key = "gene"
+gene_setting = "other-fwd"
+
+[profile.gene-other-rev]
+trigger = ["track", "gene-other-rev"]
+template = "gene"
+[profile.gene-other-rev.variables]
+datafile_key = "gene"
+gene_setting = "other-rev"
+
+# Shared five-scale renderer family for the four gene designation/strand
+# profiles. Placeholders are resolved from profile.variables.
+[template.gene]
+
+[[template.gene.track]]
+id = "gene-overview"
+program = "gene-overview"
+datafile_key = "{datafile_key}"
+scales = [23, 100, 6]
+settings = { "focus-gene" = ["track", "focus", "item", "gene"], "{gene_setting}" = "", "{gene_setting}-name" = "name" }
+
+[[template.gene.track]]
+id = "gene"
+program = "gene"
+datafile_key = "{datafile_key}"
+scales = [19, 22, 4]
+settings = { "focus-gene" = ["track", "focus", "item", "gene"], "{gene_setting}" = "", "{gene_setting}-several" = "several", "{gene_setting}-label" = "label", "{gene_setting}-name" = "name" }
+
+[[template.gene.track]]
+id = "transcript"
+program = "transcript"
+datafile_key = "{datafile_key}"
+scales = [9, 18, 6]
+settings = { "focus-gene" = ["track", "focus", "item", "gene"], "{gene_setting}" = "", "{gene_setting}-several" = "several", "{gene_setting}-label" = "label", "{gene_setting}-name" = "name", "{gene_setting}-transcript-label" = "transcript-label" }
+
+[[template.gene.track]]
+id = "zoomed-transcript-no-letters"
+program = "zoomed-transcript"
+datafile_key = "{datafile_key}"
+scales = [7, 8, 2]
+values = { "scale-no-letters" = true }
+settings = { "focus-gene" = ["track", "focus", "item", "gene"], "{gene_setting}" = "", "{gene_setting}-several" = "several", "{gene_setting}-label" = "label", "{gene_setting}-name" = "name", "{gene_setting}-transcript-label" = "transcript-label" }
+
+[[template.gene.track]]
+id = "zoomed-transcript-letters"
+program = "zoomed-transcript"
+datafile_key = "{datafile_key}"
+scales = [0, 6, 7]
+settings = { "focus-gene" = ["track", "focus", "item", "gene"], "{gene_setting}" = "", "{gene_setting}-several" = "several", "{gene_setting}-label" = "label", "{gene_setting}-name" = "name", "{gene_setting}-transcript-label" = "transcript-label" }
+
+[profile.gc]
+trigger = ["track", "gc"]
+
+[[profile.gc.track]]
+program = "gc"
+datafile_key = "gc"
+scales = [0, 100, 3]
+settings = { name = "name" }
+
+[profile.regulation]
+trigger = ["track", "regulation"]
+
+[[profile.regulation.track]]
+program = "regulation"
+datafile_key = "regulation"
+scales = [1, 100, 3]
+settings = { name = "name" }
+
+[profile.contig]
+trigger = ["track", "contig"]
+
+[[profile.contig.track]]
+id = "contig-shimmer"
+program = "contig"
+datafile_key = "contig"
+scales = [26, 100, 3]
+values = { shimmer = true }
+settings = { name = "name" }
+
+[[profile.contig.track]]
+id = "contig"
+program = "contig"
+datafile_key = "contig"
+scales = [7, 100, 3]
+settings = { name = "name" }
+
+[[profile.contig.track]]
+id = "sequence"
+program = "zoomed-seq"
+scales = [0, 6, 2]
+settings = { name = "name" }

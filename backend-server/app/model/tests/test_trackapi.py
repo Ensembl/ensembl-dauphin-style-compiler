@@ -43,7 +43,7 @@ class TrackDatafileResolverTests(unittest.TestCase):
         self.assertEqual(client.category_calls, 1)
         self.assertEqual(client.track_calls, ["gene-first"])
 
-    def test_fixed_switch_track_uses_its_exact_trigger(self):
+    def test_non_focus_endpoints_are_not_resolved(self):
         categories = [{"track_list": [
             {"track_id": "other-regular", "trigger": ["track", "other"]},
             {"track_id": "gc", "trigger": ["track", "gc"]},
@@ -54,7 +54,7 @@ class TrackDatafileResolverTests(unittest.TestCase):
         }
         resolver, _client = self.resolver(categories, tracks)
 
-        self.assertEqual(resolver.datafile_for_endpoint("genome", "gc"), "598/genome/gc.bw")
+        self.assertIsNone(resolver.datafile_for_endpoint("genome", "gc"))
 
     def test_unsafe_track_api_path_is_rejected(self):
         categories = [{"track_list": [{"track_id": "variant", "type": "variant"}]}]
