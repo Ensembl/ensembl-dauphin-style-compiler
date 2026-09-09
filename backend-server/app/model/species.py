@@ -35,7 +35,7 @@ class Species(object):
             accessor = data_accessor.resolver.get(item)
             if accessor is None:
                 raise RequestException("cannot resolve chromosome sizes metadata")
-            self._chromosome_sizes = accessor.get_karyotype()
+            self._chromosome_sizes = accessor.get_top_regions()
         return self._chromosome_sizes
 
     def _load_chromosome(self, data_accessor, stick: str):

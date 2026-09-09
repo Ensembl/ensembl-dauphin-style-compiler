@@ -30,19 +30,19 @@ class FakeResponse:
 
 
 class MetadataApiClientTests(unittest.TestCase):
-    def test_karyotype_is_cached_locally_and_in_shared_cache(self):
+    def test_top_regions_are_cached_locally_and_in_shared_cache(self):
         cache = FakeCache()
         first = MetadataApiClient("https://metadata.example/api/metadata", cache)
         response = FakeResponse(200, payload=[{"name": "1", "length": 10}])
 
         with patch("model.datalocator.requests.get", return_value=response) as get:
-            self.assertEqual(first.get_karyotype("genome"), {"1": 10})
-            self.assertEqual(first.get_karyotype("genome"), {"1": 10})
+            self.assertEqual(first.get_top_regions("genome"), {"1": 10})
+            self.assertEqual(first.get_top_regions("genome"), {"1": 10})
             self.assertEqual(get.call_count, 1)
 
         second = MetadataApiClient("https://metadata.example/api/metadata", cache)
         with patch("model.datalocator.requests.get") as get:
-            self.assertEqual(second.get_karyotype("genome"), {"1": 10})
+            self.assertEqual(second.get_top_regions("genome"), {"1": 10})
             get.assert_not_called()
 
     def test_checksum_404_is_cached_as_an_authoritative_miss(self):
@@ -59,7 +59,7 @@ class MetadataApiClientTests(unittest.TestCase):
             self.assertIsNone(second.get_checksum("genome", "missing"))
             get.assert_not_called()
 
-    def test_invalid_karyotype_is_not_cached(self):
+    def test_invalid_top_regions_are_not_cached(self):
         client = MetadataApiClient("https://metadata.example/api/metadata", FakeCache())
 
         with patch(
@@ -67,22 +67,22 @@ class MetadataApiClientTests(unittest.TestCase):
             return_value=FakeResponse(200, payload=[{"name": "1", "length": 0}]),
         ):
             with self.assertRaises(RequestException):
-                client.get_karyotype("genome")
+                client.get_top_regions("genome")
 
-        self.assertNotIn("genome", client._karyotypes)
+        self.assertNotIn("genome", client._top_regions)
 
 
-class SpeciesKaryotypeTests(unittest.TestCase):
-    def test_multiple_chromosomes_share_one_karyotype_lookup(self):
+class SpeciesTopRegionsTests(unittest.TestCase):
+    def test_multiple_chromosomes_share_one_top_regions_lookup(self):
         class Resolver:
             def __init__(self):
-                self.karyotype_calls = 0
+                self.top_regions_calls = 0
 
             def get(self, item):
                 if item.variety == "chrom-hashes":
                     return type("Checksum", (), {"get_checksum": lambda _self: "a" * 32})()
-                self.karyotype_calls += 1
-                return type("Karyotype", (), {"get_karyotype": lambda _self: {"1": 10, "2": 20}})()
+                self.top_regions_calls += 1
+                return type("TopRegions", (), {"get_top_regions": lambda _self: {"1": 10, "2": 20}})()
 
         resolver = Resolver()
         accessor = type("Accessor", (), {"resolver": resolver})()
@@ -90,7 +90,7 @@ class SpeciesKaryotypeTests(unittest.TestCase):
 
         self.assertEqual(species.chromosome(accessor, f"{species.genome_id}:1").size, 10)
         self.assertEqual(species.chromosome(accessor, f"{species.genome_id}:2").size, 20)
-        self.assertEqual(resolver.karyotype_calls, 1)
+        self.assertEqual(resolver.top_regions_calls, 1)
 
 
 class MetadataDatasourceRoutingTests(unittest.TestCase):
