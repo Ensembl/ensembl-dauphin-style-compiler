@@ -14,16 +14,10 @@ def is_md5(checksum):
 
 
 class TrackFilepathError(ValueError):
-    """Raised when Track API metadata is not safe to resolve beneath a source root."""
-
+    """Raised when the datafile path from Track API fails validation."""
 
 def validate_track_filepath(filepath: str) -> str:
-    """Validate a Track API filepath relative to a configured datasource root.
-
-    The Track API owns the complete path below the configured root.  Keeping this
-    validation here makes the boundary explicit and lets all datasource drivers
-    use the same safe path contract.
-    """
+    """Validate a Track API filepath relative to a configured datasource root."""
     if not isinstance(filepath, str) or not filepath:
         raise TrackFilepathError("datafile path must be a non-empty string")
     if "\x00" in filepath:
@@ -64,7 +58,7 @@ class AccessItem(object):
 
     @classmethod
     def track_file(cls, filepath: str, genome, chromosome: str = ""):
-        """Build an item for a root-relative filepath supplied by Track API."""
+        """Build an AccessItem for a datafile path from Track API."""
         return cls("track-file", genome, chromosome, validate_track_filepath(filepath))
 
     def item_suffix(self) -> str:

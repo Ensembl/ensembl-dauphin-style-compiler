@@ -79,13 +79,11 @@ class DataHandler(Handler):
 
     @staticmethod
     def _add_static_datafile(data_accessor: DataAccessor, panel: Panel, name: str, scope: dict) -> dict:
-        # Dynamically registered tracks carry their Track API datafile in scope.
-        # The remaining boot focus tracks resolve their shared source server-side.
+        # Dynamically registered tracks include the datafile path in scope.
+        # The focus tracks (see boot.toml) resolve the datafile path here.
         if scope.get("datafile"):
             return scope
-        # A focus URL may move the panel to an object in another genome. Its
-        # scope is therefore authoritative when present; ordinary tracks use
-        # the active panel genome.
+        # A focus URL may move the panel to an object in another genome.
         genome_id = scope.get("genome", [None])[0] or panel.get_chrom(data_accessor).genome_id
         filepath = data_accessor.track_datafiles.datafile_for_endpoint(genome_id, name)
         if filepath is None:

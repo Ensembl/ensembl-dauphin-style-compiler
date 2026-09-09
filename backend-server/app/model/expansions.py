@@ -7,7 +7,7 @@ from model.trackapi import TrackApiClient
 
 
 class ExpansionMetadataError(Exception):
-    """Track API metadata cannot safely be registered as an expansion."""
+    """Raised for expansion track registration failures."""
 
 class Expansions:
     def __init__(self):
@@ -16,7 +16,7 @@ class Expansions:
 
     @staticmethod
     def _load_profiles() -> tuple[dict[tuple[str, ...], dict], dict[str, dict]]:
-        """Load legacy presentation metadata without registering boot tracks."""
+        """Load fallback track metadata from toml file."""
         config = toml.load(TRACK_FALLBACK_PROFILES_TOML)
         profiles = config.get("profile", {})
         out = {}
@@ -76,10 +76,9 @@ class Expansions:
         track.add_setting("tab-selected", ["settings", "tab-selected"]) # selected track category
         return track
     
-    # Create a track set (consisting of a single track, or a pair for zoomed-in/zoomed-out views)
     @staticmethod
     def _substitute(value, variables: dict[str, object]):
-        """Substitute a profile's variables in TOML keys and values."""
+        """Fill in variables in toml metadata templates."""
         if isinstance(value, str):
             try:
                 return value.format(**variables)
@@ -139,6 +138,7 @@ class Expansions:
             specs.append({"id": program, "program": program, "datafile": data["datafiles"][program], "settings": settings, "switches": {switch: switch for switch in settings.get("switches", [])}})
         return specs
 
+    # Create a track set (consisting of a single track, or a pair for zoomed-in/zoomed-out views)
     def _create_track_set(self, data:dict) -> Tracks:
         tracks = Tracks()
         # Validate every path before creating any tracks, so a malformed response
