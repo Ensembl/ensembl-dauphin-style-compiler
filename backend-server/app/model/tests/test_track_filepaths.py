@@ -26,9 +26,9 @@ class TrackFilepathTests(unittest.TestCase):
             "https://data.example/browser/tracks/59871324-7803-4234-856e-2a2bd96d7b3c/variants.bb",
         )
 
-    def test_legacy_infrastructure_items_keep_genome_relative_paths(self):
-        item = AccessItem("chrom-sizes", genome="genome-uuid")
-        self.assertEqual(item.item_suffix(), "genome-uuid/chrom.sizes.ncd")
+    def test_track_files_are_the_only_file_access_items(self):
+        item = AccessItem.track_file("tracks/genome/file.bb", genome="genome-uuid")
+        self.assertEqual(item.filepath, "tracks/genome/file.bb")
 
     def test_invalid_track_filepaths_are_rejected(self):
         for filepath in ("", "/data/track.bb", "../track.bb", "tracks/../track.bb", "tracks//track.bb", "tracks\\track.bb", "tracks/\x00track.bb"):

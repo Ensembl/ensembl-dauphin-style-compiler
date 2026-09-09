@@ -185,3 +185,21 @@ class Memcached(object):
             return
         key = self.hashed_key(["jump",name],version)
         self._client.set(key,cbor2.dumps([stick,start,end]))
+
+    def _metadata_key(self, parts):
+        value = hashlib.sha256()
+        self._get_bump()
+        value.update(cbor2.dumps([self._prefix, self._bump, "metadata", parts]))
+        return value.hexdigest()
+
+    def get_metadata(self, parts):
+        """Return a shared Metadata API cache value, if available."""
+        if not self._is_available():
+            return None
+        value = self._client.get(self._metadata_key(parts))
+        return cbor2.loads(value) if value is not None else None
+
+    def set_metadata(self, parts, value):
+        """Store an immutable Metadata API response in the shared cache."""
+        if self._is_available():
+            self._client.set(self._metadata_key(parts), cbor2.dumps(value))

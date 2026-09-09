@@ -5,7 +5,6 @@ import toml
 from core.config import SOURCES_TOML
 from core.exceptions import RequestException
 import requests
-from ncd import NCDFileAccessor, NCDHttpAccessor
 
 
 def is_md5(checksum):
@@ -44,12 +43,6 @@ class AccessItem(object):
         chromosome (str): chromosome name or hash (used for refget)
     """
 
-    variety_map = {
-        "jump": "jump.ncd",
-        "chrom-hashes": "chrom.hashes.ncd",
-        "chrom-sizes": "chrom.sizes.ncd",
-    }
-
     def __init__(self, variety: str, genome, chromosome: str = "", filepath: Optional[str] = None):
         self.variety: str = variety
         self.genome: str = genome
@@ -60,17 +53,6 @@ class AccessItem(object):
     def track_file(cls, filepath: str, genome, chromosome: str = ""):
         """Build an AccessItem for a datafile path from Track API."""
         return cls("track-file", genome, chromosome, validate_track_filepath(filepath))
-
-    def item_suffix(self) -> str:
-        """Returns the file/URL for a particular variety (usually a track type)
-
-        Returns:
-            str: file/URL path suffix
-
-        """
-        if self.filepath is not None:
-            return self.filepath
-        return f"{self.genome}/{self.variety_map.get(self.variety, self.variety)}"
 
     def stick(self) -> str:
         """Returns stick string (e.g. "a7335667-93e7-11ec-a39d-005056b38ce3:4")
@@ -127,33 +109,123 @@ class RefgetAccessMethod(AccessMethod):
         return response.content
 
 
+class MetadataApiClient:
+    """Metadata API client with process-local and shared-cache layers."""
+
+    _CHECKSUM_MISSING = {"missing": True}
+
+    def __init__(self, metadata_url: str | None, cache=None):
+        self._url = metadata_url.rstrip("/") + "/" if metadata_url else None
+        self._cache = cache
+        self._checksums: dict[tuple[str, str], str | None] = {}
+        self._karyotypes: dict[str, dict[str, int]] = {}
+
+    def _url_for(self, path: str) -> str:
+        if not self._url:
+            raise RequestException("Metadata API URL is not configured")
+        return self._url + path
+
+    def _cache_get(self, key):
+        return self._cache.get_metadata(key) if self._cache is not None else None
+
+    def _cache_set(self, key, value):
+        if self._cache is not None:
+            self._cache.set_metadata(key, value)
+
+    def get_checksum(self, genome: str, chromosome: str) -> str | None:
+        key = (genome, chromosome)
+        if key in self._checksums:
+            return self._checksums[key]
+
+        cache_key = ["checksum", genome, chromosome]
+        cached = self._cache_get(cache_key)
+        if cached == self._CHECKSUM_MISSING:
+            self._checksums[key] = None
+            return None
+        if isinstance(cached, str) and cached:
+            self._checksums[key] = cached
+            return cached
+
+        try:
+            response = requests.get(
+                self._url_for(f"genome/{genome}/checksum/{chromosome}"), timeout=5
+            )
+        except requests.RequestException as error:
+            raise RequestException(
+                f"Metadata checksum request failed for '{genome}:{chromosome}': {error}"
+            ) from error
+        if response.status_code == requests.codes.not_found:
+            self._checksums[key] = None
+            self._cache_set(cache_key, self._CHECKSUM_MISSING)
+            return None
+        if response.status_code > 299:
+            raise RequestException(
+                f"Metadata checksum request failed for '{genome}:{chromosome}': {response.status_code}"
+            )
+        checksum = response.text.strip()
+        if not checksum:
+            raise RequestException(f"Metadata checksum response is empty for '{genome}:{chromosome}'")
+        self._checksums[key] = checksum
+        self._cache_set(cache_key, checksum)
+        return checksum
+
+    def get_karyotype(self, genome: str) -> dict[str, int]:
+        if genome in self._karyotypes:
+            return self._karyotypes[genome]
+
+        cache_key = ["karyotype", genome]
+        cached = self._cache_get(cache_key)
+        if isinstance(cached, dict) and all(
+            isinstance(name, str) and bool(name) and isinstance(length, int)
+            and not isinstance(length, bool) and length > 0
+            for name, length in cached.items()
+        ):
+            self._karyotypes[genome] = cached
+            return cached
+
+        try:
+            response = requests.get(self._url_for(f"genome/{genome}/karyotype"), timeout=5)
+        except requests.RequestException as error:
+            raise RequestException(f"Metadata karyotype request failed for '{genome}': {error}") from error
+        if response.status_code > 299:
+            raise RequestException(
+                f"Metadata karyotype request failed for '{genome}': {response.status_code}"
+            )
+        try:
+            payload = response.json()
+        except ValueError as error:
+            raise RequestException(f"Metadata karyotype response is not JSON for '{genome}'") from error
+        if not isinstance(payload, list):
+            raise RequestException(f"Metadata karyotype response is not a list for '{genome}'")
+
+        karyotype = {}
+        for entry in payload:
+            if not isinstance(entry, dict):
+                raise RequestException(f"Metadata karyotype entry is invalid for '{genome}'")
+            name = entry.get("name")
+            length = entry.get("length")
+            if not isinstance(name, str) or not name or not isinstance(length, int) or isinstance(length, bool) or length <= 0:
+                raise RequestException(f"Metadata karyotype entry has invalid name or length for '{genome}'")
+            if name in karyotype:
+                raise RequestException(f"Metadata karyotype has duplicate chromosome '{name}' for '{genome}'")
+            karyotype[name] = length
+
+        self._karyotypes[genome] = karyotype
+        self._cache_set(cache_key, karyotype)
+        return karyotype
+
+
 class MetadataAccessMethod(AccessMethod):
-    """
-
-     Args:
-         metadata_url (str):
-         item (AccessItem):
-     """
-
-    def __init__(self, metadata_url: str, item: AccessItem):
+    def __init__(self, client: MetadataApiClient, item: AccessItem):
         super().__init__()
-        if not metadata_url.endswith("/"):
-            metadata_url += "/"
+        self._client = client
         self.item = item
-        self.url = metadata_url
 
     def get_checksum(self):
-        """
+        return self._client.get_checksum(self.item.genome, self.item.chromosome)
 
-        Args:
-        Returns:
-            Content of the response, in string.
-        """
-        checksum_url = self.url + "genome/" + self.item.genome + "/checksum/" + self.item.chromosome
-        response = requests.get(checksum_url)
-        if response.status_code > 299:
-            return None
-        return response.text
+    def get_karyotype(self):
+        return self._client.get_karyotype(self.item.genome)
 
 
 class UrlAccessMethod(AccessMethod):
@@ -166,10 +238,11 @@ class UrlAccessMethod(AccessMethod):
 
     def __init__(self, base_url: str, item: AccessItem):
         super().__init__()
-
+        if item.filepath is None:
+            raise RequestException(f"URL access requires a filepath, not variety '{item.variety}'")
         if not base_url.endswith("/"):
             base_url += "/"
-        self.url = base_url + item.item_suffix()
+        self.url = base_url + item.filepath
 
     def get(self, offset: Optional[int] = None, size: Optional[int] = None):
         """
@@ -189,14 +262,6 @@ class UrlAccessMethod(AccessMethod):
             raise RequestException("bad data")
         return response.content
 
-    def ncd(self):
-        """
-        Returns:
-             bytearray:
-        """
-        return NCDHttpAccessor(self.url)
-
-
 class FileAccessMethod(AccessMethod):
     """
 
@@ -207,11 +272,13 @@ class FileAccessMethod(AccessMethod):
 
     def __init__(self, base_path, item: AccessItem):
         super().__init__()
+        if item.filepath is None:
+            raise RequestException(f"File access requires a filepath, not variety '{item.variety}'")
         self.item = item
         if not base_path.endswith("/"):
             base_path += "/"
         self.base = base_path
-        self.file = base_path + item.item_suffix()
+        self.file = base_path + item.filepath
 
     def get(self, offset: Optional[int] = None, size: Optional[int] = None):
         """
@@ -245,15 +312,6 @@ class FileAccessMethod(AccessMethod):
                 "Error accessing {0} (base={1}): {2}".format(self.file, self.base, e)
             )
 
-    def ncd(self):
-        """
-
-        Returns:
-
-        """
-        return NCDFileAccessor(self.file)
-
-
 class S3DataSource(object):
     """
 
@@ -261,10 +319,11 @@ class S3DataSource(object):
         data ():
     """
 
-    def __init__(self, data):
+    def __init__(self, data, cache=None):
         self.url = data.get("url", None)
         self.refget_url = data.get("refget_url", None)
         self.metadata_url = data.get("metadata_url", None)
+        self.metadata = MetadataApiClient(self.metadata_url, cache)
         if self.url is None:
             logging.critical("S3 driver config missing url")
 
@@ -273,10 +332,10 @@ class S3DataSource(object):
             method = UrlAccessMethod(self.url, item)
         elif is_md5(item.chromosome):
             method = RefgetAccessMethod(refget_url=self.refget_url, item=item)
-        elif item.variety == "chrom-hashes":
-            method = MetadataAccessMethod(metadata_url=self.metadata_url, item=item)
+        elif item.variety in ("chrom-hashes", "chrom-sizes"):
+            method = MetadataAccessMethod(self.metadata, item=item)
         else:
-            method = UrlAccessMethod(self.url, item)
+            raise RequestException(f"Unsupported S3 datasource variety '{item.variety}'")
         return method
 
 
@@ -286,10 +345,11 @@ class FileDataSource(object):
         data (): datasources config from sources-<env>.toml
     """
 
-    def __init__(self, data):
+    def __init__(self, data, cache=None):
         self.root = data.get("root", None)
         self.refget_url = data.get("refget_url", None)
         self.metadata_url = data.get("metadata_url", None)
+        self.metadata = MetadataApiClient(self.metadata_url, cache)
         if self.root is None:
             logging.critical("File driver config missing root")
 
@@ -306,10 +366,10 @@ class FileDataSource(object):
             method = FileAccessMethod(self.root, item)
         elif is_md5(item.chromosome):
             method = RefgetAccessMethod(refget_url=self.refget_url, item=item)
-        elif item.variety == "chrom-hashes":
-            method = MetadataAccessMethod(metadata_url=self.metadata_url, item=item)
+        elif item.variety in ("chrom-hashes", "chrom-sizes"):
+            method = MetadataAccessMethod(self.metadata, item=item)
         else:
-            method = FileAccessMethod(self.root, item)
+            raise RequestException(f"Unsupported file datasource variety '{item.variety}'")
         return method
 
 
@@ -330,10 +390,11 @@ class NoneDataSource(object):
 class DataSourceResolver:
     """ """
 
-    def __init__(self, version: int):
+    def __init__(self, version: int, cache=None):
         self._paths = {}
         self._redirect = {}
         self._blacklist = set()
+        self._cache = cache
         self._load(SOURCES_TOML, version)
 
     def _add_here(self, path, data):
@@ -349,9 +410,9 @@ class DataSourceResolver:
         """
         driver = data["driver"]
         if driver == "s3":
-            self._paths[tuple(path)] = S3DataSource(data)
+            self._paths[tuple(path)] = S3DataSource(data, self._cache)
         elif driver == "file":
-            self._paths[tuple(path)] = FileDataSource(data)
+            self._paths[tuple(path)] = FileDataSource(data, self._cache)
         elif driver == "none":
             self._paths[tuple(path)] = NoneDataSource()
         else:

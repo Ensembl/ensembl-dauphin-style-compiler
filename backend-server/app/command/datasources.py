@@ -21,13 +21,13 @@ class DataAccessor:
         self.reload(version)
 
     def reload(self, version: int):
-        self.resolver : DataSourceResolver = DataSourceResolver(version)
+        self.cache = Memcached("{}:{}".format(MEMCACHED_PREFIX,version),MEMCACHED_BUMP_ON_RESTART)
+        self.resolver : DataSourceResolver = DataSourceResolver(version, self.cache)
         self.track_datafiles = TrackDatafileResolver()
         self.begs_files = BegsFiles()
         if version > 14:
             self.program_inventory = ProgramInventory(version)
         self.data_model = DataModel(self)
-        self.cache = Memcached("{}:{}".format(MEMCACHED_PREFIX,version),MEMCACHED_BUMP_ON_RESTART)
         self.boot_tracks = all_boot_tracks()
         self.supported_versions = [16]
 
