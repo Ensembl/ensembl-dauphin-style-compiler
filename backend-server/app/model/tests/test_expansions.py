@@ -75,6 +75,12 @@ class ExpansionTrackFilepathTests(unittest.TestCase):
             self.assertIn(("track", "expand", "gene-uuid"), track._triggers)
             self.assertIn(("pc-fwd", ("track", "expand", "gene-uuid")), track._settings)
 
+    def test_gene_fallback_template_keeps_expanded_buttons_setting(self):
+        _, templates = Expansions._load_profiles()
+
+        for track in templates["gene"]["track"]:
+            self.assertEqual(track["settings"]["expanded"], ["buttons"])
+
     def test_fixed_trigger_without_a_profile_is_rejected(self):
         payload = track_payload("tracks/track-uuid/variants.bb")
         payload["trigger"] = ["track", "legacy-track"]
