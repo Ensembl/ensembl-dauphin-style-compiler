@@ -18,7 +18,12 @@ class TrackApiClient:
         self._host = config["apis"].get("track_api", "localhost").rstrip("/")
 
     def get_track(self, track_id: str) -> dict:
-        response = requests.get(f"{self._host}/track/{track_id}", timeout=5)
+        try:
+            response = requests.get(f"{self._host}/track/{track_id}", timeout=5)
+        except requests.exceptions.RequestException as error:
+            raise TrackApiError(
+                f"Track API request failed for track '{track_id}': {error}"
+            ) from error
         if response.status_code != requests.codes.ok:
             raise TrackApiError(f"Track API request failed for track '{track_id}': {response.reason}")
         track = response.json()
@@ -27,7 +32,12 @@ class TrackApiClient:
         return track
 
     def get_track_categories(self, genome_id: str) -> list[dict]:
-        response = requests.get(f"{self._host}/track_categories/{genome_id}", timeout=5)
+        try:
+            response = requests.get(f"{self._host}/track_categories/{genome_id}", timeout=5)
+        except requests.exceptions.RequestException as error:
+            raise TrackApiError(
+                f"Track API request failed for genome '{genome_id}': {error}"
+            ) from error
         if response.status_code != requests.codes.ok:
             raise TrackApiError(
                 f"Track API request failed for genome '{genome_id}': {response.reason}"

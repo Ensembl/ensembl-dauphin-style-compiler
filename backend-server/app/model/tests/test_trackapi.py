@@ -1,7 +1,9 @@
 import unittest
 from unittest.mock import patch
 
-from model.trackapi import TrackApiError, TrackDatafileResolver
+import requests
+
+from model.trackapi import TrackApiClient, TrackApiError, TrackDatafileResolver
 
 
 class FakeTrackApiClient:
@@ -63,3 +65,32 @@ class TrackDatafileResolverTests(unittest.TestCase):
 
         with self.assertRaisesRegex(TrackApiError, "Invalid datafile path"):
             resolver.datafile_for_endpoint("genome", "variant-details")
+
+
+class TrackApiClientTests(unittest.TestCase):
+    def client(self):
+        client = TrackApiClient.__new__(TrackApiClient)
+        client._host = "https://track-api.example"
+        return client
+
+    def test_track_request_transport_error_is_normalized(self):
+        with patch(
+            "model.trackapi.requests.get",
+            side_effect=requests.exceptions.Timeout("request timed out"),
+        ):
+            with self.assertRaisesRegex(
+                TrackApiError,
+                "Track API request failed for track 'track-id': request timed out",
+            ):
+                self.client().get_track("track-id")
+
+    def test_track_categories_transport_error_is_normalized(self):
+        with patch(
+            "model.trackapi.requests.get",
+            side_effect=requests.exceptions.ConnectionError("connection refused"),
+        ):
+            with self.assertRaisesRegex(
+                TrackApiError,
+                "Track API request failed for genome 'genome-id': connection refused",
+            ):
+                self.client().get_track_categories("genome-id")

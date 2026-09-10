@@ -1,6 +1,9 @@
 import unittest
+from typing import Any, cast
 
+from command.controlcmds import ExpansionHandler
 from model.expansions import ExpansionMetadataError, Expansions
+from model.trackapi import TrackApiError
 
 
 def track_payload(filepath):
@@ -87,3 +90,38 @@ class ExpansionTrackFilepathTests(unittest.TestCase):
 
         with self.assertRaisesRegex(ExpansionMetadataError, "No fallback profile"):
             self.expansion_with_payload(payload).register_track("track-uuid")
+
+
+class ExpansionHandlerTests(unittest.TestCase):
+    def test_track_api_error_is_returned_as_an_expansion_error(self):
+        class FailingExpansions:
+            def register_track(self, _track_id):
+                raise TrackApiError("Track API request failed")
+
+        class BootTracks:
+            @staticmethod
+            def get_expansion(_name):
+                class Expansion:
+                    @staticmethod
+                    def callback():
+                        return "register_track"
+
+                return Expansion()
+
+        class DataAccessor:
+            boot_tracks = {16: BootTracks()}
+
+        class Version:
+            @staticmethod
+            def get_egs():
+                return 16
+
+        response = ExpansionHandler(FailingExpansions()).process(
+            cast(Any, DataAccessor()),
+            ("ensembl", "main"),
+            ("general", "contig"),
+            cast(Any, None),
+            cast(Any, Version()),
+        )
+
+        self.assertEqual(response.payload, b"\x82\x01x\x18Track API request failed")

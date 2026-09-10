@@ -6,6 +6,7 @@ from util.influx import ResponseMetrics
 from model.version import Version
 from command.begs import UnknownVersionException
 from model.expansions import ExpansionMetadataError
+from model.trackapi import TrackApiError
 import os.path
 import toml
 
@@ -103,7 +104,7 @@ class ExpansionHandler(Handler):
                 tracks = callable(step)
                 r.add_tracks(tracks)
             return r
-        except ExpansionMetadataError as e:
+        except (ExpansionMetadataError, TrackApiError) as e:
             return Response(1,str(e))
         except UnknownVersionException as e:
             return Response(1,e)
