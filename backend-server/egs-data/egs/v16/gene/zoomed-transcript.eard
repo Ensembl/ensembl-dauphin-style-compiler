@@ -23,7 +23,8 @@ let no_letters = setting_boolean("scale-no-letters",[]);
 /* Get main data */
 
 let all_expanded = setting_string_seq("expanded",[]);
-let (*gene,*tr,*exon) = get_transcript_data(all_expanded);
+let track_datafile = setting_string("datafile", []);
+let (*gene,*tr,*exon) = get_track_transcript_data(all_expanded, track_datafile);
 let gene.leaf_index = allocate_genes_to_leaf_index(*gene);
 
 let **tr_gene = index(**gene,tr.index_of_gene);

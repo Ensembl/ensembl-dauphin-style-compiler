@@ -19,8 +19,10 @@ function set_reg_feature_colours(reg_feature_types) {
 }
 
 
-export procedure get_regulation_track_data(track_name) {
-    let data = get_data(request("self()",track_name));
+export procedure get_regulation_track_data(track_name, track_datafile) {
+    let req = request("self()",track_name);
+    scope(req, "datafile", track_datafile);
+    let data = get_data(req);
 
     let reg_feature.id = data_string(data,"id");
     let reg_feature.stick = data_string(data,"stick");

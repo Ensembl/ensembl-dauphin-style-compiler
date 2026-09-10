@@ -102,6 +102,7 @@
         var track_settings = {};
         var on_by_default = {"label":true, "name":true}; 
         var tracks_on = {};
+        const human_genome_id = "59871324-7803-4234-856e-2a2bd96d7b3c";
 
         /* Helper functions */
 
@@ -166,7 +167,7 @@
           return new Promise(resolve => setTimeout(resolve, t, v));
         }
 
-        function jump_variant(rsid, chr, loc, genome_id="a7335667-93e7-11ec-a39d-005056b38ce3") {
+        function jump_variant(rsid, chr, loc, genome_id=human_genome_id) {
           genome_browser.set_stick(genome_id + ":" + chr);
           genome_browser.goto(loc - 25, loc + 25);
           genome_browser.wait();
@@ -177,7 +178,7 @@
           });
         }
 
-        function jump_gene(gene_id, genome_id="a7335667-93e7-11ec-a39d-005056b38ce3") {
+        function jump_gene(gene_id, genome_id=human_genome_id) {
           genome_browser.switch(["track","focus","enabled-transcripts"], null);
           genome_browser.switch(["track", "focus", "item", "gene"], {
             "genome_id": genome_id,
@@ -187,7 +188,7 @@
           genome_browser.jump("focus:gene:" + genome_id + ":" + gene_id);
         }
 
-        function jump_transcript(transcript_id, genome_id="a7335667-93e7-11ec-a39d-005056b38ce3") {
+        function jump_transcript(transcript_id, genome_id=human_genome_id) {
           genome_browser.switch(["track","focus","enabled-transcripts"], null);
           genome_browser.switch(["track", "focus", "item", "transcript"], {
             "genome_id": genome_id,
@@ -197,7 +198,7 @@
           genome_browser.jump("focus:transcript:" + genome_id + ":" + transcript_id);
         }
 
-        function jump_location(chr, start, end, genome_id="a7335667-93e7-11ec-a39d-005056b38ce3") {
+        function jump_location(chr, start, end, genome_id=human_genome_id) {
           genome_browser.set_stick(genome_id + ":" + chr);
           genome_browser.goto(start, end);
         }
@@ -433,8 +434,8 @@
         genome_browser.switch(["ruler", "one_based"], true);
         genome_browser.switch(["settings","tab-selected"], "G");
         //genome_browser.switch(["settings", "no-padding"], true); //disable left/right side margins
-        init_tracks(["focus","gene-pc-fwd","gene-pc-rev","gc"]);
-        // Check track UUIDs: https://staging-2020.ensembl.org/api/tracks/track_categories/a7335667-93e7-11ec-a39d-005056b38ce3
+        init_tracks(["focus", "fd9fbfa9-b1af-4703-8479-a73d09c962bd"]);
+        // Check track UUIDs: https://staging-2020.ensembl.org/api/tracks/track_categories/59871324-7803-4234-856e-2a2bd96d7b3c
 
         //Human
         //jump_variant("rs1557469781", 1, 1176408);
@@ -443,10 +444,10 @@
         //goto: variant
         //jump_variant("rs1557469781", 1, 1176408);
         //goto: gene
-        //jump_gene("ENSG00000221914"); //PPP2R2A (example gene in human ref.)
+        jump_gene("ENSG00000221914"); //PPP2R2A (example gene in human ref.)
         //jump_gene("ENSG05220032026", "4c07817b-c7c5-463f-8624-982286bc4355"); //MAPK10 (human T2T)
         //goto: transcript
-        jump_transcript("ENST00000380152");
+        //jump_transcript("ENST00000380152");
 
         //Pig
         //init_tracks("fc33bc3c-f30b-4059-b003-012a4898186c"); //repeat elements

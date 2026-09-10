@@ -40,7 +40,8 @@ style!("""
 
 let (focus_genome_id,focus_gene_id) = focus_gene_settings();
 
-let *gene = get_gene_data();
+let track_datafile = setting_string("datafile", []);
+let *gene = get_track_gene_data(track_datafile);
 
 halt(only_warm());
 

@@ -11,7 +11,10 @@ set_track_style("contig", "", ["min-height"], ["50"]);
 /* Get data */
 
 let endpoint = if(setting_boolean("shimmer",[]), "shimmer-contig", "contig");
-let data = get_data(request("self()", endpoint));
+let track_datafile = setting_string("datafile", []);
+let req = request("self()", endpoint);
+scope(req, "datafile", track_datafile);
+let data = get_data(req);
 halt(only_warm());
 
 let start = data_number(data, "contig_starts");

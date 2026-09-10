@@ -17,7 +17,8 @@ transcript_styles();
 /* Get data */
 
 let all_expanded = setting_string_seq("expanded",[]);
-let (*gene,*tr,*exon) = get_transcript_data(all_expanded);
+let track_datafile = setting_string("datafile", []);
+let (*gene,*tr,*exon) = get_track_transcript_data(all_expanded, track_datafile);
 
 halt(only_warm());
 

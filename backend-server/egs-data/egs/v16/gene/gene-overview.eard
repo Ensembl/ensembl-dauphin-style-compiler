@@ -37,7 +37,10 @@ let (focus_genome_id,focus_gene_id) = focus_gene_settings();
 /* this track uses two endpoints: gene-overview has the main data, but we also blank out the
  * track in the focus region for focs genes, so need to know where the focus gene is. */
 
-let data = get_data(request("self()","gene-overview"));
+let track_datafile = setting_string("datafile", []);
+let req = request("self()","gene-overview");
+scope(req,"datafile",track_datafile);
+let data = get_data(req);
 
 let focus_request = request("self()","transcript");
 scope(focus_request,"genome",focus_genome_id);
