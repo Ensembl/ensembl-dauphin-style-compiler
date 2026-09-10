@@ -82,8 +82,8 @@ def shimmer(
     return out_position, out_sense
 
 
-def get_contig(data_accessor: DataAccessor, panel: Panel, do_shimmer: bool) -> dict:
-    item = panel.get_chrom(data_accessor).item_path("contigs")
+def get_contig(data_accessor: DataAccessor, panel: Panel, filepath: str, do_shimmer: bool) -> dict:
+    item = panel.get_chrom(data_accessor).item_filepath(filepath)
     data = get_bigbed(data_accessor, item, panel.start, panel.end)
     positions = []
     senses = []
@@ -112,7 +112,7 @@ class ContigDataHandler16(DataHandler):
         Returns:
 
         """
-        return get_contig(data_accessor, panel, False)
+        return get_contig(data_accessor, panel, self.get_datafile(scope), False)
 
 class ShimmerContigDataHandler16(DataHandler):
     def process_data(self, data_accessor: DataAccessor, panel: Panel, scope: dict, accept: str) -> dict:
@@ -126,4 +126,4 @@ class ShimmerContigDataHandler16(DataHandler):
         Returns:
 
         """
-        return get_contig(data_accessor, panel, True)
+        return get_contig(data_accessor, panel, self.get_datafile(scope), True)

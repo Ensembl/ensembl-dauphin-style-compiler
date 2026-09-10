@@ -210,6 +210,15 @@ export procedure get_gene_data() {
     *gene
 }
 
+export procedure get_track_gene_data(track_datafile) {
+    let req = request("self()","gene");
+    scope(req,"datafile",track_datafile);
+    let data = get_data(req);
+
+    let *gene = extract_gene_data(data);
+    *gene
+}
+
 export procedure get_focus_transcript_data() {
     let (focus_genome_id,focus_gene_id) = focus_gene_settings();
 
@@ -229,6 +238,16 @@ export procedure get_transcript_data(expanded) {
     scope(req,"expanded",expanded);
     let data = get_data(req);
     // halt(only_warm(),[data]);
+
+    let (*gene,*tr,*ex) = extract_tr_data(data);
+    (*gene,*tr,*ex)
+}
+
+export procedure get_track_transcript_data(expanded, track_datafile) {
+    let req = request("self()","transcript");
+    scope(req,"expanded",expanded);
+    scope(req,"datafile",track_datafile);
+    let data = get_data(req);
 
     let (*gene,*tr,*ex) = extract_tr_data(data);
     (*gene,*tr,*ex)

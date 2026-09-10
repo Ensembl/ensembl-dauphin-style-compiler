@@ -1,34 +1,34 @@
 # syntax=docker/dockerfile:1
-FROM python:3.10-bullseye AS build
+FROM python:3.10-bookworm
 
 LABEL maintainer="ensembl-webteam@ebi.ac.uk"
 
-ENV PYTHONUNBUFFERED TRUE
+ENV PYTHONUNBUFFERED=true \
+    PYTHONDONTWRITEBYTECODE=true \
+    PIP_NO_CACHE_DIR=true
 
-RUN apt-get update
-RUN apt-get install -y \
-	python3-distutils \
-	build-essential \
-	libcurl4 \
-	libcurl4-openssl-dev \
-	memcached \
-	git
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends \
+        build-essential \
+        git \
+        libcurl4 \
+        libcurl4-openssl-dev \
+        memcached \
+        python3-distutils \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN rm -rf /usr/src/app
-RUN mkdir /usr/src/app
-COPY requirements.txt /usr/src/app/
-COPY requirements2.txt /usr/src/app/
+WORKDIR /usr/src/app
 
-RUN pip3 install --no-cache-dir --upgrade pip setuptools wheel
-RUN pip3 install --no-cache-dir -r /usr/src/app/requirements.txt
-RUN pip3 install --no-cache-dir -r /usr/src/app/requirements2.txt
+COPY requirements.txt requirements2.txt ./
 
-FROM build
+RUN python -m pip install --upgrade pip setuptools wheel \
+    && python -m pip install -r requirements.txt \
+    && python -m pip install -r requirements2.txt
 
-COPY . /usr/src/app
+COPY . .
 
 WORKDIR /usr/src/app/app
 
 EXPOSE 3333
 
-CMD uvicorn main:app --host 0.0.0.0 --port 3333 --workers $THREADS
+CMD ["sh", "-c", "exec uvicorn main:app --host 0.0.0.0 --port 3333 --workers \"${THREADS:5}\""]

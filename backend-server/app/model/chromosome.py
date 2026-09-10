@@ -34,6 +34,10 @@ class Chromosome(object):
         """
         return AccessItem(variety, self.genome_id, self.name)
 
+    def item_filepath(self, filepath: str):
+        """Return an item for a Track API filepath beneath the datasource root."""
+        return AccessItem.track_file(filepath, self.genome_id, self.name)
+
     def item_seq_path(self, variety):
         """
 

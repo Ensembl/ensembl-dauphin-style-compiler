@@ -42,7 +42,7 @@ def get_variant_exact(
     try:
         data = bytearray([round(x) for x in data])
     except ValueError as e:
-        logging.error(f"Unexpected data in {access_item.item_suffix()}: {e}")
+        logging.error(f"Unexpected data in {access_item.filepath}: {e}")
         data = bytearray([0]*length)
     return {
         "values": data_algorithm("NDZRL", data),
@@ -53,7 +53,7 @@ def get_variant_exact(
 def get_variant(
     data_accessor: DataAccessor, panel: Panel, filename: str
 ) -> dict:
-    item = panel.get_chrom(data_accessor).item_path(filename)
+    item = panel.get_chrom(data_accessor).item_filepath(filename)
     if panel.end - panel.start > 1000:
         return get_variant_stats(data_accessor, item, panel)
     else:

@@ -11,7 +11,8 @@ track_styles();
 regulation_track_styles();
 
 
-let *reg_feature = get_regulation_track_data("regulation", "This is the name of the regulation track");
+let track_datafile = setting_string("datafile", []);
+let *reg_feature = get_regulation_track_data("regulation", track_datafile);
 
 draw_regulatory_features(*reg_feature);
 draw_track_furniture("regulation", "Regulatory annotation", "R");

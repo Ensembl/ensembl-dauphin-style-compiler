@@ -67,6 +67,10 @@ METRIC_FILE = config("METRIC_FILE",default=os.path.join(base_directory,"metric.l
 ASSETS_DIR = config("ASSETS_DIR",default=os.path.join(base_directory,"assets"))
 ASSETS_TOML = config("ASSETS_TOML",default=os.path.join(config_directory,"assets.toml"))
 BOOT_TRACKS_TOML = config("BOOT_TRACKS_TOML",default=os.path.join(config_directory,"boot-tracks","boot-tracks.toml"))
+TRACK_FALLBACK_PROFILES_TOML = config(
+    "TRACK_FALLBACK_PROFILES_TOML",
+    default=os.path.join(config_directory, "track-fallback-profiles-16.toml"),
+)
 EXTRA_TRACKS_TOML = config("EXTRA_TRACKS_TOML",default=os.path.join(config_directory,"extra-tracks.toml"))
 SMALL_VALUE_TOML = config("SMALL_VALUE_TOML",default=os.path.join(config_directory,"small-values.toml"))
 

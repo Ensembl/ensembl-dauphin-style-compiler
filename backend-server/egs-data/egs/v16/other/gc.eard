@@ -8,7 +8,10 @@ include "../common/track-style.eard";
 setup_track("gc", "200");
 
 /* get data */
-let res = get_data(request("self()", "gc"));
+let track_datafile = setting_string("datafile", []);
+let req = request("self()", "gc");
+scope(req, "datafile", track_datafile);
+let res = get_data(req);
 halt(only_warm());
 
 /* process data and draw wiggle */
