@@ -31,4 +31,4 @@ WORKDIR /usr/src/app/app
 
 EXPOSE 3333
 
-CMD ["sh", "-c", "exec uvicorn main:app --host 0.0.0.0 --port 3333 --workers \"${THREADS:?THREADS must be set}\""]
+CMD ["sh", "-c", "exec uvicorn main:app --host 0.0.0.0 --port 3333 --workers \"${THREADS:5}\""]

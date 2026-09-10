@@ -20,7 +20,7 @@ def validate_track_filepath(filepath: str) -> str:
     if not isinstance(filepath, str) or not filepath:
         raise TrackFilepathError("datafile path must be a non-empty string")
     if "\x00" in filepath:
-        raise TrackFilepathError("datafile path must not contain NUL")
+        raise TrackFilepathError("datafile path must not contain null char")
     if "\\" in filepath:
         raise TrackFilepathError("datafile path must use POSIX separators")
 
