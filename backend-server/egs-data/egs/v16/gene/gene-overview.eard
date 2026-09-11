@@ -79,6 +79,7 @@ let gene.leaf_index = allocate_genes_to_leaf_index(*gene);
 /* Calculate leafs */
 
 let gene.leaf = [track_leaf(track_id, "main/main/content"), ...];
+let gene.leaf = set(gene.leaf,!gene_in_track(*gene),[leaf(""),...]);
 
 /* Find focus gene by extent/track and blank it */
 let gene.is_focus = (

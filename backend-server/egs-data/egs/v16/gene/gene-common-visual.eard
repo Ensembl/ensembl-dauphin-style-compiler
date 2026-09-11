@@ -25,6 +25,22 @@ export function gene_track_strand() {
     if(setting_boolean("other-fwd",[]) || setting_boolean("pc-fwd",[]),1,-1)
 }
 
+export function gene_track_leaf_index() {
+    if(
+        setting_boolean("other-rev",[]),
+        0,
+        if(
+            setting_boolean("pc-rev",[]),
+            1,
+            if(setting_boolean("other-fwd",[]),2,3)
+        )
+    )
+}
+
+export function gene_in_track(*gene) {
+    gene.leaf_index == gene_track_leaf_index()
+}
+
 export function gene_track_name_setting() {
     if(
         setting_boolean("other-rev",[]),
