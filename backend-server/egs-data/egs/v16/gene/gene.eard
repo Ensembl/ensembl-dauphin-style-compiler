@@ -56,7 +56,7 @@ let enabled_labels = repeat(setting_boolean("label", []),len(gene.id_versioned))
 let gene.leaf_index = allocate_genes_to_leaf_index(*gene);
 gene.is_focus = gene.id_unversioned == focus_gene_id;
 
-let gene.leaf_base = make_dynamic_gene_leaf_base(track_id,*gene);
+let gene.leaf_base = make_gene_leaf_base(track_id,*gene);
 let gene.block_leaf = leaf(push_str(gene.leaf_base,"/blocks/content"));
 let gene.text_leaf = leaf(push_str(gene.leaf_base,"/text/content"));
 let gene.text_leaf = set(gene.text_leaf,!enabled_labels,[leaf(""),...]);
@@ -80,8 +80,8 @@ emit_gene_zmenu(*gene);
 
 /* Draw chevrons */
 
-draw_dynamic_track_chevrons(track_id,index(gene.strand,0));
-draw_dynamic_sidebar_chevrons(track_id,index(gene.strand,0));
+draw_track_chevrons(track_id,index(gene.strand,0));
+draw_sidebar_chevrons(track_id,index(gene.strand,0));
 
 /* Draw track furniture */
 

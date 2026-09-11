@@ -41,10 +41,13 @@ let focus_gene_index = position(focus_gene_id==gene.id_unversioned);
 let expanded_ids = setting_string_keys("expanded",[],gene.id_versioned);
 let expanded_ids = select(expanded_ids,expanded_ids!="");
 
-let (shown_tr,last_tr) = calc_shown_transcripts(*gene,*tr,[setting_boolean("several", [])],expanded_ids);
-let gene.leaf_base = make_dynamic_gene_leaf_base(track_id,*gene);
+let setting_several = repeat(setting_boolean("several", []),4);
+let setting_label = repeat(setting_boolean("label", []),4);
+let setting_transcript_label = repeat(setting_boolean("transcript-label", []),4);
+let (shown_tr,last_tr) = calc_shown_transcripts(*gene,*tr,setting_several,expanded_ids);
+let gene.leaf_base = make_gene_leaf_base(track_id,*gene);
 
-let *leaf_tr = tr_dynamic_gene_leafs(*gene,*tr,shown_tr);
+let *leaf_tr = tr_gene_leafs(*gene,*tr,shown_tr);
 let **exon_tr = index(**tr,exon.index_of_tr);
 let **leaf_exon_tr = index(**leaf_tr,exon.index_of_tr);
 
@@ -179,7 +182,7 @@ text(coord(position+0.5,y+2,[-3,...]),pen,line.letter,if(no_letters,[leaf(""),..
 
 /* Draw labels */
 
-let text = tr_label_text(*gene,*tr_gene,*tr,last_tr,[setting_boolean("label", [])],[setting_boolean("transcript-label", [])]);
+let text = tr_label_text(*gene,*tr_gene,*tr,last_tr,setting_label,setting_transcript_label);
 let y = tr.position_in_gene * tr_sep;
 let pen = pen("'IBM Plex Mono', sans-serif",10,[colour!("#6f81ff"),...],[colour!("transparent"),...]);
 running_text(coord(tr_gene.start,y+15,[0,...]),coord(tr_gene.end,y+15,[0,...]),pen,text,leaf_tr.text_leaf);
@@ -190,8 +193,8 @@ emit_transcript_zmenu(*tr_gene,*tr,*leaf_tr,tr_sep);
 
 /* Draw chevrons */
 
-draw_dynamic_track_chevrons(track_id,index(gene.strand,0));
-draw_dynamic_sidebar_chevrons(track_id,index(gene.strand,0));
+draw_track_chevrons(track_id,index(gene.strand,0));
+draw_sidebar_chevrons(track_id,index(gene.strand,0));
 
 /* Draw track furniture */
 
@@ -200,5 +203,5 @@ draw_track_furniture(track_id, track_name, "G");
 /* Lozenges */
 
 let tr.position = tr.position_in_gene;
-let tr_all_shown = calc_all_tr_shown(*gene,[setting_boolean("several", [])],expanded_ids);
+let tr_all_shown = calc_all_tr_shown(*gene,setting_several,expanded_ids);
 draw_all_lozenges(*tr,*tr_gene,*leaf_tr,last_tr,20,false,tr_all_shown);
