@@ -188,6 +188,11 @@ running_text(coord(tr_gene.start,y+15,[0,...]),coord(tr_gene.end,y+15,[0,...]),p
 
 emit_transcript_zmenu(*tr_gene,*tr,*leaf_tr,tr_sep);
 
+/* Draw chevrons */
+
+draw_dynamic_track_chevrons(track_id,index(gene.strand,0));
+draw_dynamic_sidebar_chevrons(track_id,index(gene.strand,0));
+
 /* Draw track furniture */
 
 draw_track_furniture(track_id, track_name, "G");

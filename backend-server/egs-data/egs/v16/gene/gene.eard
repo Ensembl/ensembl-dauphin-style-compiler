@@ -78,6 +78,11 @@ running_text(coord(gene.start,[8,...],[0,...]),coord(gene.end,[8,...],[0,...]),p
 
 emit_gene_zmenu(*gene);
 
+/* Draw chevrons */
+
+draw_dynamic_track_chevrons(track_id,index(gene.strand,0));
+draw_dynamic_sidebar_chevrons(track_id,index(gene.strand,0));
+
 /* Draw track furniture */
 
 draw_track_furniture(track_id, track_name, "G");
