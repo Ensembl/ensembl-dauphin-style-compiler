@@ -58,6 +58,8 @@ gene.is_focus = gene.id_unversioned == focus_gene_id;
 let gene.leaf_base = make_gene_leaf_base(track_id,*gene);
 let gene.block_leaf = leaf(push_str(gene.leaf_base,"/blocks/content"));
 let gene.text_leaf = leaf(push_str(gene.leaf_base,"/text/content"));
+let gene.block_leaf = set(gene.block_leaf,!gene_in_track(*gene),[leaf(""),...]);
+let gene.text_leaf = set(gene.text_leaf,!gene_in_track(*gene),[leaf(""),...]);
 let gene.text_leaf = set(gene.text_leaf,!enabled_labels,[leaf(""),...]);
 
 /* Disable focus gene */
