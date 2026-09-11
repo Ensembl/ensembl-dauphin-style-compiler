@@ -2,6 +2,15 @@ export function enabled_focus_gene_track() {
     setting_boolean("focus",[])
 }
 
+export function enabled_gene_labels() {
+    [
+        setting_boolean("other-rev-label",[]),
+        setting_boolean("pc-rev-label",[]),
+        setting_boolean("other-fwd-label",[]),
+        setting_boolean("pc-fwd-label",[])
+    ]
+}
+
 export function enabled_focus_gene_labels() {
     [
         setting_boolean("focus-gene-label",[])
@@ -14,6 +23,15 @@ export function enabled_transcript_labels() {
         setting_boolean("pc-rev-transcript-label",[]),
         setting_boolean("other-fwd-transcript-label",[]),
         setting_boolean("pc-fwd-transcript-label",[])
+    ]
+}
+
+export function enabled_several_transcripts() {
+    [
+        setting_boolean("other-rev-several",[]),
+        setting_boolean("pc-rev-several",[]),
+        setting_boolean("other-fwd-several",[]),
+        setting_boolean("pc-fwd-several",[])
     ]
 }
 

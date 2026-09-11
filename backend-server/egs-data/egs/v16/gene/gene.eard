@@ -49,11 +49,10 @@ let *gene = get_track_gene_data(track_datafile);
 
 halt(only_warm());
 
-let enabled_labels = repeat(setting_boolean("label", []),len(gene.id_versioned));
-
 /* Calculate leafs */
 
 let gene.leaf_index = allocate_genes_to_leaf_index(*gene);
+let enabled_labels = index(enabled_gene_labels(),gene.leaf_index);
 gene.is_focus = gene.id_unversioned == focus_gene_id;
 
 let gene.leaf_base = make_gene_leaf_base(track_id,*gene);

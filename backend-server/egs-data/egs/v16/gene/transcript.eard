@@ -45,9 +45,9 @@ let tr.leaf_index = tr_gene.leaf_index;
 let expanded_ids = setting_string_keys("expanded",[],gene.id_versioned);
 let expanded_ids = select(expanded_ids,expanded_ids!="");
 
-let setting_several = repeat(setting_boolean("several", []),4);
-let setting_label = repeat(setting_boolean("label", []),4);
-let setting_transcript_label = repeat(setting_boolean("transcript-label", []),4);
+let setting_several = enabled_several_transcripts();
+let setting_label = enabled_gene_labels();
+let setting_transcript_label = enabled_transcript_labels();
 let (shown_tr,last_tr) = calc_shown_transcripts(*gene,*tr,setting_several,expanded_ids);
 
 let gene.leaf_base = make_gene_leaf_base(track_id,*gene);
