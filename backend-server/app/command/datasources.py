@@ -2,6 +2,7 @@ from model.tracks import Tracks
 from .begs import BegsFiles, ProgramInventory
 from model.datamodel import DataModel
 from model.datalocator import DataSourceResolver
+from model.trackapi import TrackDatafileResolver
 from model.memcached import Memcached
 from core.config import BOOT_TRACKS_TOML, MEMCACHED_PREFIX, MEMCACHED_BUMP_ON_RESTART
 import toml, os.path
@@ -20,12 +21,13 @@ class DataAccessor:
         self.reload(version)
 
     def reload(self, version: int):
-        self.resolver : DataSourceResolver = DataSourceResolver(version)
+        self.cache = Memcached("{}:{}".format(MEMCACHED_PREFIX,version),MEMCACHED_BUMP_ON_RESTART)
+        self.resolver : DataSourceResolver = DataSourceResolver(version, self.cache)
+        self.track_datafiles = TrackDatafileResolver()
         self.begs_files = BegsFiles()
         if version > 14:
             self.program_inventory = ProgramInventory(version)
         self.data_model = DataModel(self)
-        self.cache = Memcached("{}:{}".format(MEMCACHED_PREFIX,version),MEMCACHED_BUMP_ON_RESTART)
         self.boot_tracks = all_boot_tracks()
         self.supported_versions = [16]
 

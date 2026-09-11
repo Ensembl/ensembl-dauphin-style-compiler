@@ -7,14 +7,17 @@ include "regulation-common.eard";
 include "regulation-zmenu.eard";
 
 /* Setup styles */
-track_styles();
-regulation_track_styles();
+let track_id = setting_string("track_id", []);
+let track_name = setting_string("track_name", []);
+let track_display_order = setting_string("display_order", []);
+regulation_track_styles(track_id, track_display_order);
 
 
-let *reg_feature = get_regulation_track_data("regulation", "This is the name of the regulation track");
+let track_datafile = setting_string("datafile", []);
+let *reg_feature = get_regulation_track_data(track_id, "regulation", track_datafile);
 
 draw_regulatory_features(*reg_feature);
-draw_track_furniture("regulation", "Regulatory annotation", "R");
+draw_track_furniture(track_id, track_name, "R");
 
 
 /* Draw zmenus */

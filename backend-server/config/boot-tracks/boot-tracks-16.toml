@@ -7,43 +7,6 @@ from_bundles = [
     "test"
 ]
 
-[include.gene.general]
-triggers = [
-    ["track","gene-pc-fwd"],
-    ["track","gene-pc-rev"],
-    ["track","gene-other-fwd"],
-    ["track","gene-other-rev"]
-]
-[include.gene.settings]
-focus-gene = ["track","focus","item","gene"]
-pc-fwd-several = ["track","gene-pc-fwd","several"]
-pc-rev-several = ["track","gene-pc-rev","several"]
-other-fwd-several = ["track","gene-other-fwd","several"]
-other-rev-several = ["track","gene-other-rev","several"]
-pc-fwd-label = ["track","gene-pc-fwd","label"]
-pc-rev-label = ["track","gene-pc-rev","label"]
-other-fwd-label = ["track","gene-other-fwd","label"]
-other-rev-label = ["track","gene-other-rev","label"]
-pc-fwd = ["track","gene-pc-fwd"]
-pc-rev = ["track","gene-pc-rev"]
-other-fwd = ["track","gene-other-fwd"]
-other-rev = ["track","gene-other-rev"]
-pc-fwd-name = ["track","gene-pc-fwd","name"]
-pc-rev-name = ["track","gene-pc-rev","name"]
-other-fwd-name = ["track","gene-other-fwd","name"]
-other-rev-name = ["track","gene-other-rev","name"]
-expanded = ["buttons"]
-
-[include.transcript.settings]
-pc-fwd-several = ["track","gene-pc-fwd","several"]
-pc-rev-several = ["track","gene-pc-rev","several"]
-other-fwd-several = ["track","gene-other-fwd","several"]
-other-rev-several = ["track","gene-other-rev","several"]
-pc-fwd-transcript-label = ["track","gene-pc-fwd","transcript-label"]
-pc-rev-transcript-label = ["track","gene-pc-rev","transcript-label"]
-other-fwd-transcript-label = ["track","gene-other-fwd","transcript-label"]
-other-rev-transcript-label = ["track","gene-other-rev","transcript-label"]
-
 [include.focus-gene.general]
 triggers = [
     ["track","focus","item","gene"]
@@ -62,35 +25,6 @@ expanded = ["buttons"]
 #
 # Tracks
 #
-
-#
-# Genes/Transcripts
-#
-
-[track.gene-overview]
-scales = [23,100,6]
-include=["gene","general"]
-
-[track.gene]
-scales = [19,22,4]
-include=["gene","general"]
-
-[track.transcript]
-scales = [9,18,6]
-include=["transcript","gene","general"]
-
-[track.zoomed-transcript-no-letters.general]
-program_name = "zoomed-transcript"
-scales = [7,8,2]
-include=["transcript","gene","general"]
-
-[track.zoomed-transcript-no-letters.values]
-scale-no-letters = true
-
-[track.zoomed-transcript-letters]
-program_name = "zoomed-transcript"
-scales = [0,6,7]
-include=["transcript","gene","general"]
 
 [track.focus-gene-dots]
 scales = [1,66,1]
@@ -208,18 +142,6 @@ triggers = [
 region = ["track","focus","item","location"]
 
 #
-# %GC
-#
-
-[track.gc.general]
-include = ["general"]
-scales = [0,100,3]
-triggers = [["track","gc"]]
-
-[track.gc.settings]
-name = ["track","gc","name"]
-
-#
 # Variants
 #
 
@@ -253,48 +175,6 @@ triggers = [["track","focus","item","variant"]]
 
 [track.focus-variant-dots.settings]
 focus-variant = ["track","focus","item","variant"]
-
-#
-# Regulation
-#
-[track.regulation]
-include = ["general"]
-scales = [1,100,3]
-triggers = [["track","regulation"]]
-
-[track.regulation.settings]
-name = ["track","regulation","name"]
-
-#
-# Contigs and Sequences
-#
-
-[track.contig-shimmer.general]
-include = ["general"]
-program_name = "contig"
-scales = [26,100,3]
-triggers = [["track","contig"]]
-
-[track.contig-shimmer.values]
-shimmer = true
-
-[track.contig.general]
-include = ["general"]
-scales = [7,100,3]
-triggers = [["track","contig"]]
-
-[track.contig.settings]
-name = ["track","contig","name"]
-
-
-[track.sequence.general]
-include = ["general"]
-program_name = "zoomed-seq"
-scales = [0,6,2]
-triggers = [["track","contig"]]
-
-[track.sequence.settings]
-name = ["track","contig","name"]
 
 # Expansion tracks (variation, repeats etc.)
 [expansion.general]

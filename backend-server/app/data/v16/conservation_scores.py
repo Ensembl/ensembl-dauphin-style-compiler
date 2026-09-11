@@ -14,7 +14,7 @@ def get_wiggle_data_for_conservation_scores( data_accessor: DataAccessor, panel:
         datafile (str): Name of the bigwig data file
         data_range (tuple[int,int]): The range of values in the data file
     """
-    item = panel.get_chrom(data_accessor).item_path(data_file)
+    item = panel.get_chrom(data_accessor).item_filepath(data_file)
     if panel.end - panel.start < 1000:
         (data, start, end) = get_bigwig(data_accessor, item, panel.start, panel.end)
     else:

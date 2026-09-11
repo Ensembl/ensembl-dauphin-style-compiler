@@ -11,19 +11,23 @@ include "transcript-common.eard";
 /* Set styles */
 
 track_styles();
-gene_styles();
 transcript_styles();
 
 let tr_sep = 25;
 
-let enabled_tracks = enabled_gene_tracks();
+let track_id = setting_string("track_id", []);
+let track_name = setting_string("track_name", []);
+let track_display_order = setting_string("display_order", []);
+setup_track(track_id, track_display_order);
+set_track_style(track_id, "", ["min-height"], ["92"]);
 
 let no_letters = setting_boolean("scale-no-letters",[]);
 
 /* Get main data */
 
 let all_expanded = setting_string_seq("expanded",[]);
-let (*gene,*tr,*exon) = get_transcript_data(all_expanded);
+let track_datafile = setting_string("datafile", []);
+let (*gene,*tr,*exon) = get_track_transcript_data(all_expanded, track_datafile);
 let gene.leaf_index = allocate_genes_to_leaf_index(*gene);
 
 let **tr_gene = index(**gene,tr.index_of_gene);
@@ -37,8 +41,11 @@ let focus_gene_index = position(focus_gene_id==gene.id_unversioned);
 let expanded_ids = setting_string_keys("expanded",[],gene.id_versioned);
 let expanded_ids = select(expanded_ids,expanded_ids!="");
 
-let (shown_tr,last_tr) = calc_shown_transcripts(*gene,*tr,enabled_several_transcripts(),expanded_ids);
-let gene.leaf_base = make_gene_leaf_base(*gene);
+let setting_several = enabled_several_transcripts();
+let setting_label = enabled_gene_labels();
+let setting_transcript_label = enabled_transcript_labels();
+let (shown_tr,last_tr) = calc_shown_transcripts(*gene,*tr,setting_several,expanded_ids);
+let gene.leaf_base = make_gene_leaf_base(track_id,*gene);
 
 let *leaf_tr = tr_gene_leafs(*gene,*tr,shown_tr);
 let **exon_tr = index(**tr,exon.index_of_tr);
@@ -175,7 +182,7 @@ text(coord(position+0.5,y+2,[-3,...]),pen,line.letter,if(no_letters,[leaf(""),..
 
 /* Draw labels */
 
-let text = tr_label_text(*gene,*tr_gene,*tr,last_tr,enabled_gene_labels(),enabled_transcript_labels());
+let text = tr_label_text(*gene,*tr_gene,*tr,last_tr,setting_label,setting_transcript_label);
 let y = tr.position_in_gene * tr_sep;
 let pen = pen("'IBM Plex Mono', sans-serif",10,[colour!("#6f81ff"),...],[colour!("transparent"),...]);
 running_text(coord(tr_gene.start,y+15,[0,...]),coord(tr_gene.end,y+15,[0,...]),pen,text,leaf_tr.text_leaf);
@@ -184,17 +191,17 @@ running_text(coord(tr_gene.start,y+15,[0,...]),coord(tr_gene.end,y+15,[0,...]),p
 
 emit_transcript_zmenu(*tr_gene,*tr,*leaf_tr,tr_sep);
 
+/* Draw chevrons */
+
+draw_track_chevrons(track_id,gene_track_strand());
+draw_sidebar_chevrons(track_id,gene_track_strand());
+
 /* Draw track furniture */
 
-let leaf.bgd = make_gene_leafs("main/background/content",enabled_tracks);
-let leaf.trackname = make_gene_leafs("title/content",enabled_tracks);
-let leaf.letter = make_gene_leafs("main/letter/content",enabled_tracks);
-
-draw_gene_track_names(*leaf);
-draw_gene_track_category(*leaf);
+draw_gene_track_furniture(track_id, track_name);
 
 /* Lozenges */
 
 let tr.position = tr.position_in_gene;
-let tr_all_shown = calc_all_tr_shown(*gene,enabled_several_transcripts(),expanded_ids);
+let tr_all_shown = calc_all_tr_shown(*gene,setting_several,expanded_ids);
 draw_all_lozenges(*tr,*tr_gene,*leaf_tr,last_tr,20,false,tr_all_shown);

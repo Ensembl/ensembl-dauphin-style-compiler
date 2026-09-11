@@ -1,14 +1,3 @@
-/* Settings */
-
-export function enabled_gene_tracks() {
-    [
-        setting_boolean("other-rev",[]),
-        setting_boolean("pc-rev",[]),
-        setting_boolean("other-fwd",[]),
-        setting_boolean("pc-fwd",[])
-    ]
-}
-
 export function enabled_focus_gene_track() {
     setting_boolean("focus",[])
 }
@@ -37,18 +26,18 @@ export function enabled_transcript_labels() {
     ]
 }
 
-export function enabled_focus_transcript_labels() {
-    [
-        setting_boolean("focus-transcript-label",[])
-    ]
-}
-
 export function enabled_several_transcripts() {
     [
         setting_boolean("other-rev-several",[]),
         setting_boolean("pc-rev-several",[]),
         setting_boolean("other-fwd-several",[]),
         setting_boolean("pc-fwd-several",[])
+    ]
+}
+
+export function enabled_focus_transcript_labels() {
+    [
+        setting_boolean("focus-transcript-label",[])
     ]
 }
 
@@ -210,6 +199,15 @@ export procedure get_gene_data() {
     *gene
 }
 
+export procedure get_track_gene_data(track_datafile) {
+    let req = request("self()","gene");
+    scope(req,"datafile",track_datafile);
+    let data = get_data(req);
+
+    let *gene = extract_gene_data(data);
+    *gene
+}
+
 export procedure get_focus_transcript_data() {
     let (focus_genome_id,focus_gene_id) = focus_gene_settings();
 
@@ -229,6 +227,16 @@ export procedure get_transcript_data(expanded) {
     scope(req,"expanded",expanded);
     let data = get_data(req);
     // halt(only_warm(),[data]);
+
+    let (*gene,*tr,*ex) = extract_tr_data(data);
+    (*gene,*tr,*ex)
+}
+
+export procedure get_track_transcript_data(expanded, track_datafile) {
+    let req = request("self()","transcript");
+    scope(req,"expanded",expanded);
+    scope(req,"datafile",track_datafile);
+    let data = get_data(req);
 
     let (*gene,*tr,*ex) = extract_tr_data(data);
     (*gene,*tr,*ex)

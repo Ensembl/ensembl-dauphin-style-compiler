@@ -5,23 +5,29 @@ include "../common/track-common.eard";
 include "../common/track-style.eard";
 
 /* Setup styles */
-setup_track("gc", "200");
+let track_id = setting_string("track_id", []);
+let track_name = setting_string("track_name", []);
+let track_display_order = setting_string("display_order", []);
+setup_track(track_id, track_display_order);
 
 /* get data */
-let res = get_data(request("self()", "gc"));
+let track_datafile = setting_string("datafile", []);
+let req = request("self()", "gc");
+scope(req, "datafile", track_datafile);
+let res = get_data(req);
 halt(only_warm());
 
 /* process data and draw wiggle */
 let values = data_number(res, "values") / 25;
 let x_range = data_number(res, "range");
 let graph = graph_type(32, colour!("#fbb44b"));
-let leaf = leaf("tracks/track/gc/main/main/content");
+let leaf = track_leaf(track_id, "main/main/content");
 wiggle(index(x_range,0), index(x_range,1), graph, values, [true,...], leaf);
 
 /* draw horiz line */
 let line_paint = paint_hollow(colour!("#d0d0d0"), 1);
-let leaf = leaf("tracks/track/gc/main/background/content");
+let leaf = track_leaf(track_id, "main/background/content");
 rectangle(coord([0],[16],[0]), coord([1],[16],[0]), line_paint, [leaf,...]);
 
 /* draw track furniture */
-draw_track_furniture("gc", "%GC", "G");
+draw_track_furniture(track_id, track_name, "G");

@@ -9,9 +9,10 @@ def get_regulation_data(
     data_accessor: DataAccessor,
     chrom: Chromosome,
     panel: Panel,
+    filepath: str,
 ) -> dict:
     try:
-        item = chrom.item_path("regulation")
+        item = chrom.item_filepath(filepath)
         data = get_bigbed(data_accessor, item, panel.start, panel.end)
         starts = []
         lengths = []
@@ -56,4 +57,4 @@ class RegulationDataHandler(DataHandler):
         chrom = data_accessor.data_model.stick(panel.stick)
         if chrom == None:
             raise DataException("Unknown chromosome {0}".format(panel.stick))
-        return get_regulation_data(data_accessor, chrom, panel)
+        return get_regulation_data(data_accessor, chrom, panel, self.get_datafile(scope))

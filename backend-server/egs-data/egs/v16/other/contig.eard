@@ -5,13 +5,19 @@ include "../common/track-common.eard";
 include "../common/track-style.eard";
 
 /* Setup styles */
-setup_track("contig", "0");
-set_track_style("contig", "", ["min-height"], ["50"]);
+let track_id = setting_string("track_id", []);
+let track_name = setting_string("track_name", []);
+let track_display_order = setting_string("display_order", []);
+setup_track(track_id, track_display_order);
+set_track_style(track_id, "", ["min-height"], ["50"]);
 
 /* Get data */
 
 let endpoint = if(setting_boolean("shimmer",[]), "shimmer-contig", "contig");
-let data = get_data(request("self()", endpoint));
+let track_datafile = setting_string("datafile", []);
+let req = request("self()", endpoint);
+scope(req, "datafile", track_datafile);
+let data = get_data(req);
 halt(only_warm());
 
 let start = data_number(data, "contig_starts");
@@ -20,8 +26,8 @@ let sense = data_number(data, "sense");
 
 /* Draw main rectangles in one of two colours depending on "sense" */
 let paint = paint_solid(index([colour!("#808080"), colour!("#c8c8c8")], sense));
-let leaf = leaf("tracks/track/contig/main/main/content");
+let leaf = track_leaf(track_id, "main/main/content");
 rectangle(coord(start,[10,...],[0,...]), coord(end,[14,...],[0,...]), paint, [leaf,...]);
 
 /* draw track furniture */
-draw_track_furniture("contig", "Reference sequence", "G");
+draw_track_furniture(track_id, track_name, "G");
