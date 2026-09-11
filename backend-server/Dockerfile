@@ -7,6 +7,10 @@ ENV PYTHONUNBUFFERED=true \
     PYTHONDONTWRITEBYTECODE=true \
     PIP_NO_CACHE_DIR=true
 
+ENV PROMETHEUS_MULTIPROC_DIR=/tmp/prometheus-multiproc
+ENV prometheus_multiproc_dir=/tmp/prometheus-multiproc
+RUN mkdir -p /tmp/prometheus-multiproc
+
 RUN apt-get update \
     && apt-get install --yes --no-install-recommends \
         build-essential \
