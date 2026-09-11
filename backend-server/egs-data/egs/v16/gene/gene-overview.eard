@@ -93,8 +93,8 @@ paint = paint_solid(gene_colour());
 rectangle(coord(gene.start,[0,...],[-0.5,...]),coord(gene.end,[5,...],[0.5,...]),paint,gene.leaf);
 
 /* Draw chevrons */
-draw_track_chevrons(track_id,index(gene.strand,0));
-draw_sidebar_chevrons(track_id,index(gene.strand,0));
+draw_track_chevrons(track_id,gene_track_strand());
+draw_sidebar_chevrons(track_id,gene_track_strand());
 
 /* Draw track furniture */
-draw_track_furniture(track_id, track_name, "G");
+draw_gene_track_furniture(track_id, track_name);

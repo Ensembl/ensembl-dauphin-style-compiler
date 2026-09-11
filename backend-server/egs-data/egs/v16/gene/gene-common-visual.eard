@@ -21,6 +21,27 @@ export function gene_colour() {
     colour!("#0099ff")
 }
 
+export function gene_track_strand() {
+    if(setting_boolean("other-fwd",[]) || setting_boolean("pc-fwd",[]),1,-1)
+}
+
+export function gene_track_name_setting() {
+    if(
+        setting_boolean("other-rev",[]),
+        "other-rev-name",
+        if(
+            setting_boolean("pc-rev",[]),
+            "pc-rev-name",
+            if(setting_boolean("other-fwd",[]),"other-fwd-name","pc-fwd-name")
+        )
+    )
+}
+
+export procedure draw_gene_track_furniture(track_id,track_name) {
+    draw_track_name(track_name,gene_track_name_setting(),track_leaf(track_id,"title/content"));
+    draw_track_category(["G"],[track_id],[track_leaf(track_id,"main/letter/content")]);
+}
+
 let num_chevrons = 40;
 let chevron_spacing = enumerate([num_chevrons]) / num_chevrons;
 

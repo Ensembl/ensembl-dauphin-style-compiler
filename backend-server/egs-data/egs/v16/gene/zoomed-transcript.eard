@@ -193,12 +193,12 @@ emit_transcript_zmenu(*tr_gene,*tr,*leaf_tr,tr_sep);
 
 /* Draw chevrons */
 
-draw_track_chevrons(track_id,index(gene.strand,0));
-draw_sidebar_chevrons(track_id,index(gene.strand,0));
+draw_track_chevrons(track_id,gene_track_strand());
+draw_sidebar_chevrons(track_id,gene_track_strand());
 
 /* Draw track furniture */
 
-draw_track_furniture(track_id, track_name, "G");
+draw_gene_track_furniture(track_id, track_name);
 
 /* Lozenges */
 
