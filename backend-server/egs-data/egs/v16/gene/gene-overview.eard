@@ -9,7 +9,6 @@ include "gene-common-visual.eard";
 /* Set style */
 
 track_styles();
-gene_styles();
 
 style!("""
     **/main/main/ {
@@ -33,6 +32,11 @@ style!("""
 /* Get data */
 
 let (focus_genome_id,focus_gene_id) = focus_gene_settings();
+let track_id = setting_string("track_id", []);
+let track_name = setting_string("track_name", []);
+let track_display_order = setting_string("display_order", []);
+setup_track(track_id, track_display_order);
+set_track_style(track_id, "", ["min-height"], ["92"]);
 
 /* this track uses two endpoints: gene-overview has the main data, but we also blank out the
  * track in the focus region for focs genes, so need to know where the focus gene is. */
@@ -61,8 +65,6 @@ let focus_gene.end = focus_gene.start + data_number(focus_data,"lengths");
 let focus_gene.biotype = data_string(focus_data,"gene_biotypes");
 let focus_gene.id_unversioned = data_string(focus_data,"gene_id");
 
-let enabled_tracks = enabled_gene_tracks();
-
 /* Find start and end of focus gene */
 
 let which_gene = focus_gene.id_unversioned==focus_gene_id;
@@ -76,11 +78,7 @@ let gene.leaf_index = allocate_genes_to_leaf_index(*gene);
 
 /* Calculate leafs */
 
-let leaf.bgd = make_gene_leafs("main/background/content",enabled_tracks);
-let leaf.letter = make_gene_leafs("main/letter/content",enabled_tracks);
-let leaf.trackname = make_gene_leafs("title/content",enabled_tracks);
-let leaf.main = make_gene_leafs("main/main/content",enabled_tracks);
-let gene.leaf = index(leaf.main,gene.leaf_index);
+let gene.leaf = [track_leaf(track_id, "main/main/content"), ...];
 
 /* Find focus gene by extent/track and blank it */
 let gene.is_focus = (
@@ -95,11 +93,8 @@ paint = paint_solid(gene_colour());
 rectangle(coord(gene.start,[0,...],[-0.5,...]),coord(gene.end,[5,...],[0.5,...]),paint,gene.leaf);
 
 /* Draw chevrons */
-
-draw_track_chevrons(*leaf);
-draw_sidebar_chevrons(*leaf);
+draw_track_chevrons(track_id,gene_track_strand());
+draw_sidebar_chevrons(track_id,gene_track_strand());
 
 /* Draw track furniture */
-
-draw_gene_track_names(*leaf);
-draw_gene_track_category(*leaf);
+draw_gene_track_furniture(track_id, track_name);

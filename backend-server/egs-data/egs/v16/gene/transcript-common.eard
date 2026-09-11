@@ -57,17 +57,6 @@ export procedure transcript_styles() {
     """);
 }
 
-export procedure tr_leaf(*gene,*tr,suffix,enabled_tracks,shown_tr) {
-    let (focus_genome_id,focus_gene_id) = focus_gene_settings();
-    let focus_gene_index = position(focus_gene_id==gene.id_unversioned); 
-
-    let leaf_gene = leaf(empty_off_gene(push_str(gene.leaf_base,suffix),enabled_tracks,*gene));
-    let leaf_gene = set_at(leaf_gene,focus_gene_index,[leaf("")]);
-    let leaf_tr = index(leaf_gene,tr.index_of_gene);
-    let leaf_tr = set(leaf_tr,!shown_tr,[leaf(""),...]);
-    leaf_tr
-}
-
 export procedure tr_focus_leaf(*gene,*tr,suffix,shown_tr,right_chr) {
     let leaf_gene = leaf(push_str(gene.leaf_base,suffix));
     let leaf_tr = index(leaf_gene,tr.index_of_gene);
@@ -75,15 +64,23 @@ export procedure tr_focus_leaf(*gene,*tr,suffix,shown_tr,right_chr) {
     leaf_tr
 }
 
-export procedure tr_gene_leafs(*gene,*tr,shown_tr) {
-    let enabled_tracks = enabled_gene_tracks();
+export procedure tr_leaf(*gene,*tr,suffix,shown_tr) {
+    let (focus_genome_id,focus_gene_id) = focus_gene_settings();
+    let focus_gene_index = position(focus_gene_id==gene.id_unversioned);
 
-    let leaf_tr.far_under_leaf = tr_leaf(*gene,*tr,"/diagram/far-under",enabled_tracks,shown_tr);
-    let leaf_tr.under_leaf = tr_leaf(*gene,*tr,"/diagram/under",enabled_tracks,shown_tr);
-    let leaf_tr.text_leaf = tr_leaf(*gene,*tr,"/text",enabled_tracks,shown_tr);
-    let leaf_tr.over_leaf = tr_leaf(*gene,*tr,"/diagram/over",enabled_tracks,shown_tr);
-    let leaf_tr.far_over_leaf = tr_leaf(*gene,*tr,"/diagram/far-over",enabled_tracks,shown_tr);
-    let leaf_tr.blanking_leaf = tr_leaf(*gene,*tr,"/diagram/blanking",enabled_tracks,shown_tr);
+    let leaf_gene = leaf(push_str(gene.leaf_base,suffix));
+    let leaf_gene = set_at(leaf_gene,focus_gene_index,[leaf("")]);
+    let leaf_tr = index(leaf_gene,tr.index_of_gene);
+    set(leaf_tr,!shown_tr,[leaf(""),...])
+}
+
+export procedure tr_gene_leafs(*gene,*tr,shown_tr) {
+    let leaf_tr.far_under_leaf = tr_leaf(*gene,*tr,"/diagram/far-under",shown_tr);
+    let leaf_tr.under_leaf = tr_leaf(*gene,*tr,"/diagram/under",shown_tr);
+    let leaf_tr.text_leaf = tr_leaf(*gene,*tr,"/text",shown_tr);
+    let leaf_tr.over_leaf = tr_leaf(*gene,*tr,"/diagram/over",shown_tr);
+    let leaf_tr.far_over_leaf = tr_leaf(*gene,*tr,"/diagram/far-over",shown_tr);
+    let leaf_tr.blanking_leaf = tr_leaf(*gene,*tr,"/diagram/blanking",shown_tr);
     *leaf_tr
 }
 

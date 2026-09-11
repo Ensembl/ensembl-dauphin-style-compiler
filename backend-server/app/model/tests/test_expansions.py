@@ -91,6 +91,29 @@ class ExpansionTrackFilepathTests(unittest.TestCase):
         with self.assertRaisesRegex(ExpansionMetadataError, "No fallback profile"):
             self.expansion_with_payload(payload).register_track("track-uuid")
 
+    def test_simple_feature_datafiles_use_their_subtype_program(self):
+        for subtype in ("cpg", "trna", "tssp"):
+            with self.subTest(subtype=subtype):
+                filepath = f"tracks/track-uuid_simple-features-{subtype}.bb"
+                payload = track_payload(filepath)
+                payload["datafiles"] = {"simple-features": filepath}
+
+                tracks = self.expansion_with_payload(payload).register_track(
+                    "track-uuid"
+                )
+                track = tracks._tracks[f"track-uuid-{subtype}"]
+
+                self.assertEqual(track._program_name, subtype)
+                self.assertIn(("datafile", filepath), track._values)
+
+    def test_unknown_simple_feature_subtype_is_rejected(self):
+        filepath = "tracks/track-uuid_simple-features-unknown.bb"
+        payload = track_payload(filepath)
+        payload["datafiles"] = {"simple-features": filepath}
+
+        with self.assertRaisesRegex(ExpansionMetadataError, "Unknown simple-features program"):
+            self.expansion_with_payload(payload).register_track("track-uuid")
+
 
 class ExpansionHandlerTests(unittest.TestCase):
     def test_track_api_error_is_returned_as_an_expansion_error(self):

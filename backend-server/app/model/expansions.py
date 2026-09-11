@@ -10,6 +10,8 @@ class ExpansionMetadataError(Exception):
     """Raised for expansion track registration failures."""
 
 class Expansions:
+    _simple_feature_programs = {"cpg", "trna", "tssp"}
+
     def __init__(self):
         self._track_api = TrackApiClient()
         self._profiles, self._templates = self._load_profiles()
@@ -123,19 +125,39 @@ class Expansions:
             })
         return specs
 
+    @classmethod
+    def _program_for_datafile(cls, datafile_key: str, filepath: str) -> str:
+        if datafile_key != "simple-features":
+            return datafile_key
+
+        filename = filepath.rsplit("/", 1)[-1].rsplit("_", 1)[-1]
+        prefix = "simple-features-"
+        if filename.startswith(prefix) and filename.endswith(".bb"):
+            program = filename[len(prefix):-3]
+            if program in cls._simple_feature_programs:
+                return program
+        raise ExpansionMetadataError(
+            f"Unknown simple-features program for datafile '{filepath}'"
+        )
+
     def _generic_specs(self, data: dict) -> list[dict]:
         specs = []
-        programs = list(data["datafiles"])
-        for program in programs:
-            settings = dict(data.get("settings", {}).get(program, {}))
+        datafiles = data["datafiles"]
+        for datafile_key, filepath in datafiles.items():
+            program = self._program_for_datafile(datafile_key, filepath)
+            settings = dict(
+                data.get("settings", {}).get(
+                    program, data.get("settings", {}).get(datafile_key, {})
+                )
+            )
             if "scales" not in settings:
-                if len(programs) == 2 and program.endswith("summary"):
+                if len(datafiles) == 2 and program.endswith("summary"):
                     settings["scales"] = [6, 100, 4]
-                elif len(programs) == 2 and program.endswith("details"):
+                elif len(datafiles) == 2 and program.endswith("details"):
                     settings["scales"] = [3, 5, 1]
                 else:
                     settings["scales"] = [0, 100, 3]
-            specs.append({"id": program, "program": program, "datafile": data["datafiles"][program], "settings": settings, "switches": {switch: switch for switch in settings.get("switches", [])}})
+            specs.append({"id": program, "program": program, "datafile": filepath, "settings": settings, "switches": {switch: switch for switch in settings.get("switches", [])}})
         return specs
 
     # Create a track set (consisting of a single track, or a pair for zoomed-in/zoomed-out views)

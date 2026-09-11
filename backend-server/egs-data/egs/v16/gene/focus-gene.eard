@@ -10,7 +10,6 @@ include "gene-common-zmenu.eard";
 /* Setup styles */
 
 track_styles();
-gene_styles();
 
 style!("""
     **/main/main/ {
@@ -53,7 +52,7 @@ halt(only_warm());
 
 /* Map from gene to focus gene */
 
-let focus_gene_index = if(focus_genome_id==stick(),position(focus_gene_id==gene.id_unversioned),[]);
+let focus_gene_index = position(focus_gene_id==gene.id_unversioned);
 let **focus_gene = index(index(**gene,focus_gene_index),0);
 
 /* Setup leafs */
