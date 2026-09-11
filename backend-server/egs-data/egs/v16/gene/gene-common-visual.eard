@@ -44,6 +44,13 @@ export procedure make_gene_leaf_base(*gene) {
     push_str(names,gene.id_versioned)
 }
 
+export procedure make_dynamic_gene_leaf_base(track_id,*gene) {
+    let names = repeat(track_id,len(gene.id_versioned));
+    let names = push_str("tracks/track/",names);
+    let names = push_str(names,"/main/main/");
+    push_str(names,gene.id_versioned)
+}
+
 export procedure make_focus_gene_leaf_base(*gene) {
     push_str("tracks/track/focus-gene/main/main/",gene.id_versioned)
 }

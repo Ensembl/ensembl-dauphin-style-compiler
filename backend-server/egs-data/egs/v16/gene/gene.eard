@@ -10,7 +10,6 @@ include "gene-common-zmenu.eard";
 /* Set styles */
 
 track_styles();
-gene_styles();
 
 style!("""
     **/main/main/ {
@@ -39,26 +38,28 @@ style!("""
 /* Get data */
 
 let (focus_genome_id,focus_gene_id) = focus_gene_settings();
+let track_id = setting_string("track_id", []);
+let track_name = setting_string("track_name", []);
+let track_display_order = setting_string("display_order", []);
+setup_track(track_id, track_display_order);
+set_track_style(track_id, "", ["min-height"], ["92"]);
 
 let track_datafile = setting_string("datafile", []);
 let *gene = get_track_gene_data(track_datafile);
 
 halt(only_warm());
 
-let enabled_tracks = enabled_gene_tracks();
-let enabled_labels = enabled_tracks && enabled_gene_labels();
+let enabled_labels = repeat(setting_boolean("label", []),len(gene.id_versioned));
 
 /* Calculate leafs */
 
 let gene.leaf_index = allocate_genes_to_leaf_index(*gene);
 gene.is_focus = gene.id_unversioned == focus_gene_id;
 
-let gene.leaf_base = make_gene_leaf_base(*gene);
-let gene.block_leaf = leaf(empty_off_gene(push_str(gene.leaf_base,"/blocks/content"),enabled_tracks,*gene));
-let gene.text_leaf = leaf(empty_off_gene(push_str(gene.leaf_base,"/text/content"),enabled_labels,*gene));
-let leaf.bgd = make_gene_leafs("main/background/content",enabled_tracks);
-let leaf.letter = make_gene_leafs("main/letter/content",enabled_tracks);
-let leaf.trackname = make_gene_leafs("title/content",enabled_tracks);
+let gene.leaf_base = make_dynamic_gene_leaf_base(track_id,*gene);
+let gene.block_leaf = leaf(push_str(gene.leaf_base,"/blocks/content"));
+let gene.text_leaf = leaf(push_str(gene.leaf_base,"/text/content"));
+let gene.text_leaf = set(gene.text_leaf,!enabled_labels,[leaf(""),...]);
 
 /* Disable focus gene */
 let gene.is_focus = gene.id_unversioned == focus_gene_id;
@@ -77,12 +78,6 @@ running_text(coord(gene.start,[8,...],[0,...]),coord(gene.end,[8,...],[0,...]),p
 
 emit_gene_zmenu(*gene);
 
-/* Draw chevrons */
-
-draw_track_chevrons(*leaf);
-draw_sidebar_chevrons(*leaf);
-
 /* Draw track furniture */
 
-draw_gene_track_names(*leaf);
-draw_gene_track_category(*leaf);
+draw_track_furniture(track_id, track_name, "G");

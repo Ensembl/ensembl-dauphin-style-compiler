@@ -19,8 +19,8 @@ function set_reg_feature_colours(reg_feature_types) {
 }
 
 
-export procedure get_regulation_track_data(track_name, track_datafile) {
-    let req = request("self()",track_name);
+export procedure get_regulation_track_data(track_id, endpoint, track_datafile) {
+    let req = request("self()",endpoint);
     scope(req, "datafile", track_datafile);
     let data = get_data(req);
 
@@ -32,8 +32,8 @@ export procedure get_regulation_track_data(track_name, track_datafile) {
     let reg_feature.thick_end = data_number(data,"thick_end");
     let reg_feature.type = data_string(data,"feature_type");
 
-    let top_leaf = leaf("tracks/track/regulation/main/main/lanes/first/content");
-    let bottom_leaf = leaf("tracks/track/regulation/main/main/lanes/second/content");
+    let top_leaf = track_leaf(track_id, "main/main/lanes/first/content");
+    let bottom_leaf = track_leaf(track_id, "main/main/lanes/second/content");
     let is_top_leaf = reg_feature.type == "open chromatin region" || reg_feature.type == "promoter" || reg_feature.type == "enhancer";
     let is_bottom_leaf = reg_feature.type == "CTCF binding site";
     let reg_feature.leaf = repeat(top_leaf, len(reg_feature.id));
@@ -46,33 +46,13 @@ export procedure get_regulation_track_data(track_name, track_datafile) {
 
 
 /* Styling */
-export procedure regulation_track_styles() {
-style!("""
-    tracks/track/regulation/ {
-        min-height: 80;
-        priority: 300;
-        report: "track;switch-id=regulation";
-    }
-
-    tracks/track/regulation/main/main/ {
-      type: stack;
-    }
-
-    tracks/track/regulation/main/main/lanes/ {
-        type: stack;
-        priority: 1;
-    }
-
-    tracks/track/regulation/main/main/lanes/first/ {
-        min-height: 10;
-        priority: 0;
-    }
-
-    tracks/track/regulation/main/main/lanes/second/ {
-        min-height: 10;
-        priority: 1;
-    }
-""");
+export procedure regulation_track_styles(track_id, track_display_order) {
+    setup_track(track_id, track_display_order);
+    set_track_style(track_id, "", ["min-height"], ["80"]);
+    set_track_style(track_id, "main/main/", ["type"], ["stack"]);
+    set_track_style(track_id, "main/main/lanes/", ["type", "priority"], ["stack", "1"]);
+    set_track_style(track_id, "main/main/lanes/first/", ["min-height", "priority"], ["10", "0"]);
+    set_track_style(track_id, "main/main/lanes/second/", ["min-height", "priority"], ["10", "1"]);
 }
 
 /* Drawing code */

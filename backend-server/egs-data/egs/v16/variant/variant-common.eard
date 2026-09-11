@@ -27,10 +27,7 @@ export function sv_colours() {
     ]
 }
 
-export procedure variant_summary_track(track_id, track_label, track_datafile) {
-    let req = request("self()", "variant-summary");
-    scope(req, "datafile", track_datafile);
-    let data = get_data(req);
+procedure variant_summary_data(track_id, track_label, data) {
     halt(only_warm());
 
     let values = data_number(data, "values");
@@ -51,4 +48,15 @@ export procedure variant_summary_track(track_id, track_label, track_datafile) {
 
     /* draw track furniture */
     draw_track_furniture(track_id, track_label, "V");
+}
+
+export procedure variant_summary_track(track_id, track_label, track_datafile) {
+    let req = request("self()", "variant-summary");
+    scope(req, "datafile", track_datafile);
+    variant_summary_data(track_id, track_label, get_data(req));
+}
+
+export procedure focus_variant_summary_track(track_id, track_label) {
+    let req = request("self()", "variant-summary");
+    variant_summary_data(track_id, track_label, get_data(req));
 }

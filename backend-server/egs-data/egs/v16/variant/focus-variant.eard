@@ -84,7 +84,6 @@ let (focus_genome_id,focus_variant_id) = focus_variant_settings();
 /* Get data */
 
 let req = request("self()", "variant-details");
-scope(req, "datafile", "variant-details.bb");
 let data = get_data(req);
 halt(only_warm());
 

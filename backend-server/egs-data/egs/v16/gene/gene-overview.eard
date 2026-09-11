@@ -9,7 +9,6 @@ include "gene-common-visual.eard";
 /* Set style */
 
 track_styles();
-gene_styles();
 
 style!("""
     **/main/main/ {
@@ -33,6 +32,10 @@ style!("""
 /* Get data */
 
 let (focus_genome_id,focus_gene_id) = focus_gene_settings();
+let track_id = setting_string("track_id", []);
+let track_name = setting_string("track_name", []);
+let track_display_order = setting_string("display_order", []);
+setup_track(track_id, track_display_order);
 
 /* this track uses two endpoints: gene-overview has the main data, but we also blank out the
  * track in the focus region for focs genes, so need to know where the focus gene is. */
@@ -76,11 +79,7 @@ let gene.leaf_index = allocate_genes_to_leaf_index(*gene);
 
 /* Calculate leafs */
 
-let leaf.bgd = make_gene_leafs("main/background/content",enabled_tracks);
-let leaf.letter = make_gene_leafs("main/letter/content",enabled_tracks);
-let leaf.trackname = make_gene_leafs("title/content",enabled_tracks);
-let leaf.main = make_gene_leafs("main/main/content",enabled_tracks);
-let gene.leaf = index(leaf.main,gene.leaf_index);
+let gene.leaf = [track_leaf(track_id, "main/main/content"), ...];
 
 /* Find focus gene by extent/track and blank it */
 let gene.is_focus = (
@@ -94,12 +93,6 @@ let gene.leaf = set(gene.leaf,gene.is_focus,[leaf(""),...]);
 paint = paint_solid(gene_colour());
 rectangle(coord(gene.start,[0,...],[-0.5,...]),coord(gene.end,[5,...],[0.5,...]),paint,gene.leaf);
 
-/* Draw chevrons */
-
-draw_track_chevrons(*leaf);
-draw_sidebar_chevrons(*leaf);
-
 /* Draw track furniture */
 
-draw_gene_track_names(*leaf);
-draw_gene_track_category(*leaf);
+draw_track_furniture(track_id, track_name, "G");
