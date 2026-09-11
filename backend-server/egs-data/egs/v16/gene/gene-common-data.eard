@@ -1,25 +1,5 @@
-/* Settings */
-
-export function enabled_gene_tracks() {
-    [
-        setting_boolean("other-rev",[]),
-        setting_boolean("pc-rev",[]),
-        setting_boolean("other-fwd",[]),
-        setting_boolean("pc-fwd",[])
-    ]
-}
-
 export function enabled_focus_gene_track() {
     setting_boolean("focus",[])
-}
-
-export function enabled_gene_labels() {
-    [
-        setting_boolean("other-rev-label",[]),
-        setting_boolean("pc-rev-label",[]),
-        setting_boolean("other-fwd-label",[]),
-        setting_boolean("pc-fwd-label",[])
-    ]
 }
 
 export function enabled_focus_gene_labels() {
@@ -40,15 +20,6 @@ export function enabled_transcript_labels() {
 export function enabled_focus_transcript_labels() {
     [
         setting_boolean("focus-transcript-label",[])
-    ]
-}
-
-export function enabled_several_transcripts() {
-    [
-        setting_boolean("other-rev-several",[]),
-        setting_boolean("pc-rev-several",[]),
-        setting_boolean("other-fwd-several",[]),
-        setting_boolean("pc-fwd-several",[])
     ]
 }
 

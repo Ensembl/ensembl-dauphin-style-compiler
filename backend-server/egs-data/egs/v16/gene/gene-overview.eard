@@ -36,6 +36,7 @@ let track_id = setting_string("track_id", []);
 let track_name = setting_string("track_name", []);
 let track_display_order = setting_string("display_order", []);
 setup_track(track_id, track_display_order);
+set_track_style(track_id, "", ["min-height"], ["92"]);
 
 /* this track uses two endpoints: gene-overview has the main data, but we also blank out the
  * track in the focus region for focs genes, so need to know where the focus gene is. */
@@ -63,8 +64,6 @@ let focus_gene.start = data_number(focus_data,"starts");
 let focus_gene.end = focus_gene.start + data_number(focus_data,"lengths");
 let focus_gene.biotype = data_string(focus_data,"gene_biotypes");
 let focus_gene.id_unversioned = data_string(focus_data,"gene_id");
-
-let enabled_tracks = enabled_gene_tracks();
 
 /* Find start and end of focus gene */
 
