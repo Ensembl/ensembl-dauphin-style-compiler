@@ -14,7 +14,6 @@ class Species(object):
         self.genome_id = genome_id
         self.chromosomes = {}
         self._tags = []
-        self._chromosome_sizes: dict[str, int] | None = None
 
     def _load_metadata(self, data_accessor, variety, chr, missing_ok=False):
         item = AccessItem(variety, genome=self.genome_id, chromosome=chr)
@@ -29,14 +28,12 @@ class Species(object):
                 raise RequestException("cannot find checksum '{}'".format(chr))
         return checksum
 
-    def _load_chromosome_sizes(self, data_accessor) -> dict[str, int]:
-        if self._chromosome_sizes is None:
-            item = AccessItem("chrom-sizes", genome=self.genome_id)
-            accessor = data_accessor.resolver.get(item)
-            if accessor is None:
-                raise RequestException("cannot resolve chromosome sizes metadata")
-            self._chromosome_sizes = accessor.get_top_regions()
-        return self._chromosome_sizes
+    def _load_chromosome_size(self, data_accessor, checksum: str) -> int:
+        item = AccessItem("chrom-sizes", genome=self.genome_id, chromosome=checksum)
+        accessor = data_accessor.resolver.get(item)
+        if accessor is None:
+            raise RequestException("cannot resolve chromosome size metadata")
+        return accessor.get_length()
 
     def _load_chromosome(self, data_accessor, stick: str):
         """
@@ -51,9 +48,7 @@ class Species(object):
         (genome, chr) = stick.split(':')
         hash_value = self._load_metadata(data_accessor, "chrom-hashes", chr, missing_ok=True)
         if hash_value is not None:
-            size = self._load_chromosome_sizes(data_accessor).get(chr)
-            if size is None:
-                raise RequestException("cannot find chromosome size '{}'".format(chr))
+            size = self._load_chromosome_size(data_accessor, hash_value)
             return Chromosome(chr, size, hash_value, self, self._tags)
         else:
             return None

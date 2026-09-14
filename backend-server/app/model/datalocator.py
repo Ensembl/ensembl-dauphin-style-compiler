@@ -80,12 +80,49 @@ class RefgetAccessMethod(AccessMethod):
          item (AccessItem):
      """
 
-    def __init__(self, refget_url: str, item: AccessItem):
+    def __init__(self, refget_url: str, item: AccessItem, cache=None):
         super().__init__()
         if not refget_url.endswith("/"):
             refget_url += "/"
         self.item = item
         self.url = refget_url + item.chromosome
+        self._cache = cache
+
+    def get_length(self) -> int:
+        """Return the validated sequence length from the Refget metadata endpoint."""
+        cache_key = ["refget-length", self.item.chromosome]
+        if self._cache is not None:
+            cached = self._cache.get_metadata(cache_key)
+            if isinstance(cached, int) and not isinstance(cached, bool) and cached > 0:
+                return cached
+
+        metadata_url = self.url + "/metadata"
+        try:
+            response = requests.get(metadata_url, timeout=5)
+        except requests.RequestException as error:
+            raise RequestException(
+                f"Refget metadata request failed for '{self.item.chromosome}': {error}"
+            ) from error
+        if response.status_code > 299:
+            raise RequestException(
+                f"Refget metadata request failed for '{self.item.chromosome}': {response.status_code}"
+            )
+        try:
+            payload = response.json()
+        except ValueError as error:
+            raise RequestException(
+                f"Refget metadata response is not JSON for '{self.item.chromosome}'"
+            ) from error
+
+        metadata = payload.get("metadata") if isinstance(payload, dict) else None
+        length = metadata.get("length") if isinstance(metadata, dict) else None
+        if not isinstance(length, int) or isinstance(length, bool) or length <= 0:
+            raise RequestException(
+                f"Refget metadata response has invalid length for '{self.item.chromosome}'"
+            )
+        if self._cache is not None:
+            self._cache.set_metadata(cache_key, length)
+        return length
 
     def get(self, offset: Optional[int] = None, size: Optional[int] = None):
         """
@@ -118,7 +155,6 @@ class MetadataApiClient:
         self._url = metadata_url.rstrip("/") + "/" if metadata_url else None
         self._cache = cache
         self._checksums: dict[tuple[str, str], str | None] = {}
-        self._top_regions: dict[str, dict[str, int]] = {}
 
     def _url_for(self, path: str) -> str:
         if not self._url:
@@ -169,52 +205,6 @@ class MetadataApiClient:
         self._cache_set(cache_key, checksum)
         return checksum
 
-    def get_top_regions(self, genome: str) -> dict[str, int]:
-        if genome in self._top_regions:
-            return self._top_regions[genome]
-
-        cache_key = ["top-regions", genome]
-        cached = self._cache_get(cache_key)
-        if isinstance(cached, dict) and all(
-            isinstance(name, str) and bool(name) and isinstance(length, int)
-            and not isinstance(length, bool) and length > 0
-            for name, length in cached.items()
-        ):
-            self._top_regions[genome] = cached
-            return cached
-
-        try:
-            response = requests.get(self._url_for(f"genome/{genome}/top-regions"), timeout=5)
-        except requests.RequestException as error:
-            raise RequestException(f"Metadata top-regions request failed for '{genome}': {error}") from error
-        if response.status_code > 299:
-            raise RequestException(
-                f"Metadata top-regions request failed for '{genome}': {response.status_code}"
-            )
-        try:
-            payload = response.json()
-        except ValueError as error:
-            raise RequestException(f"Metadata top-regions response is not JSON for '{genome}'") from error
-        if not isinstance(payload, list):
-            raise RequestException(f"Metadata top-regions response is not a list for '{genome}'")
-
-        top_regions = {}
-        for entry in payload:
-            if not isinstance(entry, dict):
-                raise RequestException(f"Metadata top-regions entry is invalid for '{genome}'")
-            name = entry.get("name")
-            length = entry.get("length")
-            if not isinstance(name, str) or not name or not isinstance(length, int) or isinstance(length, bool) or length <= 0:
-                raise RequestException(f"Metadata top-regions entry has invalid name or length for '{genome}'")
-            if name in top_regions:
-                raise RequestException(f"Metadata top-regions has duplicate chromosome '{name}' for '{genome}'")
-            top_regions[name] = length
-
-        self._top_regions[genome] = top_regions
-        self._cache_set(cache_key, top_regions)
-        return top_regions
-
-
 class MetadataAccessMethod(AccessMethod):
     def __init__(self, client: MetadataApiClient, item: AccessItem):
         super().__init__()
@@ -223,9 +213,6 @@ class MetadataAccessMethod(AccessMethod):
 
     def get_checksum(self):
         return self._client.get_checksum(self.item.genome, self.item.chromosome)
-
-    def get_top_regions(self):
-        return self._client.get_top_regions(self.item.genome)
 
 
 class UrlAccessMethod(AccessMethod):
@@ -323,6 +310,7 @@ class S3DataSource(object):
         self.url = data.get("url", None)
         self.refget_url = data.get("refget_url", None)
         self.metadata_url = data.get("metadata_url", None)
+        self._cache = cache
         self.metadata = MetadataApiClient(self.metadata_url, cache)
         if self.url is None:
             logging.critical("S3 driver config missing url")
@@ -331,8 +319,8 @@ class S3DataSource(object):
         if item.filepath is not None:
             method = UrlAccessMethod(self.url, item)
         elif is_md5(item.chromosome):
-            method = RefgetAccessMethod(refget_url=self.refget_url, item=item)
-        elif item.variety in ("chrom-hashes", "chrom-sizes"):
+            method = RefgetAccessMethod(refget_url=self.refget_url, item=item, cache=self._cache)
+        elif item.variety == "chrom-hashes":
             method = MetadataAccessMethod(self.metadata, item=item)
         else:
             raise RequestException(f"Unsupported S3 datasource variety '{item.variety}'")
@@ -349,6 +337,7 @@ class FileDataSource(object):
         self.root = data.get("root", None)
         self.refget_url = data.get("refget_url", None)
         self.metadata_url = data.get("metadata_url", None)
+        self._cache = cache
         self.metadata = MetadataApiClient(self.metadata_url, cache)
         if self.root is None:
             logging.critical("File driver config missing root")
@@ -365,8 +354,8 @@ class FileDataSource(object):
         if item.filepath is not None:
             method = FileAccessMethod(self.root, item)
         elif is_md5(item.chromosome):
-            method = RefgetAccessMethod(refget_url=self.refget_url, item=item)
-        elif item.variety in ("chrom-hashes", "chrom-sizes"):
+            method = RefgetAccessMethod(refget_url=self.refget_url, item=item, cache=self._cache)
+        elif item.variety == "chrom-hashes":
             method = MetadataAccessMethod(self.metadata, item=item)
         else:
             raise RequestException(f"Unsupported file datasource variety '{item.variety}'")
