@@ -16,11 +16,13 @@ limitations under the License.
 """
 
 from fastapi import FastAPI
-from prometheus_fastapi_instrumentator import Instrumentator, metrics
 from starlette.middleware.cors import CORSMiddleware
 
 from api.resources.routes import router
-from core.config import API_PREFIX, ALLOWED_HOSTS, VERSION, PROJECT_NAME, DEBUG
+from core.config import API_PREFIX, ALLOWED_HOSTS, VERSION, PROJECT_NAME, DEBUG, PROMETHEUS_ENABLED
+
+if PROMETHEUS_ENABLED:
+    from prometheus_fastapi_instrumentator import Instrumentator, metrics
 
 LATENCY_BUCKETS = (
     0.01,
@@ -54,9 +56,10 @@ def get_application() -> FastAPI:
 
     application.include_router(router, prefix=API_PREFIX)
 
-    Instrumentator(excluded_handlers=["/metrics"]).add(
-        metrics.default(latency_lowr_buckets=LATENCY_BUCKETS)
-    ).instrument(application).expose(application, include_in_schema=False)
+    if PROMETHEUS_ENABLED:
+        Instrumentator(excluded_handlers=["/metrics"]).add(
+            metrics.default(latency_lowr_buckets=LATENCY_BUCKETS)
+        ).instrument(application).expose(application, include_in_schema=False)
 
     return application
 

@@ -41,6 +41,7 @@ STARTUP_WAIT = config("STARTUP_WAIT",default=2.0,cast=float)
 time.sleep(STARTUP_WAIT)
 
 DEBUG: bool = config("DEBUG", cast=bool, default=False)
+PROMETHEUS_ENABLED: bool = config("PROMETHEUS_ENABLED", cast=bool, default=True)
 
 LOG_HOST = config("LOG_HOST",default=None)
 LOG_PORT = int(config("LOG_PORT",default=514))
