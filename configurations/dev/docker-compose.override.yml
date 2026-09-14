@@ -12,6 +12,7 @@ services:
             - LOG_PORT=11601
             - STARTUP_WAIT=10
             - TELEGRAF_HOST=telegraf
+            - PROMETHEUS_ENABLED=false
         volumes:
             - ../../backend-server:/usr/src/app
 
@@ -23,6 +24,7 @@ services:
             - LOG_PORT=11601
             - STARTUP_WAIT=10
             - TELEGRAF_HOST=telegraf
+            - PROMETHEUS_ENABLED=false
         volumes:
             - ../../backend-server:/usr/src/app
 
