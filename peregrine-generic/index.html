@@ -16,12 +16,6 @@
       </div>
       <div class="sidebar" id="sidebar">
         <div id="clock" style="font-size: 60px"></div>
-        <!--
-        <div>
-          bigger text <input id="bigger" type="checkbox"><br> 
-          labels <input id="id-labels" type="checkbox">
-        </div>
-        -->
         <div>
           <button id="clock-button">clock</button>
           <button id="jump-snv">focus SNV</button>
@@ -30,7 +24,7 @@
           <button id="jump-indel">focus indel</button>
           <button id="jump-tr">jump transcript</button>
           <button id="jump-mapk10">jump MAPK10</button>
-          <button id="jump-wheat">jump wheat</button>
+          <button id="jump-zebrafish">jump zebrafish</button>
           <button id="focus-region">focus region</button>
           <button id="unload">unload</button>
           <button id="toggle-all-tr">toggle all tr</button>
@@ -384,10 +378,6 @@
         });
 
         /* Add listeners to interface buttons */
-
-        //document.getElementById("bigger").onclick = flipper(["settings","bigger"]);
-        //document.getElementById("id-labels").onclick = flipper(["track","gene-pc-fwd","label","id"]);
-
         document.getElementById("jump-snv").onclick = jump_variant.bind(this, "rs699", 1, 230710048);
         document.getElementById("jump-del").onclick = jump_variant.bind(this, "rs1557469781", 1, 1176408);
         document.getElementById("jump-del").onclick = jump_variant.bind(this, "rs1557469781", 1, 1176408);
@@ -400,8 +390,8 @@
         document.getElementById("jump-mapk10").onclick = function() {
           jump_gene("ENSG00000109339"); //MAPK10 gene (100+ transcripts)
         };
-        document.getElementById("jump-wheat").onclick = function() {
-          jump_gene("TraesCS2A02G049300.1", "d763a0c7-9b8e-4cbd-9cbd-5a1f0b3c8c83");
+        document.getElementById("jump-zebrafish").onclick = function() {
+          jump_gene("ENSDARG00000024771", "b29f62e6-992e-4049-a26b-b6bd673c51e7");
         };
         document.getElementById("toggle-all-tr").onclick = toggle_all_tr;
         document.getElementById("focus-region").onclick = function() {
@@ -434,24 +424,21 @@
         genome_browser.switch(["ruler", "one_based"], true);
         genome_browser.switch(["settings","tab-selected"], "G");
         //genome_browser.switch(["settings", "no-padding"], true); //disable left/right side margins
-        init_tracks(["focus", "238393ed-0f93-45ae-a91e-491b1c3a0b40"]);
-        // Check track UUIDs: https://staging-2020.ensembl.org/api/tracks/track_categories/59871324-7803-4234-856e-2a2bd96d7b3c
-
-        //Human
-        //jump_variant("rs1557469781", 1, 1176408);
+        init_tracks(["focus", "fd9fbfa9-b1af-4703-8479-a73d09c962bd", "60fde6d4-c819-4379-b7cc-1499ff7f81bd"]);
+        // Genomes in S3: 59871324-7803-4234-856e-2a2bd96d7b3c (Human GRCh38), 
+        // 95f2577d-ce59-4a64-9e5b-ec8069370234 (Human HG00735), b29f62e6-992e-4049-a26b-b6bd673c51e7 (Zebrafish)
+        // Track IDs: https://staging-2020.ensembl.org/api/tracks/track_categories/<genome_uuid>
+        /* Navigate to a location/feature (choose one below) */
         //goto: location
         //jump_location("13", 86000000, 86500000);
         //goto: variant
         //jump_variant("rs1557469781", 1, 1176408);
         //goto: gene
-        jump_gene("ENSG00000221914"); //PPP2R2A (example gene in human ref.)
-        //jump_gene("ENSG05220032026", "4c07817b-c7c5-463f-8624-982286bc4355"); //MAPK10 (human T2T)
+        jump_gene("ENSG00000221914"); //PPP2R2A (example gene in human)
+        //jump_gene("ENSG00000109339"); //MAPK10 (>100 transcripts)
+        //jump_gene("ENSDARG00000024771", "b29f62e6-992e-4049-a26b-b6bd673c51e7"); //example gene in zebrafish
         //goto: transcript
         //jump_transcript("ENST00000380152");
-
-        //Pig
-        //init_tracks("fc33bc3c-f30b-4059-b003-012a4898186c"); //repeat elements
-        //jump_location("14", 10150673, 10329385, "da38d82b-df50-419b-af74-886463b7bfa3");
       });
     </script>
   </body>
