@@ -1,0 +1,50 @@
+program "ensembl-webteam/core" "expression" 1;
+refer "libperegrine";
+refer "libeoe";
+include "../common/track-common.eard";
+include "../common/track-style.eard";
+
+let track_id = setting_string("track_id", []);
+let track_name = setting_string("track_name", []);
+setup_track(track_id, setting_string("display_order", []));
+
+/* Halve the plot height while preserving space for the labels. */
+set_track_style(track_id, "", ["min-height", "padding-top", "padding-bottom"], ["40", "8", "40"]);
+set_track_style(track_id, "title/", ["min-height", "padding-top", "padding-bottom"], ["20", "0", "0"]);
+set_track_style(track_id, "main/", ["min-height"], ["30"]);
+set_track_style(track_id, "main/main/", ["depth"], ["1"]);
+set_track_style(track_id, "main/axis/", ["system", "depth", "bump-height"], ["content", "2", "none"]);
+set_track_style(track_id, "main/axis-labels/", ["system", "depth", "bump-height"], ["content", "58", "none"]);
+
+let req = request("self()", "expression");
+scope(req, "datafile", setting_string("datafile", []));
+let data = get_data(req);
+halt(only_warm());
+
+let values = data_number(data, "values");
+let range = data_number(data, "range");
+let start = index(range, 0);
+let step = (index(range, 1) - start) / max(len(values), 1);
+let starts = enumerate([len(values)]) * step + start;
+let bars = paint_solid(colour!("#ffedc2"));
+rectangle(coord(starts, [0,...], [0,...]), coord(starts + step, values * 30 / 1000, [0,...]), bars, [track_leaf(track_id, "main/main/content"),...]);
+
+/* Keep the grid and labels in screen coordinates when panning. */
+let axis = track_leaf(track_id, "main/axis/content");
+let grid = paint_dotted([colour!("transparent"),...], [colour!("#d6dde3"),...], 4, 1, 0.5);
+rectangle(coord([0,...], [10,20,30], [0,...]), coord([1,...], [10,20,30], [-96,...]), grid, [axis,...]);
+let baseline = paint_solid(colour!("#fbb44b"));
+rectangle(coord([0], [0], [0]), coord([1], [1], [-96]), baseline, [axis,...]);
+let axis_pen = pen("'IBM Plex Mono', sans-serif", -10, [colour!("#9aa7b1"),...], [colour!("transparent"),...]);
+text(coord([1,...], [-3,7,17,27], [-8,...]), axis_pen, ["0", ">100", ">1,000", ">10,000"], [track_leaf(track_id, "main/axis-labels/content"),...]);
+
+/* Reserve label space over genomic bars; the plot itself stays 30px tall. */
+let blank = paint_solid(colour!("white"));
+set_track_style(track_id, "main/axis-mask/", ["system", "depth", "bump-height"], ["content", "55", "none"]);
+rectangle(coord([1], [0], [-96]), coord([1], [30], [0]), blank, [track_leaf(track_id, "main/axis-mask/content"),...]);
+empty(coord([0], [0], [0]), coord([1], [30], [0]), [track_leaf(track_id, "main/main/content"),...]);
+let name_leaf = if(setting_boolean("name", []), track_leaf(track_id, "title/content"), leaf(""));
+let name_pen = pen("'IBM Plex Mono', sans-serif", 12, [colour!("#9aa7b1"),...], [colour!("transparent"),...]);
+text(coord([0], [0], [8]), name_pen, [track_name], [name_leaf,...]);
+empty(coord([0], [0], [0]), coord([1], [20], [0]), [track_leaf(track_id, "title/content"),...]);
+draw_track_category(["G"], [track_id], [track_leaf(track_id, "main/letter/content")]);
