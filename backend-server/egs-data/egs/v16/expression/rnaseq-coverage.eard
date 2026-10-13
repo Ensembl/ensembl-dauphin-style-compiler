@@ -1,4 +1,4 @@
-program "ensembl-webteam/core" "coverage" 1;
+program "ensembl-webteam/core" "rnaseq-coverage" 1;
 refer "libperegrine";
 refer "libeoe";
 include "../common/track-common.eard";
@@ -17,7 +17,7 @@ set_track_style(track_id, "main/main/", ["depth"], ["1"]);
 set_track_style(track_id, "main/axis-labels/", ["system", "depth", "bump-height"], ["content", "58", "none"]);
 set_track_style(track_id, "main/axis/", ["system", "depth", "bump-height"], ["content", "2", "none"]);
 
-let req = request("self()", "coverage");
+let req = request("self()", "rnaseq_coverage");
 scope(req, "datafile", setting_string("datafile", []));
 let data = get_data(req);
 halt(only_warm());
