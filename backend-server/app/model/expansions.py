@@ -18,7 +18,7 @@ class Expansions:
 
     @staticmethod
     def _load_profiles() -> tuple[dict[tuple[str, ...], dict], dict[str, dict]]:
-        """Load fallback track metadata from toml file."""
+        """Load fallback track metadata profiles for legacy tracks."""
         config = toml.load(TRACK_FALLBACK_PROFILES_TOML)
         profiles = config.get("profile", {})
         out = {}
@@ -172,12 +172,9 @@ class Expansions:
             raise ExpansionMetadataError(
                 f"Invalid datafile path for track '{data.get('track_id', '<unknown>')}': {e}"
             ) from e
+        # Only legacy tracks use the trigger value (to select a fallback profile)
         trigger = data.get("trigger")
         profile = self._profiles.get(tuple(trigger)) if isinstance(trigger, list) else None
-        if profile is None and isinstance(trigger, list) and trigger[:2] != ["track", "expand"]:
-            raise ExpansionMetadataError(
-                f"No fallback profile for track '{data.get('track_id', '<unknown>')}' trigger {trigger!r}"
-            )
         specs = self._profile_specs(data, profile) if profile else self._generic_specs(data)
         for spec in specs:
             track = self._create_track(data, spec)
