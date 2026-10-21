@@ -101,7 +101,7 @@ class ExpansionHandler(Handler):
             (name,step) = payload
             callable = self._get(data_accessor,channel,name,version)
             if callable is not None:
-                tracks = callable(step)
+                tracks = callable(step, data_accessor.cache)
                 r.add_tracks(tracks)
             return r
         except (ExpansionMetadataError, TrackApiError) as e:

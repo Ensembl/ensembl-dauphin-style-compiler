@@ -90,7 +90,7 @@ draw_focus_sidebar_chevrons(index(gene.strand,focus_gene_index),*leaf);
 
 /* Draw track furniture */
 
-draw_track_category(["G"],["focus"],[leaf.letter]);
+draw_track_category(["G"],[leaf.letter]);
 draw_track_name(join(" ",[focus_gene.name,focus_gene_id]),"name",leaf.trackname);
 draw_swatch(colour!("#58a8f9"),[leaf.letter]);
 

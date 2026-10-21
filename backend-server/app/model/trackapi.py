@@ -48,6 +48,43 @@ class TrackApiClient:
             raise TrackApiError(f"Invalid track_categories payload for genome '{genome_id}'")
         return categories
 
+    def get_transcriptomic_configuration(self, genome_id: str, dataset_id: str) -> dict:
+        try:
+            response = requests.get(
+                f"{self._host}/configuration/{genome_id}/transcriptomic",
+                params={"dataset_id": dataset_id}, timeout=5,
+            )
+            response.raise_for_status()
+            payload = response.json()
+        except (requests.exceptions.RequestException, ValueError) as error:
+            raise TrackApiError(
+                f"Track API configuration request failed for genome '{genome_id}': {error}"
+            ) from error
+        if (not isinstance(payload, dict) or payload.get("genome_id") != genome_id
+                or payload.get("dataset_id") != dataset_id):
+            raise TrackApiError("Transcriptomic configuration does not match the requested genome/dataset")
+        return payload
+
+    def get_tracks(self, track_ids: list[str]) -> list[dict]:
+        """Fetch track metadata for a batch of track IDs."""
+        tracks = []
+        for start in range(0, len(track_ids), 100):
+            batch = track_ids[start:start + 100]
+            try:
+                response = requests.get(
+                    f"{self._host}/track", params={"track_ids": ",".join(batch)}, timeout=5,
+                )
+                response.raise_for_status()
+                payload = response.json()
+                records = payload["tracks"]
+                if (not isinstance(records, list) or len(records) != len(batch)
+                        or {record["track_id"] for record in records} != set(batch)):
+                    raise ValueError("Bulk response does not match the requested UUIDs")
+            except (requests.exceptions.RequestException, KeyError, TypeError, ValueError) as error:
+                raise TrackApiError(f"Track API bulk request failed: {error}") from error
+            tracks.extend(records)
+        return tracks
+
 
 class TrackDatafileResolver:
     """Resolve boot focus-track endpoints to Track API datafiles for one genome."""

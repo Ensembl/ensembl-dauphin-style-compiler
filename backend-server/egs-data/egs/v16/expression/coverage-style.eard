@@ -1,0 +1,15 @@
+// Place transcriptomic tracks as a stack of lanes in a wrapper container.
+export procedure setup_coverage_track_styles(group_id, display_order) {
+    track_styles();
+    set_track_style(group_id, "", ["type", "priority", "min-height", "padding-top", "padding-bottom", "height-adjust"], ["overlay", display_order, "0", "0", "0", "none"]);
+    set_track_style(group_id, "lanes/", ["type"], ["stack"]);
+}
+
+export procedure setup_coverage_lane_styles(lane_id, track_id, lane_order) {
+    set_track_style(lane_id, "", ["priority", "report", "padding-top", "padding-bottom"], [lane_order, push_str("track;switch-id=", track_id), "8", "40"]);
+    set_track_style(lane_id, "title/", ["system", "type", "indent", "priority", "min-height"], ["content", "overlay", "left", "-1000", "20"]);
+    set_track_style(lane_id, "main/", ["type", "priority", "min-height"], ["overlay", "0", "30"]);
+    set_track_style(lane_id, "main/main/", ["system", "depth"], ["tracking", "1"]);
+    set_track_style(lane_id, "main/axis-labels/", ["system", "depth", "bump-height"], ["content", "58", "none"]);
+    set_track_style(lane_id, "main/axis/", ["system", "depth", "bump-height"], ["content", "2", "none"]);
+}

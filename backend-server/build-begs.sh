@@ -7,6 +7,7 @@ eard-compiler \
     -c $SRC/other/framing.eard -c $SRC/other/gc.eard -c $SRC/other/contig.eard \
     -c $SRC/other/zoomed-seq.eard \
     -c $SRC/expression/rnaseq-coverage.eard \
+    -c $SRC/expression/rnaseq-coverage-furniture.eard \
     -c $SRC/variant/variant-summary.eard -c $SRC/variant/variant-details.eard \
     -c $SRC/other/ruler.eard -c $SRC/gene/gene-overview.eard -c $SRC/gene/gene.eard \
     -c $SRC/gene/focus-gene.eard -c $SRC/gene/focus-gene-dots.eard -c $SRC/gene/focus-transcript-dots.eard \

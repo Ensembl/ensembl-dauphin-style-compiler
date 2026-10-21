@@ -141,7 +141,7 @@ class ExpansionTrackFilepathTests(unittest.TestCase):
 class ExpansionHandlerTests(unittest.TestCase):
     def test_track_api_error_is_returned_as_an_expansion_error(self):
         class FailingExpansions:
-            def register_track(self, _track_id):
+            def register_track(self, _track_id, _cache):
                 raise TrackApiError("Track API request failed")
 
         class BootTracks:
@@ -156,6 +156,7 @@ class ExpansionHandlerTests(unittest.TestCase):
 
         class DataAccessor:
             boot_tracks = {16: BootTracks()}
+            cache = None
 
         class Version:
             @staticmethod

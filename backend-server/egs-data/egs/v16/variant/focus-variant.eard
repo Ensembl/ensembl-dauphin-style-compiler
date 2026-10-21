@@ -264,6 +264,6 @@ polygon(
 
 /* Draw track furniture */
 
-draw_track_category(["V"], ["focus-variant"], [leaf.letter]);
+draw_track_category(["V"], [leaf.letter]);
 draw_track_name(focus_variant_id, "name", leaf.trackname);
 draw_swatch(colour!("#58a8f9"), [leaf.letter]);
