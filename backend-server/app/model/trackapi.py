@@ -48,11 +48,11 @@ class TrackApiClient:
             raise TrackApiError(f"Invalid track_categories payload for genome '{genome_id}'")
         return categories
 
-    def get_transcriptomic_configuration(self, genome_id: str, dataset_id: str) -> dict:
+    def get_transcriptomic_configuration(self, genome_id: str) -> dict:
         try:
             response = requests.get(
                 f"{self._host}/configuration/{genome_id}/transcriptomic",
-                params={"dataset_id": dataset_id}, timeout=5,
+                timeout=5,
             )
             response.raise_for_status()
             payload = response.json()
@@ -60,9 +60,8 @@ class TrackApiClient:
             raise TrackApiError(
                 f"Track API configuration request failed for genome '{genome_id}': {error}"
             ) from error
-        if (not isinstance(payload, dict) or payload.get("genome_id") != genome_id
-                or payload.get("dataset_id") != dataset_id):
-            raise TrackApiError("Transcriptomic configuration does not match the requested genome/dataset")
+        if (not isinstance(payload, dict) or payload.get("genome_id") != genome_id):
+            raise TrackApiError("Transcriptomic configuration does not match the requested genome")
         return payload
 
     def get_tracks(self, track_ids: list[str]) -> list[dict]:
