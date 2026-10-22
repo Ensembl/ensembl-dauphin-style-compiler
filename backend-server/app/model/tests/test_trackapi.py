@@ -96,23 +96,23 @@ class TrackApiClientTests(unittest.TestCase):
                 self.client().get_track_categories("genome-id")
 
     def test_configuration_request_pins_dataset_and_checks_scope(self):
-        payload = {"genome_id": "genome", "dataset_id": "dataset", "selections": []}
+        payload = {"genome_id": "genome", "selections": []}
         with patch("model.trackapi.requests.get", return_value=Mock(json=Mock(return_value=payload))) as get:
-            self.assertEqual(self.client().get_transcriptomic_configuration("genome", "dataset"), payload)
+            self.assertEqual(self.client().get_transcriptomic_configuration("genome"), payload)
             get.assert_called_once_with(
                 "https://track-api.example/configuration/genome/transcriptomic",
-                params={"dataset_id": "dataset"}, timeout=5,
+                timeout=5,
             )
-            for wrong_scope in ({**payload, "genome_id": "other"}, {**payload, "dataset_id": "other"}):
+            for wrong_scope in ({**payload, "genome_id": "other"},):
                 get.return_value.json.return_value = wrong_scope
                 with self.assertRaisesRegex(TrackApiError, "does not match"):
-                    self.client().get_transcriptomic_configuration("genome", "dataset")
+                    self.client().get_transcriptomic_configuration("genome")
 
     def test_configuration_failures_are_normalized(self):
         for error in (requests.exceptions.Timeout("timeout"), ValueError("invalid JSON")):
             with patch("model.trackapi.requests.get", side_effect=error):
                 with self.assertRaisesRegex(TrackApiError, "configuration request failed"):
-                    self.client().get_transcriptomic_configuration("genome", "dataset")
+                    self.client().get_transcriptomic_configuration("genome")
 
     def test_bulk_metadata_is_requested_in_batches_of_at_most_100(self):
         ids = [f"track-{index}" for index in range(201)]

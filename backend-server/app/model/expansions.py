@@ -198,11 +198,11 @@ class Expansions:
                 cached = self._cached_catalogue(track_id, cache)
                 if cached is not None:
                     return self._create_coverage_tracks(cached)
-                if not data.get("genome_id") or not data.get("dataset_id"):
-                    raise ExpansionMetadataError("Transcriptomic track has no genome_id/dataset_id")
-                genome_id, dataset_id = data["genome_id"], data["dataset_id"]
+                if not data.get("genome_id"):
+                    raise ExpansionMetadataError("Transcriptomic track has no genome_id")
+                genome_id = data["genome_id"]
                 catalogue = self._track_api.get_transcriptomic_configuration(
-                    genome_id, dataset_id
+                    genome_id
                 )
                 track_ids = self._catalogue_track_ids(catalogue)
                 records = self._coverage_records(
@@ -214,19 +214,19 @@ class Expansions:
                     )
                 tracks = self._create_coverage_tracks(records)
                 if cache is not None:
-                    cache.set_metadata(self._catalogue_key(genome_id, dataset_id), records)
+                    cache.set_metadata(self._catalogue_key(genome_id), records)
                     for record in records:
                         cache.set_metadata(
-                            self._member_key(record["track_id"]), [genome_id, dataset_id]
+                            self._member_key(record["track_id"]), [genome_id]
                         )
                 return tracks
         return self._create_track_set(data)
 
     def _member_key(self, track_id):
-        return ["transcriptomic-lanes-v2", self._track_api._host, "track", track_id]
+        return ["transcriptomic-lanes-v3", self._track_api._host, "track", track_id]
 
-    def _catalogue_key(self, genome_id, dataset_id):
-        return ["transcriptomic-lanes-v2", self._track_api._host, genome_id, dataset_id]
+    def _catalogue_key(self, genome_id):
+        return ["transcriptomic-lanes-v3", self._track_api._host, genome_id]
 
     def _cached_catalogue(self, track_id, cache):
         if cache is None:
@@ -260,9 +260,8 @@ class Expansions:
                     "lane_order", "datafiles", "settings",
                 )}
                 record["datafiles"] = dict(record["datafiles"])
-                if (record["genome_id"] != catalogue["genome_id"]
-                        or record["dataset_id"] != catalogue["dataset_id"]):
-                    raise ValueError("Coverage track does not match catalogue genome/dataset")
+                if record["genome_id"] != catalogue["genome_id"]:
+                    raise ValueError("Coverage track does not match catalogue genome")
                 if set(record["datafiles"]) != {"rnaseq-coverage"}:
                     raise ValueError("Expected one RNA-seq coverage datafile")
                 if type(record["lane_order"]) is not int or record["lane_order"] < 0:
@@ -287,7 +286,7 @@ class Expansions:
     def _create_coverage_tracks(self, records: list[dict]) -> Tracks:
         tracks = Tracks()
         first = records[0]
-        group_id = f"transcriptomic-{first['genome_id']}-{first['dataset_id']}"
+        group_id = f"transcriptomic-{first['genome_id']}"
         for record in records:
             lanes = self._create_track_set(record)
             for lane in lanes._tracks.values():
