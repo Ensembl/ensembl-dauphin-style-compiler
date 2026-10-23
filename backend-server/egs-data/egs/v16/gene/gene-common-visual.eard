@@ -55,7 +55,7 @@ export function gene_track_name_setting() {
 
 export procedure draw_gene_track_furniture(track_id,track_name) {
     draw_track_name(track_name,gene_track_name_setting(),track_leaf(track_id,"title/content"));
-    draw_track_category(["G"],[track_id],[track_leaf(track_id,"main/letter/content")]);
+    draw_track_category(["G"],[track_leaf(track_id,"main/letter/content")]);
 }
 
 let num_chevrons = 40;

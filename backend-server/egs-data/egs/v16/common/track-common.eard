@@ -17,18 +17,6 @@ struct!(variety_trackhover,"""
     }
 """);
 
-function contents_trackhover(track_ids) {
-    struct!(contents_trackhover,"""
-(<0>!
-    {
-        "track": <0s>
-    }
-)
-""",
-    track_ids);
-   contents_trackhover 
-}
-
 export procedure draw_swatch(colour,leaf) {
     let paint = paint_solid(colour);
     let enough_zeros = repeat(0,len(leaf));
@@ -37,7 +25,7 @@ export procedure draw_swatch(colour,leaf) {
 
 /* Draw the G, V, etc in the left margin. Admits multiple tracks, so needs a seq in the last arg
  */
-export procedure draw_track_category(category,track_ids,leafs) {
+export procedure draw_track_category(category,leafs) {
     capture variety_trackhover;
 
     let cat_text_size = 12;
@@ -55,7 +43,7 @@ export procedure draw_track_category(category,track_ids,leafs) {
 
     /* Create a hotspot zone for tooltip hover */
     let buffer = 5; // px
-    let hotspot = paint_click(variety_trackhover,contents_trackhover(track_ids),true);
+    let hotspot = paint_click(variety_trackhover,eoe_null(),true);
     rectangle(coord(enough_zeros,[5-buffer,...],[16-buffer,...]),coord(enough_zeros,[17+buffer,...],[28+buffer,...]),hotspot,leafs);
 
     /* Draw grey swatch */
@@ -109,5 +97,5 @@ export procedure draw_rectangles(track_id, start, end, y_start, y_end, colour, z
 
 export procedure draw_track_furniture(track_id, track_name, category) {
   draw_track_name(track_name, "name", track_leaf(track_id,"title/content"));
-  draw_track_category([category], [track_id], [track_leaf(track_id,"main/letter/content")]);
+  draw_track_category([category], [track_leaf(track_id,"main/letter/content")]);
 }

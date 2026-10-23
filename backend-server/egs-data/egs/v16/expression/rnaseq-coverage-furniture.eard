@@ -1,0 +1,13 @@
+program "ensembl-webteam/core" "rnaseq-coverage-furniture" 1;
+refer "libperegrine";
+refer "libeoe";
+include "../common/track-common.eard";
+include "../common/track-style.eard";
+include "coverage-style.eard";
+
+let group_id = setting_string("group_id", []);
+setup_coverage_track_styles(group_id, setting_string("display_order", []));
+set_track_style(group_id, "furniture/", ["system", "depth", "indent", "bump-height", "padding-top"], ["content", "60", "datum(pad-left)", "none", "28"]);
+halt(only_warm());
+// The track category label is only drawn at the top of the track stack
+draw_track_category(["G"], [track_leaf(group_id, "furniture/content")]);

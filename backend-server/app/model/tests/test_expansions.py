@@ -84,12 +84,35 @@ class ExpansionTrackFilepathTests(unittest.TestCase):
         for track in templates["gene"]["track"]:
             self.assertEqual(track["settings"]["expanded"], ["buttons"])
 
-    def test_fixed_trigger_without_a_profile_is_rejected(self):
-        payload = track_payload("tracks/track-uuid/variants.bb")
-        payload["trigger"] = ["track", "legacy-track"]
+    def test_legacy_track_profiles_use_the_correct_programs(self):
+        profiles, templates = Expansions._load_profiles()
+        gene_programs = ["gene-overview", "gene", "transcript", "zoomed-transcript", "zoomed-transcript"]
+        expected = {
+            "gene-pc-fwd": ("gene", gene_programs),
+            "gene-pc-rev": ("gene", gene_programs),
+            "gene-other-fwd": ("gene", gene_programs),
+            "gene-other-rev": ("gene", gene_programs),
+            "gc": ("gc", ["gc"]),
+            "regulation": ("regulation", ["regulation"]),
+            "contig": ("contig", ["contig", "contig", "zoomed-seq"]),
+        }
+        self.assertEqual(set(profiles), {("track", name) for name in expected})
+        for name, (datafile_key, programs) in expected.items():
+            with self.subTest(profile=name):
+                payload = {
+                    "track_id": "legacy-uuid",
+                    "trigger": ["track", name],
+                    "datafiles": {datafile_key: "tracks/legacy-uuid/data.bb"},
+                    "settings": {},
+                }
+                expansion = self.expansion_with_payload(payload)
+                expansion._profiles, expansion._templates = profiles, templates
 
-        with self.assertRaisesRegex(ExpansionMetadataError, "No fallback profile"):
-            self.expansion_with_payload(payload).register_track("track-uuid")
+                tracks = expansion.register_track("legacy-uuid")
+
+                self.assertEqual([track._program_name for track in tracks._tracks.values()], programs)
+                for track in tracks._tracks.values():
+                    self.assertEqual(track._triggers, [("track", "expand", "legacy-uuid")])
 
     def test_simple_feature_datafiles_use_their_subtype_program(self):
         for subtype in ("cpg", "trna", "tssp"):
@@ -118,7 +141,7 @@ class ExpansionTrackFilepathTests(unittest.TestCase):
 class ExpansionHandlerTests(unittest.TestCase):
     def test_track_api_error_is_returned_as_an_expansion_error(self):
         class FailingExpansions:
-            def register_track(self, _track_id):
+            def register_track(self, _track_id, _cache):
                 raise TrackApiError("Track API request failed")
 
         class BootTracks:
@@ -133,6 +156,7 @@ class ExpansionHandlerTests(unittest.TestCase):
 
         class DataAccessor:
             boot_tracks = {16: BootTracks()}
+            cache = None
 
         class Version:
             @staticmethod
