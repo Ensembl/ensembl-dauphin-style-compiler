@@ -25,6 +25,7 @@ from starlette.responses import Response
 import cbor2
 from cbor2 import CBOREncoder
 from command.packet import process_packet
+from command.packetvalidation import is_valid_channel, is_valid_command_payload
 from io import BytesIO
 
 router = APIRouter()
@@ -74,15 +75,7 @@ def decode_packet(body: bytes) -> dict:
     if "channel" not in packet or "requests" not in packet:
         raise HTTPException(status_code=400, detail="Missing channel or requests")
 
-    channel = packet["channel"]
-    # Older command-line clients send a channel string instead of a pair.
-    legacy_channel = isinstance(channel, str) and len(channel) >= 2
-    channel_pair = (
-        isinstance(channel, (list, tuple))
-        and len(channel) == 2
-        and all(isinstance(part, str) for part in channel)
-    )
-    if not (legacy_channel or channel_pair):
+    if not is_valid_channel(packet["channel"]):
         raise HTTPException(status_code=400, detail="Invalid channel")
 
     requests = packet["requests"]
@@ -97,6 +90,11 @@ def decode_packet(body: bytes) -> dict:
             raise HTTPException(
                 status_code=400,
                 detail="Each request must contain a non-negative integer ID, command type and payload",
+            )
+        if not is_valid_command_payload(request[1], request[2]):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid payload for command {request[1]}",
             )
 
     version = packet.get("version")
