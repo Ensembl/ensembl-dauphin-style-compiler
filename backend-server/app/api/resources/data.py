@@ -20,10 +20,6 @@ import logging
 from typing import Any
 from enum import Enum
 from fastapi import APIRouter, HTTPException
-from loguru import logger
-from starlette import responses
-from starlette.datastructures import Headers
-from starlette.status import HTTP_404_NOT_FOUND
 from starlette.requests import Request
 from starlette.responses import Response
 import cbor2
@@ -62,6 +58,57 @@ class PacketPriority(str, Enum):
     hi = "hi"
     lo = "lo"
 
+
+def decode_packet(body: bytes) -> dict:
+    """Decode one CBOR packet and validate its envelope before dispatch."""
+    stream = BytesIO(body)
+    try:
+        packet = cbor2.load(stream)
+    except cbor2.CBORDecodeError:
+        raise HTTPException(status_code=400, detail="Invalid CBOR body") from None
+
+    if not isinstance(packet, dict):
+        raise HTTPException(status_code=400, detail="Expected a CBOR map")
+    if stream.read(1):
+        raise HTTPException(status_code=400, detail="Unexpected data after CBOR packet")
+    if "channel" not in packet or "requests" not in packet:
+        raise HTTPException(status_code=400, detail="Missing channel or requests")
+
+    channel = packet["channel"]
+    # Older command-line clients send a channel string instead of a pair.
+    legacy_channel = isinstance(channel, str) and len(channel) >= 2
+    channel_pair = (
+        isinstance(channel, (list, tuple))
+        and len(channel) == 2
+        and all(isinstance(part, str) for part in channel)
+    )
+    if not (legacy_channel or channel_pair):
+        raise HTTPException(status_code=400, detail="Invalid channel")
+
+    requests = packet["requests"]
+    if not isinstance(requests, (list, tuple)):
+        raise HTTPException(status_code=400, detail="Expected a requests array")
+    for request in requests:
+        if (
+            not isinstance(request, (list, tuple))
+            or len(request) != 3
+            or any(type(value) is not int or value < 0 for value in request[:2])
+        ):
+            raise HTTPException(
+                status_code=400,
+                detail="Each request must contain a non-negative integer ID, command type and payload",
+            )
+
+    version = packet.get("version")
+    if version is not None and (
+        not isinstance(version, dict)
+        or type(version.get("egs", 0)) is not int
+        or version.get("egs", 0) < 0
+    ):
+        raise HTTPException(status_code=400, detail="Invalid version")
+    return packet
+
+
 @router.post("/{priority}", name="data")
 async def data(priority: PacketPriority, request: Request):
     """
@@ -69,11 +116,22 @@ async def data(priority: PacketPriority, request: Request):
     allow deployment routers to partition small, low latency packets from larger
     packets with fewer latency requeiments to route them to different resources.
     """
-    headers = Headers()
     body = b''
     async for chunk in request.stream():
         body += chunk
-    input_data = cbor2.loads(body)
+    try:
+        input_data = decode_packet(body)
+    except HTTPException as exc:
+        logging.warning(
+            "Rejected data packet: reason=%r priority=%s bytes=%d stamp=%r request_id=%r referer=%r",
+            exc.detail,
+            priority.value,
+            len(body),
+            request.query_params.get("stamp", "")[:128],
+            request.headers.get("x-request-id", "")[:128],
+            request.headers.get("referer", "")[:512],
+        )
+        raise
     (responses,programs,eardos,channel,tracks) = process_packet(input_data,priority=="hi")
     body = build_response(responses,programs,eardos,channel,tracks)
     return Response(content=body,media_type="application/cbor")
