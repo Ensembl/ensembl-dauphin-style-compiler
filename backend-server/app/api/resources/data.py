@@ -64,8 +64,8 @@ def decode_packet(body: bytes) -> dict:
     stream = BytesIO(body)
     try:
         packet = cbor2.load(stream)
-    except cbor2.CBORDecodeError:
-        raise HTTPException(status_code=400, detail="Invalid CBOR body") from None
+    except (cbor2.CBORDecodeError, ValueError, TypeError, ArithmeticError, RecursionError) as exc:
+        raise HTTPException(status_code=400, detail="Invalid CBOR body") from exc
 
     if not isinstance(packet, dict):
         raise HTTPException(status_code=400, detail="Expected a CBOR map")
@@ -122,9 +122,13 @@ async def data(priority: PacketPriority, request: Request):
     try:
         input_data = decode_packet(body)
     except HTTPException as exc:
+        decoder_error = exc.__cause__
         logging.warning(
-            "Rejected data packet: reason=%r priority=%s bytes=%d stamp=%r request_id=%r referer=%r",
+            "Rejected data packet: reason=%r decoder_error_type=%s decoder_error=%r "
+            "priority=%s bytes=%d stamp=%r request_id=%r referer=%r",
             exc.detail,
+            type(decoder_error).__name__ if decoder_error is not None else None,
+            str(decoder_error)[:512] if decoder_error is not None else None,
             priority.value,
             len(body),
             request.query_params.get("stamp", "")[:128],

@@ -45,6 +45,36 @@ class DataPacketValidationTests(unittest.TestCase):
             with self.subTest(body=body):
                 self.assert_rejected(body, "Invalid CBOR body")
 
+    def test_invalid_semantic_tags_are_rejected(self):
+        for tag in (
+            cbor2.CBORTag(35, None),
+            cbor2.CBORTag(4, ["invalid", 1]),
+            cbor2.CBORTag(4, [0, "invalid"]),
+        ):
+            with self.subTest(tag=tag):
+                packet = dict(self.packet, requests=[[0, 0, tag]])
+                self.assert_rejected(cbor2.dumps(packet), "Invalid CBOR body")
+
+    def test_excessive_nesting_is_rejected(self):
+        self.assert_rejected(b"\x81" * 2000 + b"\xf6", "Invalid CBOR body")
+
+    def test_decoder_resource_errors_are_not_reclassified_as_bad_requests(self):
+        with patch("api.resources.data.cbor2.load", side_effect=MemoryError("out of memory")):
+            with self.assertRaisesRegex(MemoryError, "out of memory"):
+                self.client.post("/api/data/hi", data=cbor2.dumps(self.packet))
+
+    def test_unexpected_decoder_errors_return_server_errors(self):
+        client = TestClient(self.client.app, raise_server_exceptions=False)
+        for error_type in (RuntimeError, KeyError, MemoryError):
+            with self.subTest(error_type=error_type):
+                with patch("api.resources.data.cbor2.load", side_effect=error_type("decoder failure")):
+                    with patch("api.resources.data.process_packet") as process:
+                        with patch("api.resources.data.logging.warning") as warning:
+                            response = client.post("/api/data/hi", data=cbor2.dumps(self.packet))
+                self.assertEqual(response.status_code, 500)
+                process.assert_not_called()
+                warning.assert_not_called()
+
     def test_non_map_cbor_values_are_rejected(self):
         for value in ("channel", b"channel", [], 1, 1.5, True, None):
             with self.subTest(value=value):
@@ -140,10 +170,31 @@ class DataPacketValidationTests(unittest.TestCase):
             self.assertIn(value, message)
         self.assertNotIn("malformed-payload-content", message)
 
+    def test_rejection_log_preserves_decoder_exception_type_and_message(self):
+        for body in (
+            b"\xa1",
+            cbor2.dumps(cbor2.CBORTag(35, None)),
+            cbor2.dumps(cbor2.CBORTag(4, ["invalid", 1])),
+            cbor2.dumps(cbor2.CBORTag(4, [0, "invalid"])),
+        ):
+            with self.subTest(body=body):
+                with self.assertRaises(Exception) as original:
+                    cbor2.loads(body)
+                with patch("api.resources.data.logging.warning") as warning:
+                    response = self.client.post("/api/data/hi", data=body)
+                self.assertEqual(response.status_code, 400)
+                self.assertEqual(response.json(), {"detail": "Invalid CBOR body"})
+                warning.assert_called_once()
+                message = warning.call_args.args[0] % warning.call_args.args[1:]
+                self.assertIn("decoder_error_type=" + type(original.exception).__name__, message)
+                self.assertIn("decoder_error=" + repr(str(original.exception)), message)
+
     def test_backend_errors_are_not_reclassified_as_bad_requests(self):
-        with patch("api.resources.data.process_packet", side_effect=TypeError("backend bug")):
-            with self.assertRaisesRegex(TypeError, "backend bug"):
-                self.client.post("/api/data/hi", data=cbor2.dumps(self.packet))
+        for error_type in (TypeError, ValueError, ArithmeticError, RecursionError):
+            with self.subTest(error_type=error_type):
+                with patch("api.resources.data.process_packet", side_effect=error_type("backend bug")):
+                    with self.assertRaisesRegex(error_type, "backend bug"):
+                        self.client.post("/api/data/hi", data=cbor2.dumps(self.packet))
 
 
 if __name__ == "__main__":
