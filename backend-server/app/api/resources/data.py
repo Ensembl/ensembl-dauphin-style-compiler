@@ -26,6 +26,7 @@ import cbor2
 from cbor2 import CBOREncoder
 from command.packet import process_packet
 from command.packetvalidation import is_valid_channel, is_valid_command_payload
+from core.exceptions import UpstreamRequestError
 from io import BytesIO
 
 router = APIRouter()
@@ -134,6 +135,18 @@ async def data(priority: PacketPriority, request: Request):
             request.headers.get("referer", "")[:512],
         )
         raise
-    (responses,programs,eardos,channel,tracks) = process_packet(input_data,priority=="hi")
+    try:
+        (responses,programs,eardos,channel,tracks) = process_packet(input_data,priority=="hi")
+    except UpstreamRequestError as exc:
+        logging.warning(
+            "Upstream request failed: service=%r method=%s upstream_url=%r upstream_status=%r "
+            "detail=%r response_status=%d incoming_url=%r stamp=%r request_id=%r referer=%r",
+            exc.service, exc.method, exc.url[:2048], exc.upstream_status, exc.detail,
+            exc.status_code, str(request.url)[:2048],
+            request.query_params.get("stamp", "")[:128],
+            request.headers.get("x-request-id", "")[:128],
+            request.headers.get("referer", "")[:1024],
+        )
+        raise HTTPException(status_code=exc.status_code, detail=f"{exc.service} request failed") from None
     body = build_response(responses,programs,eardos,channel,tracks)
     return Response(content=body,media_type="application/cbor")

@@ -1,8 +1,9 @@
-import requests
 import toml
 
 from core.config import SOURCES_TOML
+from core.exceptions import UpstreamRequestError
 from model.datalocator import TrackFilepathError, validate_track_filepath
+from model.upstream import request_json
 
 
 class TrackApiError(Exception):
@@ -18,34 +19,22 @@ class TrackApiClient:
         self._host = config["apis"].get("track_api", "localhost").rstrip("/")
 
     def get_track(self, track_id: str) -> dict:
-        try:
-            response = requests.get(f"{self._host}/track/{track_id}", timeout=5)
-        except requests.exceptions.RequestException as error:
-            raise TrackApiError(
-                f"Track API request failed for track '{track_id}': {error}"
-            ) from error
-        if response.status_code != requests.codes.ok:
-            raise TrackApiError(f"Track API request failed for track '{track_id}': {response.reason}")
-        track = response.json()
-        if track.get("track_id") != track_id:
-            raise TrackApiError(f"Track {track_id} not found in Track API payload")
+        url = f"{self._host}/track/{track_id}"
+        track = request_json("Track API", "GET", url, invalid_request_statuses=(400, 404, 422))
+        if not isinstance(track, dict) or track.get("track_id") != track_id:
+            raise UpstreamRequestError(
+                "Track API", "GET", url, "Response does not contain the requested track", upstream_status=200,
+            )
         return track
 
     def get_track_categories(self, genome_id: str) -> list[dict]:
-        try:
-            response = requests.get(f"{self._host}/track_categories/{genome_id}", timeout=5)
-        except requests.exceptions.RequestException as error:
-            raise TrackApiError(
-                f"Track API request failed for genome '{genome_id}': {error}"
-            ) from error
-        if response.status_code != requests.codes.ok:
-            raise TrackApiError(
-                f"Track API request failed for genome '{genome_id}': {response.reason}"
-            )
-        payload = response.json()
-        categories = payload.get("track_categories")
+        url = f"{self._host}/track_categories/{genome_id}"
+        payload = request_json("Track API", "GET", url, invalid_request_statuses=(400, 404, 422))
+        categories = payload.get("track_categories") if isinstance(payload, dict) else None
         if not isinstance(categories, list):
-            raise TrackApiError(f"Invalid track_categories payload for genome '{genome_id}'")
+            raise UpstreamRequestError(
+                "Track API", "GET", url, "Invalid track_categories response", upstream_status=200,
+            )
         return categories
 
 

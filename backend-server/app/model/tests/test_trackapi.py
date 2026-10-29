@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 import requests
 
+from core.exceptions import UpstreamRequestError
 from model.trackapi import TrackApiClient, TrackApiError, TrackDatafileResolver
 
 
@@ -75,22 +76,22 @@ class TrackApiClientTests(unittest.TestCase):
 
     def test_track_request_transport_error_is_normalized(self):
         with patch(
-            "model.trackapi.requests.get",
+            "model.upstream.requests.get",
             side_effect=requests.exceptions.Timeout("request timed out"),
         ):
             with self.assertRaisesRegex(
-                TrackApiError,
-                "Track API request failed for track 'track-id': request timed out",
+                UpstreamRequestError,
+                "Track API GET https://track-api.example/track/track-id: no response: request timed out",
             ):
                 self.client().get_track("track-id")
 
     def test_track_categories_transport_error_is_normalized(self):
         with patch(
-            "model.trackapi.requests.get",
+            "model.upstream.requests.get",
             side_effect=requests.exceptions.ConnectionError("connection refused"),
         ):
             with self.assertRaisesRegex(
-                TrackApiError,
-                "Track API request failed for genome 'genome-id': connection refused",
+                UpstreamRequestError,
+                "Track API GET https://track-api.example/track_categories/genome-id: no response: connection refused",
             ):
                 self.client().get_track_categories("genome-id")

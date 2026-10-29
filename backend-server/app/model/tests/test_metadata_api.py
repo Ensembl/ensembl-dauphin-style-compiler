@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import patch
 import requests
 
-from core.exceptions import RequestException
+from core.exceptions import UpstreamRequestError
 from model.datalocator import (
     AccessItem,
     FileDataSource,
@@ -43,12 +43,12 @@ class RefgetMetadataTests(unittest.TestCase):
         first = RefgetAccessMethod("https://refget.example/sequence", AccessItem("chrom-sizes", "genome", "a" * 32), cache)
         response = FakeResponse(200, payload={"metadata": {"length": 10}})
 
-        with patch("model.datalocator.requests.get", return_value=response) as get:
+        with patch("model.upstream.requests.get", return_value=response) as get:
             self.assertEqual(first.get_length(), 10)
             get.assert_called_once_with(f"https://refget.example/sequence/{'a' * 32}/metadata", timeout=5)
 
         second = RefgetAccessMethod("https://refget.example/sequence", AccessItem("chrom-sizes", "genome", "a" * 32), cache)
-        with patch("model.datalocator.requests.get") as get:
+        with patch("model.upstream.requests.get") as get:
             self.assertEqual(second.get_length(), 10)
             get.assert_not_called()
 
@@ -56,13 +56,13 @@ class RefgetMetadataTests(unittest.TestCase):
         cache = FakeCache()
         first = MetadataApiClient("https://metadata.example/api/metadata", cache)
 
-        with patch("model.datalocator.requests.get", return_value=FakeResponse(404)) as get:
+        with patch("model.upstream.requests.get", return_value=FakeResponse(404)) as get:
             self.assertIsNone(first.get_checksum("genome", "missing"))
             self.assertIsNone(first.get_checksum("genome", "missing"))
             self.assertEqual(get.call_count, 1)
 
         second = MetadataApiClient("https://metadata.example/api/metadata", cache)
-        with patch("model.datalocator.requests.get") as get:
+        with patch("model.upstream.requests.get") as get:
             self.assertIsNone(second.get_checksum("genome", "missing"))
             get.assert_not_called()
 
@@ -81,23 +81,23 @@ class RefgetMetadataTests(unittest.TestCase):
         ]
         for payload in invalid_payloads:
             with self.subTest(payload=payload):
-                with patch("model.datalocator.requests.get", return_value=FakeResponse(200, payload=payload)):
-                    with self.assertRaises(RequestException):
+                with patch("model.upstream.requests.get", return_value=FakeResponse(200, payload=payload)):
+                    with self.assertRaises(UpstreamRequestError):
                         client.get_length()
 
         self.assertEqual(cache.values, {})
 
-    def test_refget_metadata_errors_raise_request_exception(self):
+    def test_refget_metadata_errors_raise_upstream_error(self):
         client = RefgetAccessMethod("https://refget.example/sequence", AccessItem("chrom-sizes", "genome", "a" * 32))
 
-        with patch("model.datalocator.requests.get", side_effect=requests.Timeout("timed out")):
-            with self.assertRaises(RequestException):
+        with patch("model.upstream.requests.get", side_effect=requests.Timeout("timed out")):
+            with self.assertRaises(UpstreamRequestError):
                 client.get_length()
-        with patch("model.datalocator.requests.get", return_value=FakeResponse(404)):
-            with self.assertRaises(RequestException):
+        with patch("model.upstream.requests.get", return_value=FakeResponse(404)):
+            with self.assertRaises(UpstreamRequestError):
                 client.get_length()
-        with patch("model.datalocator.requests.get", return_value=FakeResponse(200, payload=ValueError())):
-            with self.assertRaises(RequestException):
+        with patch("model.upstream.requests.get", return_value=FakeResponse(200, payload=ValueError())):
+            with self.assertRaises(UpstreamRequestError):
                 client.get_length()
 
 
