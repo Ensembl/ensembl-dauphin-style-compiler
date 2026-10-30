@@ -1,10 +1,8 @@
-import logging
-import requests
+from core.exceptions import UpstreamRequestError
+from model.upstream import request_json
 import toml
 
 from core.config import SOURCES_TOML
-
-logger = logging.getLogger('CoreAPIClient')
 
 class CoreApiClient:
     """
@@ -93,32 +91,28 @@ query GeneLocation($genomeId: String!, $geneId: String!) {
             },
         }
 
-        try:
-            response = requests.post(self._core_api_url, json=payload, timeout=5)
-            response.raise_for_status()
-            body = response.json()
-        except Exception as e:
-            logger.warning(
-                "Core API %s lookup failed for '%s' (%s): %s",
-                feature_type,
-                feature_id,
-                genome_id,
-                e,
+        body = request_json("Core API", "POST", self._core_api_url, json=payload)
+        if not isinstance(body, dict) or body.get("errors"):
+            raise UpstreamRequestError(
+                "Core API", "POST", self._core_api_url,
+                body.get("errors") if isinstance(body, dict) else "Invalid GraphQL response",
+                upstream_status=200,
             )
-            return empty_location
 
-        if body.get("errors"):
-            logger.warning(
-                "Core API %s lookup returned GraphQL errors for '%s': %s",
-                feature_type,
-                feature_id,
-                body.get("errors"),
+        data = body.get("data")
+        if data is None:
+            return empty_location
+        if not isinstance(data, dict):
+            raise UpstreamRequestError(
+                "Core API", "POST", self._core_api_url, "Invalid GraphQL data", upstream_status=200,
             )
-            return empty_location
-
-        feature = body.get("data", {}).get(feature_type)
+        feature = data.get(feature_type)
         if not feature:
             return empty_location
+        if not isinstance(feature, dict):
+            raise UpstreamRequestError(
+                "Core API", "POST", self._core_api_url, "Invalid GraphQL feature", upstream_status=200,
+            )
 
         return self._extract_location(genome_id, feature)
 

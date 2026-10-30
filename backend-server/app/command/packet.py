@@ -1,5 +1,4 @@
 import collections
-import imp
 import logging
 
 from.smallvaluecmd import SmallValueHandler
@@ -9,8 +8,9 @@ from command.response import Response
 from command.coremodel import Handler
 from model.tracks import Tracks
 import cbor2
-import urllib
-from typing import Any, List, Tuple
+from core.exceptions import UpstreamRequestError
+from model.upstream import request_upstream
+from typing import Any, Tuple
 from .datasources import DataAccessor, DataAccessorCollection
 from .controlcmds import BootstrapHandler, ProgramHandler, ErrorHandler, StickHandler, ExpansionHandler
 from .metriccmd import MetricHandler
@@ -49,8 +49,21 @@ def do_request_remote(url,channel,messages, high_priority: bool, version: Versio
     })
     upstream = url + "/" + suffix
     logging.debug("delegating to {0}".format(upstream))
-    with urllib.request.urlopen(upstream,data=request) as response:
-        return cbor2.loads(response.read())
+    response = request_upstream(
+        "Genome Browser", "POST", upstream, data=request, timeout=30,
+        headers={"Content-Type": "application/cbor"}, invalid_request_statuses=(400, 416, 422),
+    )
+    try:
+        packet = cbor2.loads(response.content)
+    except (cbor2.CBORDecodeError, TypeError, ValueError, ArithmeticError, RecursionError) as error:
+        raise UpstreamRequestError(
+            "Genome Browser", "POST", upstream, "Invalid CBOR response", upstream_status=response.status_code,
+        ) from error
+    if not isinstance(packet, dict) or not isinstance(packet.get("responses"), (list, tuple)):
+        raise UpstreamRequestError(
+            "Genome Browser", "POST", upstream, "Invalid packet response", upstream_status=response.status_code,
+        )
+    return packet
 
 def extract_remote_request(data_accessor: DataAccessor, typ: int, payload: Any):
     handler = type_to_handler(typ)

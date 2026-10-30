@@ -3,8 +3,8 @@ from pathlib import PurePosixPath
 from typing import Any, Optional
 import toml
 from core.config import SOURCES_TOML
-from core.exceptions import RequestException
-import requests
+from core.exceptions import RequestException, UpstreamRequestError
+from model.upstream import request_json, request_upstream
 
 
 def is_md5(checksum):
@@ -97,28 +97,14 @@ class RefgetAccessMethod(AccessMethod):
                 return cached
 
         metadata_url = self.url + "/metadata"
-        try:
-            response = requests.get(metadata_url, timeout=5)
-        except requests.RequestException as error:
-            raise RequestException(
-                f"Refget metadata request failed for '{self.item.chromosome}': {error}"
-            ) from error
-        if response.status_code > 299:
-            raise RequestException(
-                f"Refget metadata request failed for '{self.item.chromosome}': {response.status_code}"
-            )
-        try:
-            payload = response.json()
-        except ValueError as error:
-            raise RequestException(
-                f"Refget metadata response is not JSON for '{self.item.chromosome}'"
-            ) from error
+        payload = request_json("Refget", "GET", metadata_url)
 
         metadata = payload.get("metadata") if isinstance(payload, dict) else None
         length = metadata.get("length") if isinstance(metadata, dict) else None
         if not isinstance(length, int) or isinstance(length, bool) or length <= 0:
-            raise RequestException(
-                f"Refget metadata response has invalid length for '{self.item.chromosome}'"
+            raise UpstreamRequestError(
+                "Refget", "GET", metadata_url, "Metadata response has invalid sequence length",
+                upstream_status=200,
             )
         if self._cache is not None:
             self._cache.set_metadata(cache_key, length)
@@ -135,14 +121,12 @@ class RefgetAccessMethod(AccessMethod):
             Content of the response, in bytes.
         """
 
-        headers = {}
         url_range = ""
         if offset is not None:
-            headers["Range"] = "bytes={0}-{1}".format(offset, offset + size)
             url_range = f"?start={offset}&end={offset + size}"
-        response = requests.get(self.url + url_range)
-        if response.status_code > 299:
-            raise RequestException(f"Refget error: {self.url + url_range} => {response.status_code}: {response.text}")
+        response = request_upstream(
+            "Refget", "GET", self.url + url_range, invalid_request_statuses=(400, 416, 422),
+        )
         return response.content
 
 
@@ -182,25 +166,19 @@ class MetadataApiClient:
             self._checksums[key] = cached
             return cached
 
-        try:
-            response = requests.get(
-                self._url_for(f"genome/{genome}/checksum/{chromosome}"), timeout=5
-            )
-        except requests.RequestException as error:
-            raise RequestException(
-                f"Metadata checksum request failed for '{genome}:{chromosome}': {error}"
-            ) from error
-        if response.status_code == requests.codes.not_found:
+        url = self._url_for(f"genome/{genome}/checksum/{chromosome}")
+        response = request_upstream(
+            "Metadata API", "GET", url, allowed_statuses=(404,), invalid_request_statuses=(400, 422),
+        )
+        if response.status_code == 404:
             self._checksums[key] = None
             self._cache_set(cache_key, self._CHECKSUM_MISSING)
             return None
-        if response.status_code > 299:
-            raise RequestException(
-                f"Metadata checksum request failed for '{genome}:{chromosome}': {response.status_code}"
-            )
         checksum = response.text.strip()
         if not checksum:
-            raise RequestException(f"Metadata checksum response is empty for '{genome}:{chromosome}'")
+            raise UpstreamRequestError(
+                "Metadata API", "GET", url, "Checksum response is empty", upstream_status=200,
+            )
         self._checksums[key] = checksum
         self._cache_set(cache_key, checksum)
         return checksum
@@ -244,9 +222,7 @@ class UrlAccessMethod(AccessMethod):
         headers = {}
         if offset is not None:
             headers["Range"] = "bytes={0}-{1}".format(offset, offset + size)
-        response = requests.get(self.url, headers=headers)
-        if response.status_code > 299:
-            raise RequestException("bad data")
+        response = request_upstream("Data source", "GET", self.url, headers=headers)
         return response.content
 
 class FileAccessMethod(AccessMethod):
