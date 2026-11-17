@@ -13,6 +13,7 @@ from data.v16.regulation import RegulationDataHandler
 from data.v16.contig import ShimmerContigDataHandler16
 from data.v16.contig import ContigDataHandler16
 from data.v16.gc import GCWiggleDataHandler
+from data.v16.rnaseq_coverage import CoverageDataHandler
 from data.v16.conservation_scores import ConservationScoresWiggleDataHandler
 from data.v16.sequence import ZoomedSeqDataHandler16
 from data.v16.gene.genedata import TranscriptDataHandler16
@@ -29,6 +30,7 @@ handlers = [
     ("transcript", TranscriptDataHandler16(), 16),
     ("zoomed-seq", ZoomedSeqDataHandler16(), 16),
     ("gc", GCWiggleDataHandler(), 16),
+    ("rnaseq_coverage", CoverageDataHandler(), 16),
     ("contig", ContigDataHandler16(), 16),
     ("shimmer-contig", ShimmerContigDataHandler16(), 16),
     ("variant-summary", VariantSummaryDataHandler(), 16),

@@ -1,6 +1,5 @@
-# Presentation fallbacks for Track API records which used to be boot tracks.
-# The trigger is a stable Track API identity; generated tracks always use the
-# expansion UUID switch instead.
+# Temporary fallback profiles for legacy Track API tracks (used to be part of boot.toml).
+# Remove once these profiles have been migrated to Track API.
 
 [profile.gene-pc-fwd]
 trigger = ["track", "gene-pc-fwd"]
@@ -30,8 +29,6 @@ template = "gene"
 datafile_key = "gene"
 gene_setting = "other-rev"
 
-# Shared five-scale renderer family for the four gene designation/strand
-# profiles. Placeholders are resolved from profile.variables.
 [template.gene]
 
 [[template.gene.track]]
