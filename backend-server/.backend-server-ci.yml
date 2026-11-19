@@ -223,6 +223,7 @@ Setup Review:
     - kubectl apply -k .
 
 Stop Review:
+  stage: deploy
   image: dockerhub.ebi.ac.uk/ensembl-web/deploy-tools:latest
   resource_group: review/$CI_COMMIT_REF_SLUG
   rules:
