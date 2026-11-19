@@ -172,7 +172,15 @@ Review:Setup:
   variables:
     AGENT: ${DEV_AGENT}
     NS: ${CI_COMMIT_REF_SLUG}
-  rules: # Run only when a new branch is created
+    FORCE_REVIEW_SETUP:
+    value: "false"
+    options:
+      - "true"
+      - "false"
+    description: "Force the setup of the review environment. This is only applicable to feature branches."
+  rules: # Run only when a new branch is created or when FORCE_REVIEW_SETUP is set to true
+    - if: $CI_COMMIT_BRANCH && $CI_COMMIT_BRANCH != "main" && $FORCE_REVIEW_SETUP == "true"
+      when: always
     - if: $CI_PIPELINE_SOURCE == "push" && 
           $CI_COMMIT_BEFORE_SHA == "0000000000000000000000000000000000000000"
       when: on_success
