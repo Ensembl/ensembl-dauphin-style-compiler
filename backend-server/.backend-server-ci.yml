@@ -1,7 +1,16 @@
+include:
+  - project: 'ensembl-web/ensembl-gitlab-ci-templates'
+    ref: 'main'
+    file: 'security-scan/.ensembl-security-jobs.yaml'
+    inputs:
+      docker_build_job: 'BE-Docker'
+
 stages:
+  - security-scan
   - setup
   - build-eardo
   - build
+  - container-scan
   - deploy
 
 variables:
