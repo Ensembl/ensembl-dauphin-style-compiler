@@ -167,6 +167,7 @@ Deploy Review:
   resource_group: review/$CI_COMMIT_REF_SLUG
   environment:
     name: review/$CI_COMMIT_REF_SLUG
+    on_stop: Stop Review
   variables:
     AGENT: ${REVIEW_AGENT}
     NS: ${CI_COMMIT_REF_SLUG}
