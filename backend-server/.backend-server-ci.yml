@@ -173,11 +173,11 @@ Review:Setup:
     AGENT: ${DEV_AGENT}
     NS: ${CI_COMMIT_REF_SLUG}
     FORCE_REVIEW_SETUP:
-    value: "false"
-    options:
-      - "true"
-      - "false"
-    description: "Force the setup of the review environment. This is only applicable to feature branches."
+      value: "false"
+      options:
+        - "true"
+        - "false"
+      description: "Force the setup of the review environment. This is only applicable to feature branches."
   rules: # Run only when a new branch is created or when FORCE_REVIEW_SETUP is set to true
     - if: $CI_COMMIT_BRANCH && $CI_COMMIT_BRANCH != "main" && $FORCE_REVIEW_SETUP == "true"
       when: always
