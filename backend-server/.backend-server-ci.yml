@@ -236,6 +236,8 @@ Stop Review:
     action: stop
   variables:
     GIT_STRATEGY: none
+    NS: ${CI_COMMIT_REF_SLUG}
+    AGENT: ${DEV_AGENT}
   script:
     - |
       if [ "${REVIEW_NS}" = "ensembl-dev" ]; then
