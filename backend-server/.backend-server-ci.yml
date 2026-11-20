@@ -1,7 +1,16 @@
+include:
+  - project: 'ensembl-web/ensembl-gitlab-ci-templates'
+    ref: 'main'
+    file: 'security-scan/.ensembl-security-jobs.yaml'
+    inputs:
+      docker_build_job: 'BE-Docker'
+
 stages:
+  - security-scan
   - setup
   - build-eardo
   - build
+  - container-scan
   - deploy
 
 variables:
@@ -10,6 +19,12 @@ variables:
   BASE: ensembl-k8s-manifests/genome-browser
   NFS_SERVER: ${HL_NFS_SERVER_CODON}
   NFS_PATH: ${HL_NFS_PATH_CODON}
+  FORCE_REVIEW_SETUP:
+    value: "false"
+    options:
+      - "true"
+      - "false"
+    description: "Force the setup of the review environment. This is only applicable to feature branches."
 
 .build-eardo:
   stage: build-eardo
@@ -147,15 +162,17 @@ Dev:
     AGENT: ${DEV_AGENT}
     NS: ${DEV_NS}
 
-Review:
+Deploy Review:
   extends: .deploy_backend_review
+  resource_group: review/$CI_COMMIT_REF_SLUG
   environment:
-    name: development
+    name: review/$CI_COMMIT_REF_SLUG
+    on_stop: Stop Review
   variables:
     AGENT: ${REVIEW_AGENT}
     NS: ${CI_COMMIT_REF_SLUG}
 
-Review:Setup:
+Setup Review:
   stage: setup
   image: dockerhub.ebi.ac.uk/ensembl-web/deploy-tools:latest
   environment:
@@ -163,15 +180,27 @@ Review:Setup:
   variables:
     AGENT: ${DEV_AGENT}
     NS: ${CI_COMMIT_REF_SLUG}
-  rules: # Run only when a new branch is created
+  rules: # Run only when a new branch is created or when FORCE_REVIEW_SETUP is set to true
+    - if: $CI_COMMIT_BRANCH && $CI_COMMIT_BRANCH != "main" && $FORCE_REVIEW_SETUP == "true"
+      when: always
     - if: $CI_PIPELINE_SOURCE == "push" && 
           $CI_COMMIT_BEFORE_SHA == "0000000000000000000000000000000000000000"
       when: on_success
     - when: never
   before_script:
     - kubectl config use-context ${AGENT}
-    # Check for review namespace and remove ingress for default GB backend
-    - kubectl get namespace ${NS} || (echo "Please create '${NS}' branch in ensembl-client and restart this pipeline" && exit 1)
+    # Check for review namespace, create if it doesn't exist, and remove ingress for default GB backend
+    - kubectl create namespace ${NS} --dry-run=client -o yaml | kubectl apply -f -
+    # Setup ebi dockerhub credentials in review ns (for non-default backend deployments)
+    - |
+      kubectl -n ${NS} create secret docker-registry \
+        ensemblweb-pull-secret \
+        --docker-server=${GITLAB_REGISTRY_URL} \
+        --docker-username=${WEB_PULL_DOCKER_USER} \
+        --docker-password=${WEB_PULL_DOCKER_SECRET} \
+        --docker-email=${WEB_PULL_DOCKER_EMAIL} \
+        --dry-run=client -o yaml | 
+        kubectl -n "${NS}" apply -f -
     - kubectl -n ensembl-dev delete ingress genome-browser-server-ingress-hi-${NS} || true
     - kubectl -n ensembl-dev delete ingress genome-browser-server-ingress-lo-${NS} || true
     - kubectl config set-context --current --namespace=${NS}
@@ -193,3 +222,25 @@ Review:Setup:
     - kubectl apply -k .
     - cp genome-browser/review/lo/*.yaml ./
     - kubectl apply -k .
+
+Stop Review:
+  stage: deploy
+  image: dockerhub.ebi.ac.uk/ensembl-web/deploy-tools:latest
+  resource_group: review/$CI_COMMIT_REF_SLUG
+  rules:
+    - if: $CI_COMMIT_BRANCH && $CI_COMMIT_BRANCH != "main" && $CI_COMMIT_BRANCH != "dev"
+      when: manual
+      allow_failure: true
+  environment:
+    name: review/$CI_COMMIT_REF_SLUG
+    action: stop
+  variables:
+    GIT_STRATEGY: none
+  script:
+    - |
+      if [ "${REVIEW_NS}" = "ensembl-dev" ]; then
+        echo "Refusing to delete protected namespace ensembl-dev" >&2
+        exit 1
+      fi
+    - kubectl config use-context ${AGENT}
+    - kubectl delete namespace ${REVIEW_NS} || echo "Please delete ${REVIEW_NS} branch in Ensembl-client to cleanup the review namespace"
