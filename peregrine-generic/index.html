@@ -378,11 +378,11 @@
         });
 
         /* Add listeners to interface buttons */
-        document.getElementById("jump-snv").onclick = jump_variant.bind(this, "rs699", 1, 230710048);
-        document.getElementById("jump-del").onclick = jump_variant.bind(this, "rs1557469781", 1, 1176408);
-        document.getElementById("jump-del").onclick = jump_variant.bind(this, "rs1557469781", 1, 1176408);
-        document.getElementById("jump-indel").onclick = jump_variant.bind(this, "rs199681827", 1, 46401);
-        document.getElementById("jump-ins").onclick = jump_variant.bind(this, "rs1639760668", 1, 47376);
+        document.getElementById("jump-snv").onclick = function() { jump_variant("rs699", 1, 230710048); };
+        document.getElementById("jump-del").onclick = function() { jump_variant("rs1557469781", 1, 1176408); };
+        document.getElementById("jump-del").onclick = function() { jump_variant("rs1557469781", 1, 1176408); };
+        document.getElementById("jump-indel").onclick = function() { jump_variant("rs199681827", 1, 46401); };
+        document.getElementById("jump-ins").onclick = function() { jump_variant("rs1639760668", 1, 47376); };
 
         document.getElementById("jump-tr").onclick = function() {
           jump_transcript("ENST00000380152"); //BRCA2 canonical transcript
