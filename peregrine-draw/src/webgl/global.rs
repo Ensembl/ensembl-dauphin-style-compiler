@@ -36,7 +36,7 @@ impl WebGlGlobal {
     pub(crate) fn new(commander: &PgCommanderWeb, dom: &PeregrineDom, config: &PgPeregrineConfig) -> Result<WebGlGlobal,Message> {
         let context = dom.canvas()
             .get_context("webgl").map_err(|_| Message::WebGLFailure(format!("cannot get webgl context")))?
-            .unwrap()
+            .ok_or_else(|| Message::WebGLFailure(format!("webgl unavailable: getContext(\"webgl\") returned null (no GPU, or software rendering disabled)")))?
             .dyn_into::<WebGlRenderingContext>().map_err(|_| Message::WebGLFailure(format!("cannot get webgl context")))?;
         let image_cache = ImageCache::new();
         let gpuspec = GPUSpec::new(&context)?;
