@@ -62,6 +62,8 @@ A detailed view can be seen [here](peregrine-guide/developer-requirements.md)
 Three projects need to be cloned in order to develop the browser. These projects need to be cloned to the same root path as they contain relative paths to each other.
 
 1. [ensembl-dauphin-style-compiler](https://github.com/Ensembl/ensembl-dauphin-style-compiler)
+2. [peregrine-eard](https://github.com/Ensembl/peregrine-eard)
+3. [peregrine-eachorevery](https://github.com/Ensembl/peregrine-eachorevery)
 
 ```mermaid
 graph TD
