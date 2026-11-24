@@ -5,6 +5,8 @@ services:
     #
 
     backend-hi:
+        depends_on:
+            - syslog
         environment:
             - THREADS=16
             - DEBUG=1
@@ -17,6 +19,8 @@ services:
             - ../../backend-server:/usr/src/app
 
     backend-lo:
+        depends_on:
+            - syslog
         environment:
             - THREADS=4
             - DEBUG=1
@@ -33,6 +37,8 @@ services:
             - MEMCACHED_MB=512
 
     bump-detector:
+        depends_on:
+            - syslog
         environment:
             - LOG_HOST=syslog
             - LOG_PORT=11601
@@ -43,6 +49,7 @@ services:
 
     syslog:
         build: ../../syslog-container
+        restart: on-failure
         ports:
             - 11601
         volumes:
@@ -55,6 +62,9 @@ services:
 
     nginx:
         build: ../../nginx-container
+        depends_on:
+            - syslog
+        restart: on-failure
         ports:
             - 80:80
         environment:
@@ -70,6 +80,9 @@ services:
 
     telegraf:
         build: ../../telegraf-container
+        depends_on:
+            - syslog
+        restart: on-failure
         ports:
             - 8094:8094
         environment:
