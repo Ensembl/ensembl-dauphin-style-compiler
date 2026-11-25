@@ -1,4 +1,7 @@
 program "ensembl-webteam/core" "rnaseq-gene-model" 1;
 include "rnaseq-features.eard";
 
-draw_rnaseq_features();
+draw_rnaseq_features([
+    colour!("#d5edf0"), colour!("#b7dfe5"), colour!("#93ced8"), colour!("#6fb9c8"),
+    colour!("#4ba3b4"), colour!("#2c8c9f"), colour!("#177489"), colour!("#0b596f")
+]);

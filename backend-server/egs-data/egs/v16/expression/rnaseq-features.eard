@@ -33,7 +33,7 @@ function rnaseq_feature_zmenu(*feature) {
     paint_click(metadata, content, false)
 }
 
-export procedure draw_rnaseq_features() {
+export procedure draw_rnaseq_features(palette) {
     let track_id = setting_string("track_id", []);
     let group_id = setting_string("group_id", []);
     let lane_id = join("/", [group_id, "lanes", track_id]);
@@ -54,7 +54,13 @@ export procedure draw_rnaseq_features() {
     let leaves = leaf(push_str(push_str(base, ids), "/content"));
     let nw = coord(feature.start, [0,...], [-0.5,...]);
     let se = coord(feature.end, [8,...], [0.5,...]);
-    rectangle(nw, se, paint_solid(colour!("#f08a1c")), leaves);
+    rectangle(nw, se, paint_solid(index(palette, data_number(data, "shade"))), leaves);
     rectangle(nw, se, rnaseq_feature_zmenu(*feature), leaves);
+
+    // Like gene-overview, draw wider regions as one overlaid band.
+    let overview_start = data_number(data, "summary_start");
+    let overview_end = data_number(data, "summary_end");
+    let overview_paint = paint_solid(index(palette, data_number(data, "summary_shade")));
+    rectangle(coord(overview_start, [0,...], [0,...]), coord(overview_end, [8,...], [0,...]), overview_paint, [track_leaf(lane_id, "main/overview/content"),...]);
     draw_transcriptomic_track_name(lane_id, setting_string("track_name", []));
 }

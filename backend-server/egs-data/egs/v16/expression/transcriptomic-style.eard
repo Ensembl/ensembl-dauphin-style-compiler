@@ -6,7 +6,7 @@ export procedure setup_transcriptomic_track_styles(group_id, display_order) {
 }
 
 export procedure setup_transcriptomic_lane_styles(lane_id, track_id, lane_order) {
-    set_track_style(lane_id, "", ["priority", "report", "padding-top", "padding-bottom"], [lane_order, push_str("track;switch-id=", track_id), "8", "40"]);
+    set_track_style(lane_id, "", ["priority", "report", "padding-top", "padding-bottom"], [lane_order, push_str("track;switch-id=", track_id), "8", "8"]);
     set_track_style(lane_id, "title/", ["system", "type", "indent", "priority", "min-height"], ["content", "overlay", "left", "-1000", "20"]);
     set_track_style(lane_id, "main/", ["type", "priority", "min-height"], ["overlay", "0", "30"]);
     set_track_style(lane_id, "main/main/", ["system", "depth"], ["tracking", "1"]);
@@ -23,6 +23,7 @@ export procedure setup_feature_lane_styles(lane_id, track_id, lane_order) {
     set_track_style(lane_id, "main/", ["min-height"], ["12"]);
     set_track_style(lane_id, "main/main/", ["type"], ["wall"]);
     set_track_style(lane_id, "main/main/*/", ["type", "padding-bottom"], ["overlay", "4"]);
+    set_track_style(lane_id, "main/overview/", ["system", "type", "depth"], ["tracking", "overlay", "1"]);
 }
 
 export procedure draw_transcriptomic_track_name(lane_id, track_name) {
