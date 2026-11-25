@@ -30,6 +30,15 @@ pub fn js_throw<T,E: Debug>(e: Result<T,E>) -> T {
     }
 }
 
+fn message_kind(message: &Message) -> &'static str {
+    match message {
+        Message::DataError(DataMessage::XXXTransitional(e))
+            if matches!(e.error_type, ErrorType::Unavailable(CallToAction::BadVersion)) => "out-of-date",
+        Message::WebGLFailure(_) => "webgl-unavailable",
+        _ => "error"
+    }
+}
+
 fn jserror_to_message<T>(e: Result<T,JsValue>) -> Result<T,Message> {
     e.map_err(|f| Message::ConfusedWebBrowser(format!("bad config parameter: {}",f.as_string().unwrap_or_else(|| "*anon*".to_string()))))
 }
@@ -177,8 +186,12 @@ impl GenomeBrowser {
         Ok(())
     }
 
-    pub fn go(&mut self, config_object: &JsValue) {
-        js_throw(self.go_real(config_object));
+    pub fn go(&mut self, config_object: &JsValue) -> Result<(),JsValue> {
+        self.go_real(config_object).map_err(|e| {
+            let error = js_sys::Error::new(&e.to_string());
+            error.set_name(message_kind(&e));
+            error.into()
+        })
     }
 
     pub fn copy(&self) -> GenomeBrowser {
@@ -255,17 +268,7 @@ impl GenomeBrowser {
                     let this = JsValue::null(); 
                     match message.kind() {
                         MessageKind::Error => {
-                            let mut kind = "error";
-                            match message {
-                                Message::DataError(DataMessage::XXXTransitional(e)) => {
-                                    if let ErrorType::Unavailable(CallToAction::BadVersion) = e.error_type {
-                                        kind = "out-of-date";
-                                    }
-                                },
-                                _ => {}
-                            }
-                            /* func("error",error_as_string) */
-                            let kind = JsValue::from(kind);
+                            let kind = JsValue::from(message_kind(message));
                             let msg = JsValue::from(message.to_string().as_str());
                             let _ = closure.call2(&this,&kind,&msg);
                         },
