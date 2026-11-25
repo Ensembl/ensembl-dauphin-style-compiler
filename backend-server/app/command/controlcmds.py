@@ -5,7 +5,7 @@ from .datasources import DataAccessor
 from util.influx import ResponseMetrics
 from model.version import Version
 from command.begs import UnknownVersionException
-from model.expansions import ExpansionMetadataError
+from model.tracks import ExpansionMetadataError
 from model.trackapi import TrackApiError
 import os.path
 import toml

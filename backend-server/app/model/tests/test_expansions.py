@@ -1,9 +1,11 @@
 import unittest
 from typing import Any, cast
+from unittest.mock import Mock
 
 from command.controlcmds import ExpansionHandler
-from model.expansions import ExpansionMetadataError, Expansions
+from model.expansions import Expansions
 from model.trackapi import TrackApiError
+from model.tracks import ExpansionMetadataError
 
 
 def track_payload(filepath):
@@ -19,8 +21,7 @@ def track_payload(filepath):
 
 class ExpansionTrackFilepathTests(unittest.TestCase):
     def expansion_with_payload(self, payload):
-        expansion = Expansions.__new__(Expansions)
-        expansion._get_track_data = lambda _track_id: payload
+        expansion = Expansions(Mock(get_track=Mock(return_value=payload)))
         expansion._profiles = {}
         expansion._templates = {}
         return expansion
