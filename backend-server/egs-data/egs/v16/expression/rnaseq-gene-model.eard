@@ -1,0 +1,4 @@
+program "ensembl-webteam/core" "rnaseq-gene-model" 1;
+include "rnaseq-features.eard";
+
+draw_rnaseq_features();

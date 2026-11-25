@@ -1,0 +1,60 @@
+refer "libperegrine";
+refer "libeoe";
+include "../common/track-common.eard";
+include "../common/track-style.eard";
+include "transcriptomic-style.eard";
+
+function rnaseq_feature_zmenu(*feature) {
+    let location_template = template_start("{0}:{1}-{2}");
+    template_set(location_template, 0, feature.chr);
+    template_set(location_template, 1, comma_format(feature.start + 1));
+    template_set(location_template, 2, comma_format(feature.end));
+    let location = template_end(location_template);
+
+    struct!(metadata, """{"type": "zmenu", "zmenu-type": "feature"}""");
+    struct!(content,
+    """
+    (<0,1>!{
+        "data": [
+            [{"type": "block", "items": [
+                {"markup": ["light"], "text": "Location"},
+                {"markup": [], "text": " "},
+                {"markup": ["strong"], "text": <0s>}
+            ]}],
+            [{"type": "block", "items": [
+                {"markup": ["light"], "text": "Score"},
+                {"markup": [], "text": " "},
+                {"markup": ["strong"], "text": <1s>}
+            ]}]
+        ],
+        "metadata": {"location": <0s>, "score": <1s>}
+    })
+    """, location, feature.score);
+    paint_click(metadata, content, false)
+}
+
+export procedure draw_rnaseq_features() {
+    let track_id = setting_string("track_id", []);
+    let group_id = setting_string("group_id", []);
+    let lane_id = join("/", [group_id, "lanes", track_id]);
+    setup_transcriptomic_track_styles(group_id, setting_string("display_order", []));
+    setup_feature_lane_styles(lane_id, track_id, setting_string("lane_order", []));
+
+    let req = request("self()", "rnaseq_features");
+    scope(req, "datafile", setting_string("datafile", []));
+    let data = get_data(req);
+    halt(only_warm());
+
+    let feature.chr = data_string(data, "chr");
+    let feature.start = data_number(data, "start");
+    let feature.end = data_number(data, "end");
+    let feature.score = data_string(data, "score");
+    let ids = data_string(data, "id");
+    let base = join("/", ["tracks/track", lane_id, "main/main/"]);
+    let leaves = leaf(push_str(push_str(base, ids), "/content"));
+    let nw = coord(feature.start, [0,...], [-0.5,...]);
+    let se = coord(feature.end, [8,...], [0.5,...]);
+    rectangle(nw, se, paint_solid(colour!("#f08a1c")), leaves);
+    rectangle(nw, se, rnaseq_feature_zmenu(*feature), leaves);
+    draw_transcriptomic_track_name(lane_id, setting_string("track_name", []));
+}
