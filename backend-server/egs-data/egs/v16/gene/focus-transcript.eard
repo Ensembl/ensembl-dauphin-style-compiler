@@ -109,7 +109,7 @@ let leaf.letter = make_focus_transcript_leaf("main/letter/content",enabled_track
 let focus_gene_index = index(tr.index_of_gene,focus_tr_index);
 let **focus_gene = index(**gene,focus_gene_index);
 
-draw_track_category(["G"],["focus"],[leaf.letter]);
+draw_track_category(["G"],[leaf.letter]);
 draw_track_name(join(" ",[focus_transcript_id]),"name",leaf.trackname);
 draw_swatch(colour!("#58a8f9"),[leaf.letter]);
 

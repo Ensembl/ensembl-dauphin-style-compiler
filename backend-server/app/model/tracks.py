@@ -3,6 +3,11 @@ from typing import Optional
 from model.serialutil import build_map, immute, increase, remute
 import cbor2, toml
 
+
+class ExpansionMetadataError(Exception):
+    """Raised for expansion track registration failures."""
+
+
 def _count_prefix(a,b):
     minlen = min(len(a),len(b))
     for i in range(0,minlen):

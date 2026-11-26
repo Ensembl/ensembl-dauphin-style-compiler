@@ -204,7 +204,7 @@ let leaf.bgd = make_focus_gene_leaf("main/background/content",enabled_track && r
 let leaf.trackname = make_focus_gene_leaf("title/content",enabled_track && right_chr);
 let leaf.letter = make_focus_gene_leaf("main/letter/content",enabled_track && right_chr);
 
-draw_track_category(["G"],["focus"],[leaf.letter]);
+draw_track_category(["G"],[leaf.letter]);
 draw_track_name(join(" ",[focus_gene.name,focus_gene_id]),"name",leaf.trackname);
 draw_swatch(colour!("#58a8f9"),[leaf.letter]);
 

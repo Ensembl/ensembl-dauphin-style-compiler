@@ -5,7 +5,7 @@ from .datasources import DataAccessor
 from util.influx import ResponseMetrics
 from model.version import Version
 from command.begs import UnknownVersionException
-from model.expansions import ExpansionMetadataError
+from model.tracks import ExpansionMetadataError
 from model.trackapi import TrackApiError
 import os.path
 import toml
@@ -101,7 +101,7 @@ class ExpansionHandler(Handler):
             (name,step) = payload
             callable = self._get(data_accessor,channel,name,version)
             if callable is not None:
-                tracks = callable(step)
+                tracks = callable(step, data_accessor.cache)
                 r.add_tracks(tracks)
             return r
         except (ExpansionMetadataError, TrackApiError) as e:

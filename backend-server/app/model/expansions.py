@@ -1,24 +1,23 @@
 import toml
 
 from core.config import TRACK_FALLBACK_PROFILES_TOML
-from model.tracks import Track, Tracks
+from model.tracks import ExpansionMetadataError, Track, Tracks
 from model.datalocator import TrackFilepathError, validate_track_filepath
 from model.trackapi import TrackApiClient
+from model.transcriptomic import TranscriptomicTracks
 
-
-class ExpansionMetadataError(Exception):
-    """Raised for expansion track registration failures."""
 
 class Expansions:
     _simple_feature_programs = {"cpg", "trna", "tssp"}
 
-    def __init__(self):
-        self._track_api = TrackApiClient()
+    def __init__(self, track_api: TrackApiClient | None = None):
+        self._track_api = track_api if track_api is not None else TrackApiClient()
         self._profiles, self._templates = self._load_profiles()
+        self._transcriptomic = TranscriptomicTracks(self._track_api, self._create_track_set)
 
     @staticmethod
     def _load_profiles() -> tuple[dict[tuple[str, ...], dict], dict[str, dict]]:
-        """Load fallback track metadata from toml file."""
+        """Load fallback track metadata profiles for legacy tracks."""
         config = toml.load(TRACK_FALLBACK_PROFILES_TOML)
         profiles = config.get("profile", {})
         out = {}
@@ -31,10 +30,6 @@ class Expansions:
         if not isinstance(templates, dict):
             raise ExpansionMetadataError("Fallback templates must be a table")
         return out, templates
-    
-    # Fetch track metadata from Track API
-    def _get_track_data(self, track_id: str) -> dict:
-        return self._track_api.get_track(track_id)
     
     # Add setting switches to a track object
     @staticmethod
@@ -172,21 +167,22 @@ class Expansions:
             raise ExpansionMetadataError(
                 f"Invalid datafile path for track '{data.get('track_id', '<unknown>')}': {e}"
             ) from e
+        # Only legacy tracks use the trigger value (to select a fallback profile)
         trigger = data.get("trigger")
         profile = self._profiles.get(tuple(trigger)) if isinstance(trigger, list) else None
-        if profile is None and isinstance(trigger, list) and trigger[:2] != ["track", "expand"]:
-            raise ExpansionMetadataError(
-                f"No fallback profile for track '{data.get('track_id', '<unknown>')}' trigger {trigger!r}"
-            )
         specs = self._profile_specs(data, profile) if profile else self._generic_specs(data)
         for spec in specs:
             track = self._create_track(data, spec)
             tracks.add_track(f"{data['track_id']}-{spec['id']}", track)
         return tracks
     
-    # Functions for registering expansion tracks (defined in boot-tracks.toml config)
-    def register_track(self, track_id: str) -> Tracks:
-        data = self._get_track_data(track_id)
+    def register_track(self, track_id: str, cache=None) -> Tracks:
+        cached = self._transcriptomic.cached_tracks(track_id, cache)
+        if cached is not None:
+            return cached
+        data = self._track_api.get_track(track_id)
         if not isinstance(data.get("datafiles"), dict) or not data["datafiles"]:
             raise ExpansionMetadataError(f"No datafiles defined for track {track_id}")
+        if self._transcriptomic.supports(data):
+            return self._transcriptomic.register(data, cache)
         return self._create_track_set(data)

@@ -1,0 +1,7 @@
+program "ensembl-webteam/core" "rnaseq-splice-junction" 1;
+include "rnaseq-features.eard";
+
+draw_rnaseq_features([
+    colour!("#ffead1"), colour!("#ffdbaf"), colour!("#ffcb89"), colour!("#ffb65f"),
+    colour!("#f89d36"), colour!("#e98219"), colour!("#ca6410"), colour!("#a64b08")
+]);
