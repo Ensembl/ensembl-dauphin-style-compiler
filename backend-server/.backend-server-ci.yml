@@ -130,11 +130,11 @@ BE-Docker:
 
 container_scanning:
   rules:
-  - if: '$CI_DEPLOY_FREEZE == null'
-    changes:
-      - backend-server/**/*
-    when: on_success
-  - when: never
+    - if: '$CI_DEPLOY_FREEZE == null'
+      changes:
+        - backend-server/**/*
+      when: on_success
+    - when: never
 
 Prod:
   extends: .deploy_backend_live
