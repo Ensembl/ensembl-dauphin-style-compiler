@@ -123,3 +123,9 @@ ec.tar.gz
 
 # eardo binaries
 *.eardo
+
+# devenv
+.devenv/
+.direnv/
+.devenv.flake.nix
+devenv.local.nix
