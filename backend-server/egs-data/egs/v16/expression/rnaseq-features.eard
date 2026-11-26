@@ -62,5 +62,5 @@ export procedure draw_rnaseq_features(palette) {
     let overview_end = data_number(data, "summary_end");
     let overview_paint = paint_solid(index(palette, data_number(data, "summary_shade")));
     rectangle(coord(overview_start, [0,...], [0,...]), coord(overview_end, [8,...], [0,...]), overview_paint, [track_leaf(lane_id, "main/overview/content"),...]);
-    draw_transcriptomic_track_name(lane_id, setting_string("track_name", []));
+    draw_track_name(setting_string("track_name", []), "name", track_leaf(lane_id, "title/content"));
 }

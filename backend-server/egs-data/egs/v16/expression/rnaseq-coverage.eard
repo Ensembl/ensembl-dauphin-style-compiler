@@ -38,4 +38,4 @@ let axis_pen = pen("'IBM Plex Mono', sans-serif", -10, [colour!("#9aa7b1"),...],
 text(coord([1,...], [7,17,27], [-48,...]), axis_pen, [">100", ">1,000", ">10,000"], [track_leaf(lane_id, "main/axis-labels/content"),...]);
 
 // Draw track label
-draw_transcriptomic_track_name(lane_id, track_name);
+draw_track_name(track_name, "name", track_leaf(lane_id, "title/content"));
